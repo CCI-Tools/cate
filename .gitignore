@@ -44,7 +44,7 @@ coverage.xml
 *,cover
 
 # Sphinx documentation
-docs/_build/
+doc/build/
 
 # PyCharm
 .idea/
