@@ -14,6 +14,7 @@ Contents:
 
    intro
    quick_start
+   tech_spec
    api_reference
 
 

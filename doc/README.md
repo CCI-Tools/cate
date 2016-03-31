@@ -18,5 +18,6 @@ or to force regeneration of the documentation, run:
 Then find the HTML documentation in ect-core/doc/build/html
 
 More info:
-    * Sphinx Tutorial: http://sphinx-doc.org/tutorial.html
-    * RST Primer: http://sphinx-doc.org/rest.html#rst-primer
+* Sphinx Tutorial: http://sphinx-doc.org/tutorial.html
+* RST Primer: http://sphinx-doc.org/rest.html#rst-primer
+* RST Quickref: http://docutils.sourceforge.net/docs/user/rst/quickref.html
