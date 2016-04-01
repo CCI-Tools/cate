@@ -2,6 +2,51 @@
 Technical Specification
 =======================
 
+
+Data Model
+==========
+
+**Raster Data**
+
+Raster data is always represented as masked or non-masked ``numpy`` arrays which are part of ``xarray.Dataset`` and
+``xarray.DataArray`` instances.
+
+**Tabular Data**
+
+Tabular data originating from CSV or Excel tables will alway be ``pandas.DataFrame`` instances.
+
+**Images**
+
+Images are usually represented by ``PIL.Image`` instances.
+
+**Vector Data**
+
+objects following the `Python Protocol for Geospatial Data <https://gist.github.com/sgillies/2217756>`_,
+such as ``shapely.geometry`` objects. External respresentation and protocol format is `GeoJSON <http://geojson.org/>`_.
+
+Common Operations
+=================
+
+Resampling
+----------
+
+Resampling is performed in order to align two datasets in space and time. This is usually required as a pre-processing
+step to some operation such as correlation analyis.
+
+We first resample in space, then in time.
+Spatial resampling is done in two dimensions and includes upsampling or downsampling or both.
+Upsampling is done by nth.order spline interpolation, namely using the function ``scipy.ndimage.zoom()``.
+Downsampling is done by weighted average aggregation. Weights are determined by overlap area of contributing grid cells.
+
+
+
+Gap Filling
+-----------
+
+* Climatology filling
+* etc
+
+
 System Requirements
 ===================
 
@@ -30,6 +75,8 @@ API dependencies include libraries whose public API are also explicitly part of 
 * `Pillow <https://pillow.readthedocs.org/en/3.1.x/>`_:
   ``Pillow`` is the friendly ``PIL`` fork by Alex Clark and Contributors.
   ``PIL`` is the Python Imaging Library by Fredrik Lundh and Contributors.
+* `Shapely <https://pypi.python.org/pypi/Shapely>`_:
+  Manipulation and analysis of geometric objects in the Cartesian plane.
 
 
 Implementation Dependencies
@@ -56,4 +103,5 @@ Development Dependencies
 
 Development dependencies include libraries and tools which you will only need to take care of when you contribute to
 ECT or you plan to write ECT plugins.
+
 

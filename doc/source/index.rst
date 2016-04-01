@@ -16,6 +16,7 @@ Contents:
    quick_start
    tech_spec
    api_reference
+   rel_projects
 
 
 Indices and tables
