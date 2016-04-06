@@ -1,5 +1,3 @@
 """
-This is ECT's core API.
+ECT core classes and functions.
 """
-
-__VERSION__ = '0.1'

@@ -11,7 +11,10 @@ setup(
     entry_points={
         'console_scripts': [
             'ect-cli = ect.core.cli:main',
-        ]
+        ],
+        'ect_plugins': [
+            'example_plugin = ect.core.plugin:ExamplePlugin',
+        ],
     },
     install_requires=['h5py >= 2.5',
                       'numpy >= 1.7',
