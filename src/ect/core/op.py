@@ -14,6 +14,10 @@ Design targets:
   one or more ``input``, ``output`` decorators.
 * Operation registration is done by operation class annotations.
 * Meta information shall be stores in an operation's *class* definition, not in the operation *instance*.
+* Any compatible Python-callable of the from op(*args, **kwargs) -> dict() shall be considered an operation.
+* Operation meta information
+
+
 """
 
 from abc import ABCMeta, abstractmethod
@@ -21,6 +25,20 @@ from collections import OrderedDict
 from typing import Dict
 
 from .monitor import Monitor
+
+class OperationMetaInfo:
+    def __init__(self, callable_element):
+        self._callable_element = callable_element
+        self._inputs = OrderedDict()
+        self._outputs = OrderedDict()
+
+    @property
+    def callable_element(self):
+        return self._callable_element
+
+    def add_input(self, name, attributes):
+        self._inputs[name] = attributes
+
 
 _ATTR_NAME_OP_META_INFO = '__op_meta_info__'
 _ATTR_NAME_OP_INPUTS = '__op_inputs__'
