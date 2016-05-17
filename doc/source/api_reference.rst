@@ -2,5 +2,6 @@
 API Reference
 =============
 
-.. automodule:: ect.core.cli
+.. automodule:: ect.core
    :members:
+
