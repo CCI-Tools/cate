@@ -1,25 +1,25 @@
 from unittest import TestCase
 
 from ect.core.node import Connection, Connector, Node
-from ect.core.op import Op, input, output
+from ect.core.op import op_input, op_output
 
 
-@input('x')
-@output('y')
-class Op1(Op):
+@op_input('x')
+@op_output('y')
+class Op1:
     pass
 
 
-@input('a')
-@output('b')
-class Op2(Op):
+@op_input('a')
+@op_output('b')
+class Op2:
     pass
 
 
-@input('u')
-@input('v')
-@output('w')
-class Op3(Op):
+@op_input('u')
+@op_input('v')
+@op_output('w')
+class Op3:
     pass
 
 
@@ -35,11 +35,11 @@ class ConnectorTest(TestCase):
         self.assertEqual(output_connector.name, 'y')
         self.assertEqual(output_connector.is_input, False)
         with self.assertRaises(ValueError):
-            connection = Connector(node, 'a', True)
+            Connector(node, 'a', True)
         with self.assertRaises(ValueError):
-            connection = Connector(node, 'y', True)
+            Connector(node, 'y', True)
         with self.assertRaises(ValueError):
-            connection = Connector(node, 'x', False)
+            Connector(node, 'x', False)
 
     def test_eq(self):
         node1 = Node(Op3)
@@ -60,9 +60,9 @@ class ConnectionTest(TestCase):
         self.assertIs(connection.output_connector, output_connector)
         self.assertIs(connection.input_connector, input_connector)
         with self.assertRaises(ValueError):
-            connection = Connection(input_connector, input_connector)
+            Connection(input_connector, input_connector)
         with self.assertRaises(ValueError):
-            connection = Connection(input_connector, output_connector)
+            Connection(input_connector, output_connector)
 
     def test_eq(self):
         node1 = Node(Op1)
@@ -74,6 +74,7 @@ class ConnectionTest(TestCase):
                             Connection(Connector(node1, 'y', False), Connector(node3, 'a', True)))
 
 
+# noinspection PyUnresolvedReferences
 class NodeTest(TestCase):
     def test_init(self):
         node = Node(Op3)
@@ -96,8 +97,23 @@ class NodeTest(TestCase):
         self.assertEqual(node.w.name, 'w')
         self.assertFalse(node.w.is_input)
 
-        with self.assertRaises(TypeError):
-            node = Node(NodeTest)
+    def test_init_operation_or_name_is_equivalent(self):
+        node1 = Node(Op3)
+        self.assertIsNotNone(node1.operation)
+        self.assertIsNotNone(node1.op_meta_info)
+        node2 = Node(Op3.__qualname__)
+        self.assertIs(node2.operation, node1.operation)
+        self.assertIs(node2.op_meta_info, node1.op_meta_info)
+
+    def test_init_failures(self):
+        with self.assertRaises(ValueError):
+            Node(NodeTest)
+
+        with self.assertRaises(ValueError):
+            Node('X')
+
+        with self.assertRaises(ValueError):
+            Node(None)
 
     def test_link_to(self):
         node1 = Node(Op1)

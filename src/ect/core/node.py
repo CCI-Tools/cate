@@ -1,4 +1,4 @@
-from .op import Op
+from .op import get_op
 
 
 class Node:
@@ -6,21 +6,41 @@ class Node:
     Nodes can be used to construct networks or graphs of operations.
     Input and outputs of an operation are available as node attributes of type ``Connector``.
 
-    :param op_class: A class derived from ``Op``
+    :param operation: An operation object.
+    :param op_name: The name of a registered operation.
     """
-    def __init__(self, op_class: Op):
-        if not issubclass(op_class, Op):
-            # Why would someone use issubclass() in Python, why not rely on duck typing?
-            # Because it produces AttributeError all the way down, which are usually hard to trace.
-            # We want type safety here. Just pass a subclass of Op, then you are fine.
-            raise TypeError('op_class must be a subclass of %s:%s' % (Op.__module__, Op.__name__))
-        self.op_class = op_class
-        self.input_connections = []
-        self.output_connections = []
-        for name in op_class.get_inputs(deep=True).keys():
+
+    def __init__(self, operation):
+        if not operation:
+            raise ValueError('operation must be given')
+        if hasattr(operation, '__qualname__'):
+            op_registration = get_op(operation.__qualname__, fail_if_not_exists=True)
+        else:
+            op_registration = get_op(operation, fail_if_not_exists=True)
+        assert op_registration is not None
+        self._op_registration = op_registration
+        self._input_connections = []
+        self._output_connections = []
+        for name in op_registration.meta_info.inputs.keys():
             self.__dict__[name] = Connector(self, name, True)
-        for name in op_class.get_outputs(deep=True).keys():
+        for name in op_registration.meta_info.outputs.keys():
             self.__dict__[name] = Connector(self, name, False)
+
+    @property
+    def operation(self):
+        return self._op_registration.operation
+
+    @property
+    def op_meta_info(self):
+        return self._op_registration.meta_info
+
+    @property
+    def input_connections(self):
+        return self._input_connections
+
+    @property
+    def output_connections(self):
+        return self._output_connections
 
 
 class Connector:
@@ -31,11 +51,15 @@ class Connector:
     :param name: Name of an input or output attribute of the node's ``op_class``.
     :param is_input:
     """
+
     def __init__(self, node: Node, name: str, is_input: bool):
-        if is_input and name not in node.op_class.get_inputs(deep=True):
-            raise ValueError('%s is not an input of operation %s' % (name, node.op_class.get_name()))
-        if not is_input and name not in node.op_class.get_outputs():
-            raise ValueError('%s is not an output of operation %s' % (name, node.op_class.get_name()))
+        meta_info = node.op_meta_info
+        if is_input and name not in meta_info.inputs:
+            raise ValueError(
+                '%s is not an input of operation %s' % (name, meta_info.qualified_name))
+        if not is_input and name not in meta_info.outputs:
+            raise ValueError(
+                '%s is not an output of operation %s' % (name, meta_info.qualified_name))
         self._node = node
         self._name = name
         self._is_input = is_input
@@ -77,7 +101,7 @@ class Connector:
         return not self.__eq__(other)
 
     def __str__(self):
-        return '%s:%s.%s' % ('in' if self.is_input else 'out', self.node.op_class.get_name(), self.name)
+        return '%s:%s.%s' % ('in' if self.is_input else 'out', self.node.op_meta_info.qualified_name, self.name)
 
 
 class Connection:
