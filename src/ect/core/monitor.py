@@ -1,4 +1,6 @@
 class Monitor:
+    NULL = None
+
     """
     A monitor is used to both observe and control a running operation.
     """
