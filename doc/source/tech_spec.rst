@@ -75,6 +75,9 @@ API dependencies include libraries whose public API are also explicitly part of 
 * `Pillow <https://pillow.readthedocs.org/en/3.1.x/>`_:
   ``Pillow`` is the friendly ``PIL`` fork by Alex Clark and Contributors.
   ``PIL`` is the Python Imaging Library by Fredrik Lundh and Contributors.
+* `Fiona <http://toblerity.org/fiona/>`_:
+  Fiona can read and write real-world data using multi-layered GIS formats and zipped virtual file systems and
+  integrates readily with other Python GIS packages such as ``pyproj``, ``Rtree``, and ``Shapely``.
 * `Shapely <https://pypi.python.org/pypi/Shapely>`_:
   Manipulation and analysis of geometric objects in the Cartesian plane.
 
