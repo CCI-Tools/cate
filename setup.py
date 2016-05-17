@@ -22,5 +22,7 @@ setup(
                       'matplotlib >= 1.5',
                       'numexpr >= 2.5',
                       'dask >= 0.8',
-                      'xarray >= 0.7'],
+                      'xarray >= 0.7',
+                      'fiona >= 1.6'
+                      ],
 )
