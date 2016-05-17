@@ -1,4 +1,8 @@
+[![Build Status](https://travis-ci.org/CCI-Tools/ect-core.svg?branch=master)](https://travis-ci.org/CCI-Tools/ect-core)
+[![codecov.io](https://codecov.io/github/CCI-Tools/ect-core/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/ect-core?branch=master)
+
 # ect-core
+
 
 This is the Python core of the ESA CCI Toolbox (ECT).
 
