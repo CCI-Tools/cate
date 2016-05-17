@@ -6,6 +6,7 @@ from ect.core import plugin
 class PluginTest(TestCase):
     def test_that_example_plugin_is_loaded(self):
         self.assertIsNotNone(plugin.PLUGINS)
+        # Note: if this fails, you should first do "python setup.py develop" in a terminal
         self.assertIn('example_plugin', plugin.PLUGINS)
 
         self.assertIsNotNone(plugin.CONTEXT)
