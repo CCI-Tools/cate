@@ -195,3 +195,32 @@ class OpIsClassTest(TestCase):
         expected_outputs['y'] = dict(data_type=list)
         expected_outputs['x'] = dict(data_type=float)
         self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
+
+
+class OpToJsonTest(TestCase):
+    def test_json_encode_decode(self):
+        import json
+        from io import StringIO
+        from ect.core.util import object_to_qualified_name
+
+        def convert_connectors_to_json(connector_dict):
+            connectors_copy = OrderedDict()
+            for connector_name, properties in connector_dict.items():
+                properties_copy = dict(properties)
+                if 'data_type' in properties_copy:
+                    properties_copy['data_type'] = object_to_qualified_name(properties_copy['data_type'])
+                connectors_copy[connector_name] = properties_copy
+            return connectors_copy
+
+        op_reg = get_op(C_op_inp_out.__qualname__)
+        meta_info = op_reg.meta_info
+
+        d1 = OrderedDict()
+        d1['qualified_name'] = meta_info.qualified_name
+        d1['attributes'] = meta_info.attributes
+        d1['inputs'] = convert_connectors_to_json(meta_info.inputs)
+        d1['outputs'] = convert_connectors_to_json(meta_info.outputs)
+        s = json.dumps(d1, indent='  ')
+        d2 = json.load(StringIO(s))
+
+        self.assertEqual(d2, d1)
