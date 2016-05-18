@@ -39,6 +39,7 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
     if module_name == default_module_name:
         module_name = None
 
+    # Not sure, if '__qualname__' is the better choice - no Pythons docs available
     name = value.__name__ if hasattr(value, '__name__') else None
     if name:
         return module_name + '.' + name if module_name else name
