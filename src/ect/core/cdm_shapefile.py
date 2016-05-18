@@ -19,3 +19,4 @@ class ShapefileDataset(Dataset):
 def add_shapefile_dataset(container: DatasetCollection, shapefile):
     container.add_dataset(ShapefileDataset(shapefile))
 
+DatasetCollection.add_shapefile_dataset = add_shapefile_dataset

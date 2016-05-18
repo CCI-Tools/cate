@@ -66,8 +66,8 @@ class DatasetCollection(DatasetOperations):
     def subset(self, spatial_roi=None, temporal_roi=None):
         dsc = DatasetCollection()
         for dataset in self._datasets:
-            subset_dataset = dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi)
-            dsc.add_dataset(subset_dataset)
+            dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi))
+        return dsc
 
     def close(self):
         for dataset in self._datasets:

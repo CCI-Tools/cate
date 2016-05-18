@@ -17,3 +17,5 @@ class XArrayDataset(Dataset):
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset):
     container.add_dataset(XArrayDataset(xr_dataset))
+
+DatasetCollection.add_xarray_dataset = add_xarray_dataset
