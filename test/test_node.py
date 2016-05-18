@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from ect.core.node import Connection, Connector, Node
 from ect.core.op import op_input, op_output
+from ect.core.util import object_to_qualified_name
 
 
 @op_input('x')
@@ -101,7 +102,7 @@ class NodeTest(TestCase):
         node1 = Node(Op3)
         self.assertIsNotNone(node1.operation)
         self.assertIsNotNone(node1.op_meta_info)
-        node2 = Node(Op3.__qualname__)
+        node2 = Node(object_to_qualified_name(Op3))
         self.assertIs(node2.operation, node1.operation)
         self.assertIs(node2.op_meta_info, node1.op_meta_info)
 
@@ -109,8 +110,11 @@ class NodeTest(TestCase):
         with self.assertRaises(ValueError):
             Node(NodeTest)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AttributeError):
             Node('X')
+
+        with self.assertRaises(ImportError):
+            Node('X.Y')
 
         with self.assertRaises(ValueError):
             Node(None)

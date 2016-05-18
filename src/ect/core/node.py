@@ -1,4 +1,6 @@
-from .op import get_op
+from .op import REGISTRY
+
+from .util import qualified_name_to_object
 
 
 class Node:
@@ -6,17 +8,15 @@ class Node:
     Nodes can be used to construct networks or graphs of operations.
     Input and outputs of an operation are available as node attributes of type ``Connector``.
 
-    :param operation: An operation object.
-    :param op_name: The name of a registered operation.
+    :param operation: A fully qualified operation name or registered operation object such as a class or callable.
     """
 
-    def __init__(self, operation):
+    def __init__(self, operation, registry=REGISTRY):
         if not operation:
             raise ValueError('operation must be given')
-        if hasattr(operation, '__qualname__'):
-            op_registration = get_op(operation.__qualname__, fail_if_not_exists=True)
-        else:
-            op_registration = get_op(operation, fail_if_not_exists=True)
+        if isinstance(operation, str):
+            operation = qualified_name_to_object(operation)
+        op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
         self._op_registration = op_registration
         self._input_connections = []

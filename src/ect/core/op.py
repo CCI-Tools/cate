@@ -25,11 +25,12 @@ from inspect import isclass
 from typing import Dict
 
 from .monitor import Monitor
+from .util import object_to_qualified_name
 
 
 class OpMetaInfo:
     """
-    Operation meta-information.
+    Meta-information about an operation.
 
     :param op_qualified_name: The operation's qualified Python name.
     """
@@ -42,18 +43,32 @@ class OpMetaInfo:
 
     @property
     def qualified_name(self):
+        """
+        :return: Fully qualified name of the actual operation.
+        """
         return self._qualified_name
 
     @property
     def attributes(self):
+        """
+        :return: Operation attributes.
+        """
         return self._attributes
 
     @property
-    def inputs(self):
+    def inputs(self) -> OrderedDict:
+        """
+        Mapping from an input slot names to a dictionary of properties describing the slot.
+        :return: Named input slots.
+        """
         return self._inputs
 
     @property
     def outputs(self):
+        """
+        Mapping from an output slot names to a dictionary of properties describing the slot.
+        :return: Named input slots.
+        """
         return self._outputs
 
     def __str__(self):
@@ -65,16 +80,27 @@ class OpMetaInfo:
 
 
 class OpRegistration:
+    """
+    A registered operation comprises the actual operation object, which may be a class or any callable, and
+    meta-information about the operation.
+    """
+
     def __init__(self, operation):
         self._meta_info = OpRegistration._introspect_operation(operation)
         self._operation = operation
 
     @property
     def meta_info(self):
+        """
+        :return: Meta-information about the operation.
+        """
         return self._meta_info
 
     @property
     def operation(self):
+        """
+        :return: The actual operation object which may be a class or any callable.
+        """
         return self._operation
 
     def __str__(self):
@@ -84,9 +110,7 @@ class OpRegistration:
     def _introspect_operation(operation) -> OpMetaInfo:
         if not operation:
             raise ValueError('operation object must be given')
-        if not hasattr(operation, '__qualname__'):
-            raise ValueError("missing '__qualname__' attribute in operation object")
-        op_qualified_name = operation.__qualname__
+        op_qualified_name = object_to_qualified_name(operation, fail=True)
         meta_info = OpMetaInfo(op_qualified_name)
         # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
         if hasattr(operation, '__doc__'):
@@ -191,51 +215,72 @@ class OpRegistration:
 
 
 class OpRegistry:
-    _REGISTRATIONS = OrderedDict()
+    """
+    The operation registry allows for addition, removal, and retrieval of operations.
+    """
 
-    @staticmethod
-    def get_op(op_qualified_name, fail_if_not_exists=False) -> OpRegistration:
-        op_registration = OpRegistry._REGISTRATIONS.get(op_qualified_name, None)
-        if op_registration is None and fail_if_not_exists:
-            raise ValueError("operation with name '%s' not registered" % op_qualified_name)
-        return op_registration
+    def __init__(self):
+        self._op_registrations = OrderedDict()
 
-    @staticmethod
-    def add_op(operation, fail_if_exists=True) -> OpRegistration:
-        op_qualified_name = operation.__qualname__
-        if op_qualified_name in OpRegistry._REGISTRATIONS:
+    @property
+    def op_registrations(self) -> OrderedDict:
+        """
+        Get all operation registrations.
+        :return: a mapping of fully qualified operation names to operation registrations.
+        """
+        return OrderedDict(sorted(self._op_registrations.items(), key=lambda name: name[0]))
+
+    def add_op(self, operation, fail_if_exists=True) -> OpRegistration:
+        """
+        Add a new operation registration.
+        :param operation: A operation object such as a class or any callable.
+        :param fail_if_exists: raise ``ValueError`` if the operation was already registered
+        :return: an operation registration
+        """
+        op_qualified_name = object_to_qualified_name(operation)
+        if op_qualified_name in self._op_registrations:
             if fail_if_exists:
                 raise ValueError("operation with name '%s' already registered" % op_qualified_name)
             else:
-                return OpRegistry._REGISTRATIONS[op_qualified_name]
+                return self._op_registrations[op_qualified_name]
         op_registration = OpRegistration(operation)
-        OpRegistry._REGISTRATIONS[op_qualified_name] = op_registration
+        self._op_registrations[op_qualified_name] = op_registration
         return op_registration
 
-    @staticmethod
-    def remove_op(operation, fail_if_not_exists=False) -> OpRegistration:
-        op_qualified_name = operation.__qualname__
-        if op_qualified_name not in OpRegistry._REGISTRATIONS:
+    def remove_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
+        """
+        Remove an operation registration.
+        :param operation: A fully qualified operation name or registered operation object such as a class or callable.
+        :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
+        :return: the removed operation registration or ``None`` if *fail_if_not_exists* is ``False``.
+        """
+        op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
+        if op_qualified_name not in self._op_registrations:
             if fail_if_not_exists:
                 raise ValueError("operation with name '%s' not registered" % op_qualified_name)
             else:
                 return None
-        return OpRegistry._REGISTRATIONS.pop(op_qualified_name)
+        return self._op_registrations.pop(op_qualified_name)
+
+    def get_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
+        """
+        Get an operation registration.
+        :param operation: A fully qualified operation name or registered operation object such as a class or callable.
+        :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
+        :return: an operation registration or ``None`` if *fail_if_not_exists* is ``False``.
+        """
+        op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
+        op_registration = self._op_registrations.get(op_qualified_name, None)
+        if op_registration is None and fail_if_not_exists:
+            raise ValueError("operation with name '%s' not registered" % op_qualified_name)
+        return op_registration
 
 
-def add_op(operation, fail_if_exists=True):
-    return OpRegistry.add_op(operation, fail_if_exists=fail_if_exists)
+#: The default operation registry.
+REGISTRY = OpRegistry()
 
 
-def remove_op(operation, fail_if_not_exists=False):
-    return OpRegistry.remove_op(operation, fail_if_not_exists=fail_if_not_exists)
-
-
-def get_op(op_qualified_name, fail_if_not_exists=False):
-    return OpRegistry.get_op(op_qualified_name, fail_if_not_exists=fail_if_not_exists)
-
-
-def op():
+def op(registry=REGISTRY):
     """
     Classes or functions annotated by this decorator are added to the ``OpRegistry``.
     Classes annotated by this decorator must have callable instances. Callable instances
@@ -243,10 +288,11 @@ def op():
 
         operation(**input_values) -> dict
 
+    :param registry: The operation registry.
     """
 
     def _op(operation):
-        OpRegistry.add_op(operation, fail_if_exists=True)
+        registry.add_op(operation, fail_if_exists=True)
         return operation
 
     return _op
@@ -258,6 +304,7 @@ def op_input(input_name: str,
              data_type=None,
              value_set=None,
              value_range=None,
+             registry=REGISTRY,
              **kwargs):
     """
     Classes or functions annotated by this decorator are added to the ``OpRegistry`` (if not already done)
@@ -270,10 +317,11 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
                   ``value_type``.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param registry: The operation registry.
     """
 
     def _op_input(operation):
-        op_registration = OpRegistry.add_op(operation, fail_if_exists=False)
+        op_registration = registry.add_op(operation, fail_if_exists=False)
         inputs = op_registration.meta_info.inputs
         if input_name in inputs:
             old_properties = inputs[input_name]
@@ -296,6 +344,7 @@ def op_output(output_name: str,
               not_none=None,
               value_set=None,
               value_range=None,
+              registry=REGISTRY,
               **kwargs):
     """
     Class decorator that describes an 'output' slot to an operation.
@@ -306,10 +355,11 @@ def op_output(output_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
                   ``value_type``.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param registry: The operation registry.
     """
 
     def _op_output(operation):
-        op_registration = OpRegistry.add_op(operation, fail_if_exists=False)
+        op_registration = registry.add_op(operation, fail_if_exists=False)
         outputs = op_registration.meta_info.outputs
         if output_name in outputs:
             old_properties = outputs[output_name]
@@ -331,6 +381,7 @@ def op_return(data_type=None,
               not_none=None,
               value_set=None,
               value_range=None,
+              registry=REGISTRY,
               **kwargs):
     """
     Class decorator that describes the one and only 'output' slot of an operation that has a single return value.
@@ -340,12 +391,14 @@ def op_return(data_type=None,
     :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
                   ``value_type``.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param registry: The operation registry.
     """
     return op_output('return',
                      data_type=data_type,
                      not_none=not_none,
                      value_set=value_set,
                      value_range=value_range,
+                     registry=registry,
                      **kwargs)
 
 
