@@ -23,7 +23,7 @@ install:
 script:
   # For the unit-tests, disable Numba JIT, otherwise we wont reach the actual Python code
   - export NUMBA_DISABLE_JIT=1
-  - py.test -v --cov=src/ect/core test/
+  - py.test -v --cov=src/ect test
 
 after_success:
   - pip install codecov
