@@ -150,13 +150,15 @@ class OpRegistration:
                     meta_info.inputs[name]['data_type'] = value
                 else:
                     meta_info.outputs[name] = dict(data_type=value)
+        if len(meta_info.outputs) == 0:
+            meta_info.outputs['return'] = dict()
         return meta_info
 
     # todo - write tests!
-    def invoke(self, monitor: Monitor = Monitor.NULL, **input_values):
+    def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
 
         # set default_value where input values are missing
-        for name, properties in self.meta_info.inputs:
+        for name, properties in self.meta_info.inputs.items():
             if name not in input_values or input_values[name] is None:
                 input_values[name] = properties.get('default_value', None)
 
@@ -168,21 +170,23 @@ class OpRegistration:
             # create object instance
             operation_instance = operation()
             # inject input_values
-            for name, value in input_values:
+            for name, value in input_values.items():
                 setattr(operation_instance, name, value)
             # call the instance
-            operation_instance(monitor=monitor)
+            #operation_instance(monitor=monitor)
+            operation_instance()
             # extract output_values
             output_values = dict()
-            for name, value in input_values:
+            for name in self.meta_info.outputs.keys():
                 output_values[name] = getattr(operation_instance, name, None)
         else:
             # call the function/method/callable/?
-            return_value = operation(monitor=monitor, **input_values)
-            output_values = dict(return_value=return_value)
+            # return_value = operation(monitor=monitor, **input_values)
+            return_value = operation(**input_values)
+            output_values = {'return': return_value}
 
         # set default_value where output values are missing
-        for name, properties in self.meta_info.outputs:
+        for name, properties in self.meta_info.outputs.items():
             if name not in output_values or output_values[name] is None:
                 output_values[name] = properties.get('default_value', None)
 
@@ -332,17 +336,15 @@ def op_input(input_name: str,
     def _op_input(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         inputs = op_registration.meta_info.inputs
-        if input_name in inputs:
-            old_properties = inputs[input_name]
-        else:
-            old_properties = dict()
-            inputs[input_name] = old_properties
+        if input_name not in inputs:
+            inputs[input_name] = dict()
+        input_properties = inputs[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
                               not_none=not_none,
                               value_set=value_set,
                               value_range=value_range, **kwargs)
-        _update_dict(old_properties, new_properties)
+        _update_dict(input_properties, new_properties)
         return operation
 
     return _op_input
@@ -371,17 +373,19 @@ def op_output(output_name: str,
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         outputs = op_registration.meta_info.outputs
-        if output_name in outputs:
-            old_properties = outputs[output_name]
-        else:
-            old_properties = dict()
-            outputs[output_name] = old_properties
+        if len(outputs) == 1 and 'return' in outputs:
+            # if there is only one entry and it is the 'return' entry, rename it to value of output_name
+            output_properties = outputs.pop('return')
+            outputs[output_name] = output_properties
+        elif output_name not in outputs:
+            outputs[output_name] = dict()
+        output_properties = outputs[output_name]
         new_properties = dict(data_type=data_type,
                               not_none=not_none,
                               value_set=value_set,
                               value_range=value_range,
                               **kwargs)
-        _update_dict(old_properties, new_properties)
+        _update_dict(output_properties, new_properties)
         return operation
 
     return _op_output

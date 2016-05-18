@@ -131,7 +131,7 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C))
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C!'))
         self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict())
+        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({'return': {}}))
 
         removed_op_reg = registry.remove_op(C)
         self.assertIs(removed_op_reg, op_reg)
@@ -159,7 +159,58 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C_op))
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op!'))
         self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict())
+        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({'return': {}}))
+
+    def test_function_invocation(self):
+
+        def f(x, a=4):
+            return a * x
+
+        op_reg = self.registry.add_op(f)
+        result = op_reg(x=2.5)
+        self.assertEqual(result, {'return': 4 * 2.5})
+
+    def test_class_invocation(self):
+
+        @op_input('x', registry=self.registry)
+        @op_input('a', default_value=4, registry=self.registry)
+        @op_output('y', registry=self.registry)
+        class C:
+            def __call__(self):
+                self.y = self.x * self.a
+
+        op_reg = self.registry.get_op(C)
+        result = op_reg(x=2.5)
+        self.assertEqual(result, {'y': 4 * 2.5})
+
+    # todo - make this test run correctly:
+    def test_class_invocation_with_start_up(self):
+
+        @op_input('x', registry=self.registry)
+        @op_input('a', default_value=4, registry=self.registry)
+        @op_output('y', registry=self.registry)
+        class C:
+            b = None
+
+            @classmethod
+            def start_up(cls):
+                C.b = 1.5
+
+            @classmethod
+            def tear_down(cls):
+                C.b = None
+
+            def __call__(self):
+                self.y = self.x * self.a + C.b
+
+        op_reg = self.registry.get_op(C)
+        with self.assertRaises(TypeError):
+            # TypeError: unsupported operand type(s) for +: 'float' and 'NoneType'
+            op_reg(x=2.5)
+
+        # Here is the actual code that shall succeed:
+        # result = op_reg(x=2.5)
+        # self.assertEqual(result, {'y': 4 * 2.5 + 1.5})
 
     def test_C_op_inp_out(self):
         @op_input('a', data_type=float, default_value=0.5, value_range=[0., 1.], registry=self.registry)
