@@ -1,6 +1,10 @@
 """
 
-Defines the Op class which represents an arbitrary operation given some inputs and outputs.
+
+ECT Operation API
+=================
+
+Provides classes and functions allowing to maintain *operations*.
 
 Design targets:
 
@@ -276,13 +280,18 @@ class OpRegistry:
         return op_registration
 
 
+class _DefaultOpRegistry(OpRegistry):
+    def __repr__(self):
+        return 'REGISTRY'
+
+
 #: The default operation registry.
-REGISTRY = OpRegistry()
+REGISTRY = _DefaultOpRegistry()
 
 
 def op(registry=REGISTRY):
     """
-    Classes or functions annotated by this decorator are added to the ``OpRegistry``.
+    Classes or functions annotated by this decorator are added to the given *registry*.
     Classes annotated by this decorator must have callable instances. Callable instances
     and functions must have the following signature:
 
@@ -307,8 +316,8 @@ def op_input(input_name: str,
              registry=REGISTRY,
              **kwargs):
     """
-    Classes or functions annotated by this decorator are added to the ``OpRegistry`` (if not already done)
-    and are assigned a new input slot with the given name.
+    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
+    and are assigned a new input slot with the given *input_name*.
 
     :param input_name: The name of an input slot.
     :param not_none: If ``True``, value must not be ``None``.
@@ -347,7 +356,8 @@ def op_output(output_name: str,
               registry=REGISTRY,
               **kwargs):
     """
-    Class decorator that describes an 'output' slot to an operation.
+    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
+    and are assigned a new output slot with the given *output_name*.
 
     :param output_name: The name of the output slot.
     :param not_none: If ``True``, value must not be ``None``.
@@ -384,7 +394,8 @@ def op_return(data_type=None,
               registry=REGISTRY,
               **kwargs):
     """
-    Class decorator that describes the one and only 'output' slot of an operation that has a single return value.
+    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
+    and are assigned a new output slot with the name ``return``.
 
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.

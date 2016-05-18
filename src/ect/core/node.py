@@ -1,3 +1,10 @@
+"""
+ECT Operation Node API
+======================
+
+Provides classes that are used to construct processing networks / workflows from registered operations.
+"""
+
 from .op import REGISTRY
 
 from .util import qualified_name_to_object

@@ -1,3 +1,13 @@
+"""
+ECT Utilities
+=============
+
+Provides random utility functions.
+
+*Implementation note: this module shall not have any dependencies to higher-level ECT modules.*
+
+"""
+
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
     """
     Convert a fully qualified name into a Python object.
