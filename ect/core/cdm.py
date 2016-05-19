@@ -11,9 +11,10 @@ data types, i.e. Unidata's `Common Data Model`_.
 The ECT common data model exposes three important classes:
 
 1. :py:class:`ect.core.cdm.Dataset` - an abstract interface describing the common ECT dataset API
-2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps and existing dataset and adapts it to the common `Dataset` interface
-3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset``s which itself is compatible with the
-   `Dataset` interface
+2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps an existing dataset and adapts it to
+    the common ``Dataset`` interface
+3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible
+    with the common ``Dataset`` interface
 
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
@@ -25,7 +26,7 @@ from abc import ABCMeta, abstractmethod
 
 class Dataset(metaclass=ABCMeta):
     """
-    A collection of generic operations that can act both on vector (?) and gridded raster data (xarray.Dataset).
+    An abstract interface describing the common ECT dataset API.
     """
 
     @abstractmethod
@@ -49,47 +50,84 @@ class Dataset(metaclass=ABCMeta):
 
 class DatasetAdapter(Dataset, metaclass=ABCMeta):
     """
-    An abstract base class representing a generic dataset adapter that can apply all
-    **DatasetOperations** to a wrapped dataset of any type.
+    An abstract base class that wraps an existing dataset or data structure and adapts it to the common
+    :py:class:`ect.core.cdm.Dataset` interface.
+
+    :param wrapped_dataset: The wrapped dataset / data structure
     """
 
-    def __init__(self, dataset: object):
-        self._dataset = dataset
+    def __init__(self, wrapped_dataset: object):
+        self._wrapped_dataset = wrapped_dataset
 
     @property
-    def dataset(self):
-        return self._dataset
+    def wrapped_dataset(self):
+        """
+        :return: The wrapped dataset / data structure
+        """
+        return self._wrapped_dataset
 
 
 class DatasetCollection(Dataset):
     """
-    A data container contains datasets of various types (vector and raster data)
-    and implements a set of common operations on these datasets.
+    A collection of :py:class:`ect.core.cdm.Dataset`-like objects.
     """
 
     def __init__(self):
         self._datasets = []
 
     @property
+    def wrapped_datasets(self):
+        """
+        :return: A sequence of all wrapped datasets / data structures in the order they have been added.
+        """
+        return [ds.wrapped_dataset for ds in self._datasets]
+
+    @property
     def datasets(self):
-        return [ds.dataset for ds in self._datasets]
+        """
+        :return: A sequence of all :py:class:`ect.core.cdm.Dataset` objects
+                 in this collection in the order they have been added.
+        """
+        return list(self._datasets)
 
     def add_dataset(self, dataset):
+        """
+        Add a new dataset to this collection.
+        :param dataset: a :py:class:`ect.core.cdm.Dataset`-like object
+        """
         self._datasets.append(dataset)
 
     def remove_dataset(self, dataset):
+        """
+        Removed the given dataset from this collection.
+        :param dataset: The dataset to be removed. This may also be the original, wrapped dataset.
+        :return: The :py:class:`ect.core.cdm.Dataset` that has been removed.
+        """
         for ds in self._datasets:
-            if ds.dataset is dataset:
+            if ds.wrapped_dataset is dataset:
                 self._datasets.remove(ds)
                 return ds
-        self._datasets.remove(dataset)
+        if dataset in self._datasets:
+            self._datasets.remove(dataset)
+        return None
 
     def subset(self, spatial_roi=None, temporal_roi=None):
+        """
+        Calls the :py:method:`ect.core.cdm.Dataset.subset` method on all datasets and return the result as
+        a new dataset collection.
+
+        :param spatial_roi: A spatial region of interest
+        :param temporal_roi: A temporal region of interest
+        :return: a new dataset collection.
+        """
         dsc = DatasetCollection()
         for dataset in self._datasets:
             dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi))
         return dsc
 
     def close(self):
+        """
+        Closes all datasets.
+        """
         for dataset in self._datasets:
             dataset.close()
