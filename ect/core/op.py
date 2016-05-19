@@ -315,7 +315,7 @@ def op(registry=REGISTRY):
     """
 
     def _op(operation):
-        registry.add_op(operation, fail_if_exists=True)
+        registry.add_op(operation, fail_if_exists=False)
         return operation
 
     return _op
