@@ -1,12 +1,12 @@
 # import fiona
 # import shapefile
 
-from .cdm import Dataset, DatasetCollection
+from .cdm import DatasetAdapter, DatasetCollection
 
 
-class ShapefileDataset(Dataset):
+class ShapefileDatasetAdapter(DatasetAdapter):
     def __init__(self, shapefile):
-        super(ShapefileDataset, self).__init__(shapefile)
+        super(ShapefileDatasetAdapter, self).__init__(shapefile)
 
     def subset(self, spatial_roi=None, temporal_roi=None):
         # implement me using fiona or pyshp API
@@ -18,6 +18,6 @@ class ShapefileDataset(Dataset):
 
 
 def add_shapefile_dataset(container: DatasetCollection, shapefile):
-    container.add_dataset(ShapefileDataset(shapefile))
+    container.add_dataset(ShapefileDatasetAdapter(shapefile))
 
 DatasetCollection.add_shapefile_dataset = add_shapefile_dataset

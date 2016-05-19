@@ -1,7 +1,29 @@
+"""
+This module provides classes and interfaces used to harmonise the access to and operations on various
+types of climate datasets, for example gridded data stored in netCDF files and vector data originating from
+ESRI Shapefiles.
+
+The goal of the ECT is to reuse existing, and well-known APIs for a given data type to a maximum extend
+instead of creating a complex new API. The ECT's common data model is therefore designed as a thin
+wrapper around the `xarray` N-D Gridded Datasets Python API that represents nicely `netCDF`_, HDF-5 and OPeNDAP
+data types, i.e. Unidata's `Common Data Model`_.
+
+The ECT common data model exposes three important classes:
+
+1. :py:class:`ect.core.cdm.Dataset` - an abstract interface describing the common ECT dataset API
+2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps and existing dataset and adapts it to the common `Dataset` interface
+3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset``s which itself is compatible with the
+   `Dataset` interface
+
+.. _xarray: http://xarray.pydata.org/en/stable/
+.. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
+.. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
+"""
+
 from abc import ABCMeta, abstractmethod
 
 
-class DatasetOperations(metaclass=ABCMeta):
+class Dataset(metaclass=ABCMeta):
     """
     A collection of generic operations that can act both on vector (?) and gridded raster data (xarray.Dataset).
     """
@@ -25,7 +47,7 @@ class DatasetOperations(metaclass=ABCMeta):
         pass
 
 
-class Dataset(DatasetOperations, metaclass=ABCMeta):
+class DatasetAdapter(Dataset, metaclass=ABCMeta):
     """
     An abstract base class representing a generic dataset adapter that can apply all
     **DatasetOperations** to a wrapped dataset of any type.
@@ -39,7 +61,7 @@ class Dataset(DatasetOperations, metaclass=ABCMeta):
         return self._dataset
 
 
-class DatasetCollection(DatasetOperations):
+class DatasetCollection(Dataset):
     """
     A data container contains datasets of various types (vector and raster data)
     and implements a set of common operations on these datasets.

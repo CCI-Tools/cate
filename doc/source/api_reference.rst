@@ -2,10 +2,10 @@
 API Reference
 =============
 
-Module ``ect.core``
--------------------
+Module ``ect.core.cdm``
+-----------------------
 
-.. automodule:: ect.core
+.. automodule:: ect.core.cdm
     :members:
 
 Module ``ect.core.op``

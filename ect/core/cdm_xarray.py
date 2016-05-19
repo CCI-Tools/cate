@@ -1,11 +1,11 @@
 import xarray as xr
 
-from .cdm import Dataset, DatasetCollection
+from .cdm import DatasetAdapter, DatasetCollection
 
 
-class XArrayDataset(Dataset):
+class XArrayDatasetAdapter(DatasetAdapter):
     def __init__(self, dataset: xr.Dataset):
-        super(XArrayDataset, self).__init__(dataset)
+        super(XArrayDatasetAdapter, self).__init__(dataset)
 
     def subset(self, spatial_roi=None, temporal_roi=None):
         # implement me using xarray Dataset API
@@ -17,6 +17,6 @@ class XArrayDataset(Dataset):
 
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset):
-    container.add_dataset(XArrayDataset(xr_dataset))
+    container.add_dataset(XArrayDatasetAdapter(xr_dataset))
 
 DatasetCollection.add_xarray_dataset = add_xarray_dataset

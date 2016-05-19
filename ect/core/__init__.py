@@ -4,7 +4,7 @@ ECT core classes and functions.
 
 from .cdm import Dataset
 from .cdm import DatasetCollection
-from .cdm import DatasetOperations
+from .cdm import DatasetAdapter
 from .monitor import Monitor
 
 # Import mixin methods for DatasetCollection by importing the extension modules
@@ -16,4 +16,4 @@ from .plugin import ect_init as _
 
 del _
 
-__all__ = """Dataset DatasetCollection DatasetOperations Monitor""".split()
+__all__ = """Dataset DatasetCollection DatasetAdapter Monitor""".split()
