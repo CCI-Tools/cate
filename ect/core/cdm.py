@@ -13,7 +13,7 @@ class DatasetOperations(metaclass=ABCMeta):
 
         :param spatial_roi: The spatial region of interest
         :param temporal_roi: : The temporal region of interest
-        :return: subset of the dataset
+        :return: subset of the dataset as a dataset of type ``Dataset``.
         """
         pass
 
@@ -29,7 +29,6 @@ class Dataset(DatasetOperations, metaclass=ABCMeta):
     """
     An abstract base class representing a generic dataset adapter that can apply all
     **DatasetOperations** to a wrapped dataset of any type.
-    This
     """
 
     def __init__(self, dataset: object):

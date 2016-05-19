@@ -12,7 +12,8 @@ class XArrayDataset(Dataset):
         return self
 
     def close(self):
-        self.dataset.close()
+        # implement me using xarray Dataset API
+        pass
 
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset):

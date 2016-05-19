@@ -9,11 +9,12 @@ class ShapefileDataset(Dataset):
         super(ShapefileDataset, self).__init__(shapefile)
 
     def subset(self, spatial_roi=None, temporal_roi=None):
-        # implement me using fiona or pyshp
+        # implement me using fiona or pyshp API
         return self
 
     def close(self):
-        self.dataset.close()
+        # implement me using fiona or pyshp API
+        pass
 
 
 def add_shapefile_dataset(container: DatasetCollection, shapefile):
