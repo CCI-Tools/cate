@@ -21,10 +21,9 @@ install:
   - python setup.py install
 
 script:
-  # For the unit-tests, disable Numba JIT, otherwise we wont reach the actual Python code
+  # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - export NUMBA_DISABLE_JIT=1
-  - source activate test-environment
-  - py.test -v --cov=src/ect test
+  - py.test -v --cov=ect test
 
 after_success:
   - pip install codecov

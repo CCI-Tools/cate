@@ -6,8 +6,7 @@ setup(
     description='ESA CCI Toolbox Python Core',
     license='GPL 3',
     author='ESA CCI Toolbox Development Team',
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
+    packages=['ect'],
     entry_points={
         'console_scripts': [
             'ect-cli = ect.core.cli:main',
