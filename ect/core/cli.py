@@ -53,18 +53,20 @@ def main(args=None):
 
     if list_plugins:
         plugin_registrations = ect.core.plugin.REGISTRY
-        print('=' * 80)
+        print('-' * 80)
         print('Registered ECT plugins (%s):' % len(plugin_registrations))
         print('-' * 80)
         for entry_point_name in plugin_registrations.keys():
             print(entry_point_name)
 
         op_registrations = ect.core.op.REGISTRY.op_registrations
-        print('=' * 80)
+        print('-' * 80)
         print('Registered ECT operations (%d):' % len(op_registrations))
         print('-' * 80)
         for qualified_name in op_registrations.keys():
             print(qualified_name)
+
+        print('-' * 80)
 
     return 0
 
