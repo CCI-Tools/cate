@@ -1,6 +1,8 @@
 from setuptools import setup
 
-from ect import __version__
+# Same effect as "from ect import __version__", but avoids importing ect:
+with open('ect/version.py') as f:
+    exec(f.read())
 
 setup(
     name="ect-core",
