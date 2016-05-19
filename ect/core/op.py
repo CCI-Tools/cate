@@ -10,15 +10,11 @@ Design targets:
 
 * Simplicity - exploit Python language to let users express an operation in an intuitive form.
 * Stay with Python base types instead og introducing a number of new data structures.
-* Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs
-  from Python code
-* An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and
-  its outputs.
-* Three simple class annotations shall be used to decorate operations classes: an optional ``operation`` decorator,
-  one or more ``input``, ``output`` decorators.
+* Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs from Python code
+* An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and its outputs.
+* Three simple class annotations shall be used to decorate operations classes: an optional ``operation`` decorator, one or more ``input``, ``output`` decorators.
 * Operation registration is done by operation class annotations.
-* Meta information shall be stores in an operation's *class* definition, not in the operation *instance*.
-* Any compatible Python-callable of the from op(*args, **kwargs) -> dict() shall be considered an operation.
+* It shall be possible to register any Python-callable of the from ``op(*args, **kwargs)`` as an operation.
 * Initial operation meta information will be derived from Python code introspection
 
 
@@ -63,6 +59,7 @@ class OpMetaInfo:
     def inputs(self) -> OrderedDict:
         """
         Mapping from an input slot names to a dictionary of properties describing the slot.
+
         :return: Named input slots.
         """
         return self._inputs
@@ -71,6 +68,7 @@ class OpMetaInfo:
     def outputs(self):
         """
         Mapping from an output slot names to a dictionary of properties describing the slot.
+
         :return: Named input slots.
         """
         return self._outputs
@@ -87,6 +85,8 @@ class OpRegistration:
     """
     A registered operation comprises the actual operation object, which may be a class or any callable, and
     meta-information about the operation.
+
+    :param operation: the actual class or any callable object.
     """
 
     def __init__(self, operation):
@@ -179,7 +179,7 @@ class OpRegistration:
             for name, value in input_values.items():
                 setattr(operation_instance, name, value)
             # call the instance
-            #operation_instance(monitor=monitor)
+            # operation_instance(monitor=monitor)
             operation_instance()
             # extract output_values
             output_values = dict()
@@ -240,6 +240,7 @@ class OpRegistry:
     def op_registrations(self) -> OrderedDict:
         """
         Get all operation registrations of type :py:class:`ect.core.op.OpRegistration`.
+
         :return: a mapping of fully qualified operation names to operation registrations
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda name: name[0]))
@@ -247,9 +248,10 @@ class OpRegistry:
     def add_op(self, operation, fail_if_exists=True) -> OpRegistration:
         """
         Add a new operation registration.
+
         :param operation: A operation object such as a class or any callable.
         :param fail_if_exists: raise ``ValueError`` if the operation was already registered
-        :return: an :py:class:`ect.core.op.OpRegistration` object
+        :return: a :py:class:`ect.core.op.OpRegistration` object
         """
         op_qualified_name = object_to_qualified_name(operation)
         if op_qualified_name in self._op_registrations:
@@ -264,10 +266,10 @@ class OpRegistry:
     def remove_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
         """
         Remove an operation registration.
+
         :param operation: A fully qualified operation name or registered operation object such as a class or callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
-        :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None``
-                 if *fail_if_not_exists* is ``False``.
+        :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
         """
         op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
         if op_qualified_name not in self._op_registrations:
@@ -280,6 +282,7 @@ class OpRegistry:
     def get_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
         """
         Get an operation registration.
+
         :param operation: A fully qualified operation name or registered operation object such as a class or callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
         :return: a :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
@@ -334,8 +337,7 @@ def op_input(input_name: str,
     :param not_none: If ``True``, value must not be ``None``.
     :param default_value: A default value.
     :param data_type: The data type of the input values.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
-                  ``value_type``.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
@@ -371,8 +373,7 @@ def op_output(output_name: str,
     :param output_name: The name of the output slot.
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
-                  ``value_type``.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
@@ -410,8 +411,7 @@ def op_return(data_type=None,
 
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with
-                  ``value_type``.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
