@@ -9,12 +9,6 @@ import ect.core.op
 import ect.core.plugin
 
 
-def _print_dict(n, d):
-    print('ECT %s (%d):' % (n, len(d)))
-    for k, v in d.items():
-        print('  %s: %s' % (k, v))
-
-
 def main(args=None):
     """
     ECT's entry point of the command-line interface.
