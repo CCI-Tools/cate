@@ -16,7 +16,7 @@ setup(
             'ect-cli = ect.core.cli:main',
         ],
         'ect_plugins': [
-            'example_plugin = ect.core.plugin:ExamplePlugin',
+            'test_plugin = ect.core.plugin:ect_init',
         ],
     },
     install_requires=['h5py >= 2.5',

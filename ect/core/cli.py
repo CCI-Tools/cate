@@ -5,7 +5,7 @@ This module provides ECT's command-line interface.
 import argparse
 import sys
 
-import ect.core
+import ect.core.op
 import ect.core.plugin
 
 
@@ -25,7 +25,7 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    print('ESA CCI Toolbox (ECT) command-line interface, version %s' % ect.__VERSION__)
+    print('ESA CCI Toolbox (ECT) command-line interface, version %s' % ect.__version__)
 
     #
     # Configure and run argument parser
@@ -52,9 +52,19 @@ def main(args=None):
     print('list_plugins:', list_plugins)
 
     if list_plugins:
-        _print_dict('readers', ect.core.plugin.CONTEXT.readers)
-        _print_dict('writers', ect.core.plugin.CONTEXT.writers)
-        _print_dict('processors', ect.core.plugin.CONTEXT.processors)
+        plugin_registrations = ect.core.plugin.REGISTRY
+        print('=' * 80)
+        print('Registered ECT plugins (%s):' % len(plugin_registrations))
+        print('-' * 80)
+        for entry_point_name in plugin_registrations.keys():
+            print(entry_point_name)
+
+        op_registrations = ect.core.op.REGISTRY.op_registrations
+        print('=' * 80)
+        print('Registered ECT operations (%d):' % len(op_registrations))
+        print('-' * 80)
+        for qualified_name in op_registrations.keys():
+            print(qualified_name)
 
     return 0
 

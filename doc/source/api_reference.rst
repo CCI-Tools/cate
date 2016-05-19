@@ -20,6 +20,12 @@ Module ``ect.core.node``
 .. automodule:: ect.core.node
     :members:
 
+Module ``ect.core.plugin``
+--------------------------
+
+.. automodule:: ect.core.plugin
+    :members:
+
 Module ``ect.core.util``
 ------------------------
 
