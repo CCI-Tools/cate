@@ -96,7 +96,7 @@ class OpRegistration:
     @property
     def meta_info(self):
         """
-        :return: Meta-information about the operation.
+        :return: Meta-information about the operation, see :py:class:`ect.core.op.OpMetaInfo`.
         """
         return self._meta_info
 
@@ -154,8 +154,14 @@ class OpRegistration:
             meta_info.outputs['return'] = dict()
         return meta_info
 
-    # todo - write tests!
     def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
+        """
+        Performs this operation.
+
+        :param monitor: an optional progress monitor, which is passed to the wrapped callable, if it supports it.
+        :param input_values: the operations's input values
+        :return: a dictionary that maps output slot names to their values.
+        """
 
         # set default_value where input values are missing
         for name, properties in self.meta_info.inputs.items():
@@ -224,7 +230,7 @@ class OpRegistration:
 
 class OpRegistry:
     """
-    The operation registry allows for addition, removal, and retrieval of operations.
+    An operation registry allows for addition, removal, and retrieval of operations.
     """
 
     def __init__(self):
@@ -233,8 +239,8 @@ class OpRegistry:
     @property
     def op_registrations(self) -> OrderedDict:
         """
-        Get all operation registrations.
-        :return: a mapping of fully qualified operation names to operation registrations.
+        Get all operation registrations of type :py:class:`ect.core.op.OpRegistration`.
+        :return: a mapping of fully qualified operation names to operation registrations
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda name: name[0]))
 
@@ -243,7 +249,7 @@ class OpRegistry:
         Add a new operation registration.
         :param operation: A operation object such as a class or any callable.
         :param fail_if_exists: raise ``ValueError`` if the operation was already registered
-        :return: an operation registration
+        :return: an :py:class:`ect.core.op.OpRegistration` object
         """
         op_qualified_name = object_to_qualified_name(operation)
         if op_qualified_name in self._op_registrations:
@@ -260,7 +266,8 @@ class OpRegistry:
         Remove an operation registration.
         :param operation: A fully qualified operation name or registered operation object such as a class or callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
-        :return: the removed operation registration or ``None`` if *fail_if_not_exists* is ``False``.
+        :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None``
+                 if *fail_if_not_exists* is ``False``.
         """
         op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
         if op_qualified_name not in self._op_registrations:
@@ -275,7 +282,7 @@ class OpRegistry:
         Get an operation registration.
         :param operation: A fully qualified operation name or registered operation object such as a class or callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
-        :return: an operation registration or ``None`` if *fail_if_not_exists* is ``False``.
+        :return: a :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
         """
         op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
         op_registration = self._op_registrations.get(op_qualified_name, None)
@@ -289,7 +296,7 @@ class _DefaultOpRegistry(OpRegistry):
         return 'REGISTRY'
 
 
-#: The default operation registry.
+#: The default operation registry of type :py:class:`ect.core.op.OpRegistry`.
 REGISTRY = _DefaultOpRegistry()
 
 
