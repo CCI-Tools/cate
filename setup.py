@@ -1,8 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+
+from ect import __version__
 
 setup(
     name="ect-core",
-    version="0.1.0",
+    version=__version__,
     description='ESA CCI Toolbox Python Core',
     license='GPL 3',
     author='ESA CCI Toolbox Development Team',
