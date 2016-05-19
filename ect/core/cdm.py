@@ -11,10 +11,8 @@ data types, i.e. Unidata's `Common Data Model`_.
 The ECT common data model exposes three important classes:
 
 1. :py:class:`ect.core.cdm.Dataset` - an abstract interface describing the common ECT dataset API
-2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps an existing dataset and adapts it to
-    the common ``Dataset`` interface
-3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible
-    with the common ``Dataset`` interface
+2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps an existing dataset and adapts it to the common ``Dataset`` interface
+3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the common ``Dataset`` interface
 
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
