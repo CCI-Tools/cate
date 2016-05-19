@@ -67,7 +67,7 @@ def _load_plugins():
 
         # Here: use pkg_resources and introspection to generate a
         # JSON-serializable dictionary of plugin meta-information
-        plugins[entry_point.name] = {'entry_point', entry_point.name}
+        plugins[entry_point.name] = {'entry_point': entry_point.name}
 
     return plugins
 
@@ -83,12 +83,6 @@ def _report_plugin_exception(msg):
     print("-" * 80)
 
 
-#: Mapping of ECT entry point names to JSON-serializable plugin meta-information.
-REGISTRY = _load_plugins()
-
-del _load_plugins
-
-
 def ect_init(*arg, **kwargs):
     """
     No actual use, just demonstrates the signature of an ECT entry point callable.
@@ -98,3 +92,7 @@ def ect_init(*arg, **kwargs):
     :return: any or void (not used)
     """
     return arg, kwargs
+
+
+#: Mapping of ECT entry point names to JSON-serializable plugin meta-information.
+REGISTRY = _load_plugins()
