@@ -1,10 +1,31 @@
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
+from ect.core.util import extension_property
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
 
 
 class UtilTest(TestCase):
+    def test_extension_property(self):
+        class Api:
+            def m1(self, x):
+                return 2 * x
+
+        @extension_property(Api)
+        class MyApiExt:
+            """My API class extension"""
+
+            def __init__(self, api):
+                self.api = api
+
+            def m2(self, x):
+                return self.api.m1(x) + 2
+
+        self.assertTrue(hasattr(Api, 'my_api_ext'))
+        api = Api()
+        self.assertEqual(api.my_api_ext.m2(8), 2 * 8 + 2)
+        self.assertEqual(api.my_api_ext.__doc__, "My API class extension")
+
     def test_object_to_qualified_name(self):
         self.assertEqual(object_to_qualified_name(float), 'float')
         self.assertEqual(object_to_qualified_name(TestCase), 'unittest.case.TestCase')
