@@ -1,5 +1,5 @@
-``ect-core/doc`` is the ECT documentation folder. Documentation is build from RST files using the *Sphinx* tool.
-``index.rst`` is the main documentation page.
+``ect-core/doc`` is the ECT documentation folder. Documentation is build from RST files in folder ``source`` using the *Sphinx* tool.
+``index.rst`` is the main documentation page which pulls other RST files into the documentation by referring to them.
 
 To install Sphinx run:
 
