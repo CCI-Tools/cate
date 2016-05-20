@@ -16,6 +16,7 @@ Design targets:
 * Operation registration is done by operation class annotations.
 * It shall be possible to register any Python-callable of the from ``op(*args, **kwargs)`` as an operation.
 * Initial operation meta information will be derived from Python code introspection
+* Operations should take an optional *monitor* which will be passed by the framework to observe the progress and to cancel an operation
 
 
 """
@@ -127,10 +128,7 @@ class OpRegistration:
             arg_count = code.co_argcount
             # tuple of names of arguments and local variables
             var_names = code.co_varnames
-            if len(var_names) > 0 and var_names[0] == 'self':
-                arg_names = var_names[0:arg_count]
-            else:
-                arg_names = var_names
+            arg_names = var_names
             # Reserve input slots for all arguments
             for arg_name in arg_names:
                 meta_info.inputs[arg_name] = dict()
@@ -173,21 +171,25 @@ class OpRegistration:
 
         operation = self.operation
         if isclass(operation):
+            # always
             # create object instance
             operation_instance = operation()
             # inject input_values
             for name, value in input_values.items():
                 setattr(operation_instance, name, value)
+            # set the monitor
+            setattr(operation_instance, 'monitor', monitor)
             # call the instance
-            # operation_instance(monitor=monitor)
             operation_instance()
             # extract output_values
             output_values = dict()
             for name in self.meta_info.outputs.keys():
                 output_values[name] = getattr(operation_instance, name, None)
         else:
+            if 'monitor' in self.meta_info.inputs:
+                # set the monitor only if it is an argument
+                input_values['monitor'] = monitor
             # call the function/method/callable/?
-            # return_value = operation(monitor=monitor, **input_values)
             return_value = operation(**input_values)
             output_values = {'return': return_value}
 

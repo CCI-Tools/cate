@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from ect.core.op import OpRegistry, op, op_input, op_return, op_output
 from ect.core.util import object_to_qualified_name
+from ect.core.monitor import Monitor
 
 
 class OpTest(TestCase):
@@ -170,6 +171,21 @@ class OpTest(TestCase):
         result = op_reg(x=2.5)
         self.assertEqual(result, {'return': 4 * 2.5})
 
+    def test_function_invocation_with_monitor(self):
+        def f(x, a=4, monitor=Monitor.NULL):
+            monitor.ok = True
+            return a * x
+
+        class MyMonitor(Monitor):
+            def __init__(self):
+                self.ok = False
+
+        op_reg = self.registry.add_op(f)
+        monitor = MyMonitor()
+        result = op_reg(x=2.5, monitor=monitor)
+        self.assertEqual(result, {'return': 4 * 2.5})
+        self.assertEqual(monitor.ok, True)
+
     def test_class_invocation(self):
 
         @op_input('x', registry=self.registry)
@@ -182,6 +198,26 @@ class OpTest(TestCase):
         op_reg = self.registry.get_op(C)
         result = op_reg(x=2.5)
         self.assertEqual(result, {'y': 4 * 2.5})
+
+    def test_class_invocation_with_monitor(self):
+        @op_input('x', registry=self.registry)
+        @op_input('a', default_value=4, registry=self.registry)
+        @op_output('y', registry=self.registry)
+        class C:
+            def __call__(self):
+                self.monitor.ok = True
+                self.y = self.x * self.a
+
+        class MyMonitor(Monitor):
+            def __init__(self):
+                self.ok = False
+
+        op_reg = self.registry.get_op(C)
+        monitor = MyMonitor()
+        result = op_reg(x=2.5, monitor=monitor)
+        self.assertEqual(result, {'y': 4 * 2.5})
+        self.assertEqual(monitor.ok, True)
+
 
     # todo - make this test run correctly:
     def test_class_invocation_with_start_up(self):
