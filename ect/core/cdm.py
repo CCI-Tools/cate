@@ -1,11 +1,14 @@
 """
+Module Description
+==================
+
 This module provides classes and interfaces used to harmonise the access to and operations on various
-types of climate datasets, for example gridded data stored in netCDF files and vector data originating from
-ESRI Shapefiles.
+types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
+`ESRI Shapefiles`_.
 
 The goal of the ECT is to reuse existing, and well-known APIs for a given data type to a maximum extend
 instead of creating a complex new API. The ECT's common data model is therefore designed as a thin
-wrapper around the `xarray` N-D Gridded Datasets Python API that represents nicely `netCDF`_, HDF-5 and OPeNDAP
+wrapper around the `xarray` N-D Gridded Datasets Python API that represents nicely netCDF, HDF-5 and OPeNDAP
 data types, i.e. Unidata's `Common Data Model`_.
 
 The ECT common data model exposes three important classes:
@@ -15,8 +18,12 @@ The ECT common data model exposes three important classes:
 3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the common ``Dataset`` interface
 
 .. _xarray: http://xarray.pydata.org/en/stable/
+.. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
 .. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
 .. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
+
+Module Reference
+================
 """
 
 from abc import ABCMeta, abstractmethod

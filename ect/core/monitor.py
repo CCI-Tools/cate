@@ -1,3 +1,15 @@
+"""
+Module Description
+==================
+
+This module defines the :py:class:`Monitor` interface that is used by ECT to observe and control
+operations that support it.
+
+
+Module Reference
+================
+"""
+
 class Monitor:
     """
     A monitor is used to both observe and control a running operation.

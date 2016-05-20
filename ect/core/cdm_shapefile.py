@@ -1,3 +1,16 @@
+"""
+Module Description
+==================
+
+Implements the `ESRI Shapefile`_ adapter for the ECT common data model.
+
+
+.. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
+
+Module Reference
+================
+"""
+
 # import fiona
 # import shapefile
 

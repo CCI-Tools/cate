@@ -1,72 +1,75 @@
 """
-ECT Utilities
-=============
+Module Description
+==================
 
 Provides random utility functions.
 
 *Implementation note: this module shall not have any dependencies to higher-level ECT modules.*
 
+Module Reference
+================
 """
 
 
-def extension_property(target_class, name=None, doc=None):
+def extend(target_class, property_name=None, property_doc=None):
     """
-    Use this function as decorator on classes that will become extensions to the given *target_class*.
+    Return a class decorator for classes that will become extensions to the given *target_class*.
     The *target_class* will be extended by a new property with the given *name* and the given *doc*.
-    The property will return an instance of the extension class. The property value will be lazily
+    The new property will return an instance of the decorated extension class. The property value will be lazily
     created by calling the extension class' ``__init__`` method with the the *target_class* instance
     as only argument.
 
-    Example:::
+    Example:
 
-        # An existing (API) class
-        class Model:
-            def some_method(self):
-                pass
+    Let ``Model`` be an existing API class. Now another module wishes to extend the ``Model`` class by additional
+    methods. This could be done by inheritance, but this will cause severe compatibility issues once the
+    ``Model`` class evolves and break the composition-over-inheritance design principle. In addition,
+    instantiation of the derived class must be performed explicitly. Instead, we want all ``Model`` instances to
+    automatically include our new methods. Here is the code:::
 
-        # An extension class (in some other module)
-        @extension_property(Model, name='my_ext')
+        @extend(Model, 'my_ext')
         class MyModelExt:
-            '''My API class extension''''
+            '''My Model extension''''
 
             def __init__(self, model):
                 self.model = model
 
             def some_new_method(self, x):
-                self.model.some_method()
+                self.model.some_old_method()
                 # ...
 
-        # Model API users can now use the API extension:
+        # Model API users can now use the API extension without explicitly instantiating MyModelExt:
         model = Model()
         model.my_ext.some_new_method()
 
     :param target_class: A target class or sequence of target classes that will be extended.
-    :param name: The name of the new property in the target class.
-    If ``None``, a name will be derived from the *extension_class*.
-    :param doc: The docstring of the new property in the target class.
-    If ``None``, the docstring will be taken from the *extension_class*, if any.
-    :return: The *extension_class*.
+    :param property_name: The name of the new property in the target class.
+                          If ``None``, a name will be derived from the *extension_class*.
+    :param property_doc: The docstring of the new property in the target class.
+                         If ``None``, the doc-string will be taken from the *extension_class*, if any.
+    :return: A decorator.
     """
-    def _extension(extension_class):
-        return add_extension_property(target_class, extension_class, property_name=name, property_doc=doc)
+    def decorator(extension_class):
+        return _add_extension(target_class, extension_class, property_name=property_name, property_doc=property_doc)
 
-    return _extension
+    return decorator
 
 
-def add_extension_property(target_class, extension_class, property_name=None, property_doc=None):
+def _add_extension(target_class, extension_class, property_name=None, property_doc=None):
     """
-    Adds an "extension" property with *property_name* to the *target_class*. The property will return an
+    Add an "extension" property with *property_name* to the *target_class*. The property will return an
     instance of *extension_class* whose ``__init__`` method will be called with the the *target_class*
     instance as only argument.
 
     Use this function to dynamically add extensions to existing classes in order to avoid inheritance.
+    This function should be used through its decorator function :py:func:`extend`.
 
     :param target_class: A target class or sequence of target classes that will be extended.
     :param extension_class: The class that implements the extension.
     :param property_name: The name of the new property in the target class.
-    If ``None``, a name will be derived from the *extension_class*.
+                          If ``None``, a name will be derived from the *extension_class*.
     :param property_doc: The docstring of the new property in the target class.
-    If ``None``, the docstring will be taken from the *extension_class*, if any.
+                         If ``None``, the doc-string will be taken from the *extension_class*, if any.
     :return: The *extension_class*.
     """
 
@@ -112,6 +115,11 @@ def qualified_name_to_object(qualified_name: str, default_module_name='builtins'
     Convert a fully qualified name into a Python object.
     It is true that ``qualified_name_to_object(object_to_qualified_name(obj)) is obj``.
 
+    >>> qualified_name_to_object('unittest.TestCase')
+    <class 'unittest.case.TestCase'>
+
+    See also :py:func:`object_to_qualified_name`.
+
     :param qualified_name: fully qualified name of the form [<module>'.'{<name>'.'}]<name>
     :param default_module_name: default module name to be used if the name does not contain one
     :return: the Python object
@@ -136,6 +144,12 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
     """
     Get the fully qualified name of a Python object.
     It is true that ``qualified_name_to_object(object_to_qualified_name(obj)) is obj``.
+
+    >>> from unittest import TestCase
+    >>> object_to_qualified_name(TestCase)
+    'unittest.case.TestCase'
+
+    See also :py:func:`qualified_name_to_object`.
 
     :param value: some Python object
     :param fail: raise ``ValueError`` if name cannot be derived.

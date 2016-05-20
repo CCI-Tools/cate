@@ -1,6 +1,10 @@
 """
-This module exposes the ECT's plugin ``REGISTRY`` which is mapping from ECT entry point names to plugin meta
-information. An ECT plugin is any callable in an internal/extension module registered with ``ect_plugins`` entry point.
+Module Description
+==================
+
+The ``ect.core.plugin`` module exposes the ECT's plugin ``REGISTRY`` which is mapping from ECT entry point names to
+plugin meta information. An ECT plugin is any callable in an internal/extension module registered with ``ect_plugins``
+entry point.
 
 Clients register a ECT plugin in the ``setup()``call of their ``setup.py`` script. The following plugin example
 comprises a main module ``ect_wavelet_gapfill`` which provides the entry point function ``ect_init``:::
@@ -33,6 +37,8 @@ or::
 
 The return values are ignored.
 
+Module Reference
+================
 """
 
 import sys

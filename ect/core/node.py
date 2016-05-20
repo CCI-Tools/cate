@@ -1,21 +1,25 @@
 """
-ECT Operation Node API
-======================
+Module Description
+==================
 
 Provides classes that are used to construct processing networks / workflows from registered operations.
+
+Module Reference
+================
 """
 
-from .op import REGISTRY
+from typing import List
 
+from .op import REGISTRY, OpMetaInfo, OpRegistration
 from .util import qualified_name_to_object
 
 
 class Node:
     """
     Nodes can be used to construct networks or graphs of operations.
-    Input and outputs of an operation are available as node attributes of type ``Connector``.
+    Input and outputs of an operation are available as node attributes of type :py:class:`Connector`.
 
-    :param operation: A fully qualified operation name or registered operation object such as a class or callable.
+    :param operation: A fully qualified operation name or operation object such as a class or callable.
     """
 
     def __init__(self, operation, registry=REGISTRY):
@@ -35,28 +39,40 @@ class Node:
 
     @property
     def operation(self):
+        """
+        The operation.
+        """
         return self._op_registration.operation
 
     @property
-    def op_meta_info(self):
+    def op_meta_info(self) -> OpMetaInfo:
+        """
+        The operation's meta-information.
+        """
         return self._op_registration.meta_info
 
     @property
-    def input_connections(self):
+    def input_connections(self) -> List['Connection']:
+        """
+        The node's input connections.
+        """
         return self._input_connections
 
     @property
-    def output_connections(self):
+    def output_connections(self) -> List['Connection']:
+        """
+        The node's output connections.
+        """
         return self._output_connections
 
 
 class Connector:
     """
-    An endpoint of a ``Connection`` between two ``Node``s.
+    An endpoint of a :py:class:`Connection` between two :py:class:`Node`s.
 
-    :param node: A ``Node`` instance
-    :param name: Name of an input or output attribute of the node's ``op_class``.
-    :param is_input:
+    :param node: The node
+    :param name: Name of an input or output slot of the node's operation.
+    :param is_input: ``True`` for input connectors, ``False`` for output connectors.
     """
 
     def __init__(self, node: Node, name: str, is_input: bool):
@@ -73,17 +89,32 @@ class Connector:
 
     @property
     def node(self) -> Node:
+        """
+        The connector's node.
+        """
         return self._node
 
     @property
     def name(self) -> str:
+        """
+        The connector's slot name.
+        """
         return self._name
 
     @property
     def is_input(self) -> bool:
+        """
+        ``True`` for input connectors, ``False`` for output connectors.
+        """
         return self._is_input
 
     def link(self, other: 'Connector') -> 'Connection':
+        """
+        Create a connection by linking this connector with another :py:class:`Connector`.
+
+        :param other: The other connector.
+        :return: A new connection.
+        """
         if self.is_input:
             connection = Connection(other, self)
             self.node.input_connections.append(connection)
@@ -113,7 +144,8 @@ class Connector:
 
 class Connection:
     """
-    A connection between two nodes.
+    A connection between the output connector of a first :py:class:`Node` and the input connector of
+    a second :py:class:`Node`.
 
     :param output_connector: The output connector of the first node.
     :param input_connector: The input connector of the second node.
@@ -131,13 +163,22 @@ class Connection:
 
     @property
     def output_connector(self) -> Connector:
+        """
+        The output :py:class:`Connector` of the first node.
+        """
         return self._output_connector
 
     @property
     def input_connector(self) -> Connector:
+        """
+        The input :py:class:`Connector` of the second node.
+        """
         return self._input_connector
 
     def unlink(self):
+        """
+        Remove this connection between two :py:class:`Connector`s this connection is made of.
+        """
         self.output_connector.node.output_connections.remove(self)
         self.input_connector.node.input_connections.remove(self)
 

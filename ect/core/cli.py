@@ -1,5 +1,11 @@
 """
-This module provides ECT's command-line interface.
+Module Description
+==================
+
+This module provides ECT's command-line interface (CLI).
+
+Module Reference
+================
 """
 
 import argparse
@@ -11,8 +17,9 @@ import ect.core.plugin
 
 def main(args=None):
     """
-    ECT's entry point of the command-line interface.
-    :param args: command-line arguments
+    The CLI's entry point function.
+
+    :param args: list of command-line arguments of type ``str``.
     :return: exit code
     """
 

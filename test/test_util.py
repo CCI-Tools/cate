@@ -1,7 +1,7 @@
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
-from ect.core.util import extension_property
+from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
 
 
@@ -11,7 +11,7 @@ class UtilTest(TestCase):
             def m1(self, x):
                 return 2 * x
 
-        @extension_property(Api)
+        @extend(Api)
         class MyApiExt:
             """My API class extension"""
 

@@ -1,10 +1,8 @@
 """
+Module Description
+==================
 
-
-ECT Operation API
-=================
-
-Provides classes and functions allowing to maintain *operations*.
+This modules provides classes and functions allowing to maintain *operations*.
 
 Design targets:
 
@@ -19,6 +17,8 @@ Design targets:
 * Operations should take an optional *monitor* which will be passed by the framework to observe the progress and to cancel an operation
 
 
+Module Reference
+================
 """
 
 from collections import OrderedDict

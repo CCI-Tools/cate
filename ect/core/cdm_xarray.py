@@ -1,3 +1,16 @@
+"""
+Module Description
+==================
+
+Implements the `xarray`_ and netCDF `Common Data Model`_ adapter for the ECT common data model.
+
+.. _xarray: http://xarray.pydata.org/en/stable/
+.. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
+
+Module Reference
+================
+"""
+
 import xarray as xr
 
 from .cdm import DatasetAdapter, DatasetCollection
