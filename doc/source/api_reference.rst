@@ -2,6 +2,12 @@
 API Reference
 =============
 
+Module ``ect.core.io``
+-----------------------
+
+.. automodule:: ect.core.io
+    :members:
+
 Module ``ect.core.cdm``
 -----------------------
 
