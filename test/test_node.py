@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.node import Connection, Connector, Node
@@ -80,19 +81,22 @@ class NodeTest(TestCase):
     def test_init(self):
         node = Node(Op3)
 
-        self.assertIn('u', node.__dict__)
+        self.assertTrue(len(node.id) > 0)
+
+        self.assertTrue(hasattr(node, 'u'))
         self.assertIsInstance(node.u, Connector)
         self.assertIs(node.u.node, node)
         self.assertEqual(node.u.name, 'u')
+        self.assertEqual(node.u.value, None)
         self.assertTrue(node.u.is_input)
 
-        self.assertIn('v', node.__dict__)
+        self.assertTrue(hasattr(node, 'v'))
         self.assertIsInstance(node.v, Connector)
         self.assertIs(node.v.node, node)
         self.assertEqual(node.v.name, 'v')
         self.assertTrue(node.v.is_input)
 
-        self.assertIn('w', node.__dict__)
+        self.assertTrue(hasattr(node, 'w'))
         self.assertIsInstance(node.w, Connector)
         self.assertIs(node.w.node, node)
         self.assertEqual(node.w.name, 'w')
@@ -128,6 +132,12 @@ class NodeTest(TestCase):
         node2.b.link(node3.v)
         self.assert_links(node1, node2, node3)
 
+        node1 = Node(Op1)
+        node2 = Node(Op2)
+        with self.assertRaises(AttributeError):
+            # AttributeError: 'y' is not an input
+            node1.y = node2.a
+
     def test_link_from(self):
         node1 = Node(Op1)
         node2 = Node(Op2)
@@ -135,6 +145,14 @@ class NodeTest(TestCase):
         node2.a.link(node1.y)
         node3.u.link(node1.y)
         node3.v.link(node2.b)
+        self.assert_links(node1, node2, node3)
+
+        node1 = Node(Op1)
+        node2 = Node(Op2)
+        node3 = Node(Op3)
+        node2.a = node1.y
+        node3.u = node1.y
+        node3.v = node2.b
         self.assert_links(node1, node2, node3)
 
     def assert_links(self, node1, node2, node3):
@@ -160,3 +178,25 @@ class NodeTest(TestCase):
                                      Connector(node3, 'v', True))])
         self.assertEqual(node3.output_connections,
                          [])
+
+    def test_json(self):
+        node1 = Node(Op1, node_id='Op1')
+        node2 = Node(Op2, node_id='Op2')
+        node3 = Node(Op3, node_id='Op3')
+        node2.a = node1.y
+        node3.u = node1.y
+        node3.v = node2.b
+
+        nodes = [node1, node2, node3]
+        graph = []
+        for node in nodes:
+
+            inputs = OrderedDict()
+            for ic in node.input_connections:
+                icoc = ic.output_connector
+                icic = ic.input_connector
+                inputs[icic.name] = icoc.node.id + '.' + icoc.name
+            graph.append({'node': {'id': node.id, 'inputs': inputs}})
+
+        import pprint
+        pprint.pprint(graph)
