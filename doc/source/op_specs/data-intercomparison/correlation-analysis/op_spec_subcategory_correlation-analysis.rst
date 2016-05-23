@@ -9,16 +9,16 @@ Operation Subcategory
 Operations
 ========================
 
-:Operation name: Standardized Contingency Coefficient
+:Operation name: Standardized Contingency
 :Operation description: performs a correlation analysis of nominally scaled data
 
 ---------------------------------
 
-:Operation name: Rank Correlation Coefficient (Spearman)
+:Operation name: Rank Correlation (Spearman)
 :Operation description:  performs a correlation analysis of ordinally scaled data
 
 ---------------------------------
 
-:Operation name: Product-Moment Correlation Coefficient (Pearson)
+:Operation name: Product-Moment Correlation (Pearson)
 :Operation description: performs a correlation analysis for metrically scaled data
 
