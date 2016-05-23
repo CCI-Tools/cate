@@ -169,7 +169,7 @@ class OpTest(TestCase):
 
         op_reg = self.registry.add_op(f)
         result = op_reg(x=2.5)
-        self.assertEqual(result, {'return': 4 * 2.5})
+        self.assertEqual(result, 4 * 2.5)
 
     def test_function_invocation_with_monitor(self):
         def f(x, a=4, monitor=Monitor.NULL):
@@ -183,7 +183,7 @@ class OpTest(TestCase):
         op_reg = self.registry.add_op(f)
         monitor = MyMonitor()
         result = op_reg(x=2.5, monitor=monitor)
-        self.assertEqual(result, {'return': 4 * 2.5})
+        self.assertEqual(result, 4 * 2.5)
         self.assertEqual(monitor.ok, True)
 
     def test_class_invocation(self):
@@ -192,8 +192,8 @@ class OpTest(TestCase):
         @op_input('a', default_value=4, registry=self.registry)
         @op_output('y', registry=self.registry)
         class C:
-            def __call__(self):
-                self.y = self.x * self.a
+            def __call__(self, x, a):
+                return {'y': x * a}
 
         op_reg = self.registry.get_op(C)
         result = op_reg(x=2.5)
@@ -204,9 +204,9 @@ class OpTest(TestCase):
         @op_input('a', default_value=4, registry=self.registry)
         @op_output('y', registry=self.registry)
         class C:
-            def __call__(self):
-                self.monitor.ok = True
-                self.y = self.x * self.a
+            def __call__(self, x, a, monitor=Monitor.NULL):
+                monitor.ok = True
+                return {'y': x * a}
 
         class MyMonitor(Monitor):
             def __init__(self):
@@ -236,8 +236,8 @@ class OpTest(TestCase):
             def tear_down(cls):
                 C.b = None
 
-            def __call__(self):
-                self.y = self.x * self.a + C.b
+            def __call__(self, x, a):
+                return x * a + C.b
 
         op_reg = self.registry.get_op(C)
         with self.assertRaises(TypeError):
@@ -256,15 +256,10 @@ class OpTest(TestCase):
         class C_op_inp_out:
             """Hi, I am C_op_inp_out!"""
 
-            def __init__(self):
-                self.a = None
-                self.b = None
-                self.x = None
-                self.y = None
-
-            def __call__(self):
-                self.x = 2.5 * self.a
-                self.y = [self.a, self.b]
+            def __call__(self, a, b):
+                x = 2.5 * a
+                y = [a, b]
+                return {'x': x, 'y': y}
 
         with self.assertRaises(ValueError):
             # must exist
@@ -276,8 +271,8 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C_op_inp_out))
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op_inp_out!'))
         expected_inputs = OrderedDict()
-        expected_inputs['b'] = dict(data_type=str, default_value='A', value_set=['A', 'B', 'C'])
         expected_inputs['a'] = dict(data_type=float, default_value=0.5, value_range=[0., 1.])
+        expected_inputs['b'] = dict(data_type=str, default_value='A', value_set=['A', 'B', 'C'])
         self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
         expected_outputs['y'] = dict(data_type=list)

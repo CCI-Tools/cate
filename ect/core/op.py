@@ -122,24 +122,13 @@ class OpRegistration:
             # documentation string
             meta_info.attributes['description'] = operation.__doc__
         if hasattr(operation, '__code__'):
-            # code object containing compiled function bytecode
-            code = operation.__code__
-            # number of arguments (not including * or ** args)
-            arg_count = code.co_argcount
-            # tuple of names of arguments and local variables
-            var_names = code.co_varnames
-            arg_names = var_names
-            # Reserve input slots for all arguments
-            for arg_name in arg_names:
-                meta_info.inputs[arg_name] = dict()
-            # Set 'default_value' for inputs
-            if operation.__defaults__:
-                # tuple of any default values for positional or keyword parameters
-                default_values = operation.__defaults__
-                num_default_values = len(default_values)
-                for i in range(num_default_values):
-                    arg_name = arg_names[i - num_default_values]
-                    meta_info.inputs[arg_name]['default_value'] = default_values[i]
+            OpRegistration._introspect_function(meta_info, operation, False)
+        if isclass(operation):
+            if hasattr(operation, '__call__'):
+                call_method = getattr(operation, '__call__')
+                OpRegistration._introspect_function(meta_info, call_method, True)
+            else:
+                raise ValueError('operations of type class must define a __call__(self, ...) method')
         if hasattr(operation, '__annotations__'):
             # mapping of parameters names to annotations; "return" key is reserved for return annotations.
             annotations = operation.__annotations__
@@ -151,6 +140,32 @@ class OpRegistration:
         if len(meta_info.outputs) == 0:
             meta_info.outputs['return'] = dict()
         return meta_info
+
+    @staticmethod
+    def _introspect_function(meta_info, operation, is_method):
+        # code object containing compiled function bytecode
+        if not hasattr(operation, '__code__'):
+            # Check: throw exception here?
+            return
+        code = operation.__code__
+        # number of arguments (not including * or ** args)
+        arg_count = code.co_argcount
+        # tuple of names of arguments and local variables
+        arg_names = code.co_varnames[0:arg_count]
+        if len(arg_names)>0 and is_method and arg_names[0] == 'self':
+            arg_names = arg_names[1:]
+            arg_count -= 1
+        # Reserve input slots for all arguments
+        for arg_name in arg_names:
+            meta_info.inputs[arg_name] = dict()
+        # Set 'default_value' for inputs
+        if operation.__defaults__:
+            # tuple of any default values for positional or keyword parameters
+            default_values = operation.__defaults__
+            num_default_values = len(default_values)
+            for i in range(num_default_values):
+                arg_name = arg_names[i - num_default_values]
+                meta_info.inputs[arg_name]['default_value'] = default_values[i]
 
     def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
         """
@@ -169,39 +184,36 @@ class OpRegistration:
         # validate the input_values using this operation's meta-info
         self.validate_input_values(input_values)
 
+        if 'monitor' in self.meta_info.inputs:
+            # set the monitor only if it is an argument
+            input_values['monitor'] = monitor
+
         operation = self.operation
         if isclass(operation):
-            # always
             # create object instance
             operation_instance = operation()
-            # inject input_values
-            for name, value in input_values.items():
-                setattr(operation_instance, name, value)
-            # set the monitor
-            setattr(operation_instance, 'monitor', monitor)
             # call the instance
-            operation_instance()
-            # extract output_values
-            output_values = dict()
-            for name in self.meta_info.outputs.keys():
-                output_values[name] = getattr(operation_instance, name, None)
+            return_value = operation_instance(**input_values)
         else:
-            if 'monitor' in self.meta_info.inputs:
-                # set the monitor only if it is an argument
-                input_values['monitor'] = monitor
             # call the function/method/callable/?
             return_value = operation(**input_values)
-            output_values = {'return': return_value}
 
-        # set default_value where output values are missing
-        for name, properties in self.meta_info.outputs.items():
-            if name not in output_values or output_values[name] is None:
-                output_values[name] = properties.get('default_value', None)
-
-        # validate the output_values using this operation's meta-info
-        self.validate_output_values(output_values)
-
-        return output_values
+        is_scalar_output = len(self.meta_info.outputs) == 1 and 'return' in self.meta_info.outputs
+        if is_scalar_output:
+            # set default_value where output values are missing
+            if return_value is None:
+                properties = self.meta_info.outputs['return']
+                return_value = properties.get('default_value', None)
+            # validate the return_value using this operation's meta-info
+            self.validate_output_values({'return': return_value})
+        else:
+            # set default_value where output values are missing
+            for name, properties in self.meta_info.outputs.items():
+                if name not in return_value or return_value[name] is None:
+                    return_value[name] = properties.get('default_value', None)
+            # validate the return_value using this operation's meta-info
+            self.validate_output_values(return_value)
+        return return_value
 
     def validate_input_values(self, input_values: Dict):
         inputs = self.meta_info.inputs
