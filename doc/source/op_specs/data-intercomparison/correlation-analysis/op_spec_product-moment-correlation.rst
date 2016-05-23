@@ -32,6 +32,7 @@ Options
 
 :name: scatter-plot
 :description: displays a scatter-plot showing corresponding variable values (not for time-by-time and pixel-by-pixel analysis)
+
 ---------------------------------
 
 :name: time series plot
@@ -49,8 +50,8 @@ Options
 
 ---------------------------------
 
-:name: t-test
-:description: performs a t-test to assess the significance level of the results
+:name: t test
+:description: performs a t test to assess the significance level of the results
 
 ---------------------------------
 
@@ -113,6 +114,7 @@ Input data
 
 Output data
 ===========
+
 *Description of anticipated output data.*
 
 --------------------------
@@ -156,6 +158,7 @@ Output data
 
 Parameters
 ==========
+
 *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
 
 --------------------------
@@ -254,10 +257,12 @@ Computational complexity
 
 Convergence
 ===========
+
 *If the algorithm is iterative, define the criteria for the algorithm to stop processing and return a value. Describe the behavior of the algorithm if the convergence criteria are never reached.*
 
 Known error conditions
 ======================
+
 *If there are combinations of input data that can lead to the algorithm failing, describe here what they are and how the algorithm should respond to this. For example, by logging a message*
 
 Example
