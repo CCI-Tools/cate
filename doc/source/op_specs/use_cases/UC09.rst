@@ -18,7 +18,7 @@ h)	The user selects the operation :doc:`Time Series Plot <../visualisation/ob_sp
 i)	The user selects options (multiple datasets).
 j)	The user clicks a button to execute.
 k)	The Toolbox plots time series on the same axes. 
-l)	The user selects the operation :doc:`Product-Moment Correlation Coefficient (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/ob_spec_category_data-omtercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/ob_spec_subcategory_correlation-analysis>`).
+l)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/ob_spec_category_data-omtercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/ob_spec_subcategory_correlation-analysis>`).
 m)	The user selects options (scatter-plot).
 n)	The user clicks a button to execute.
 o)	The Toolbox plots a scatter-plot and correlation statistics on the screen. 
@@ -28,10 +28,10 @@ r)	The user selects the operation :doc:`Animated Map <../visualisation/ob_spec_a
 s)	The user selects options (multiple datasets).
 t)	The user clicks a button to execute.
 u)	The Toolbox displays side-by-side animations.
-v)	The user selects the operation :doc:`Product-Moment Correlation Coefficient (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/ob_spec_category_data-omtercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/ob_spec_subcategory_correlation-analysis>`).
+v)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/ob_spec_category_data-omtercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/ob_spec_subcategory_correlation-analysis>`).
 w)	The user selects options (map).
 x)	The user clicks a button to execute.
-y)	The Toolbox performs a pixel-by-pixel correlation between the two 2-dimensional time series, and generates a correlation map displayed on the screen. 
+y)	The Toolbox performs a pixel-by-pixel correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
 z)	The user clicks a button to save the output.
 
 
