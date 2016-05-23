@@ -59,7 +59,7 @@ class OpMetaInfo:
     @property
     def inputs(self) -> OrderedDict:
         """
-        Mapping from an input slot names to a dictionary of properties describing the slot.
+        Mapping from an input name to a dictionary of properties describing the input.
 
         :return: Named input slots.
         """
@@ -68,7 +68,7 @@ class OpMetaInfo:
     @property
     def outputs(self):
         """
-        Mapping from an output slot names to a dictionary of properties describing the slot.
+        Mapping from an output name to a dictionary of properties describing the output.
 
         :return: Named input slots.
         """
@@ -158,7 +158,7 @@ class OpRegistration:
 
         :param monitor: an optional progress monitor, which is passed to the wrapped callable, if it supports it.
         :param input_values: the operations's input values
-        :return: a dictionary that maps output slot names to their values.
+        :return: a dictionary that maps output names to their values.
         """
 
         # set default_value where input values are missing
@@ -333,9 +333,9 @@ def op_input(input_name: str,
              **kwargs):
     """
     Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new input slot with the given *input_name*.
+    and are assigned a new input with the given *input_name*.
 
-    :param input_name: The name of an input slot.
+    :param input_name: The name of an input.
     :param not_none: If ``True``, value must not be ``None``.
     :param default_value: A default value.
     :param data_type: The data type of the input values.
@@ -370,9 +370,9 @@ def op_output(output_name: str,
               **kwargs):
     """
     Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new output slot with the given *output_name*.
+    and are assigned a new output with the given *output_name*.
 
-    :param output_name: The name of the output slot.
+    :param output_name: The name of the output.
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
     :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
@@ -409,7 +409,7 @@ def op_return(data_type=None,
               **kwargs):
     """
     Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new output slot with the name ``return``.
+    and are assigned a new, single output with the name ``return``.
 
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.

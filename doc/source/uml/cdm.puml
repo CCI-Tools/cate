@@ -1,0 +1,23 @@
+@startuml
+
+Dataset : gap_fill(): Datset
+Dataset : time_series(): Datset
+Dataset : subset(): Datset
+Dataset : resample(): Datset
+Dataset : close()
+
+DatasetAdapter --|> Dataset
+DatasetAdapter : wrapped_dataset: object
+
+DatasetCollection --|> Dataset
+DatasetCollection :  datasets: List[Dataset]
+
+
+XarrayDatasetAdapter --|> DatasetAdapter
+ShapefileDatasetAdapter --|> DatasetAdapter
+
+note right of DatasetCollection
+Collection pattern
+end note
+
+@enduml

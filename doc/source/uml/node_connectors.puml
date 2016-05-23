@@ -1,0 +1,16 @@
+@startuml
+
+Connector : node: Node
+Connector : name: str
+Connector : value: object
+
+InputConnector --|> Connector
+OutputConnector --|> Connector
+
+InputConnector : source : OutputConnector
+OutputConnector : targets : List[OutputConnector]
+
+Node "1" -- "0..N" InputConnector
+Node "1" -- "1..N" OutputConnector
+
+@enduml

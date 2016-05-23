@@ -1,0 +1,24 @@
+@startuml
+
+Node : id: str
+Node --> OpMetaInfo: op_meta_info
+Node : input_connectors: List[InputConnectors]
+Node : output_connectors: List[OutputConnectors]
+
+OpNode --|> Node
+OpNode : op: OpRegistration
+
+Graph --|> Node
+Graph : nodes: List[Node]
+'Graph --> "0..N" Node: nodes
+
+OpMetaInfo : qualfied_name
+OpMetaInfo : attributes : dict
+OpMetaInfo : inputs : OrderdDict
+OpMetaInfo : outputs : OrderdDict
+
+note as N1
+Collection pattern
+end note
+
+@enduml
