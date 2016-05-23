@@ -15,14 +15,89 @@ Module Reference
 ================
 """
 
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
 
-from .op import REGISTRY, OpMetaInfo
-from .util import qualified_name_to_object
+from .op import REGISTRY, OpMetaInfo, OpRegistration
 
 
-class Node:
+class _ConnectorsProperty(metaclass=ABCMeta):
+    def __init__(self, connectors):
+        object.__setattr__(self, '_connectors', OrderedDict())
+        self.add_connectors(connectors)
+
+    def add_connectors(self, new_connectors):
+        connectors = object.__getattribute__(self, '_connectors')
+        for new_connector in new_connectors:
+            connectors[new_connector.name] = new_connector
+
+    def __contains__(self, item):
+        connectors = object.__getattribute__(self, '_connectors')
+        return connectors.contains(item)
+
+    def __len__(self):
+        connectors = object.__getattribute__(self, '_connectors')
+        return len(connectors)
+
+    def __iter__(self):
+        connectors = object.__getattribute__(self, '_connectors')
+        return iter(connectors.values())
+
+    def __setitem__(self, key, value):
+        return self.__setattr__(key, value)
+
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+
+    @abstractmethod
+    def __setattr__(self, key, value):
+        pass
+
+    @abstractmethod
+    def __getattr__(self, key):
+        pass
+
+
+class _InputConnectorsProperty(_ConnectorsProperty):
+    def __init__(self, connectors):
+        super(_InputConnectorsProperty, self).__init__(connectors)
+
+    def __setattr__(self, key, value):
+        connectors = object.__getattribute__(self, '_connectors')
+        if key in connectors:
+            connector = connectors[key]
+            if isinstance(value, Connector):
+                if value.is_input:
+                    raise AttributeError("'%s' is not an output" % value.name)
+                value.link(connector)
+            else:
+                connector.value = value
+        else:
+            raise AttributeError("'%s' is not an input" % key)
+
+    def __getattr__(self, key):
+        connectors = object.__getattribute__(self, '_connectors')
+        if key in connectors:
+            return connectors[key]
+        raise AttributeError("input '%s' not found" % key)
+
+
+class _OutputConnectorsProperty(_ConnectorsProperty):
+    def __init__(self, connectors):
+        super(_OutputConnectorsProperty, self).__init__(connectors)
+
+    def __setattr__(self, key, value):
+        raise AttributeError("'%s' is an output and cannot be set" % key)
+
+    def __getattr__(self, key):
+        connectors = object.__getattribute__(self, '_connectors')
+        if key in connectors:
+            return connectors[key]
+        raise AttributeError("output '%s' not found" % key)
+
+
+class Node(metaclass=ABCMeta):
     """
     Nodes can be used to construct networks or graphs of operations.
     Input and outputs of an operation are available as node attributes of type :py:class:`Connector`.
@@ -32,41 +107,23 @@ class Node:
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, operation, registry=REGISTRY, node_id=None):
-        if not operation:
-            raise ValueError('operation must be given')
-        if isinstance(operation, str):
-            operation = qualified_name_to_object(operation)
-        op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        assert op_registration is not None
-        op_meta_info = op_registration.meta_info
-        node_id = node_id if node_id is not None else op_meta_info.qualified_name + '#' + str(id(self))
-        # CARE HERE: __setattr__ and __getattr__ override exists,
-        # don't access members using self.<name>
-        super(Node, self).__setattr__('_id', node_id)
-        super(Node, self).__setattr__('_op_meta_info', op_meta_info)
-        super(Node, self).__setattr__('_op_registration', op_registration)
-        super(Node, self).__setattr__('_input_connections', [])
-        super(Node, self).__setattr__('_output_connections', [])
-
-        input_connectors = OrderedDict()
-        output_connectors = OrderedDict()
-        super(Node, self).__setattr__('_input_connectors', input_connectors)
-        super(Node, self).__setattr__('_output_connectors', output_connectors)
-        for name in op_meta_info.inputs.keys():
-            input_connectors[name] = Connector(self, name, True)
-        for name in op_meta_info.outputs.keys():
-            output_connectors[name] = Connector(self, name, False)
+    def __init__(self, op_meta_info, node_id=None):
+        if not op_meta_info:
+            raise ValueError('op_meta_info must be given')
+        node_id = node_id if node_id is not None else 'Node#' + str(id(self))
+        self._id = node_id
+        self._op_meta_info = op_meta_info
+        self._input_connections = []
+        self._output_connections = []
+        self._input_connectors = _InputConnectorsProperty([Connector(self, name, True)
+                                                           for name in op_meta_info.inputs.keys()])
+        self._output_connectors = _OutputConnectorsProperty([Connector(self, name, False)
+                                                             for name in op_meta_info.outputs.keys()])
 
     @property
     def id(self):
         """The node's ID."""
         return self._id
-
-    @property
-    def operation(self):
-        """The operation."""
-        return self._op_registration.operation
 
     @property
     def op_meta_info(self) -> OpMetaInfo:
@@ -83,61 +140,51 @@ class Node:
         """The node's output connections."""
         return self._output_connections
 
-    def __setattr__(self, key, value):
-        input_connectors = super(Node, self).__getattribute__('_input_connectors')
-        if key in input_connectors:
-            connector = input_connectors[key]
-            # lazy type test
-            if hasattr(value, 'link') and callable(getattr(value, 'link')):
-                value.link(connector)
-            else:
-                self._value = value
-            return
-        output_connectors = super(Node, self).__getattribute__('_output_connectors')
-        if key in output_connectors:
-            raise AttributeError("'%s' is not an input" % key)
-        super(Node, self).__setattr__(key, value)
+    @property
+    def input(self):
+        """The node's input connectors."""
+        return self._input_connectors
 
-    def __getattr__(self, key):
-        input_connectors = super(Node, self).__getattribute__('_input_connectors')
-        if key in input_connectors:
-            return input_connectors[key]
-        output_connectors = super(Node, self).__getattribute__('_output_connectors')
-        if key in output_connectors:
-            return output_connectors[key]
-        raise AttributeError('attribute %s not found' % key)
+    @property
+    def output(self):
+        """The node's output connectors."""
+        return self._output_connectors
 
 
-class Net:
-    def __init__(self, net_id=None, op_meta_info=None, nodes=list()):
-        self._id = net_id if net_id is not None else 'Net#' + str(id(self))
-        self._op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(self._id)
+class Graph(Node):
+    def __init__(self, *nodes, graph_id=None, op_meta_info=None):
+        graph_id = graph_id if graph_id is not None else 'Graph#' + str(id(self))
+        op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(graph_id)
+        super(Graph, self).__init__(op_meta_info, node_id=graph_id)
         self._nodes = list(nodes)
 
     @property
     def nodes(self):
         return self._nodes
 
-    @property
-    def nodes(self):
-        return self._nodes
-
-    @property
-    def op_meta_info(self) -> OpMetaInfo:
-        """The operation's meta-information."""
-        raise NotImplementedError()
-
-    def auto_wire(self, net_io_only=False):
+    def gen_io(self):
         """
-        Connect nodes where unambiguous.
-        :param net_io_only: if ``True``, only this net's input/output connectors will be generated from all unconnected
-                            node inputs and outputs. If ``False``, all unconnected nodes will be connected w.r.t.
-                            the order of nodes matters
+        Generate the inputs and outputs from unconnected inputs and outputs.
         """
-        raise NotImplementedError()
+        input_connectors = []
+        output_connectors = []
+        for node in self._nodes:
+            for input_connector in node.input:
+                name = input_connector.name
+                if name not in self.op_meta_info.inputs:
+                    self.op_meta_info.inputs[name] = node.op_meta_info.inputs[name]
+                input_connectors.append(connector)
+            for output_connector in node.output:
+                name = output.name
+                connector = node.output[name]
+                if name not in self.op_meta_info.inputs:
+                    self.op_meta_info.outputs[name] = node.op_meta_info.outputs[name]
+                output_connectors.append(connector)
+        self.input.add_connectors(input_connectors)
+        self.output.add_connectors(output_connectors)
 
 
-class Node:
+class OpNode(Node):
     """
     Nodes can be used to construct networks or graphs of operations.
     Input and outputs of an operation are available as node attributes of type :py:class:`Connector`.
@@ -151,77 +198,21 @@ class Node:
         if not operation:
             raise ValueError('operation must be given')
         if isinstance(operation, str):
-            operation = qualified_name_to_object(operation)
-        op_registration = registry.get_op(operation, fail_if_not_exists=True)
+            op_registration = registry.get_op(operation, fail_if_not_exists=True)
+        elif isinstance(operation, OpRegistration):
+            op_registration = operation
+        else:
+            op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
         op_meta_info = op_registration.meta_info
         node_id = node_id if node_id is not None else op_meta_info.qualified_name + '#' + str(id(self))
-        # CARE HERE: __setattr__ and __getattr__ override exists,
-        # don't access members using self.<name>
-        super(Node, self).__setattr__('_id', node_id)
-        super(Node, self).__setattr__('_op_meta_info', op_meta_info)
-        super(Node, self).__setattr__('_op_registration', op_registration)
-        super(Node, self).__setattr__('_input_connections', [])
-        super(Node, self).__setattr__('_output_connections', [])
-
-        input_connectors = OrderedDict()
-        output_connectors = OrderedDict()
-        super(Node, self).__setattr__('_input_connectors', input_connectors)
-        super(Node, self).__setattr__('_output_connectors', output_connectors)
-        for name in op_meta_info.inputs.keys():
-            input_connectors[name] = Connector(self, name, True)
-        for name in op_meta_info.outputs.keys():
-            output_connectors[name] = Connector(self, name, False)
-
-    @property
-    def id(self):
-        """The node's ID."""
-        return self._id
+        super(OpNode, self).__init__(op_meta_info, node_id=node_id)
+        self._op_registration = op_registration
 
     @property
     def operation(self):
         """The operation."""
         return self._op_registration.operation
-
-    @property
-    def op_meta_info(self) -> OpMetaInfo:
-        """The operation's meta-information."""
-        return self._op_meta_info
-
-    @property
-    def input_connections(self) -> List['Connection']:
-        """The node's input connections."""
-        return self._input_connections
-
-    @property
-    def output_connections(self) -> List['Connection']:
-        """The node's output connections."""
-        return self._output_connections
-
-    def __setattr__(self, key, value):
-        input_connectors = super(Node, self).__getattribute__('_input_connectors')
-        if key in input_connectors:
-            connector = input_connectors[key]
-            # lazy type test
-            if hasattr(value, 'link') and callable(getattr(value, 'link')):
-                value.link(connector)
-            else:
-                self._value = value
-            return
-        output_connectors = super(Node, self).__getattribute__('_output_connectors')
-        if key in output_connectors:
-            raise AttributeError("'%s' is not an input" % key)
-        super(Node, self).__setattr__(key, value)
-
-    def __getattr__(self, key):
-        input_connectors = super(Node, self).__getattribute__('_input_connectors')
-        if key in input_connectors:
-            return input_connectors[key]
-        output_connectors = super(Node, self).__getattribute__('_output_connectors')
-        if key in output_connectors:
-            return output_connectors[key]
-        raise AttributeError('attribute %s not found' % key)
-
 
 
 class Connector:
@@ -356,5 +347,3 @@ class Connection:
 
     def __str__(self):
         return '%s --> %s' % (self._output_connector, self._input_connector)
-
-
