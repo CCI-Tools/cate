@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.node import InputConnector, OutputConnector, OpNode, Graph
+from ect.core.workflow import InputConnector, OutputConnector, OpNode, Graph
 from ect.core.op import op_input, op_output
 from ect.core.util import object_to_qualified_name
 
@@ -32,9 +32,9 @@ class InputConnectorTest(TestCase):
         self.assertIs(input_connector.node, node)
         self.assertEqual(input_connector.name, 'x')
         self.assertEqual(input_connector.is_input, True)
-        with self.assertRaisesRegex(ValueError, "'a' is not an input of operation 'test.test_node.Op1'"):
+        with self.assertRaisesRegex(ValueError, "'a' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
             InputConnector(node, 'a')
-        with self.assertRaisesRegex(ValueError, "'y' is not an input of operation 'test.test_node.Op1'"):
+        with self.assertRaisesRegex(ValueError, "'y' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
             InputConnector(node, 'y')
 
     def test_eq(self):
@@ -53,7 +53,7 @@ class OutputConnectorTest(TestCase):
         self.assertIs(output_connector.node, node)
         self.assertEqual(output_connector.name, 'y')
         self.assertEqual(output_connector.is_input, False)
-        with self.assertRaisesRegex(ValueError, "'x' is not an output of operation 'test.test_node.Op1'"):
+        with self.assertRaisesRegex(ValueError, "'x' is not an output of operation '[a-z\\.]*test_workflow.Op1'"):
             OutputConnector(node, 'x')
 
     def test_eq(self):
@@ -69,7 +69,7 @@ class NodeTest(TestCase):
     def test_init(self):
         node = OpNode(Op3)
 
-        self.assertTrue('test_node.Op3#' in node.id)
+        self.assertRegex(node.id, '[a-z\\.]*test_workflow.Op3#[0-9]+')
 
         self.assertTrue(len(node.input), 2)
         self.assertTrue(len(node.output), 1)
@@ -251,21 +251,21 @@ class NodeTest(TestCase):
           "graph": [
             {
               "id": "Op1",
-              "op": "test.test_node.Op1",
+              "op": "test.test_workflow.Op1",
               "input": [
                 ["x", null]
               ]
             },
             {
               "id": "Op2",
-              "op": "test.test_node.Op2",
+              "op": "test.test_workflow.Op2",
               "input": [
                 ["a", "Op1", "y"]
               ]
             },
             {
               "id": "Op3",
-              "op": "test.test_node.Op3",
+              "op": "test.test_workflow.Op3",
               "input": [
                 ["v", "Op2", "b"],
                 ["u", "Op1", "y"]

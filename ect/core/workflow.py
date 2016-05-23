@@ -2,14 +2,17 @@
 Module Description
 ==================
 
-Provides classes that are used to construct processing networks / workflows from registered operations.
+Provides classes that are used to construct processing workflows (networks) from registered operations and connected
+graphs of such.
 
 This module provides the following data types:
-* A :py:class:`Net` has named input/output ``Connector``s and contains ``Node``s
-* A :py:class:`Node` has named input/output ``Connector``s and contains input/output ``Connections``s
-  from/to other ``Node``s
-* A :py:class:`Connection` comprises two ``Connector``s from one ``Node`` to another
-* A :py:class:`Connector` belongs to a `Node` or `Net` and is either an input or an output, and has a (parameter) name
+* A :py:class:`Node` has zero or more ``InputConnector``s and zero or more ``OutputConnector``s
+* A :py:class:`OpNode` is a ``Node`` that wraps an executable operation.
+* A :py:class:`Graph` is a ``Node``that contains other ``Node``s
+* A :py:class:`InputConnector` belongs to a ``Node``, has a (parameter) name, and has a ``source`` property that points
+  to a connected ``OutputConnector`` of a source node.
+* A :py:class:`OutputConnector` belongs to a ``Node``, has a (parameter) name, and has a ``targets`` property (a list)
+  that points to all connected ``InputConnector`` of other target nodes.
 
 Module Reference
 ================
