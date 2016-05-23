@@ -52,7 +52,7 @@ Operations UC9
 		
 	- :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/ob_spec_subcategory_correlation-analysis>`
 	
-		- :doc:`Product-Moment Correlation Coefficient (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>`
+		- :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/ob_spec_product-moment-correlation>`
 
 
 *not implemented as operations*
