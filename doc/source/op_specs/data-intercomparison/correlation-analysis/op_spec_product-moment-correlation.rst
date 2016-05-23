@@ -4,7 +4,7 @@ Operation
 
 --------------------------
 
-:Operation name: Product-Moment Correlation Coefficient (Pearson) 
+:Operation name: Product-Moment Correlation (Pearson) 
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX*
 :Description: This Operation performs a correlation analysis for metrically scaled data. 
