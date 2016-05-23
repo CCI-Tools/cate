@@ -1,6 +1,7 @@
+from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.node import Connection, Connector, Node
+from ect.core.node import InputConnector, OutputConnector, OpNode, Graph
 from ect.core.op import op_input, op_output
 from ect.core.util import object_to_qualified_name
 
@@ -24,139 +25,220 @@ class Op3:
     pass
 
 
-class ConnectorTest(TestCase):
+class InputConnectorTest(TestCase):
     def test_init(self):
-        node = Node(Op1)
-        input_connector = Connector(node, 'x', True)
-        output_connector = Connector(node, 'y', False)
+        node = OpNode(Op1)
+        input_connector = InputConnector(node, 'x')
         self.assertIs(input_connector.node, node)
         self.assertEqual(input_connector.name, 'x')
         self.assertEqual(input_connector.is_input, True)
+        with self.assertRaisesRegex(ValueError, "'a' is not an input of operation 'test.test_node.Op1'"):
+            InputConnector(node, 'a')
+        with self.assertRaisesRegex(ValueError, "'y' is not an input of operation 'test.test_node.Op1'"):
+            InputConnector(node, 'y')
+
+    def test_eq(self):
+        node1 = OpNode(Op3)
+        node2 = OpNode(Op3)
+        self.assertEqual(InputConnector(node1, 'u'), InputConnector(node1, 'u'))
+        self.assertNotEqual(InputConnector(node2, 'u'), InputConnector(node1, 'u'))
+        self.assertNotEqual(InputConnector(node1, 'v'), InputConnector(node1, 'u'))
+        self.assertNotEqual(OutputConnector(node1, 'w'), InputConnector(node1, 'u'))
+
+
+class OutputConnectorTest(TestCase):
+    def test_init(self):
+        node = OpNode(Op1)
+        output_connector = OutputConnector(node, 'y')
         self.assertIs(output_connector.node, node)
         self.assertEqual(output_connector.name, 'y')
         self.assertEqual(output_connector.is_input, False)
-        with self.assertRaises(ValueError):
-            Connector(node, 'a', True)
-        with self.assertRaises(ValueError):
-            Connector(node, 'y', True)
-        with self.assertRaises(ValueError):
-            Connector(node, 'x', False)
+        with self.assertRaisesRegex(ValueError, "'x' is not an output of operation 'test.test_node.Op1'"):
+            OutputConnector(node, 'x')
 
     def test_eq(self):
-        node1 = Node(Op3)
-        node2 = Node(Op3)
-        self.assertEqual(Connector(node1, 'u', True), Connector(node1, 'u', True))
-        self.assertNotEqual(Connector(node2, 'u', True), Connector(node1, 'u', True))
-        self.assertNotEqual(Connector(node1, 'v', True), Connector(node1, 'u', True))
-        self.assertNotEqual(Connector(node1, 'w', False), Connector(node1, 'u', True))
-
-
-class ConnectionTest(TestCase):
-    def test_init(self):
-        node1 = Node(Op1)
-        node2 = Node(Op2)
-        output_connector = Connector(node1, 'y', False)
-        input_connector = Connector(node2, 'a', True)
-        connection = Connection(output_connector, input_connector)
-        self.assertIs(connection.output_connector, output_connector)
-        self.assertIs(connection.input_connector, input_connector)
-        with self.assertRaises(ValueError):
-            Connection(input_connector, input_connector)
-        with self.assertRaises(ValueError):
-            Connection(input_connector, output_connector)
-
-    def test_eq(self):
-        node1 = Node(Op1)
-        node2 = Node(Op2)
-        node3 = Node(Op2)
-        self.assertEqual(Connection(Connector(node1, 'y', False), Connector(node2, 'a', True)),
-                         Connection(Connector(node1, 'y', False), Connector(node2, 'a', True)))
-        self.assertNotEqual(Connection(Connector(node1, 'y', False), Connector(node2, 'a', True)),
-                            Connection(Connector(node1, 'y', False), Connector(node3, 'a', True)))
+        node1 = OpNode(Op3)
+        node2 = OpNode(Op3)
+        self.assertEqual(OutputConnector(node1, 'w'), OutputConnector(node1, 'w'))
+        self.assertNotEqual(OutputConnector(node2, 'w'), OutputConnector(node1, 'w'))
+        self.assertNotEqual(InputConnector(node1, 'u'), OutputConnector(node1, 'w'))
 
 
 # noinspection PyUnresolvedReferences
 class NodeTest(TestCase):
     def test_init(self):
-        node = Node(Op3)
+        node = OpNode(Op3)
 
-        self.assertIn('u', node.__dict__)
-        self.assertIsInstance(node.u, Connector)
-        self.assertIs(node.u.node, node)
-        self.assertEqual(node.u.name, 'u')
-        self.assertTrue(node.u.is_input)
+        self.assertTrue('test_node.Op3#' in node.id)
 
-        self.assertIn('v', node.__dict__)
-        self.assertIsInstance(node.v, Connector)
-        self.assertIs(node.v.node, node)
-        self.assertEqual(node.v.name, 'v')
-        self.assertTrue(node.v.is_input)
+        self.assertTrue(len(node.input), 2)
+        self.assertTrue(len(node.output), 1)
 
-        self.assertIn('w', node.__dict__)
-        self.assertIsInstance(node.w, Connector)
-        self.assertIs(node.w.node, node)
-        self.assertEqual(node.w.name, 'w')
-        self.assertFalse(node.w.is_input)
+        self.assertTrue(hasattr(node.input, 'u'))
+        self.assertIsInstance(node.input.u, InputConnector)
+        self.assertIs(node.input.u.node, node)
+        self.assertEqual(node.input.u.name, 'u')
+        self.assertEqual(node.input.u.value, None)
+        self.assertTrue(node.input.u.is_input)
+
+        self.assertTrue(hasattr(node.input, 'v'))
+        self.assertIsInstance(node.input.v, InputConnector)
+        self.assertIs(node.input.v.node, node)
+        self.assertEqual(node.input.v.name, 'v')
+        self.assertTrue(node.input.v.is_input)
+
+        self.assertTrue(hasattr(node.output, 'w'))
+        self.assertIsInstance(node.output.w, OutputConnector)
+        self.assertIs(node.output.w.node, node)
+        self.assertEqual(node.output.w.name, 'w')
+        self.assertFalse(node.output.w.is_input)
 
     def test_init_operation_or_name_is_equivalent(self):
-        node1 = Node(Op3)
+        node1 = OpNode(Op3)
         self.assertIsNotNone(node1.operation)
         self.assertIsNotNone(node1.op_meta_info)
-        node2 = Node(object_to_qualified_name(Op3))
+        node2 = OpNode(object_to_qualified_name(Op3))
         self.assertIs(node2.operation, node1.operation)
         self.assertIs(node2.op_meta_info, node1.op_meta_info)
 
     def test_init_failures(self):
         with self.assertRaises(ValueError):
-            Node(NodeTest)
-
-        with self.assertRaises(AttributeError):
-            Node('X')
-
-        with self.assertRaises(ImportError):
-            Node('X.Y')
+            # "ValueError: operation with name 'test_node.NodeTest' not registered"
+            OpNode(NodeTest)
 
         with self.assertRaises(ValueError):
-            Node(None)
+            # "ValueError: operation with name 'X' not registered"
+            OpNode('X')
+
+        with self.assertRaises(ValueError):
+            # "ValueError: operation with name 'X.Y' not registered"
+            OpNode('X.Y')
+
+        with self.assertRaises(ValueError):
+            # "ValueError: operation must be given"
+            OpNode(None)
 
     def test_link_to(self):
-        node1 = Node(Op1)
-        node2 = Node(Op2)
-        node3 = Node(Op3)
-        node1.y.link(node2.a)
-        node1.y.link(node3.u)
-        node2.b.link(node3.v)
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+        node3 = OpNode(Op3)
+        node1.output.y.link(node2.input.a)
+        node1.output.y.link(node3.input.u)
+        node2.output.b.link(node3.input.v)
         self.assert_links(node1, node2, node3)
+
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+
+        with self.assertRaisesRegex(AttributeError, "'y' is an output and cannot be set"):
+            node1.output.y = node2.input.a
 
     def test_link_from(self):
-        node1 = Node(Op1)
-        node2 = Node(Op2)
-        node3 = Node(Op3)
-        node2.a.link(node1.y)
-        node3.u.link(node1.y)
-        node3.v.link(node2.b)
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+        node3 = OpNode(Op3)
+        node2.input.a.link(node1.output.y)
+        node3.input.u.link(node1.output.y)
+        node3.input.v.link(node2.output.b)
         self.assert_links(node1, node2, node3)
 
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+        node3 = OpNode(Op3)
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+        self.assert_links(node1, node2, node3)
+
+        with self.assertRaisesRegex(AttributeError, "'a' is not an input"):
+            node1.input.a = node3.input.u
+
+        with self.assertRaisesRegex(AttributeError, "input 'a' expects an output"):
+            node2.input.a = node3.input.u
+
     def assert_links(self, node1, node2, node3):
-        self.assertEqual(node1.input_connections,
-                         [])
-        self.assertEqual(node1.output_connections,
-                         [Connection(Connector(node1, 'y', False),
-                                     Connector(node2, 'a', True)),
-                          Connection(Connector(node1, 'y', False),
-                                     Connector(node3, 'u', True))])
 
-        self.assertEqual(node2.input_connections,
-                         [Connection(Connector(node1, 'y', False),
-                                     Connector(node2, 'a', True))])
-        self.assertEqual(node2.output_connections,
-                         [Connection(Connector(node2, 'b', False),
-                                     Connector(node3, 'v', True))])
+        self.assertIs(node1.input.x.source, None)
+        self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
 
-        self.assertEqual(node3.input_connections,
-                         [Connection(Connector(node1, 'y', False),
-                                     Connector(node3, 'u', True)),
-                          Connection(Connector(node2, 'b', False),
-                                     Connector(node3, 'v', True))])
-        self.assertEqual(node3.output_connections,
-                         [])
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertEqual(node2.output.b.targets, [node3.input.v])
+
+    def test_graph(self):
+
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+        node3 = OpNode(Op3)
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+
+        graph = Graph(node1, node2, node3)
+        self.assertEqual(graph.nodes, [node1, node2, node3])
+
+        graph.gen_io()
+
+    def test_json(self):
+        node1 = OpNode(Op1, node_id='Op1')
+        node2 = OpNode(Op2, node_id='Op2')
+        node3 = OpNode(Op3, node_id='Op3')
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+
+        nodes = [node1, node2, node3]
+        graph_nodes = []
+        for node in nodes:
+            node_input = []
+            for input_connector in node.input[:]:
+                source = input_connector.source
+                value = input_connector.value
+                if source is not None:
+                    node_input.append((input_connector.name, source.node.id, source.name))
+                else:
+                    node_input.append((input_connector.name, value))
+            node_dict = OrderedDict()
+            node_dict['id'] = node.id
+            node_dict['op'] = node.op_meta_info.qualified_name
+            node_dict['input'] = node_input
+            graph_nodes.append(node_dict)
+
+        graph_dict = {'graph': graph_nodes}
+
+        expected_json_text = """{
+          "graph": [
+            {
+              "id": "Op1",
+              "op": "test.test_node.Op1",
+              "input": [
+                ["x", null]
+              ]
+            },
+            {
+              "id": "Op2",
+              "op": "test.test_node.Op2",
+              "input": [
+                ["a", "Op1", "y"]
+              ]
+            },
+            {
+              "id": "Op3",
+              "op": "test.test_node.Op3",
+              "input": [
+                ["v", "Op2", "b"],
+                ["u", "Op1", "y"]
+              ]
+            }
+          ]
+        }
+        """
+
+        import json
+        from io import StringIO
+
+        actual_json_text = json.dumps(graph_dict)
+
+        expected_json_obj = json.load(StringIO(expected_json_text))
+        actual_json_obj = json.load(StringIO(actual_json_text))
+
+        self.assertEqual(actual_json_obj, expected_json_obj)

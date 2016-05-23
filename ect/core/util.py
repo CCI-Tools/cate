@@ -9,6 +9,107 @@ Provides random utility functions.
 Module Reference
 ================
 """
+from collections import OrderedDict
+
+
+class Attributes:
+    """
+    Instances of the ``Attributes`` class have some similarities with JavaScript objects; you can use string keys
+    to create new attributes and use a string key as an attribute name later. At the same time, you can determine the
+    length of the object and use integer indices as well as slices to access values.
+
+    Constraints and properties of the ``Attributes`` object:
+
+    * The ``Attributes`` class does not defines any methods on its own in order to avoid naming clashes with added keys.
+    * All keys must be string that are valid Python names. Values may be of any type.
+    * The order of items added is preserved.
+
+    Examples:
+
+    >>> obj = Attributes()
+    >>> obj['a'] = 1
+    >>> obj['z'] = 2
+    >>> len(obj.a)
+    2
+    >>> obj.a
+    1
+    >>> obj['z']
+    2
+    >>> obj[0]
+    1
+    >>> obj[:]
+    [1, 2]
+    >>> list(obj)
+    [('a', 1), ('z', 2)]
+    >>> obj = Attributes([('a', 1), ('z', 2)])
+    >>> list(obj)
+    [('a', 1), ('z', 2)]
+
+    :param items sequence of (name, value) pairs
+    """
+
+    def __init__(self, items=list()):
+        the_dict = OrderedDict()
+        for name, value in items:
+            the_dict[name] = value
+        object.__setattr__(self, '_dict', the_dict)
+
+    def __contains__(self, key):
+        the_dict = object.__getattribute__(self, '_dict')
+        return key in the_dict
+
+    def __len__(self):
+        the_dict = object.__getattribute__(self, '_dict')
+        return len(the_dict)
+
+    def __iter__(self):
+        the_dict = object.__getattribute__(self, '_dict')
+        return iter(the_dict.items())
+
+    def __setitem__(self, key, value):
+        the_dict = object.__getattribute__(self, '_dict')
+        if isinstance(key, int):
+            key = list(the_dict.keys())[key]
+        the_dict[key] = value
+
+    def __getitem__(self, key):
+        the_dict = object.__getattribute__(self, '_dict')
+        if isinstance(key, int) or isinstance(key, slice):
+            return list(the_dict.values())[key]
+        return the_dict[key]
+
+    def __delitem__(self, key):
+        the_dict = object.__getattribute__(self, '_dict')
+        if isinstance(key, int) or isinstance(key, slice):
+            key = tuple(the_dict.keys())[key]
+        del the_dict[key]
+
+    def __setattr__(self, name, value):
+        the_dict = object.__getattribute__(self, '_dict')
+        the_dict[name] = value
+
+    def __getattr__(self, name):
+        the_dict = object.__getattribute__(self, '_dict')
+        if name in the_dict:
+            return the_dict[name]
+        else:
+            raise AttributeError("attribute '%s' not found" % name)
+
+    def __delattr__(self, name):
+        the_dict = object.__getattribute__(self, '_dict')
+        if name in the_dict:
+            del the_dict[name]
+        else:
+            raise AttributeError("attribute '%s' not found" % name)
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        the_dict = object.__getattribute__(self, '_dict')
+        if len(the_dict) == 0:
+            return 'Attributes()'
+        return 'Attributes(%s)' % repr(list(the_dict.items()))
 
 
 def extend(target_class, property_name=None, property_doc=None):
@@ -49,6 +150,7 @@ def extend(target_class, property_name=None, property_doc=None):
                          If ``None``, the doc-string will be taken from the *extension_class*, if any.
     :return: A decorator.
     """
+
     def decorator(extension_class):
         return _add_extension(target_class, extension_class, property_name=property_name, property_doc=property_doc)
 
