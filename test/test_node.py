@@ -118,29 +118,27 @@ class NodeTest(TestCase):
             # "ValueError: operation must be given"
             OpNode(None)
 
-    def test_link_to(self):
+    def test_join_output_with_input(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
-        node1.output.y.link(node2.input.a)
-        node1.output.y.link(node3.input.u)
-        node2.output.b.link(node3.input.v)
-        self.assert_links(node1, node2, node3)
-
+        node1.output.y.join(node2.input.a)
+        node1.output.y.join(node3.input.u)
+        node2.output.b.join(node3.input.v)
+        self.assertConnectionsAreOk(node1, node2, node3)
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
-
         with self.assertRaisesRegex(AttributeError, "'y' is an output and cannot be set"):
             node1.output.y = node2.input.a
 
-    def test_link_from(self):
+    def test_join_input_with_output(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
-        node2.input.a.link(node1.output.y)
-        node3.input.u.link(node1.output.y)
-        node3.input.v.link(node2.output.b)
-        self.assert_links(node1, node2, node3)
+        node2.input.a.join(node1.output.y)
+        node3.input.u.join(node1.output.y)
+        node3.input.v.join(node2.output.b)
+        self.assertConnectionsAreOk(node1, node2, node3)
 
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
@@ -148,7 +146,7 @@ class NodeTest(TestCase):
         node2.input.a = node1.output.y
         node3.input.u = node1.output.y
         node3.input.v = node2.output.b
-        self.assert_links(node1, node2, node3)
+        self.assertConnectionsAreOk(node1, node2, node3)
 
         with self.assertRaisesRegex(AttributeError, "'a' is not an input"):
             node1.input.a = node3.input.u
@@ -156,13 +154,57 @@ class NodeTest(TestCase):
         with self.assertRaisesRegex(AttributeError, "input 'a' expects an output"):
             node2.input.a = node3.input.u
 
-    def assert_links(self, node1, node2, node3):
+    def test_disjoin(self):
+        node1 = OpNode(Op1)
+        node2 = OpNode(Op2)
+        node3 = OpNode(Op3)
+
+        node2.input.a.join(node1.output.y)
+        node3.input.u.join(node1.output.y)
+        node3.input.v.join(node2.output.b)
+        self.assertConnectionsAreOk(node1, node2, node3)
+
+        node3.input.v.disjoin()
+
+        self.assertIs(node1.input.x.source, None)
+        self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertEqual(node2.output.b.targets, [])
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, None)
+        self.assertEqual(node3.output.w.targets, [])
+
+        node2.input.a.disjoin()
+
+        self.assertIs(node1.input.x.source, None)
+        self.assertEqual(node1.output.y.targets, [node3.input.u])
+        self.assertIs(node2.input.a.source, None)
+        self.assertEqual(node2.output.b.targets, [])
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, None)
+        self.assertEqual(node3.output.w.targets, [])
+
+        node3.input.u.disjoin()
+
+        self.assertIs(node1.input.x.source, None)
+        self.assertEqual(node1.output.y.targets, [])
+        self.assertIs(node2.input.a.source, None)
+        self.assertEqual(node2.output.b.targets, [])
+        self.assertIs(node3.input.u.source, None)
+        self.assertIs(node3.input.v.source, None)
+        self.assertEqual(node3.output.w.targets, [])
+
+    def assertConnectionsAreOk(self, node1, node2, node3):
 
         self.assertIs(node1.input.x.source, None)
         self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
 
         self.assertIs(node2.input.a.source, node1.output.y)
         self.assertEqual(node2.output.b.targets, [node3.input.v])
+
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, node2.output.b)
+        self.assertEqual(node3.output.w.targets, [])
 
     def test_graph(self):
 

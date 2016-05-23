@@ -180,12 +180,22 @@ class Connector(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def link(self, other: 'Connector'):
+    def join(self, other: 'Connector'):
         """
-        Create a connection by linking this connector with another :py:class:`Connector`.
+        Create a connection by joining this connector with another one.
 
         :param other: The other connector.
-        :return: A new connection.
+        :raise ValueError: if *other* cannot be joined with this one.
+        """
+        pass
+
+    @abstractmethod
+    def disjoin(self):
+        """
+        Remove a connection which uses this connector.
+
+        :param other: The other connector.
+        :raise ValueError: if this connector cannot be disjoined.
         """
         pass
 
@@ -224,30 +234,22 @@ class InputConnector(Connector):
         """The source of this input connector, or ``None`` if it is not connected."""
         return self._source
 
-    @source.setter
-    def source(self, value: 'OutputConnector'):
-        """Set the *source* output connector."""
-        # todo - if value is None, remove the existing connection
-        self._source = value
-
     @property
     def is_input(self) -> bool:
         """Always ``True``."""
         return True
 
-    def link(self, other: 'OutputConnector'):
-        """
-        Create a connection by linking this connector with another :py:class:`OutputConnector`.
-
-        :param other: The other connector.
-        :return: A new connection.
-        """
+    def join(self, other: 'OutputConnector'):
         if other.is_input:
             raise ValueError('other must be an output connector')
-        # todo assert that nodes are not same
+        # Note: perform sanity checks here, e.g. to avoid close loops by self-referencing
+        self._source = other
+        other._targets.append(self)
 
-        self.source = other
-        other.targets.append(self)
+    def disjoin(self):
+        if self._source is not None:
+            self._source._targets.remove(self)
+            self._source = None
 
     def __str__(self):
         return '%s.input.%s' % (self.node.op_meta_info.qualified_name, self.name)
@@ -275,26 +277,23 @@ class OutputConnector(Connector):
     @property
     def targets(self) -> List[InputConnector]:
         """The targets of this output connector."""
-        return self._targets
+        return list(self._targets)
 
     @property
     def is_input(self) -> bool:
         """Always ``False``."""
         return False
 
-    def link(self, other: InputConnector):
-        """
-        Create a connection by linking this connector with another :py:class:`InputConnector`.
-
-        :param other: The other connector.
-        :return: A new connection.
-        """
+    def join(self, other: InputConnector):
         if not other.is_input:
             raise ValueError('other must be an input connector')
-        # todo assert that nodes are not same
+        # Note: perform sanity checks here, e.g. to avoid close loops by self-referencing
+        other._source = self
+        if other not in self._targets:
+            self._targets.append(other)
 
-        other.source = self
-        self.targets.append(other)
+    def disjoin(self):
+        raise NotImplementedError()
 
     def __str__(self):
         return '%s.output.%s' % (self.node.op_meta_info.qualified_name, self.name)
@@ -312,7 +311,7 @@ class InputConnectors(Attributes):
         if isinstance(value, Connector):
             if value.is_input:
                 raise AttributeError("input '%s' expects an output" % name)
-            value.link(connector)
+            value.join(connector)
         else:
             connector.value = value
 
