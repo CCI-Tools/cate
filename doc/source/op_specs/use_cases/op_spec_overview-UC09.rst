@@ -15,7 +15,7 @@ Operations UC9
 		
 	- Correlation Analysis
 	
-		- Product-Moment Correlation Coefficient (Pearson) 
+		- Product-Moment Correlation (Pearson) 
 
 
 
