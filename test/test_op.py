@@ -172,19 +172,18 @@ class OpTest(TestCase):
         self.assertEqual(result, 4 * 2.5)
 
     def test_function_invocation_with_monitor(self):
-        def f(x, a=4, monitor=Monitor.NULL):
-            monitor.ok = True
-            return a * x
-
-        class MyMonitor(Monitor):
-            def __init__(self):
-                self.ok = False
+        def f(monitor: Monitor, x, a=4):
+            monitor.start('f', 23)
+            return_value = a * x
+            monitor.done()
+            return return_value
 
         op_reg = self.registry.add_op(f)
         monitor = MyMonitor()
         result = op_reg(x=2.5, monitor=monitor)
         self.assertEqual(result, 4 * 2.5)
-        self.assertEqual(monitor.ok, True)
+        self.assertEqual(monitor.total_work, 23)
+        self.assertEqual(monitor.is_done, True)
 
     def test_class_invocation(self):
 
@@ -204,20 +203,18 @@ class OpTest(TestCase):
         @op_input('a', default_value=4, registry=self.registry)
         @op_output('y', registry=self.registry)
         class C:
-            def __call__(self, x, a, monitor=Monitor.NULL):
-                monitor.ok = True
-                return {'y': x * a}
-
-        class MyMonitor(Monitor):
-            def __init__(self):
-                self.ok = False
+            def __call__(self, x, a, monitor: Monitor):
+                monitor.start('C', 19)
+                output = {'y': x * a}
+                monitor.done()
+                return output
 
         op_reg = self.registry.get_op(C)
         monitor = MyMonitor()
         result = op_reg(x=2.5, monitor=monitor)
         self.assertEqual(result, {'y': 4 * 2.5})
-        self.assertEqual(monitor.ok, True)
-
+        self.assertEqual(monitor.total_work, 19)
+        self.assertEqual(monitor.is_done, True)
 
     # todo - make this test run correctly:
     def test_class_invocation_with_start_up(self):
@@ -314,3 +311,22 @@ class OpTest(TestCase):
         d2 = json.load(StringIO(s))
 
         self.assertEqual(d2, d1)
+
+
+class MyMonitor(Monitor):
+    def __init__(self):
+        self.total_work = 0
+        self.worked = 0
+        self.is_done = False
+
+    def start(self, label: str, total_work: float = None):
+        self.total_work = total_work
+
+    def progress(self, work: float = None, msg: str = None):
+        self.worked += work
+
+    def done(self):
+        self.is_done = True
+
+
+

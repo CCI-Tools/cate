@@ -160,8 +160,10 @@ class Graph(Node):
 
         :param monitor: An optional progress monitor.
         """
+        monitor.start('executing graph ' + self.id, len(self.nodes))
         for node in self.nodes:
-            node.invoke(monitor)
+            node.invoke(monitor.child(1))
+        monitor.done()
 
     def gen_io(self):
         """
