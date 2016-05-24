@@ -121,7 +121,11 @@ class OpNode(Node):
         for input_name, input_props in self.op_meta_info.inputs.items():
             input_values[input_name] = None
         for input_connector in self.input[:]:
-            input_values[input_connector.name] = input_connector.value
+            if input_connector.source is not None:
+                input_value = input_connector.source.value
+            else:
+                input_value = input_connector.value
+            input_values[input_connector.name] = input_value
 
         return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
 
@@ -150,7 +154,14 @@ class Graph(Node):
         return self._nodes
 
     def invoke(self, monitor=Monitor.NULL):
-        raise NotImplementedError()
+        """
+        Invoke this graph by invoking all all of its nodes.
+        The node invocation order is determined by the input requirements of individual nodes.
+
+        :param monitor: An optional progress monitor.
+        """
+        for node in self.nodes:
+            node.invoke(monitor)
 
     def gen_io(self):
         """

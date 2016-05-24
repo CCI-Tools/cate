@@ -233,31 +233,48 @@ class NodeTest(TestCase):
 
 
 class GraphTest(TestCase):
-    def test_graph(self):
-
-        node1 = OpNode(Op1)
-        node2 = OpNode(Op2)
-        node3 = OpNode(Op3)
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-
-        graph = Graph(node1, node2, node3)
-        self.assertEqual(graph.nodes, [node1, node2, node3])
-
-        graph.gen_io()
-
-    def test_json(self):
+    def test_graph_init(self):
         node1 = OpNode(Op1, node_id='Op1')
         node2 = OpNode(Op2, node_id='Op2')
         node3 = OpNode(Op3, node_id='Op3')
         node2.input.a = node1.output.y
         node3.input.u = node1.output.y
         node3.input.v = node2.output.b
+        graph = Graph(node1, node2, node3, graph_id='Workflow')
 
-        nodes = [node1, node2, node3]
+        self.assertEqual(graph.nodes, [node1, node2, node3])
+        # todo - test graph.input / graph.output
+
+    def test_graph_invocation(self):
+        node1 = OpNode(Op1, node_id='Op1')
+        node2 = OpNode(Op2, node_id='Op2')
+        node3 = OpNode(Op3, node_id='Op3')
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+        graph = Graph(node1, node2, node3, graph_id='Workflow')
+
+        # todo - use graph.input.x = 3
+        node1.input.x = 3
+        return_value = graph.invoke()
+        # todo - use: output_value = graph.output.w.value
+        output_value = node3.output.w.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
+
+
+    def test_graph_json(self):
+        node1 = OpNode(Op1, node_id='Op1')
+        node2 = OpNode(Op2, node_id='Op2')
+        node3 = OpNode(Op3, node_id='Op3')
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+        graph = Graph(node1, node2, node3, graph_id='Workflow')
+
+        # todo - make to_json() a method of Node
         graph_nodes = []
-        for node in nodes:
+        for node in graph.nodes:
             node_input = OrderedDict()
             for input_connector in node.input[:]:
                 source = input_connector.source
