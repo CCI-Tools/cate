@@ -169,11 +169,11 @@ class OpRegistration:
 
     def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
         """
-        Performs this operation.
+        Perform this operation.
 
         :param monitor: an optional progress monitor, which is passed to the wrapped callable, if it supports it.
-        :param input_values: the operations's input values
-        :return: a dictionary that maps output names to their values.
+        :param input_values: the input values
+        :return: the output value(s).
         """
 
         # set default_value where input values are missing
