@@ -6,24 +6,23 @@ This module defines the :py:class:`Monitor` interface that is used by ECT to obs
 operations that support it.
 
 Example usage:::
+    from ect.core.monitor import starting
 
     def long_running_task(a, b, c, monitor):
-        monitor.start('doing a long running task', total_work=100)
-        # do 30% of the work here
-        monitor.progress(work=30)
-        # do 70% of the work here
-        monitor.progress(work=70)
-        monitor.done()
+        with starting(monitor, 'doing a long running task', total_work=100)
+            # do 30% of the work here
+            monitor.progress(work=30)
+            # do 70% of the work here
+            monitor.progress(work=70)
 
 If your function makes calls to other functions that also support a monitor, use a *child-monitor*:::
 
     def long_running_task(a, b, c, monitor):
-        monitor.start('doing a long running task', total_work=100)
-        # let other_task do 30% of the work
-        other_task(a, b, c, monitor=monitor.child(work=30))
-        # let other_task do 70% of the work
-        other_task(a, b, c, monitor=monitor.child(work=70))
-        monitor.done()
+        with starting(monitor, 'doing a long running task', total_work=100)
+            # let other_task do 30% of the work
+            other_task(a, b, c, monitor=monitor.child(work=30))
+            # let other_task do 70% of the work
+            other_task(a, b, c, monitor=monitor.child(work=70))
 
 
 The module also provides a simple but still useful default implementation :py:class:`ConsoleMonitor`, which
@@ -34,6 +33,26 @@ Module Reference
 ================
 """
 from abc import ABCMeta, abstractmethod
+from contextlib import contextmanager
+
+
+@contextmanager
+def starting(monitor, label: str, total_work: float = None):
+    """
+    A context manager for easier use of progress monitors.
+    Calls the monitor's ``start`` method with *label* and *total_work*.
+    Will then take care of calling :py:method:`Monitor.done`.
+
+    :param monitor: The monitor
+    :param label: Passed to the monitor's ``start`` method
+    :param total_work: Passed to the monitor's ``start`` method
+    :return:
+    """
+    monitor.start(label, total_work=total_work)
+    try:
+        yield monitor
+    finally:
+        monitor.done()
 
 
 class Monitor(metaclass=ABCMeta):

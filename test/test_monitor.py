@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor
+from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor, starting
 
 
 class NullMonitorTest(TestCase):
@@ -40,6 +40,21 @@ class RecordingMonitorTest(TestCase):
         monitor.progress(msg='phase 2')
         monitor.progress(work=4)
         monitor.done()
+        self.assertEqual(monitor.records, [('start', 'task A', 10),
+                                           ('progress', 1, None, 10),
+                                           ('progress', 5, 'phase 1', 60),
+                                           ('progress', None, 'phase 2', None),
+                                           ('progress', 4, None, 100),
+                                           ('done',)])
+
+    def test_context_manager(self):
+        monitor = RecordingMonitor()
+        with starting(monitor, 'task A', total_work=10):
+            monitor.progress(work=1)
+            monitor.progress(work=5, msg='phase 1')
+            monitor.progress(msg='phase 2')
+            monitor.progress(work=4)
+
         self.assertEqual(monitor.records, [('start', 'task A', 10),
                                            ('progress', 1, None, 10),
                                            ('progress', 5, 'phase 1', 60),
