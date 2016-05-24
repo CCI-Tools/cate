@@ -29,7 +29,9 @@ class XArrayDatasetAdapter(DatasetAdapter):
         pass
 
 
-def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset):
-    container.add_dataset(XArrayDatasetAdapter(xr_dataset))
+def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset, name: str = None):
+    container.add_dataset(XArrayDatasetAdapter(xr_dataset), name=name)
 
+
+# Monkey-patch DatasetCollection
 DatasetCollection.add_xarray_dataset = add_xarray_dataset

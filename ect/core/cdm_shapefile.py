@@ -30,7 +30,9 @@ class ShapefileDatasetAdapter(DatasetAdapter):
         pass
 
 
-def add_shapefile_dataset(container: DatasetCollection, shapefile):
-    container.add_dataset(ShapefileDatasetAdapter(shapefile))
+def add_shapefile_dataset(container: DatasetCollection, shapefile, name: str = None):
+    container.add_dataset(ShapefileDatasetAdapter(shapefile), name=name)
 
+
+# Monkey-patch DatasetCollection
 DatasetCollection.add_shapefile_dataset = add_shapefile_dataset

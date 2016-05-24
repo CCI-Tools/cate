@@ -27,6 +27,7 @@ Module Reference
 """
 
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 
 
 class Dataset(metaclass=ABCMeta):
@@ -75,17 +76,24 @@ class DatasetAdapter(Dataset, metaclass=ABCMeta):
 class DatasetCollection(Dataset):
     """
     A collection of :py:class:`ect.core.cdm.Dataset`-like objects.
+
+    :param datasets: datasets
+    :param named_datasets: named datasets
     """
 
-    def __init__(self):
-        self._datasets = []
+    def __init__(self, *datasets, **named_datasets):
+        self._datasets = OrderedDict()
+        for dataset in datasets:
+            self.add_dataset(dataset)
+        for name, dataset in named_datasets.items():
+            self.add_dataset(dataset, name=name)
 
     @property
     def wrapped_datasets(self):
         """
         :return: A sequence of all wrapped datasets / data structures in the order they have been added.
         """
-        return [ds.wrapped_dataset for ds in self._datasets]
+        return [ds.wrapped_dataset for ds in self._datasets.values()]
 
     @property
     def datasets(self):
@@ -93,27 +101,31 @@ class DatasetCollection(Dataset):
         :return: A sequence of all :py:class:`ect.core.cdm.Dataset` objects
                  in this collection in the order they have been added.
         """
-        return list(self._datasets)
+        return [ds for ds in self._datasets.values()]
 
-    def add_dataset(self, dataset):
+    def add_dataset(self, dataset, name: str = None):
         """
         Add a new dataset to this collection.
         :param dataset: a :py:class:`ect.core.cdm.Dataset`-like object
+        :param name: an optional name
         """
-        self._datasets.append(dataset)
+        if not name:
+            name = 'ds_' + hex(id(dataset))[2:]
+        self._datasets[name] = dataset
 
-    def remove_dataset(self, dataset):
+    def remove_dataset(self, name_or_dataset):
         """
         Removed the given dataset from this collection.
-        :param dataset: The dataset to be removed. This may also be the original, wrapped dataset.
+
+        :param name_or_dataset: The name of the dataset, the dataset, or the wrapped dataset to be removed.
         :return: The :py:class:`ect.core.cdm.Dataset` that has been removed.
         """
-        for ds in self._datasets:
-            if ds.wrapped_dataset is dataset:
-                self._datasets.remove(ds)
-                return ds
-        if dataset in self._datasets:
-            self._datasets.remove(dataset)
+        for name, dataset in self._datasets.items():
+            if name_or_dataset is dataset.wrapped_dataset \
+                    or name_or_dataset is dataset \
+                    or name_or_dataset == name:
+                del self._datasets[name]
+                return dataset
         return None
 
     def subset(self, spatial_roi=None, temporal_roi=None):
@@ -126,13 +138,13 @@ class DatasetCollection(Dataset):
         :return: a new dataset collection.
         """
         dsc = DatasetCollection()
-        for dataset in self._datasets:
-            dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi))
+        for name, dataset in self._datasets.items():
+            dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi), name=name)
         return dsc
 
     def close(self):
         """
         Closes all datasets.
         """
-        for dataset in self._datasets:
+        for dataset in self.datasets:
             dataset.close()
