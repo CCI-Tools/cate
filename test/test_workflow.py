@@ -1,28 +1,31 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.workflow import InputConnector, OutputConnector, OpNode, Graph
 from ect.core.op import op_input, op_output
 from ect.core.util import object_to_qualified_name
+from ect.core.workflow import InputConnector, OutputConnector, OpNode, Graph
 
 
 @op_input('x')
 @op_output('y')
 class Op1:
-    pass
+    def __call__(self, x):
+        return {'y': x + 1}
 
 
 @op_input('a')
 @op_output('b')
 class Op2:
-    pass
+    def __call__(self, a):
+        return {'b': 2 * a}
 
 
 @op_input('u')
 @op_input('v')
 @op_output('w')
 class Op3:
-    pass
+    def __call__(self, u, v):
+        return {'w': 2 * u + 3 * v}
 
 
 class InputConnectorTest(TestCase):
@@ -95,11 +98,34 @@ class NodeTest(TestCase):
 
     def test_init_operation_or_name_is_equivalent(self):
         node1 = OpNode(Op3)
-        self.assertIsNotNone(node1.operation)
+        self.assertIsNotNone(node1.op)
         self.assertIsNotNone(node1.op_meta_info)
         node2 = OpNode(object_to_qualified_name(Op3))
-        self.assertIs(node2.operation, node1.operation)
+        self.assertIs(node2.op, node1.op)
         self.assertIs(node2.op_meta_info, node1.op_meta_info)
+
+    def test_node_invocation(self):
+        node1 = OpNode(Op1)
+        node1.input.x = 3
+        return_value = node1.invoke()
+        output_value = node1.output.y.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 3 + 1)
+
+        node2 = OpNode(Op2)
+        node2.input.a = 3
+        return_value = node2.invoke()
+        output_value = node2.output.b.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * 3)
+
+        node3 = OpNode(Op3)
+        node3.input.u = 4
+        node3.input.v = 5
+        return_value = node3.invoke()
+        output_value = node3.output.w.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * 4 + 3 * 5)
 
     def test_init_failures(self):
         with self.assertRaises(ValueError):
@@ -195,7 +221,6 @@ class NodeTest(TestCase):
         self.assertEqual(node3.output.w.targets, [])
 
     def assertConnectionsAreOk(self, node1, node2, node3):
-
         self.assertIs(node1.input.x.source, None)
         self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
 
@@ -206,6 +231,8 @@ class NodeTest(TestCase):
         self.assertIs(node3.input.v.source, node2.output.b)
         self.assertEqual(node3.output.w.targets, [])
 
+
+class GraphTest(TestCase):
     def test_graph(self):
 
         node1 = OpNode(Op1)
@@ -231,14 +258,14 @@ class NodeTest(TestCase):
         nodes = [node1, node2, node3]
         graph_nodes = []
         for node in nodes:
-            node_input = []
+            node_input = OrderedDict()
             for input_connector in node.input[:]:
                 source = input_connector.source
                 value = input_connector.value
                 if source is not None:
-                    node_input.append((input_connector.name, source.node.id, source.name))
+                    node_input[input_connector.name] = (source.node.id, source.name)
                 else:
-                    node_input.append((input_connector.name, value))
+                    node_input[input_connector.name] = value
             node_dict = OrderedDict()
             node_dict['id'] = node.id
             node_dict['op'] = node.op_meta_info.qualified_name
@@ -252,24 +279,24 @@ class NodeTest(TestCase):
             {
               "id": "Op1",
               "op": "test.test_workflow.Op1",
-              "input": [
-                ["x", null]
-              ]
+              "input": {
+                "x": null
+              }
             },
             {
               "id": "Op2",
               "op": "test.test_workflow.Op2",
-              "input": [
-                ["a", "Op1", "y"]
-              ]
+              "input": {
+                "a": ["Op1", "y"]
+              }
             },
             {
               "id": "Op3",
               "op": "test.test_workflow.Op3",
-              "input": [
-                ["v", "Op2", "b"],
-                ["u", "Op1", "y"]
-              ]
+              "input": {
+                "v": ["Op2", "b"],
+                "u": ["Op1", "y"]
+              }
             }
           ]
         }

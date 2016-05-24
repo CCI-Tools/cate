@@ -19,8 +19,10 @@ Module Reference
 """
 
 from abc import ABCMeta, abstractproperty, abstractmethod
+from collections import OrderedDict
 from typing import List
 
+from ect.core import Monitor
 from .op import REGISTRY, OpMetaInfo, OpRegistration
 from .util import Attributes
 
@@ -65,6 +67,17 @@ class Node(metaclass=ABCMeta):
         """The node's output connectors."""
         return self._output_connectors
 
+    @abstractmethod
+    def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying operation with input values from
+        :py:property:`input`. Output values in :py:property:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
+        pass
+
 
 class OpNode(Node):
     """
@@ -92,9 +105,31 @@ class OpNode(Node):
         self._op_registration = op_registration
 
     @property
-    def operation(self):
-        """The operation."""
-        return self._op_registration.operation
+    def op(self):
+        """The operation registration. See :py:class:`ect.core.op.OpRegistration`"""
+        return self._op_registration
+
+    def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying operation :py:property:`op` with input values from
+        :py:property:`input`. Output values in :py:property:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
+        input_values = OrderedDict()
+        for input_name, input_props in self.op_meta_info.inputs.items():
+            input_values[input_name] = None
+        for input_connector in self.input[:]:
+            input_values[input_connector.name] = input_connector.value
+
+        return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
+
+        if len(self.op_meta_info.outputs) == 1 and 'return' in self.op_meta_info.outputs:
+            self.output['return'].value = return_value
+        else:
+            for output_name, output_value in return_value.items():
+                self.output[output_name].value = output_value
 
     def __str__(self):
         return "OpNode('%s')" % self.op_meta_info.qualified_name
@@ -113,6 +148,9 @@ class Graph(Node):
     @property
     def nodes(self):
         return self._nodes
+
+    def invoke(self, monitor=Monitor.NULL):
+        raise NotImplementedError()
 
     def gen_io(self):
         """
