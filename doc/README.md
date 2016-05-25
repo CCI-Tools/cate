@@ -6,7 +6,7 @@ RST
 
 To install Sphinx run:
 
-     $ conda install Sphinx
+     $ conda install Sphinx numpydoc
 
 To build the ECT documentation run:
 
