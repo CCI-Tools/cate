@@ -85,7 +85,7 @@ class OpTest(TestCase):
     def test_f_op_inp_ret(self):
         @op_input('a', value_range=[0., 1.], registry=self.registry)
         @op_input('v', value_set=['A', 'B', 'C'], registry=self.registry)
-        @op_return(not_none=True, registry=self.registry)
+        @op_return(registry=self.registry)
         def f_op_inp_ret(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f_op_inp_ret!"""
             return str(a + b + c + u + len(v) + w)
@@ -108,7 +108,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
-        expected_outputs[RETURN] = dict(data_type=str, not_none=True)
+        expected_outputs[RETURN] = dict(data_type=str)
         self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
 
     def test_C(self):
@@ -163,6 +163,50 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op!'))
         self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
         self.assertEqual(op_reg.meta_info.outputs, OrderedDict({RETURN: {}}))
+
+    def test_function_validation(self):
+
+        @op_input('x', registry=self.registry, data_type=float, value_range=[0.1, 0.9], default_value=0.5)
+        @op_input('y', registry=self.registry, required=True)
+        @op_input('a', registry=self.registry, data_type=int, value_set=[1, 4, 5])
+        @op_return(registry=self.registry, data_type=float)
+        def f(x, y: float, a=4):
+            return a * x + y if a != 5 else 'foo'
+
+        op_reg = self.registry.get_op(f)
+
+        self.assertEqual(op_reg.meta_info.inputs['x'].get('data_type', None), float)
+        self.assertEqual(op_reg.meta_info.inputs['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(op_reg.meta_info.inputs['x'].get('default_value', None), 0.5)
+        self.assertEqual(op_reg.meta_info.inputs['y'].get('data_type', None), float)
+        self.assertEqual(op_reg.meta_info.inputs['a'].get('data_type', None), int)
+        self.assertEqual(op_reg.meta_info.inputs['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(op_reg.meta_info.inputs['a'].get('default_value', None), 4)
+        self.assertEqual(op_reg.meta_info.outputs[RETURN].get('data_type', None), float)
+
+        with self.assertRaises(ValueError) as cm:
+            result = op_reg(x=0, y=3.)
+        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.test_op.f' must be in range [0.1, 0.9]")
+
+        with self.assertRaises(ValueError) as cm:
+            result = op_reg(x='A', y=3.)
+        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.test_op.f' must be of type <class 'float'>")
+
+        with self.assertRaises(ValueError) as cm:
+            result = op_reg(x=0.4)
+        self.assertEqual(str(cm.exception), "input 'y' for operation 'test.test_op.f' required")
+
+        with self.assertRaises(ValueError) as cm:
+            result = op_reg(x=0.6, y=0.1, a=2)
+        self.assertEqual(str(cm.exception), "input 'a' for operation 'test.test_op.f' must be one of [1, 4, 5]")
+
+        with self.assertRaises(ValueError) as cm:
+            result = op_reg(x=0.6, y=0.1, a=5)
+        self.assertEqual(str(cm.exception),
+                         "output '%s' for operation 'test.test_op.f' must be of type <class 'float'>" % RETURN)
+
+        result = op_reg(y=3)
+        self.assertEqual(result, 4 * 0.5 + 3)
 
     def test_function_invocation(self):
 

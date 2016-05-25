@@ -47,7 +47,7 @@ class OpMetaInfo:
         self._outputs = OrderedDict()
 
     #: The internal name of an unnamed return value.
-    RETURN_OUTPUT_NAME = '_return'
+    RETURN_OUTPUT_NAME = '_return_'
 
     @property
     def qualified_name(self):
@@ -195,7 +195,7 @@ class OpRegistration:
 
         # set default_value where input values are missing
         for name, properties in self.meta_info.inputs.items():
-            if name not in input_values or input_values[name] is None:
+            if name not in input_values:
                 input_values[name] = properties.get('default_value', None)
 
         # validate the input_values using this operation's meta-info
@@ -239,12 +239,28 @@ class OpRegistration:
             if name not in inputs:
                 raise ValueError("'%s' is not an input of operation '%s'" % (name, self.meta_info.qualified_name))
             input_properties = inputs[name]
-            # todo - we may construct a list a validator objects from input_properties and use these instead
-            if 'not_none' in input_properties and input_properties['not_none'] and value is None:
-                raise ValueError(
-                    "input '%s' for operation '%s' must not be None" % (name, self.meta_info.qualified_name))
-                # todo - check value against other constraints given by input_properties
-                # todo - check if there are mandatory inputs not given in input_values
+            if value is None:
+                if input_properties.get('required', False):
+                    raise ValueError(
+                        "input '%s' for operation '%s' required" % (name, self.meta_info.qualified_name))
+            else:
+                data_type = input_properties.get('data_type', None)
+                if data_type and not (isinstance(value, data_type) or
+                                          (data_type is float
+                                           and (isinstance(value, float) or isinstance(value, int)))):
+                    raise ValueError(
+                        "input '%s' for operation '%s' must be of type %s" % (
+                        name, self.meta_info.qualified_name, data_type))
+                value_set = input_properties.get('value_set', None)
+                if value_set and value not in value_set:
+                    raise ValueError(
+                        "input '%s' for operation '%s' must be one of %s" % (
+                        name, self.meta_info.qualified_name, value_set))
+                value_range = input_properties.get('value_range', None)
+                if value_range and not (value_range[0] <= value <= value_range[1]):
+                    raise ValueError(
+                        "input '%s' for operation '%s' must be in range %s" % (
+                            name, self.meta_info.qualified_name, value_range))
 
     def validate_output_values(self, output_values: Dict):
         outputs = self.meta_info.outputs
@@ -252,13 +268,12 @@ class OpRegistration:
             if name not in outputs:
                 raise ValueError("'%s' is not an output of operation '%s'" % (name, self.meta_info.qualified_name))
             output_properties = outputs[name]
-            # todo - we may construct a list a validator objects from input_properties and use these instead
-            if 'not_none' in output_properties and output_properties['not_none'] and value is None:
-                raise ValueError(
-                    "output '%s' for operation '%s' must not be None" % (name, self.meta_info.qualified_name))
-                # todo - check value against other constraints given by input_properties
-                # todo - check if there are mandatory inputs not given in input_values
-
+            if value is not None:
+                data_type = output_properties.get('data_type', None)
+                if data_type and not isinstance(value, data_type):
+                    raise ValueError(
+                        "output '%s' for operation '%s' must be of type %s" % (
+                            name, self.meta_info.qualified_name, data_type))
 
 class OpRegistry:
     """
@@ -356,18 +371,19 @@ def op(registry=REGISTRY):
 
 def op_input(input_name: str,
              default_value=None,
-             not_none=None,
+             required=None,
              data_type=None,
              value_set=None,
              value_range=None,
              registry=REGISTRY,
              **kwargs):
     """
-    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new input with the given *input_name*.
+    Define an operation input.
+    This is a decorator function used to annotate classes or functions which are added the given *registry*
+    (if not already done) and are assigned a new input with the given *input_name*.
 
     :param input_name: The name of an input.
-    :param not_none: If ``True``, value must not be ``None``.
+    :param required: If ``True``, a value must be provided, otherwise *default_value* is used.
     :param default_value: A default value.
     :param data_type: The data type of the input values.
     :param value_set: A sequence of the valid values. Note that all values in this sequence
@@ -376,7 +392,7 @@ def op_input(input_name: str,
     :param registry: The operation registry.
     """
 
-    def _op_input(operation):
+    def decorator(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         inputs = op_registration.meta_info.inputs
         if input_name not in inputs:
@@ -384,32 +400,26 @@ def op_input(input_name: str,
         input_properties = inputs[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
-                              not_none=not_none,
+                              required=required,
                               value_set=value_set,
                               value_range=value_range, **kwargs)
         _update_dict(input_properties, new_properties)
         return operation
 
-    return _op_input
+    return decorator
 
 
 def op_output(output_name: str,
               data_type=None,
-              not_none=None,
-              value_set=None,
-              value_range=None,
               registry=REGISTRY,
               **kwargs):
     """
-    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new output with the given *output_name*.
+    Define an operation output.
+    This is a decorator function used to annotate classes or functions which are added the given *registry*
+    (if not already done) and are assigned a new output with the given *output_name*.
 
     :param output_name: The name of the output.
-    :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence
-                      must be compatible with *data_type*.
-    :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
 
@@ -423,11 +433,7 @@ def op_output(output_name: str,
         elif output_name not in outputs:
             outputs[output_name] = dict()
         output_properties = outputs[output_name]
-        new_properties = dict(data_type=data_type,
-                              not_none=not_none,
-                              value_set=value_set,
-                              value_range=value_range,
-                              **kwargs)
+        new_properties = dict(data_type=data_type, **kwargs)
         _update_dict(output_properties, new_properties)
         return operation
 
@@ -435,27 +441,18 @@ def op_output(output_name: str,
 
 
 def op_return(data_type=None,
-              not_none=None,
-              value_set=None,
-              value_range=None,
               registry=REGISTRY,
               **kwargs):
     """
-    Classes or functions annotated by this decorator are added the given *registry* (if not already done)
-    and are assigned a new, single output with the name ``return``.
+    Define an operation's single return value.
+    This is a decorator function used to annotate classes or functions which are added the given *registry*
+    (if not already done) and are assigned a new single output.
 
-    :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence
-                      must be compatible with *data_type*.
-    :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
     return op_output(OpMetaInfo.RETURN_OUTPUT_NAME,
                      data_type=data_type,
-                     not_none=not_none,
-                     value_set=value_set,
-                     value_range=value_range,
                      registry=registry,
                      **kwargs)
 
