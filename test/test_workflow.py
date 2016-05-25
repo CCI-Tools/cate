@@ -243,7 +243,10 @@ class GraphTest(TestCase):
         graph = Graph(node1, node2, node3, graph_id='Workflow')
 
         self.assertEqual(graph.nodes, [node1, node2, node3])
-        # todo - test graph.input / graph.output
+        self.assertEqual(len(graph.input), 1)
+        self.assertIs(graph.input[0], node1.input.x)
+        self.assertEqual(len(graph.output), 1)
+        self.assertIs(graph.output[0], node3.output.w)
 
     def test_graph_invocation(self):
         node1 = OpNode(Op1, node_id='Op1')
@@ -254,14 +257,11 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph = Graph(node1, node2, node3, graph_id='Workflow')
 
-        # todo - use graph.input.x = 3
-        node1.input.x = 3
+        graph.input.x = 3
         return_value = graph.invoke()
-        # todo - use: output_value = graph.output.w.value
-        output_value = node3.output.w.value
+        output_value = graph.output.w.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
-
 
     def test_graph_json(self):
         node1 = OpNode(Op1, node_id='Op1')
@@ -272,7 +272,7 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph = Graph(node1, node2, node3, graph_id='Workflow')
 
-        # todo - make to_json() a method of Node
+        # todo - make to_json() a method of Node and OpMetaInfo
         graph_nodes = []
         for node in graph.nodes:
             node_input = OrderedDict()

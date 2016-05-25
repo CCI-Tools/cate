@@ -148,10 +148,12 @@ class Graph(Node):
         op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(graph_id)
         super(Graph, self).__init__(op_meta_info, node_id=graph_id)
         self._nodes = list(nodes)
+        for node in nodes:
+            self._on_node_added(node)
 
     @property
     def nodes(self):
-        return self._nodes
+        return list(self._nodes)
 
     def invoke(self, monitor=Monitor.NULL):
         """
@@ -165,33 +167,33 @@ class Graph(Node):
             node.invoke(monitor.child(1))
         monitor.done()
 
-    def gen_io(self):
-        """
-        Generate the inputs and outputs from unconnected inputs and outputs.
-        """
-        # input_connectors = []
-        # output_connectors = []
-        # for node in self._nodes:
-        #     for input_connector in node.input:
-        #         name = input_connector.name
-        #         if name not in self.op_meta_info.inputs:
-        #             self.op_meta_info.inputs[name] = node.op_meta_info.inputs[name]
-        #         input_connectors.append(connector)
-        #     for output_connector in node.output:
-        #         name = output.name
-        #         connector = node.output[name]
-        #         if name not in self.op_meta_info.inputs:
-        #             self.op_meta_info.outputs[name] = node.op_meta_info.outputs[name]
-        #         output_connectors.append(connector)
-        # self.input.add_connectors(input_connectors)
-        # self.output.add_connectors(output_connectors)
-        pass
-
     def __str__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
 
     def __repr__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
+
+    def _on_node_added(self, node):
+        graph_meta_info = self.op_meta_info
+        node_meta_info = node.op_meta_info
+        for input_connector in node.input[:]:
+            if not input_connector.source:
+                print('input:', input_connector)
+                name = input_connector.name
+                # Make sure graph meta_info is correct
+                if name not in graph_meta_info.inputs:
+                    graph_meta_info.inputs[name] = dict(node_meta_info.inputs[name])
+                # Add input
+                self.input[name] = input_connector
+        for output_connector in node.output[:]:
+            if not output_connector.targets:
+                print('output:', output_connector)
+                name = output_connector.name
+                # Make sure graph meta_info is correct
+                if name not in graph_meta_info.outputs:
+                    graph_meta_info.outputs[name] = dict(node_meta_info.outputs[name])
+                # Add output
+                self.output[name] = output_connector
 
 
 class Connector(metaclass=ABCMeta):
