@@ -8,13 +8,17 @@ Design targets:
 
 * Simplicity - exploit Python language to let users express an operation in an intuitive form.
 * Stay with Python base types instead og introducing a number of new data structures.
-* Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs from Python code
-* An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and its outputs.
-* Three simple class annotations shall be used to decorate operations classes: an optional ``operation`` decorator, one or more ``input``, ``output`` decorators.
+* Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs from
+  Python code
+* An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and its
+  outputs.
+* Three simple class annotations shall be used to decorate operations classes: an optional ``operation`` decorator,
+  one or more ``input``, ``output`` decorators.
 * Operation registration is done by operation class annotations.
 * It shall be possible to register any Python-callable of the from ``op(*args, **kwargs)`` as an operation.
 * Initial operation meta information will be derived from Python code introspection
-* Operations should take an optional *monitor* which will be passed by the framework to observe the progress and to cancel an operation
+* Operations should take an optional *monitor* which will be passed by the framework to observe the progress and
+  to cancel an operation
 
 
 Module Reference
@@ -41,6 +45,9 @@ class OpMetaInfo:
         self._attributes = dict()
         self._inputs = OrderedDict()
         self._outputs = OrderedDict()
+
+    #: The internal name of an unnamed return value.
+    RETURN_OUTPUT_NAME = '_return'
 
     @property
     def qualified_name(self):
@@ -73,6 +80,14 @@ class OpMetaInfo:
         :return: Named input slots.
         """
         return self._outputs
+
+    @property
+    def op_output_is_dict(self) -> bool:
+        """
+        :return: ``True`` if the output of the operation is expected be a dictionary-like mapping of output names
+                 to output values.
+        """
+        return not (len(self._outputs) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._outputs)
 
     def __str__(self):
         return '%s%s -> %s' % (self.qualified_name,
@@ -130,15 +145,17 @@ class OpRegistration:
             else:
                 raise ValueError('operations of type class must define a __call__(self, ...) method')
         if hasattr(operation, '__annotations__'):
-            # mapping of parameters names to annotations; "return" key is reserved for return annotations.
+            # mapping of parameters names to annotations; 'return' key is reserved for return annotations.
             annotations = operation.__annotations__
-            for name, value in annotations.items():
-                if name != 'return':
-                    meta_info.inputs[name]['data_type'] = value
+            for annotated_name, annotated_type in annotations.items():
+                if annotated_name == 'return':
+                    # meta_info.outputs can't be present so far -> assign new dict
+                    meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
                 else:
-                    meta_info.outputs[name] = dict(data_type=value)
+                    # meta_info.inputs may be present already, through _introspect_function() call
+                    meta_info.inputs[annotated_name]['data_type'] = annotated_type
         if len(meta_info.outputs) == 0:
-            meta_info.outputs['return'] = dict()
+            meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
         return meta_info
 
     @staticmethod
@@ -152,7 +169,7 @@ class OpRegistration:
         arg_count = code.co_argcount
         # tuple of names of arguments and local variables
         arg_names = code.co_varnames[0:arg_count]
-        if len(arg_names)>0 and is_method and arg_names[0] == 'self':
+        if len(arg_names) > 0 and is_method and arg_names[0] == 'self':
             arg_names = arg_names[1:]
             arg_count -= 1
         # Reserve input slots for all arguments
@@ -198,21 +215,22 @@ class OpRegistration:
             # call the function/method/callable/?
             return_value = operation(**input_values)
 
-        is_scalar_output = len(self.meta_info.outputs) == 1 and 'return' in self.meta_info.outputs
-        if is_scalar_output:
-            # set default_value where output values are missing
-            if return_value is None:
-                properties = self.meta_info.outputs['return']
-                return_value = properties.get('default_value', None)
-            # validate the return_value using this operation's meta-info
-            self.validate_output_values({'return': return_value})
-        else:
-            # set default_value where output values are missing
+        if self.meta_info.op_output_is_dict:
+            # return_value is expected to be a dictionary-like object
+            # set default_value where output values in return_value are missing
             for name, properties in self.meta_info.outputs.items():
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.validate_output_values(return_value)
+        else:
+            # return_value is a single value, not a dict
+            # set default_value if return_value is missing
+            if return_value is None:
+                properties = self.meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME]
+                return_value = properties.get('default_value', None)
+            # validate the return_value using this operation's meta-info
+            self.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
         return return_value
 
     def validate_input_values(self, input_values: Dict):
@@ -283,7 +301,8 @@ class OpRegistry:
 
         :param operation: A fully qualified operation name or registered operation object such as a class or callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
-        :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
+        :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None``
+                 if *fail_if_not_exists* is ``False``.
         """
         op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
         if op_qualified_name not in self._op_registrations:
@@ -351,7 +370,8 @@ def op_input(input_name: str,
     :param not_none: If ``True``, value must not be ``None``.
     :param default_value: A default value.
     :param data_type: The data type of the input values.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence
+                      must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
@@ -387,7 +407,8 @@ def op_output(output_name: str,
     :param output_name: The name of the output.
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence
+                      must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
@@ -395,9 +416,9 @@ def op_output(output_name: str,
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         outputs = op_registration.meta_info.outputs
-        if len(outputs) == 1 and 'return' in outputs:
+        if not op_registration.meta_info.op_output_is_dict:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
-            output_properties = outputs.pop('return')
+            output_properties = outputs.pop(OpMetaInfo.RETURN_OUTPUT_NAME)
             outputs[output_name] = output_properties
         elif output_name not in outputs:
             outputs[output_name] = dict()
@@ -425,11 +446,12 @@ def op_return(data_type=None,
 
     :param not_none: If ``True``, value must not be ``None``.
     :param data_type: The data type of the output value.
-    :param value_set: A sequence of the valid values. Note that all values in this sequence must be compatible with *data_type*.
+    :param value_set: A sequence of the valid values. Note that all values in this sequence
+                      must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
     :param registry: The operation registry.
     """
-    return op_output('return',
+    return op_output(OpMetaInfo.RETURN_OUTPUT_NAME,
                      data_type=data_type,
                      not_none=not_none,
                      value_set=value_set,

@@ -129,11 +129,11 @@ class OpNode(Node):
 
         return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
 
-        if len(self.op_meta_info.outputs) == 1 and 'return' in self.op_meta_info.outputs:
-            self.output['return'].value = return_value
-        else:
+        if self.op_meta_info.op_output_is_dict:
             for output_name, output_value in return_value.items():
                 self.output[output_name].value = output_value
+        else:
+            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     def __str__(self):
         return "OpNode('%s')" % self.op_meta_info.qualified_name

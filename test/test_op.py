@@ -1,9 +1,11 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.op import OpRegistry, op, op_input, op_return, op_output
-from ect.core.util import object_to_qualified_name
 from ect.core.monitor import Monitor
+from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output
+from ect.core.util import object_to_qualified_name
+
+RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 
 
 class OpTest(TestCase):
@@ -42,7 +44,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
-        expected_outputs['return'] = dict(data_type=str)
+        expected_outputs[RETURN] = dict(data_type=str)
         self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
 
         removed_op_reg = registry.remove_op(f)
@@ -77,7 +79,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
-        expected_outputs['return'] = dict(data_type=str)
+        expected_outputs[RETURN] = dict(data_type=str)
         self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
 
     def test_f_op_inp_ret(self):
@@ -106,7 +108,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
-        expected_outputs['return'] = dict(data_type=str, not_none=True)
+        expected_outputs[RETURN] = dict(data_type=str, not_none=True)
         self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
 
     def test_C(self):
@@ -132,7 +134,7 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C))
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C!'))
         self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({'return': {}}))
+        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({RETURN: {}}))
 
         removed_op_reg = registry.remove_op(C)
         self.assertIs(removed_op_reg, op_reg)
@@ -160,7 +162,7 @@ class OpTest(TestCase):
         self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C_op))
         self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op!'))
         self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({'return': {}}))
+        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({RETURN: {}}))
 
     def test_function_invocation(self):
 
@@ -331,6 +333,3 @@ class MyMonitor(Monitor):
 
     def done(self):
         self.is_done = True
-
-
-
