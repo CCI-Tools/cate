@@ -31,22 +31,32 @@ Module Requirements
 Module Reference
 ================
 """
-from typing import Sequence, Union
+from typing import Sequence, Union, List
 from ect.core import Dataset
-
+from ect.core.cdm_xarray import XArrayDatasetAdapter
+import xarray as xr
 
 class DataSource:
-    def __init__(self, name: str):
+    def __init__(self, name: str, glob: str):
         self._name = name
+        self._glob = glob
 
     @property
     def name(self) -> str:
         return self._name
 
+    @property
+    def glob(self) -> str:
+        return self._glob
 
-def _matches_filter(ds: DataSource, name_filter=None) -> bool:
-        if name_filter and not name_filter in ds.name:
-            return False
+    def open_dataset(self, **constraints) -> Dataset:
+        return None
+
+    def matches_constrains(self, **constraints) -> bool:
+        if constraints:
+            for key, value in constraints.items():
+                if key == 'name' and not value in self._name:
+                    return False
         return True
 
 
@@ -54,23 +64,45 @@ class Catalogue:
     def __init__(self, *data_sources: DataSource):
         self._data_sources = data_sources
 
-    def filter(self, name_filter: None) -> [DataSource]:
-        return [ds for ds in self._data_sources if _matches_filter(ds, name_filter=name_filter)]
+    def filter(self, **constraints) -> [DataSource]:
+        return [ds for ds in self._data_sources if ds.matches_constrains(**constraints)]
 
 
-DEFAULT_CATALOGUE = Catalogue(DataSource("aerosol"), DataSource("ozone"))
+DEFAULT_CATALOGUE = Catalogue(DataSource("default", "default"))
 
 
-def query_data_sources(catalogues=DEFAULT_CATALOGUE, name_filter=None) -> Sequence[DataSource]:
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = DEFAULT_CATALOGUE, **constraints) -> List[DataSource]:
+    """
+    Queries the catalogue(s) for data sources matching the given constrains.
+
+    Parameters
+    ----------
+    catalogues : Catalogue or Sequence[Catalogue]
+       If given these catalogues will be querien. Othewise the DEFAULT_CATALOGUE will be used
+    constraints : dict, optional
+       The contains may limit the dataset in space or time.
+
+    Returns
+    -------
+    datasource : List[DataSource]
+       All data sources matching the given constrains.
+
+    See Also
+    --------
+    open_dataset
+    """
+
     if isinstance(catalogues, Catalogue):
-        catalogues = [catalogues]
+        catalogue_list = [catalogues]
+    else:
+        catalogue_list = catalogues
     results = []
-    for catalogue in catalogues:
-        results.extend(catalogue.filter(name_filter=name_filter))
+    for catalogue in catalogue_list:
+        results.extend(catalogue.filter(**constraints))
     return results
 
 
-def open_dataset(data_source: Union[DataSource, str], constraints=None) -> Dataset:
+def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
     """
     Load and decode a dataset.
 
@@ -90,4 +122,9 @@ def open_dataset(data_source: Union[DataSource, str], constraints=None) -> Datas
     --------
     query_data_sources
     """
-    pass
+    if data_source is None:
+        raise ValueError('No data_source given')
+
+    if isinstance(data_source, str):
+        data_source = query_data_sources(DEFAULT_CATALOGUE, name=data_source)
+    return data_source.open_dataset(**constraints)
