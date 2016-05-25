@@ -8,7 +8,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX*
 :Description: This Operation performs a correlation analysis for metrically scaled data. 
-:Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
+:Applicable use cases: :doc:`UC9 <../../use_cases/UC09>`
 --------------------------
 
 Options
