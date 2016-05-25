@@ -216,7 +216,6 @@ class OpTest(TestCase):
         self.assertEqual(monitor.total_work, 19)
         self.assertEqual(monitor.is_done, True)
 
-    # todo - make this test run correctly:
     def test_class_invocation_with_start_up(self):
 
         @op_input('x', registry=self.registry)
@@ -234,16 +233,21 @@ class OpTest(TestCase):
                 C.b = None
 
             def __call__(self, x, a):
-                return x * a + C.b
+                return {'y': x * a + C.b}
 
         op_reg = self.registry.get_op(C)
-        with self.assertRaises(TypeError):
-            # TypeError: unsupported operand type(s) for +: 'float' and 'NoneType'
+        with self.assertRaisesRegex(TypeError, "unsupported operand type\\(s\\) for \\+\\: 'float' and 'NoneType'"):
+            # because C.b is None, C.start_up has not been called yet
             op_reg(x=2.5)
 
-        # Here is the actual code that shall succeed:
-        # result = op_reg(x=2.5)
-        # self.assertEqual(result, {'y': 4 * 2.5 + 1.5})
+        # Note: this is exemplary code how the framework could call special class methods start_up/tear_down if it
+        # finds them declared in a given op-class.
+        # - 'start_up' may be called a single time before instances are created.
+        # - 'tear_down' may be called and an operation is deregistered and it's 'start_up' has been called.
+        C.start_up()
+        result = op_reg(x=2.5)
+        C.tear_down()
+        self.assertEqual(result, {'y': 4 * 2.5 + 1.5})
 
     def test_C_op_inp_out(self):
         @op_input('a', data_type=float, default_value=0.5, value_range=[0., 1.], registry=self.registry)
