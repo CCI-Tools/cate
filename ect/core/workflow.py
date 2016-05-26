@@ -78,6 +78,15 @@ class Node(metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        pass
+
 
 class OpNode(Node):
     """
@@ -135,6 +144,28 @@ class OpNode(Node):
         else:
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        node_input_dict = OrderedDict()
+        for input_connector in self.input[:]:
+            source = input_connector.source
+            value = input_connector.value
+            if source is not None:
+                node_input_dict[input_connector.name] = (source.node.id, source.name)
+            else:
+                # Care: input_connector.value may not be JSON-serializable!!!
+                # Must add converter callback, or so.
+                node_input_dict[input_connector.name] = value
+        node_dict = OrderedDict()
+        node_dict['id'] = self.id
+        node_dict['op'] = self.op_meta_info.qualified_name
+        node_dict['input'] = node_input_dict
+        return node_dict
+
     def __str__(self):
         return "OpNode('%s')" % self.op_meta_info.qualified_name
 
@@ -143,13 +174,21 @@ class OpNode(Node):
 
 
 class Graph(Node):
-    def __init__(self, *nodes, graph_id=None, op_meta_info=None):
+    """
+    A graph of (connected) nodes.
+
+    :param nodes: Nodes to be added. Must be compatible with the :py:class:`Node` class.
+    :param graph_id: An optional ID for the graph.
+    :param op_meta_info: An optional OpMetaInfo object. If not provided, a basic stump will be generated.
+    """
+
+    def __init__(self, *nodes, graph_id: str = None, op_meta_info: OpMetaInfo = None):
         graph_id = graph_id if graph_id is not None else 'Graph#' + str(id(self))
         op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(graph_id)
         super(Graph, self).__init__(op_meta_info, node_id=graph_id)
         self._nodes = list(nodes)
         for node in nodes:
-            self._on_node_added(node)
+            self._update_on_node_added(node)
 
     @property
     def nodes(self):
@@ -167,13 +206,25 @@ class Graph(Node):
             node.invoke(monitor.child(1))
         monitor.done()
 
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        graph_nodes_list = []
+        for node in self._nodes:
+            graph_nodes_list.append(node.to_json_dict())
+
+        return {'graph': graph_nodes_list}
+
     def __str__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
 
     def __repr__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
 
-    def _on_node_added(self, node):
+    def _update_on_node_added(self, node):
         graph_meta_info = self.op_meta_info
         node_meta_info = node.op_meta_info
         for input_connector in node.input[:]:

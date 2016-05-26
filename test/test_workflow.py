@@ -272,24 +272,7 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph = Graph(node1, node2, node3, graph_id='Workflow')
 
-        # todo nf - move OpNode.to_json(self) and Graph.to_json(self)
-        graph_nodes = []
-        for node in graph.nodes:
-            node_input = OrderedDict()
-            for input_connector in node.input[:]:
-                source = input_connector.source
-                value = input_connector.value
-                if source is not None:
-                    node_input[input_connector.name] = (source.node.id, source.name)
-                else:
-                    node_input[input_connector.name] = value
-            node_dict = OrderedDict()
-            node_dict['id'] = node.id
-            node_dict['op'] = node.op_meta_info.qualified_name
-            node_dict['input'] = node_input
-            graph_nodes.append(node_dict)
-
-        graph_dict = {'graph': graph_nodes}
+        graph_dict = graph.to_json_dict()
 
         expected_json_text = """{
           "graph": [
