@@ -65,6 +65,7 @@ class Namespace:
         attributes = object.__getattribute__(self, '_attributes')
         return len(attributes)
 
+    # todo nf - problem here: to be consistent with a dict, we must return keys here
     def __iter__(self):
         attributes = object.__getattribute__(self, '_attributes')
         return iter(attributes.items())
