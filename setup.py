@@ -13,7 +13,7 @@ setup(
     packages=['ect'],
     entry_points={
         'console_scripts': [
-            'ect-cli = ect.core.cli:main',
+            'ect = ect.core.cli:main',
         ],
         'ect_plugins': [
             'test_plugin = ect.core.plugin:ect_init',
