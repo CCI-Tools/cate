@@ -13,7 +13,7 @@ Operation
 --------------------------
 
 Options
-========================
+=======
 
 *Describe options regarding the use of the Operation.*
 
@@ -197,7 +197,7 @@ Parameters
 -----------------------------
 
 Computational complexity
-==============================
+========================
 
 *Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.*
 
@@ -226,3 +226,4 @@ Example
         print a
     print "it's..."
     # a literal block continues until the indentation ends
+

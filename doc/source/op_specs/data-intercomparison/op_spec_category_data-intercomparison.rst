@@ -1,5 +1,5 @@
 Operation Category
-===========================
+==================
 
 :Operation Category name: Data Intercomparison
 :Description: This Operation Category includes various Operations for bivariate statistical analysis. 
@@ -7,7 +7,7 @@ Operation Category
 --------------------------
 
 Operation Subcategories 
-===============================================
+=======================
 
 :Operation Subcategory name: Contingency Table
 :Operation Subcategory description: creation of a contingency table showing the frequency distribution of variable1 and variable2, derivation of related quantitites

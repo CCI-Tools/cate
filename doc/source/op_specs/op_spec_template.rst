@@ -13,7 +13,7 @@ Define the processor and point to the applicable algorithm for implementation of
 --------------------------
 
 Options
-========================
+=======
 
 Describe options regarding the use of the processor.
 
@@ -89,7 +89,7 @@ Define applicable parameters here. A parameter differs from an input in that it 
 --------------------------
 
 Computational complexity
-==============================
+========================
 
 Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.
 
@@ -118,3 +118,4 @@ If there is a code example (Matlab, Python, etc) available, provide it here.
         print a
     print "it's..."
     # a literal block continues until the indentation ends
+

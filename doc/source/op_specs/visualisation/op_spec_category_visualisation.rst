@@ -1,5 +1,5 @@
 Operation Category
-===========================
+==================
 
 :Operation Category name: Visualisation
 :Description: This Operation Category encompasses different operations for the visualisation of data.
@@ -9,7 +9,7 @@ Operation Category
 
 
 Operations
-========================
+==========
 
 :Operation name: Table
 :Operation description: displays a table
