@@ -272,7 +272,7 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph = Graph(node1, node2, node3, graph_id='Workflow')
 
-        # todo - make to_json() a method of Node and OpMetaInfo
+        # todo nf - move OpNode.to_json(self) and Graph.to_json(self)
         graph_nodes = []
         for node in graph.nodes:
             node_input = OrderedDict()

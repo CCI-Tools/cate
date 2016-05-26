@@ -30,56 +30,58 @@ from inspect import isclass
 from typing import Dict
 
 from .monitor import Monitor
-from .util import object_to_qualified_name
+from .util import object_to_qualified_name, Namespace
 
 
 class OpMetaInfo:
     """
     Meta-information about an operation.
 
-    :param op_qualified_name: The operation's qualified Python name.
+    :param op_qualified_name: The operation's qualified name.
     """
 
-    def __init__(self, op_qualified_name):
+    def __init__(self, op_qualified_name: str):
         self._qualified_name = op_qualified_name
         self._attributes = dict()
-        self._inputs = OrderedDict()
-        self._outputs = OrderedDict()
+        self._input_namespace = Namespace()
+        self._output_namespace = Namespace()
 
     #: The internal name of an unnamed return value.
     RETURN_OUTPUT_NAME = '_return_'
 
     @property
-    def qualified_name(self):
+    def qualified_name(self) -> str:
         """
         :return: Fully qualified name of the actual operation.
         """
         return self._qualified_name
 
     @property
-    def attributes(self):
+    def attributes(self) -> dict():
         """
         :return: Operation attributes.
         """
         return self._attributes
 
+    # todo nf - rename to input, according to Node.input
     @property
-    def inputs(self) -> OrderedDict:
+    def inputs(self) -> Namespace:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
         :return: Named input slots.
         """
-        return self._inputs
+        return self._input_namespace
 
+    # todo nf - rename to output, according to Node.input
     @property
-    def outputs(self):
+    def outputs(self) -> Namespace:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
         :return: Named input slots.
         """
-        return self._outputs
+        return self._output_namespace
 
     @property
     def op_output_is_dict(self) -> bool:
@@ -87,7 +89,7 @@ class OpMetaInfo:
         :return: ``True`` if the output of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
-        return not (len(self._outputs) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._outputs)
+        return not (len(self._output_namespace) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._output_namespace)
 
     def __str__(self):
         return '%s%s -> %s' % (self.qualified_name,
@@ -194,7 +196,7 @@ class OpRegistration:
         """
 
         # set default_value where input values are missing
-        for name, properties in self.meta_info.inputs.items():
+        for name, properties in self.meta_info.inputs:
             if name not in input_values:
                 input_values[name] = properties.get('default_value', None)
 
@@ -218,7 +220,7 @@ class OpRegistration:
         if self.meta_info.op_output_is_dict:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
-            for name, properties in self.meta_info.outputs.items():
+            for name, properties in self.meta_info.outputs:
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
@@ -250,12 +252,12 @@ class OpRegistration:
                                            and (isinstance(value, float) or isinstance(value, int)))):
                     raise ValueError(
                         "input '%s' for operation '%s' must be of type %s" % (
-                        name, self.meta_info.qualified_name, data_type))
+                            name, self.meta_info.qualified_name, data_type))
                 value_set = input_properties.get('value_set', None)
                 if value_set and value not in value_set:
                     raise ValueError(
                         "input '%s' for operation '%s' must be one of %s" % (
-                        name, self.meta_info.qualified_name, value_set))
+                            name, self.meta_info.qualified_name, value_set))
                 value_range = input_properties.get('value_range', None)
                 if value_range and not (value_range[0] <= value <= value_range[1]):
                     raise ValueError(
@@ -274,6 +276,7 @@ class OpRegistration:
                     raise ValueError(
                         "output '%s' for operation '%s' must be of type %s" % (
                             name, self.meta_info.qualified_name, data_type))
+
 
 class OpRegistry:
     """
@@ -394,16 +397,16 @@ def op_input(input_name: str,
 
     def decorator(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
-        inputs = op_registration.meta_info.inputs
-        if input_name not in inputs:
-            inputs[input_name] = dict()
-        input_properties = inputs[input_name]
+        input_namespace = op_registration.meta_info.inputs
+        if input_name not in input_namespace:
+            input_namespace[input_name] = dict()
+        input_properties = input_namespace[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
                               required=required,
                               value_set=value_set,
                               value_range=value_range, **kwargs)
-        _update_dict(input_properties, new_properties)
+        _update_properties(input_properties, new_properties)
         return operation
 
     return decorator
@@ -425,16 +428,17 @@ def op_output(output_name: str,
 
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
-        outputs = op_registration.meta_info.outputs
+        output_namespace = op_registration.meta_info.outputs
         if not op_registration.meta_info.op_output_is_dict:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
-            output_properties = outputs.pop(OpMetaInfo.RETURN_OUTPUT_NAME)
-            outputs[output_name] = output_properties
-        elif output_name not in outputs:
-            outputs[output_name] = dict()
-        output_properties = outputs[output_name]
+            output_properties = output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
+            del output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
+            output_namespace[output_name] = output_properties
+        elif output_name not in output_namespace:
+            output_namespace[output_name] = dict()
+        output_properties = output_namespace[output_name]
         new_properties = dict(data_type=data_type, **kwargs)
-        _update_dict(output_properties, new_properties)
+        _update_properties(output_properties, new_properties)
         return operation
 
     return _op_output
@@ -457,7 +461,7 @@ def op_return(data_type=None,
                      **kwargs)
 
 
-def _update_dict(old_properties, new_properties):
+def _update_properties(old_properties: dict, new_properties: dict):
     for name, value in new_properties.items():
         if value is not None and (name not in old_properties or old_properties[name] is None):
             old_properties[name] = value

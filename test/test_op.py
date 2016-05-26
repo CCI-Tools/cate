@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from ect.core.monitor import Monitor
 from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output
-from ect.core.util import object_to_qualified_name
+from ect.core.util import object_to_qualified_name, Namespace
 
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -32,9 +32,6 @@ class OpTest(TestCase):
         op_reg = registry.get_op(object_to_qualified_name(f))
         self.assertIs(op_reg, added_op_reg)
         self.assertIs(op_reg.operation, f)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(f))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am f!'))
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(data_type=float)
         expected_inputs['b'] = dict()
@@ -42,10 +39,13 @@ class OpTest(TestCase):
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A')
         expected_inputs['w'] = dict(default_value=4.9)
-        self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(f),
+                             dict(description='Hi, I am f!'),
+                             expected_inputs,
+                             expected_outputs)
 
         removed_op_reg = registry.remove_op(f)
         self.assertIs(removed_op_reg, op_reg)
@@ -67,9 +67,6 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(object_to_qualified_name(f_op))
         self.assertIs(op_reg.operation, f_op)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(f_op))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am f_op!'))
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(data_type=float)
         expected_inputs['b'] = dict()
@@ -77,10 +74,13 @@ class OpTest(TestCase):
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A')
         expected_inputs['w'] = dict(default_value=4.9)
-        self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(f_op),
+                             dict(description='Hi, I am f_op!'),
+                             expected_inputs,
+                             expected_outputs)
 
     def test_f_op_inp_ret(self):
         @op_input('a', value_range=[0., 1.], registry=self.registry)
@@ -96,9 +96,6 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(object_to_qualified_name(f_op_inp_ret))
         self.assertIs(op_reg.operation, f_op_inp_ret)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(f_op_inp_ret))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am f_op_inp_ret!'))
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(data_type=float, value_range=[0., 1.])
         expected_inputs['b'] = dict()
@@ -106,10 +103,13 @@ class OpTest(TestCase):
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A', value_set=['A', 'B', 'C'])
         expected_inputs['w'] = dict(default_value=4.9)
-        self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(f_op_inp_ret),
+                             dict(description='Hi, I am f_op_inp_ret!'),
+                             expected_inputs,
+                             expected_outputs)
 
     def test_C(self):
         class C:
@@ -130,11 +130,11 @@ class OpTest(TestCase):
         op_reg = registry.get_op(object_to_qualified_name(C))
         self.assertIs(op_reg, added_op_reg)
         self.assertIs(op_reg.operation, C)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C!'))
-        self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({RETURN: {}}))
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(C),
+                             dict(description='Hi, I am C!'),
+                             OrderedDict(),
+                             OrderedDict({RETURN: {}}))
 
         removed_op_reg = registry.remove_op(C)
         self.assertIs(removed_op_reg, op_reg)
@@ -158,11 +158,22 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(object_to_qualified_name(C_op))
         self.assertIs(op_reg.operation, C_op)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C_op))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op!'))
-        self.assertEqual(op_reg.meta_info.inputs, OrderedDict())
-        self.assertEqual(op_reg.meta_info.outputs, OrderedDict({RETURN: {}}))
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(C_op),
+                             dict(description='Hi, I am C_op!'),
+                             OrderedDict(),
+                             OrderedDict({RETURN: {}}))
+
+    def _assertMetaInfo(self, op_meta_info: OpMetaInfo,
+                        expected_name: str,
+                        expected_header: dict,
+                        expected_input: OrderedDict,
+                        expected_output: OrderedDict):
+        self.assertIsNotNone(op_meta_info)
+        self.assertEqual(op_meta_info.qualified_name, expected_name)
+        self.assertEqual(op_meta_info.attributes, expected_header)
+        self.assertEqual(OrderedDict(op_meta_info.inputs), expected_input)
+        self.assertEqual(OrderedDict(op_meta_info.outputs), expected_output)
 
     def test_function_validation(self):
 
@@ -314,17 +325,17 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(object_to_qualified_name(C_op_inp_out))
         self.assertIs(op_reg.operation, C_op_inp_out)
-        self.assertIsNotNone(op_reg.meta_info)
-        self.assertEqual(op_reg.meta_info.qualified_name, object_to_qualified_name(C_op_inp_out))
-        self.assertEqual(op_reg.meta_info.attributes, dict(description='Hi, I am C_op_inp_out!'))
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(data_type=float, default_value=0.5, value_range=[0., 1.])
         expected_inputs['b'] = dict(data_type=str, default_value='A', value_set=['A', 'B', 'C'])
-        self.assertEqual(op_reg.meta_info.inputs, expected_inputs)
         expected_outputs = OrderedDict()
         expected_outputs['y'] = dict(data_type=list)
         expected_outputs['x'] = dict(data_type=float)
-        self.assertEqual(op_reg.meta_info.outputs, expected_outputs)
+        self._assertMetaInfo(op_reg.meta_info,
+                             object_to_qualified_name(C_op_inp_out),
+                             dict(description='Hi, I am C_op_inp_out!'),
+                             expected_inputs,
+                             expected_outputs)
 
     def test_json_encode_decode(self):
 
@@ -336,18 +347,19 @@ class OpTest(TestCase):
             """I am C!"""
             pass
 
+        # todo - nf move to OpMetaInfo.to_json(self)
         import json
         from io import StringIO
         from ect.core.util import object_to_qualified_name
 
-        def convert_connectors_to_json(connector_dict):
-            connectors_copy = OrderedDict()
-            for connector_name, properties in connector_dict.items():
+        def io_def_namespace_to_dict(io_def_namespace: Namespace):
+            io_def_dict = OrderedDict(io_def_namespace)
+            for name, properties in io_def_dict.items():
                 properties_copy = dict(properties)
                 if 'data_type' in properties_copy:
                     properties_copy['data_type'] = object_to_qualified_name(properties_copy['data_type'])
-                connectors_copy[connector_name] = properties_copy
-            return connectors_copy
+                io_def_dict[name] = properties_copy
+            return io_def_dict
 
         op_reg = self.registry.get_op(object_to_qualified_name(C))
         meta_info = op_reg.meta_info
@@ -355,8 +367,8 @@ class OpTest(TestCase):
         d1 = OrderedDict()
         d1['qualified_name'] = meta_info.qualified_name
         d1['attributes'] = meta_info.attributes
-        d1['inputs'] = convert_connectors_to_json(meta_info.inputs)
-        d1['outputs'] = convert_connectors_to_json(meta_info.outputs)
+        d1['inputs'] = io_def_namespace_to_dict(meta_info.inputs)
+        d1['outputs'] = io_def_namespace_to_dict(meta_info.outputs)
         s = json.dumps(d1, indent='  ')
         d2 = json.load(StringIO(s))
 

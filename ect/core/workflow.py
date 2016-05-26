@@ -43,9 +43,9 @@ class Node(metaclass=ABCMeta):
         self._id = node_id
         self._op_meta_info = op_meta_info
         self._input_connectors = InputConnectors([InputConnector(self, name)
-                                                  for name in op_meta_info.inputs.keys()])
+                                                  for name, _ in op_meta_info.inputs])
         self._output_connectors = OutputConnectors([OutputConnector(self, name)
-                                                    for name in op_meta_info.outputs.keys()])
+                                                    for name, _ in op_meta_info.outputs])
 
     @property
     def id(self):
@@ -118,7 +118,7 @@ class OpNode(Node):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for input_name, input_props in self.op_meta_info.inputs.items():
+        for input_name, _ in self.op_meta_info.inputs:
             input_values[input_name] = None
         for input_connector in self.input[:]:
             if input_connector.source is not None:
@@ -249,9 +249,6 @@ class Connector(metaclass=ABCMeta):
     def disjoin(self):
         """
         Remove a connection which uses this connector.
-
-        :param other: The other connector.
-        :raise ValueError: if this connector cannot be disjoined.
         """
         pass
 
@@ -358,6 +355,8 @@ class OutputConnector(Connector):
         return "OutputConnector(%s, '%s')" % (self.node, self.name)
 
 
+# todo nf - rename to InputConnectorNamespace to get rid of the plural
+
 class InputConnectors(Namespace):
     def __init__(self, connectors):
         super(InputConnectors, self).__init__([(connector.name, connector) for connector in connectors])
@@ -380,6 +379,8 @@ class InputConnectors(Namespace):
     def __delattr__(self, name):
         raise NotImplementedError()
 
+
+# todo nf - rename to OutputConnectorNamespace to get rid of the plural
 
 class OutputConnectors(Namespace):
     def __init__(self, connectors):
