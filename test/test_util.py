@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
@@ -85,6 +86,11 @@ class NamespaceTest(TestCase):
         namespace = Namespace([('a', 10), ('b', 20), ('c', 30)])
         items = [(name, value) for name, value in namespace]
         self.assertEqual(items, [('a', 10), ('b', 20), ('c', 30)])
+
+    def test_to_dict(self):
+        namespace = Namespace([('a', 10), ('b', 20), ('c', 30)])
+        self.assertEqual(OrderedDict(namespace), OrderedDict([('a', 10), ('b', 20), ('c', 30)]))
+        self.assertEqual(dict(namespace), {'a': 10, 'b': 20, 'c': 30})
 
 
 class UtilTest(TestCase):
