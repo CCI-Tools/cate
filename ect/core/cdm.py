@@ -44,14 +44,12 @@ class Dataset(metaclass=ABCMeta):
         :param temporal_roi: : The temporal region of interest
         :return: subset of the dataset as a dataset of type ``Dataset``.
         """
-        pass
 
     @abstractmethod
     def close(self):
         """
         Closes data access.
         """
-        pass
 
 
 class DatasetAdapter(Dataset, metaclass=ABCMeta):

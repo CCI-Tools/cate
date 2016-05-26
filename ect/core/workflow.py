@@ -76,7 +76,6 @@ class Node(metaclass=ABCMeta):
 
         :param monitor: An optional progress monitor.
         """
-        pass
 
     @abstractmethod
     def to_json_dict(self):
@@ -85,7 +84,6 @@ class Node(metaclass=ABCMeta):
 
         :return: A JSON-serializable dictionary
         """
-        pass
 
 
 class OpNode(Node):
@@ -284,7 +282,6 @@ class Connector(metaclass=ABCMeta):
     @abstractproperty
     def is_input(self) -> bool:
         """``True`` for input connectors, ``False`` for output connectors."""
-        pass
 
     @abstractmethod
     def join(self, other: 'Connector'):
@@ -294,14 +291,12 @@ class Connector(metaclass=ABCMeta):
         :param other: The other connector.
         :raise ValueError: if *other* cannot be joined with this one.
         """
-        pass
 
     @abstractmethod
     def disjoin(self):
         """
         Remove a connection which uses this connector.
         """
-        pass
 
     def __hash__(self):
         return hash((self.node, self.name, self.is_input))

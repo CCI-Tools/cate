@@ -76,7 +76,6 @@ class Monitor(metaclass=ABCMeta):
         :param label: A task label
         :param total_work: The total amount of work
         """
-        pass
 
     @abstractmethod
     def progress(self, work: float = None, msg: str = None):
@@ -86,14 +85,12 @@ class Monitor(metaclass=ABCMeta):
         :param work: The incremental amount of work.
         :param msg: A detail message.
         """
-        pass
 
     @abstractmethod
     def done(self):
         """
         Call to signal that a task has been done.
         """
-        pass
 
     def child(self, work: float):
         """
