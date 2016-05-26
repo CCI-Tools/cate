@@ -24,7 +24,7 @@ from typing import List
 
 from ect.core import Monitor
 from .op import REGISTRY, OpMetaInfo, OpRegistration
-from .util import Attributes
+from .util import Namespace
 
 
 class Node(metaclass=ABCMeta):
@@ -358,7 +358,7 @@ class OutputConnector(Connector):
         return "OutputConnector(%s, '%s')" % (self.node, self.name)
 
 
-class InputConnectors(Attributes):
+class InputConnectors(Namespace):
     def __init__(self, connectors):
         super(InputConnectors, self).__init__([(connector.name, connector) for connector in connectors])
 
@@ -381,7 +381,7 @@ class InputConnectors(Attributes):
         raise NotImplementedError()
 
 
-class OutputConnectors(Attributes):
+class OutputConnectors(Namespace):
     def __init__(self, connectors):
         super(OutputConnectors, self).__init__([(connector.name, connector) for connector in connectors])
 

@@ -12,93 +12,96 @@ Module Reference
 from collections import OrderedDict
 
 
-class Attributes:
+class Namespace:
     """
-    Instances of the ``Attributes`` class have some similarities with JavaScript objects; you can use string keys
+    A dictionary-like object that has dynamic attributes.
+
+    Instances of the ``Namespace`` class have some similarities with JavaScript objects; you can use string keys
     to create new attributes and use a string key as an attribute name later. At the same time, you can determine the
-    length of the object and use integer indices as well as slices to access values.
+    length of the object and use integer indices as well as slices to access values. A ``Namespace`` remembers
+    the order of attributes added by utilizing a ``collections.OrderedDict``.
 
-    Constraints and properties of the ``Attributes`` object:
+    Constraints and properties of the ``Namespace`` object:
 
-    * The ``Attributes`` class does not defines any methods on its own in order to avoid naming clashes with added keys.
+    * The ``Namespace`` class does not defines any methods on its own in order to avoid naming clashes with added keys.
     * All keys must be string that are valid Python names. Values may be of any type.
-    * The order of items added is preserved.
+    * The order of attributes added is preserved.
 
     Examples:
 
-    >>> obj = Attributes()
-    >>> obj['a'] = 1
-    >>> obj['z'] = 2
-    >>> len(obj.a)
+    >>> ns = Namespace()
+    >>> ns['a'] = 1
+    >>> ns['z'] = 2
+    >>> len(ns.a)
     2
-    >>> obj.a
+    >>> ns.a
     1
-    >>> obj['z']
+    >>> ns['z']
     2
-    >>> obj[0]
+    >>> ns[0]
     1
-    >>> obj[:]
+    >>> ns[:]
     [1, 2]
-    >>> list(obj)
+    >>> ns(obj)
     [('a', 1), ('z', 2)]
-    >>> obj = Attributes([('a', 1), ('z', 2)])
-    >>> list(obj)
+    >>> ns = Namespace([('a', 1), ('z', 2)])
+    >>> list(ns)
     [('a', 1), ('z', 2)]
 
-    :param items sequence of (name, value) pairs
+    :param items: sequence of (attribute-name, attribute-value) pairs
     """
 
     def __init__(self, items=list()):
-        the_dict = OrderedDict()
+        attributes = OrderedDict()
         for name, value in items:
-            the_dict[name] = value
-        object.__setattr__(self, '_dict', the_dict)
+            attributes[name] = value
+        object.__setattr__(self, '_attributes', attributes)
 
     def __contains__(self, key):
-        the_dict = object.__getattribute__(self, '_dict')
-        return key in the_dict
+        attributes = object.__getattribute__(self, '_attributes')
+        return key in attributes
 
     def __len__(self):
-        the_dict = object.__getattribute__(self, '_dict')
-        return len(the_dict)
+        attributes = object.__getattribute__(self, '_attributes')
+        return len(attributes)
 
     def __iter__(self):
-        the_dict = object.__getattribute__(self, '_dict')
-        return iter(the_dict.items())
+        attributes = object.__getattribute__(self, '_attributes')
+        return iter(attributes.items())
 
     def __setitem__(self, key, value):
-        the_dict = object.__getattribute__(self, '_dict')
+        attributes = object.__getattribute__(self, '_attributes')
         if isinstance(key, int):
-            key = list(the_dict.keys())[key]
-        the_dict[key] = value
+            key = list(attributes.keys())[key]
+        attributes[key] = value
 
     def __getitem__(self, key):
-        the_dict = object.__getattribute__(self, '_dict')
+        attributes = object.__getattribute__(self, '_attributes')
         if isinstance(key, int) or isinstance(key, slice):
-            return list(the_dict.values())[key]
-        return the_dict[key]
+            return list(attributes.values())[key]
+        return attributes[key]
 
     def __delitem__(self, key):
-        the_dict = object.__getattribute__(self, '_dict')
+        attributes = object.__getattribute__(self, '_attributes')
         if isinstance(key, int) or isinstance(key, slice):
-            key = tuple(the_dict.keys())[key]
-        del the_dict[key]
+            key = tuple(attributes.keys())[key]
+        del attributes[key]
 
     def __setattr__(self, name, value):
-        the_dict = object.__getattribute__(self, '_dict')
-        the_dict[name] = value
+        attributes = object.__getattribute__(self, '_attributes')
+        attributes[name] = value
 
     def __getattr__(self, name):
-        the_dict = object.__getattribute__(self, '_dict')
-        if name in the_dict:
-            return the_dict[name]
+        attributes = object.__getattribute__(self, '_attributes')
+        if name in attributes:
+            return attributes[name]
         else:
             raise AttributeError("attribute '%s' not found" % name)
 
     def __delattr__(self, name):
-        the_dict = object.__getattribute__(self, '_dict')
-        if name in the_dict:
-            del the_dict[name]
+        attributes = object.__getattribute__(self, '_attributes')
+        if name in attributes:
+            del attributes[name]
         else:
             raise AttributeError("attribute '%s' not found" % name)
 
@@ -106,10 +109,10 @@ class Attributes:
         return repr(self)
 
     def __repr__(self):
-        the_dict = object.__getattribute__(self, '_dict')
-        if len(the_dict) == 0:
-            return 'Attributes()'
-        return 'Attributes(%s)' % repr(list(the_dict.items()))
+        attributes = object.__getattribute__(self, '_attributes')
+        if len(attributes) == 0:
+            return 'Namespace()'
+        return 'Namespace(%s)' % repr(list(attributes.items()))
 
 
 def extend(target_class, property_name=None, property_doc=None):
