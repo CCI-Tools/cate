@@ -22,7 +22,7 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(str(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(repr(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
-        self.assertEqual(op_meta_info.op_output_is_dict, False)
+        self.assertEqual(op_meta_info.output_value_is_dict, False)
         self.assertEqual(op_meta_info.header, {'description': 'Hello!'})
         self.assertEqual(OrderedDict(op_meta_info.input),
                          OrderedDict([('x', {'data_type': str}), ('y', {'data_type': int})]))
@@ -30,28 +30,13 @@ class OpMetaInfoTest(TestCase):
                          OrderedDict([(RETURN, {'data_type': str})]))
 
     def test_json_encode_decode(self):
-        # todo - nf move to OpMetaInfo.to_json(self)
-
         op_meta_info = OpMetaInfo('x.y.Z')
         op_meta_info.header['description'] = 'Hello!'
         op_meta_info.input['x'] = {'data_type': str}
         op_meta_info.input['y'] = {'data_type': int}
         op_meta_info.output[RETURN] = {'data_type': str}
 
-        def io_def_namespace_to_dict(io_def_namespace: Namespace):
-            io_def_dict = OrderedDict(io_def_namespace)
-            for name, properties in io_def_dict.items():
-                properties_copy = dict(properties)
-                if 'data_type' in properties_copy:
-                    properties_copy['data_type'] = object_to_qualified_name(properties_copy['data_type'])
-                io_def_dict[name] = properties_copy
-            return io_def_dict
-
-        d1 = OrderedDict()
-        d1['qualified_name'] = op_meta_info.qualified_name
-        d1['header'] = op_meta_info.header
-        d1['input'] = io_def_namespace_to_dict(op_meta_info.input)
-        d1['output'] = io_def_namespace_to_dict(op_meta_info.output)
+        d1 = op_meta_info.to_json_dict()
         s = json.dumps(d1, indent='  ')
         d2 = json.load(StringIO(s))
 

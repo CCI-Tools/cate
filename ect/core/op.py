@@ -82,12 +82,36 @@ class OpMetaInfo:
         return self._output_namespace
 
     @property
-    def op_output_is_dict(self) -> bool:
+    def output_value_is_dict(self) -> bool:
         """
-        :return: ``True`` if the output of the operation is expected be a dictionary-like mapping of output names
+        :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
         return not (len(self._output_namespace) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._output_namespace)
+
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object. E.g. values of the `data_type``
+        property are converted from Python types to their string representation.
+
+        :return: A JSON-serializable dictionary
+        """
+
+        def io_namespace_to_dict(io_def_namespace: Namespace):
+            io_dict = OrderedDict(io_def_namespace)
+            for name, properties in io_dict.items():
+                properties_copy = dict(properties)
+                if 'data_type' in properties_copy:
+                    properties_copy['data_type'] = object_to_qualified_name(properties_copy['data_type'])
+                io_dict[name] = properties_copy
+            return io_dict
+
+        json_dict = OrderedDict()
+        json_dict['qualified_name'] = self.qualified_name
+        json_dict['header'] = OrderedDict(self.header)
+        json_dict['input'] = io_namespace_to_dict(self.input)
+        json_dict['output'] = io_namespace_to_dict(self.output)
+        return json_dict
 
     def __str__(self):
         return "OpMetaInfo('%s')" % self.qualified_name
@@ -214,7 +238,7 @@ class OpRegistration:
             # call the function/method/callable/?
             return_value = operation(**input_values)
 
-        if self.meta_info.op_output_is_dict:
+        if self.meta_info.output_value_is_dict:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
             for name, properties in self.meta_info.output:
@@ -426,7 +450,7 @@ def op_output(output_name: str,
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         output_namespace = op_registration.meta_info.output
-        if not op_registration.meta_info.op_output_is_dict:
+        if not op_registration.meta_info.output_value_is_dict:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
             output_properties = output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
             del output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
