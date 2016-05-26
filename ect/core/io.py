@@ -33,8 +33,6 @@ Module Reference
 """
 from typing import Sequence, Union, List
 from ect.core import Dataset
-from ect.core.cdm_xarray import XArrayDatasetAdapter
-import xarray as xr
 
 class DataSource:
     def __init__(self, name: str, glob: str):

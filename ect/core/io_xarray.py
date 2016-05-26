@@ -1,11 +1,9 @@
 from datetime import datetime
 from glob import glob
 
-import pandas as pd
 import xarray as xr
 
 import ect.core.io as io
-from ect.core.cdm_xarray import XArrayDatasetAdapter
 
 
 def open_xarray_dataset(paths, chunks=None, concat_dim=None, preprocess=None, combine=None, engine=None,
@@ -61,16 +59,3 @@ def extract_time_index(ds: xr.Dataset) -> datetime:
 class XarrayDataSource(io.DataSource):
     def __init__(self, name, glob):
         super(XarrayDataSource, self).__init__(name, glob)
-
-
-class AerosolMonthlyDataSource(XarrayDataSource):
-    def __init__(self, glob):
-        super(AerosolMonthlyDataSource, self).__init__("aerosol_monthly", glob)
-
-    def open_dataset(self, **constraints) -> io.Dataset:
-        def combine(datasets):
-            time_index = [extract_time_index(ds) for ds in datasets]
-            return xr.concat(datasets, pd.Index(time_index, name='time'))
-
-        xarray_dataset = open_xarray_dataset(self.glob, combine=combine)
-        return XArrayDatasetAdapter(xarray_dataset)
