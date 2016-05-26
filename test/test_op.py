@@ -14,7 +14,7 @@ RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 class OpMetaInfoTest(TestCase):
     def test_init(self):
         op_meta_info = OpMetaInfo('x.y.Z')
-        op_meta_info.attributes['description'] = 'Hello!'
+        op_meta_info.header['description'] = 'Hello!'
         op_meta_info.inputs['x'] = {'data_type': str}
         op_meta_info.inputs['y'] = {'data_type': int}
         op_meta_info.outputs[RETURN] = {'data_type': str}
@@ -23,7 +23,7 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(repr(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
         self.assertEqual(op_meta_info.op_output_is_dict, False)
-        self.assertEqual(op_meta_info.attributes, {'description': 'Hello!'})
+        self.assertEqual(op_meta_info.header, {'description': 'Hello!'})
         self.assertEqual(OrderedDict(op_meta_info.inputs),
                          OrderedDict([('x', {'data_type': str}), ('y', {'data_type': int})]))
         self.assertEqual(OrderedDict(op_meta_info.outputs),
@@ -33,7 +33,7 @@ class OpMetaInfoTest(TestCase):
         # todo - nf move to OpMetaInfo.to_json(self)
 
         op_meta_info = OpMetaInfo('x.y.Z')
-        op_meta_info.attributes['description'] = 'Hello!'
+        op_meta_info.header['description'] = 'Hello!'
         op_meta_info.inputs['x'] = {'data_type': str}
         op_meta_info.inputs['y'] = {'data_type': int}
         op_meta_info.outputs[RETURN] = {'data_type': str}
@@ -49,7 +49,7 @@ class OpMetaInfoTest(TestCase):
 
         d1 = OrderedDict()
         d1['qualified_name'] = op_meta_info.qualified_name
-        d1['attributes'] = op_meta_info.attributes
+        d1['header'] = op_meta_info.header
         d1['inputs'] = io_def_namespace_to_dict(op_meta_info.inputs)
         d1['outputs'] = io_def_namespace_to_dict(op_meta_info.outputs)
         s = json.dumps(d1, indent='  ')
@@ -221,7 +221,7 @@ class OpTest(TestCase):
                         expected_output: OrderedDict):
         self.assertIsNotNone(op_meta_info)
         self.assertEqual(op_meta_info.qualified_name, expected_name)
-        self.assertEqual(op_meta_info.attributes, expected_header)
+        self.assertEqual(op_meta_info.header, expected_header)
         self.assertEqual(OrderedDict(op_meta_info.inputs), expected_input)
         self.assertEqual(OrderedDict(op_meta_info.outputs), expected_output)
 

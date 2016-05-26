@@ -42,7 +42,7 @@ class OpMetaInfo:
 
     def __init__(self, op_qualified_name: str):
         self._qualified_name = op_qualified_name
-        self._attributes = OrderedDict()
+        self._header = OrderedDict()
         self._input_namespace = Namespace()
         self._output_namespace = Namespace()
 
@@ -56,13 +56,12 @@ class OpMetaInfo:
         """
         return self._qualified_name
 
-    # todo nf - rename to header, because 'attributes' has a Python meaning
     @property
-    def attributes(self) -> dict():
+    def header(self) -> dict():
         """
-        :return: Operation attributes.
+        :return: Operation header attributes.
         """
-        return self._attributes
+        return self._header
 
     # todo nf - rename to input, according to Node.input
     @property
@@ -137,7 +136,7 @@ class OpRegistration:
         # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
         if hasattr(operation, '__doc__'):
             # documentation string
-            meta_info.attributes['description'] = operation.__doc__
+            meta_info.header['description'] = operation.__doc__
         if hasattr(operation, '__code__'):
             OpRegistration._introspect_function(meta_info, operation, False)
         if isclass(operation):

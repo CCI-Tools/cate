@@ -12,8 +12,8 @@ Graph --|> Node
 Graph : nodes: List[Node]
 'Graph --> "0..N" Node: nodes
 
-OpMetaInfo : qualfied_name
-OpMetaInfo : attributes : dict
+OpMetaInfo : qualfied_name : str
+OpMetaInfo : header : OrderedDict
 OpMetaInfo : inputs : OrderedDict
 OpMetaInfo : outputs : OrderedDict
 
