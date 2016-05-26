@@ -81,6 +81,11 @@ class NamespaceTest(TestCase):
         self.assertEqual(namespace[2], 30)
         self.assertEqual(list(namespace), [('a', 10), ('b', 20), ('c', 30)])
 
+    def test_for_in(self):
+        namespace = Namespace([('a', 10), ('b', 20), ('c', 30)])
+        items = [(name, value) for name, value in namespace]
+        self.assertEqual(items, [('a', 10), ('b', 20), ('c', 30)])
+
 
 class UtilTest(TestCase):
     def test_extension_property(self):
