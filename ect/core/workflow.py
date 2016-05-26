@@ -30,7 +30,7 @@ from .util import Namespace
 class Node(metaclass=ABCMeta):
     """
     Nodes can be used to construct networks or graphs of operations.
-    Input and outputs of an operation are available as node attributes of type :py:class:`Connector`.
+    Input and output of an operation are available as node attributes of type :py:class:`Connector`.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
     :param node_id: A node ID. If None, a unique name will be generated.
@@ -43,9 +43,9 @@ class Node(metaclass=ABCMeta):
         self._id = node_id
         self._op_meta_info = op_meta_info
         self._input_connectors = InputConnectors([InputConnector(self, name)
-                                                  for name, _ in op_meta_info.inputs])
+                                                  for name, _ in op_meta_info.input])
         self._output_connectors = OutputConnectors([OutputConnector(self, name)
-                                                    for name, _ in op_meta_info.outputs])
+                                                    for name, _ in op_meta_info.output])
 
     @property
     def id(self):
@@ -82,7 +82,7 @@ class Node(metaclass=ABCMeta):
 class OpNode(Node):
     """
     Nodes can be used to construct networks or graphs of operations.
-    Input and outputs of an operation are available as node attributes of type :py:class:`Connector`.
+    Input and output of an operation are available as node attributes of type :py:class:`Connector`.
 
     :param operation: A fully qualified operation name or operation object such as a class or callable.
     :param registry: An operation registry to be used to lookup the operation, if given by name..
@@ -118,7 +118,7 @@ class OpNode(Node):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for input_name, _ in self.op_meta_info.inputs:
+        for input_name, _ in self.op_meta_info.input:
             input_values[input_name] = None
         for input_connector in self.input[:]:
             if input_connector.source is not None:
@@ -181,8 +181,8 @@ class Graph(Node):
                 print('input:', input_connector)
                 name = input_connector.name
                 # Make sure graph meta_info is correct
-                if name not in graph_meta_info.inputs:
-                    graph_meta_info.inputs[name] = dict(node_meta_info.inputs[name])
+                if name not in graph_meta_info.input:
+                    graph_meta_info.input[name] = dict(node_meta_info.input[name])
                 # Add input
                 self.input[name] = input_connector
         for output_connector in node.output[:]:
@@ -190,8 +190,8 @@ class Graph(Node):
                 print('output:', output_connector)
                 name = output_connector.name
                 # Make sure graph meta_info is correct
-                if name not in graph_meta_info.outputs:
-                    graph_meta_info.outputs[name] = dict(node_meta_info.outputs[name])
+                if name not in graph_meta_info.output:
+                    graph_meta_info.output[name] = dict(node_meta_info.output[name])
                 # Add output
                 self.output[name] = output_connector
 
@@ -276,7 +276,7 @@ class InputConnector(Connector):
 
     def __init__(self, node: Node, name: str):
         meta_info = node.op_meta_info
-        if name not in meta_info.inputs:
+        if name not in meta_info.input:
             raise ValueError(
                 "'%s' is not an input of operation '%s'" % (name, meta_info.qualified_name))
         super(InputConnector, self).__init__(node, name)
@@ -321,7 +321,7 @@ class OutputConnector(Connector):
 
     def __init__(self, node: Node, name: str):
         meta_info = node.op_meta_info
-        if name not in meta_info.outputs:
+        if name not in meta_info.output:
             raise ValueError(
                 "'%s' is not an output of operation '%s'" % (name, meta_info.qualified_name))
         super(OutputConnector, self).__init__(node, name)

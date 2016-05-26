@@ -63,9 +63,8 @@ class OpMetaInfo:
         """
         return self._header
 
-    # todo nf - rename to input, according to Node.input
     @property
-    def inputs(self) -> Namespace:
+    def input(self) -> Namespace:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
@@ -73,9 +72,8 @@ class OpMetaInfo:
         """
         return self._input_namespace
 
-    # todo nf - rename to output, according to Node.input
     @property
-    def outputs(self) -> Namespace:
+    def output(self) -> Namespace:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
@@ -150,13 +148,13 @@ class OpRegistration:
             annotations = operation.__annotations__
             for annotated_name, annotated_type in annotations.items():
                 if annotated_name == 'return':
-                    # meta_info.outputs can't be present so far -> assign new dict
-                    meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
+                    # meta_info.output can't be present so far -> assign new dict
+                    meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
                 else:
-                    # meta_info.inputs may be present already, through _introspect_function() call
-                    meta_info.inputs[annotated_name]['data_type'] = annotated_type
-        if len(meta_info.outputs) == 0:
-            meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
+                    # meta_info.input may be present already, through _introspect_function() call
+                    meta_info.input[annotated_name]['data_type'] = annotated_type
+        if len(meta_info.output) == 0:
+            meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
         return meta_info
 
     @staticmethod
@@ -175,15 +173,15 @@ class OpRegistration:
             arg_count -= 1
         # Reserve input slots for all arguments
         for arg_name in arg_names:
-            meta_info.inputs[arg_name] = dict()
-        # Set 'default_value' for inputs
+            meta_info.input[arg_name] = dict()
+        # Set 'default_value' for input
         if operation.__defaults__:
             # tuple of any default values for positional or keyword parameters
             default_values = operation.__defaults__
             num_default_values = len(default_values)
             for i in range(num_default_values):
                 arg_name = arg_names[i - num_default_values]
-                meta_info.inputs[arg_name]['default_value'] = default_values[i]
+                meta_info.input[arg_name]['default_value'] = default_values[i]
 
     def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
         """
@@ -195,14 +193,14 @@ class OpRegistration:
         """
 
         # set default_value where input values are missing
-        for name, properties in self.meta_info.inputs:
+        for name, properties in self.meta_info.input:
             if name not in input_values:
                 input_values[name] = properties.get('default_value', None)
 
         # validate the input_values using this operation's meta-info
         self.validate_input_values(input_values)
 
-        if 'monitor' in self.meta_info.inputs:
+        if 'monitor' in self.meta_info.input:
             # set the monitor only if it is an argument
             input_values['monitor'] = monitor
 
@@ -219,7 +217,7 @@ class OpRegistration:
         if self.meta_info.op_output_is_dict:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
-            for name, properties in self.meta_info.outputs:
+            for name, properties in self.meta_info.output:
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
@@ -228,14 +226,14 @@ class OpRegistration:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
             if return_value is None:
-                properties = self.meta_info.outputs[OpMetaInfo.RETURN_OUTPUT_NAME]
+                properties = self.meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
                 return_value = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
         return return_value
 
     def validate_input_values(self, input_values: Dict):
-        inputs = self.meta_info.inputs
+        inputs = self.meta_info.input
         for name, value in input_values.items():
             if name not in inputs:
                 raise ValueError("'%s' is not an input of operation '%s'" % (name, self.meta_info.qualified_name))
@@ -264,7 +262,7 @@ class OpRegistration:
                             name, self.meta_info.qualified_name, value_range))
 
     def validate_output_values(self, output_values: Dict):
-        outputs = self.meta_info.outputs
+        outputs = self.meta_info.output
         for name, value in output_values.items():
             if name not in outputs:
                 raise ValueError("'%s' is not an output of operation '%s'" % (name, self.meta_info.qualified_name))
@@ -396,7 +394,7 @@ def op_input(input_name: str,
 
     def decorator(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
-        input_namespace = op_registration.meta_info.inputs
+        input_namespace = op_registration.meta_info.input
         if input_name not in input_namespace:
             input_namespace[input_name] = dict()
         input_properties = input_namespace[input_name]
@@ -427,7 +425,7 @@ def op_output(output_name: str,
 
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
-        output_namespace = op_registration.meta_info.outputs
+        output_namespace = op_registration.meta_info.output
         if not op_registration.meta_info.op_output_is_dict:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
             output_properties = output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]

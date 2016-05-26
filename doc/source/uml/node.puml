@@ -14,8 +14,8 @@ Graph : nodes: List[Node]
 
 OpMetaInfo : qualfied_name : str
 OpMetaInfo : header : OrderedDict
-OpMetaInfo : inputs : OrderedDict
-OpMetaInfo : outputs : OrderedDict
+OpMetaInfo : input : OrderedDict
+OpMetaInfo : output : OrderedDict
 
 note as N1
 Collection pattern

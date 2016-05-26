@@ -15,18 +15,18 @@ class OpMetaInfoTest(TestCase):
     def test_init(self):
         op_meta_info = OpMetaInfo('x.y.Z')
         op_meta_info.header['description'] = 'Hello!'
-        op_meta_info.inputs['x'] = {'data_type': str}
-        op_meta_info.inputs['y'] = {'data_type': int}
-        op_meta_info.outputs[RETURN] = {'data_type': str}
+        op_meta_info.input['x'] = {'data_type': str}
+        op_meta_info.input['y'] = {'data_type': int}
+        op_meta_info.output[RETURN] = {'data_type': str}
 
         self.assertEqual(str(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(repr(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
         self.assertEqual(op_meta_info.op_output_is_dict, False)
         self.assertEqual(op_meta_info.header, {'description': 'Hello!'})
-        self.assertEqual(OrderedDict(op_meta_info.inputs),
+        self.assertEqual(OrderedDict(op_meta_info.input),
                          OrderedDict([('x', {'data_type': str}), ('y', {'data_type': int})]))
-        self.assertEqual(OrderedDict(op_meta_info.outputs),
+        self.assertEqual(OrderedDict(op_meta_info.output),
                          OrderedDict([(RETURN, {'data_type': str})]))
 
     def test_json_encode_decode(self):
@@ -34,9 +34,9 @@ class OpMetaInfoTest(TestCase):
 
         op_meta_info = OpMetaInfo('x.y.Z')
         op_meta_info.header['description'] = 'Hello!'
-        op_meta_info.inputs['x'] = {'data_type': str}
-        op_meta_info.inputs['y'] = {'data_type': int}
-        op_meta_info.outputs[RETURN] = {'data_type': str}
+        op_meta_info.input['x'] = {'data_type': str}
+        op_meta_info.input['y'] = {'data_type': int}
+        op_meta_info.output[RETURN] = {'data_type': str}
 
         def io_def_namespace_to_dict(io_def_namespace: Namespace):
             io_def_dict = OrderedDict(io_def_namespace)
@@ -50,8 +50,8 @@ class OpMetaInfoTest(TestCase):
         d1 = OrderedDict()
         d1['qualified_name'] = op_meta_info.qualified_name
         d1['header'] = op_meta_info.header
-        d1['inputs'] = io_def_namespace_to_dict(op_meta_info.inputs)
-        d1['outputs'] = io_def_namespace_to_dict(op_meta_info.outputs)
+        d1['input'] = io_def_namespace_to_dict(op_meta_info.input)
+        d1['output'] = io_def_namespace_to_dict(op_meta_info.output)
         s = json.dumps(d1, indent='  ')
         d2 = json.load(StringIO(s))
 
@@ -222,8 +222,8 @@ class OpTest(TestCase):
         self.assertIsNotNone(op_meta_info)
         self.assertEqual(op_meta_info.qualified_name, expected_name)
         self.assertEqual(op_meta_info.header, expected_header)
-        self.assertEqual(OrderedDict(op_meta_info.inputs), expected_input)
-        self.assertEqual(OrderedDict(op_meta_info.outputs), expected_output)
+        self.assertEqual(OrderedDict(op_meta_info.input), expected_input)
+        self.assertEqual(OrderedDict(op_meta_info.output), expected_output)
 
     def test_function_validation(self):
         @op_input('x', registry=self.registry, data_type=float, value_range=[0.1, 0.9], default_value=0.5)
@@ -235,14 +235,14 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(f)
 
-        self.assertEqual(op_reg.meta_info.inputs['x'].get('data_type', None), float)
-        self.assertEqual(op_reg.meta_info.inputs['x'].get('value_range', None), [0.1, 0.9])
-        self.assertEqual(op_reg.meta_info.inputs['x'].get('default_value', None), 0.5)
-        self.assertEqual(op_reg.meta_info.inputs['y'].get('data_type', None), float)
-        self.assertEqual(op_reg.meta_info.inputs['a'].get('data_type', None), int)
-        self.assertEqual(op_reg.meta_info.inputs['a'].get('value_set', None), [1, 4, 5])
-        self.assertEqual(op_reg.meta_info.inputs['a'].get('default_value', None), 4)
-        self.assertEqual(op_reg.meta_info.outputs[RETURN].get('data_type', None), float)
+        self.assertEqual(op_reg.meta_info.input['x'].get('data_type', None), float)
+        self.assertEqual(op_reg.meta_info.input['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(op_reg.meta_info.input['x'].get('default_value', None), 0.5)
+        self.assertEqual(op_reg.meta_info.input['y'].get('data_type', None), float)
+        self.assertEqual(op_reg.meta_info.input['a'].get('data_type', None), int)
+        self.assertEqual(op_reg.meta_info.input['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(op_reg.meta_info.input['a'].get('default_value', None), 4)
+        self.assertEqual(op_reg.meta_info.output[RETURN].get('data_type', None), float)
 
         with self.assertRaises(ValueError) as cm:
             result = op_reg(x=0, y=3.)
