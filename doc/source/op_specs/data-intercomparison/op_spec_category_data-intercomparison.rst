@@ -1,7 +1,12 @@
+================================
+Data Inter-Comparison (Category)
+================================
+
+
 Operation Category
 ==================
 
-:Operation Category name: Data Intercomparison
+:Operation Category name: Data Inter-Comparison
 :Description: This Operation Category includes various Operations for bivariate statistical analysis. 
 
 --------------------------

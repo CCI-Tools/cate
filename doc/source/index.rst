@@ -9,13 +9,14 @@ Welcome to ECT's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :numbered:
 
    intro
    quick_start
    tech_spec
    api_reference
+   op_specs
    rel_projects
 
 

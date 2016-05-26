@@ -1,3 +1,7 @@
+============
+Animated Map
+============
+
 Operation
 =========
 *Define the Operation and point to the applicable algorithm for implementation of this Operation, by following this convention:*
