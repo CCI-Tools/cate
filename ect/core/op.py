@@ -42,7 +42,7 @@ class OpMetaInfo:
 
     def __init__(self, op_qualified_name: str):
         self._qualified_name = op_qualified_name
-        self._attributes = dict()
+        self._attributes = OrderedDict()
         self._input_namespace = Namespace()
         self._output_namespace = Namespace()
 
@@ -56,6 +56,7 @@ class OpMetaInfo:
         """
         return self._qualified_name
 
+    # todo nf - rename to header, because 'attributes' has a Python meaning
     @property
     def attributes(self) -> dict():
         """
@@ -92,11 +93,10 @@ class OpMetaInfo:
         return not (len(self._output_namespace) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._output_namespace)
 
     def __str__(self):
-        return '%s%s -> %s' % (self.qualified_name,
-                               tuple([name + ':' + properties['data_type']
-                                      for name, properties in self.inputs.items()]),
-                               [name + ':' + properties['data_type']
-                                for name, properties in self.outputs.items()])
+        return "OpMetaInfo('%s')" % self.qualified_name
+
+    def __repr__(self):
+        return "OpMetaInfo('%s')" % self.qualified_name
 
 
 class OpRegistration:
