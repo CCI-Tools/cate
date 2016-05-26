@@ -34,6 +34,7 @@ Module Reference
 from typing import Sequence, Union, List
 from ect.core import Dataset
 
+
 class DataSource:
     def __init__(self, name: str, glob: str):
         self._name = name
@@ -69,7 +70,8 @@ class Catalogue:
 DEFAULT_CATALOGUE = Catalogue(DataSource("default", "default"))
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = DEFAULT_CATALOGUE, **constraints) -> List[DataSource]:
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = DEFAULT_CATALOGUE, **constraints) -> List[
+    DataSource]:
     """
     Queries the catalogue(s) for data sources matching the given constrains.
 
@@ -126,3 +128,66 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
     if isinstance(data_source, str):
         data_source = query_data_sources(DEFAULT_CATALOGUE, name=data_source)
     return data_source.open_dataset(**constraints)
+
+
+#########################
+import json
+
+
+class FileSetType:
+    def __init__(self, cci, dir, start_date, end_date, num_files, size_in_mb, file_pattern):
+        self._cci = cci
+        self._dir = dir
+        self._start_date = start_date
+        self._end_date = end_date
+        self._num_files = num_files
+        self._size_in_mb = size_in_mb
+        self._file_pattern = file_pattern
+
+    @property
+    def cci(self):
+        return self._cci
+
+    @property
+    def dir(self):
+        return self._dir
+
+    @property
+    def start_date(self):
+        return self._start_date
+
+    @property
+    def end_date(self):
+        return self._end_date
+
+    @property
+    def num_files(self):
+        return self._num_files
+
+    @property
+    def size_in_mb(self):
+        return self._size_in_mb
+
+    @property
+    def file_pattern(self):
+        return self._file_pattern
+
+    @property
+    def full_pattern(self):
+        return self.cci + "/data/" + self.dir + "/" + self.file_pattern
+
+
+def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
+    as_dict = json.loads(json_str)
+    fsts = []
+    for fsd in as_dict:
+        fsts.append(FileSetType(
+            fsd['cci'],
+            fsd['dir'],
+            fsd['start'],
+            fsd['end'],
+            fsd['#netcdf'],
+            int(fsd['size MB']),
+            fsd['file pattern'],
+        ))
+    return fsts
