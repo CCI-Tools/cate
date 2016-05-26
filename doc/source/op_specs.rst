@@ -6,7 +6,7 @@ Operation and Data Processor Specifications
 In this section, the basic operations and data processors used in the ESA CCI Toolbox are specified.
 
 This documentation is not targeted at software end users but may be of interest to those wishing to understand
-the details of the
+the details of the algorithms and methods used.
 
 Visualisation
 =============
