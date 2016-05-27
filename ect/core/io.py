@@ -39,15 +39,10 @@ from datetime import date, datetime, timedelta
 class DataSource:
     def __init__(self, name: str, glob: str):
         self._name = name
-        self._glob = glob
 
     @property
     def name(self) -> str:
         return self._name
-
-    @property
-    def glob(self) -> str:
-        return self._glob
 
     def open_dataset(self, **constraints) -> Dataset:
         return None

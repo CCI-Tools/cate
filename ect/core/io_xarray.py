@@ -58,4 +58,10 @@ def extract_time_index(ds: xr.Dataset) -> datetime:
 
 class XarrayDataSource(io.DataSource):
     def __init__(self, name, glob):
-        super(XarrayDataSource, self).__init__(name, glob)
+        super(XarrayDataSource, self).__init__(name)
+        self._glob = glob
+
+    @property
+    def glob(self) -> str:
+        return self._glob
+
