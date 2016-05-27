@@ -14,6 +14,7 @@ Contents:
 
    intro
    quick_start
+   design
    tech_spec
    api_reference
    op_specs

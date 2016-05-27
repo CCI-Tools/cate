@@ -4,9 +4,16 @@ RST
 ``ect-core/doc`` is the ECT documentation folder. Documentation is build from RST files in folder ``source`` using the *Sphinx* tool.
 ``index.rst`` is the main documentation page which pulls other RST files into the documentation by referring to them.
 
-To install Sphinx run:
+To install Sphinx and required plugins run:
 
      $ conda install Sphinx numpydoc
+
+We also use PlantUML for UML diagrams, see ``doc/source/uml/*.puml`` files.
+There is a Sphinx plugin, *sphinxcontrib-plantuml*, but unfortunately it isn't working at all.
+Therefore, UML diagrams have to be build manually: Type
+
+     $ java -jar plantuml.jar -h
+     $ java -jar plantuml.jar source/uml/*.puml -o ../_static/uml -tsvg
 
 To build the ECT documentation run:
 

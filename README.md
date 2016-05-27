@@ -45,3 +45,4 @@ To use them interactively, you'll need to install Jupyter and run its Notebook a
 
     $ conda install jupyter
     $ jupyter notebook
+
