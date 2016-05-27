@@ -72,8 +72,7 @@ DEFAULT_CATALOGUE = Catalogue(DataSource("default", "default"))
 
 def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = DEFAULT_CATALOGUE, **constraints) -> List[
     DataSource]:
-    """
-    Queries the catalogue(s) for data sources matching the given constrains.
+    """Queries the catalogue(s) for data sources matching the given constrains.
 
     Parameters
     ----------
@@ -103,8 +102,7 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = DEFAU
 
 
 def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
-    """
-    Load and decode a dataset.
+    """Load and decode a dataset.
 
     Parameters
     ----------
@@ -135,9 +133,22 @@ import json
 
 
 class FileSetType:
-    def __init__(self, cci, dir, start_date, end_date, num_files, size_in_mb, file_pattern):
-        self._cci = cci
-        self._dir = dir
+    """A class representing the a specific file set with the meta information belonging to it.
+
+    Parameters
+    ----------
+    name : str
+        The name of the file set
+    base_dir : str
+        The base directory
+
+    Returns
+    -------
+    new  : FileSetType
+    """
+    def __init__(self, name, base_dir, start_date, end_date, num_files, size_in_mb, file_pattern):
+        self._name = name
+        self._base_dir = base_dir
         self._start_date = start_date
         self._end_date = end_date
         self._num_files = num_files
@@ -145,12 +156,12 @@ class FileSetType:
         self._file_pattern = file_pattern
 
     @property
-    def cci(self):
-        return self._cci
+    def name(self):
+        return self._name
 
     @property
-    def dir(self):
-        return self._dir
+    def base_dir(self):
+        return self._base_dir
 
     @property
     def start_date(self):
@@ -174,7 +185,7 @@ class FileSetType:
 
     @property
     def full_pattern(self):
-        return self.cci + "/data/" + self.dir + "/" + self.file_pattern
+        return self.base_dir + "/" + self.file_pattern
 
 
 def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
@@ -182,12 +193,12 @@ def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
     fsts = []
     for fsd in as_dict:
         fsts.append(FileSetType(
-            fsd['cci'],
-            fsd['dir'],
-            fsd['start'],
-            fsd['end'],
-            fsd['#netcdf'],
-            int(fsd['size MB']),
-            fsd['file pattern'],
+            fsd['name'],
+            fsd['base_dir'],
+            fsd['start_date'],
+            fsd['end_date'],
+            fsd['num_files'],
+            fsd['size_mb'],
+            fsd['file_pattern'],
         ))
     return fsts

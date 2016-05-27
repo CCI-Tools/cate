@@ -74,35 +74,36 @@ class IOTest(TestCase):
 class FileSetTest(TestCase):
     JSON = '''[
      {
-       "cci":"aerosol",
-       "dir":"ATSR2_SU/L3/v4.2/DAILY",
-       "start":"1995/06",
-       "end":"2003/06",
-       "#netcdf":2631,
-       "size MB":"42338",
-       "file pattern":"{YYYY}/{MM}/{YYYY}{MM}{DD}-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc"
-     },
-     {
-       "cci":"aerosol",
-       "dir":"ATSR2_SU/L3/v4.21/MONTHLY",
-       "start":"1995",
-       "end":"2003",
-       "#netcdf":89,
-       "size MB":"429",
-       "file pattern":"{YYYY}/{YYYY}{MM}-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2_ERS2-SU_MONTHLY-v4.21.nc"
-     }
+        "name":"aerosol/ATSR2_SU/L3/v4.2/DAILY",
+        "base_dir":"aerosol/data/ATSR2_SU/L3/v4.2/DAILY",
+        "start_date":"1995-06-01",
+        "end_date":"2003-06-30",
+        "num_files":2631,
+        "size_mb":42338,
+        "file_pattern":"{YYYY}/{MM}/{YYYY}{MM}{DD}-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc"
+      },
+      {
+        "name":"aerosol/ATSR2_SU/L3/v4.21/MONTHLY",
+        "base_dir":"aerosol/data/ATSR2_SU/L3/v4.21/MONTHLY",
+        "start_date":"1995-01-01",
+        "end_date":"2003-12-31",
+        "num_files":89,
+        "size_mb":429,
+        "file_pattern":"{YYYY}/{YYYY}{MM}-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2_ERS2-SU_MONTHLY-v4.21.nc"
+      }
      ]'''
 
     def test_from_json(self):
         filesets = io.fileset_types_from_json(FileSetTest.JSON)
         self.assertIsNotNone(filesets)
         self.assertEqual(2, len(filesets))
-        self.assertEqual('aerosol', filesets[0].cci)
-        self.assertEqual('ATSR2_SU/L3/v4.2/DAILY', filesets[0].dir)
-        self.assertEqual('1995/06', filesets[0].start_date)
-        self.assertEqual('2003/06', filesets[0].end_date)
-        self.assertEqual(2631, filesets[0].num_files)
-        self.assertEqual(42338, filesets[0].size_in_mb)
-        self.assertEqual('{YYYY}/{MM}/{YYYY}{MM}{DD}-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc', filesets[0].file_pattern)
+        fs0 = filesets[0]
+        self.assertEqual('aerosol/ATSR2_SU/L3/v4.2/DAILY', fs0.name)
+        self.assertEqual('aerosol/data/ATSR2_SU/L3/v4.2/DAILY', fs0.base_dir)
+        self.assertEqual('1995-06-01', fs0.start_date)
+        self.assertEqual('2003-06-30', fs0.end_date)
+        self.assertEqual(2631, fs0.num_files)
+        self.assertEqual(42338, fs0.size_in_mb)
+        self.assertEqual('{YYYY}/{MM}/{YYYY}{MM}{DD}-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc', fs0.file_pattern)
         fullp = 'aerosol/data/ATSR2_SU/L3/v4.2/DAILY/{YYYY}/{MM}/{YYYY}{MM}{DD}-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc'
-        self.assertEqual(fullp, filesets[0].full_pattern)
+        self.assertEqual(fullp, fs0.full_pattern)
