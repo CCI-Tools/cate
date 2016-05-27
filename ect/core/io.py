@@ -33,7 +33,8 @@ Module Reference
 """
 from typing import Sequence, Union, List
 from ect.core import Dataset
-
+import json
+from datetime import date, datetime, timedelta
 
 class DataSource:
     def __init__(self, name: str, glob: str):
@@ -129,7 +130,6 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
 
 
 #########################
-import json
 
 
 class FileSetType:
@@ -141,52 +141,110 @@ class FileSetType:
         The name of the file set
     base_dir : str
         The base directory
+    start_date : str
+        The start of the time range covered by this file set, can be None
+    end_date : str
+        The end of the time range covered by this file set, can be None
+    num_files : int
+        The number of files contained in this file set
+    size_in_mb : int
+        The number of files this file set contains
+    file_pattern : str
+        The file pattern with wildcards for year, month, and day
 
     Returns
     -------
     new  : FileSetType
     """
-    def __init__(self, name, base_dir, start_date, end_date, num_files, size_in_mb, file_pattern):
+    def __init__(self, name: str, base_dir: str,
+                 start_date: Union[str,date], end_date: Union[str,date],
+                 num_files: int, size_in_mb: int, file_pattern: str):
         self._name = name
         self._base_dir = base_dir
-        self._start_date = start_date
-        self._end_date = end_date
+        self._start_date = FileSetType._as_date(start_date, None)
+        self._end_date = FileSetType._as_date(end_date, None)
         self._num_files = num_files
         self._size_in_mb = size_in_mb
         self._file_pattern = file_pattern
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def base_dir(self):
+    def base_dir(self) -> str:
         return self._base_dir
 
     @property
-    def start_date(self):
+    def start_date(self) -> date:
         return self._start_date
 
     @property
-    def end_date(self):
+    def end_date(self) -> date:
         return self._end_date
 
     @property
-    def num_files(self):
+    def num_files(self) -> int:
         return self._num_files
 
     @property
-    def size_in_mb(self):
+    def size_in_mb(self) -> int:
         return self._size_in_mb
 
     @property
-    def file_pattern(self):
+    def file_pattern(self) -> str:
         return self._file_pattern
 
     @property
-    def full_pattern(self):
+    def full_pattern(self) -> str:
         return self.base_dir + "/" + self.file_pattern
 
+    def resolve_paths(self, first_date: Union[str,date] = None, last_date: Union[str,date] = None) -> Sequence[str]:
+        """Return a list of all paths between the given dates.
+
+        For all dates, including the first and the last date, the wildcard in the pattern is resolved for the date.
+
+        Parameters
+        ----------
+        first_date : str
+            The first date of the time range, can be None if the file set has a *start_date*.
+            In this case the *start_date* is used.
+        last_date : str
+            The last date of the time range, can be None if the file set has a *end_date*.
+            In this case the *end_date* is used.
+        """
+        if first_date is None and self.start_date is None:
+            raise ValueError("neither first_date nor start_date are given")
+        d1 = self._as_date(first_date, self.start_date)
+
+        if last_date is None and self.end_date is None:
+            raise ValueError("neither last_date nor end_date are given")
+        d2 = self._as_date(last_date, self.end_date)
+
+        if d1 > d2:
+            raise ValueError("start date '%s' is after end date '%s'" % (d1, d2))
+
+        return [self._resolve(d1 + timedelta(days=x)) for x in range((d2-d1).days + 1)]
+
+    @staticmethod
+    def _as_date(d: Union[str, date], default) -> date:
+        if d is None:
+            return default
+        if isinstance(d, str):
+            return datetime.strptime(d, "%Y-%m-%d").date()
+        if isinstance(d, date):
+            return d
+        raise ValueError
+
+    def _resolve(self, date: date):
+        path = self.full_pattern
+        if "{YYYY}" in path:
+            path = path.replace("{YYYY}", "%04d" % (date.year))
+        if "{MM}" in path:
+            path = path.replace("{MM}", "%02d" % (date.month))
+        if "{DD}" in path:
+            path = path.replace("{DD}", "%02d" % (date.day))
+        return path
 
 def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
     as_dict = json.loads(json_str)
