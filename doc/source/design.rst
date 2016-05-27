@@ -5,27 +5,27 @@ Technical Design
 Common Data Model
 =================
 
-.. uml:: uml/cdm.puml
+.. image:: _static/uml/cdm.svg
    :scale: 100 %
    :align: center
 
 Input/Output API
 ================
 
-.. uml:: uml/io.puml
+.. image:: _static/uml/io.svg
    :scale: 100 %
    :align: center
 
 Operations API
 ==============
 
-.. uml:: uml/op.puml
+.. image:: _static/uml/op.svg
    :scale: 100 %
    :align: center
 
 Workflow API
 ============
 
-.. uml:: uml/workflow.puml
+.. image:: _static/uml/workflow.svg
    :scale: 100 %
    :align: center
