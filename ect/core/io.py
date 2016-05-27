@@ -36,6 +36,7 @@ from ect.core import Dataset
 import json
 from datetime import date, datetime, timedelta
 
+
 class DataSource:
     def __init__(self, name: str, glob: str):
         self._name = name
@@ -241,6 +242,21 @@ class FileSetType:
             path = path.replace("{DD}", "%02d" % (date.day))
         return path
 
+
+class FileSetCatalogue:
+    def __init__(self, root_dir: str, fileset_types: Sequence[FileSetType]):
+        self._fileset_types = fileset_types
+        self._root_dir= root_dir
+
+    @property
+    def root_dir(self) -> str:
+        return self._root_dir
+
+    @property
+    def fileset_types(self) -> Sequence[FileSetType]:
+        return self._fileset_types
+
+
 def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
     as_dict = json.loads(json_str)
     fsts = []
@@ -255,3 +271,10 @@ def fileset_types_from_json(json_str) -> Sequence[FileSetType]:
             fsd['file_pattern'],
         ))
     return fsts
+
+
+def fileset_cat_from_file(filename: str, root_dir: str) -> FileSetCatalogue:
+    with open(filename) as json_file:
+        json = json_file.read()
+    fileset_types = fileset_types_from_json(json)
+    return FileSetCatalogue(root_dir, fileset_types)

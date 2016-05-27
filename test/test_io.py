@@ -153,7 +153,6 @@ class FileSetTypeTest(TestCase):
         with self.assertRaises(ValueError) as cm:
             self.filesets[0].resolve_paths('2001-01-03', None)
 
-
     def test_as_date(self):
         d1 = io.FileSetType._as_date('2001-01-01', None)
         self.assertIsInstance(d1, date)
@@ -169,3 +168,4 @@ class FileSetTypeTest(TestCase):
 
         with self.assertRaises(ValueError):
             io.FileSetType._as_date(1, None)
+
