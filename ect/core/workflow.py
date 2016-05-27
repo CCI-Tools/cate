@@ -42,10 +42,10 @@ class Node(metaclass=ABCMeta):
         node_id = node_id if node_id is not None else 'Node#' + str(id(self))
         self._id = node_id
         self._op_meta_info = op_meta_info
-        self._input_connectors = InputConnectors([InputConnector(self, name)
-                                                  for name, _ in op_meta_info.input])
-        self._output_connectors = OutputConnectors([OutputConnector(self, name)
-                                                    for name, _ in op_meta_info.output])
+        self._input_connectors = InputConnectorNamespace([InputConnector(self, name)
+                                                          for name, _ in op_meta_info.input])
+        self._output_connectors = OutputConnectorNamespace([OutputConnector(self, name)
+                                                            for name, _ in op_meta_info.output])
 
     @property
     def id(self):
@@ -401,11 +401,9 @@ class OutputConnector(Connector):
         return "OutputConnector(%s, '%s')" % (self.node, self.name)
 
 
-# todo nf - rename to InputConnectorNamespace to get rid of the plural
-
-class InputConnectors(Namespace):
+class InputConnectorNamespace(Namespace):
     def __init__(self, connectors):
-        super(InputConnectors, self).__init__([(connector.name, connector) for connector in connectors])
+        super(InputConnectorNamespace, self).__init__([(connector.name, connector) for connector in connectors])
 
     def __setattr__(self, name, value):
         connector = self.__getattr__(name)
@@ -418,7 +416,7 @@ class InputConnectors(Namespace):
 
     def __getattr__(self, name) -> 'InputConnector':
         try:
-            return super(InputConnectors, self).__getattr__(name)
+            return super(InputConnectorNamespace, self).__getattr__(name)
         except AttributeError:
             raise AttributeError("'%s' is not an input" % name)
 
@@ -426,18 +424,16 @@ class InputConnectors(Namespace):
         raise NotImplementedError()
 
 
-# todo nf - rename to OutputConnectorNamespace to get rid of the plural
-
-class OutputConnectors(Namespace):
+class OutputConnectorNamespace(Namespace):
     def __init__(self, connectors):
-        super(OutputConnectors, self).__init__([(connector.name, connector) for connector in connectors])
+        super(OutputConnectorNamespace, self).__init__([(connector.name, connector) for connector in connectors])
 
     def __setattr__(self, name, value):
         raise AttributeError("'%s' is an output and cannot be set" % name)
 
     def __getattr__(self, name) -> 'OutputConnector':
         try:
-            return super(OutputConnectors, self).__getattr__(name)
+            return super(OutputConnectorNamespace, self).__getattr__(name)
         except AttributeError:
             raise AttributeError("'%s' is not an output" % name)
 
