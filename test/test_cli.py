@@ -28,6 +28,14 @@ def fetch_std_streams():
 
 
 class CliTest(TestCase):
+    def test_noargs(self):
+        with self.assertRaises(SystemExit):
+            cli.main()
+
+    def test_invalid_command(self):
+        with self.assertRaises(SystemExit):
+            cli.main(['pipo'])
+
     def test_option_help(self):
         with self.assertRaises(SystemExit):
             cli.main(args=['--h'])
@@ -76,6 +84,13 @@ class CliTest(TestCase):
 
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['list', 'ds'])
+            self.assertEqual(status, 0)
+        self.assertIn('data source', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', '--pattern', 'sst*', 'ds'])
             self.assertEqual(status, 0)
         self.assertIn('data source', sout.getvalue())
         self.assertIn('found', sout.getvalue())
@@ -132,6 +147,13 @@ class CliTest(TestCase):
             self.assertTrue('Extracting time series data: done' in sout.getvalue())
             self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
             self.assertEqual(serr.getvalue(), '')
+
+            # Run with invalid keyword
+            with fetch_std_streams() as (sout, serr):
+                status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
+                self.assertEqual(status, 2)
+            self.assertEqual(sout.getvalue(), '')
+            self.assertEqual(serr.getvalue(), "ect: error: keyword 'l*t' is not a valid identifier\n")
 
         finally:
             OP_REGISTRY.remove_op(op_reg)

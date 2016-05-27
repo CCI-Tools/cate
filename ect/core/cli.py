@@ -121,8 +121,10 @@ class Run(Command):
                 if not kw.isidentifier():
                     return 2, "error: keyword '%s' is not a valid identifier" % kw
             try:
+                # try converting arg into a Python object
                 arg = eval(arg)
             except (SyntaxError, NameError):
+                # If it fails, we stay with default type (str)
                 pass
             if not kw:
                 op_args.append(arg)
@@ -150,7 +152,8 @@ class List(Command):
                                  "'op' lists operations, 'ds' lists data sources, 'pi' lists plugins")
         parser.add_argument('--pattern', '-p', metavar='PAT', nargs='?', default=None,
                             help="A wildcard pattern to filter listed items. "
-                                 "'*' matches zero or many characters, '?' matches a single character.")
+                                 "'*' matches zero or many characters, '?' matches a single character. "
+                                 "The comparison is case insensitive.")
 
     def execute(self, command_args):
         if command_args.category == 'pi':
@@ -164,11 +167,13 @@ class List(Command):
             List.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
 
     @staticmethod
-    def list_items(category_singular_name: str, category_plural_name: str, category_items, pattern: str):
+    def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
         if pattern:
+            # see https://docs.python.org/3.5/library/fnmatch.html
             import fnmatch
-            category_items = fnmatch.filter(category_items, pattern)
-        item_count = len(category_items)
+            pattern = pattern.lower()
+            names = [name for name in names if fnmatch.fnmatch(name.lower(), pattern)]
+        item_count = len(names)
         if item_count == 1:
             print('One %s found' % category_singular_name)
         elif item_count > 1:
@@ -176,7 +181,7 @@ class List(Command):
         else:
             print('No %s found' % category_plural_name)
         no = 0
-        for item in category_items:
+        for item in names:
             no += 1
             print('%4d: %s' % (no, item))
 
@@ -252,13 +257,10 @@ def main(args=None):
         command_parser.set_defaults(command_class=command_class)
 
     args_obj = parser.parse_args(args)
-    if args_obj.command_name and args_obj.command_class:
-        status_and_message = args_obj.command_class().execute(args_obj)
-        if not status_and_message:
-            status_and_message = Command.STATUS_OK
-    else:
-        parser.print_usage()
-        status_and_message = 1, 'error: COMMAND is required'
+    assert args_obj.command_name and args_obj.command_class
+    status_and_message = args_obj.command_class().execute(args_obj)
+    if not status_and_message:
+        status_and_message = Command.STATUS_OK
 
     status, message = status_and_message
     if message:
