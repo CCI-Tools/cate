@@ -1,0 +1,36 @@
+@startuml
+
+abstract Node {
+    id: str
+    input: InputConnectorNamespace
+    output: OutputConnectorNamespace
+    invoke()
+}
+
+class OpNode implements Node {
+    invoke()
+}
+
+class Graph implements Node {
+    invoke()
+}
+
+
+class op.OpMetaInfo {
+    qualfied_name : str
+    header : OrderedDict
+    input : OrderedDict
+    output : OrderedDict
+}
+
+
+OpNode --> op.OpRegistration : op_registration
+Node --> op.OpMetaInfo: op_meta_info
+Graph --> "0..N" Node: nodes
+
+
+note left of Graph
+Collection pattern
+end note
+
+@enduml

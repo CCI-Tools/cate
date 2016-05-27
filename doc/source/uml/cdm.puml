@@ -1,20 +1,29 @@
 @startuml
 
-Dataset : gap_fill(): Datset
-Dataset : time_series(): Datset
-Dataset : subset(): Datset
-Dataset : resample(): Datset
-Dataset : close()
+interface Dataset {
+    gap_fill(): Datset
+    time_series(): Datset
+    subset(): Datset
+    resample(): Datset
+    close()
+}
 
-DatasetAdapter --|> Dataset
-DatasetAdapter : wrapped_dataset: object
+abstract DatasetAdapter implements Dataset {
+    get_wrapped_dataset(): object
+}
 
-DatasetCollection --|> Dataset
-DatasetCollection :  datasets: List[Dataset]
+class DatasetCollection implements Dataset {
+}
 
+class cdm_xarray.XarrayDatasetAdapter extends DatasetAdapter {
+    get_wrapped_dataset(): xarray.Dataset
+}
 
-XarrayDatasetAdapter --|> DatasetAdapter
-ShapefileDatasetAdapter --|> DatasetAdapter
+class cdm_shapefile.ShapefileDatasetAdapter extends DatasetAdapter {
+    get_wrapped_dataset(): shapefile.Dataset
+}
+
+DatasetCollection --> "0..N" Dataset
 
 note right of DatasetCollection
 Collection pattern

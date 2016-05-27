@@ -1,0 +1,56 @@
+@startuml
+
+class CatalogueRegistry {
+    get_catalogues(): Catalogue
+}
+
+interface Catalogue {
+    query(filter): DataSource
+}
+
+interface DataSource {
+    open_dataset(constraints): cdm.Dataset
+}
+
+class FileSetCatalogue implements Catalogue {
+    root_dir
+    query(filter): DataSource
+}
+
+class FileSetDataSource implements DataSource {
+    name
+    base_dir
+    file_pattern
+    open_dataset(constraints): cdm.Dataset
+}
+
+class FileSetInfo  {
+    info_update_time
+    start_time
+    end_time
+    num_files
+    size_in_mb
+}
+
+Catalogue  ..>  DataSource: <provide>
+
+DataSource ..>  interface cdm.Dataset: <open>
+
+
+FileSetCatalogue "1" -- "N" FileSetDataSource
+FileSetDataSource -- "0..1" FileSetInfo
+
+note left of FileSetCatalogue
+Users may create their own.
+The default instance mirrors
+the CCI Portal's FTP tree.
+end note
+
+note left of FileSetDataSource
+open_dataset() will look for
+actual file types and return
+either an xarray or shapefile
+Dataset instance.
+end note
+
+@enduml
