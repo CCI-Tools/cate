@@ -28,33 +28,110 @@ def fetch_std_streams():
 
 
 class CliTest(TestCase):
-    def test_help(self):
+    def test_option_help(self):
+        with self.assertRaises(SystemExit):
+            cli.main(args=['--h'])
         with self.assertRaises(SystemExit):
             cli.main(args=['--help'])
 
-    def test_subcmd_list(self):
+    def test_option_version(self):
+        with self.assertRaises(SystemExit):
+            cli.main(args=['--version'])
+
+    def test_command_license(self):
         with fetch_std_streams() as (sout, serr):
-            status, message = cli.main(args=['list'])
+            status = cli.main(args=['license'])
             self.assertEqual(status, 0)
-            self.assertEqual(message, None)
-        self.assertIn('ESA CCI Toolbox command-line interface, version ', sout.getvalue())
-        self.assertIn('Registered ECT plugins', sout.getvalue())
-        self.assertIn('Registered ECT operations', sout.getvalue())
+        self.assertIn('GNU GENERAL PUBLIC LICENSE', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
 
-
-    def test_subcmd_run(self):
+    def test_command_copyright(self):
         with fetch_std_streams() as (sout, serr):
-            status, message = cli.main(args=['run', 'time_series', 'myds', 'lat=13.2', 'lon=52.9'])
+            status = cli.main(args=['copyright'])
             self.assertEqual(status, 0)
-            self.assertEqual(message, None)
-        self.assertIn('ESA CCI Toolbox command-line interface, version ', sout.getvalue())
-        self.assertIn('Now running operation...', sout.getvalue())
+        self.assertIn('European Space Agency', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+    def test_command_list(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list'])
+            self.assertEqual(status, 0)
+        self.assertIn('operation', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
 
         with fetch_std_streams() as (sout, serr):
-            status, message = cli.main(args=['run', 'time_series', 'myds', 'l+t=13.2', 'lon=52.9'])
-            self.assertEqual(status, 2)
-            self.assertEqual(message, "error: keyword 'l+t' is not a valid identifier")
-        self.assertIn('ESA CCI Toolbox command-line interface, version ', sout.getvalue())
+            status = cli.main(args=['list', 'op'])
+            self.assertEqual(status, 0)
+        self.assertIn('operation', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', 'pi'])
+            self.assertEqual(status, 0)
+        self.assertIn('plugin', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', 'ds'])
+            self.assertEqual(status, 0)
+        self.assertIn('data source', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+    def test_command_run_help(self):
+        with self.assertRaises(SystemExit):
+            cli.main(args=['run', '-h'])
+
+        with self.assertRaises(SystemExit):
+            cli.main(args=['run', '-help'])
+
+    def test_command_run_with_unknown_op(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['run', 'pipapo', 'lat=13.2', 'lon=52.9'])
+            self.assertEqual(status, 1)
+        self.assertEqual(sout.getvalue(), '')
+        self.assertEqual(serr.getvalue(), "ect: error: unknown operation 'pipapo'\n")
+
+    def test_command_run_with_op(self):
+        from ect.core.op import REGISTRY as OP_REGISTRY
+        from ect.core.monitor import starting, Monitor
+        from time import sleep
+
+        def time_series(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+            print('lat=%s lon=%s method=%s' % (lat, lon, method))
+            work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
+            with starting(monitor, 'Extracting time series data', sum(work_units)):
+                for work_unit in work_units:
+                    sleep(work_unit / 10.)
+                    monitor.progress(work_unit)
+            return work_units
+
+        op_reg = OP_REGISTRY.add_op(time_series, fail_if_exists=True)
+
+        try:
+            # Run without progress monitor
+            with fetch_std_streams() as (sout, serr):
+                status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
+                self.assertEqual(status, 0)
+            self.assertTrue('Running operation ' in sout.getvalue())
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            self.assertEqual(serr.getvalue(), '')
+
+            # Run with progress monitor
+            with fetch_std_streams() as (sout, serr):
+                status = cli.main(args=['run', '--monitor', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
+                self.assertEqual(status, 0)
+            self.assertTrue('Running operation ' in sout.getvalue())
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
+            self.assertTrue('Extracting time series data: start' in sout.getvalue())
+            self.assertTrue('Extracting time series data: 33%' in sout.getvalue())
+            self.assertTrue('Extracting time series data: done' in sout.getvalue())
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            self.assertEqual(serr.getvalue(), '')
+
+        finally:
+            OP_REGISTRY.remove_op(op_reg)
