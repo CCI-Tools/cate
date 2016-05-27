@@ -26,7 +26,7 @@ class op.OpMetaInfo {
 
 OpNode --> op.OpRegistration : op_registration
 Node --> op.OpMetaInfo: op_meta_info
-Graph --> "0..N" Node: nodes
+Graph o--> "0..N" Node: nodes
 
 
 note left of Graph

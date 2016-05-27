@@ -9,21 +9,21 @@ interface Dataset {
 }
 
 abstract DatasetAdapter implements Dataset {
-    get_wrapped_dataset(): object
+    {abstract} wrapped_dataset(): object
 }
 
 class DatasetCollection implements Dataset {
 }
 
 class cdm_xarray.XarrayDatasetAdapter extends DatasetAdapter {
-    get_wrapped_dataset(): xarray.Dataset
+    wrapped_dataset(): xarray.Dataset
 }
 
 class cdm_shapefile.ShapefileDatasetAdapter extends DatasetAdapter {
-    get_wrapped_dataset(): shapefile.Dataset
+    wrapped_dataset(): shapefile.Dataset
 }
 
-DatasetCollection --> "0..N" Dataset
+DatasetCollection o--> "0..N" Dataset
 
 note right of DatasetCollection
 Collection pattern

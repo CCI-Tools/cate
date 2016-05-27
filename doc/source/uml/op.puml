@@ -1,0 +1,26 @@
+@startuml
+
+class OpRegistry {
+    get_op(name): OpRegistration
+    add_op(operation): OpRegistration
+    remove_op(operation): OpRegistration
+}
+
+
+class OpRegistration {
+    operation: object
+    __call__(*args, **kwargs): object
+}
+
+
+class OpMetaInfo {
+    qualfied_name : str
+    header : OrderedDict
+    input : OrderedDict
+    output : OrderedDict
+}
+
+OpRegistry o--> "N" OpRegistration
+OpRegistration --> OpMetaInfo: op_meta_info
+
+@enduml

@@ -1,15 +1,17 @@
 @startuml
 
 class CatalogueRegistry {
-    get_catalogues(): Catalogue
+    get_catalogues(name): Catalogue
+    add_catalogue(Catalogue): void
+    remove_catalogue(Catalogue): void
 }
 
 interface Catalogue {
-    query(filter): DataSource
+    {abstract} query(filter): DataSource
 }
 
 interface DataSource {
-    open_dataset(constraints): cdm.Dataset
+    {abstract} open_dataset(constraints): cdm.Dataset
 }
 
 class FileSetCatalogue implements Catalogue {
@@ -32,12 +34,13 @@ class FileSetInfo  {
     size_in_mb
 }
 
+CatalogueRegistry o--> "N" Catalogue
 Catalogue  ..>  DataSource: <provide>
 
 DataSource ..>  interface cdm.Dataset: <open>
 
 
-FileSetCatalogue "1" -- "N" FileSetDataSource
+FileSetCatalogue "1" o-- "N" FileSetDataSource
 FileSetDataSource -- "0..1" FileSetInfo
 
 note left of FileSetCatalogue

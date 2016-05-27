@@ -16,8 +16,8 @@ class OutputConnector  {
 abstract Node {
 }
 
-Node "1" -- "0..N" InputConnector : input
-Node "1" -- "0..N" OutputConnector : output
+Node "1" o-- "0..N" InputConnector : input
+Node "1" o-- "0..N" OutputConnector : output
 InputConnector --|> Connector
 OutputConnector --|> Connector
 @enduml
