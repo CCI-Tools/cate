@@ -153,11 +153,11 @@ class OpNode(Node):
             source = input_connector.source
             value = input_connector.value
             if source is not None:
-                node_input_dict[input_connector.name] = (source.node.id, source.name)
+                node_input_dict[input_connector.name] = dict(output_of = source.node.id + '.' + source.name)
             else:
                 # Care: input_connector.value may not be JSON-serializable!!!
                 # Must add converter callback, or so.
-                node_input_dict[input_connector.name] = value
+                node_input_dict[input_connector.name] = dict(value = value)
         node_dict = OrderedDict()
         node_dict['id'] = self.id
         node_dict['op'] = self.op_meta_info.qualified_name

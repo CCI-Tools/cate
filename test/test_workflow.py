@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.op import op_input, op_output
@@ -231,6 +230,31 @@ class NodeTest(TestCase):
         self.assertIs(node3.input.v.source, node2.output.b)
         self.assertEqual(node3.output.w.targets, [])
 
+    def test_node_json(self):
+        node3 = OpNode(Op3, node_id='Op3')
+
+        node3_dict = node3.to_json_dict()
+
+        expected_json_text = """{
+          "id": "Op3",
+          "op": "test.test_workflow.Op3",
+          "input": {
+            "v": {"value": null},
+            "u": {"value": null}
+          }
+        }
+        """
+
+        import json
+        from io import StringIO
+
+        actual_json_text = json.dumps(node3_dict)
+
+        expected_json_obj = json.load(StringIO(expected_json_text))
+        actual_json_obj = json.load(StringIO(actual_json_text))
+
+        self.assertEqual(actual_json_obj, expected_json_obj)
+
 
 class GraphTest(TestCase):
     def test_graph_init(self):
@@ -280,22 +304,22 @@ class GraphTest(TestCase):
               "id": "Op1",
               "op": "test.test_workflow.Op1",
               "input": {
-                "x": null
+                "x": {"value": null}
               }
             },
             {
               "id": "Op2",
               "op": "test.test_workflow.Op2",
               "input": {
-                "a": ["Op1", "y"]
+                "a": {"output_of": "Op1.y"}
               }
             },
             {
               "id": "Op3",
               "op": "test.test_workflow.Op3",
               "input": {
-                "v": ["Op2", "b"],
-                "u": ["Op1", "y"]
+                "v": {"output_of": "Op2.b"},
+                "u": {"output_of": "Op1.y"}
               }
             }
           ]
