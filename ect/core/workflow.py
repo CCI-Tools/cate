@@ -14,6 +14,34 @@ This module provides the following data types:
 * A :py:class:`OutputConnector` belongs to a ``Node``, has a (parameter) name, and has a ``targets`` property (a list)
   that points to all connected ``InputConnector`` of other target nodes.
 
+Technical Requirements
+======================
+
+A Graph's inputs and outputs refer to dedicated graph node inputs and outputs. These are usually the
+unconnected inputs and outputs within the graph.
+
+A node's and a graph's input types may be:
+
+* ``{"source": "parameter"}``: a value parsed from the command-line or provided by a GUI. No value given.
+* ``{"source": "output":``, "output": *node-output-ref* ``}``: the output of another graph or node
+* ``{"source": "constant":``, "constant":  *any-JSON* ``}``: a constant value, basically any JSON-serializable object
+* ``{"source": "file":``, "file": *file-path* ``}``: an object loaded from a file in a given format,
+  e.g. netCDF/xarray dataset, Shapefile, JSON, PNG image, numpy-binary
+* ``{"source": "url":``, "url": *URL* ``}``: same as file but loaded from a URL
+
+All ``{"source": *type*}`` other than ``{"source": "parameter"}`` are optional in a node's JSON, as the source
+value names are unambiguous.
+
+Graphs shall be callable by the CLI in the same way as single operations. The command line form for calling an
+operation is currently:::
+
+    ect run OP [ARGS]
+
+Where *OP* shall be a registered operation or a graph.
+_Implementation hint_: An ``OpResolver.find_op(op_name)`` may be utilized to resolve
+operation names. If we move module ``workflow`` out of core, it may register a new OpResolver that can resolve
+Graph file names (*.graph.json) as operations.
+
 Module Reference
 ================
 """
