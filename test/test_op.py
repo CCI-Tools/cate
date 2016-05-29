@@ -5,9 +5,9 @@ from unittest import TestCase
 
 from ect.core.monitor import Monitor
 from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output
-from ect.core.util import Namespace
 from ect.core.util import object_to_qualified_name
 
+MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 
 
@@ -28,6 +28,46 @@ class OpMetaInfoTest(TestCase):
                          OrderedDict([('x', {'data_type': str}), ('y', {'data_type': int})]))
         self.assertEqual(OrderedDict(op_meta_info.output),
                          OrderedDict([(RETURN, {'data_type': str})]))
+
+    def test_introspect_operation(self):
+        def f(a: str, b: int, c: float = 1, d='A') -> float:
+            """The doc."""
+
+        op_meta_info = OpMetaInfo.introspect_operation(f)
+        self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(f))
+        self.assertEqual(op_meta_info.header, dict(description='The doc.'))
+        self.assertEqual(len(op_meta_info.input), 4)
+        self.assertEqual(len(op_meta_info.output), 1)
+        self.assertIn('a', op_meta_info.input)
+        self.assertIn('b', op_meta_info.input)
+        self.assertIn('c', op_meta_info.input)
+        self.assertIn('d', op_meta_info.input)
+        self.assertIn(RETURN, op_meta_info.output)
+        self.assertEqual(op_meta_info.input.a, dict(data_type=str))
+        self.assertEqual(op_meta_info.input.b, dict(data_type=int))
+        self.assertEqual(op_meta_info.input.c, dict(data_type=float, default_value=1))
+        self.assertEqual(op_meta_info.input.d, dict(default_value='A'))
+        self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
+        self.assertEqual(op_meta_info.has_monitor, False)
+        self.assertEqual(op_meta_info.output_value_is_dict, False)
+
+    def test_introspect_operation_with_monitor(self):
+        def g(x: float, monitor) -> float:
+            """The doc."""
+
+        op_meta_info = OpMetaInfo.introspect_operation(g)
+        self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(g))
+        self.assertEqual(op_meta_info.header, dict(description='The doc.'))
+        self.assertEqual(len(op_meta_info.input), 2)
+        self.assertEqual(len(op_meta_info.output), 1)
+        self.assertIn('x', op_meta_info.input)
+        self.assertIn(MONITOR, op_meta_info.input)
+        self.assertIn(RETURN, op_meta_info.output)
+        self.assertEqual(op_meta_info.input.x, dict(data_type=float))
+        self.assertEqual(op_meta_info.input.monitor, dict())
+        self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
+        self.assertEqual(op_meta_info.has_monitor, True)
+        self.assertEqual(op_meta_info.output_value_is_dict, False)
 
     def test_json_encode_decode(self):
         op_meta_info = OpMetaInfo('x.y.Z')

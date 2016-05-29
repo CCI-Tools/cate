@@ -46,7 +46,10 @@ class OpMetaInfo:
         self._input_namespace = Namespace()
         self._output_namespace = Namespace()
 
-    #: The internal name of an unnamed return value.
+    #: The name of an input that will receive a :py:class:`Monitor` object as value.
+    MONITOR_INPUT_NAME = 'monitor'
+
+    #: The internal name of a single, unnamed return value.
     RETURN_OUTPUT_NAME = '_return_'
 
     @property
@@ -82,12 +85,20 @@ class OpMetaInfo:
         return self._output_namespace
 
     @property
+    def has_monitor(self) -> bool:
+        """
+        :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
+                 to output values.
+        """
+        return self.MONITOR_INPUT_NAME in self._input_namespace
+
+    @property
     def output_value_is_dict(self) -> bool:
         """
         :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
-        return not (len(self._output_namespace) == 1 and OpMetaInfo.RETURN_OUTPUT_NAME in self._output_namespace)
+        return not (len(self._output_namespace) == 1 and self.RETURN_OUTPUT_NAME in self._output_namespace)
 
     def to_json_dict(self):
         """
@@ -224,9 +235,9 @@ class OpRegistration:
         # validate the input_values using this operation's meta-info
         self.validate_input_values(input_values)
 
-        if 'monitor' in self.meta_info.input:
+        if self.meta_info.has_monitor:
             # set the monitor only if it is an argument
-            input_values['monitor'] = monitor
+            input_values[self.meta_info.MONITOR_INPUT_NAME] = monitor
 
         operation = self.operation
         if isclass(operation):
