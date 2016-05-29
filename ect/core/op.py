@@ -46,11 +46,12 @@ class OpMetaInfo:
         self._input_namespace = Namespace()
         self._output_namespace = Namespace()
 
-    #: The name of an input that will receive a :py:class:`Monitor` object as value.
+    #: The constant ``'monitor'``, which is the name of an operation input that will
+    #: receive a :py:class:`Monitor` object as value.
     MONITOR_INPUT_NAME = 'monitor'
 
-    #: The internal name of a single, unnamed return value.
-    RETURN_OUTPUT_NAME = '_return_'
+    #: The constant ``'return'``, which is the name of a single, unnamed operation output.
+    RETURN_OUTPUT_NAME = 'return'
 
     @property
     def qualified_name(self) -> str:
