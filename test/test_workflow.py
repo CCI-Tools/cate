@@ -232,6 +232,8 @@ class NodeTest(TestCase):
 
     def test_node_json(self):
         node3 = OpNode(Op3, node_id='Op3')
+        node3.input.v = 634
+        node3.input.u = 2.8
 
         node3_dict = node3.to_json_dict()
 
@@ -239,8 +241,8 @@ class NodeTest(TestCase):
           "id": "Op3",
           "op": "test.test_workflow.Op3",
           "input": {
-            "v": {"value": null},
-            "u": {"value": null}
+            "v": {"value": 634},
+            "u": {"value": 2.8}
           }
         }
         """
@@ -299,30 +301,36 @@ class GraphTest(TestCase):
         graph_dict = graph.to_json_dict()
 
         expected_json_text = """{
-          "graph": [
+        "graph":
             {
-              "id": "Op1",
-              "op": "test.test_workflow.Op1",
-              "input": {
-                "x": {"value": null}
-              }
-            },
-            {
-              "id": "Op2",
-              "op": "test.test_workflow.Op2",
-              "input": {
-                "a": {"output_of": "Op1.y"}
-              }
-            },
-            {
-              "id": "Op3",
-              "op": "test.test_workflow.Op3",
-              "input": {
-                "v": {"output_of": "Op2.b"},
-                "u": {"output_of": "Op1.y"}
-              }
+                "input": {
+                    "x": {"input_for": "Op1.x"}
+                },
+                "output": {
+                    "w": {"output_of": "Op3.w"}
+                },
+                "nodes": [
+                    {
+                        "id": "Op1",
+                        "op": "test.test_workflow.Op1"
+                    },
+                    {
+                        "id": "Op2",
+                        "op": "test.test_workflow.Op2",
+                        "input": {
+                            "a": {"output_of": "Op1.y"}
+                        }
+                    },
+                    {
+                        "id": "Op3",
+                        "op": "test.test_workflow.Op3",
+                        "input": {
+                            "v": {"output_of": "Op2.b"},
+                            "u": {"output_of": "Op1.y"}
+                        }
+                    }
+                ]
             }
-          ]
         }
         """
 

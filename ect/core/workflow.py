@@ -70,8 +70,10 @@ class Node(metaclass=ABCMeta):
         node_id = node_id if node_id is not None else 'Node#' + str(id(self))
         self._id = node_id
         self._op_meta_info = op_meta_info
+        # todo rename to _input_connector_namespace
         self._input_connectors = InputConnectorNamespace([InputConnector(self, name)
                                                           for name, _ in op_meta_info.input])
+        # todo rename to _output_connector_namespace
         self._output_connectors = OutputConnectorNamespace([OutputConnector(self, name)
                                                             for name, _ in op_meta_info.output])
 
@@ -176,20 +178,21 @@ class OpNode(Node):
 
         :return: A JSON-serializable dictionary
         """
-        node_input_dict = OrderedDict()
+        input_dict = OrderedDict()
         for input_connector in self.input[:]:
             source = input_connector.source
             value = input_connector.value
             if source is not None:
-                node_input_dict[input_connector.name] = dict(output_of = source.node.id + '.' + source.name)
-            else:
+                input_dict[input_connector.name] = dict(output_of = source.node.id + '.' + source.name)
+            elif value is not None:
                 # Care: input_connector.value may not be JSON-serializable!!!
                 # Must add converter callback, or so.
-                node_input_dict[input_connector.name] = dict(value = value)
+                input_dict[input_connector.name] = dict(value = value)
         node_dict = OrderedDict()
         node_dict['id'] = self.id
         node_dict['op'] = self.op_meta_info.qualified_name
-        node_dict['input'] = node_input_dict
+        if input_dict:
+            node_dict['input'] = input_dict
         return node_dict
 
     def __str__(self):
@@ -242,7 +245,20 @@ class Graph(Node):
         for node in self._nodes:
             graph_nodes_list.append(node.to_json_dict())
 
-        return {'graph': graph_nodes_list}
+        input_dict = OrderedDict()
+        for input_name, input_connector in self._input_connectors:
+            input_dict[input_name] = dict(input_for=input_connector.node.id + '.' + input_connector.name)
+
+        output_dict = OrderedDict()
+        for output_name, output_connector in self._output_connectors:
+            output_dict[output_name] = dict(output_of=output_connector.node.id + '.' + output_connector.name)
+
+        graph_dict = OrderedDict()
+        graph_dict['input'] = input_dict
+        graph_dict['output'] = output_dict
+        graph_dict['nodes'] = graph_nodes_list
+
+        return {'graph': graph_dict}
 
     def __str__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
