@@ -93,7 +93,7 @@ class OpMetaInfo:
         return self.MONITOR_INPUT_NAME in self._input_namespace
 
     @property
-    def output_value_is_dict(self) -> bool:
+    def has_named_outputs(self) -> bool:
         """
         :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
@@ -249,7 +249,7 @@ class OpRegistration:
             # call the function/method/callable/?
             return_value = operation(**input_values)
 
-        if self.meta_info.output_value_is_dict:
+        if self.meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
             for name, properties in self.meta_info.output:
@@ -460,7 +460,7 @@ def op_output(output_name: str,
     def _op_output(operation):
         op_registration = registry.add_op(operation, fail_if_exists=False)
         output_namespace = op_registration.meta_info.output
-        if not op_registration.meta_info.output_value_is_dict:
+        if not op_registration.meta_info.has_named_outputs:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
             output_properties = output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
             del output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]

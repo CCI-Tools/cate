@@ -22,7 +22,7 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(str(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(repr(op_meta_info), "OpMetaInfo('x.y.Z')")
         self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
-        self.assertEqual(op_meta_info.output_value_is_dict, False)
+        self.assertEqual(op_meta_info.has_named_outputs, False)
         self.assertEqual(op_meta_info.header, {'description': 'Hello!'})
         self.assertEqual(OrderedDict(op_meta_info.input),
                          OrderedDict([('x', {'data_type': str}), ('y', {'data_type': int})]))
@@ -49,7 +49,7 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.input.d, dict(default_value='A'))
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
         self.assertEqual(op_meta_info.has_monitor, False)
-        self.assertEqual(op_meta_info.output_value_is_dict, False)
+        self.assertEqual(op_meta_info.has_named_outputs, False)
 
     def test_introspect_operation_with_monitor(self):
         def g(x: float, monitor) -> float:
@@ -67,7 +67,7 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.input.monitor, dict())
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
         self.assertEqual(op_meta_info.has_monitor, True)
-        self.assertEqual(op_meta_info.output_value_is_dict, False)
+        self.assertEqual(op_meta_info.has_named_outputs, False)
 
     def test_json_encode_decode(self):
         op_meta_info = OpMetaInfo('x.y.Z')

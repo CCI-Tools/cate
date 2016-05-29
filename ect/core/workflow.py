@@ -164,7 +164,7 @@ class OpNode(Node):
 
         return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
 
-        if self.op_meta_info.output_value_is_dict:
+        if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
                 self.output[output_name].value = output_value
         else:
