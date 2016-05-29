@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import NodeInput, NodeOutput, OpNode, Graph
+from ect.core.workflow import NodeInput, NodeOutput, OpNode, Graph, ParameterValueSource
 
 
 @op_input('x')
@@ -27,13 +27,14 @@ class Op3:
         return {'w': 2 * u + 3 * v}
 
 
-class InputConnectorTest(TestCase):
+class NodeInputTest(TestCase):
     def test_init(self):
         node = OpNode(Op1)
-        input_connector = NodeInput(node, 'x')
-        self.assertIs(input_connector.node, node)
-        self.assertEqual(input_connector.name, 'x')
-        self.assertEqual(input_connector.is_input, True)
+        node_input = NodeInput(node, 'x')
+        self.assertIs(node_input.node, node)
+        self.assertEqual(node_input.name, 'x')
+        self.assertEqual(node_input.is_input, True)
+        self.assertIsInstance(node_input.source, ParameterValueSource)
         with self.assertRaisesRegex(ValueError, "'a' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
             NodeInput(node, 'a')
         with self.assertRaisesRegex(ValueError, "'y' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
@@ -51,10 +52,10 @@ class InputConnectorTest(TestCase):
 class OutputConnectorTest(TestCase):
     def test_init(self):
         node = OpNode(Op1)
-        output_connector = NodeOutput(node, 'y')
-        self.assertIs(output_connector.node, node)
-        self.assertEqual(output_connector.name, 'y')
-        self.assertEqual(output_connector.is_input, False)
+        node_output = NodeOutput(node, 'y')
+        self.assertIs(node_output.node, node)
+        self.assertEqual(node_output.name, 'y')
+        self.assertEqual(node_output.is_input, False)
         with self.assertRaisesRegex(ValueError, "'x' is not an output of operation '[a-z\\.]*test_workflow.Op1'"):
             NodeOutput(node, 'x')
 
@@ -80,7 +81,7 @@ class NodeTest(TestCase):
         self.assertIsInstance(node.input.u, NodeInput)
         self.assertIs(node.input.u.node, node)
         self.assertEqual(node.input.u.name, 'u')
-        self.assertEqual(node.input.u.source, None)
+        self.assertIsInstance(node.input.u.source, ParameterValueSource)
         self.assertTrue(node.input.u.is_input)
 
         self.assertTrue(hasattr(node.input, 'v'))
@@ -191,36 +192,36 @@ class NodeTest(TestCase):
 
         node3.input.v.disjoin()
 
-        self.assertIs(node1.input.x.source, None)
+        self.assertIsInstance(node1.input.x.source, ParameterValueSource)
         self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
         self.assertIs(node2.input.a.source, node1.output.y)
         self.assertEqual(node2.output.b.targets, [])
         self.assertIs(node3.input.u.source, node1.output.y)
-        self.assertIs(node3.input.v.source, None)
+        self.assertIsInstance(node3.input.v.source, ParameterValueSource)
         self.assertEqual(node3.output.w.targets, [])
 
         node2.input.a.disjoin()
 
-        self.assertIs(node1.input.x.source, None)
+        self.assertIsInstance(node1.input.x.source, ParameterValueSource)
         self.assertEqual(node1.output.y.targets, [node3.input.u])
-        self.assertIs(node2.input.a.source, None)
+        self.assertIsInstance(node2.input.a.source, ParameterValueSource)
         self.assertEqual(node2.output.b.targets, [])
         self.assertIs(node3.input.u.source, node1.output.y)
-        self.assertIs(node3.input.v.source, None)
+        self.assertIsInstance(node3.input.v.source, ParameterValueSource)
         self.assertEqual(node3.output.w.targets, [])
 
         node3.input.u.disjoin()
 
-        self.assertIs(node1.input.x.source, None)
+        self.assertIsInstance(node1.input.x.source, ParameterValueSource)
         self.assertEqual(node1.output.y.targets, [])
-        self.assertIs(node2.input.a.source, None)
+        self.assertIsInstance(node2.input.a.source, ParameterValueSource)
         self.assertEqual(node2.output.b.targets, [])
-        self.assertIs(node3.input.u.source, None)
-        self.assertIs(node3.input.v.source, None)
+        self.assertIsInstance(node3.input.u.source, ParameterValueSource)
+        self.assertIsInstance(node3.input.v.source, ParameterValueSource)
         self.assertEqual(node3.output.w.targets, [])
 
     def assertConnectionsAreOk(self, node1, node2, node3):
-        self.assertIs(node1.input.x.source, None)
+        self.assertIsInstance(node1.input.x.source, ParameterValueSource)
         self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
 
         self.assertIs(node2.input.a.source, node1.output.y)
@@ -232,7 +233,6 @@ class NodeTest(TestCase):
 
     def test_node_json(self):
         node3 = OpNode(Op3, node_id='Op3')
-        node3.input.v = 634
         node3.input.u = 2.8
 
         node3_dict = node3.to_json_dict()
@@ -242,7 +242,7 @@ class NodeTest(TestCase):
             "id": "Op3",
             "op": "test.test_workflow.Op3",
             "input": {
-                "v": {"constant": 634},
+                "v": {"parameter": null},
                 "u": {"constant": 2.8}
             }
         }
@@ -315,7 +315,10 @@ class GraphTest(TestCase):
                 "nodes": [
                     {
                         "id": "Op1",
-                        "op": "test.test_workflow.Op1"
+                        "op": "test.test_workflow.Op1",
+                        "input": {
+                            "x": { "parameter": null }
+                        }
                     },
                     {
                         "id": "Op2",

@@ -19,20 +19,19 @@ This module provides the following data types:
 Technical Requirements
 ======================
 
-A Graph's inputs and outputs refer to dedicated graph node inputs and outputs. These are usually the
-unconnected inputs and outputs within the graph.
+A Graph's inputs and outputs refer to dedicated inputs and outputs of nodes in the graph. These are usually
+unconnected inputs and outputs.
 
-A node's and a graph's input types may be:
+Various source types should be supported for a node input:
 
-* ``{"source": "parameter"}``: a value parsed from the command-line or provided by a GUI. No value given.
-* ``{"source": "output":``, "output": *node-output-ref* ``}``: the output of another graph or node
-* ``{"source": "constant":``, "constant":  *any-JSON* ``}``: a constant value, basically any JSON-serializable object
-* ``{"source": "file":``, "file": *file-path* ``}``: an object loaded from a file in a given format,
+* ``{"parameter": None}``: a value parsed from the command-line or provided by a GUI. No value given.
+* ``{"output_of": *node-output-ref* ``}``: the output of another graph or node
+* ``{"constant":  *any-JSON* ``}``: a constant value, basically any JSON-serializable object
+* ``{"file": *file-path* ``}``: an object loaded from a file in a given format,
   e.g. netCDF/xarray dataset, Shapefile, JSON, PNG image, numpy-binary
-* ``{"source": "url":``, "url": *URL* ``}``: same as file but loaded from a URL
+* ``{"url":``, "url": *URL* ``}``: same as file but loaded from a URL
 
-All ``{"source": *type*}`` other than ``{"source": "parameter"}`` are optional in a node's JSON, as the source
-value names are unambiguous.
+An attribute ``{"source": *source-type*}`` may be present in order to make the source type unambiguous.
 
 Graphs shall be callable by the CLI in the same way as single operations. The command line form for calling an
 operation is currently:::
@@ -265,7 +264,8 @@ class Graph(Node):
         graph_meta_info = self.op_meta_info
         node_meta_info = node.op_meta_info
         for node_input in node.input[:]:
-            if not node_input.source:
+            assert node_input.source is not None
+            if isinstance(node_input.source, ParameterValueSource):
                 name = node_input.name
                 # Make sure graph meta_info is correct
                 if name not in graph_meta_info.input:
@@ -333,7 +333,7 @@ class ParameterValueSource(ValueSource):
         self._value = value
 
     def to_json_dict(self):
-        return dict(source='parameter')
+        return dict(parameter=None)
 
     def from_json_dict(self, dict):
         raise NotImplementedError()
@@ -408,9 +408,7 @@ class NodeInput(NodeConnector):
             raise ValueError(
                 "'%s' is not an input of operation '%s'" % (name, meta_info.qualified_name))
         super(NodeInput, self).__init__(node, name)
-        self._source = None
-        # todo (nd) self._source shall never be none
-        #self._source = ParameterValueSource()
+        self._source = ParameterValueSource()
 
     @property
     def source(self) -> ValueSource:
@@ -419,6 +417,8 @@ class NodeInput(NodeConnector):
 
     def set_source(self, source: ValueSource):
         """:param source: The new value source for this node input."""
+        if source is None:
+            raise ValueError('source must not be None')
         self._source = source
 
     @property
@@ -435,8 +435,9 @@ class NodeInput(NodeConnector):
 
     def disjoin(self):
         if isinstance(self._source, NodeOutput):
-            self._source.remove_target(self)
-            self._source = None
+            if isinstance(self.source, NodeOutput):
+                self.source.remove_target(self)
+        self.set_source(ParameterValueSource())
 
     def to_json_dict(self):
         return dict(input_for=self.node.id + '.' + self.name)
@@ -472,11 +473,15 @@ class NodeOutput(NodeConnector, ValueSource):
 
     def add_target(self, node_input: NodeInput):
         """:param node_input: The node input to add."""
+        if node_input is None:
+            raise ValueError('node_input must not be None')
         if node_input not in self._targets:
             self._targets.append(node_input)
 
     def remove_target(self, node_input: NodeInput):
         """:param node_input: The node input to remove."""
+        if node_input is None:
+            raise ValueError('node_input must not be None')
         self._targets.remove(node_input)
 
     @property
