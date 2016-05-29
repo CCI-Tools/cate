@@ -119,6 +119,64 @@ class OpMetaInfo:
     def __repr__(self):
         return "OpMetaInfo('%s')" % self.qualified_name
 
+    @classmethod
+    def introspect_operation(cls, operation) -> 'OpMetaInfo':
+        if not operation:
+            raise ValueError('operation object must be given')
+        op_qualified_name = object_to_qualified_name(operation, fail=True)
+        op_meta_info = OpMetaInfo(op_qualified_name)
+        # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
+        if hasattr(operation, '__doc__'):
+            # documentation string
+            op_meta_info.header['description'] = operation.__doc__
+        if hasattr(operation, '__code__'):
+            cls._introspect_function(op_meta_info, operation, False)
+        if isclass(operation):
+            if hasattr(operation, '__call__'):
+                call_method = getattr(operation, '__call__')
+                cls._introspect_function(op_meta_info, call_method, True)
+            else:
+                raise ValueError('operations of type class must define a __call__(self, ...) method')
+        if hasattr(operation, '__annotations__'):
+            # mapping of parameters names to annotations; 'return' key is reserved for return annotations.
+            annotations = operation.__annotations__
+            for annotated_name, annotated_type in annotations.items():
+                if annotated_name == 'return':
+                    # meta_info.output can't be present so far -> assign new dict
+                    op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
+                else:
+                    # meta_info.input may be present already, through _introspect_function() call
+                    op_meta_info.input[annotated_name]['data_type'] = annotated_type
+        if len(op_meta_info.output) == 0:
+            op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
+        return op_meta_info
+
+    @classmethod
+    def _introspect_function(cls, op_meta_info, operation, is_method):
+        # code object containing compiled function bytecode
+        if not hasattr(operation, '__code__'):
+            # Check: throw exception here?
+            return
+        code = operation.__code__
+        # number of arguments (not including * or ** args)
+        arg_count = code.co_argcount
+        # tuple of names of arguments and local variables
+        arg_names = code.co_varnames[0:arg_count]
+        if len(arg_names) > 0 and is_method and arg_names[0] == 'self':
+            arg_names = arg_names[1:]
+            arg_count -= 1
+        # Reserve input slots for all arguments
+        for arg_name in arg_names:
+            op_meta_info.input[arg_name] = dict()
+        # Set 'default_value' for input
+        if operation.__defaults__:
+            # tuple of any default values for positional or keyword parameters
+            default_values = operation.__defaults__
+            num_default_values = len(default_values)
+            for i in range(num_default_values):
+                arg_name = arg_names[i - num_default_values]
+                op_meta_info.input[arg_name]['default_value'] = default_values[i]
+
 
 class OpRegistration:
     """
@@ -129,7 +187,7 @@ class OpRegistration:
     """
 
     def __init__(self, operation):
-        self._meta_info = OpRegistration._introspect_operation(operation)
+        self._meta_info = OpMetaInfo.introspect_operation(operation)
         self._operation = operation
 
     @property
@@ -148,64 +206,6 @@ class OpRegistration:
 
     def __str__(self):
         return '%s: %s' % (self.operation, self.meta_info)
-
-    @staticmethod
-    def _introspect_operation(operation) -> OpMetaInfo:
-        if not operation:
-            raise ValueError('operation object must be given')
-        op_qualified_name = object_to_qualified_name(operation, fail=True)
-        meta_info = OpMetaInfo(op_qualified_name)
-        # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
-        if hasattr(operation, '__doc__'):
-            # documentation string
-            meta_info.header['description'] = operation.__doc__
-        if hasattr(operation, '__code__'):
-            OpRegistration._introspect_function(meta_info, operation, False)
-        if isclass(operation):
-            if hasattr(operation, '__call__'):
-                call_method = getattr(operation, '__call__')
-                OpRegistration._introspect_function(meta_info, call_method, True)
-            else:
-                raise ValueError('operations of type class must define a __call__(self, ...) method')
-        if hasattr(operation, '__annotations__'):
-            # mapping of parameters names to annotations; 'return' key is reserved for return annotations.
-            annotations = operation.__annotations__
-            for annotated_name, annotated_type in annotations.items():
-                if annotated_name == 'return':
-                    # meta_info.output can't be present so far -> assign new dict
-                    meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
-                else:
-                    # meta_info.input may be present already, through _introspect_function() call
-                    meta_info.input[annotated_name]['data_type'] = annotated_type
-        if len(meta_info.output) == 0:
-            meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
-        return meta_info
-
-    @staticmethod
-    def _introspect_function(meta_info, operation, is_method):
-        # code object containing compiled function bytecode
-        if not hasattr(operation, '__code__'):
-            # Check: throw exception here?
-            return
-        code = operation.__code__
-        # number of arguments (not including * or ** args)
-        arg_count = code.co_argcount
-        # tuple of names of arguments and local variables
-        arg_names = code.co_varnames[0:arg_count]
-        if len(arg_names) > 0 and is_method and arg_names[0] == 'self':
-            arg_names = arg_names[1:]
-            arg_count -= 1
-        # Reserve input slots for all arguments
-        for arg_name in arg_names:
-            meta_info.input[arg_name] = dict()
-        # Set 'default_value' for input
-        if operation.__defaults__:
-            # tuple of any default values for positional or keyword parameters
-            default_values = operation.__defaults__
-            num_default_values = len(default_values)
-            for i in range(num_default_values):
-                arg_name = arg_names[i - num_default_values]
-                meta_info.input[arg_name]['default_value'] = default_values[i]
 
     def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
         """
@@ -268,9 +268,8 @@ class OpRegistration:
                         "input '%s' for operation '%s' required" % (name, self.meta_info.qualified_name))
             else:
                 data_type = input_properties.get('data_type', None)
-                if data_type and not (isinstance(value, data_type) or
-                                          (data_type is float
-                                           and (isinstance(value, float) or isinstance(value, int)))):
+                is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+                if data_type and not (isinstance(value, data_type) or is_float_type):
                     raise ValueError(
                         "input '%s' for operation '%s' must be of type %s" % (
                             name, self.meta_info.qualified_name, data_type))
