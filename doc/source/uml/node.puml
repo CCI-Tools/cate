@@ -1,23 +1,39 @@
 @startuml
 
-abstract Connector {
+interface ValueSource {
+    {abstract} get_value()
+}
+
+class ConstantValueSource implements ValueSource {
+    constant
+    get_value()
+}
+
+class ParameterValueSource implements ValueSource {
+    value
+    get_value()
+    set_value(value)
+}
+
+class NodeInput {
+    name: str
+}
+
+class NodeOutput implements ValueSource {
     name: str
     value: object
+    targets: List[NodeInput]
+    get_value()
+    set_value(value)
 }
 
-class InputConnector  {
-    source: OutputConnector
+
+abstract class Node {
 }
 
-class OutputConnector  {
-    targets: List[InputConnector]
-}
+Node "1" o-- "0..N" NodeInput
+Node "1" o-- "0..N" NodeOutput
 
-abstract Node {
-}
+NodeInput --> "0..1" ValueSource : source
 
-Node "1" o-- "0..N" InputConnector : input
-Node "1" o-- "0..N" OutputConnector : output
-InputConnector --|> Connector
-OutputConnector --|> Connector
 @enduml

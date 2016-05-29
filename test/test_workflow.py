@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import InputConnector, OutputConnector, OpNode, Graph
+from ect.core.workflow import NodeInput, NodeOutput, OpNode, Graph
 
 
 @op_input('x')
@@ -30,40 +30,40 @@ class Op3:
 class InputConnectorTest(TestCase):
     def test_init(self):
         node = OpNode(Op1)
-        input_connector = InputConnector(node, 'x')
+        input_connector = NodeInput(node, 'x')
         self.assertIs(input_connector.node, node)
         self.assertEqual(input_connector.name, 'x')
         self.assertEqual(input_connector.is_input, True)
         with self.assertRaisesRegex(ValueError, "'a' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
-            InputConnector(node, 'a')
+            NodeInput(node, 'a')
         with self.assertRaisesRegex(ValueError, "'y' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
-            InputConnector(node, 'y')
+            NodeInput(node, 'y')
 
     def test_eq(self):
         node1 = OpNode(Op3)
         node2 = OpNode(Op3)
-        self.assertEqual(InputConnector(node1, 'u'), InputConnector(node1, 'u'))
-        self.assertNotEqual(InputConnector(node2, 'u'), InputConnector(node1, 'u'))
-        self.assertNotEqual(InputConnector(node1, 'v'), InputConnector(node1, 'u'))
-        self.assertNotEqual(OutputConnector(node1, 'w'), InputConnector(node1, 'u'))
+        self.assertEqual(NodeInput(node1, 'u'), NodeInput(node1, 'u'))
+        self.assertNotEqual(NodeInput(node2, 'u'), NodeInput(node1, 'u'))
+        self.assertNotEqual(NodeInput(node1, 'v'), NodeInput(node1, 'u'))
+        self.assertNotEqual(NodeOutput(node1, 'w'), NodeInput(node1, 'u'))
 
 
 class OutputConnectorTest(TestCase):
     def test_init(self):
         node = OpNode(Op1)
-        output_connector = OutputConnector(node, 'y')
+        output_connector = NodeOutput(node, 'y')
         self.assertIs(output_connector.node, node)
         self.assertEqual(output_connector.name, 'y')
         self.assertEqual(output_connector.is_input, False)
         with self.assertRaisesRegex(ValueError, "'x' is not an output of operation '[a-z\\.]*test_workflow.Op1'"):
-            OutputConnector(node, 'x')
+            NodeOutput(node, 'x')
 
     def test_eq(self):
         node1 = OpNode(Op3)
         node2 = OpNode(Op3)
-        self.assertEqual(OutputConnector(node1, 'w'), OutputConnector(node1, 'w'))
-        self.assertNotEqual(OutputConnector(node2, 'w'), OutputConnector(node1, 'w'))
-        self.assertNotEqual(InputConnector(node1, 'u'), OutputConnector(node1, 'w'))
+        self.assertEqual(NodeOutput(node1, 'w'), NodeOutput(node1, 'w'))
+        self.assertNotEqual(NodeOutput(node2, 'w'), NodeOutput(node1, 'w'))
+        self.assertNotEqual(NodeInput(node1, 'u'), NodeOutput(node1, 'w'))
 
 
 # noinspection PyUnresolvedReferences
@@ -77,20 +77,20 @@ class NodeTest(TestCase):
         self.assertTrue(len(node.output), 1)
 
         self.assertTrue(hasattr(node.input, 'u'))
-        self.assertIsInstance(node.input.u, InputConnector)
+        self.assertIsInstance(node.input.u, NodeInput)
         self.assertIs(node.input.u.node, node)
         self.assertEqual(node.input.u.name, 'u')
-        self.assertEqual(node.input.u.value, None)
+        self.assertEqual(node.input.u.source, None)
         self.assertTrue(node.input.u.is_input)
 
         self.assertTrue(hasattr(node.input, 'v'))
-        self.assertIsInstance(node.input.v, InputConnector)
+        self.assertIsInstance(node.input.v, NodeInput)
         self.assertIs(node.input.v.node, node)
         self.assertEqual(node.input.v.name, 'v')
         self.assertTrue(node.input.v.is_input)
 
         self.assertTrue(hasattr(node.output, 'w'))
-        self.assertIsInstance(node.output.w, OutputConnector)
+        self.assertIsInstance(node.output.w, NodeOutput)
         self.assertIs(node.output.w.node, node)
         self.assertEqual(node.output.w.name, 'w')
         self.assertFalse(node.output.w.is_input)
@@ -237,13 +237,14 @@ class NodeTest(TestCase):
 
         node3_dict = node3.to_json_dict()
 
-        expected_json_text = """{
-          "id": "Op3",
-          "op": "test.test_workflow.Op3",
-          "input": {
-            "v": {"value": 634},
-            "u": {"value": 2.8}
-          }
+        expected_json_text = """
+        {
+            "id": "Op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "v": {"constant": 634},
+                "u": {"constant": 2.8}
+            }
         }
         """
 
@@ -255,7 +256,10 @@ class NodeTest(TestCase):
         expected_json_obj = json.load(StringIO(expected_json_text))
         actual_json_obj = json.load(StringIO(actual_json_text))
 
-        self.assertEqual(actual_json_obj, expected_json_obj)
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
 
 
 class GraphTest(TestCase):
@@ -301,8 +305,7 @@ class GraphTest(TestCase):
         graph_dict = graph.to_json_dict()
 
         expected_json_text = """{
-        "graph":
-            {
+            "graph": {
                 "input": {
                     "x": {"input_for": "Op1.x"}
                 },
@@ -337,9 +340,11 @@ class GraphTest(TestCase):
         import json
         from io import StringIO
 
-        actual_json_text = json.dumps(graph_dict)
-
+        actual_json_text = json.dumps(graph_dict, indent=4)
         expected_json_obj = json.load(StringIO(expected_json_text))
         actual_json_obj = json.load(StringIO(actual_json_text))
 
-        self.assertEqual(actual_json_obj, expected_json_obj)
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\nexpected:\n%s\n%s\nbut got:\n%s\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))

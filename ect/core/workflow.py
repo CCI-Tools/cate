@@ -6,13 +6,15 @@ Provides classes that are used to construct processing workflows (networks) from
 graphs of such.
 
 This module provides the following data types:
-* A :py:class:`Node` has zero or more ``InputConnector``s and zero or more ``OutputConnector``s
+* A :py:class:`Node` has zero or more ``NodeInput``s and zero or more ``NodeOutput``s
 * A :py:class:`OpNode` is a ``Node`` that wraps an executable operation.
 * A :py:class:`Graph` is a ``Node``that contains other ``Node``s
-* A :py:class:`InputConnector` belongs to a ``Node``, has a (parameter) name, and has a ``source`` property that points
-  to a connected ``OutputConnector`` of a source node.
-* A :py:class:`OutputConnector` belongs to a ``Node``, has a (parameter) name, and has a ``targets`` property (a list)
-  that points to all connected ``InputConnector`` of other target nodes.
+* A :py:class:`NodeInput` belongs to exactly one ``Node``, has a name, and has a ``source`` property which provides a
+  the input value. A source may be a constant or a connected ``NodeOutput`` of another node. Basically anything
+  can act as a source that has a ``value`` property.
+* A :py:class:`NodeOutput` belongs to exactly one ``Node``, has a name, and has a ``targets`` property (a list)
+  that points to all connected ``NodeInput``s of other nodes. A ``NodeOutput`` has a ``value`` property and
+  can therefore act as a source for a ``NodeInput``.
 
 Technical Requirements
 ======================
@@ -70,12 +72,10 @@ class Node(metaclass=ABCMeta):
         node_id = node_id if node_id is not None else 'Node#' + str(id(self))
         self._id = node_id
         self._op_meta_info = op_meta_info
-        # todo rename to _input_connector_namespace
-        self._input_connectors = InputConnectorNamespace([InputConnector(self, name)
-                                                          for name, _ in op_meta_info.input])
-        # todo rename to _output_connector_namespace
-        self._output_connectors = OutputConnectorNamespace([OutputConnector(self, name)
-                                                            for name, _ in op_meta_info.output])
+        self._node_input_namespace = NodeInputNamespace([NodeInput(self, name)
+                                                         for name, _ in op_meta_info.input])
+        self._node_output_namespace = NodeOutputNamespace([NodeOutput(self, name)
+                                                           for name, _ in op_meta_info.output])
 
     @property
     def id(self):
@@ -84,18 +84,18 @@ class Node(metaclass=ABCMeta):
 
     @property
     def op_meta_info(self) -> OpMetaInfo:
-        """The operation's meta-information."""
+        """The node's operation meta-information."""
         return self._op_meta_info
 
     @property
-    def input(self):
-        """The node's input connectors."""
-        return self._input_connectors
+    def input(self) -> 'NodeInputNamespace':
+        """The node's inputs."""
+        return self._node_input_namespace
 
     @property
-    def output(self):
-        """The node's output connectors."""
-        return self._output_connectors
+    def output(self)-> 'NodeOutputNamespace':
+        """The node's outputs."""
+        return self._node_output_namespace
 
     @abstractmethod
     def invoke(self, monitor: Monitor = Monitor.NULL):
@@ -157,20 +157,20 @@ class OpNode(Node):
         input_values = OrderedDict()
         for input_name, _ in self.op_meta_info.input:
             input_values[input_name] = None
-        for input_connector in self.input[:]:
-            if input_connector.source is not None:
-                input_value = input_connector.source.value
+        for node_input in self.input[:]:
+            if node_input.source is not None:
+                input_value = node_input.source.value
             else:
-                input_value = input_connector.value
-            input_values[input_connector.name] = input_value
+                raise ValueError("unbound input '%s' of node '%s'" % (node_input.name, node_input.node.id))
+            input_values[node_input.name] = input_value
 
         return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
+                self.output[output_name].set_value(output_value)
         else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].set_value(return_value)
 
     def to_json_dict(self):
         """
@@ -178,21 +178,16 @@ class OpNode(Node):
 
         :return: A JSON-serializable dictionary
         """
-        input_dict = OrderedDict()
-        for input_connector in self.input[:]:
-            source = input_connector.source
-            value = input_connector.value
+        node_input_dict = OrderedDict()
+        for node_input in self.input[:]:
+            source = node_input.source
             if source is not None:
-                input_dict[input_connector.name] = dict(output_of = source.node.id + '.' + source.name)
-            elif value is not None:
-                # Care: input_connector.value may not be JSON-serializable!!!
-                # Must add converter callback, or so.
-                input_dict[input_connector.name] = dict(value = value)
+                node_input_dict[node_input.name] = source.to_json_dict()
         node_dict = OrderedDict()
         node_dict['id'] = self.id
         node_dict['op'] = self.op_meta_info.qualified_name
-        if input_dict:
-            node_dict['input'] = input_dict
+        if node_input_dict:
+            node_dict['input'] = node_input_dict
         return node_dict
 
     def __str__(self):
@@ -241,17 +236,17 @@ class Graph(Node):
 
         :return: A JSON-serializable dictionary
         """
+        input_dict = OrderedDict()
+        for node_input in self._node_input_namespace[:]:
+            input_dict[node_input.name] = node_input.to_json_dict()
+
+        output_dict = OrderedDict()
+        for node_output in self._node_output_namespace[:]:
+            output_dict[node_output.name] = node_output.to_json_dict()
+
         graph_nodes_list = []
         for node in self._nodes:
             graph_nodes_list.append(node.to_json_dict())
-
-        input_dict = OrderedDict()
-        for input_name, input_connector in self._input_connectors:
-            input_dict[input_name] = dict(input_for=input_connector.node.id + '.' + input_connector.name)
-
-        output_dict = OrderedDict()
-        for output_name, output_connector in self._output_connectors:
-            output_dict[output_name] = dict(output_of=output_connector.node.id + '.' + output_connector.name)
 
         graph_dict = OrderedDict()
         graph_dict['input'] = input_dict
@@ -269,29 +264,84 @@ class Graph(Node):
     def _update_on_node_added(self, node):
         graph_meta_info = self.op_meta_info
         node_meta_info = node.op_meta_info
-        for input_connector in node.input[:]:
-            if not input_connector.source:
-                print('input:', input_connector)
-                name = input_connector.name
+        for node_input in node.input[:]:
+            if not node_input.source:
+                name = node_input.name
                 # Make sure graph meta_info is correct
                 if name not in graph_meta_info.input:
                     graph_meta_info.input[name] = dict(node_meta_info.input[name])
                 # Add input
-                self.input[name] = input_connector
-        for output_connector in node.output[:]:
-            if not output_connector.targets:
-                print('output:', output_connector)
-                name = output_connector.name
+                self.input[name] = node_input
+        for node_output in node.output[:]:
+            if not node_output.targets:
+                name = node_output.name
                 # Make sure graph meta_info is correct
                 if name not in graph_meta_info.output:
                     graph_meta_info.output[name] = dict(node_meta_info.output[name])
                 # Add output
-                self.output[name] = output_connector
+                self.output[name] = node_output
 
 
-class Connector(metaclass=ABCMeta):
+class UndefinedValue:
+    def __str__(self):
+        return '<undefined>'
+
+    def __repr__(self):
+        return 'UNDEFINED'
+
+
+class ValueSource(metaclass=ABCMeta):
     """
-    An endpoint of a :py:class:`Connection` between two :py:class:`Node`s.
+    The common interface for objects that can act as value sources for a :py:class`NodeInput`.
+    """
+
+    #: Special value returned by py:property:`value` indicating that a value has never been set.
+    UNDEFINED = UndefinedValue()
+
+    @abstractproperty
+    def value(self):
+        """Get the value of this source."""
+        pass
+
+
+class ConstantValueSource(ValueSource):
+    def __init__(self, constant):
+        self._constant = constant
+
+    @property
+    def value(self):
+        return self._constant
+
+    def to_json_dict(self):
+        # Care: self._constant may not be JSON-serializable!
+        # Must add converter callback, or so.
+        return dict(constant=self._constant)
+
+    def from_json_dict(self, dict):
+        raise NotImplementedError()
+
+
+class ParameterValueSource(ValueSource):
+    def __init__(self):
+        self._value = self.UNDEFINED
+
+    @property
+    def value(self):
+        return self._value
+
+    def set_value(self, value):
+        self._value = value
+
+    def to_json_dict(self):
+        return dict(source='parameter')
+
+    def from_json_dict(self, dict):
+        raise NotImplementedError()
+
+
+class NodeConnector(metaclass=ABCMeta):
+    """
+    Defines the common interface of :py:class:`NodeInput` and :py:class:`NodeOutput`.
 
     :param node: The node
     :param name: Name of an input or output of the node's operation.
@@ -300,8 +350,6 @@ class Connector(metaclass=ABCMeta):
     def __init__(self, node: Node, name: str):
         self._node = node
         self._name = name
-        # experimental
-        self._value = None
 
     @property
     def node(self) -> Node:
@@ -313,22 +361,12 @@ class Connector(metaclass=ABCMeta):
         """The connector's name."""
         return self._name
 
-    @property
-    def value(self):
-        """The value."""
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        """Set the *value*."""
-        self._value = value
-
     @abstractproperty
     def is_input(self) -> bool:
         """``True`` for input connectors, ``False`` for output connectors."""
 
     @abstractmethod
-    def join(self, other: 'Connector'):
+    def join(self, other: 'NodeConnector'):
         """
         Create a connection by joining this connector with another one.
 
@@ -356,7 +394,7 @@ class Connector(metaclass=ABCMeta):
         return not self.__eq__(other)
 
 
-class InputConnector(Connector):
+class NodeInput(NodeConnector):
     """
     An endpoint of a :py:class:`Connection` between two :py:class:`Node`s.
 
@@ -369,30 +407,39 @@ class InputConnector(Connector):
         if name not in meta_info.input:
             raise ValueError(
                 "'%s' is not an input of operation '%s'" % (name, meta_info.qualified_name))
-        super(InputConnector, self).__init__(node, name)
+        super(NodeInput, self).__init__(node, name)
         self._source = None
+        # todo (nd) self._source shall never be none
+        #self._source = ParameterValueSource()
 
     @property
-    def source(self) -> 'OutputConnector':
-        """The source of this input connector, or ``None`` if it is not connected."""
+    def source(self) -> ValueSource:
+        """The value source of this node input."""
         return self._source
+
+    def set_source(self, source: ValueSource):
+        """:param source: The new value source for this node input."""
+        self._source = source
 
     @property
     def is_input(self) -> bool:
         """Always ``True``."""
         return True
 
-    def join(self, other: 'OutputConnector'):
+    def join(self, other: 'NodeOutput'):
         if other.is_input:
-            raise ValueError('other must be an output connector')
+            raise ValueError('other must be a node output')
         # Note: perform sanity checks here, e.g. to avoid close loops by self-referencing
-        self._source = other
-        other._targets.append(self)
+        self.set_source(other)
+        other.add_target(self)
 
     def disjoin(self):
-        if self._source is not None:
-            self._source._targets.remove(self)
+        if isinstance(self._source, NodeOutput):
+            self._source.remove_target(self)
             self._source = None
+
+    def to_json_dict(self):
+        return dict(input_for=self.node.id + '.' + self.name)
 
     def __str__(self):
         return '%s.input.%s' % (self.node.op_meta_info.qualified_name, self.name)
@@ -401,7 +448,7 @@ class InputConnector(Connector):
         return "InputConnector(%s, '%s')" % (self.node, self.name)
 
 
-class OutputConnector(Connector):
+class NodeOutput(NodeConnector, ValueSource):
     """
     An endpoint of a :py:class:`Connection` between two :py:class:`Node`s.
 
@@ -410,26 +457,48 @@ class OutputConnector(Connector):
     """
 
     def __init__(self, node: Node, name: str):
-        meta_info = node.op_meta_info
-        if name not in meta_info.output:
+        op_meta_info = node.op_meta_info
+        if name not in op_meta_info.output:
             raise ValueError(
-                "'%s' is not an output of operation '%s'" % (name, meta_info.qualified_name))
-        super(OutputConnector, self).__init__(node, name)
+                "'%s' is not an output of operation '%s'" % (name, op_meta_info.qualified_name))
+        super(NodeOutput, self).__init__(node, name)
         self._targets = []
+        self._value = ValueSource.UNDEFINED
 
     @property
-    def targets(self) -> List[InputConnector]:
-        """The targets of this output connector."""
+    def targets(self) -> List[NodeInput]:
+        """The targets of this node output."""
         return list(self._targets)
+
+    def add_target(self, node_input: NodeInput):
+        """:param node_input: The node input to add."""
+        if node_input not in self._targets:
+            self._targets.append(node_input)
+
+    def remove_target(self, node_input: NodeInput):
+        """:param node_input: The node input to remove."""
+        self._targets.remove(node_input)
+
+    @property
+    def value(self):
+        """The value."""
+        return self._value
+
+    def set_value(self, value):
+        """Set the *value*."""
+        self._value = value
 
     @property
     def is_input(self) -> bool:
         """Always ``False``."""
         return False
 
-    def join(self, other: InputConnector):
+    def to_json_dict(self):
+        return dict(output_of=self.node.id + '.' + self.name)
+
+    def join(self, other: NodeInput):
         if not other.is_input:
-            raise ValueError('other must be an input connector')
+            raise ValueError('other must be a node input')
         # Note: perform sanity checks here, e.g. to avoid close loops by self-referencing
         other._source = self
         if other not in self._targets:
@@ -445,22 +514,22 @@ class OutputConnector(Connector):
         return "OutputConnector(%s, '%s')" % (self.node, self.name)
 
 
-class InputConnectorNamespace(Namespace):
-    def __init__(self, connectors):
-        super(InputConnectorNamespace, self).__init__([(connector.name, connector) for connector in connectors])
+class NodeInputNamespace(Namespace):
+    def __init__(self, node_inputs):
+        super(NodeInputNamespace, self).__init__([(node_input.name, node_input) for node_input in node_inputs])
 
     def __setattr__(self, name, value):
-        connector = self.__getattr__(name)
-        if isinstance(value, Connector):
+        node_input = self.__getattr__(name)
+        if isinstance(value, NodeConnector):
             if value.is_input:
                 raise AttributeError("input '%s' expects an output" % name)
-            value.join(connector)
+            value.join(node_input)
         else:
-            connector.value = value
+            node_input.set_source(ConstantValueSource(value))
 
-    def __getattr__(self, name) -> 'InputConnector':
+    def __getattr__(self, name) -> 'NodeInput':
         try:
-            return super(InputConnectorNamespace, self).__getattr__(name)
+            return super(NodeInputNamespace, self).__getattr__(name)
         except AttributeError:
             raise AttributeError("'%s' is not an input" % name)
 
@@ -468,16 +537,16 @@ class InputConnectorNamespace(Namespace):
         raise NotImplementedError()
 
 
-class OutputConnectorNamespace(Namespace):
-    def __init__(self, connectors):
-        super(OutputConnectorNamespace, self).__init__([(connector.name, connector) for connector in connectors])
+class NodeOutputNamespace(Namespace):
+    def __init__(self, node_outputs):
+        super(NodeOutputNamespace, self).__init__([(node_output.name, node_output) for node_output in node_outputs])
 
     def __setattr__(self, name, value):
         raise AttributeError("'%s' is an output and cannot be set" % name)
 
-    def __getattr__(self, name) -> 'OutputConnector':
+    def __getattr__(self, name) -> 'NodeOutput':
         try:
-            return super(OutputConnectorNamespace, self).__getattr__(name)
+            return super(NodeOutputNamespace, self).__getattr__(name)
         except AttributeError:
             raise AttributeError("'%s' is not an output" % name)
 
