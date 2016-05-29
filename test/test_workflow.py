@@ -40,6 +40,12 @@ class NodeInputTest(TestCase):
         with self.assertRaisesRegex(ValueError, "'y' is not an input of operation '[a-z\\.]*test_workflow.Op1'"):
             NodeInput(node, 'y')
 
+    def test_source_cannot_be_none(self):
+        node = OpNode(Op1)
+        node_input = NodeInput(node, 'x')
+        with self.assertRaisesRegex(ValueError, "source must not be None"):
+            node_input.set_source(None)
+
     def test_eq(self):
         node1 = OpNode(Op3)
         node2 = OpNode(Op3)
@@ -49,7 +55,7 @@ class NodeInputTest(TestCase):
         self.assertNotEqual(NodeOutput(node1, 'w'), NodeInput(node1, 'u'))
 
 
-class OutputConnectorTest(TestCase):
+class NodeOutputTest(TestCase):
     def test_init(self):
         node = OpNode(Op1)
         node_output = NodeOutput(node, 'y')
@@ -58,6 +64,14 @@ class OutputConnectorTest(TestCase):
         self.assertEqual(node_output.is_input, False)
         with self.assertRaisesRegex(ValueError, "'x' is not an output of operation '[a-z\\.]*test_workflow.Op1'"):
             NodeOutput(node, 'x')
+
+    def test_target_cannot_be_none(self):
+        node = OpNode(Op1)
+        node_output = NodeOutput(node, 'y')
+        with self.assertRaisesRegex(ValueError, "node_input must not be None"):
+            node_output.add_target(None)
+        with self.assertRaisesRegex(ValueError, "node_input must not be None"):
+            node_output.remove_target(None)
 
     def test_eq(self):
         node1 = OpNode(Op3)
@@ -72,7 +86,7 @@ class NodeTest(TestCase):
     def test_init(self):
         node = OpNode(Op3)
 
-        self.assertRegex(node.id, '[a-z\\.]*test_workflow.Op3#[0-9]+')
+        self.assertRegex(node.id, 'OpNode[0-9]+')
 
         self.assertTrue(len(node.input), 2)
         self.assertTrue(len(node.output), 1)

@@ -68,7 +68,7 @@ class Node(metaclass=ABCMeta):
     def __init__(self, op_meta_info: OpMetaInfo, node_id=None):
         if not op_meta_info:
             raise ValueError('op_meta_info must be given')
-        node_id = node_id if node_id is not None else 'Node#' + str(id(self))
+        node_id = node_id if node_id is not None else type(self).__name__ + str(id(self))
         self._id = node_id
         self._op_meta_info = op_meta_info
         self._node_input_namespace = NodeInputNamespace([NodeInput(self, name)
@@ -136,7 +136,6 @@ class OpNode(Node):
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
         op_meta_info = op_registration.meta_info
-        node_id = node_id if node_id is not None else op_meta_info.qualified_name + '#' + str(id(self))
         super(OpNode, self).__init__(op_meta_info, node_id=node_id)
         self._op_registration = op_registration
 
@@ -206,7 +205,6 @@ class Graph(Node):
     """
 
     def __init__(self, *nodes, graph_id: str = None, op_meta_info: OpMetaInfo = None):
-        graph_id = graph_id if graph_id is not None else 'Graph#' + str(id(self))
         op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(graph_id)
         super(Graph, self).__init__(op_meta_info, node_id=graph_id)
         self._nodes = list(nodes)
