@@ -382,6 +382,9 @@ class _DefaultOpRegistry(OpRegistry):
         return 'REGISTRY'
 
 
+# check (nf) - for more flexibility, REGISTRY may be configured by dependency injection
+# see Python libs 'pinject' (Google), 'inject', and others
+
 #: The default operation registry of type :py:class:`ect.core.op.OpRegistry`.
 REGISTRY = _DefaultOpRegistry()
 
