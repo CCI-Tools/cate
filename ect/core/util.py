@@ -16,10 +16,10 @@ class Namespace:
     """
     A dictionary-like object that has dynamic attributes.
 
-    Instances of the ``Namespace`` class have some similarities with JavaScript objects; you can use string keys
-    to create new attributes and use a string key as an attribute name later. At the same time, you can determine the
-    length of the object and use integer indices as well as slices to access values. A ``Namespace`` remembers
-    the order of attributes added by utilizing a ``collections.OrderedDict``.
+    Instances of the ``Namespace`` class have some similarities with JavaScript associative arrays; you can use
+    string keys to create new attributes and use a string key as an attribute name later. At the same time, you
+    can determine the length of the object and use integer indices as well as slices to access values.
+    A ``Namespace`` remembers the order of attributes added by utilizing a ``collections.OrderedDict``.
 
     Constraints and properties of the ``Namespace`` object:
 
