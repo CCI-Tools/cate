@@ -25,6 +25,10 @@ class ExternalSource implements Source, Target {
     set_value(value)
 }
 
+class GraphInputRef implements Source {
+    get_value()
+}
+
 class NodeOutputRef implements Source {
     get_value()
 }
@@ -59,9 +63,9 @@ class GraphOutput implements Source, SourceHolder {
     disconnect_source()
 }
 
-
+GraphInputRef --> GraphInput : graph_input
 NodeOutputRef --> NodeOutput : node_output
-NodeInput --> Source : source
+SourceHolder --> Source : source
 
 OpNode "1" o-- "0..N" NodeInput
 OpNode "1" o-- "0..N" NodeOutput
