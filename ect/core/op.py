@@ -30,7 +30,7 @@ from inspect import isclass
 from typing import Dict
 
 from .monitor import Monitor
-from .util import object_to_qualified_name, Namespace
+from .util import object_to_qualified_name, Namespace, qualified_name_to_object
 
 
 class OpMetaInfo:
@@ -137,11 +137,15 @@ class OpMetaInfo:
         op_meta_info = OpMetaInfo(json_dict.get('qualified_name', None),
                                   header=json_dict.get('header', None))
         input = json_dict.get('input', OrderedDict())
-        for name, value in input.items():
-            op_meta_info.input[name] = value
+        for name, properties in input.items():
+            if 'data_type' in properties:
+                properties['data_type'] = qualified_name_to_object(properties['data_type'])
+            op_meta_info.input[name] = properties
         output = json_dict.get('output', OrderedDict())
-        for name, value in output.items():
-            op_meta_info.output[name] = value
+        for name, properties in output.items():
+            if 'data_type' in properties:
+                properties['data_type'] = qualified_name_to_object(properties['data_type'])
+            op_meta_info.output[name] = properties
         return op_meta_info
 
     def __str__(self):

@@ -134,10 +134,10 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.header, dict(description='Hello!'))
         self.assertEqual(len(op_meta_info.input), 2)
         self.assertIn('x', op_meta_info.input)
-        self.assertEqual(op_meta_info.input.x, OrderedDict([('data_type', 'str')]))
-        self.assertEqual(op_meta_info.input.y, OrderedDict([('data_type', 'int')]))
+        self.assertEqual(op_meta_info.input.x, OrderedDict([('data_type', str)]))
+        self.assertEqual(op_meta_info.input.y, OrderedDict([('data_type', int)]))
         self.assertEqual(len(op_meta_info.output), 1)
-        self.assertEqual(op_meta_info.output[RETURN], OrderedDict([('data_type', 'float')]))
+        self.assertEqual(op_meta_info.output[RETURN], OrderedDict([('data_type', float)]))
 
 
 class OpTest(TestCase):
