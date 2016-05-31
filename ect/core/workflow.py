@@ -65,10 +65,9 @@ class Node(metaclass=ABCMeta):
     :param node_id: A node ID. If None, a unique name will be generated.
     """
 
-    def __init__(self, op_meta_info: OpMetaInfo, node_id=None):
-        if not op_meta_info:
-            raise ValueError('op_meta_info must be given')
-        node_id = node_id if node_id is not None else type(self).__name__ + str(id(self))
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str):
+        assert op_meta_info
+        assert node_id
         self._id = node_id
         self._op_meta_info = op_meta_info
         self._node_input_namespace = NodeInputNamespace(self)
@@ -96,11 +95,21 @@ class Node(metaclass=ABCMeta):
 
     @abstractmethod
     def new_node_input(self, node_input_name: str):
-        pass
+        """
+        Create an appropriate instance of a node input object.
+
+        :param node_input_name: The name of the input.
+        :return: A node input object
+        """
 
     @abstractmethod
     def new_node_output(self, node_output_name: str):
-        pass
+        """
+        Create an appropriate instance of a node output object.
+
+        :param node_output_name: The name of the output.
+        :return: A node output object
+        """
 
     @abstractmethod
     def invoke(self, monitor: Monitor = Monitor.NULL):
@@ -131,7 +140,7 @@ class OpNode(Node):
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, operation, registry=REGISTRY, node_id=None):
+    def __init__(self, operation, node_id=None, registry=REGISTRY):
         if not operation:
             raise ValueError('operation must be given')
         if isinstance(operation, str):
@@ -141,8 +150,9 @@ class OpNode(Node):
         else:
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
+        node_id = node_id if node_id else 'op_node_' + hex(id(self))[2:]
         op_meta_info = op_registration.meta_info
-        super(OpNode, self).__init__(op_meta_info, node_id=node_id)
+        super(OpNode, self).__init__(op_meta_info, node_id)
         self._op_registration = op_registration
 
     @property
@@ -225,10 +235,10 @@ class OpNode(Node):
         return node_dict
 
     def __str__(self):
-        return "OpNode('%s')" % self.op_meta_info.qualified_name
+        return self.id
 
     def __repr__(self):
-        return "OpNode('%s')" % self.op_meta_info.qualified_name
+        return "OpNode(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
 
 
 class Graph(Node):
@@ -241,8 +251,8 @@ class Graph(Node):
 
     def __init__(self, op_meta_info: OpMetaInfo = None, graph_id: str = None):
         op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo('graph')
-        graph_id = graph_id if graph_id else 'graph' + str(id(self))
-        super(Graph, self).__init__(op_meta_info, node_id=graph_id)
+        graph_id = graph_id if graph_id else 'graph_' + hex(id(self))[2:]
+        super(Graph, self).__init__(op_meta_info, graph_id)
         self._nodes = OrderedDict()
 
     @property
@@ -409,29 +419,29 @@ class Graph(Node):
         return graph
 
     def __str__(self):
-        return "Graph('%s')" % self.op_meta_info.qualified_name
+        return self.id
 
     def __repr__(self):
-        return "Graph('%s')" % self.op_meta_info.qualified_name
+        return "Graph(OpMetaData(%s), graph_id=%s)" % (repr(self.op_meta_info.qualified_name), repr(self.id))
 
 
 class Json(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_json_dict(cls, json_dict: dict):
-        pass
+        """Convert JSON-compatible dictionary to an instance of this class."""
 
     @abstractmethod
     def to_json_dict(self):
-        pass
+        """Convert an instance of this class into a JSON-compatible dictionary."""
 
 
 class _UndefinedValue:
     def __str__(self):
-        return '<undefined>'
+        return 'UNDEFINED'
 
     def __repr__(self):
-        return 'UNDEFINED'
+        return 'Source.UNDEFINED_VALUE'
 
 
 class Source(metaclass=ABCMeta):
@@ -442,14 +452,12 @@ class Source(metaclass=ABCMeta):
     @abstractmethod
     def value(self):
         """Get the value of this input."""
-        pass
 
 
 class Target(metaclass=ABCMeta):
     @abstractmethod
     def set_value(self, value):
         """Set the *value* of this output."""
-        pass
 
 
 class ExternalSource(Source, Target, Json):
@@ -457,8 +465,8 @@ class ExternalSource(Source, Target, Json):
     A source whose value can be set externally.
     """
 
-    def __init__(self):
-        self._value = self.UNDEFINED_VALUE
+    def __init__(self, value=Source.UNDEFINED_VALUE):
+        self._value = value
 
     @property
     def value(self):
@@ -474,6 +482,12 @@ class ExternalSource(Source, Target, Json):
 
     def to_json_dict(self):
         return dict(external=True)
+
+    def __str__(self):
+        return str(self._value)
+
+    def __repr__(self):
+        return "ExternalSource(%s)" % repr(self._value)
 
 
 class UndefinedSource(Source, Json):
@@ -492,6 +506,12 @@ class UndefinedSource(Source, Json):
 
     def to_json_dict(self):
         return dict(undefined=True)
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return "UndefinedSource()"
 
 
 _UNDEFINED_SOURCE = UndefinedSource()
@@ -522,6 +542,12 @@ class ConstantSource(Source, Json):
         # Care: self._constant may not be JSON-serializable!
         # Must add converter callback, or so.
         return dict(constant=self._constant)
+
+    def __str__(self):
+        return str(self._constant)
+
+    def __repr__(self):
+        return "ConstantSource(%s)" % repr(self._constant)
 
 
 class GraphInputRef(Source, Json):
@@ -625,17 +651,14 @@ class SourceHolder(metaclass=ABCMeta):
     @abstractmethod
     def source(self) -> Source:
         """The current source."""
-        pass
 
     @abstractmethod
     def connect_source(self, source: Source):
         """Join with the given *source*."""
-        pass
 
     @abstractmethod
     def disconnect_source(self):
         """Disjoin from the current source."""
-        pass
 
 
 # noinspection PyAttributeOutsideInit

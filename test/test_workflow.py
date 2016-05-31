@@ -31,64 +31,11 @@ class Op3:
         return {'w': 2 * u + 3 * v}
 
 
-class NodeInputTest(TestCase):
-    def test_init(self):
-        node = OpNode(Op1, node_id='myop')
-        node_input = NodeInput(node, 'x')
-        self.assertIs(node_input.node, node)
-        self.assertEqual(node_input.name, 'x')
-        self.assertEqual(str(node_input), 'myop.x')
-        with self.assertRaises(AssertionError):
-            NodeInput(node, 'a')
-
-    def test_source(self):
-        node = OpNode(Op1, node_id='myop')
-        node_input = NodeInput(node, 'x')
-        self.assertIsInstance(node_input.source, UndefinedSource)
-        source = ConstantSource(2.9)
-        node_input.connect_source(source)
-        self.assertIs(node_input.source, source)
-        node_input.connect_source(None)
-        self.assertIsInstance(node_input.source, ConstantSource)
-        self.assertIs(node_input.source.value, None)
-
-
-class NodeOutputTest(TestCase):
-    def test_init(self):
-        node = OpNode(Op1, node_id='myop')
-        node_output = NodeOutput(node, 'y')
-        self.assertIs(node_output.node, node)
-        self.assertEqual(node_output.name, 'y')
-        self.assertEqual(str(node_output), 'myop.y')
-        with self.assertRaises(AssertionError):
-            NodeOutput(node, 'x')
-
-
-class GraphOutputTest(TestCase):
-    def test_init(self):
-        graph = Graph(graph_id='mygraph')
-        graph_output = GraphOutput(graph, 'y')
-        self.assertIs(graph_output.graph, graph)
-        self.assertEqual(graph_output.name, 'y')
-        self.assertEqual(str(graph_output), 'mygraph.y')
-
-    def test_source(self):
-        graph = Graph(graph_id='mygraph')
-        graph_output = GraphOutput(graph, 'y')
-        self.assertIsInstance(graph_output.source, UndefinedSource)
-        source = ConstantSource(2.9)
-        graph_output.connect_source(source)
-        self.assertIs(graph_output.source, source)
-        graph_output.connect_source(None)
-        self.assertIsInstance(graph_output.source, ConstantSource)
-        self.assertIs(graph_output.source.value, None)
-
-
-class NodeTest(TestCase):
+class OpNodeTest(TestCase):
     def test_init(self):
         node = OpNode(Op3)
 
-        self.assertRegex(node.id, 'OpNode[0-9]+')
+        self.assertRegex(node.id, 'op_node_[0-9]+')
 
         self.assertTrue(len(node.input), 2)
         self.assertTrue(len(node.output), 1)
@@ -109,6 +56,9 @@ class NodeTest(TestCase):
         self.assertIsInstance(node.output.w, NodeOutput)
         self.assertIs(node.output.w.node, node)
         self.assertEqual(node.output.w.name, 'w')
+
+        self.assertEqual(str(node), node.id)
+        self.assertEqual(repr(node), "OpNode(test.test_workflow.Op3, node_id='%s')" % node.id)
 
     def test_init_operation_and_name_are_equivalent(self):
         node3 = OpNode(Op3)
@@ -144,7 +94,7 @@ class NodeTest(TestCase):
     def test_init_failures(self):
         with self.assertRaises(ValueError):
             # "ValueError: operation with name 'test_node.NodeTest' not registered"
-            OpNode(NodeTest)
+            OpNode(OpNodeTest)
 
         with self.assertRaises(ValueError):
             # "ValueError: operation with name 'X' not registered"
@@ -325,6 +275,7 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph.output.q = node3.output.w
 
+        self.assertRegex(graph.id, 'graph_[0-9]+')
         self.assertEqual(len(graph.input), 1)
         self.assertEqual(len(graph.output), 1)
         self.assertIn('p', graph.input)
@@ -339,6 +290,9 @@ class GraphTest(TestCase):
 
         self.assertIsInstance(graph.output.q, GraphOutput)
         self.assertIsInstance(graph.output.q.source, NodeOutputRef)
+
+        self.assertEqual(str(graph), graph.id)
+        self.assertEqual(repr(graph), "Graph(OpMetaData('mygraph'), graph_id='%s')" % graph.id)
 
     def test_graph_invocation(self):
         node1 = OpNode(Op1, node_id='op1')
@@ -478,3 +432,108 @@ class GraphTest(TestCase):
         self.assertEqual(node1.id, 'op1')
         self.assertEqual(node2.id, 'op2')
         self.assertEqual(node3.id, 'op3')
+
+
+class NodeInputTest(TestCase):
+    def test_init(self):
+        node = OpNode(Op1, node_id='myop_17')
+        node_input = NodeInput(node, 'x')
+        self.assertIs(node_input.node, node)
+        self.assertEqual(node_input.name, 'x')
+        self.assertEqual(node_input.node_id, 'myop_17')
+        self.assertEqual(str(node_input), 'myop_17.x')
+        with self.assertRaises(AssertionError):
+            NodeInput(node, 'a')
+
+    def test_source(self):
+        node = OpNode(Op1, node_id='myop_17')
+        node_input = NodeInput(node, 'x')
+        self.assertIsInstance(node_input.source, UndefinedSource)
+        source = ConstantSource(2.9)
+        node_input.connect_source(source)
+        self.assertIs(node_input.source, source)
+        node_input.connect_source(None)
+        self.assertIsInstance(node_input.source, ConstantSource)
+        self.assertIs(node_input.source.value, None)
+
+
+class GraphInputTest(TestCase):
+    def test_init(self):
+        graph = Graph(OpMetaInfo('mygraph', input=dict(x={})), graph_id='mygraph_10')
+        graph_input = GraphInput(graph, 'x')
+        self.assertIs(graph_input.node, graph)
+        self.assertIs(graph_input.graph, graph)
+        self.assertEqual(graph_input.name, 'x')
+        self.assertEqual(graph_input.node_id, 'mygraph_10')
+        self.assertEqual(str(graph_input), 'mygraph_10.x')
+        with self.assertRaises(AssertionError):
+            NodeInput(graph, 'a')
+
+
+class NodeOutputTest(TestCase):
+    def test_init(self):
+        node = OpNode(Op1, node_id='myop')
+        node_output = NodeOutput(node, 'y')
+        self.assertIs(node_output.node, node)
+        self.assertEqual(node_output.name, 'y')
+        self.assertEqual(str(node_output), 'myop.y')
+        with self.assertRaises(AssertionError):
+            NodeOutput(node, 'x')
+
+
+class GraphOutputTest(TestCase):
+    def test_init(self):
+        graph = Graph(graph_id='mygraph')
+        graph_output = GraphOutput(graph, 'y')
+        self.assertIs(graph_output.graph, graph)
+        self.assertEqual(graph_output.name, 'y')
+        self.assertEqual(str(graph_output), 'mygraph.y')
+
+    def test_source(self):
+        graph = Graph(graph_id='mygraph')
+        graph_output = GraphOutput(graph, 'y')
+        self.assertIsInstance(graph_output.source, UndefinedSource)
+        source = ConstantSource(2.9)
+        graph_output.connect_source(source)
+        self.assertIs(graph_output.source, source)
+        graph_output.connect_source(None)
+        self.assertIsInstance(graph_output.source, ConstantSource)
+        self.assertIs(graph_output.source.value, None)
+
+
+class UndefinedSourceTest(TestCase):
+    def test_init(self):
+        source = UndefinedSource()
+        self.assertIs(source.value, source.UNDEFINED_VALUE)
+        self.assertEqual(str(source), 'UNDEFINED')
+        self.assertEqual(repr(source), 'UndefinedSource()')
+
+    def test_undefined_value(self):
+        self.assertEqual(str(Source.UNDEFINED_VALUE), 'UNDEFINED')
+        self.assertEqual(repr(Source.UNDEFINED_VALUE), 'Source.UNDEFINED_VALUE')
+
+
+class ExternalSourceTest(TestCase):
+    def test_init(self):
+        source = ExternalSource()
+        self.assertEqual(source.value, Source.UNDEFINED_VALUE)
+        self.assertEqual(str(source), 'UNDEFINED')
+        self.assertEqual(repr(source), 'ExternalSource(Source.UNDEFINED_VALUE)')
+
+        source.set_value(3.14)
+        self.assertEqual(source.value, 3.14)
+        self.assertEqual(str(source), '3.14')
+        self.assertEqual(repr(source), 'ExternalSource(3.14)')
+
+
+class ConstantSourceTest(TestCase):
+    def test_init(self):
+        source = ConstantSource('ABC')
+        self.assertEqual(source.value, 'ABC')
+        self.assertEqual(str(source), 'ABC')
+        self.assertEqual(repr(source), "ConstantSource('ABC')")
+
+        source = ConstantSource(None)
+        self.assertEqual(source.value, None)
+        self.assertEqual(str(source), 'None')
+        self.assertEqual(repr(source), 'ConstantSource(None)')
