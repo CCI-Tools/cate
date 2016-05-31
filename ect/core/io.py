@@ -31,16 +31,18 @@ Module Requirements
 Module Reference
 ================
 """
-from typing import Sequence, Union, List
-from ect.core import Dataset
 import json
-from datetime import date, datetime, timedelta
+from collections import OrderedDict
+from datetime import datetime, timedelta
+from typing import Sequence, Union, List
+
 import xarray as xr
 
+from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 
 
-class DataSource:
+class DataSource():
     def __init__(self, name: str):
         self._name = name
 
@@ -60,17 +62,38 @@ class DataSource:
 
 
 class Catalogue:
-    def __init__(self, *data_sources: DataSource):
+    def __init__(self, data_sources: Sequence[DataSource]):
         self._data_sources = data_sources
 
-    def query(self, **filter) -> [DataSource]:
+    def query(self, **filter) -> Sequence[DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(**filter)]
 
 
-# DEFAULT_CATALOGUE = Catalogue(DataSource("default", "default"))
+class CatalogueRegistry:
+    def __init__(self):
+        self._catalogues = dict()
+
+    def get_catalogue(self, name: str) -> Catalogue:
+        return self._catalogues.get(name, None)
+
+    def get_catalogues(self) -> Sequence[Catalogue]:
+        return self._catalogues.values()
+
+    def add_catalogue(self, name: str, catalogue: Catalogue):
+        self._catalogues[name] = catalogue
+
+    def remove_catalogue(self, name: str):
+        del self._catalogues[name]
+
+    def __len__(self):
+        return len(self._catalogues)
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None, **constraints) -> List[
+CATALOGUE_REGISTRY = CatalogueRegistry()
+CATALOGUE_REGISTRY.add_catalogue('dummy', Catalogue([DataSource('default')]))
+
+
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = CATALOGUE_REGISTRY.get_catalogues(), **constraints) -> Sequence[
     DataSource]:
     """Queries the catalogue(s) for data sources matching the given constrains.
 
@@ -90,7 +113,6 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None,
     --------
     open_dataset
     """
-
     if isinstance(catalogues, Catalogue):
         catalogue_list = [catalogues]
     else:
@@ -160,27 +182,61 @@ class FileSetDataSource(DataSource):
     -------
     new  : FileSetDataSource
     """
-
     def __init__(self, name: str, base_dir: str, file_pattern: str, fileset_info: 'FileSetInfo' = None):
         super(FileSetDataSource, self).__init__(name)
-        self._name = name
         self._base_dir = base_dir
         self._file_pattern = file_pattern
         self._fileset_info = fileset_info
 
+    @classmethod
+    def from_json(cls, json_str) -> Sequence['FileSetDataSource']:
+        fsds = []
+        for data in json.loads(json_str):
+            if 'start_date' in data and 'end_date' in data and 'num_files' in data and 'size_mb' in data:
+                file_set_info = FileSetInfo(
+                    datetime.now(),  # TODO
+                    data['start_date'],
+                    data['end_date'],
+                    data['num_files'],
+                    data['size_mb']
+                )
+            else:
+                file_set_info = None
+            fsds.append(FileSetDataSource(
+                data['name'],
+                data['base_dir'],
+                data['file_pattern'],
+                fileset_info=file_set_info
+            ))
+        return fsds
+
     def open_dataset(self, **constraints) -> Dataset:
         first_time = constraints.get('first_time', None)
         last_time = constraints.get('last_time', None)
-        paths = self._resolve_paths(first_time=first_time, last_time=last_time)
+        paths = self.resolve_paths(first_time=first_time, last_time=last_time)
         xr_dataset = xr.open_mfdataset(paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
+
+    def to_json_dict(self):
+            """
+            Return a JSON-serializable dictionary representation of this object.
+
+            :return: A JSON-serializable dictionary
+            """
+            fsds_dict = OrderedDict()
+            fsds_dict['name'] = self.name
+            fsds_dict['base_dir'] = self._base_dir
+            fsds_dict['file_pattern'] = self._file_pattern
+            if self._fileset_info:
+                fsds_dict['fileset_info'] = self._fileset_info.to_json_dict()
+            return fsds_dict
 
     @property
     def _full_pattern(self) -> str:
         return self._base_dir + "/" + self._file_pattern
 
-    def _resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> Sequence[str]:
+    def resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> Sequence[str]:
         """Return a list of all paths between the given times.
 
         For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
@@ -194,27 +250,27 @@ class FileSetDataSource(DataSource):
             The last date of the time range, can be None if the file set has a *end_time*.
             In this case the *end_time* is used.
         """
-        if first_time is None and self._fileset_info._start_time is None:
+        if first_time is None and (self._fileset_info is None or self._fileset_info._start_time is None):
             raise ValueError("neither first_time nor start_time are given")
         dt1 = _as_datetime(first_time, self._fileset_info._start_time)
 
-        if last_time is None and self._fileset_info._end_time is None:
+        if last_time is None and (self._fileset_info is None or self._fileset_info._end_time is None):
             raise ValueError("neither last_time nor end_time are given")
         dt2 = _as_datetime(last_time, self._fileset_info._end_time)
 
         if dt1 > dt2:
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
 
-        return [self._resolve(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
+        return [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
 
-    def _resolve(self, date: date):
+    def _resolve_date(self, dt: datetime):
         path = self._full_pattern
         if "{YYYY}" in path:
-            path = path.replace("{YYYY}", "%04d" % (date.year))
+            path = path.replace("{YYYY}", "%04d" % (dt.year))
         if "{MM}" in path:
-            path = path.replace("{MM}", "%02d" % (date.month))
+            path = path.replace("{MM}", "%02d" % (dt.month))
         if "{DD}" in path:
-            path = path.replace("{DD}", "%02d" % (date.day))
+            path = path.replace("{DD}", "%02d" % (dt.day))
         return path
 
 
@@ -225,42 +281,39 @@ class FileSetInfo:
                  end_time: Union[str, datetime],
                  num_files: int,
                  size_in_mb: int):
+        self._info_update_time = _as_datetime(info_update_time, None)
         self._start_time = _as_datetime(start_time, None)
         self._end_time = _as_datetime(end_time, None)
         self._num_files = num_files
         self._size_in_mb = size_in_mb
 
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        return dict(
+            info_update_time=self._info_update_time,
+            start_time=self._start_time,
+            end_time=self._end_time,
+            num_files=self._num_files,
+            size_in_mb=self._size_in_mb,
+        )
+
 
 class FileSetCatalogue(Catalogue):
     def __init__(self, root_dir: str, fileset_datasources: Sequence[FileSetDataSource]):
-        super(FileSetCatalogue, self).__init__(*fileset_datasources)
+        super(FileSetCatalogue, self).__init__(fileset_datasources)
         self._root_dir = root_dir
 
     @property
     def root_dir(self) -> str:
         return self._root_dir
 
-
-def fileset_datasources_from_json(json_str) -> Sequence[FileSetDataSource]:
-    fsds = []
-    for data in json.loads(json_str):
-        fsds.append(FileSetDataSource(
-            data['name'],
-            data['base_dir'],
-            data['file_pattern'],
-            FileSetInfo(
-                datetime.now(),  # TODO
-                data['start_date'],
-                data['end_date'],
-                data['num_files'],
-                data['size_mb']
-            )
-        ))
-    return fsds
-
-
-def fileset_catatalogue_from_file(filename: str, root_dir: str) -> FileSetCatalogue:
-    with open(filename) as json_file:
-        json = json_file.read()
-    fileset_datasources = fileset_datasources_from_json(json)
-    return FileSetCatalogue(root_dir, fileset_datasources)
+    @classmethod
+    def from_file(cls, filename: str, root_dir: str) -> 'FileSetCatalogue':
+        with open(filename) as json_file:
+            json = json_file.read()
+        fileset_datasources = FileSetDataSource.from_json(json)
+        return FileSetCatalogue(root_dir, fileset_datasources)
