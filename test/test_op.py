@@ -1,6 +1,5 @@
 import json
 from collections import OrderedDict
-from io import StringIO
 from unittest import TestCase
 
 from ect.core.monitor import Monitor
@@ -69,18 +68,76 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.has_monitor, True)
         self.assertEqual(op_meta_info.has_named_outputs, False)
 
-    def test_json_encode_decode(self):
+    def test_to_json_dict(self):
         op_meta_info = OpMetaInfo('x.y.Z')
         op_meta_info.header['description'] = 'Hello!'
         op_meta_info.input['x'] = {'data_type': str}
         op_meta_info.input['y'] = {'data_type': int}
-        op_meta_info.output[RETURN] = {'data_type': str}
+        op_meta_info.output[RETURN] = {'data_type': float}
+        actual_json_dict = op_meta_info.to_json_dict()
+        actual_json_text = json.dumps(actual_json_dict, indent=4)
 
-        d1 = op_meta_info.to_json_dict()
-        s = json.dumps(d1, indent='  ')
-        d2 = json.load(StringIO(s))
+        expected_json_text = """
+        {
+            "qualified_name": "x.y.Z",
+            "header": {
+                "description": "Hello!"
+            },
+            "input": {
+                "x": {
+                    "data_type": "str"
+                },
+                "y": {
+                    "data_type": "int"
+                }
+            },
+            "output": {
+                "return": {
+                    "data_type": "float"
+                }
+            }
+        }
+        """
+        expected_json_dict = json.loads(expected_json_text)
 
-        self.assertEqual(d2, d1)
+        self.assertEqual(actual_json_dict, expected_json_dict,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
+
+    def test_from_json_dict(self):
+        json_text = """
+        {
+            "qualified_name": "x.y.Z",
+            "header": {
+                "description": "Hello!"
+            },
+            "input": {
+                "x": {
+                    "data_type": "str"
+                },
+                "y": {
+                    "data_type": "int"
+                }
+            },
+            "output": {
+                "return": {
+                    "data_type": "float"
+                }
+            }
+        }
+        """
+        json_dict = json.loads(json_text)
+
+        op_meta_info = OpMetaInfo.from_json_dict(json_dict)
+        self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
+        self.assertEqual(op_meta_info.header, dict(description='Hello!'))
+        self.assertEqual(len(op_meta_info.input), 2)
+        self.assertIn('x', op_meta_info.input)
+        self.assertEqual(op_meta_info.input.x, OrderedDict([('data_type', 'str')]))
+        self.assertEqual(op_meta_info.input.y, OrderedDict([('data_type', 'int')]))
+        self.assertEqual(len(op_meta_info.output), 1)
+        self.assertEqual(op_meta_info.output[RETURN], OrderedDict([('data_type', 'float')]))
 
 
 class OpTest(TestCase):
