@@ -131,7 +131,6 @@ class OpMetaInfo:
         json_dict['output'] = io_namespace_to_dict(self.output)
         return json_dict
 
-    # todo (nf) - add missing test
     @classmethod
     def from_json_dict(cls, json_dict):
         op_meta_info = OpMetaInfo(json_dict.get('qualified_name', None),
