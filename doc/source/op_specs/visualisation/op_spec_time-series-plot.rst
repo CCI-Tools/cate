@@ -11,7 +11,7 @@ Operation
 
 :Operation name: Time Series Plot
 :Algorithm name: *XXX*
-:Algorithm reference: *XXX*
+:Algorithm reference: `Wikpedia enty on time series (visualization) <https://en.wikipedia.org/wiki/Time_series#Visualization>`_ 
 :Description: This operation produces and displays one or multiple time series plots based on point data or the spatial mean of areal data.
 :Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
 
@@ -108,74 +108,6 @@ Parameters
 *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
 
 --------------------------
-
-:name: start date
-:type: *double?*
-:valid values: *[1; infinity]*
-:default value: first time step defined by input data 
-:description: first step of time period to be employed
-
---------------------------
-
-:name: end date
-:type: *double?*
-:valid values: *[1; infinity]*
-:default value: last time step defined by input data 
-:description: last step of time period to be employed
-
---------------------------
-
-:name: lon, x (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: -
-:description: longitudinal coordinate of point of interest
-
---------------------------
-
-:name: lat, y (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: -
-:description: latitudinal coordinate of point of interest
-
----------------------------------
-
-:name: lon1, x1 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] respectively [0.; 360.]
-:default value: minimum longitude of input data
-:description: longitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lon2, x2 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: maximum longitude of input data 
-:description: longitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat1, y1 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: minimum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat2, y2 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: maximum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
------------------------------
-
-*more coordinates necessary for non-rectangular areas and 3D data*
-
------------------------------
 
 :name: x-axis annotation/label
 :type: character
