@@ -3,7 +3,7 @@ Operations UC9
 
 - Geometric Adjustment
 
-	- Reprojection
+	- Co-Registration
 	
 - Visualisation
 
