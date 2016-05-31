@@ -40,11 +40,17 @@ class OpMetaInfo:
     :param op_qualified_name: The operation's qualified name.
     """
 
-    def __init__(self, op_qualified_name: str):
+    def __init__(self, op_qualified_name: str, header: dict = None, input: dict = None, output: dict = None):
         self._qualified_name = op_qualified_name
-        self._header = OrderedDict()
+        self._header = header if header else OrderedDict()
         self._input_namespace = Namespace()
+        if input:
+            for name, value in input.items():
+                self._input_namespace[name] = value
         self._output_namespace = Namespace()
+        if output:
+            for name, value in output.items():
+                self._output_namespace[name] = value
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -124,6 +130,19 @@ class OpMetaInfo:
         json_dict['input'] = io_namespace_to_dict(self.input)
         json_dict['output'] = io_namespace_to_dict(self.output)
         return json_dict
+
+    # todo (nf) - add missing test
+    @classmethod
+    def from_json_dict(cls, json_dict):
+        op_meta_info = OpMetaInfo(json_dict.get('qualified_name', None),
+                                  header=json_dict.get('header', None))
+        input = json_dict.get('input', OrderedDict())
+        for name, value in input.items():
+            op_meta_info.input[name] = value
+        output = json_dict.get('output', OrderedDict())
+        for name, value in output.items():
+            op_meta_info.output[name] = value
+        return op_meta_info
 
     def __str__(self):
         return "OpMetaInfo('%s')" % self.qualified_name
