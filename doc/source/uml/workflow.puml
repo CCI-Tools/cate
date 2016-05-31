@@ -2,8 +2,8 @@
 
 abstract Node {
     id: str
-    input: InputConnectorNamespace
-    output: OutputConnectorNamespace
+    input: NodeInputNamespace
+    output: NodeOutputNamespace
     invoke()
 }
 
@@ -17,7 +17,7 @@ class Graph implements Node {
 
 
 class op.OpMetaInfo {
-    qualfied_name : str
+    qualified_name : str
     header : OrderedDict
     input : OrderedDict
     output : OrderedDict

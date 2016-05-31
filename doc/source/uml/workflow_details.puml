@@ -1,0 +1,72 @@
+@startuml
+
+interface Source {
+    {abstract} get_value()
+}
+
+interface Target {
+    {abstract} set_value(value)
+}
+
+interface SourceHolder {
+    {abstract} source: Source
+    {abstract} connect_source(source)
+    {abstract} disconnect_source()
+}
+
+class ConstantSource implements Source {
+    constant
+    get_value()
+}
+
+class ExternalSource implements Source, Target {
+    value
+    get_value()
+    set_value(value)
+}
+
+class NodeOutputRef implements Source {
+    get_value()
+}
+
+class OpNode {
+}
+
+class NodeInput implements Source, SourceHolder {
+    name: str
+    get_value()
+    connect_source(source)
+    disconnect_source()
+}
+
+class NodeOutput implements Source, Target {
+    name: str
+    value: object
+    get_value()
+    set_value(value)
+}
+
+class Graph {
+}
+
+class GraphInput extends NodeInput {
+}
+
+class GraphOutput implements Source, SourceHolder {
+    name: str
+    get_value()
+    connect_source(source)
+    disconnect_source()
+}
+
+
+NodeOutputRef --> NodeOutput : node_output
+NodeInput --> Source : source
+
+OpNode "1" o-- "0..N" NodeInput
+OpNode "1" o-- "0..N" NodeOutput
+
+Graph "1" o-- "0..N" GraphInput
+Graph "1" o-- "0..N" GraphOutput
+
+@enduml
