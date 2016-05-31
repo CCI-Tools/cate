@@ -10,18 +10,14 @@ class IOTest(TestCase):
         self.TEST_CATALOGUE = io.Catalogue([io.DataSource('aerosol'), io.DataSource('ozone')])
 
     def test_query_data_sources(self):
-        # without a catalogue
-        # for the moment we have a default catalogue with only a default entry
-        # this will change
         data_sources = io.query_data_sources()
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].name, "default")
+        self.assertEqual(len(data_sources), 98)
+        self.assertEqual(data_sources[0].name, "aerosol/ATSR2_SU/L3/v4.2/DAILY")
 
-        data_sources = io.query_data_sources(name="au")
+        data_sources = io.query_data_sources(name="DAILY")
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].name, "default")
+        self.assertEqual(len(data_sources), 13)
 
         data_sources = io.query_data_sources(name="ZZ")
         self.assertIsNotNone(data_sources)
@@ -257,5 +253,6 @@ class FileSetCatalogueTest(TestCase):
         result = catalogue.query()
         self.assertIsNotNone(result)
         self.assertEqual(2, len(result))
+
         # dataset = result[0].open_dataset()
         # self.assertIsNotNone(dataset)

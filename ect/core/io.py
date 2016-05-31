@@ -32,6 +32,7 @@ Module Reference
 ================
 """
 import json
+import pkgutil
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Sequence, Union, List
@@ -89,11 +90,8 @@ class CatalogueRegistry:
         return len(self._catalogues)
 
 
-CATALOGUE_REGISTRY = CatalogueRegistry()
-CATALOGUE_REGISTRY.add_catalogue('dummy', Catalogue([DataSource('default')]))
-
-
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = CATALOGUE_REGISTRY.get_catalogues(), **constraints) -> Sequence[
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None,
+                       **constraints) -> Sequence[
     DataSource]:
     """Queries the catalogue(s) for data sources matching the given constrains.
 
@@ -113,7 +111,9 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = CATAL
     --------
     open_dataset
     """
-    if isinstance(catalogues, Catalogue):
+    if catalogues is None:
+        catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
+    elif isinstance(catalogues, Catalogue):
         catalogue_list = [catalogues]
     else:
         catalogue_list = catalogues
@@ -146,7 +146,7 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        raise NotImplementedError # TODO
+        raise NotImplementedError  # TODO
         # data_source = query_data_sources(DEFAULT_CATALOGUE, name=data_source)
     return data_source.open_dataset(**constraints)
 
@@ -157,6 +157,8 @@ def _as_datetime(dt: Union[str, datetime], default) -> datetime:
     if dt is None:
         return default
     if isinstance(dt, str):
+        if dt == '':
+            return default
         # TODO handle format with/without time
         return datetime.strptime(dt, "%Y-%m-%d")
     if isinstance(dt, datetime):
@@ -182,6 +184,7 @@ class FileSetDataSource(DataSource):
     -------
     new  : FileSetDataSource
     """
+
     def __init__(self, name: str, base_dir: str, file_pattern: str, fileset_info: 'FileSetInfo' = None):
         super(FileSetDataSource, self).__init__(name)
         self._base_dir = base_dir
@@ -219,24 +222,25 @@ class FileSetDataSource(DataSource):
         return cdm_dataset
 
     def to_json_dict(self):
-            """
-            Return a JSON-serializable dictionary representation of this object.
+        """
+        Return a JSON-serializable dictionary representation of this object.
 
-            :return: A JSON-serializable dictionary
-            """
-            fsds_dict = OrderedDict()
-            fsds_dict['name'] = self.name
-            fsds_dict['base_dir'] = self._base_dir
-            fsds_dict['file_pattern'] = self._file_pattern
-            if self._fileset_info:
-                fsds_dict['fileset_info'] = self._fileset_info.to_json_dict()
-            return fsds_dict
+        :return: A JSON-serializable dictionary
+        """
+        fsds_dict = OrderedDict()
+        fsds_dict['name'] = self.name
+        fsds_dict['base_dir'] = self._base_dir
+        fsds_dict['file_pattern'] = self._file_pattern
+        if self._fileset_info:
+            fsds_dict['fileset_info'] = self._fileset_info.to_json_dict()
+        return fsds_dict
 
     @property
     def _full_pattern(self) -> str:
         return self._base_dir + "/" + self._file_pattern
 
-    def resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> Sequence[str]:
+    def resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> \
+    Sequence[str]:
         """Return a list of all paths between the given times.
 
         For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
@@ -311,9 +315,14 @@ class FileSetCatalogue(Catalogue):
     def root_dir(self) -> str:
         return self._root_dir
 
-    @classmethod
-    def from_file(cls, filename: str, root_dir: str) -> 'FileSetCatalogue':
-        with open(filename) as json_file:
-            json = json_file.read()
-        fileset_datasources = FileSetDataSource.from_json(json)
-        return FileSetCatalogue(root_dir, fileset_datasources)
+
+def _read_default_file_catalogue():
+    data = pkgutil.get_data('ect.data', 'ESA FTP.json')
+    fileset_datasources = FileSetDataSource.from_json(data.decode('utf-8'))
+    # TODO get root_dir from ENVIRONMENT
+    return FileSetCatalogue('root_dir', fileset_datasources)
+
+
+CATALOGUE_REGISTRY = CatalogueRegistry()
+CATALOGUE_REGISTRY.add_catalogue('default', _read_default_file_catalogue())
+
