@@ -49,7 +49,7 @@ Module Reference
 
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Sequence
+from typing import Sequence, Optional
 
 from ect.core import Monitor
 from .op import REGISTRY, UNDEFINED, OpMetaInfo, OpRegistration
@@ -59,7 +59,8 @@ from .util import Namespace
 class Node(metaclass=ABCMeta):
     """
     Nodes can be used to construct networks or graphs of operations.
-    Input and output of an operation are available as node attributes of type :py:class:`Connector`.
+    Input and output of an operation are available as node attributes of type :py:class:`NodeInput`
+    and :py:class:`NodeOutput`.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
     :param node_id: A node ID. If None, a unique name will be generated.
@@ -129,13 +130,85 @@ class Node(metaclass=ABCMeta):
         :return: A JSON-serializable dictionary
         """
 
+    def __str__(self):
+        """String representation."""
+        return self.id
 
-class GraphFileNode(Node):
+    @abstractmethod
+    def __repr__(self):
+        """String representation for developers."""
+
+
+class ChildNode(Node):
     """
-    Nodes can be used to construct networks or graphs of operations.
-    Input and output of an operation are available as node attributes of type :py:class:`Connector`.
+    An inner node of a graph.
 
-    :param operation: A fully qualified operation name or operation object such as a class or callable.
+    :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
+    :param node_id: A node ID. If None, a unique name will be generated.
+    """
+
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str):
+        super(ChildNode, self).__init__(op_meta_info, node_id=node_id)
+
+    @classmethod
+    def from_json_dict(cls, json_dict, registry=REGISTRY) -> Optional['ChildNode']:
+        node = cls.new_node_from_json_dict(json_dict, registry=registry)
+        if node is None:
+            return None
+        node_input_dict = json_dict.get('input', None)
+        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
+        for node_input in node.input[:]:
+            node_input_source_dict = node_input_dict.get(node_input.name, {})
+            source = None
+            for source_class in source_classes:
+                source = source_class.from_json_dict(node_input_source_dict)
+                if source is not None:
+                    break
+            if source is not None:
+                node_input.connect_source(source)
+            else:
+                raise ValueError("failed to identify input type of node '%s'" % node.id)
+        return node
+
+    @classmethod
+    @abstractmethod
+    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+        """Create a new child node instance from the given *json_dict*"""
+
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        node_input_dict = OrderedDict()
+        for node_input in self.input[:]:
+            source = node_input.source
+            try:
+                source_json_dict = source.to_json_dict()
+            except AttributeError:
+                raise ValueError("input '%s' of node '%s' is not JSON-serializable: source type: %s" %
+                                 (node_input.name, node_input.node.id, str(type(source))))
+            node_input_dict[node_input.name] = source_json_dict
+
+        node_dict = OrderedDict()
+        self.enhance_json_dict(node_dict)
+        node_dict['id'] = self.id
+        if node_input_dict:
+            node_dict['input'] = node_input_dict
+
+        return node_dict
+
+    @abstractmethod
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        """Enhance the given JSON-compatible *node_dict* by child node specific elements."""
+
+
+class GraphFileNode(ChildNode):
+    """
+    A `GraphFileNode` is a `ChildNode` that uses an externally stored :py:class:`Graph` for its computations.
+
+    :param file_path: A path to a file containing the JSON representation of a :py:class:`Graph`.
     :param registry: An operation registry to be used to lookup the operation, if given by name..
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
@@ -150,99 +223,39 @@ class GraphFileNode(Node):
             self._graph = Graph.from_json_dict(json_dict, registry=registry)
         super(GraphFileNode, self).__init__(self._graph.op_meta_info, node_id)
         self._file_path = file_path
-
-    @property
-    def graph(self) -> 'Graph':
-        """The graph."""
-        return self._graph
+        for graph_input in self._graph.input[:]:
+            name = graph_input.name
+            assert name in self.input
+            graph_input.connect_source(self.input[name])
 
     @property
     def file_path(self) -> str:
         """The graph's file path."""
         return self._file_path
 
+    @property
+    def graph(self) -> 'Graph':
+        """The graph."""
+        return self._graph
+
     def invoke(self, monitor: Monitor = Monitor.NULL):
-        """
-        Invoke this node's underlying operation :py:property:`op` with input values from
-        :py:property:`input`. Output values in :py:property:`output` will
-        be set from the underlying operation's return value(s).
-
-        :param monitor: An optional progress monitor.
-        """
-        input_values = OrderedDict()
-        for input_name, _ in self.op_meta_info.input:
-            input_values[input_name] = None
-        for node_input in self.input[:]:
-            if node_input.source is not None:
-                input_value = node_input.source.value
-            else:
-                raise ValueError("unbound input '%s' of node '%s'" % (node_input.name, node_input.node.id))
-            input_values[node_input.name] = input_value
-
-        return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
-
-        if self.op_meta_info.has_named_outputs:
-            for output_name, output_value in return_value.items():
-                self.output[output_name].set_value(output_value)
-        else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].set_value(return_value)
+        return self._graph.invoke(monitor=monitor)
 
     @classmethod
-    def from_json_dict(cls, json_dict, registry=REGISTRY):
-        node_file_path = json_dict.get('graph', None)
-        if node_file_path is None:
+    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+        file_path = json_dict.get('graph', None)
+        if file_path is None:
             return None
-        node_id = json_dict.get('id', None)
-        node = cls(node_file_path, node_id=node_id, registry=registry)
-        # todo (nf) - avoid code duplication with OpNode.from_json_dict()
-        node_input_dict = json_dict.get('input', None)
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
-        for node_input in node.input[:]:
-            node_input_source_dict = node_input_dict.get(node_input.name, {})
-            source = None
-            for source_class in source_classes:
-                source = source_class.from_json_dict(node_input_source_dict)
-                if source is not None:
-                    break
-            if source is not None:
-                node_input.connect_source(source)
-            else:
-                raise ValueError("failed to identify input type of node '%s'" % node_id)
-        return node
+        return GraphFileNode(file_path, node_id=json_dict.get('id', None), registry=registry)
 
-    def to_json_dict(self):
-        """
-        Return a JSON-serializable dictionary representation of this object.
-
-        :return: A JSON-serializable dictionary
-        """
-        # todo (nf) - avoid code duplication with OpNode.to_json_dict()
-        node_input_dict = OrderedDict()
-        for node_input in self.input[:]:
-            source = node_input.source
-            try:
-                source_json_dict = source.to_json_dict()
-            except AttributeError:
-                raise ValueError("input '%s' of node '%s' is not JSON-serializable: source type: %s" %
-                                 (node_input.name, node_input.node.id, str(type(source))))
-            node_input_dict[node_input.name] = source_json_dict
-
-        node_dict = OrderedDict()
+    def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['graph'] = self._file_path
-        node_dict['id'] = self.id
-        if node_input_dict:
-            node_dict['input'] = node_input_dict
-
-        return node_dict
-
-    def __str__(self):
-        return self.id
 
     def __repr__(self):
         return "GraphFileNode('%s', node_id='%s')" % (self.file_path, self.id)
 
 
-class OpNode(Node):
+class OpNode(ChildNode):
     """
     Nodes can be used to construct networks or graphs of operations.
     Input and output of an operation are available as node attributes of type :py:class:`Connector`.
@@ -284,13 +297,11 @@ class OpNode(Node):
         for input_name, _ in self.op_meta_info.input:
             input_values[input_name] = None
         for node_input in self.input[:]:
-            if node_input.source is not None:
-                input_value = node_input.source.value
-            else:
-                raise ValueError("unbound input '%s' of node '%s'" % (node_input.name, node_input.node.id))
-            input_values[node_input.name] = input_value
+            assert node_input is not None
+            assert node_input.source is not None
+            input_values[node_input.name] = node_input.source.value
 
-        return_value = self._op_registration(monitor=Monitor.NULL, **input_values)
+        return_value = self._op_registration(monitor=monitor, **input_values)
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
@@ -299,52 +310,14 @@ class OpNode(Node):
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].set_value(return_value)
 
     @classmethod
-    def from_json_dict(cls, json_dict, registry=REGISTRY):
-        node_op_name = json_dict.get('op', None)
-        if node_op_name is None:
+    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+        op_name = json_dict.get('op', None)
+        if op_name is None:
             return None
-        node_id = json_dict.get('id', None)
-        node = cls(node_op_name, node_id=node_id, registry=registry)
-        # todo (nf) - avoid code duplication with GraphFileNode.from_json_dict()
-        node_input_dict = json_dict.get('input', None)
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
-        for node_input in node.input[:]:
-            node_input_source_dict = node_input_dict.get(node_input.name, {})
-            source = None
-            for source_class in source_classes:
-                source = source_class.from_json_dict(node_input_source_dict)
-                if source is not None:
-                    break
-            if source is not None:
-                node_input.connect_source(source)
-            else:
-                raise ValueError("failed to identify input type of node '%s'" % node_id)
-        return node
+        return cls(op_name, node_id=json_dict.get('id', None), registry=registry)
 
-    def to_json_dict(self):
-        """
-        Return a JSON-serializable dictionary representation of this object.
-
-        :return: A JSON-serializable dictionary
-        """
-        node_input_dict = OrderedDict()
-        for node_input in self.input[:]:
-            source = node_input.source
-            try:
-                source_json_dict = source.to_json_dict()
-            except AttributeError:
-                raise ValueError("input '%s' of node '%s' is not JSON-serializable: source type: %s" %
-                                 (node_input.name, node_input.node.id, str(type(source))))
-            node_input_dict[node_input.name] = source_json_dict
-        node_dict = OrderedDict()
+    def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['op'] = self.op_meta_info.qualified_name
-        node_dict['id'] = self.id
-        if node_input_dict:
-            node_dict['input'] = node_input_dict
-        return node_dict
-
-    def __str__(self):
-        return self.id
 
     def __repr__(self):
         return "OpNode(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
@@ -462,7 +435,7 @@ class Graph(Node):
 
         graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
 
-        # todo (nf) - address code duplication in OpNode.from_json_dict
+        # todo (nf) - address code duplication in ChildNode.from_json_dict
         source_classes = [ConstantSource, UndefinedSource, ExternalSource]
         for node_input in graph.input[:]:
             node_input_source_dict = node_input_json_dict.get(node_input.name, {})

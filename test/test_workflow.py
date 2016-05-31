@@ -29,7 +29,7 @@ class Op3:
         return {'w': 2 * u + 3 * v}
 
 
-class GraphFileTest(TestCase):
+class GraphFileNodeTest(TestCase):
     def test_from_json_dict(self):
         import os.path
 
@@ -52,15 +52,47 @@ class GraphFileTest(TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(node.id, "graph_ref_89")
         self.assertEqual(node.file_path, file_path)
-        self.assertIsNotNone(node.graph)
         self.assertIn('p', node.input)
         self.assertIn('q', node.output)
         self.assertIsInstance(node.input.p, NodeInput)
-        self.assertIsInstance(node.output.q, NodeOutput)
         self.assertIsInstance(node.input.p.source, ConstantSource)
-
+        self.assertIsInstance(node.output.q, NodeOutput)
         self.assertEqual(node.input.p.source.value, 2.8)
         self.assertEqual(node.output.q.value, UNDEFINED)
+
+        self.assertIsNotNone(node.graph)
+        self.assertIn('p', node.graph.input)
+        self.assertIn('q', node.graph.output)
+
+        self.assertIsInstance(node.graph.input.p, GraphInput)
+        self.assertIsInstance(node.graph.input.p.source, NodeInput)
+        self.assertIs(node.graph.input.p.source, node.input.p)
+        self.assertIsInstance(node.graph.output.q, GraphOutput)
+
+    def test_to_json_dict(self):
+        import os.path
+        file_path = os.path.join(os.path.dirname(__file__), 'test_workflow_g1.json').replace('\\', '/')
+        node = GraphFileNode(file_path, node_id='jojo_87')
+        actual_json_dict = node.to_json_dict()
+
+        expected_json_text = """
+        {
+            "id": "jojo_87",
+            "graph": "%s",
+            "input": {
+                "p": {"undefined": true}
+            }
+        }
+        """ % file_path
+
+        actual_json_text = json.dumps(actual_json_dict, indent=4)
+        expected_json_dict = json.loads(expected_json_text)
+        actual_json_dict = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_dict, expected_json_dict,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
 
 
 class OpNodeTest(TestCase):

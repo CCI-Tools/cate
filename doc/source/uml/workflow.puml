@@ -1,29 +1,42 @@
 @startuml
 
 abstract Node {
-    id: str
-    input: NodeInputNamespace
-    output: NodeOutputNamespace
-    invoke()
-}
-
-class OpNode implements Node {
-    invoke()
+    id : str
+    input : NodeInputNamespace
+    output : NodeOutputNamespace
+    {abstract} from_json_dict(json_dict)
+    {abstract} to_json_dict() : dict
+    {abstract} invoke(monitor, **args)
 }
 
 class Graph implements Node {
-    invoke()
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
 }
 
+class GraphFileNode implements Node {
+    file_path : str
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+class OpNode implements Node {
+    op_name : str
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
 
 class op.OpMetaInfo {
     qualified_name : str
-    header : OrderedDict
-    input : OrderedDict
-    output : OrderedDict
+    header : dict
+    input : dict
+    output : dict
 }
 
-
+GraphFileNode --> Graph: graph
 OpNode --> op.OpRegistration : op_registration
 Node --> op.OpMetaInfo: op_meta_info
 Graph o--> "0..N" Node: nodes
