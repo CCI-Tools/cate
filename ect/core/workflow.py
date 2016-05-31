@@ -49,7 +49,7 @@ Module Reference
 
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List
+from typing import Sequence
 
 from ect.core import Monitor
 from .op import REGISTRY, OpMetaInfo, OpRegistration
@@ -62,18 +62,17 @@ class Node(metaclass=ABCMeta):
     Input and output of an operation are available as node attributes of type :py:class:`Connector`.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
-    :param output_cls: Class of the output to create.
     :param node_id: A node ID. If None, a unique name will be generated.
     """
 
-    def __init__(self, op_meta_info: OpMetaInfo, output_cls, node_id=None):
+    def __init__(self, op_meta_info: OpMetaInfo, node_id=None):
         if not op_meta_info:
             raise ValueError('op_meta_info must be given')
         node_id = node_id if node_id is not None else type(self).__name__ + str(id(self))
         self._id = node_id
         self._op_meta_info = op_meta_info
         self._node_input_namespace = NodeInputNamespace(self)
-        self._node_output_namespace = NodeOutputNamespace(self, output_cls=output_cls)
+        self._node_output_namespace = NodeOutputNamespace(self)
 
     @property
     def id(self):
@@ -94,6 +93,14 @@ class Node(metaclass=ABCMeta):
     def output(self) -> 'NodeOutputNamespace':
         """The node's outputs."""
         return self._node_output_namespace
+
+    @abstractmethod
+    def new_node_input(self, node_input_name: str):
+        pass
+
+    @abstractmethod
+    def new_node_output(self, node_output_name: str):
+        pass
 
     @abstractmethod
     def invoke(self, monitor: Monitor = Monitor.NULL):
@@ -135,13 +142,19 @@ class OpNode(Node):
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
         op_meta_info = op_registration.meta_info
-        super(OpNode, self).__init__(op_meta_info, NodeOutput, node_id=node_id)
+        super(OpNode, self).__init__(op_meta_info, node_id=node_id)
         self._op_registration = op_registration
 
     @property
     def op(self):
         """The operation registration. See :py:class:`ect.core.op.OpRegistration`"""
         return self._op_registration
+
+    def new_node_input(self, node_input_name: str):
+        return NodeInput(self, node_input_name)
+
+    def new_node_output(self, node_output_name: str):
+        return NodeOutput(self, node_output_name)
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
@@ -181,20 +194,25 @@ class OpNode(Node):
             #     json_input_for = node_input_source_dict['input_for']
             #     raise ValueError("'input_for' value '%s' of node '%s' cannot be resolved" %
             #                      (json_input_for, op_node.id))
-            if 'output_of' in node_input_source_dict:
+            if 'input_from' in node_input_source_dict:
+                json_input_from = node_input_source_dict['input_from']
+                node_input.join(GraphInputProxy(graph_input_name=json_input_from))
+            elif 'output_of' in node_input_source_dict:
                 json_output_of = node_input_source_dict['output_of']
                 node_id, node_output_name = json_output_of.rsplit('.', maxsplit=1)
-                node_input.set_source(NodeOutputRefInput(node_id, node_output_name))
+                node_input.join(NodeOutputProxy(node_id, node_output_name))
             elif 'constant' in node_input_source_dict:
-                pass
-                # json_constant = node_input_source_dict['constant']
+                json_constant = node_input_source_dict['constant']
                 # check (nf) - convert constant from its json_constant representation into a Python value
-                # node_input.set_source(ConstantValueSource(json_constant))
-            elif 'parameter' in node_input_source_dict:
-                pass
-                # We currently ignore the 'parameter' value, we only need to know if the source is bound to a parameter
-                # json_parameter = node_input_source_dict['parameter']
-                # node_input.set_source(ParameterValueSource())
+                node_input.join(ConstantInput(json_constant))
+            elif 'undefined' in node_input_source_dict:
+                # The value of 'undefined' is ignored
+                node_input.join(_UNDEFINED_INPUT)
+            elif 'external' in node_input_source_dict:
+                # The value of 'external' is ignored
+                node_input.join(ExternalInput())
+            else:
+                raise ValueError("failed to identify type of node '%s'" % node_id)
         # node_output_dict = json_dict.get('output', None)
         return op_node
 
@@ -206,8 +224,7 @@ class OpNode(Node):
         """
         node_input_dict = OrderedDict()
         for node_input in self.input[:]:
-            source = node_input.source
-            node_input_dict[node_input.name] = source.to_json_dict()
+            node_input_dict[node_input.name] = node_input.to_json_dict()
         node_dict = OrderedDict()
         node_dict['id'] = self.id
         node_dict['op'] = self.op_meta_info.qualified_name
@@ -226,21 +243,38 @@ class Graph(Node):
     """
     A graph of (connected) nodes.
 
-    :param nodes: Nodes to be added. Must be compatible with the :py:class:`Node` class.
-    :param graph_id: An optional ID for the graph.
     :param op_meta_info: An optional OpMetaInfo object. If not provided, a basic stump will be generated.
+    :param graph_id: An optional ID for the graph.
     """
 
-    def __init__(self, *nodes, graph_id: str = None, op_meta_info: OpMetaInfo = None):
-        op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo(graph_id)
-        super(Graph, self).__init__(op_meta_info, GraphOutput, node_id=graph_id)
-        self._nodes = list(nodes)
-        for node in nodes:
-            self._update_on_node_added(node)
+    def __init__(self, op_meta_info: OpMetaInfo = None, graph_id: str = None):
+        op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo('graph')
+        graph_id = graph_id if graph_id else 'graph' + str(id(self))
+        super(Graph, self).__init__(op_meta_info, node_id=graph_id)
+        self._nodes = OrderedDict()
 
     @property
-    def nodes(self):
-        return list(self._nodes)
+    def nodes(self) -> Sequence[Node]:
+        return list(self._nodes.values())
+
+    def find_node(self, node_id) -> Node:
+        if node_id in self._nodes:
+            return self._nodes[node_id]
+        return None
+
+    def add_nodes(self, *nodes: Sequence[Node]):
+        for node in nodes:
+            self._nodes[node.id] = node
+
+    @property
+    def remove_node(self, node: Node):
+        return self._nodes.remove(node.id)
+
+    def new_node_input(self, node_input_name: str):
+        return GraphInput(self, node_input_name)
+
+    def new_node_output(self, node_output_name: str):
+        return GraphOutput(self, node_output_name)
 
     def invoke(self, monitor=Monitor.NULL):
         """
@@ -270,7 +304,7 @@ class Graph(Node):
             node_output_json_dict[node_output.name] = node_output.to_json_dict()
 
         graph_nodes_list = []
-        for node in self._nodes:
+        for node in self._nodes.values():
             graph_nodes_list.append(node.to_json_dict())
 
         graph_json_dict = OrderedDict()
@@ -285,11 +319,27 @@ class Graph(Node):
     def from_json_dict(cls, graph_json_dict, registry=REGISTRY):
         # Developer note: keep variable naming consistent with Graph.to_json_dict() method
 
-        graph_id = graph_json_dict.get('id', None)
-        # node_input_json_dict = graph_json_dict.get('input', [])
-        # node_output_json_dict = graph_json_dict.get('output', {})
-        graph_nodes_json_list = graph_json_dict.get('nodes', {})
+        graph_id = graph_json_dict.get('id', 'graph')
+        node_input_json_dict = graph_json_dict.get('input', {})
+        node_output_json_dict = graph_json_dict.get('output', {})
+        graph_nodes_json_list = graph_json_dict.get('nodes', [])
 
+        # Convert op_meta_info
+        op_meta_info_json_dict = graph_json_dict.get('op_meta_info', None)
+        if op_meta_info_json_dict is not None:
+            op_meta_info = OpMetaInfo.from_json_dict(op_meta_info_json_dict)
+        else:
+            op_meta_info = OpMetaInfo(graph_id)
+        for name, value in node_input_json_dict.items():
+            if name not in op_meta_info.input:
+                op_meta_info.input[name] = {}
+        for name, value in node_output_json_dict.items():
+            if name not in op_meta_info.output:
+                op_meta_info.output[name] = {}
+
+        graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
+
+        # Convert all nodes
         nodes = []
         for graph_node_json_dict in graph_nodes_json_list:
             if 'op' in graph_node_json_dict:
@@ -300,23 +350,30 @@ class Graph(Node):
                 raise ValueError("either the 'op' or 'graph' property must be given")
             nodes.append(node)
 
-        # Now replace all ProxyValueSource by real NodeOutput
-        node_dict = {node.id: node for node in nodes}
-        for node in nodes:
+        graph.add_nodes(*nodes)
+
+        # Resolve GraphInputRefInput and NodeOutputRefInput sources of all node inputs
+        for node in graph.nodes:
             for node_input in node.input[:]:
-                if isinstance(node_input.source, NodeOutputRefInput):
+                if isinstance(node_input.source, GraphInputProxy):
+                    other_graph_input_name = node_input.source.graph_input_name
+                    if other_graph_input_name not in graph.input:
+                        raise ValueError("undefined input '%s'", other_graph_input_name)
+                    other_graph_input = graph.input[other_graph_input_name]
+                    node_input.source.resolve(other_graph_input)
+                    node_input.join(other_graph_input)
+                if isinstance(node_input.source, NodeOutputProxy):
                     other_node_id = node_input.source.node_id
                     other_node_output_name = node_input.source.node_output_name
-                    if other_node_id not in node_dict:
+                    other_node = graph.find_node(other_node_id)
+                    if other_node is None:
                         raise ValueError("unknown node '%s'" % other_node_id)
-                    other_node = node_dict[other_node_id]
                     if other_node_output_name not in other_node.output:
                         raise ValueError("unknown output '%s' of node '%s'", (other_node_output_name, other_node_id))
                     other_node_output = other_node.output[other_node_output_name]
-                    node_input.source.set_node_output(other_node_output)
+                    node_input.source.resolve(other_node_output)
                     node_input.join(other_node_output)
 
-        graph = Graph(*nodes, graph_id=graph_id)
         return graph
 
     def __str__(self):
@@ -324,27 +381,6 @@ class Graph(Node):
 
     def __repr__(self):
         return "Graph('%s')" % self.op_meta_info.qualified_name
-
-    def _update_on_node_added(self, node):
-        graph_meta_info = self.op_meta_info
-        node_meta_info = node.op_meta_info
-        for input_name, input_value in node.input:
-            assert input_value is not None
-            if isinstance(input_value, ExternalInput):
-                # Make sure graph meta_info is correct
-                if input_name not in graph_meta_info.input:
-                    graph_meta_info.input[input_name] = dict(node_meta_info.input[input_name])
-                # Now the graph gets the ExternalInput and the node gets an InputRefInput
-                self.input[input_name] = input_value
-                node.input[input_name] = SourceRefInput(input_value)
-        for node_output in node.output[:]:
-            if not node_output.targets:
-                name = node_output.name
-                # Make sure graph meta_info is correct
-                if name not in graph_meta_info.output:
-                    graph_meta_info.output[name] = dict(node_meta_info.output[name])
-                # Add output
-                self.output[name] = node_output
 
 
 class _UndefinedValue:
@@ -366,8 +402,9 @@ class Json(metaclass=ABCMeta):
 
 
 class Source(Json, metaclass=ABCMeta):
+    @property
     @abstractmethod
-    def get_value(self):
+    def value(self):
         """Get the value of this input."""
         pass
 
@@ -381,13 +418,14 @@ class Target(Json, metaclass=ABCMeta):
 
 class ExternalInput(Source, Target):
     """
-    (1) Used as input to any node. Buffered.
+    Can be used as input for any node. Buffered.
     """
 
     def __init__(self):
         self._value = UNDEFINED
 
-    def get_value(self):
+    @property
+    def value(self):
         return self._value
 
     def set_value(self, value):
@@ -397,30 +435,28 @@ class ExternalInput(Source, Target):
         return dict(external=True)
 
 
-class SourceRefInput(Source):
-    """
-    (2) Used both as input for nodes and as output for Graphs. Unbuffered.
-    """
-
-    def __init__(self, source: Source):
-        self._source = source
-
-    def get_value(self):
-        return self._source.get_value()
+class UndefinedInput(Source):
+    @property
+    def value(self):
+        return UNDEFINED
 
     def to_json_dict(self):
-        return dict(source=self._source.to_json_dict())
+        return dict(undefined=True)
+
+
+_UNDEFINED_INPUT = UndefinedInput()
 
 
 class ConstantInput(Source):
     """
-    (4) A value source whose actual value is a constant value. Buffered.
+    An input which is a constant value. Buffered.
     """
 
     def __init__(self, constant):
         self._constant = constant
 
-    def get_value(self):
+    @property
+    def value(self):
         return self._constant
 
     def to_json_dict(self):
@@ -429,30 +465,68 @@ class ConstantInput(Source):
         return dict(constant=self._constant)
 
 
-class NodeOutputRefInput(Source):
+class GraphInputProxy(Source):
+    """
+    (2) Used both as input for nodes and as output for Graphs. Unbuffered.
+    """
+
+    def __init__(self, graph_input_name: str = None, graph_input: 'NodeInput' = None):
+        assert not (graph_input_name is None and graph_input is None)
+        graph_input_name = graph_input.name if graph_input else graph_input_name
+        assert graph_input_name is not None
+        self._graph_input_name = graph_input_name
+        self._graph_input = graph_input
+
+    @property
+    def graph_input_name(self) -> str:
+        return self._graph_input_name
+
+    @property
+    def graph_input(self) -> 'NodeInput':
+        return self._graph_input
+
+    def resolve(self, graph_input: 'NodeInput'):
+        assert graph_input is not None
+        assert graph_input.name == self._graph_input_name
+        self._graph_input = graph_input
+
+    @property
+    def value(self):
+        return self._graph_input.value
+
+    def to_json_dict(self):
+        return dict(input_from=self._graph_input_name)
+
+
+class NodeOutputProxy(Source):
     """
     (5) Used both as input for nodes and as output for Graphs. Unbuffered.
     """
 
     def __init__(self, node_id: str, node_output_name: str):
+        assert node_id is not None
+        assert node_output_name is not None
         self._node_id = node_id
         self._node_output_name = node_output_name
         self._node_output = None
 
+    @property
     def node_id(self) -> str:
         return self._node_id
 
+    @property
     def node_output_name(self) -> str:
         return self._node_output_name
 
-    def set_node_output(self, node_output: 'NodeOutput'):
+    def resolve(self, node_output: 'NodeOutput'):
         assert node_output.node.id == self._node_id
         assert node_output.name == self._node_output_name
         self._node_output = node_output
 
-    def get_value(self):
+    @property
+    def value(self):
         self._assert_resolved()
-        return self._node_output.get_value()
+        return self._node_output.value
 
     def to_json_dict(self):
         self._assert_resolved()
@@ -464,30 +538,50 @@ class NodeOutputRefInput(Source):
 
 
 class SourceHolder(metaclass=ABCMeta):
+    @property
     @abstractmethod
-    def set_source(self, source: Source):
-        """Get the *source* of this source holder."""
+    def source(self) -> Source:
+        """The current source."""
+        pass
+
+    @abstractmethod
+    def join(self, source: Source):
+        """Join with the given *source*."""
+        pass
+
+    @abstractmethod
+    def disjoin(self):
+        """Disjoin from the current source."""
         pass
 
 
 class TargetTracker(metaclass=ABCMeta):
+    @property
     @abstractmethod
-    def add_target(self, target):
+    def targets(self) -> Sequence[SourceHolder]:
+        """Get the sequence of targets."""
         pass
 
     @abstractmethod
-    def remove_target(self, target):
+    def add_target(self, target: SourceHolder):
+        """Add a new *target*."""
+        pass
+
+    @abstractmethod
+    def remove_target(self, target: SourceHolder):
+        """Remove existing *target*."""
         pass
 
 
 class NodeInput(Source, SourceHolder):
-    def __init__(self, node: Node, name: str, source: Source = None):
+    def __init__(self, node: Node, name: str, source: Source = _UNDEFINED_INPUT):
+        assert node is not None
+        assert name is not None
+        assert source is not None
+        assert name in node.op_meta_info.input
         self._node = node
         self._name = name
-        if source is None:
-            self._source = ExternalInput()
-        else:
-            self._source = source
+        self._source = source
 
     @property
     def node(self) -> Node:
@@ -501,7 +595,15 @@ class NodeInput(Source, SourceHolder):
     def source(self) -> Source:
         return self._source
 
-    def set_source(self, new_source: Source):
+    # todo (nf) - extract a mixin, see same code in GraphOutput
+    # todo (nf) - rename 'join', e.g. 'connect_with' to indicate direction
+    # todo (nf) - handle case where self is Target: if new_source is not a source, we could assign the value instead
+    # todo (nf) - handle case where new_source is not a source --> convert to ConstantInput
+    # todo (nf) - handle case where new_source is GraphInput --> convert to GraphInputProxy
+    # todo (nf) - handle case where self is a GraphOutput --> convert to ?
+    #
+    def join(self, new_source: Source):
+        assert new_source is not None
         old_source = self._source
         if isinstance(old_source, TargetTracker):
             old_source.remove_target(self)
@@ -509,15 +611,40 @@ class NodeInput(Source, SourceHolder):
         if isinstance(new_source, TargetTracker):
             new_source.add_target(self)
 
-    def get_value(self):
-        return self._source.get_value()
+    def disjoin(self):
+        self.join(_UNDEFINED_INPUT)
+
+    @property
+    def value(self):
+        return self._source.value
 
     def to_json_dict(self):
         return self._source.to_json_dict()
 
+    def __str__(self):
+        return "%s.%s" % (self._node.id, self._name)
+
+
+class GraphInput(NodeInput):
+    def __init__(self, graph: Graph, name: str, source: Source = None):
+        if source is None:
+            source = ExternalInput()
+        super(GraphInput, self).__init__(graph, name, source=source)
+
+    @property
+    def graph(self) -> Graph:
+        return self.node
+
+    def to_json_dict(self):
+        # return dict(source_from=self.name)
+        return self.source.to_json_dict()
+
 
 class NodeOutput(Source, Target, TargetTracker):
     def __init__(self, node: Node, name: str):
+        assert node is not None
+        assert name is not None
+        assert name in node.op_meta_info.output
         self._node = node
         self._name = name
         self._value = UNDEFINED
@@ -532,29 +659,38 @@ class NodeOutput(Source, Target, TargetTracker):
         return self._name
 
     @property
-    def targets(self) -> List:
+    def targets(self) -> Sequence[SourceHolder]:
         return list(self._targets)
 
-    def add_target(self, target):
+    def add_target(self, target: SourceHolder):
+        assert target is not None
         if target not in self._targets:
             self._targets.append(target)
 
-    def remove_target(self, target):
+    def remove_target(self, target: SourceHolder):
+        assert target is not None
         if target in self._targets:
             self._targets.remove(target)
 
-    def get_value(self):
+    @property
+    def value(self):
         return self._value
 
     def set_value(self, value):
         self._value = value
 
     def to_json_dict(self):
-        return {}
+        return dict(output_of='%s.%s' % (self._node.id, self._name))
+
+    def __str__(self):
+        return "%s.%s" % (self._node.id, self._name)
 
 
 class GraphOutput(Source, SourceHolder):
-    def __init__(self, graph: Graph, name: str, source: Source = None):
+    def __init__(self, graph: Graph, name: str, source: Source = UndefinedInput()):
+        assert graph is not None
+        assert name is not None
+        assert source is not None
         self._graph = graph
         self._name = name
         self._source = source
@@ -571,7 +707,8 @@ class GraphOutput(Source, SourceHolder):
     def source(self) -> Source:
         return self._source
 
-    def set_source(self, new_source: Source):
+    def join(self, new_source: Source):
+        assert new_source is not None
         old_source = self._source
         if isinstance(old_source, TargetTracker):
             old_source.remove_target(self)
@@ -579,60 +716,59 @@ class GraphOutput(Source, SourceHolder):
         if isinstance(new_source, TargetTracker):
             new_source.add_target(self)
 
-    def get_value(self):
-        return self._source.get_value()
+    def disjoin(self):
+        self.join(_UNDEFINED_INPUT)
+
+    @property
+    def value(self):
+        return self._source.value
 
     def to_json_dict(self):
         return self._source.to_json_dict()
 
+    def __str__(self):
+        return "%s.%s" % (self._graph.id, self._name)
+
 
 class NodeInputNamespace(Namespace):
     def __init__(self, node: Node):
-        self._node = node
-        inputs = [(input_name, NodeInput(node, input_name)) for input_name, _ in node.op_meta_info.input]
+        inputs = [(input_name, node.new_node_input(input_name)) for input_name, _ in node.op_meta_info.input]
         super(NodeInputNamespace, self).__init__(inputs)
 
     def __setattr__(self, name, value):
-        if name == '_node':
-            super(NodeInputNamespace, self).__setattr__(name, value)
-            return
         node_input = self.__getattr__(name)
         if not isinstance(value, Source):
             value = ConstantInput(value)
-        node_input.set_source(value)
+        node_input.join(value)
 
     def __getattr__(self, name):
         try:
             return super(NodeInputNamespace, self).__getattr__(name)
         except AttributeError:
-            raise AttributeError("'%s' is not an input of node '%s'" % (name, self._node.id))
+            raise AttributeError("'%s' is not an input" % name)
 
     def __delattr__(self, input_name):
         raise NotImplementedError()
 
 
 class NodeOutputNamespace(Namespace):
-    def __init__(self, node: Node, output_cls):
-        self._node = node
-        outputs = [(output_name, output_cls(node, output_name)) for output_name, _ in node.op_meta_info.output]
+    def __init__(self, node: Node):
+        outputs = [(output_name, node.new_node_output(output_name)) for output_name, _ in node.op_meta_info.output]
         super(NodeOutputNamespace, self).__init__(outputs)
 
     def __setattr__(self, name, value):
-        if name == '_node':
-            super(NodeOutputNamespace, self).__setattr__(name, value)
-            return
         node_output = self.__getattr__(name)
         if not isinstance(value, Source):
-            raise AttributeError("invalid value for output '%s' of node '%s'" % (name, self._node.id))
+            raise AttributeError("invalid value for output '%s' of node '%s'" % (name, node_output.node.id))
         if not isinstance(node_output, SourceHolder):
-            raise AttributeError("output '%s' of node '%s' cannot be set" % (name, self._node.id))
-        node_output.set_source(value)
+            raise AttributeError("output '%s' of node '%s' cannot be set" % (name, node_output.node.id))
+        node_output.join(value)
 
     def __getattr__(self, name):
         try:
             return super(NodeOutputNamespace, self).__getattr__(name)
         except AttributeError:
-            raise AttributeError("'%s' is not an output of node '%s'" % (name, self._node.id))
+            raise AttributeError("'%s' is not an output" % name)
 
     def __delattr__(self, name):
         raise NotImplementedError()
