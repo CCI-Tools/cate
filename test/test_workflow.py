@@ -4,7 +4,7 @@ from unittest import TestCase
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
 from ect.core.util import object_to_qualified_name
 from ect.core.workflow import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
-    UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef
+    UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphFileNode
 
 
 @op_input('x')
@@ -27,6 +27,40 @@ class Op2:
 class Op3:
     def __call__(self, u, v):
         return {'w': 2 * u + 3 * v}
+
+
+class GraphFileTest(TestCase):
+    def test_from_json_dict(self):
+        import os.path
+
+        file_path = os.path.join(os.path.dirname(__file__), 'test_workflow_g1.json').replace('\\', '/')
+
+        json_text = """
+        {
+            "id": "graph_ref_89",
+            "graph": "%s",
+            "input": {
+                "p": {"constant": 2.8}
+            }
+        }
+        """ % file_path
+
+        json_dict = json.loads(json_text)
+
+        node = GraphFileNode.from_json_dict(json_dict)
+
+        self.assertIsNotNone(node)
+        self.assertEqual(node.id, "graph_ref_89")
+        self.assertEqual(node.file_path, file_path)
+        self.assertIsNotNone(node.graph)
+        self.assertIn('p', node.input)
+        self.assertIn('q', node.output)
+        self.assertIsInstance(node.input.p, NodeInput)
+        self.assertIsInstance(node.output.q, NodeOutput)
+        self.assertIsInstance(node.input.p.source, ConstantSource)
+
+        self.assertEqual(node.input.p.source.value, 2.8)
+        self.assertEqual(node.output.q.value, UNDEFINED)
 
 
 class OpNodeTest(TestCase):
@@ -169,33 +203,6 @@ class OpNodeTest(TestCase):
         self.assertIsInstance(node3.input.u.source, UndefinedSource)
         self.assertIsInstance(node3.input.v.source, UndefinedSource)
 
-    def test_to_json_dict(self):
-        node3 = OpNode(Op3, node_id='op3')
-        node3.input.u = 2.8
-
-        node3_dict = node3.to_json_dict()
-
-        expected_json_text = """
-        {
-            "id": "op3",
-            "op": "test.test_workflow.Op3",
-            "input": {
-                "v": {"undefined": true},
-                "u": {"constant": 2.8}
-            }
-        }
-        """
-
-        actual_json_text = json.dumps(node3_dict)
-
-        expected_json_obj = json.loads(expected_json_text)
-        actual_json_obj = json.loads(actual_json_text)
-
-        self.assertEqual(actual_json_obj, expected_json_obj,
-                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
-                             (120 * '-', expected_json_text,
-                              120 * '-', actual_json_text))
-
     def test_from_json_dict_const_param(self):
         json_text = """
         {
@@ -253,11 +260,37 @@ class OpNodeTest(TestCase):
         self.assertIsInstance(node3.input.v, NodeInput)
         self.assertIsInstance(node3.output.w, NodeOutput)
         self.assertIsInstance(node3.input.u.source, NodeOutputRef)
-        self.assertIsInstance(node3.input.v.source, ConstantSource)
-
         self.assertEqual(node3.input.u.source.node_id, 'stat_op')
         self.assertEqual(node3.input.u.source.name, 'stats')
+        self.assertIsInstance(node3.input.v.source, ConstantSource)
         self.assertEqual(node3.input.v.source.value, 'nearest')
+
+    def test_to_json_dict(self):
+        node3 = OpNode(Op3, node_id='op3')
+        node3.input.u = 2.8
+
+        node3_dict = node3.to_json_dict()
+
+        expected_json_text = """
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "v": {"undefined": true},
+                "u": {"constant": 2.8}
+            }
+        }
+        """
+
+        actual_json_text = json.dumps(node3_dict)
+
+        expected_json_obj = json.loads(expected_json_text)
+        actual_json_obj = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
 
 
 class GraphTest(TestCase):
@@ -309,65 +342,6 @@ class GraphTest(TestCase):
         output_value = graph.output.q.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
-
-    def test_to_json_dict(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('graph', input=dict(p={}), output=dict(q={})), graph_id='my_workflow')
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x = graph.input.p
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-        graph.output.q = node3.output.w
-
-        graph_dict = graph.to_json_dict()
-
-        expected_json_text = """
-        {
-            "id": "my_workflow",
-            "input": {
-                "p": {"undefined": true}
-            },
-            "output": {
-                "q": {"output_of": "op3.w"}
-            },
-            "nodes": [
-                {
-                    "id": "op1",
-                    "op": "test.test_workflow.Op1",
-                    "input": {
-                        "x": { "input_from": "p" }
-                    }
-                },
-                {
-                    "id": "op2",
-                    "op": "test.test_workflow.Op2",
-                    "input": {
-                        "a": {"output_of": "op1.y"}
-                    }
-                },
-                {
-                    "id": "op3",
-                    "op": "test.test_workflow.Op3",
-                    "input": {
-                        "v": {"output_of": "op2.b"},
-                        "u": {"output_of": "op1.y"}
-                    }
-                }
-            ]
-        }
-        """
-
-        actual_json_text = json.dumps(graph_dict, indent=4)
-        expected_json_obj = json.loads(expected_json_text)
-        actual_json_obj = json.loads(actual_json_text)
-
-        self.assertEqual(actual_json_obj, expected_json_obj,
-                         msg='\nexpected:\n%s\n%s\nbut got:\n%s\n%s\n' %
-                             (120 * '-', expected_json_text,
-                              120 * '-', actual_json_text))
 
     def test_from_json_dict(self):
         graph_json_text = """
@@ -430,6 +404,65 @@ class GraphTest(TestCase):
         self.assertEqual(node1.id, 'op1')
         self.assertEqual(node2.id, 'op2')
         self.assertEqual(node3.id, 'op3')
+
+    def test_to_json_dict(self):
+        node1 = OpNode(Op1, node_id='op1')
+        node2 = OpNode(Op2, node_id='op2')
+        node3 = OpNode(Op3, node_id='op3')
+        graph = Graph(op_meta_info=OpMetaInfo('graph', input=dict(p={}), output=dict(q={})), graph_id='my_workflow')
+        graph.add_nodes(node1, node2, node3)
+        node1.input.x = graph.input.p
+        node2.input.a = node1.output.y
+        node3.input.u = node1.output.y
+        node3.input.v = node2.output.b
+        graph.output.q = node3.output.w
+
+        graph_dict = graph.to_json_dict()
+
+        expected_json_text = """
+        {
+            "id": "my_workflow",
+            "input": {
+                "p": {"undefined": true}
+            },
+            "output": {
+                "q": {"output_of": "op3.w"}
+            },
+            "nodes": [
+                {
+                    "id": "op1",
+                    "op": "test.test_workflow.Op1",
+                    "input": {
+                        "x": { "input_from": "p" }
+                    }
+                },
+                {
+                    "id": "op2",
+                    "op": "test.test_workflow.Op2",
+                    "input": {
+                        "a": {"output_of": "op1.y"}
+                    }
+                },
+                {
+                    "id": "op3",
+                    "op": "test.test_workflow.Op3",
+                    "input": {
+                        "v": {"output_of": "op2.b"},
+                        "u": {"output_of": "op1.y"}
+                    }
+                }
+            ]
+        }
+        """
+
+        actual_json_text = json.dumps(graph_dict, indent=4)
+        expected_json_obj = json.loads(expected_json_text)
+        actual_json_obj = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\nexpected:\n%s\n%s\nbut got:\n%s\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
 
 
 class NodeInputTest(TestCase):

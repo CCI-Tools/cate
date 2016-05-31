@@ -1,0 +1,44 @@
+{
+    "op_meta_data" : {
+        "qualified_name": "cool_graph",
+        "header": {
+            "description": "This is a test graph composed of 3 nodes."
+        },
+        "input": {
+            "p": {"data_type": "float", "description": "Parameter 'p'"}
+        },
+        "output": {
+            "q": {"data_type": "float", "description": "Parameter 'q'"}
+        }
+    },
+    "input": {
+        "p": {"external": true}
+    },
+    "output": {
+        "q": {"output_of": "op3.w"}
+    },
+    "nodes": [
+        {
+            "id": "op1",
+            "op": "test.test_workflow.Op1",
+            "input": {
+                "x": { "input_from": "p" }
+            }
+        },
+        {
+            "id": "op2",
+            "op": "test.test_workflow.Op2",
+            "input": {
+                "a": {"output_of": "op1.y"}
+            }
+        },
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "v": {"output_of": "op2.b"},
+                "u": {"output_of": "op1.y"}
+            }
+        }
+    ]
+}
