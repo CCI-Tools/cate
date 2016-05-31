@@ -11,7 +11,7 @@ Operation
 
 :Operation name: Time Series Plot
 :Algorithm name: *XXX*
-:Algorithm reference: `Wikpedia enty on time series (visualization) <https://en.wikipedia.org/wiki/Time_series#Visualization>`_ 
+:Algorithm reference: `Wikpedia entry on time series (visualization) <https://en.wikipedia.org/wiki/Time_series#Visualization>`_ 
 :Description: This operation produces and displays one or multiple time series plots based on point data or the spatial mean of areal data.
 :Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
 
