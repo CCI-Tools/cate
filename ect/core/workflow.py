@@ -52,7 +52,7 @@ from collections import OrderedDict
 from typing import Sequence
 
 from ect.core import Monitor
-from .op import REGISTRY, OpMetaInfo, OpRegistration
+from .op import REGISTRY, UNDEFINED, OpMetaInfo, OpRegistration
 from .util import Namespace
 
 
@@ -436,17 +436,8 @@ class Json(metaclass=ABCMeta):
         """Convert an instance of this class into a JSON-compatible dictionary."""
 
 
-class _UndefinedValue:
-    def __str__(self):
-        return 'UNDEFINED'
-
-    def __repr__(self):
-        return 'Source.UNDEFINED_VALUE'
-
-
 class Source(metaclass=ABCMeta):
     #: Special value returned by py:property:`value` indicating that a value has never been set.
-    UNDEFINED_VALUE = _UndefinedValue()
 
     @property
     @abstractmethod
@@ -465,7 +456,7 @@ class ExternalSource(Source, Target, Json):
     A source whose value can be set externally.
     """
 
-    def __init__(self, value=Source.UNDEFINED_VALUE):
+    def __init__(self, value=None):
         self._value = value
 
     @property
@@ -492,12 +483,12 @@ class ExternalSource(Source, Target, Json):
 
 class UndefinedSource(Source, Json):
     """
-    A source that is undefined.
+    A source that returns the value UNDEFINED.
     """
 
     @property
     def value(self):
-        return self.UNDEFINED_VALUE
+        return UNDEFINED
 
     @classmethod
     def from_json_dict(cls, json_dict: dict):
@@ -514,6 +505,7 @@ class UndefinedSource(Source, Json):
         return "UndefinedSource()"
 
 
+# This constant is used to avoid creating new instances of UndefinedSource
 _UNDEFINED_SOURCE = UndefinedSource()
 
 
@@ -671,7 +663,7 @@ class SourceHolderMixin(SourceHolder):
 
     def connect_source(self, new_source: Source):
         # convert 'new_source' so it matches our graph construction rules
-        if new_source is Source.UNDEFINED_VALUE:
+        if new_source is UNDEFINED:
             new_source = _UNDEFINED_SOURCE
         elif not isinstance(new_source, Source):
             new_source = ConstantSource(new_source)
@@ -717,9 +709,7 @@ class NodeInput(Source, SourceHolderMixin):
 
 
 class GraphInput(NodeInput):
-    def __init__(self, graph: Graph, name: str, source: Source = None):
-        if source is None:
-            source = ExternalSource()
+    def __init__(self, graph: Graph, name: str, source: Source = _UNDEFINED_SOURCE):
         super(GraphInput, self).__init__(graph, name, source=source)
 
     @property
@@ -734,7 +724,7 @@ class NodeOutput(Source, Target):
         assert name in node.op_meta_info.output
         self._node = node
         self._name = name
-        self._value = self.UNDEFINED_VALUE
+        self._value = UNDEFINED
 
     @property
     def node(self) -> Node:
@@ -756,7 +746,7 @@ class NodeOutput(Source, Target):
 
 
 class GraphOutput(Source, SourceHolderMixin):
-    def __init__(self, graph: Graph, name: str, source: Source = UndefinedSource()):
+    def __init__(self, graph: Graph, name: str, source: Source = _UNDEFINED_SOURCE):
         assert graph is not None
         assert name is not None
         assert source is not None

@@ -1,12 +1,10 @@
 import json
 from unittest import TestCase
 
-from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
+from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
 from ect.core.util import object_to_qualified_name
 from ect.core.workflow import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
-    UndefinedSource, NodeOutputRef, GraphInput, Source, GraphInputRef
-
-UNDEFINED = Source.UNDEFINED_VALUE
+    UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef
 
 
 @op_input('x')
@@ -227,7 +225,7 @@ class OpNodeTest(TestCase):
         self.assertIsInstance(node3.input.v.source, ExternalSource)
 
         self.assertIs(node3.input.u.source.value, UNDEFINED)
-        self.assertIs(node3.input.v.source.value, UNDEFINED)
+        self.assertIs(node3.input.v.source.value, None)
 
     def test_from_json_dict_output_of_param(self):
         json_text = """
@@ -284,7 +282,7 @@ class GraphTest(TestCase):
         self.assertEqual(graph.nodes, [node1, node2, node3])
 
         self.assertIsInstance(graph.input.p, GraphInput)
-        self.assertIsInstance(graph.input.p.source, ExternalSource)
+        self.assertIsInstance(graph.input.p.source, UndefinedSource)
         self.assertIsInstance(node1.input.x, NodeInput)
         self.assertIsInstance(node1.input.x.source, GraphInputRef)
 
@@ -330,7 +328,7 @@ class GraphTest(TestCase):
         {
             "id": "my_workflow",
             "input": {
-                "p": {"external": true}
+                "p": {"undefined": true}
             },
             "output": {
                 "q": {"output_of": "op3.w"}
@@ -504,21 +502,17 @@ class GraphOutputTest(TestCase):
 class UndefinedSourceTest(TestCase):
     def test_init(self):
         source = UndefinedSource()
-        self.assertIs(source.value, source.UNDEFINED_VALUE)
+        self.assertIs(source.value, UNDEFINED)
         self.assertEqual(str(source), 'UNDEFINED')
         self.assertEqual(repr(source), 'UndefinedSource()')
-
-    def test_undefined_value(self):
-        self.assertEqual(str(Source.UNDEFINED_VALUE), 'UNDEFINED')
-        self.assertEqual(repr(Source.UNDEFINED_VALUE), 'Source.UNDEFINED_VALUE')
 
 
 class ExternalSourceTest(TestCase):
     def test_init(self):
         source = ExternalSource()
-        self.assertEqual(source.value, Source.UNDEFINED_VALUE)
-        self.assertEqual(str(source), 'UNDEFINED')
-        self.assertEqual(repr(source), 'ExternalSource(Source.UNDEFINED_VALUE)')
+        self.assertEqual(source.value, None)
+        self.assertEqual(str(source), 'None')
+        self.assertEqual(repr(source), 'ExternalSource(None)')
 
         source.set_value(3.14)
         self.assertEqual(source.value, 3.14)

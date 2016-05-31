@@ -3,7 +3,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.monitor import Monitor
-from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output
+from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, UNDEFINED
 from ect.core.util import object_to_qualified_name
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
@@ -464,6 +464,12 @@ class OpTest(TestCase):
                              dict(description='Hi, I am C_op_inp_out!'),
                              expected_inputs,
                              expected_outputs)
+
+
+class UndefinedValueTest(TestCase):
+    def test_undefined_value(self):
+        self.assertEqual(str(UNDEFINED), 'UNDEFINED')
+        self.assertEqual(repr(UNDEFINED), 'UNDEFINED')
 
 
 class MyMonitor(Monitor):

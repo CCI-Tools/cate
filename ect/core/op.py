@@ -33,6 +33,17 @@ from .monitor import Monitor
 from .util import object_to_qualified_name, Namespace, qualified_name_to_object
 
 
+class _UndefinedValue:
+    def __str__(self):
+        return 'UNDEFINED'
+
+    def __repr__(self):
+        return 'UNDEFINED'
+
+
+UNDEFINED = _UndefinedValue()
+
+
 class OpMetaInfo:
     """
     Meta-information about an operation.
