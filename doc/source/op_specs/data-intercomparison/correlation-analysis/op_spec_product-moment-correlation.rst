@@ -1,7 +1,3 @@
-=====================================
-Product-Moment Correlation by Pearson
-=====================================
-
 Operation
 =========
 *Define the Operation and point to the applicable algorithm for implementation of this Operation, by following this convention:*
@@ -10,14 +6,14 @@ Operation
 
 :Operation name: Product-Moment Correlation (Pearson) 
 :Algorithm name: *XXX*
-:Algorithm reference: *XXX*
-:Description: This Operation performs a correlation analysis for metrically scaled data. 
-:Applicable use cases: :doc:`UC9 <../../use_cases/UC09>`
+:Algorithm reference: `Wikipedia entry on Pearson product-moment correlation coefficient <https://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient>`_
+:Description: This Operation performs a correlation analysis for metrically scaled data (assumption: normal distribution). 
+:Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
 
 --------------------------
 
 Options
-=======
+========================
 
 *Describe options regarding the use of the Operation.*
 
@@ -132,10 +128,20 @@ Output data
 
 ---------------------------------
 
-:name: signficance level
+:name: signficance
+:type: boolean
+:range: {0,1}
+:dimensionality:  scalar
+:description: significant or non-significant
+
+
+*alternatively*
+
+
+:name: level of signficance
 :type: floating point number
 :range: [0; +infinity]
-:dimensionality: vector 
+:dimensionality: scalar
 :description: significance level of correlation
 
 ---------------------------------
@@ -168,88 +174,20 @@ Parameters
 
 --------------------------
 
-:name: date
-:type: *double?*
-:valid values: [1; +infinity]
-:default value: - 
-:description: for comparisons of areal datasets one point in time (or a temporal mean value) is used
-
---------------------------
-
-:name: start date
-:type: *double?*
-:valid values: [1; +infinity]
-:default value: first time step defined by input data 
-:description: first step of time period to be employed
-
---------------------------
-
-:name: end date
-:type: *double?*
-:valid values: [1; +infinity]
-:default value: last time step defined by input data 
-:description: last step of time period to be employed
-
---------------------------
-
-:name: lon, x (longitudinal position)
+:name: level of significance
 :type: floating point number
-:valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: -
-:description: longitudinal coordinate of point of interest for comparisons of timeseries
+:valid values: [0; 1]
+:default value: 0.95
+:description: level of significance for t test, determines t value to be compared with test value
 
 --------------------------
-
-:name: lat, y (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: -
-:description: latitudinal coordinate of point of interest for comparisons of timeseries
-
----------------------------------
-
-:name: lon1, x1 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] respectively [0.; 360.]
-:default value: minimum longitude of input data
-:description: longitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lon2, x2 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: maximum longitude of input data 
-:description: longitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat1, y1 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: minimum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat2, y2 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: maximum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
------------------------------
-
-*more coordinates necessary for non-rectangular areas and 3D data*
-
------------------------------
 
 *for plot settings, the procedure is forwarded to the Visualisation Operation*
 
 -----------------------------
 
 Computational complexity
-========================
+==============================
 
 *Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.*
 
@@ -276,8 +214,43 @@ Example
 
 ::
 
-  for a in [5,4,3,2,1]:  # this is program code, shown as-is
-    print a
-  print "it's..."
-  # a literal block continues until the indentation ends
+  # Fortran subroutine for product moment correlation analysis (includes mean value function)
 
+  c-----subroutine "correlation"
+  c.....calculation of 
+  c.....a) product-moment corellation coefficient "cc" between x(t) and y(t), t=[1,nt]
+  c.....b) test-value "test" for t-test
+        subroutine s_correlation(nt,x,y,cc,test) !Zeit   
+        implicit none   
+        integer nt,t
+        real x(nt),dummy,dummy2,dummy3,y(nt),cc,test,f_mw
+  
+        dummy=0.
+        dummy2=0.
+        dummy3=0.
+        do t=1,nt
+          dummy=dummy+((x(t)-f_mw(n,x))*(y(t)-f_mw(n,y)))
+          dummy2=dummy2+((x(t)-f_mw(n,x))**2)
+          dummy3=dummy3+((y(t)-f_mw(n,y))**2)
+        enddo !ja
+        cc=(dummy)/sqrt(dummy2*dummy3)
+        test=cc*sqrt((n-2)/(1-(cc**2)))
+      
+        return
+        end
+
+  c-----function "mean value"
+  c.....calculation of mean value f_mw(nt,x) of vairable x with a sample size nt 
+        real function f_mw(nt,x)
+        implicit none
+        integer nt,t
+        real x(nt)
+
+         f_mw=0.
+        do t=1,nt
+          f_mw=f_mw+x(t)
+        enddo
+        f_mw=f_mw/float(nt)
+
+        return
+        end
