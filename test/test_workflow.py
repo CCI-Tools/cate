@@ -3,8 +3,10 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import NodeInput, NodeOutput, OpNode, ExternalInput, ConstantInput, Graph, GraphOutput, \
-    UndefinedInput, NodeOutputProxy, UNDEFINED, GraphInputProxy, GraphInput
+from ect.core.workflow import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
+    UndefinedSource, NodeOutputRef, GraphInput, Source, GraphInputRef
+
+UNDEFINED = Source.UNDEFINED_VALUE
 
 
 @op_input('x')
@@ -42,12 +44,13 @@ class NodeInputTest(TestCase):
     def test_source(self):
         node = OpNode(Op1, node_id='myop')
         node_input = NodeInput(node, 'x')
-        self.assertIsInstance(node_input.source, UndefinedInput)
-        source = ConstantInput(2.9)
-        node_input.join(source)
+        self.assertIsInstance(node_input.source, UndefinedSource)
+        source = ConstantSource(2.9)
+        node_input.connect_source(source)
         self.assertIs(node_input.source, source)
-        with self.assertRaises(AssertionError):
-            node_input.join(None)
+        node_input.connect_source(None)
+        self.assertIsInstance(node_input.source, ConstantSource)
+        self.assertIs(node_input.source.value, None)
 
 
 class NodeOutputTest(TestCase):
@@ -59,23 +62,6 @@ class NodeOutputTest(TestCase):
         self.assertEqual(str(node_output), 'myop.y')
         with self.assertRaises(AssertionError):
             NodeOutput(node, 'x')
-
-    def test_targets(self):
-        node = OpNode(Op1)
-        node_output = NodeOutput(node, 'y')
-        self.assertEqual(node_output.targets, [])
-        node_output.add_target('A')
-        node_output.add_target('B')
-        self.assertEqual(node_output.targets, ['A', 'B'])
-        self.assertEqual(node_output.targets, ['A', 'B'])
-        node_output.remove_target('A')
-        self.assertEqual(node_output.targets, ['B'])
-        node_output.remove_target('B')
-        self.assertEqual(node_output.targets, [])
-        with self.assertRaises(AssertionError):
-            node_output.add_target(None)
-        with self.assertRaises(AssertionError):
-            node_output.remove_target(None)
 
 
 class GraphOutputTest(TestCase):
@@ -89,12 +75,13 @@ class GraphOutputTest(TestCase):
     def test_source(self):
         graph = Graph(graph_id='mygraph')
         graph_output = GraphOutput(graph, 'y')
-        self.assertIsInstance(graph_output.source, UndefinedInput)
-        source = ConstantInput(2.9)
-        graph_output.join(source)
+        self.assertIsInstance(graph_output.source, UndefinedSource)
+        source = ConstantSource(2.9)
+        graph_output.connect_source(source)
         self.assertIs(graph_output.source, source)
-        with self.assertRaises(AssertionError):
-            graph_output.join(None)
+        graph_output.connect_source(None)
+        self.assertIsInstance(graph_output.source, ConstantSource)
+        self.assertIs(graph_output.source.value, None)
 
 
 class NodeTest(TestCase):
@@ -110,19 +97,18 @@ class NodeTest(TestCase):
         self.assertIsInstance(node.input.u, NodeInput)
         self.assertIs(node.input.u.node, node)
         self.assertEqual(node.input.u.name, 'u')
-        self.assertIsInstance(node.input.u.source, UndefinedInput)
+        self.assertIsInstance(node.input.u.source, UndefinedSource)
 
         self.assertTrue(hasattr(node.input, 'v'))
         self.assertIsInstance(node.input.v, NodeInput)
         self.assertIs(node.input.v.node, node)
         self.assertEqual(node.input.v.name, 'v')
-        self.assertIsInstance(node.input.v.source, UndefinedInput)
+        self.assertIsInstance(node.input.v.source, UndefinedSource)
 
         self.assertTrue(hasattr(node.output, 'w'))
         self.assertIsInstance(node.output.w, NodeOutput)
         self.assertIs(node.output.w.node, node)
         self.assertEqual(node.output.w.name, 'w')
-        self.assertEqual(node.output.w.targets, [])
 
     def test_init_operation_and_name_are_equivalent(self):
         node3 = OpNode(Op3)
@@ -176,9 +162,9 @@ class NodeTest(TestCase):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
-        node2.input.a.join(node1.output.y)
-        node3.input.u.join(node1.output.y)
-        node3.input.v.join(node2.output.b)
+        node2.input.a.connect_source(node1.output.y)
+        node3.input.u.connect_source(node1.output.y)
+        node3.input.v.connect_source(node2.output.b)
         self.assertConnectionsAreOk(node1, node2, node3)
 
         node1 = OpNode(Op1)
@@ -193,55 +179,47 @@ class NodeTest(TestCase):
             node1.input.a = node3.input.u
 
     def assertConnectionsAreOk(self, node1, node2, node3):
-        self.assertIsInstance(node1.input.x.source, UndefinedInput)
-        self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
-
-        self.assertIs(node2.input.a.source, node1.output.y)
-        self.assertEqual(node2.output.b.targets, [node3.input.v])
-
-        self.assertIs(node3.input.u.source, node1.output.y)
-        self.assertIs(node3.input.v.source, node2.output.b)
-        self.assertEqual(node3.output.w.targets, [])
+        self.assertIsInstance(node1.input.x.source, UndefinedSource)
+        self.assertIsInstance(node2.input.a.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.v.source, NodeOutputRef)
+        self.assertIs(node2.input.a.source.node_output, node1.output.y)
+        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIs(node3.input.v.source.node_output, node2.output.b)
 
     def test_disjoin(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
 
-        node2.input.a.join(node1.output.y)
-        node3.input.u.join(node1.output.y)
-        node3.input.v.join(node2.output.b)
+        node2.input.a.connect_source(node1.output.y)
+        node3.input.u.connect_source(node1.output.y)
+        node3.input.v.connect_source(node2.output.b)
         self.assertConnectionsAreOk(node1, node2, node3)
 
-        node3.input.v.disjoin()
+        node3.input.v.disconnect_source()
 
-        self.assertIsInstance(node1.input.x.source, UndefinedInput)
-        self.assertEqual(node1.output.y.targets, [node2.input.a, node3.input.u])
-        self.assertIs(node2.input.a.source, node1.output.y)
-        self.assertEqual(node2.output.b.targets, [])
-        self.assertIs(node3.input.u.source, node1.output.y)
-        self.assertIsInstance(node3.input.v.source, UndefinedInput)
-        self.assertEqual(node3.output.w.targets, [])
+        self.assertIsInstance(node1.input.x.source, UndefinedSource)
+        self.assertIsInstance(node2.input.a.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
+        self.assertIs(node2.input.a.source.node_output, node1.output.y)
+        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIsInstance(node3.input.v.source, UndefinedSource)
 
-        node2.input.a.disjoin()
+        node2.input.a.disconnect_source()
 
-        self.assertIsInstance(node1.input.x.source, UndefinedInput)
-        self.assertEqual(node1.output.y.targets, [node3.input.u])
-        self.assertIsInstance(node2.input.a.source, UndefinedInput)
-        self.assertEqual(node2.output.b.targets, [])
-        self.assertIs(node3.input.u.source, node1.output.y)
-        self.assertIsInstance(node3.input.v.source, UndefinedInput)
-        self.assertEqual(node3.output.w.targets, [])
+        self.assertIsInstance(node1.input.x.source, UndefinedSource)
+        self.assertIsInstance(node2.input.a.source, UndefinedSource)
+        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
+        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIsInstance(node3.input.v.source, UndefinedSource)
 
-        node3.input.u.disjoin()
+        node3.input.u.disconnect_source()
 
-        self.assertIsInstance(node1.input.x.source, UndefinedInput)
-        self.assertEqual(node1.output.y.targets, [])
-        self.assertIsInstance(node2.input.a.source, UndefinedInput)
-        self.assertEqual(node2.output.b.targets, [])
-        self.assertIsInstance(node3.input.u.source, UndefinedInput)
-        self.assertIsInstance(node3.input.v.source, UndefinedInput)
-        self.assertEqual(node3.output.w.targets, [])
+        self.assertIsInstance(node1.input.x.source, UndefinedSource)
+        self.assertIsInstance(node2.input.a.source, UndefinedSource)
+        self.assertIsInstance(node3.input.u.source, UndefinedSource)
+        self.assertIsInstance(node3.input.v.source, UndefinedSource)
 
     def test_to_json_dict(self):
         node3 = OpNode(Op3, node_id='op3')
@@ -295,8 +273,8 @@ class NodeTest(TestCase):
         self.assertIsInstance(node3.input.u, NodeInput)
         self.assertIsInstance(node3.input.v, NodeInput)
         self.assertIsInstance(node3.output.w, NodeOutput)
-        self.assertIsInstance(node3.input.u.source, UndefinedInput)
-        self.assertIsInstance(node3.input.v.source, ExternalInput)
+        self.assertIsInstance(node3.input.u.source, UndefinedSource)
+        self.assertIsInstance(node3.input.v.source, ExternalSource)
 
         self.assertIs(node3.input.u.source.value, UNDEFINED)
         self.assertIs(node3.input.v.source.value, UNDEFINED)
@@ -326,11 +304,11 @@ class NodeTest(TestCase):
         self.assertIsInstance(node3.input.u, NodeInput)
         self.assertIsInstance(node3.input.v, NodeInput)
         self.assertIsInstance(node3.output.w, NodeOutput)
-        self.assertIsInstance(node3.input.u.source, NodeOutputProxy)
-        self.assertIsInstance(node3.input.v.source, ConstantInput)
+        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.v.source, ConstantSource)
 
         self.assertEqual(node3.input.u.source.node_id, 'stat_op')
-        self.assertEqual(node3.input.u.source.node_output_name, 'stats')
+        self.assertEqual(node3.input.u.source.name, 'stats')
         self.assertEqual(node3.input.v.source.value, 'nearest')
 
 
@@ -355,12 +333,12 @@ class GraphTest(TestCase):
         self.assertEqual(graph.nodes, [node1, node2, node3])
 
         self.assertIsInstance(graph.input.p, GraphInput)
-        self.assertIsInstance(graph.input.p.source, ExternalInput)
+        self.assertIsInstance(graph.input.p.source, ExternalSource)
         self.assertIsInstance(node1.input.x, NodeInput)
-        self.assertIsInstance(node1.input.x.source, GraphInput)
+        self.assertIsInstance(node1.input.x.source, GraphInputRef)
 
         self.assertIsInstance(graph.output.q, GraphOutput)
-        self.assertIsInstance(graph.output.q.source, NodeOutput)
+        self.assertIsInstance(graph.output.q.source, NodeOutputRef)
 
     def test_graph_invocation(self):
         node1 = OpNode(Op1, node_id='op1')
@@ -489,9 +467,9 @@ class GraphTest(TestCase):
         self.assertIn('q', graph.output)
 
         self.assertIsInstance(graph.input.p, NodeInput)
-        self.assertIsInstance(graph.input.p.source, ExternalInput)
-        self.assertIsInstance(graph.input.q, GraphOutput)
-        self.assertIsInstance(graph.input.q.source, GraphOutput)
+        self.assertIsInstance(graph.input.p.source, ExternalSource)
+        self.assertIsInstance(graph.output.q, GraphOutput)
+        self.assertIsInstance(graph.output.q.source, NodeOutputRef)
 
         node1 = graph.nodes[0]
         node2 = graph.nodes[1]
@@ -500,4 +478,3 @@ class GraphTest(TestCase):
         self.assertEqual(node1.id, 'op1')
         self.assertEqual(node2.id, 'op2')
         self.assertEqual(node3.id, 'op3')
-
