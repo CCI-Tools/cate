@@ -38,10 +38,9 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Sequence, Union, List
 
-import xarray as xr
-
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
+from ect.core.io_xarray import open_xarray_dataset
 
 
 class DataSource():
@@ -232,7 +231,7 @@ class FileSetDataSource(DataSource):
         last_time = constraints.get('last_time', None)
         paths = self.resolve_paths(first_time=first_time, last_time=last_time)
         # TODO differentiate between xarray and shapefile
-        xr_dataset = xr.open_mfdataset(paths)
+        xr_dataset = open_xarray_dataset(paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
 

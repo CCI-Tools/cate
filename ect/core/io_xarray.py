@@ -1,13 +1,12 @@
 from datetime import datetime
 from glob import glob
+from typing import Sequence
 
+import pandas as pd
 import xarray as xr
 
-import ect.core.io as io
 
-
-def open_xarray_dataset(paths, chunks=None, concat_dim=None, preprocess=None, combine=None, engine=None,
-                        **kwargs):
+def open_xarray_dataset(paths, chunks=None, **kwargs):
     '''
         Adapted version of the xarray 'open_mfdataset' function.
     '''
@@ -17,34 +16,56 @@ def open_xarray_dataset(paths, chunks=None, concat_dim=None, preprocess=None, co
         raise IOError('no files to open')
 
     # open all datasets
+    engine = 'h5netcdf'
     lock = xr.backends.api._default_lock(paths[0], None)
+    #TODO get correct chunking from netcdf metadata
     datasets = [xr.open_dataset(p, engine=engine, chunks=chunks, lock=lock, **kwargs) for p in paths]
-    file_objs = [ds._file_obj for ds in datasets]
 
-    preprocessed_datasets = datasets
-    if preprocess is not None:
-        # pre-process datasets
-        preprocessed_datasets = []
-        file_objs = []
-        for ds in datasets:
-            pds = preprocess(ds)
-            if (pds is not None):
-                preprocessed_datasets.append(pds)
-                file_objs.append(pds._file_obj)
-            else:
-                ds._file_obj.close()
+    preprocessed_datasets = []
+    file_objs = []
+    for ds in datasets:
+        pds = _preprocess_datasets(ds)
+        if pds is None:
+            ds._file_obj.close()
+        else:
+            pds_decoded = xr.decode_cf(pds)
+            preprocessed_datasets.append(pds_decoded)
+            file_objs.append(ds._file_obj)
 
-    # combine datasets into a single
-    if combine is not None:
-        combined_ds = combine(datasets)
+
+    combined_datasets = _combine_datasets(preprocessed_datasets)
+    combined_datasets._file_obj = xr.backends.api._MultiFileCloser(file_objs)
+    return combined_datasets
+
+
+def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
+    '''
+        Combines all datasets into a single.
+    '''
+    if len(datasets) == 0:
+        raise ValueError
+    if 'time' in datasets[0].dim:
+        xr.auto_combine(datasets, concat_dim='time')
     else:
-        combined_ds = xr.auto_combine(datasets, concat_dim=concat_dim)
-
-    combined_ds._file_obj = xr.backends.api._MultiFileCloser(file_objs)
-    return combined_ds
+        time_index = [_extract_time_index(ds) for ds in datasets]
+        return xr.concat(datasets, pd.Index(time_index, name='time'))
 
 
-def extract_time_index(ds: xr.Dataset) -> datetime:
+def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
+    '''
+        Modifies datasets, so that it is netcdf-CF compliant
+    '''
+    for var in dataset.data_vars:
+        attrs = dataset[var].attrs
+        if '_FillValue' in attrs and 'missing_value' in attrs:
+            # xarray as of version 0.7.2 does not handle it correctly,
+            # if both values are set to NaN. (because the values are compared using '==')
+            # TODO report github issue and PR to xarray
+            del attrs['missing_value']
+    return dataset
+
+
+def _extract_time_index(ds: xr.Dataset) -> datetime:
     time_coverage_start = ds.attrs['time_coverage_start']
     time_coverage_end = ds.attrs['time_coverage_end']
     try:
@@ -54,14 +75,3 @@ def extract_time_index(ds: xr.Dataset) -> datetime:
         return time_end
     except ValueError:
         return None
-
-
-class XarrayDataSource(io.DataSource):
-    def __init__(self, name, glob):
-        super(XarrayDataSource, self).__init__(name)
-        self._glob = glob
-
-    @property
-    def glob(self) -> str:
-        return self._glob
-
