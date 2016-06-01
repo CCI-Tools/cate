@@ -1,6 +1,6 @@
-================
-Technical Design
-================
+============
+Architecture
+============
 
 Common Data Model
 =================
@@ -23,9 +23,9 @@ Operations API
    :scale: 100 %
    :align: center
 
-Workflow API
-============
+Graph API
+=========
 
-.. image:: _static/uml/workflow.svg
+.. image:: _static/uml/graph.svg
    :scale: 100 %
    :align: center

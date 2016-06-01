@@ -2,18 +2,19 @@
 Module Description
 ==================
 
-Provides classes that are used to construct processing workflows (networks) from registered operations and connected
-graphs of such.
+Provides classes that are used to construct processing graphs (workflows, networks) from registered operations
+and connected graphs of such.
 
 This module provides the following data types:
-* A :py:class:`Node` has zero or more ``NodeInput``s and zero or more ``NodeOutput``s
+
+* A :py:class:`Node` has zero or more ``NodeInput`` and zero or more ``NodeOutput`` objects
 * A :py:class:`OpNode` is a ``Node`` that wraps an executable operation.
-* A :py:class:`Graph` is a ``Node``that contains other ``Node``s
-* A :py:class:`NodeInput` belongs to exactly one ``Node``, has a name, and has a ``source`` property which provides a
+* A :py:class:`GraphFileNode` is a ``Node`` that wraps an executable ``Graph`` loaded from a JSON file.
+* A :py:class:`Graph` is a ``Node`` that contains other ``Node`` objects
+* A :py:class:`NodeInput` belongs to exactly one ``Node``, has a name, and has a ``source`` property which provides
   the input value. A source may be a constant or a connected ``NodeOutput`` of another node. Basically anything
   can act as a source that has a ``value`` property.
-* A :py:class:`NodeOutput` belongs to exactly one ``Node``, has a name, and has a ``targets`` property (a list)
-  that points to all connected ``NodeInput``s of other nodes. A ``NodeOutput`` has a ``value`` property and
+* A :py:class:`NodeOutput` belongs to exactly one ``Node``, has a name and has a ``value`` property and
   can therefore act as a source for a ``NodeInput``.
 
 Technical Requirements
@@ -39,7 +40,8 @@ operation is currently:::
     ect run OP [ARGS]
 
 Where *OP* shall be a registered operation or a graph.
-_Implementation hint_: An ``OpResolver.find_op(op_name)`` may be utilized to resolve
+
+Implementation note: An ``OpResolver.find_op(op_name)`` may be utilized to resolve
 operation names. If we move module ``workflow`` out of core, it may register a new OpResolver that can resolve
 Graph file names (*.graph.json) as operations.
 
@@ -116,7 +118,7 @@ class Node(metaclass=ABCMeta):
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation with input values from
-        :py:property:`input`. Output values in :py:property:`output` will
+        :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
         :param monitor: An optional progress monitor.
@@ -287,8 +289,8 @@ class OpNode(ChildNode):
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
-        Invoke this node's underlying operation :py:property:`op` with input values from
-        :py:property:`input`. Output values in :py:property:`output` will
+        Invoke this node's underlying operation :py:attr:`op` with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
         :param monitor: An optional progress monitor.

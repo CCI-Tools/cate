@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
+from ect.core.graph import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
     UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphFileNode
 
 
@@ -33,7 +33,7 @@ class GraphFileNodeTest(TestCase):
     def test_from_json_dict(self):
         import os.path
 
-        file_path = os.path.join(os.path.dirname(__file__), 'test_workflow_g1.json').replace('\\', '/')
+        file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
 
         json_text = """
         {
@@ -71,7 +71,7 @@ class GraphFileNodeTest(TestCase):
 
     def test_to_json_dict(self):
         import os.path
-        file_path = os.path.join(os.path.dirname(__file__), 'test_workflow_g1.json').replace('\\', '/')
+        file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
         node = GraphFileNode(file_path, node_id='jojo_87')
         actual_json_dict = node.to_json_dict()
 
@@ -122,7 +122,7 @@ class OpNodeTest(TestCase):
         self.assertEqual(node.output.w.name, 'w')
 
         self.assertEqual(str(node), node.id)
-        self.assertEqual(repr(node), "OpNode(test.test_workflow.Op3, node_id='%s')" % node.id)
+        self.assertEqual(repr(node), "OpNode(test.test_graph.Op3, node_id='%s')" % node.id)
 
     def test_init_operation_and_name_are_equivalent(self):
         node3 = OpNode(Op3)
@@ -239,7 +239,7 @@ class OpNodeTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.test_workflow.Op3",
+            "op": "test.test_graph.Op3",
             "input": {
                 "u": {"undefined": true},
                 "v": {"external": true}
@@ -270,7 +270,7 @@ class OpNodeTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.test_workflow.Op3",
+            "op": "test.test_graph.Op3",
             "input": {
                 "u": {"output_of": "stat_op.stats"},
                 "v": {"constant": "nearest"}
@@ -306,7 +306,7 @@ class OpNodeTest(TestCase):
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.test_workflow.Op3",
+            "op": "test.test_graph.Op3",
             "input": {
                 "v": {"undefined": true},
                 "u": {"constant": 2.8}
@@ -388,21 +388,21 @@ class GraphTest(TestCase):
             "nodes": [
                 {
                     "id": "op1",
-                    "op": "test.test_workflow.Op1",
+                    "op": "test.test_graph.Op1",
                     "input": {
                         "x": { "input_from": "p" }
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.test_workflow.Op2",
+                    "op": "test.test_graph.Op2",
                     "input": {
                         "a": {"output_of": "op1.y"}
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.test_workflow.Op3",
+                    "op": "test.test_graph.Op3",
                     "input": {
                         "v": {"output_of": "op2.b"},
                         "u": {"output_of": "op1.y"}
@@ -463,21 +463,21 @@ class GraphTest(TestCase):
             "nodes": [
                 {
                     "id": "op1",
-                    "op": "test.test_workflow.Op1",
+                    "op": "test.test_graph.Op1",
                     "input": {
                         "x": { "input_from": "p" }
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.test_workflow.Op2",
+                    "op": "test.test_graph.Op2",
                     "input": {
                         "a": {"output_of": "op1.y"}
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.test_workflow.Op3",
+                    "op": "test.test_graph.Op3",
                     "input": {
                         "v": {"output_of": "op2.b"},
                         "u": {"output_of": "op1.y"}

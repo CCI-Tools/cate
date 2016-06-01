@@ -14,9 +14,10 @@ Contents:
 
    intro
    quick_start
-   design
+   architecture
    tech_spec
    api_reference
+   detailed_design
    op_specs
    rel_projects
 

@@ -20,21 +20,21 @@
     "nodes": [
         {
             "id": "op1",
-            "op": "test.test_workflow.Op1",
+            "op": "test.test_graph.Op1",
             "input": {
                 "x": { "input_from": "p" }
             }
         },
         {
             "id": "op2",
-            "op": "test.test_workflow.Op2",
+            "op": "test.test_graph.Op2",
             "input": {
                 "a": {"output_of": "op1.y"}
             }
         },
         {
             "id": "op3",
-            "op": "test.test_workflow.Op3",
+            "op": "test.test_graph.Op3",
             "input": {
                 "v": {"output_of": "op2.b"},
                 "u": {"output_of": "op1.y"}

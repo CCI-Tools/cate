@@ -4,7 +4,7 @@ Module Description
 
 This module provides classes and interfaces used to harmonise the access to and operations on various
 types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
-`ESRI Shapefiles`_.
+`ESRI Shapefile`_ files.
 
 The goal of the ECT is to reuse existing, and well-known APIs for a given data type to a maximum extend
 instead of creating a complex new API. The ECT's common data model is therefore designed as a thin
@@ -13,9 +13,10 @@ data types, i.e. Unidata's `Common Data Model`_.
 
 The ECT common data model exposes three important classes:
 
-1. :py:class:`ect.core.cdm.Dataset` - an abstract interface describing the common ECT dataset API
-2. :py:class:`ect.core.cdm.DatasetAdapter` - wraps an existing dataset and adapts it to the common ``Dataset`` interface
-3. :py:class:`ect.core.cdm.DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the common ``Dataset`` interface
+1. :py:class:`Dataset` - an abstract interface describing the common ECT dataset API
+2. :py:class:`DatasetAdapter` - wraps an existing dataset and adapts it to the common ``Dataset`` interface
+3. :py:class:`DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the
+   common ``Dataset`` interface
 
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
@@ -55,7 +56,7 @@ class Dataset(metaclass=ABCMeta):
 class DatasetAdapter(Dataset, metaclass=ABCMeta):
     """
     An abstract base class that wraps an existing dataset or data structure and adapts it to the common
-    :py:class:`ect.core.cdm.Dataset` interface.
+    :py:class:`Dataset` interface.
 
     :param wrapped_dataset: The wrapped dataset / data structure
     """
@@ -73,7 +74,7 @@ class DatasetAdapter(Dataset, metaclass=ABCMeta):
 
 class DatasetCollection(Dataset):
     """
-    A collection of :py:class:`ect.core.cdm.Dataset`-like objects.
+    A collection of :py:class:`Dataset`-like objects.
 
     :param datasets: datasets
     :param named_datasets: named datasets
@@ -96,7 +97,7 @@ class DatasetCollection(Dataset):
     @property
     def datasets(self):
         """
-        :return: A sequence of all :py:class:`ect.core.cdm.Dataset` objects
+        :return: A sequence of all :py:class:`Dataset` objects
                  in this collection in the order they have been added.
         """
         return [ds for ds in self._datasets.values()]
@@ -104,7 +105,7 @@ class DatasetCollection(Dataset):
     def add_dataset(self, dataset, name: str = None):
         """
         Add a new dataset to this collection.
-        :param dataset: a :py:class:`ect.core.cdm.Dataset`-like object
+        :param dataset: a :py:class:`Dataset`-like object
         :param name: an optional name
         """
         if not name:
@@ -113,10 +114,10 @@ class DatasetCollection(Dataset):
 
     def remove_dataset(self, name_or_dataset):
         """
-        Removed the given dataset from this collection.
+        Remove the given dataset from this collection.
 
         :param name_or_dataset: The name of the dataset, the dataset, or the wrapped dataset to be removed.
-        :return: The :py:class:`ect.core.cdm.Dataset` that has been removed.
+        :return: The :py:class:`Dataset` that has been removed.
         """
         for name, dataset in self._datasets.items():
             if name_or_dataset is dataset.wrapped_dataset \
@@ -128,7 +129,7 @@ class DatasetCollection(Dataset):
 
     def subset(self, spatial_roi=None, temporal_roi=None):
         """
-        Calls the :py:method:`ect.core.cdm.Dataset.subset` method on all datasets and return the result as
+        Call the :py:meth:`subset()` method on all datasets and return the result as
         a new dataset collection.
 
         :param spatial_roi: A spatial region of interest
