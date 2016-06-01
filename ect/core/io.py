@@ -78,7 +78,7 @@ class DataSource(metaclass=ABCMeta):
 class Catalogue(metaclass=ABCMeta):
     """Represents a catalogue of data sources."""
 
-    # todo (mz, nf) - define constraints --> have a look at Iris Constraint class
+    # TODO (mz, nf) - define constraints --> have a look at Iris Constraint class
     @abstractmethod
     def query(self, **constraints) -> Sequence[DataSource]:
         """
@@ -87,19 +87,6 @@ class Catalogue(metaclass=ABCMeta):
         :param constraints: Query constraints.
         :return: Sequence of data sources.
         """
-
-
-# class SimpleCatalogue(Catalogue):
-#     """
-#     Simple catalogue based on a sequence of provided data sources.
-#
-#     :param data_sources: sequence of data sources
-#     """
-#     def __init__(self, data_sources: Sequence[DataSource]):
-#         self._data_sources = list(data_sources)
-#
-#     def query(self, **constraints) -> Sequence[DataSource]:
-#         return [ds for ds in self._data_sources if ds.matches_filter(**constraints)]
 
 
 class CatalogueRegistry:
@@ -130,7 +117,7 @@ class CatalogueRegistry:
 CATALOGUE_REGISTRY = CatalogueRegistry()
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None, **constraints) \
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, **constraints) \
         -> Sequence[DataSource]:
     """Query the catalogue(s) for data sources matching the given constrains.
 
@@ -187,28 +174,13 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
 
     if isinstance(data_source, str):
         catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
-        data_source = query_data_sources(catalogue_list, name=data_source)
-    if data_source is None:
-        raise ValueError('No data_source found in default catalogue')
-
+        data_sources = query_data_sources(catalogue_list, name=data_source)
+        if len(data_sources) == 0:
+            raise ValueError('No data_source found in default catalogue')
+        elif len(data_sources) > 1:
+            raise ValueError('More than one data_source found in default catalogue')
+        data_source = data_sources[0]
     return data_source.open_dataset(**constraints)
-
-
-#########################
-
-def _as_datetime(dt: Union[str, datetime], default) -> datetime:
-    if dt is None:
-        return default
-    if isinstance(dt, str):
-        if dt == '':
-            return default
-        try:
-            return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return datetime.strptime(dt, "%Y-%m-%d")
-    if isinstance(dt, datetime):
-        return dt
-    raise ValueError()
 
 
 class FileSetDataSource(DataSource):
@@ -277,7 +249,7 @@ class FileSetDataSource(DataSource):
     def _full_pattern(self) -> str:
         return self._base_dir + "/" + self._file_pattern
 
-    def resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> \
+    def resolve_paths(self, first_time: Union[str, datetime]=None, last_time: Union[str, datetime]=None) -> \
             Sequence[str]:
         """Return a list of all paths between the given times.
 
@@ -292,13 +264,13 @@ class FileSetDataSource(DataSource):
             The last date of the time range, can be None if the file set has a *end_time*.
             In this case the *end_time* is used.
         """
-        if first_time is None and (self._fileset_info is None or self._fileset_info._start_time is None):
+        if first_time is None and (self._fileset_info is None or self._fileset_info.start_time is None):
             raise ValueError("neither first_time nor start_time are given")
-        dt1 = _as_datetime(first_time, self._fileset_info._start_time)
+        dt1 = _as_datetime(first_time, self._fileset_info.start_time)
 
-        if last_time is None and (self._fileset_info is None or self._fileset_info._end_time is None):
+        if last_time is None and (self._fileset_info is None or self._fileset_info.end_time is None):
             raise ValueError("neither last_time nor end_time are given")
-        dt2 = _as_datetime(last_time, self._fileset_info._end_time)
+        dt2 = _as_datetime(last_time, self._fileset_info.end_time)
 
         if dt1 > dt2:
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
@@ -308,14 +280,15 @@ class FileSetDataSource(DataSource):
             paths = [self.catalogue.root_dir + '/' + p for p in paths]
         return paths
 
+    # noinspection PyUnresolvedReferences
     def _resolve_date(self, dt: datetime):
         path = self._full_pattern
-        if "{YYYY}" in path:
-            path = path.replace("{YYYY}", "%04d" % dt.year)
-        if "{MM}" in path:
-            path = path.replace("{MM}", "%02d" % dt.month)
-        if "{DD}" in path:
-            path = path.replace("{DD}", "%02d" % dt.day)
+        if '{YYYY}' in path:
+            path = path.replace('{YYYY}', '%04d' % dt.year)
+        if '{MM}' in path:
+            path = path.replace('{MM}', '%02d' % dt.month)
+        if '{DD}' in path:
+            path = path.replace('{DD}', '%02d' % dt.day)
         return path
 
 
@@ -345,6 +318,14 @@ class FileSetInfo:
             num_files=self._num_files,
             size_in_mb=self._size_in_mb,
         )
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
 
 class FileSetCatalogue(Catalogue):
@@ -388,3 +369,18 @@ class FileSetCatalogue(Catalogue):
         catalogue = FileSetCatalogue(root_dir)
         catalogue.expand_from_json(json_fp_or_str)
         return catalogue
+
+
+def _as_datetime(dt: Union[str, datetime], default) -> datetime:
+    if dt is None:
+        return default
+    if isinstance(dt, str):
+        if dt == '':
+            return default
+        try:
+            return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return datetime.strptime(dt, "%Y-%m-%d")
+    if isinstance(dt, datetime):
+        return dt
+    raise TypeError()
