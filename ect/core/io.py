@@ -176,9 +176,9 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
         catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
         data_sources = query_data_sources(catalogue_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError('No data_source found in default catalogue')
+            raise ValueError('No data_source found')
         elif len(data_sources) > 1:
-            raise ValueError('More than one data_source found in default catalogue')
+            raise ValueError('%s data_sources found for the given query term' % len(data_sources))
         data_source = data_sources[0]
     return data_source.open_dataset(**constraints)
 

@@ -52,23 +52,26 @@ class IOTest(TestCase):
 
     def test_query_data_sources_default_catalogue(self):
         self.assertEqual(0, len(io.CATALOGUE_REGISTRY))
+        try:
+            from ect.ds.esa_cci_portal_ftp import init_plugin
+            init_plugin()
+            self.assertEqual(1, len(io.CATALOGUE_REGISTRY))
 
-        from ect.ds.esa_cci_portal_ftp import init_plugin
-        init_plugin()
-        self.assertEqual(1, len(io.CATALOGUE_REGISTRY))
+            data_sources = io.query_data_sources()
+            self.assertIsNotNone(data_sources)
+            self.assertEqual(len(data_sources), 98)
+            self.assertEqual(data_sources[0].name, "aerosol/ATSR2_SU/L3/v4.2/DAILY")
 
-        data_sources = io.query_data_sources()
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 98)
-        self.assertEqual(data_sources[0].name, "aerosol/ATSR2_SU/L3/v4.2/DAILY")
+            data_sources = io.query_data_sources(name="DAILY")
+            self.assertIsNotNone(data_sources)
+            self.assertEqual(len(data_sources), 13)
 
-        data_sources = io.query_data_sources(name="DAILY")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 13)
-
-        data_sources = io.query_data_sources(name="ZZ")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
+            data_sources = io.query_data_sources(name="ZZ")
+            self.assertIsNotNone(data_sources)
+            self.assertEqual(len(data_sources), 0)
+        finally:
+            io.CATALOGUE_REGISTRY._catalogues.clear()
+        self.assertEqual(0, len(io.CATALOGUE_REGISTRY))
 
     def test_query_data_sources_with_catalogue(self):
         data_sources = io.query_data_sources(catalogues=self.TEST_CATALOGUE)
@@ -109,7 +112,7 @@ class IOTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             io.open_dataset('foo')
-        self.assertEqual('No data_source found in default catalogue', str(cm.exception))
+        self.assertEqual('No data_source found', str(cm.exception))
 
         inmem_data_source = InMemoryDataSource('42')
         dataset1 = io.open_dataset(inmem_data_source)
@@ -119,6 +122,15 @@ class IOTest(TestCase):
         dataset2 = inmem_data_source.open_dataset()
         self.assertIsNotNone(dataset2)
         self.assertEqual('42', dataset2.wrapped_dataset)
+
+        try:
+            from ect.ds.esa_cci_portal_ftp import init_plugin
+            init_plugin()
+            with self.assertRaises(ValueError) as cm:
+                io.open_dataset('aerosol')
+            self.assertEqual('28 data_sources found for the given query term', str(cm.exception))
+        finally:
+            io.CATALOGUE_REGISTRY._catalogues.clear()
 
 
 class FileSetDataSourceTest(TestCase):
