@@ -17,6 +17,7 @@ Module Reference
 
 import argparse
 import os.path
+import os.path
 import sys
 from abc import ABCMeta
 from collections import OrderedDict
@@ -104,12 +105,11 @@ class Run(Command):
                             help="Operation arguments. Use '-h' to print operation details.")
 
     def execute(self, command_args):
-        from ect.core.op import REGISTRY as OP_REGISTRY
-
         op_name = command_args.op_name
-        op = OP_REGISTRY.get_op(op_name)
-        if op is None:
-            return 1, "error: unknown operation '%s'" % op_name
+        if op_name.endswith('.json') and os.path.isfile(op_name):
+            graph_file = op_name
+        else:
+            graph_file = None
 
         op_args = []
         op_kwargs = OrderedDict()
@@ -130,13 +130,51 @@ class Run(Command):
                 op_args.append(arg)
             else:
                 op_kwargs[kw] = arg
+
+        if graph_file is None:
+            return self._invoke_operation(command_args.op_name, command_args.monitor, op_args, op_kwargs)
+        else:
+            return self._invoke_graph(command_args)
+
+    @staticmethod
+    def _invoke_operation(op_name: str, op_monitor: bool, op_args: list, op_kwargs: dict):
+        from ect.core.op import REGISTRY as OP_REGISTRY
+        op = OP_REGISTRY.get_op(op_name)
+        if op is None:
+            return 1, "error: unknown operation '%s'" % op_name
         print('Running operation %s with args=%s and kwargs=%s' % (op_name, op_args, dict(op_kwargs)))
-        if command_args.monitor:
+        if op_monitor:
             monitor = ConsoleMonitor()
         else:
             monitor = Monitor.NULL
         return_value = op(*op_args, monitor=monitor, **op_kwargs)
         print('Output: %s' % return_value)
+        return None
+
+    @staticmethod
+    def _invoke_graph(graph_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
+        if op_args:
+            return 1, "error: can't run graph with arguments %s, please provide keywords only" % op_args
+
+        from ect.core.graph import Graph
+        with open(graph_file) as fp:
+            import json
+            json_dict = json.load(fp)
+            graph = Graph.from_json_dict(json_dict)
+
+        for name, value in op_kwargs.items():
+            if name in graph.input:
+                graph.input[name].connect_source(value)
+
+        print('Running graph %s with kwargs=%s' % (graph_file, op_args, dict(op_kwargs)))
+        if op_monitor:
+            monitor = ConsoleMonitor()
+        else:
+            monitor = Monitor.NULL
+        graph.invoke(monitor=monitor)
+        for graph_output in graph.outputs[:]:
+            print('Output: %s = %s' % (graph_output.name, graph_output))
+        return None
 
 
 class List(Command):

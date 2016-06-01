@@ -115,16 +115,16 @@ class CliTest(TestCase):
         from ect.core.monitor import starting, Monitor
         from time import sleep
 
-        def time_series(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+        def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
             print('lat=%s lon=%s method=%s' % (lat, lon, method))
             work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
-            with starting(monitor, 'Extracting time series data', sum(work_units)):
+            with starting(monitor, 'Extracting timeseries data', sum(work_units)):
                 for work_unit in work_units:
                     sleep(work_unit / 10.)
                     monitor.progress(work_unit)
             return work_units
 
-        op_reg = OP_REGISTRY.add_op(time_series, fail_if_exists=True)
+        op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
         try:
             # Run without progress monitor
@@ -142,9 +142,9 @@ class CliTest(TestCase):
                 self.assertEqual(status, 0)
             self.assertTrue('Running operation ' in sout.getvalue())
             self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
-            self.assertTrue('Extracting time series data: start' in sout.getvalue())
-            self.assertTrue('Extracting time series data: 33%' in sout.getvalue())
-            self.assertTrue('Extracting time series data: done' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: start' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: 33%' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: done' in sout.getvalue())
             self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
             self.assertEqual(serr.getvalue(), '')
 
@@ -156,4 +156,50 @@ class CliTest(TestCase):
             self.assertEqual(serr.getvalue(), "ect: error: keyword 'l*t' is not a valid identifier\n")
 
         finally:
-            OP_REGISTRY.remove_op(op_reg)
+            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+
+    def test_command_run_with_graph(self):
+        from ect.core.graph import Graph
+        from ect.core.op import REGISTRY as OP_REGISTRY
+        from ect.core.monitor import starting, Monitor
+        import os.path
+        from time import sleep
+
+        def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+            print('lat=%s lon=%s method=%s' % (lat, lon, method))
+            work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
+            with starting(monitor, 'Extracting time series data', sum(work_units)):
+                for work_unit in work_units:
+                    sleep(work_unit / 10.)
+                    monitor.progress(work_unit)
+            return work_units
+
+        op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
+
+        graph_file = os.path.join(os.path.dirname(__file__), 'test_cli_timeseries_graph.json')
+        self.assertTrue(os.path.exists(graph_file), msg='missing test file %s' % graph_file)
+
+        try:
+            # Run without progress monitor
+            with fetch_std_streams() as (sout, serr):
+                status = cli.main(args=['run', graph_file, 'lat=13.2', 'lon=52.9'])
+                self.assertEqual(status, 0)
+            self.assertTrue('Running operation ' in sout.getvalue())
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            self.assertEqual(serr.getvalue(), '')
+
+            # Run with progress monitor
+            with fetch_std_streams() as (sout, serr):
+                status = cli.main(args=['run', '--monitor', graph_file, 'lat=13.2', 'lon=52.9'])
+                self.assertEqual(status, 0)
+            self.assertTrue('Running operation ' in sout.getvalue())
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: start' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: 33%' in sout.getvalue())
+            self.assertTrue('Extracting timeseries data: done' in sout.getvalue())
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            self.assertEqual(serr.getvalue(), '')
+
+        finally:
+            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
