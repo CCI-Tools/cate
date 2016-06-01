@@ -66,9 +66,12 @@ from .util import Namespace
 
 class Node(metaclass=ABCMeta):
     """
-    Nodes can be used to construct networks or graphs of operations.
-    Input and output of an operation are available as node attributes of type :py:class:`NodeInput`
-    and :py:class:`NodeOutput`.
+    Base class for all nodes that may occur as building blocks of a processing graph.
+    All nodes have inputs and outputs, and can be invoked to perform some operation.
+    Inputs can be set, and outputs can be retrieved.
+
+    Inputs are exposed as attributes of the :py:attr:`input` property and are of type :py:class:`NodeInput`.
+    Outputs are exposed as attributes of the :py:attr:`output` property and are of type :py:class:`NodeOutput`.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
     :param node_id: A node ID. If None, a unique name will be generated.
@@ -163,6 +166,7 @@ class ChildNode(Node):
         node = cls.new_node_from_json_dict(json_dict, registry=registry)
         if node is None:
             return None
+        # todo (nf) - address code duplication in Graph.from_json_dict
         node_input_dict = json_dict.get('input', None)
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
         for node_input in node.input[:]:
@@ -175,7 +179,7 @@ class ChildNode(Node):
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("failed to identify input type of node '%s'" % node.id)
+                raise ValueError("unknown input type in node '%s'" % node.id)
         return node
 
     @classmethod
@@ -214,7 +218,7 @@ class ChildNode(Node):
 
 class GraphFileNode(ChildNode):
     """
-    A `GraphFileNode` is a `ChildNode` that uses an externally stored :py:class:`Graph` for its computations.
+    A `GraphFileNode` is a child node that uses an externally stored :py:class:`Graph` for its computations.
 
     :param file_path: A path to a file containing the JSON representation of a :py:class:`Graph`.
     :param registry: An operation registry to be used to lookup the operation, if given by name..
@@ -247,6 +251,13 @@ class GraphFileNode(ChildNode):
         return self._graph
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying :py:attr:`graph` with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying graph's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
         self._graph.invoke(monitor=monitor)
         # transfer graph output values into this node's output values
         for graph_output in self._graph.output[:]:
@@ -340,6 +351,9 @@ class Graph(Node):
     """
     A graph of (connected) nodes.
 
+    Inputs are exposed as attributes of the :py:attr:`input` property and are of type :py:class:`GraphInput`.
+    Outputs are exposed as attributes of the :py:attr:`output` property and are of type :py:class:`GraphOutput`.
+
     :param op_meta_info: An optional OpMetaInfo object. If not provided, a basic stump will be generated.
     :param graph_id: An optional ID for the graph.
     """
@@ -375,7 +389,7 @@ class Graph(Node):
 
     def invoke(self, monitor=Monitor.NULL):
         """
-        Invoke this graph by invoking all all of its nodes.
+        Invoke this graph by invoking all all of its child nodes.
         The node invocation order is determined by the input requirements of individual nodes.
 
         :param monitor: An optional progress monitor.
@@ -460,7 +474,7 @@ class Graph(Node):
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("illegal input type in graph '%s'" % graph_id)
+                raise ValueError("unknown input type in graph '%s'" % graph_id)
 
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
         for node_output in graph.output[:]:
@@ -473,7 +487,7 @@ class Graph(Node):
             if source is not None:
                 node_output.connect_source(source)
             else:
-                raise ValueError("illegal output type in graph '%s'" % graph_id)
+                raise ValueError("unknown output type in graph '%s'" % graph_id)
 
         # Convert all nodes
         node_classes = [OpNode, GraphFileNode]
@@ -487,7 +501,7 @@ class Graph(Node):
             if node is not None:
                 nodes.append(node)
             else:
-                raise ValueError("illegal node type in graph '%s'" % graph_id)
+                raise ValueError("unknown node type in graph '%s'" % graph_id)
 
         graph.add_nodes(*nodes)
 
@@ -532,6 +546,8 @@ class Graph(Node):
 
 
 class Json(metaclass=ABCMeta):
+    """Something that can convert from and to JSON-compatible dictionaries."""
+
     @classmethod
     @abstractmethod
     def from_json_dict(cls, json_dict: dict):
@@ -543,7 +559,7 @@ class Json(metaclass=ABCMeta):
 
 
 class Source(metaclass=ABCMeta):
-    #: Special value returned by py:property:`value` indicating that a value has never been set.
+    """Something that has a ``value`` property."""
 
     @property
     @abstractmethod
@@ -552,15 +568,15 @@ class Source(metaclass=ABCMeta):
 
 
 class Target(metaclass=ABCMeta):
+    """Something that has a ``set_value(value)`` method."""
+
     @abstractmethod
     def set_value(self, value):
         """Set the *value* of this output."""
 
 
 class ExternalSource(Source, Target, Json):
-    """
-    A source whose value can be set externally.
-    """
+    """A source whose value can be set externally."""
 
     def __init__(self, value=None):
         self._value = value
@@ -588,9 +604,7 @@ class ExternalSource(Source, Target, Json):
 
 
 class UndefinedSource(Source, Json):
-    """
-    A source that returns the value UNDEFINED.
-    """
+    """A source that returns the "value" ``UNDEFINED``."""
 
     @property
     def value(self):
@@ -599,7 +613,7 @@ class UndefinedSource(Source, Json):
     @classmethod
     def from_json_dict(cls, json_dict: dict):
         # The value of 'external' is ignored
-        return _UNDEFINED_SOURCE if 'undefined' in json_dict else None
+        return UNDEFINED_SOURCE if 'undefined' in json_dict else None
 
     def to_json_dict(self):
         return dict(undefined=True)
@@ -611,14 +625,12 @@ class UndefinedSource(Source, Json):
         return "UndefinedSource()"
 
 
-# This constant is used to avoid creating new instances of UndefinedSource
-_UNDEFINED_SOURCE = UndefinedSource()
+#: Use this constant instead of ``UndefinedSource()`` to avoid creating new instances.
+UNDEFINED_SOURCE = UndefinedSource()
 
 
 class ConstantSource(Source, Json):
-    """
-    A source that provides a constant value.
-    """
+    """A source that provides a constant value."""
 
     def __init__(self, constant):
         self._constant = constant
@@ -649,9 +661,7 @@ class ConstantSource(Source, Json):
 
 
 class GraphInputRef(Source, Json):
-    """
-    Reference to a :py:class:`GraphInput` instance.
-    """
+    """Reference to a :py:class:`GraphInput` instance. Used as source for node inputs and graph outputs."""
 
     def __init__(self, name: str = None, graph_input: 'NodeInput' = None):
         assert not (name is None and graph_input is None)
@@ -689,9 +699,7 @@ class GraphInputRef(Source, Json):
 
 
 class NodeOutputRef(Source, Json):
-    """
-    Reference to a :py:class:`NodeOutput` instance.
-    """
+    """Reference to a :py:class:`NodeOutput` instance. Used as source for node inputs and graph outputs."""
 
     def __init__(self, node_id: str = None, name: str = None, node_output: 'NodeOutput' = None):
         assert not (node_id is None and node_output is None)
@@ -745,6 +753,8 @@ class NodeOutputRef(Source, Json):
 
 
 class SourceHolder(metaclass=ABCMeta):
+    """Something that can be connected to and disconnected from a current :py:class:`Source`."""
+
     @property
     @abstractmethod
     def source(self) -> Source:
@@ -770,7 +780,7 @@ class SourceHolderMixin(SourceHolder):
     def connect_source(self, new_source: Source):
         # convert 'new_source' so it matches our graph construction rules
         if new_source is UNDEFINED:
-            new_source = _UNDEFINED_SOURCE
+            new_source = UNDEFINED_SOURCE
         elif not isinstance(new_source, Source):
             new_source = ConstantSource(new_source)
         elif isinstance(new_source, NodeOutput):
@@ -781,11 +791,13 @@ class SourceHolderMixin(SourceHolder):
         self._source = new_source
 
     def disconnect_source(self):
-        self.connect_source(_UNDEFINED_SOURCE)
+        self.connect_source(UNDEFINED_SOURCE)
 
 
 class NodeInput(Source, SourceHolderMixin):
-    def __init__(self, node: Node, name: str, source: Source = _UNDEFINED_SOURCE):
+    """Represents a named input for child nodes of type :py:class:`OpNode` and :py:class:`GraphFileNode`. """
+
+    def __init__(self, node: Node, name: str, source: Source = UNDEFINED_SOURCE):
         assert node is not None
         assert name is not None
         assert source is not None
@@ -814,16 +826,9 @@ class NodeInput(Source, SourceHolderMixin):
         return "%s.%s" % (self._node.id, self._name)
 
 
-class GraphInput(NodeInput):
-    def __init__(self, graph: Graph, name: str, source: Source = _UNDEFINED_SOURCE):
-        super(GraphInput, self).__init__(graph, name, source=source)
-
-    @property
-    def graph(self) -> Graph:
-        return self.node
-
-
 class NodeOutput(Source, Target):
+    """Represents a named output for child nodes of type :py:class:`OpNode` and :py:class:`GraphFileNode`. """
+
     def __init__(self, node: Node, name: str):
         assert node is not None
         assert name is not None
@@ -851,8 +856,21 @@ class NodeOutput(Source, Target):
         return "%s.%s" % (self._node.id, self._name)
 
 
+class GraphInput(NodeInput):
+    """Represents a named input for nodes of type :py:class:`Graph`. """
+
+    def __init__(self, graph: Graph, name: str, source: Source = UNDEFINED_SOURCE):
+        super(GraphInput, self).__init__(graph, name, source=source)
+
+    @property
+    def graph(self) -> Graph:
+        return self.node
+
+
 class GraphOutput(Source, SourceHolderMixin):
-    def __init__(self, graph: Graph, name: str, source: Source = _UNDEFINED_SOURCE):
+    """Represents a named output for nodes of type :py:class:`Graph`. """
+
+    def __init__(self, graph: Graph, name: str, source: Source = UNDEFINED_SOURCE):
         assert graph is not None
         assert name is not None
         assert source is not None
@@ -877,11 +895,31 @@ class GraphOutput(Source, SourceHolderMixin):
 
 
 class NodeInputNamespace(Namespace):
+    """
+    Namespace for node inputs.
+    See :py:class:`NodeOutputNamespace`.
+    """
+
     def __init__(self, node: Node):
         inputs = [(input_name, node.new_node_input(input_name)) for input_name, _ in node.op_meta_info.input]
         super(NodeInputNamespace, self).__init__(inputs)
 
     def __setattr__(self, name, value):
+        """
+        Allows connecting node inputs (or any other :py:class:`SourceHolder` input)
+        with sources by assignment operator. For example:::
+
+            node1.input.x = node2.output.b
+
+        connects input ``x`` of ``node1`` with output ``b`` of ``node2``, while::
+
+            node1.input.x = 3.5
+
+        connects input ``x`` of ``node1`` with a constant source of value ``3.5``.
+
+        :param name: input name.
+        :param value: a :py:class:`Source` or anything else which will be converted to a ``Source``.
+        """
         node_input = self.__getattr__(name)
         if not isinstance(node_input, SourceHolder):
             raise AttributeError("input '%s' is not connectable" % name)
@@ -898,11 +936,32 @@ class NodeInputNamespace(Namespace):
 
 
 class NodeOutputNamespace(Namespace):
+    """
+    Namespace for node outputs.
+    See :py:class:`NodeInputNamespace`.
+    """
+
     def __init__(self, node: Node):
         outputs = [(output_name, node.new_node_output(output_name)) for output_name, _ in node.op_meta_info.output]
         super(NodeOutputNamespace, self).__init__(outputs)
 
     def __setattr__(self, name, value):
+        """
+        Connect
+        Allows connecting graph outputs (or any other :py:class:`SourceHolder` output)
+        with sources by attribute assignment. For example:::
+
+            graph.output.b = node2.output.w
+
+        connects output ``b`` of ``graph`` with output ``w`` of ``node2``, while::
+
+            graph.output.b = 3.5
+
+        connects output ``b`` of ``graph`` with a constant source of value ``3.5``.
+
+        :param name: output name.
+        :param value: a :py:class:`Source` or anything else which will be converted to a ``Source``.
+        """
         node_output = self.__getattr__(name)
         if not isinstance(node_output, SourceHolder):
             raise AttributeError("output '%s' is not connectable" % name)
