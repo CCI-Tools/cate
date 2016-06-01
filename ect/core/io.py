@@ -13,7 +13,9 @@ Module Requirements
     and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
 :Specified in: <link to other RST page here>
 :Test: <link to test class.function here>
-:URD-Source: <name the URD # and optionally the name>
+:URD-Source: <CCIT-UR-DM0010 : The data module shall have the means
+    to attain meta-level status information per ECV type>
+:URD-Source: <CCIT-UR-DM0013 : The CCI Toolbox shall allow filtering for:>
 
 ----
 
@@ -24,7 +26,7 @@ Module Requirements
    The dataset to be returned can optionally be constrained in time and space.
 :Specified in: <link to other RST page here>
 :Test: <link to test class.function here>
-:URD-Source: <name the URD # and optioanlly the name>
+:URD-Source: <CCIT-UR-DM0001 : Data access and input>
 
 
 
