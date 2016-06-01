@@ -382,7 +382,7 @@ class OpRegistry:
         """
         Remove an operation registration.
 
-        :param operation: A fully qualified operation name or registered operation object such as a class or callable.
+        :param operation: A fully qualified operation name or operation object such as a class or any callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
         :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None``
                  if *fail_if_not_exists* is ``False``.
@@ -399,7 +399,7 @@ class OpRegistry:
         """
         Get an operation registration.
 
-        :param operation: A fully qualified operation name or registered operation object such as a class or callable.
+        :param operation: A fully qualified operation name or operation object such as a class or any callable.
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
         :return: a :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
         """
