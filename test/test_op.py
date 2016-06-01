@@ -57,13 +57,12 @@ class OpMetaInfoTest(TestCase):
         op_meta_info = OpMetaInfo.introspect_operation(g)
         self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(g))
         self.assertEqual(op_meta_info.header, dict(description='The doc.'))
-        self.assertEqual(len(op_meta_info.input), 2)
+        self.assertEqual(len(op_meta_info.input), 1)
         self.assertEqual(len(op_meta_info.output), 1)
         self.assertIn('x', op_meta_info.input)
-        self.assertIn(MONITOR, op_meta_info.input)
+        self.assertNotIn(MONITOR, op_meta_info.input)
         self.assertIn(RETURN, op_meta_info.output)
         self.assertEqual(op_meta_info.input.x, dict(data_type=float))
-        self.assertEqual(op_meta_info.input.monitor, dict())
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
         self.assertEqual(op_meta_info.has_monitor, True)
         self.assertEqual(op_meta_info.has_named_outputs, False)
@@ -109,6 +108,7 @@ class OpMetaInfoTest(TestCase):
         json_text = """
         {
             "qualified_name": "x.y.Z",
+            "has_monitor": true,
             "header": {
                 "description": "Hello!"
             },
@@ -132,8 +132,10 @@ class OpMetaInfoTest(TestCase):
         op_meta_info = OpMetaInfo.from_json_dict(json_dict)
         self.assertEqual(op_meta_info.qualified_name, 'x.y.Z')
         self.assertEqual(op_meta_info.header, dict(description='Hello!'))
+        self.assertTrue(op_meta_info.has_monitor)
         self.assertEqual(len(op_meta_info.input), 2)
         self.assertIn('x', op_meta_info.input)
+        self.assertIn('y', op_meta_info.input)
         self.assertEqual(op_meta_info.input.x, OrderedDict([('data_type', str)]))
         self.assertEqual(op_meta_info.input.y, OrderedDict([('data_type', int)]))
         self.assertEqual(len(op_meta_info.output), 1)

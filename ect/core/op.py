@@ -27,7 +27,7 @@ Module Reference
 
 from collections import OrderedDict
 from inspect import isclass
-from typing import Dict
+from typing import Dict, Tuple
 
 from .monitor import Monitor
 from .util import object_to_qualified_name, Namespace, qualified_name_to_object
@@ -44,6 +44,8 @@ class _UndefinedValue:
 UNDEFINED = _UndefinedValue()
 
 
+# todo (nf) - ensure instances of OpMetaInfo class are immutable, which makes life easier
+
 class OpMetaInfo:
     """
     Meta-information about an operation.
@@ -51,22 +53,28 @@ class OpMetaInfo:
     :param op_qualified_name: The operation's qualified name.
     """
 
-    def __init__(self, op_qualified_name: str, header: dict = None, input: dict = None, output: dict = None):
+    def __init__(self, op_qualified_name: str,
+                 has_monitor: bool = False,
+                 header_dict: dict = None,
+                 input_dict: dict = None,
+                 output_dict: dict = None):
         self._qualified_name = op_qualified_name
-        self._header = header if header else OrderedDict()
+        self._has_monitor = has_monitor
+        self._header = header_dict if header_dict else OrderedDict()
         self._input_namespace = Namespace()
-        if input:
-            for name, value in input.items():
+        if input_dict:
+            for name, value in input_dict.items():
                 self._input_namespace[name] = value
         self._output_namespace = Namespace()
-        if output:
-            for name, value in output.items():
+        if output_dict:
+            for name, value in output_dict.items():
                 self._output_namespace[name] = value
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
     MONITOR_INPUT_NAME = 'monitor'
 
+    # todo (nf) - use name '_return_' to avoid confusion with reserved Python keyword
     #: The constant ``'return'``, which is the name of a single, unnamed operation output.
     RETURN_OUTPUT_NAME = 'return'
 
@@ -105,10 +113,10 @@ class OpMetaInfo:
     @property
     def has_monitor(self) -> bool:
         """
-        :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
-                 to output values.
+        :return: ``True`` if the operation supports a :py:class:`Monitor` value as additional keyword argument named
+                 ``monitor``.
         """
-        return self.MONITOR_INPUT_NAME in self._input_namespace
+        return self._has_monitor
 
     @property
     def has_named_outputs(self) -> bool:
@@ -137,26 +145,32 @@ class OpMetaInfo:
 
         json_dict = OrderedDict()
         json_dict['qualified_name'] = self.qualified_name
-        json_dict['header'] = OrderedDict(self.header)
+        if self.has_monitor:
+            json_dict['has_monitor'] = True
+        if self.header:
+            json_dict['header'] = OrderedDict(self.header)
         json_dict['input'] = io_namespace_to_dict(self.input)
         json_dict['output'] = io_namespace_to_dict(self.output)
         return json_dict
 
     @classmethod
     def from_json_dict(cls, json_dict):
-        op_meta_info = OpMetaInfo(json_dict.get('qualified_name', None),
-                                  header=json_dict.get('header', None))
-        input = json_dict.get('input', OrderedDict())
-        for name, properties in input.items():
+        qualified_name = json_dict.get('qualified_name', None)
+        header_obj = json_dict.get('header', None)
+        has_monitor = json_dict.get('has_monitor', False)
+        input_dict = json_dict.get('input', OrderedDict())
+        for name, properties in input_dict.items():
             if 'data_type' in properties:
                 properties['data_type'] = qualified_name_to_object(properties['data_type'])
-            op_meta_info.input[name] = properties
-        output = json_dict.get('output', OrderedDict())
-        for name, properties in output.items():
+        output_dict = json_dict.get('output', OrderedDict())
+        for name, properties in output_dict.items():
             if 'data_type' in properties:
                 properties['data_type'] = qualified_name_to_object(properties['data_type'])
-            op_meta_info.output[name] = properties
-        return op_meta_info
+        return OpMetaInfo(qualified_name,
+                          header_dict=header_obj,
+                          has_monitor=has_monitor,
+                          input_dict=input_dict,
+                          output_dict=output_dict)
 
     def __str__(self):
         return "OpMetaInfo('%s')" % self.qualified_name
@@ -168,40 +182,51 @@ class OpMetaInfo:
     def introspect_operation(cls, operation) -> 'OpMetaInfo':
         if not operation:
             raise ValueError('operation object must be given')
+
         op_qualified_name = object_to_qualified_name(operation, fail=True)
-        op_meta_info = OpMetaInfo(op_qualified_name)
+
+        header = dict()
         # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
         if hasattr(operation, '__doc__'):
             # documentation string
-            op_meta_info.header['description'] = operation.__doc__
+            header['description'] = operation.__doc__
+
+        input_dict, has_monitor = OrderedDict(), False
         if hasattr(operation, '__code__'):
-            cls._introspect_function(op_meta_info, operation, False)
-        if isclass(operation):
+            input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
+        elif isclass(operation):
             if hasattr(operation, '__call__'):
                 call_method = getattr(operation, '__call__')
-                cls._introspect_function(op_meta_info, call_method, True)
+                input_dict, has_monitor = cls._introspect_inputs_from_callable(call_method, True)
             else:
                 raise ValueError('operations of type class must define a __call__(self, ...) method')
+
+        output_dict = OrderedDict()
         if hasattr(operation, '__annotations__'):
             # mapping of parameters names to annotations; 'return' key is reserved for return annotations.
             annotations = operation.__annotations__
             for annotated_name, annotated_type in annotations.items():
                 if annotated_name == 'return':
                     # meta_info.output can't be present so far -> assign new dict
-                    op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
-                else:
-                    # meta_info.input may be present already, through _introspect_function() call
-                    op_meta_info.input[annotated_name]['data_type'] = annotated_type
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
-        return op_meta_info
+                    output_dict[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
+                elif annotated_name != cls.MONITOR_INPUT_NAME:
+                    # input_dict[annotated_name] should be present through _introspect_inputs_from_callable() call
+                    input_dict[annotated_name]['data_type'] = annotated_type
+        if len(output_dict) == 0:
+            output_dict[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
+
+        return OpMetaInfo(op_qualified_name,
+                          header_dict=header, has_monitor=has_monitor,
+                          input_dict=input_dict, output_dict=output_dict)
 
     @classmethod
-    def _introspect_function(cls, op_meta_info, operation, is_method):
+    def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> Tuple[OrderedDict, bool]:
+        input_dict = OrderedDict()
+        has_monitor = False
         # code object containing compiled function bytecode
         if not hasattr(operation, '__code__'):
             # Check: throw exception here?
-            return
+            return input_dict, has_monitor
         code = operation.__code__
         # number of arguments (not including * or ** args)
         arg_count = code.co_argcount
@@ -210,17 +235,22 @@ class OpMetaInfo:
         if len(arg_names) > 0 and is_method and arg_names[0] == 'self':
             arg_names = arg_names[1:]
             arg_count -= 1
-        # Reserve input slots for all arguments
+        # Reserve input slots for input names, but 'monitor'
         for arg_name in arg_names:
-            op_meta_info.input[arg_name] = dict()
-        # Set 'default_value' for input
+            if cls.MONITOR_INPUT_NAME != arg_name:
+                input_dict[arg_name] = dict()
+            else:
+                has_monitor = True
+        # Set 'default_value' for input names, but 'monitor'
         if operation.__defaults__:
             # tuple of any default values for positional or keyword parameters
             default_values = operation.__defaults__
             num_default_values = len(default_values)
             for i in range(num_default_values):
                 arg_name = arg_names[i - num_default_values]
-                op_meta_info.input[arg_name]['default_value'] = default_values[i]
+                if cls.MONITOR_INPUT_NAME != arg_name:
+                    input_dict[arg_name]['default_value'] = default_values[i]
+        return input_dict, has_monitor
 
 
 class OpRegistration:

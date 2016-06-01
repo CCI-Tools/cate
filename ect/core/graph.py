@@ -170,7 +170,9 @@ class ChildNode(Node):
         node_input_dict = json_dict.get('input', None)
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
         for node_input in node.input[:]:
-            node_input_source_dict = node_input_dict.get(node_input.name, {})
+            node_input_source_dict = node_input_dict.get(node_input.name, None)
+            if node_input_source_dict is None:
+                raise ValueError("missing specification for input '%s' of node '%s'" % (node_input.name, node.id))
             source = None
             for source_class in source_classes:
                 source = source_class.from_json_dict(node_input_source_dict)
@@ -179,7 +181,7 @@ class ChildNode(Node):
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("unknown input type in node '%s'" % node.id)
+                raise ValueError("unknown type for input '%s' of node '%s'" % (node_input.name, node.id))
         return node
 
     @classmethod

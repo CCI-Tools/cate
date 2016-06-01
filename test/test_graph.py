@@ -347,7 +347,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input=dict(p={}), output=dict(q={})))
+        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -378,7 +378,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input=dict(p={}), output=dict(q={})))
+        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -458,7 +458,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('graph', input=dict(p={}), output=dict(q={})), graph_id='my_workflow')
+        graph = Graph(op_meta_info=OpMetaInfo('graph', input_dict=dict(p={}), output_dict=dict(q={})), graph_id='my_workflow')
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -539,7 +539,7 @@ class NodeInputTest(TestCase):
 
 class GraphInputTest(TestCase):
     def test_init(self):
-        graph = Graph(OpMetaInfo('mygraph', input=dict(x={})), graph_id='mygraph_10')
+        graph = Graph(OpMetaInfo('mygraph', input_dict=dict(x={})), graph_id='mygraph_10')
         graph_input = GraphInput(graph, 'x')
         self.assertIs(graph_input.node, graph)
         self.assertIs(graph_input.graph, graph)
