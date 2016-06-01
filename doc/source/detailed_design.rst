@@ -32,6 +32,18 @@ Module ``ect.core.plugin``
 .. automodule:: ect.core.plugin
     :members:
 
+Module ``ect.core.monitor``
+---------------------------
+
+.. automodule:: ect.core.monitor
+    :members:
+
+Module ``ect.core.cli``
+-----------------------
+
+.. automodule:: ect.core.cli
+    :members:
+
 Module ``ect.core.util``
 ------------------------
 

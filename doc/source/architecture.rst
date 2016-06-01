@@ -23,9 +23,22 @@ Operations API
    :scale: 100 %
    :align: center
 
+
+.. image:: _static/uml/monitor.svg
+   :scale: 100 %
+   :align: center
+
+
 Graph API
 =========
 
 .. image:: _static/uml/graph.svg
+   :scale: 100 %
+   :align: center
+
+Command-Line Interface (CLI) API
+================================
+
+.. image:: _static/uml/cli.svg
    :scale: 100 %
    :align: center
