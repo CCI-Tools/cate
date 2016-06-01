@@ -396,10 +396,15 @@ class Graph(Node):
 
         :param monitor: An optional progress monitor.
         """
-        monitor.start('executing graph ' + self.id, len(self.nodes))
-        for node in self.nodes:
-            node.invoke(monitor.child(1))
-        monitor.done()
+        nodes = self.nodes
+        node_count = len(nodes)
+        if node_count == 1:
+            nodes[0].invoke(monitor)
+        elif node_count > 1:
+            monitor.start("Executing graph '%s'" % self.id, node_count)
+            for node in nodes:
+                node.invoke(monitor.child(1))
+            monitor.done()
 
     def to_json_dict(self):
         """
@@ -444,15 +449,20 @@ class Graph(Node):
     def from_json_dict(cls, graph_json_dict, registry=REGISTRY):
         # Developer note: keep variable naming consistent with Graph.to_json_dict() method
 
-        graph_id = graph_json_dict.get('id', 'graph')
+        graph_id = graph_json_dict.get('id', None)
         node_input_json_dict = graph_json_dict.get('input', {})
         node_output_json_dict = graph_json_dict.get('output', {})
         graph_nodes_json_list = graph_json_dict.get('nodes', [])
 
+        # todo (nf) - if you look at current graph JSON code, keeping a separate "op_meta_info" dict is ugly
+        # Also, inputs and outputs have to be specified twice. We may have inlined "qualified_name", "header"
+        # properties and the existing graph-level "input" and "output" dictionaries may be allowed to carry
+        # the info that is usually stored in "input" and "output" dicts of the  "op_meta_info" dict.
+
         # Convert op_meta_info
         op_meta_info_json_dict = graph_json_dict.get('op_meta_info', None)
         if op_meta_info_json_dict is not None:
-            op_meta_info = OpMetaInfo.from_json_dict(op_meta_info_json_dict)
+            op_meta_info = OpMetaInfo.from_json_dict(op_meta_info_json_dict, has_monitor=True)
         else:
             op_meta_info = OpMetaInfo(graph_id)
         for name, value in node_input_json_dict.items():
@@ -463,6 +473,10 @@ class Graph(Node):
                 op_meta_info.output[name] = {}
 
         graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
+
+        # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'external' can be altered,
+        # as they are Targets (they have a set_value(value) method) by CLI or GUI.
+        # Other inputs (other than 'undefined') shall be treated as "local" inputs to the graph's node inputs.
 
         # todo (nf) - address code duplication here and in ChildNode.from_json_dict
         source_classes = [ConstantSource, UndefinedSource, ExternalSource]

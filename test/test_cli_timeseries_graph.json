@@ -1,43 +1,35 @@
 {
+    "id": "timeseries_1",
     "op_meta_data" : {
-        "qualified_name": "cool_graph",
+        "qualified_name": "timeseries",
         "header": {
-            "description": "This is a test graph composed of 3 nodes."
+            "description": "This graph wraps the 'timeseries' operation."
         },
         "input": {
-            "p": {"data_type": "float", "description": "Parameter 'p'"}
+            "lat": {"data_type": "float", "valid_range": [-90, 90], "description": "Latitude in degrees"},
+            "lon": {"data_type": "float", "valid_range": [-180, 180], "description": "Longitude in degrees"},
+            "method": {"data_type": "str", "description": "Interpolation method"}
         },
         "output": {
-            "q": {"data_type": "float", "description": "Parameter 'q'"}
+            "return": {"data_type": "list", "description": "Time series as list of values"}
         }
     },
     "input": {
-        "p": {"external": true}
+        "lat": {"external": true},
+        "lon": {"external": true},
+        "method": {"external": true}
     },
     "output": {
-        "q": {"output_of": "op3.w"}
+        "return": {"output_of": "timeseries_op.return"}
     },
     "nodes": [
         {
-            "id": "op1",
-            "op": "test.test_graph.Op1",
+            "id": "timeseries_op",
+            "op": "test.test_cli.timeseries",
             "input": {
-                "x": { "input_from": "p" }
-            }
-        },
-        {
-            "id": "op2",
-            "op": "test.test_graph.Op2",
-            "input": {
-                "a": {"output_of": "op1.y"}
-            }
-        },
-        {
-            "id": "op3",
-            "op": "test.test_graph.Op3",
-            "input": {
-                "v": {"output_of": "op2.b"},
-                "u": {"output_of": "op1.y"}
+                "lat": { "input_from": "lat" },
+                "lon": { "input_from": "lon" },
+                "method": { "input_from": "method" }
             }
         }
     ]

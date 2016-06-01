@@ -154,15 +154,15 @@ class OpMetaInfo:
         return json_dict
 
     @classmethod
-    def from_json_dict(cls, json_dict):
-        qualified_name = json_dict.get('qualified_name', None)
-        header_obj = json_dict.get('header', None)
-        has_monitor = json_dict.get('has_monitor', False)
-        input_dict = json_dict.get('input', OrderedDict())
+    def from_json_dict(cls, json_dict, **kwargs):
+        qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
+        header_obj = json_dict.get('header', kwargs.get('header', None))
+        has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))
+        input_dict = json_dict.get('input', kwargs.get('input', OrderedDict()))
+        output_dict = json_dict.get('output', kwargs.get('output', OrderedDict()))
         for name, properties in input_dict.items():
             if 'data_type' in properties:
                 properties['data_type'] = qualified_name_to_object(properties['data_type'])
-        output_dict = json_dict.get('output', OrderedDict())
         for name, properties in output_dict.items():
             if 'data_type' in properties:
                 properties['data_type'] = qualified_name_to_object(properties['data_type'])

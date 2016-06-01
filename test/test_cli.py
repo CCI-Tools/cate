@@ -131,21 +131,23 @@ class CliTest(TestCase):
             with fetch_std_streams() as (sout, serr):
                 status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            self.assertTrue('Running operation ' in sout.getvalue())
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            soutv = sout.getvalue()
+            self.assertTrue('Running operation ' in soutv)
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
             # Run with progress monitor
             with fetch_std_streams() as (sout, serr):
                 status = cli.main(args=['run', '--monitor', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            self.assertTrue('Running operation ' in sout.getvalue())
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: start' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: 33%' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: done' in sout.getvalue())
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            soutv = sout.getvalue()
+            self.assertTrue('Running operation ' in soutv)
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
+            self.assertTrue('Extracting timeseries data: start' in soutv)
+            self.assertTrue('Extracting timeseries data: 33%' in soutv)
+            self.assertTrue('Extracting timeseries data: done' in soutv)
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
             # Run with invalid keyword
@@ -159,7 +161,6 @@ class CliTest(TestCase):
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
     def test_command_run_with_graph(self):
-        from ect.core.graph import Graph
         from ect.core.op import REGISTRY as OP_REGISTRY
         from ect.core.monitor import starting, Monitor
         import os.path
@@ -168,7 +169,7 @@ class CliTest(TestCase):
         def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
             print('lat=%s lon=%s method=%s' % (lat, lon, method))
             work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
-            with starting(monitor, 'Extracting time series data', sum(work_units)):
+            with starting(monitor, 'Extracting timeseries data', sum(work_units)):
                 for work_unit in work_units:
                     sleep(work_unit / 10.)
                     monitor.progress(work_unit)
@@ -184,21 +185,23 @@ class CliTest(TestCase):
             with fetch_std_streams() as (sout, serr):
                 status = cli.main(args=['run', graph_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            self.assertTrue('Running operation ' in sout.getvalue())
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            soutv = sout.getvalue()
+            self.assertTrue('Running graph ' in soutv)
+            self.assertTrue('lat=13.2 lon=52.9' in soutv)
+            self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
             # Run with progress monitor
             with fetch_std_streams() as (sout, serr):
                 status = cli.main(args=['run', '--monitor', graph_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            self.assertTrue('Running operation ' in sout.getvalue())
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: start' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: 33%' in sout.getvalue())
-            self.assertTrue('Extracting timeseries data: done' in sout.getvalue())
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in sout.getvalue())
+            soutv = sout.getvalue()
+            self.assertTrue('Running graph ' in soutv)
+            self.assertTrue('lat=13.2 lon=52.9' in soutv)
+            self.assertTrue('Extracting timeseries data: start' in soutv)
+            self.assertTrue('Extracting timeseries data: 33%' in soutv)
+            self.assertTrue('Extracting timeseries data: done' in soutv)
+            self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
         finally:

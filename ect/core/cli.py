@@ -31,7 +31,7 @@ CLI_NAME = 'ect'
 
 _COPYRIGHT_INFO = '(c) 2016 by European Space Agency (ESA). All rights reserved.'
 _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
-# todo nf - ECT documentation URL shall later point to ReadTheDocs
+# todo (nf) - ECT documentation URL shall later point to ReadTheDocs
 _DOCS_URL = 'https://github.com/CCI-Tools/ect-core'
 
 
@@ -106,10 +106,7 @@ class Run(Command):
 
     def execute(self, command_args):
         op_name = command_args.op_name
-        if op_name.endswith('.json') and os.path.isfile(op_name):
-            graph_file = op_name
-        else:
-            graph_file = None
+        is_graph_file = op_name.endswith('.json') and os.path.isfile(op_name)
 
         op_args = []
         op_kwargs = OrderedDict()
@@ -131,10 +128,10 @@ class Run(Command):
             else:
                 op_kwargs[kw] = arg
 
-        if graph_file is None:
-            return self._invoke_operation(command_args.op_name, command_args.monitor, op_args, op_kwargs)
+        if is_graph_file:
+            return self._invoke_graph(command_args.op_name, command_args.monitor, op_args, op_kwargs)
         else:
-            return self._invoke_graph(command_args)
+            return self._invoke_operation(command_args.op_name, command_args.monitor, op_args, op_kwargs)
 
     @staticmethod
     def _invoke_operation(op_name: str, op_monitor: bool, op_args: list, op_kwargs: dict):
@@ -166,14 +163,14 @@ class Run(Command):
             if name in graph.input:
                 graph.input[name].connect_source(value)
 
-        print('Running graph %s with kwargs=%s' % (graph_file, op_args, dict(op_kwargs)))
+        print('Running graph %s with kwargs=%s' % (graph_file, dict(op_kwargs)))
         if op_monitor:
             monitor = ConsoleMonitor()
         else:
             monitor = Monitor.NULL
         graph.invoke(monitor=monitor)
-        for graph_output in graph.outputs[:]:
-            print('Output: %s = %s' % (graph_output.name, graph_output))
+        for graph_output in graph.output[:]:
+            print('Output: %s = %s' % (graph_output.name, graph_output.value))
         return None
 
 
