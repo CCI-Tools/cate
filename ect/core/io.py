@@ -339,7 +339,7 @@ def _add_default_file_catalogue():
     ect_root_dir = 'ECT_DATA_ROOT'
     if 'ECT_DATA_ROOT' in os.environ:
         ect_root_dir = os.environ['ECT_DATA_ROOT']
-    data = pkgutil.get_data('ect.data', 'ESA FTP.json')
+    data = pkgutil.get_data('ect.ds', 'esa_cci_portal_ftp.json')
     fileset_datasources = FileSetDataSource.from_json(data.decode('utf-8'))
     cat =  FileSetCatalogue(ect_root_dir, fileset_datasources)
     CATALOGUE_REGISTRY.add_catalogue('default', cat)
