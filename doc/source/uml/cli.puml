@@ -1,0 +1,39 @@
+@startuml
+
+interface Command {
+    name_and_parser_kwargs(): tuple
+    configure_parser(parser: argparse.ArgumentParser)
+    execute(self, command_args: argparse.Namespace)
+}
+
+class List implements Command {
+}
+
+class Run implements Command {
+}
+
+class Docs implements Command {
+}
+
+
+Command ..> argparse.ArgumentParser : <configure>
+Command ..> argparse.Namespace : <execute with>
+
+note right of Command
+Command pattern
+end note
+
+object globals {
+    COMMAND_REGISTRY: list
+    main()
+}
+
+globals o--> "3..N" Command
+
+note right of globals
+COMMAND_REGISTRY is a mutable list.
+ECT-plugins can extend the CLI by
+adding new commands to it.
+end note
+
+@enduml
