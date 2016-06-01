@@ -94,12 +94,12 @@ class CatalogueRegistry:
 
 def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, **constraints) \
         -> Sequence[DataSource]:
-    """Queries the catalogue(s) for data sources matching the given constrains.
+    """Query the catalogue(s) for data sources matching the given constrains.
 
     Parameters
     ----------
     catalogues : Catalogue or Sequence[Catalogue]
-       If given these catalogues will be querien. Othewise the DEFAULT_CATALOGUE will be used
+       If given these catalogues will be queried. Otherwise all registered catalogues will be used.
     constraints : dict, optional
        The contains may limit the dataset in space or time.
 
