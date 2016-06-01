@@ -126,6 +126,17 @@ class FileSetDataSourceTest(TestCase):
         paths2 = self.fs0.resolve_paths(datetime(2001, 1, 1), datetime(2001, 1, 3))
         self.assertEqual(paths1, paths2)
 
+    def test_resolve_paths_with_rootdir(self):
+        filesets = io.FileSetDataSource.from_json(FileSetDataSourceTest.JSON)
+        cat =  io.FileSetCatalogue('TEST_ROOT_DIR', filesets)
+
+        paths1 = filesets[0].resolve_paths('2001-01-01', '2001-01-03')
+        self.assertIsNotNone(paths1)
+        self.assertEqual(3, len(paths1))
+        self.assertEqual(
+            'TEST_ROOT_DIR/aerosol/data/ATSR2_SU/L3/v4.2/DAILY/2001/01/20010101-ESACCI-L3C_AEROSOL-AOD-ATSR2_ERS2-SU_DAILY-fv4.1.nc',
+            paths1[0])
+
     def test_resolve_paths_open_interval(self):
         paths = self.fs0.resolve_paths('2003-06-20')
         self.assertIsNotNone(paths)
@@ -170,6 +181,10 @@ class FileSetDataSourceTest(TestCase):
         self.assertIsInstance(d1, datetime)
         self.assertEqual(datetime(2001, 1, 1), d1)
 
+        d1 = io._as_datetime('2001-01-01 2:3:5', None)
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2001, 1, 1, 2, 3, 5), d1)
+
         d1 = io._as_datetime(datetime(2001, 1, 1), None)
         self.assertIsInstance(d1, datetime)
         self.assertEqual(datetime(2001, 1, 1), d1)
@@ -180,6 +195,8 @@ class FileSetDataSourceTest(TestCase):
 
         with self.assertRaises(ValueError):
             io._as_datetime(1, None)
+        with self.assertRaises(ValueError):
+            io._as_datetime("42", None)
 
 
 class CatalogueRegistryTest(TestCase):

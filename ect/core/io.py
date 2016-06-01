@@ -32,6 +32,7 @@ Module Reference
 ================
 """
 import json
+import os
 import pkgutil
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -146,8 +147,11 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        raise NotImplementedError  # TODO
-        # data_source = query_data_sources(DEFAULT_CATALOGUE, name=data_source)
+        catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
+        data_source = query_data_sources(catalogue_list, name=data_source)
+    if data_source is None:
+        raise ValueError('No data_source found in default catalogue')
+
     return data_source.open_dataset(**constraints)
 
 
@@ -159,8 +163,10 @@ def _as_datetime(dt: Union[str, datetime], default) -> datetime:
     if isinstance(dt, str):
         if dt == '':
             return default
-        # TODO handle format with/without time
-        return datetime.strptime(dt, "%Y-%m-%d")
+        try:
+            return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+        except  ValueError:
+            return datetime.strptime(dt, "%Y-%m-%d")
     if isinstance(dt, datetime):
         return dt
     raise ValueError
@@ -184,12 +190,12 @@ class FileSetDataSource(DataSource):
     -------
     new  : FileSetDataSource
     """
-
     def __init__(self, name: str, base_dir: str, file_pattern: str, fileset_info: 'FileSetInfo' = None):
         super(FileSetDataSource, self).__init__(name)
         self._base_dir = base_dir
         self._file_pattern = file_pattern
         self._fileset_info = fileset_info
+        self._fileSetCatalogue = None
 
     @classmethod
     def from_json(cls, json_str) -> Sequence['FileSetDataSource']:
@@ -213,10 +219,19 @@ class FileSetDataSource(DataSource):
             ))
         return fsds
 
+    @property
+    def fileSetCatalogue(self):
+        return self._fileSetCatalogue
+
+    @fileSetCatalogue.setter
+    def fileSetCatalogue(self, fileSetCatalogue):
+        self._fileSetCatalogue = fileSetCatalogue
+
     def open_dataset(self, **constraints) -> Dataset:
         first_time = constraints.get('first_time', None)
         last_time = constraints.get('last_time', None)
         paths = self.resolve_paths(first_time=first_time, last_time=last_time)
+        # TODO differentiate between xarray and shapefile
         xr_dataset = xr.open_mfdataset(paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
@@ -265,7 +280,10 @@ class FileSetDataSource(DataSource):
         if dt1 > dt2:
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
 
-        return [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
+        paths = [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
+        if self.fileSetCatalogue:
+            paths = [self.fileSetCatalogue.root_dir + '/' + p for p in paths]
+        return paths
 
     def _resolve_date(self, dt: datetime):
         path = self._full_pattern
@@ -310,19 +328,24 @@ class FileSetCatalogue(Catalogue):
     def __init__(self, root_dir: str, fileset_datasources: Sequence[FileSetDataSource]):
         super(FileSetCatalogue, self).__init__(fileset_datasources)
         self._root_dir = root_dir
+        for fileset_datasource in fileset_datasources:
+            fileset_datasource.fileSetCatalogue = self
 
     @property
     def root_dir(self) -> str:
         return self._root_dir
 
 
-def _read_default_file_catalogue():
+def _add_default_file_catalogue():
+    ect_root_dir = 'ECT_DATA_ROOT'
+    if 'ECT_DATA_ROOT' in os.environ:
+        ect_root_dir = os.environ['ECT_DATA_ROOT']
     data = pkgutil.get_data('ect.data', 'ESA FTP.json')
     fileset_datasources = FileSetDataSource.from_json(data.decode('utf-8'))
-    # TODO get root_dir from ENVIRONMENT
-    return FileSetCatalogue('root_dir', fileset_datasources)
+    cat =  FileSetCatalogue(ect_root_dir, fileset_datasources)
+    CATALOGUE_REGISTRY.add_catalogue('default', cat)
 
 
 CATALOGUE_REGISTRY = CatalogueRegistry()
-CATALOGUE_REGISTRY.add_catalogue('default', _read_default_file_catalogue())
+_add_default_file_catalogue()
 
