@@ -43,7 +43,7 @@ from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 
 
-class DataSource():
+class DataSource:
     def __init__(self, name: str):
         self._name = name
 
@@ -54,10 +54,11 @@ class DataSource():
     def open_dataset(self, **constraints) -> Dataset:
         return None
 
+    # noinspection PyShadowingBuiltins
     def matches_filter(self, **filter) -> bool:
         if filter:
             for key, value in filter.items():
-                if key == 'name' and not value in self._name:
+                if key == 'name' and value not in self._name:
                     return False
         return True
 
@@ -66,6 +67,7 @@ class Catalogue:
     def __init__(self, data_sources: Sequence[DataSource]):
         self._data_sources = data_sources
 
+    # noinspection PyShadowingBuiltins
     def query(self, **filter) -> Sequence[DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(**filter)]
 
@@ -90,9 +92,8 @@ class CatalogueRegistry:
         return len(self._catalogues)
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None,
-                       **constraints) -> Sequence[
-    DataSource]:
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, **constraints) \
+        -> Sequence[DataSource]:
     """Queries the catalogue(s) for data sources matching the given constrains.
 
     Parameters
@@ -118,6 +119,7 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None,
     else:
         catalogue_list = catalogues
     results = []
+    # noinspection PyTypeChecker
     for catalogue in catalogue_list:
         results.extend(catalogue.query(**constraints))
     return results
@@ -164,11 +166,11 @@ def _as_datetime(dt: Union[str, datetime], default) -> datetime:
             return default
         try:
             return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-        except  ValueError:
+        except ValueError:
             return datetime.strptime(dt, "%Y-%m-%d")
     if isinstance(dt, datetime):
         return dt
-    raise ValueError
+    raise ValueError()
 
 
 class FileSetDataSource(DataSource):
@@ -189,12 +191,13 @@ class FileSetDataSource(DataSource):
     -------
     new  : FileSetDataSource
     """
+
     def __init__(self, name: str, base_dir: str, file_pattern: str, fileset_info: 'FileSetInfo' = None):
         super(FileSetDataSource, self).__init__(name)
         self._base_dir = base_dir
         self._file_pattern = file_pattern
         self._fileset_info = fileset_info
-        self._fileSetCatalogue = None
+        self._file_set_catalogue = None
 
     @classmethod
     def from_json(cls, json_str) -> Sequence['FileSetDataSource']:
@@ -202,7 +205,7 @@ class FileSetDataSource(DataSource):
         for data in json.loads(json_str):
             if 'start_date' in data and 'end_date' in data and 'num_files' in data and 'size_mb' in data:
                 file_set_info = FileSetInfo(
-                    datetime.now(),  # TODO
+                    datetime.now(),  # TODO (mz) - put scan time into JSON
                     data['start_date'],
                     data['end_date'],
                     data['num_files'],
@@ -219,18 +222,18 @@ class FileSetDataSource(DataSource):
         return fsds
 
     @property
-    def fileSetCatalogue(self):
-        return self._fileSetCatalogue
+    def file_set_catalogue(self):
+        return self._file_set_catalogue
 
-    @fileSetCatalogue.setter
-    def fileSetCatalogue(self, fileSetCatalogue):
-        self._fileSetCatalogue = fileSetCatalogue
+    @file_set_catalogue.setter
+    def file_set_catalogue(self, file_set_catalogue):
+        self._file_set_catalogue = file_set_catalogue
 
     def open_dataset(self, **constraints) -> Dataset:
         first_time = constraints.get('first_time', None)
         last_time = constraints.get('last_time', None)
         paths = self.resolve_paths(first_time=first_time, last_time=last_time)
-        # TODO differentiate between xarray and shapefile
+        # TODO (mz) - differentiate between xarray and shapefile
         xr_dataset = open_xarray_dataset(paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
@@ -253,8 +256,8 @@ class FileSetDataSource(DataSource):
     def _full_pattern(self) -> str:
         return self._base_dir + "/" + self._file_pattern
 
-    def resolve_paths(self, first_time: Union[str, datetime] = None, last_time: Union[str, datetime] = None) -> \
-    Sequence[str]:
+    def resolve_paths(self, first_time: Union[str, datetime]=None, last_time: Union[str, datetime]=None) -> \
+            Sequence[str]:
         """Return a list of all paths between the given times.
 
         For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
@@ -264,7 +267,7 @@ class FileSetDataSource(DataSource):
         first_time : str or datetime
             The first date of the time range, can be None if the file set has a *start_time*.
             In this case the *start_time* is used.
-        last_date : str or datetime
+        last_time : str or datetime
             The last date of the time range, can be None if the file set has a *end_time*.
             In this case the *end_time* is used.
         """
@@ -280,18 +283,18 @@ class FileSetDataSource(DataSource):
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
 
         paths = [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
-        if self.fileSetCatalogue:
-            paths = [self.fileSetCatalogue.root_dir + '/' + p for p in paths]
+        if self.file_set_catalogue:
+            paths = [self.file_set_catalogue.root_dir + '/' + p for p in paths]
         return paths
 
     def _resolve_date(self, dt: datetime):
         path = self._full_pattern
         if "{YYYY}" in path:
-            path = path.replace("{YYYY}", "%04d" % (dt.year))
+            path = path.replace("{YYYY}", "%04d" % dt.year)
         if "{MM}" in path:
-            path = path.replace("{MM}", "%02d" % (dt.month))
+            path = path.replace("{MM}", "%02d" % dt.month)
         if "{DD}" in path:
-            path = path.replace("{DD}", "%02d" % (dt.day))
+            path = path.replace("{DD}", "%02d" % dt.day)
         return path
 
 
@@ -328,7 +331,7 @@ class FileSetCatalogue(Catalogue):
         super(FileSetCatalogue, self).__init__(fileset_datasources)
         self._root_dir = root_dir
         for fileset_datasource in fileset_datasources:
-            fileset_datasource.fileSetCatalogue = self
+            fileset_datasource.file_set_catalogue = self
 
     @property
     def root_dir(self) -> str:
@@ -341,10 +344,9 @@ def _add_default_file_catalogue():
         ect_root_dir = os.environ['ECT_DATA_ROOT']
     data = pkgutil.get_data('ect.ds', 'esa_cci_portal_ftp.json')
     fileset_datasources = FileSetDataSource.from_json(data.decode('utf-8'))
-    cat =  FileSetCatalogue(ect_root_dir, fileset_datasources)
+    cat = FileSetCatalogue(ect_root_dir, fileset_datasources)
     CATALOGUE_REGISTRY.add_catalogue('default', cat)
 
 
 CATALOGUE_REGISTRY = CatalogueRegistry()
 _add_default_file_catalogue()
-

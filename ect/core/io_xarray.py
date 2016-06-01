@@ -7,9 +7,9 @@ import xarray as xr
 
 
 def open_xarray_dataset(paths, chunks=None, **kwargs):
-    '''
-        Adapted version of the xarray 'open_mfdataset' function.
-    '''
+    """
+    Adapted version of the xarray 'open_mfdataset' function.
+    """
     if isinstance(paths, str):
         paths = sorted(glob(paths))
     if not paths:
@@ -18,7 +18,7 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
     # open all datasets
     engine = 'h5netcdf'
     lock = xr.backends.api._default_lock(paths[0], None)
-    #TODO get correct chunking from netcdf metadata
+    # TODO (mz) - get correct chunking from netcdf metadata
     datasets = [xr.open_dataset(p, engine=engine, chunks=chunks, lock=lock, **kwargs) for p in paths]
 
     preprocessed_datasets = []
@@ -32,18 +32,17 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
             preprocessed_datasets.append(pds_decoded)
             file_objs.append(ds._file_obj)
 
-
     combined_datasets = _combine_datasets(preprocessed_datasets)
     combined_datasets._file_obj = xr.backends.api._MultiFileCloser(file_objs)
     return combined_datasets
 
 
 def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
-    '''
-        Combines all datasets into a single.
-    '''
+    """
+    Combines all datasets into a single.
+    """
     if len(datasets) == 0:
-        raise ValueError
+        raise ValueError()
     if 'time' in datasets[0].dim:
         xr.auto_combine(datasets, concat_dim='time')
     else:
@@ -52,15 +51,15 @@ def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
 
 
 def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
-    '''
-        Modifies datasets, so that it is netcdf-CF compliant
-    '''
+    """
+    Modifies datasets, so that it is netcdf-CF compliant
+    """
     for var in dataset.data_vars:
         attrs = dataset[var].attrs
         if '_FillValue' in attrs and 'missing_value' in attrs:
             # xarray as of version 0.7.2 does not handle it correctly,
             # if both values are set to NaN. (because the values are compared using '==')
-            # TODO report github issue and PR to xarray
+            # TODO (mz) - report github issue and PR to xarray
             del attrs['missing_value']
     return dataset
 
