@@ -20,17 +20,23 @@ This module provides the following data types:
 Technical Requirements
 ======================
 
-A Graph's inputs and outputs refer to dedicated inputs and outputs of nodes in the graph. These are usually
-unconnected inputs and outputs.
+A graph is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
+connect the grap's outputs to outputs of contained child nodes.
 
-Various source types should be supported for a node input:
+A graph's child nodes are required to specify all of their input sources. Valid input sources for a child node
+are the graph's inputs or other child node's outputs.
 
-* ``{"parameter": None}``: a value parsed from the command-line or provided by a GUI. No value given.
-* ``{"output_of": *node-output-ref* ``}``: the output of another graph or node
-* ``{"constant":  *any-JSON* ``}``: a constant value, basically any JSON-serializable object
-* ``{"file": *file-path* ``}``: an object loaded from a file in a given format,
-  e.g. netCDF/xarray dataset, Shapefile, JSON, PNG image, numpy-binary
-* ``{"url":``, "url": *URL* ``}``: same as file but loaded from a URL
+Child node input sources are indicated in the input specification of a node's JSON representation:
+
+* ``{"input_from":`` *name* ``}``: the input named *name* of the current graph.
+* ``{"output_of":`` *node-id* ``.`` *name* ``}``: the output named *name* of another graph or node given by *node-id*.
+* ``{"external":`` *ignored-value* ``}``: a value parsed from the command-line or provided by a GUI. No value given.
+* ``{"constant":``  *value* ``}``: a constant value, where *value* my be any JSON-value.
+* ``{"file":`` *file-path* ``}``: an object loaded from a file in a given format,
+  e.g. netCDF/xarray dataset, Shapefile, JSON, PNG image, numpy-binary.
+* ``{"url":`` *URL* ``}``: same as file but loaded from a URL.
+* ``{"undefined":``  *ignored-value* ``}``: undefined input source. This is also used if no source type
+  identifiers are present in the input JSON.
 
 An attribute ``{"source": *source-type*}`` may be present in order to make the source type unambiguous.
 
@@ -241,7 +247,12 @@ class GraphFileNode(ChildNode):
         return self._graph
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
-        return self._graph.invoke(monitor=monitor)
+        self._graph.invoke(monitor=monitor)
+        # transfer graph output values into this node's output values
+        for graph_output in self._graph.output[:]:
+            assert graph_output.name in self.output
+            node_output = self.output[graph_output.name]
+            node_output.set_value(graph_output.value)
 
     @classmethod
     def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
@@ -437,7 +448,7 @@ class Graph(Node):
 
         graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
 
-        # todo (nf) - address code duplication in ChildNode.from_json_dict
+        # todo (nf) - address code duplication here and in ChildNode.from_json_dict
         source_classes = [ConstantSource, UndefinedSource, ExternalSource]
         for node_input in graph.input[:]:
             node_input_source_dict = node_input_json_dict.get(node_input.name, {})
@@ -465,7 +476,7 @@ class Graph(Node):
                 raise ValueError("illegal output type in graph '%s'" % graph_id)
 
         # Convert all nodes
-        node_classes = [OpNode]
+        node_classes = [OpNode, GraphFileNode]
         nodes = []
         for graph_node_json_dict in graph_nodes_json_list:
             node = None
@@ -480,29 +491,38 @@ class Graph(Node):
 
         graph.add_nodes(*nodes)
 
-        # Resolve GraphInputSource and NodeOutputSource sources of all node inputs
+        # Resolve GraphInputSource and NodeOutputSource sources of node inputs
         for node in graph.nodes:
             for node_input in node.input[:]:
-                if isinstance(node_input.source, GraphInputRef):
-                    other_graph_input_name = node_input.source.name
-                    if other_graph_input_name not in graph.input:
-                        raise ValueError("undefined input '%s'", other_graph_input_name)
-                    other_graph_input = graph.input[other_graph_input_name]
-                    node_input.source.resolve(other_graph_input)
-                    node_input.connect_source(other_graph_input)
-                if isinstance(node_input.source, NodeOutputRef):
-                    other_node_id = node_input.source.node_id
-                    other_node_output_name = node_input.source.name
-                    other_node = graph.find_node(other_node_id)
-                    if other_node is None:
-                        raise ValueError("unknown node '%s'" % other_node_id)
-                    if other_node_output_name not in other_node.output:
-                        raise ValueError("unknown output '%s' of node '%s'", (other_node_output_name, other_node_id))
-                    other_node_output = other_node.output[other_node_output_name]
-                    node_input.source.resolve(other_node_output)
-                    node_input.connect_source(other_node_output)
+                graph._resolve_node_input(node_input)
+
+        # Resolve GraphInputSource and NodeOutputSource sources of graph outputs
+        for graph_input in graph.output[:]:
+            graph._resolve_node_input(graph_input)
 
         return graph
+
+    def _resolve_node_input(self, node_input: 'SourceHolder'):
+        if isinstance(node_input.source, GraphInputRef):
+            graph_input_ref = node_input.source
+            other_graph_input_name = graph_input_ref.name
+            if other_graph_input_name not in self.input:
+                raise ValueError("undefined input '%s'", other_graph_input_name)
+            other_graph_input = self.input[other_graph_input_name]
+            graph_input_ref.resolve(other_graph_input)
+            node_input.connect_source(other_graph_input)
+        if isinstance(node_input.source, NodeOutputRef):
+            node_output_ref = node_input.source
+            other_node_id = node_output_ref.node_id
+            other_node_output_name = node_output_ref.name
+            other_node = self.find_node(other_node_id)
+            if other_node is None:
+                raise ValueError("unknown node '%s'" % other_node_id)
+            if other_node_output_name not in other_node.output:
+                raise ValueError("unknown output '%s' of node '%s'", (other_node_output_name, other_node_id))
+            other_node_output = other_node.output[other_node_output_name]
+            node_output_ref.resolve(other_node_output)
+            node_input.connect_source(other_node_output)
 
     def __str__(self):
         return self.id
@@ -732,11 +752,11 @@ class SourceHolder(metaclass=ABCMeta):
 
     @abstractmethod
     def connect_source(self, source: Source):
-        """Join with the given *source*."""
+        """Connect with the given *source*."""
 
     @abstractmethod
     def disconnect_source(self):
-        """Disjoin from the current source."""
+        """Disconnect from the current source."""
 
 
 # noinspection PyAttributeOutsideInit

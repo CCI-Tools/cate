@@ -1,10 +1,11 @@
 import json
+import os.path
 from unittest import TestCase
 
-from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
-from ect.core.util import object_to_qualified_name
 from ect.core.graph import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
     UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphFileNode
+from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
+from ect.core.util import object_to_qualified_name
 
 
 @op_input('x')
@@ -30,11 +31,20 @@ class Op3:
 
 
 class GraphFileNodeTest(TestCase):
+    file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
+
+    def test_init(self):
+        node = GraphFileNode(self.file_path, node_id='jojo_87')
+        self.assertEqual(node.id, 'jojo_87')
+        self.assertEqual(node.file_path, self.file_path)
+        self.assertEqual(str(node), 'jojo_87')
+        self.assertEqual(repr(node), "GraphFileNode('%s', node_id='jojo_87')" % self.file_path)
+
+        self.assertIsNotNone(node.graph)
+        self.assertIn('p', node.graph.input)
+        self.assertIn('q', node.graph.output)
+
     def test_from_json_dict(self):
-        import os.path
-
-        file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
-
         json_text = """
         {
             "id": "graph_ref_89",
@@ -43,7 +53,7 @@ class GraphFileNodeTest(TestCase):
                 "p": {"constant": 2.8}
             }
         }
-        """ % file_path
+        """ % self.file_path
 
         json_dict = json.loads(json_text)
 
@@ -51,13 +61,13 @@ class GraphFileNodeTest(TestCase):
 
         self.assertIsNotNone(node)
         self.assertEqual(node.id, "graph_ref_89")
-        self.assertEqual(node.file_path, file_path)
+        self.assertEqual(node.file_path, self.file_path)
         self.assertIn('p', node.input)
         self.assertIn('q', node.output)
         self.assertIsInstance(node.input.p, NodeInput)
         self.assertIsInstance(node.input.p.source, ConstantSource)
-        self.assertIsInstance(node.output.q, NodeOutput)
         self.assertEqual(node.input.p.source.value, 2.8)
+        self.assertIsInstance(node.output.q, NodeOutput)
         self.assertEqual(node.output.q.value, UNDEFINED)
 
         self.assertIsNotNone(node.graph)
@@ -70,9 +80,7 @@ class GraphFileNodeTest(TestCase):
         self.assertIsInstance(node.graph.output.q, GraphOutput)
 
     def test_to_json_dict(self):
-        import os.path
-        file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
-        node = GraphFileNode(file_path, node_id='jojo_87')
+        node = GraphFileNode(self.file_path, node_id='jojo_87')
         actual_json_dict = node.to_json_dict()
 
         expected_json_text = """
@@ -83,7 +91,7 @@ class GraphFileNodeTest(TestCase):
                 "p": {"undefined": true}
             }
         }
-        """ % file_path
+        """ % self.file_path
 
         actual_json_text = json.dumps(actual_json_dict, indent=4)
         expected_json_dict = json.loads(expected_json_text)
@@ -93,6 +101,15 @@ class GraphFileNodeTest(TestCase):
                          msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
+
+    def test_invoke(self):
+        node = GraphFileNode(self.file_path, node_id='jojo_87')
+
+        node.input.p = 3
+        return_value = node.invoke()
+        output_value = node.output.q.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
 
 
 class OpNodeTest(TestCase):
@@ -132,7 +149,7 @@ class OpNodeTest(TestCase):
         self.assertIs(node31.op, node3.op)
         self.assertIs(node31.op_meta_info, node3.op_meta_info)
 
-    def test_node_invocation(self):
+    def test_invoke(self):
         node1 = OpNode(Op1)
         node1.input.x = 3
         return_value = node1.invoke()
@@ -172,7 +189,7 @@ class OpNodeTest(TestCase):
             # "ValueError: operation must be given"
             OpNode(None)
 
-    def test_join(self):
+    def test_connect_source(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
@@ -192,16 +209,7 @@ class OpNodeTest(TestCase):
         with self.assertRaisesRegex(AttributeError, "'a' is not an input"):
             node1.input.a = node3.input.u
 
-    def assertConnectionsAreOk(self, node1, node2, node3):
-        self.assertIsInstance(node1.input.x.source, UndefinedSource)
-        self.assertIsInstance(node2.input.a.source, NodeOutputRef)
-        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
-        self.assertIsInstance(node3.input.v.source, NodeOutputRef)
-        self.assertIs(node2.input.a.source.node_output, node1.output.y)
-        self.assertIs(node3.input.u.source.node_output, node1.output.y)
-        self.assertIs(node3.input.v.source.node_output, node2.output.b)
-
-    def test_disjoin(self):
+    def test_disconnect_source(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
@@ -234,6 +242,15 @@ class OpNodeTest(TestCase):
         self.assertIsInstance(node2.input.a.source, UndefinedSource)
         self.assertIsInstance(node3.input.u.source, UndefinedSource)
         self.assertIsInstance(node3.input.v.source, UndefinedSource)
+
+    def assertConnectionsAreOk(self, node1, node2, node3):
+        self.assertIsInstance(node1.input.x.source, UndefinedSource)
+        self.assertIsInstance(node2.input.a.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.u.source, NodeOutputRef)
+        self.assertIsInstance(node3.input.v.source, NodeOutputRef)
+        self.assertIs(node2.input.a.source.node_output, node1.output.y)
+        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIs(node3.input.v.source.node_output, node2.output.b)
 
     def test_from_json_dict_const_param(self):
         json_text = """
@@ -357,7 +374,7 @@ class GraphTest(TestCase):
         self.assertEqual(str(graph), graph.id)
         self.assertEqual(repr(graph), "Graph(OpMetaData('mygraph'), graph_id='%s')" % graph.id)
 
-    def test_graph_invocation(self):
+    def test_invoke(self):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
