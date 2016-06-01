@@ -31,7 +31,7 @@ Options
 
 :name: interpolation method
 :description: method for reprojecting the data
-:items: nearest neighbor (primarily for thematic maps), bilinear, cubic convolution 
+:items: nearest neighbor (primarily for thematic maps), bilinear, cubic convolution, spline 
 
 ---------------------------------
 
@@ -122,14 +122,6 @@ Parameters
 ==========
 
 *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
-
---------------------------
-
-:name: size of sliding window
-:type: integer
-:valid values: [1; infinity], odd numbers 
-:default value: 3
-:description: side length of the sliding window used for interpolation (e.g. 3x3, 9x9)
 
 --------------------------
 
