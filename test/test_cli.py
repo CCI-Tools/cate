@@ -1,9 +1,11 @@
 import sys
 from contextlib import contextmanager
 from io import StringIO
+from time import sleep
 from unittest import TestCase
 
 from ect.core import cli
+from ect.core.monitor import starting, Monitor
 
 
 @contextmanager
@@ -112,17 +114,6 @@ class CliTest(TestCase):
 
     def test_command_run_with_op(self):
         from ect.core.op import REGISTRY as OP_REGISTRY
-        from ect.core.monitor import starting, Monitor
-        from time import sleep
-
-        def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
-            print('lat=%s lon=%s method=%s' % (lat, lon, method))
-            work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
-            with starting(monitor, 'Extracting timeseries data', sum(work_units)):
-                for work_unit in work_units:
-                    sleep(work_unit / 10.)
-                    monitor.progress(work_unit)
-            return work_units
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
@@ -162,18 +153,7 @@ class CliTest(TestCase):
 
     def test_command_run_with_graph(self):
         from ect.core.op import REGISTRY as OP_REGISTRY
-        from ect.core.monitor import starting, Monitor
         import os.path
-        from time import sleep
-
-        def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
-            print('lat=%s lon=%s method=%s' % (lat, lon, method))
-            work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
-            with starting(monitor, 'Extracting timeseries data', sum(work_units)):
-                for work_unit in work_units:
-                    sleep(work_unit / 10.)
-                    monitor.progress(work_unit)
-            return work_units
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
@@ -206,3 +186,14 @@ class CliTest(TestCase):
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+
+
+def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+    """Timeseries dummy function for testing."""
+    print('lat=%s lon=%s method=%s' % (lat, lon, method))
+    work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
+    with starting(monitor, 'Extracting timeseries data', sum(work_units)):
+        for work_unit in work_units:
+            sleep(work_unit / 10.)
+            monitor.progress(work_unit)
+    return work_units
