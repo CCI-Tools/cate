@@ -432,7 +432,7 @@ class Graph(Node):
 
         qualified_name = graph_json_dict.get('qualified_name', None)
         if qualified_name is None:
-            raise ValueError('missing mandatory "qualified_name" property in graph JSON')
+            raise ValueError('missing mandatory property "qualified_name" in graph JSON')
         header_json_dict = graph_json_dict.get('header', {})
         input_json_dict = graph_json_dict.get('input', {})
         output_json_dict = graph_json_dict.get('output', {})
@@ -513,12 +513,12 @@ class Graph(Node):
                 graph.output[name] = graph.new_node_output(name)
             graph.output[name].connect_source(output_source)
 
-        # Resolve GraphInputSource and NodeOutputSource sources of all node inputs
+        # resolve GraphInputSource and NodeOutputSource sources of all node inputs
         for node in graph.nodes:
             for node_input in node.input[:]:
                 graph._resolve_node_input(node_input)
 
-        # Resolve GraphInputSource and NodeOutputSource sources of graph outputs
+        # resolve GraphInputSource and NodeOutputSource sources of graph outputs
         for graph_input in graph.output[:]:
             graph._resolve_node_input(graph_input)
 
@@ -797,18 +797,26 @@ class NodeOutputRef(Source, Json):
     def from_json_dict(cls, json_dict: dict):
         if 'output_of' in json_dict:
             output_of = json_dict['output_of']
-            # todo (nf) - add test and code dealing with rsplit failures
-            node_id, node_output_name = output_of.rsplit('.', maxsplit=1)
+            parts = output_of.rsplit('.', maxsplit=1)
+            if len(parts) != 2 or not parts[0] or not parts[1]:
+                raise ValueError("invalid value for 'output_of', expected format <node-id>.<output-name>")
+            node_id, node_output_name = parts
             return cls(node_id, node_output_name)
         return None
 
     def to_json_dict(self):
         self._assert_resolved()
-        return dict(output_of="%s.%s" % (self._node_id, self._name))
+        return dict(output_of='%s.%s' % (self._node_id, self._name))
 
     def _assert_resolved(self):
         if self._node_output is None:
             raise ValueError("unresolved output '%s' of node '%s'" % (self._name, self._node_id))
+
+    def __str__(self):
+        return "%s.%s" % (self._node_id, self._name)
+
+    def __repr__(self):
+        return "NodeOutputRef(%s, %s)" % (repr(self._node_id), repr(self._name))
 
 
 class SourceHolder(metaclass=ABCMeta):
@@ -820,7 +828,7 @@ class SourceHolder(metaclass=ABCMeta):
         """The current source."""
 
     @abstractmethod
-    def connect_source(self, source: Source):
+    def connect_source(self, source: Union[Source, object, None]):
         """Connect with the given *source*."""
 
     @abstractmethod
@@ -836,7 +844,7 @@ class SourceHolderMixin(SourceHolder):
     def source(self) -> Source:
         return self._source
 
-    def connect_source(self, new_source: Source):
+    def connect_source(self, new_source: Union[Source, object, None]):
         # convert 'new_source' so it matches our graph construction rules
         if new_source is UNDEFINED:
             new_source = UNDEFINED_SOURCE
