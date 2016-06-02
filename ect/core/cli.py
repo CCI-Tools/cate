@@ -29,8 +29,23 @@ from ect.version import __version__
 #: Name of the ECT CLI executable.
 CLI_NAME = 'ect'
 
-_COPYRIGHT_INFO = '(c) 2016 by European Space Agency (ESA). All rights reserved.'
+_COPYRIGHT_INFO = """
+ECT - The ESA CCI Toolbox, Copyright (C) 2016 by European Space Agency (ESA)
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.
+
+Type "ect license" for details.
+"""
+
 _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
+
 # todo (nf) - ECT documentation URL shall later point to ReadTheDocs
 _DOCS_URL = 'https://github.com/CCI-Tools/ect-core'
 
@@ -256,6 +271,7 @@ COMMAND_REGISTRY = [
     License,
     Docs,
 ]
+
 
 
 # todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
