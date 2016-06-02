@@ -83,8 +83,8 @@ class Node(metaclass=ABCMeta):
         assert node_id
         self._id = node_id
         self._op_meta_info = op_meta_info
-        self._node_input_namespace = NodeInputNamespace(self)
-        self._node_output_namespace = NodeOutputNamespace(self)
+        self._input = NodeInputNamespace(self)
+        self._output = NodeOutputNamespace(self)
 
     @property
     def id(self):
@@ -99,12 +99,12 @@ class Node(metaclass=ABCMeta):
     @property
     def input(self) -> 'NodeInputNamespace':
         """The node's inputs."""
-        return self._node_input_namespace
+        return self._input
 
     @property
     def output(self) -> 'NodeOutputNamespace':
         """The node's outputs."""
-        return self._node_output_namespace
+        return self._output
 
     def new_node_input(self, node_input_name: str):
         """
@@ -167,22 +167,20 @@ class ChildNode(Node):
         node = cls.new_node_from_json_dict(json_dict, registry=registry)
         if node is None:
             return None
-        # todo (nf) - address code duplication in Graph.from_json_dict
         node_input_dict = json_dict.get('input', None)
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_input in node.input[:]:
             node_input_source_dict = node_input_dict.get(node_input.name, None)
             if node_input_source_dict is None:
                 raise ValueError("missing specification for input '%s' of node '%s'" % (node_input.name, node.id))
             source = None
-            for source_class in source_classes:
+            for source_class in [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]:
                 source = source_class.from_json_dict(node_input_source_dict)
                 if source is not None:
                     break
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("unknown type for input '%s' of node '%s'" % (node_input.name, node.id))
+                raise ValueError("missing or unknown source for input '%s' of node '%s'" % (node_input.name, node.id))
         return node
 
     @classmethod
@@ -322,7 +320,7 @@ class OpNode(ChildNode):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for input_name, _ in self.op_meta_info.input:
+        for input_name in self.op_meta_info.input.keys():
             input_values[input_name] = None
         for node_input in self.input[:]:
             assert node_input is not None
@@ -436,66 +434,62 @@ class Graph(Node):
         if qualified_name is None:
             raise ValueError('missing mandatory "qualified_name" property in graph JSON')
         header_json_dict = graph_json_dict.get('header', {})
-        node_input_json_dict = graph_json_dict.get('input', {})
-        node_output_json_dict = graph_json_dict.get('output', {})
-        graph_nodes_json_list = graph_json_dict.get('nodes', [])
+        input_json_dict = graph_json_dict.get('input', {})
+        output_json_dict = graph_json_dict.get('output', {})
+        nodes_json_list = graph_json_dict.get('nodes', [])
 
-        # todo (nf) - convert 'data_type' values in node_input_json_dict & node_output_json_dict
-        # todo (nf) - OpMetaInfo.input_dict: only add inputs whose source type is 'parameter'
-        # todo (nf) - OpMetaInfo.output_dict: only add inputs whose source type is 'output_of'
-        op_meta_info = OpMetaInfo(qualified_name,
-                                  has_monitor=True,
-                                  header_dict=header_json_dict,
-                                  input_dict=node_input_json_dict,
-                                  output_dict=node_output_json_dict)
-
-        for name, value in node_input_json_dict.items():
-            if name not in op_meta_info.input:
-                op_meta_info.input[name] = {}
-        for name, value in node_output_json_dict.items():
-            if name not in op_meta_info.output:
-                op_meta_info.output[name] = {}
-
-        graph = Graph(op_meta_info)
-
-        # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'parameter' can be altered,
-        # as they are Targets (they have a set_value(value) method) by CLI or GUI.
-        # Other inputs (other than 'undefined') shall be treated as "local" inputs to the graph's node inputs.
-
-        # todo (nf) - address code duplication here and in ChildNode.from_json_dict
-        source_classes = [ConstantSource, UndefinedSource, ParameterSource]
-        default_source_class = ParameterSource
-        for node_input in graph.input[:]:
-            node_input_source_dict = node_input_json_dict.get(node_input.name, {})
+        # parse input sources
+        input_sources = OrderedDict()
+        for name, node_input_source_dict in input_json_dict.items():
             source = None
-            for source_class in source_classes:
+            for source_class in [ConstantSource, UndefinedSource, ParameterSource]:
                 source = source_class.from_json_dict(node_input_source_dict)
                 if source is not None:
                     break
-            if source is not None:
-                node_input.connect_source(source)
-            else:
-                node_input.connect_source(default_source_class())
+            if source is None:
+                source = ParameterSource()
+            input_sources[name] = source
 
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
-        for node_output in graph.output[:]:
-            node_output_source_dict = node_output_json_dict.get(node_output.name, {})
+        # parse output sources
+        output_sources = OrderedDict()
+        for name, node_output_source_dict in output_json_dict.items():
             source = None
-            for source_class in source_classes:
+            for source_class in [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]:
                 source = source_class.from_json_dict(node_output_source_dict)
                 if source is not None:
                     break
-            if source is not None:
-                node_output.connect_source(source)
-            else:
+            if source is None:
                 raise ValueError("unknown output type in graph '%s'" % qualified_name)
+            output_sources[name] = source
 
-        # Convert all nodes
-        node_classes = [OpNode, GraphNode]
+        # only collect inputs with source type 'parameter'
+        op_meta_info_input_json_dict = OrderedDict()
+        for name in input_json_dict.keys():
+            source = input_sources[name]
+            if isinstance(source, ParameterSource):
+                op_meta_info_input_json_dict[name] = input_json_dict[name]
+
+        # only collect outputs with source type other than 'undefined'
+        op_meta_info_output_json_dict = OrderedDict()
+        for name in output_json_dict.keys():
+            source = output_sources[name]
+            if not isinstance(source, UndefinedSource):
+                op_meta_info_output_json_dict[name] = output_json_dict[name]
+
+        # convert 'data_type' entries to Python types in op_meta_info_input_json_dict & node_output_json_dict
+        obj_input_dict = OpMetaInfo.json_dict_to_object_dict(op_meta_info_input_json_dict)
+        obj_output_dict = OpMetaInfo.json_dict_to_object_dict(output_json_dict)
+        op_meta_info = OpMetaInfo(qualified_name,
+                                  has_monitor=True,
+                                  header_dict=header_json_dict,
+                                  input_dict=obj_input_dict,
+                                  output_dict=obj_output_dict)
+
+        # parse all nodes
         nodes = []
-        for graph_node_json_dict in graph_nodes_json_list:
+        for graph_node_json_dict in nodes_json_list:
             node = None
-            for node_class in node_classes:
+            for node_class in [OpNode, GraphNode]:
                 node = node_class.from_json_dict(graph_node_json_dict, registry=registry)
                 if node is not None:
                     break
@@ -504,9 +498,22 @@ class Graph(Node):
             else:
                 raise ValueError("unknown node type in graph '%s'" % qualified_name)
 
+        graph = Graph(op_meta_info)
         graph.add_nodes(*nodes)
 
-        # Resolve GraphInputSource and NodeOutputSource sources of node inputs
+        # connect input sources, create new inputs if not yet in
+        for name, input_source in input_sources.items():
+            if name not in graph.input:
+                graph.input[name] = graph.new_node_input(name)
+            graph.input[name].connect_source(input_source)
+
+        # connect output sources, create new outputs if not yet in
+        for name, output_source in output_sources.items():
+            if name not in graph.output:
+                graph.output[name] = graph.new_node_output(name)
+            graph.output[name].connect_source(output_source)
+
+        # Resolve GraphInputSource and NodeOutputSource sources of all node inputs
         for node in graph.nodes:
             for node_input in node.input[:]:
                 graph._resolve_node_input(node_input)
@@ -546,29 +553,41 @@ class Graph(Node):
         :return: A JSON-serializable dictionary
         """
         # Developer note: keep variable naming consistent with Graph.from_json_dict() method
+
+        # convert all inputs to JSON dicts
         input_json_dict = OrderedDict()
-        for node_input in self._node_input_namespace[:]:
+        for node_input in self._input[:]:
             source = node_input.source
             try:
                 source_json_dict = source.to_json_dict()
             except AttributeError:
                 raise ValueError("input '%s' of graph '%s' is not JSON-serializable: source type: %s" %
                                  (node_input.name, node_input.node.id, str(type(source))))
+            if node_input.name in self.op_meta_info.output:
+                source_json_dict.update(self.op_meta_info.input[node_input.name])
             input_json_dict[node_input.name] = source_json_dict
 
+        # convert all outputs to JSON dicts
         output_json_dict = OrderedDict()
-        for node_output in self._node_output_namespace[:]:
+        for node_output in self._output[:]:
             source = node_output.source
             try:
                 source_json_dict = source.to_json_dict()
             except AttributeError:
                 raise ValueError("output '%s' of graph '%s' is not JSON-serializable: source type: %s" %
                                  (node_output.name, node_output.node.id, str(type(source))))
+            if node_output.name in self.op_meta_info.output:
+                source_json_dict.update(self.op_meta_info.output[node_output.name])
             output_json_dict[node_output.name] = source_json_dict
 
+        # convert all nodes to JSON dicts
         nodes_json_list = []
         for node in self._nodes.values():
             nodes_json_list.append(node.to_json_dict())
+
+        # convert 'data_type' Python types entries to JSON-strings
+        input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
+        output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         graph_json_dict = OrderedDict()
         graph_json_dict['qualified_name'] = self.op_meta_info.qualified_name
@@ -941,7 +960,7 @@ class NodeInputNamespace(Namespace):
     """
 
     def __init__(self, node: Node):
-        inputs = [(input_name, node.new_node_input(input_name)) for input_name, _ in node.op_meta_info.input]
+        inputs = [(input_name, node.new_node_input(input_name)) for input_name in node.op_meta_info.input.keys()]
         super(NodeInputNamespace, self).__init__(inputs)
 
     def __setattr__(self, name, value):
@@ -982,7 +1001,7 @@ class NodeOutputNamespace(Namespace):
     """
 
     def __init__(self, node: Node):
-        outputs = [(output_name, node.new_node_output(output_name)) for output_name, _ in node.op_meta_info.output]
+        outputs = [(output_name, node.new_node_output(output_name)) for output_name in node.op_meta_info.output.keys()]
         super(NodeOutputNamespace, self).__init__(outputs)
 
     def __setattr__(self, name, value):

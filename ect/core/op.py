@@ -30,7 +30,7 @@ from inspect import isclass
 from typing import Dict, Tuple
 
 from .monitor import Monitor
-from .util import object_to_qualified_name, Namespace, qualified_name_to_object
+from .util import object_to_qualified_name, qualified_name_to_object
 
 
 class _UndefinedValue:
@@ -44,31 +44,41 @@ class _UndefinedValue:
 UNDEFINED = _UndefinedValue()
 
 
-# todo (nf) - ensure instances of OpMetaInfo class are immutable, which makes life easier
-
 class OpMetaInfo:
     """
-    Meta-information about an operation.
+    Meta-information about an operation:
+
+    * :py:attr:`qualified_name`: a an ideally unique, qualified operation name
+    * :py:attr:`header`: dictionary of arbitrary operation attributes
+    * :py:attr:`input`: ordered dictionary of named inputs,
+      each mapping to a dictionary of arbitrary input attributes
+    * :py:attr:`output`: ordered dictionary of named outputs,
+      each mapping to a dictionary of arbitrary output attributes
+
+    Warning: `OpMetaInfo`` objects should be considered immutable. However, the dictionaries mentioned above
+    are returned "as-is", mostly for performance reasons. Changing entries in these dictionaries directly
+    may cause unwanted side-effects.
 
     :param op_qualified_name: The operation's qualified name.
+    :param has_monitor: Whether the operation supports a :py:class:`Monitor` keyword argument named ``monitor``.
+    :param header_dict: Header information dictionary.
+    :param input_dict: Input information dictionary.
+    :param output_dict: Output information dictionary.
     """
 
-    def __init__(self, op_qualified_name: str,
+    def __init__(self,
+                 op_qualified_name: str,
                  has_monitor: bool = False,
                  header_dict: dict = None,
-                 input_dict: dict = None,
-                 output_dict: dict = None):
+                 input_dict: OrderedDict = None,
+                 output_dict: OrderedDict = None):
+        if not op_qualified_name:
+            raise ValueError("argument 'op_qualified_name' is required")
         self._qualified_name = op_qualified_name
-        self._has_monitor = has_monitor
+        self._has_monitor = True if has_monitor else False
         self._header = header_dict if header_dict else dict()
-        self._input_namespace = Namespace()
-        if input_dict:
-            for name, value in input_dict.items():
-                self._input_namespace[name] = value
-        self._output_namespace = Namespace()
-        if output_dict:
-            for name, value in output_dict.items():
-                self._output_namespace[name] = value
+        self._input = OrderedDict(input_dict if input_dict else {})
+        self._output = OrderedDict(output_dict if output_dict else {})
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -85,29 +95,29 @@ class OpMetaInfo:
         return self._qualified_name
 
     @property
-    def header(self) -> dict():
+    def header(self) -> dict:
         """
         :return: Operation header attributes.
         """
         return self._header
 
     @property
-    def input(self) -> Namespace:
+    def input(self) -> OrderedDict:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
-        :return: Named input slots.
+        :return: Named inputs.
         """
-        return self._input_namespace
+        return self._input
 
     @property
-    def output(self) -> Namespace:
+    def output(self) -> OrderedDict:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
-        :return: Named input slots.
+        :return: Named outputs.
         """
-        return self._output_namespace
+        return self._output
 
     @property
     def has_monitor(self) -> bool:
@@ -123,7 +133,7 @@ class OpMetaInfo:
         :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
-        return not (len(self._output_namespace) == 1 and self.RETURN_OUTPUT_NAME in self._output_namespace)
+        return not (len(self._output) == 1 and self.RETURN_OUTPUT_NAME in self._output)
 
     def to_json_dict(self):
         """
@@ -133,23 +143,14 @@ class OpMetaInfo:
         :return: A JSON-serializable dictionary
         """
 
-        def io_namespace_to_dict(io_def_namespace: Namespace):
-            io_dict = OrderedDict(io_def_namespace)
-            for name, properties in io_dict.items():
-                properties_copy = dict(properties)
-                if 'data_type' in properties_copy:
-                    properties_copy['data_type'] = object_to_qualified_name(properties_copy['data_type'])
-                io_dict[name] = properties_copy
-            return io_dict
-
         json_dict = OrderedDict()
         json_dict['qualified_name'] = self.qualified_name
         if self.has_monitor:
             json_dict['has_monitor'] = True
         if self.header:
-            json_dict['header'] = OrderedDict(self.header)
-        json_dict['input'] = io_namespace_to_dict(self.input)
-        json_dict['output'] = io_namespace_to_dict(self.output)
+            json_dict['header'] = dict(self.header)
+        json_dict['input'] = self.object_dict_to_json_dict(self.input)
+        json_dict['output'] = self.object_dict_to_json_dict(self.output)
         return json_dict
 
     @classmethod
@@ -157,19 +158,31 @@ class OpMetaInfo:
         qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
         header_obj = json_dict.get('header', kwargs.get('header', None))
         has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))
-        input_dict = json_dict.get('input', kwargs.get('input', OrderedDict()))
-        output_dict = json_dict.get('output', kwargs.get('output', OrderedDict()))
-        for name, properties in input_dict.items():
-            if 'data_type' in properties:
-                properties['data_type'] = qualified_name_to_object(properties['data_type'])
-        for name, properties in output_dict.items():
-            if 'data_type' in properties:
-                properties['data_type'] = qualified_name_to_object(properties['data_type'])
+        input_dict = json_dict.get('input', kwargs.get('input', None))
+        output_dict = json_dict.get('output', kwargs.get('output', None))
         return OpMetaInfo(qualified_name,
                           header_dict=header_obj,
                           has_monitor=has_monitor,
-                          input_dict=input_dict,
-                          output_dict=output_dict)
+                          input_dict=cls.json_dict_to_object_dict(input_dict),
+                          output_dict=cls.json_dict_to_object_dict(output_dict))
+
+    @classmethod
+    def object_dict_to_json_dict(cls, obj_dict):
+        json_dict = OrderedDict()
+        for name, properties in obj_dict.items():
+            json_dict[name] = dict(properties)
+            if 'data_type' in properties:
+                json_dict[name]['data_type'] = object_to_qualified_name(properties['data_type'])
+        return json_dict
+
+    @classmethod
+    def json_dict_to_object_dict(cls, json_dict):
+        obj_dict = OrderedDict()
+        for name, properties in json_dict.items():
+            obj_dict[name] = dict(properties)
+            if 'data_type' in properties:
+                obj_dict[name]['data_type'] = qualified_name_to_object(properties['data_type'])
+        return obj_dict
 
     def __str__(self):
         return "OpMetaInfo('%s')" % self.qualified_name
@@ -180,7 +193,7 @@ class OpMetaInfo:
     @classmethod
     def introspect_operation(cls, operation) -> 'OpMetaInfo':
         if not operation:
-            raise ValueError('operation object must be given')
+            raise ValueError("'operation' argument must be given")
 
         op_qualified_name = object_to_qualified_name(operation, fail=True)
 
@@ -215,8 +228,10 @@ class OpMetaInfo:
             output_dict[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
 
         return OpMetaInfo(op_qualified_name,
-                          header_dict=header, has_monitor=has_monitor,
-                          input_dict=input_dict, output_dict=output_dict)
+                          header_dict=header,
+                          has_monitor=has_monitor,
+                          input_dict=input_dict,
+                          output_dict=output_dict)
 
     @classmethod
     def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> Tuple[OrderedDict, bool]:
@@ -291,7 +306,7 @@ class OpRegistration:
         """
 
         # set default_value where input values are missing
-        for name, properties in self.meta_info.input:
+        for name, properties in self.meta_info.input.items():
             if name not in input_values:
                 input_values[name] = properties.get('default_value', None)
 
@@ -315,7 +330,7 @@ class OpRegistration:
         if self.meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
-            for name, properties in self.meta_info.output:
+            for name, properties in self.meta_info.output.items():
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
