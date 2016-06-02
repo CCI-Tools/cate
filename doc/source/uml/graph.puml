@@ -15,8 +15,8 @@ class Graph implements Node {
     invoke(monitor, **args)
 }
 
-class GraphFileNode implements Node {
-    file_path : str
+class GraphNode implements Node {
+    resource : str
     from_json_dict(json_dict)
     to_json_dict() : dict
     invoke(monitor, **args)
@@ -36,7 +36,7 @@ class op.OpMetaInfo {
     output : dict
 }
 
-GraphFileNode --> Graph: graph
+GraphNode --> Graph: graph
 OpNode --> op.OpRegistration : op_registration
 Node --> op.OpMetaInfo: op_meta_info
 Graph o--> "0..N" Node: nodes

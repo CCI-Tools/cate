@@ -219,25 +219,24 @@ class ChildNode(Node):
         """Enhance the given JSON-compatible *node_dict* by child node specific elements."""
 
 
-# todo (nf) - rename to GraphNode, rename file_path to resource, so we can also have URLs
-
-class GraphFileNode(ChildNode):
+class GraphNode(ChildNode):
     """
     A `GraphFileNode` is a child node that uses an externally stored :py:class:`Graph` for its computations.
 
-    :param file_path: A path to a file containing the JSON representation of a :py:class:`Graph`.
-    :param registry: An operation registry to be used to lookup the operation, if given by name..
+    :param graph: The referenced graph.
+    :param resource: A resource (e.g. file path, URL) from which the graph was loaded.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, file_path, node_id=None, registry=REGISTRY):
-        if not file_path:
-            raise ValueError('file_path must be given')
+    def __init__(self, graph, resource, node_id=None):
+        if not graph:
+            raise ValueError('graph must be given')
+        if not resource:
+            raise ValueError('resource must be given')
         node_id = node_id if node_id else 'graph_file_' + hex(id(self))[2:]
-        graph = Graph.load(file_path, registry=registry)
-        super(GraphFileNode, self).__init__(graph.op_meta_info, node_id)
+        super(GraphNode, self).__init__(graph.op_meta_info, node_id)
         self._graph = graph
-        self._file_path = file_path
+        self._resource = resource
         # Connect the graph's inputs with this node's input sources
         for graph_input in self._graph.input[:]:
             name = graph_input.name
@@ -250,9 +249,9 @@ class GraphFileNode(ChildNode):
         return self._graph
 
     @property
-    def file_path(self) -> str:
+    def resource(self) -> str:
         """The graph's file path."""
-        return self._file_path
+        return self._resource
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
@@ -271,16 +270,17 @@ class GraphFileNode(ChildNode):
 
     @classmethod
     def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
-        file_path = json_dict.get('graph', None)
-        if file_path is None:
+        resource = json_dict.get('graph', None)
+        if resource is None:
             return None
-        return GraphFileNode(file_path, node_id=json_dict.get('id', None), registry=registry)
+        graph = Graph.load(resource, registry=registry)
+        return GraphNode(graph, resource, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['graph'] = self._file_path
+        node_dict['graph'] = self._resource
 
     def __repr__(self):
-        return "GraphFileNode('%s', node_id='%s')" % (self.file_path, self.id)
+        return "GraphNode(%s, '%s', node_id='%s')" % (repr(self._graph), self.resource, self.id)
 
 
 class OpNode(ChildNode):
@@ -464,6 +464,7 @@ class Graph(Node):
 
         # todo (nf) - address code duplication here and in ChildNode.from_json_dict
         source_classes = [ConstantSource, UndefinedSource, ParameterSource]
+        default_source_class = ParameterSource
         for node_input in graph.input[:]:
             node_input_source_dict = node_input_json_dict.get(node_input.name, {})
             source = None
@@ -474,7 +475,8 @@ class Graph(Node):
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("unknown input type in graph '%s'" % qualified_name)
+                node_input.connect_source(default_source_class())
+                #raise ValueError("unknown input type in graph '%s'" % qualified_name)
 
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_output in graph.output[:]:
@@ -490,7 +492,7 @@ class Graph(Node):
                 raise ValueError("unknown output type in graph '%s'" % qualified_name)
 
         # Convert all nodes
-        node_classes = [OpNode, GraphFileNode]
+        node_classes = [OpNode, GraphNode]
         nodes = []
         for graph_node_json_dict in graph_nodes_json_list:
             node = None
@@ -671,7 +673,7 @@ UNDEFINED_SOURCE = UndefinedSource()
 class ConstantSource(Source, Json):
     """A source that provides a constant value."""
 
-    def __init__(self, constant):
+    def __init__(self, constant=UNDEFINED):
         self._constant = constant
 
     @property

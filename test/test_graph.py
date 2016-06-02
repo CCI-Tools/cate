@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.graph import NodeInput, NodeOutput, OpNode, ParameterSource, ConstantSource, Graph, GraphOutput, \
-    UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphFileNode
+    UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphNode
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
 from ect.core.util import object_to_qualified_name
 
@@ -31,15 +31,16 @@ class Op3:
         return {'w': 2 * u + 3 * v}
 
 
-class GraphFileNodeTest(TestCase):
+class GraphNodeTest(TestCase):
     file_path = os.path.join(os.path.dirname(__file__), 'graphs/test_graph_g1.json').replace('\\', '/')
 
     def test_init(self):
-        node = GraphFileNode(self.file_path, node_id='jojo_87')
+        graph = Graph.load(self.file_path)
+        node = GraphNode(graph, self.file_path, node_id='jojo_87')
         self.assertEqual(node.id, 'jojo_87')
-        self.assertEqual(node.file_path, self.file_path)
+        self.assertEqual(node.resource, self.file_path)
         self.assertEqual(str(node), 'jojo_87')
-        self.assertEqual(repr(node), "GraphFileNode('%s', node_id='jojo_87')" % self.file_path)
+        self.assertEqual(repr(node), "GraphNode(Graph(OpMetaData('cool_graph'), graph_id='cool_graph'), '%s', node_id='jojo_87')" % self.file_path)
 
         self.assertIsNotNone(node.graph)
         self.assertIn('p', node.graph.input)
@@ -58,11 +59,11 @@ class GraphFileNodeTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node = GraphFileNode.from_json_dict(json_dict)
+        node = GraphNode.from_json_dict(json_dict)
 
         self.assertIsNotNone(node)
         self.assertEqual(node.id, "graph_ref_89")
-        self.assertEqual(node.file_path, self.file_path)
+        self.assertEqual(node.resource, self.file_path)
         self.assertIn('p', node.input)
         self.assertIn('q', node.output)
         self.assertIsInstance(node.input.p, NodeInput)
@@ -81,7 +82,8 @@ class GraphFileNodeTest(TestCase):
         self.assertIsInstance(node.graph.output.q, GraphOutput)
 
     def test_to_json_dict(self):
-        node = GraphFileNode(self.file_path, node_id='jojo_87')
+        graph = Graph.load(self.file_path)
+        node = GraphNode(graph, self.file_path, node_id='jojo_87')
         actual_json_dict = node.to_json_dict()
 
         expected_json_text = """
@@ -104,7 +106,8 @@ class GraphFileNodeTest(TestCase):
                               120 * '-', actual_json_text))
 
     def test_invoke(self):
-        node = GraphFileNode(self.file_path, node_id='jojo_87')
+        graph = Graph.load(self.file_path)
+        node = GraphNode(graph, self.file_path, node_id='jojo_87')
 
         node.input.p = 3
         return_value = node.invoke()
@@ -401,7 +404,7 @@ class GraphTest(TestCase):
                 "description": "My workflow is not bad."
             },
             "input": {
-                "p": {"parameter": true, "description": "Input 'p'"}
+                "p": {"description": "Input 'p'"}
             },
             "output": {
                 "q": {"output_of": "op3.w", "description": "Output 'q'"}
@@ -442,7 +445,7 @@ class GraphTest(TestCase):
         self.assertEqual(graph.op_meta_info.header, dict(description="My workflow is not bad."))
         self.assertEqual(len(graph.op_meta_info.input), 1)
         self.assertEqual(len(graph.op_meta_info.output), 1)
-        self.assertEqual(graph.op_meta_info.input['p'], dict(parameter=True, description="Input 'p'"))
+        self.assertEqual(graph.op_meta_info.input['p'], dict(description="Input 'p'"))
         self.assertEqual(graph.op_meta_info.output['q'], dict(output_of="op3.w", description="Output 'q'"))
 
         self.assertEqual(len(graph.input), 1)
@@ -624,3 +627,8 @@ class ConstantSourceTest(TestCase):
         self.assertEqual(source.value, None)
         self.assertEqual(str(source), 'None')
         self.assertEqual(repr(source), 'ConstantSource(None)')
+
+        source = ConstantSource()
+        self.assertEqual(source.value, UNDEFINED)
+        self.assertEqual(str(source), 'UNDEFINED')
+        self.assertEqual(repr(source), 'ConstantSource(UNDEFINED)')

@@ -1,26 +1,34 @@
 {
-    "qualified_name": "timeseries_1",
-    "op_meta_data" : {
-        "qualified_name": "timeseries",
-        "header": {
-            "description": "This graph wraps the 'timeseries' operation."
-        },
-        "input": {
-            "lat": {"data_type": "float", "valid_range": [-90, 90], "description": "Latitude in degrees"},
-            "lon": {"data_type": "float", "valid_range": [-180, 180], "description": "Longitude in degrees"},
-            "method": {"data_type": "str", "description": "Interpolation method"}
-        },
-        "output": {
-            "return": {"data_type": "list", "description": "Time series as list of values"}
-        }
+    "qualified_name": "timeseries",
+    "header": {
+        "description": "This graph wraps the 'timeseries' operation."
     },
     "input": {
-        "lat": {"parameter": true},
-        "lon": {"parameter": true},
-        "method": {"parameter": true}
+        "lat": {
+            "parameter": true,
+            "data_type": "float",
+            "valid_range": [-90, 90],
+            "description": "Latitude in degrees"
+        },
+        "lon": {
+            "parameter": true,
+            "data_type": "float",
+            "valid_range": [-180, 180],
+            "description": "Longitude in degrees"
+        },
+        "method": {
+            "parameter": true,
+            "data_type": "str",
+            "value_set": ["NEAREST", "BILINEAR", "BICUBIC"],
+            "description": "Interpolation method"
+        }
     },
     "output": {
-        "return": {"output_of": "timeseries_op.return"}
+        "return": {
+            "output_of": "timeseries_op.return",
+            "data_type": "list",
+            "description": "Time series as list of values"
+        }
     },
     "nodes": [
         {
