@@ -32,6 +32,13 @@ class CliTest(TestCase):
         with self.assertRaises(SystemExit):
             cli.main()
 
+    def test_command_run_help(self):
+        with self.assertRaises(SystemExit):
+            cli.main(args=['run', '-h'])
+
+        with self.assertRaises(SystemExit):
+            cli.main(args=['run', '-help'])
+
     def test_invalid_command(self):
         with self.assertRaises(SystemExit):
             cli.main(['pipo'])
@@ -95,13 +102,6 @@ class CliTest(TestCase):
         self.assertIn('data source', sout.getvalue())
         self.assertIn('found', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
-
-    def test_command_run_help(self):
-        with self.assertRaises(SystemExit):
-            cli.main(args=['run', '-h'])
-
-        with self.assertRaises(SystemExit):
-            cli.main(args=['run', '-help'])
 
     def test_command_run_with_unknown_op(self):
         with fetch_std_streams() as (sout, serr):

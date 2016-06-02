@@ -154,10 +154,7 @@ class Run(Command):
             return 1, "error: can't run graph with arguments %s, please provide keywords only" % op_args
 
         from ect.core.graph import Graph
-        with open(graph_file) as fp:
-            import json
-            json_dict = json.load(fp)
-            graph = Graph.from_json_dict(json_dict)
+        graph = Graph.load(graph_file)
 
         for name, value in op_kwargs.items():
             if name in graph.input:
@@ -264,6 +261,7 @@ Command.REGISTRY.extend([
     Docs,
 ])
 
+# todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
 
 def main(args=None):
     """
@@ -292,12 +290,17 @@ def main(args=None):
         command_parser.set_defaults(command_class=command_class)
 
     args_obj = parser.parse_args(args)
-    assert args_obj.command_name and args_obj.command_class
-    status_and_message = args_obj.command_class().execute(args_obj)
-    if not status_and_message:
-        status_and_message = Command.STATUS_OK
 
-    status, message = status_and_message
+    if args_obj.command_name and args_obj.command_class:
+        assert args_obj.command_name and args_obj.command_class
+        status_and_message = args_obj.command_class().execute(args_obj)
+        if not status_and_message:
+            status_and_message = Command.STATUS_OK
+        status, message = status_and_message
+    else:
+        parser.print_help()
+        status, message = 0, None
+
     if message:
         if status:
             sys.stderr.write("%s: %s\n" % (CLI_NAME, message))
