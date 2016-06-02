@@ -30,7 +30,7 @@ Options
 ---------------------------------
 
 :name: multiple datasets
-:description: plots multiple animated maps (data of different time steps) side by side
+:description: plots multiple animated maps (data of different time steps) side by side or as transparent layers
 
 ---------------------------------
 
