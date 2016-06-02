@@ -14,6 +14,7 @@ Contents:
 
    intro
    quick_start
+   user_manual
    use_cases
    architecture
    tech_spec
