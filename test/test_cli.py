@@ -177,7 +177,7 @@ class CliTest(TestCase):
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
-        graph_file = os.path.join(os.path.dirname(__file__), 'test_cli_timeseries_graph.json')
+        graph_file = os.path.join(os.path.dirname(__file__), 'graphs/test_cli_timeseries_graph.json')
         self.assertTrue(os.path.exists(graph_file), msg='missing test file %s' % graph_file)
 
         try:

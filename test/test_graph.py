@@ -32,7 +32,7 @@ class Op3:
 
 
 class GraphFileNodeTest(TestCase):
-    file_path = os.path.join(os.path.dirname(__file__), 'test_graph_g1.json').replace('\\', '/')
+    file_path = os.path.join(os.path.dirname(__file__), 'graphs/test_graph_g1.json').replace('\\', '/')
 
     def test_init(self):
         node = GraphFileNode(self.file_path, node_id='jojo_87')
