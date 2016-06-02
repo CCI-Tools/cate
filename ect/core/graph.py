@@ -57,7 +57,8 @@ Module Reference
 
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Sequence, Optional
+from io import IOBase
+from typing import Sequence, Optional, Union
 
 from ect.core import Monitor
 from .op import REGISTRY, UNDEFINED, OpMetaInfo, OpRegistration
@@ -218,6 +219,8 @@ class ChildNode(Node):
         """Enhance the given JSON-compatible *node_dict* by child node specific elements."""
 
 
+# todo (nf) - rename to GraphNode, rename file_path to resource, so we can also have URLs
+
 class GraphFileNode(ChildNode):
     """
     A `GraphFileNode` is a child node that uses an externally stored :py:class:`Graph` for its computations.
@@ -231,26 +234,25 @@ class GraphFileNode(ChildNode):
         if not file_path:
             raise ValueError('file_path must be given')
         node_id = node_id if node_id else 'graph_file_' + hex(id(self))[2:]
-        with open(file_path) as fp:
-            import json
-            json_dict = json.load(fp)
-            self._graph = Graph.from_json_dict(json_dict, registry=registry)
-        super(GraphFileNode, self).__init__(self._graph.op_meta_info, node_id)
+        graph = Graph.load(file_path, registry=registry)
+        super(GraphFileNode, self).__init__(graph.op_meta_info, node_id)
+        self._graph = graph
         self._file_path = file_path
+        # Connect the graph's inputs with this node's input sources
         for graph_input in self._graph.input[:]:
             name = graph_input.name
             assert name in self.input
             graph_input.connect_source(self.input[name])
 
     @property
-    def file_path(self) -> str:
-        """The graph's file path."""
-        return self._file_path
-
-    @property
     def graph(self) -> 'Graph':
         """The graph."""
         return self._graph
+
+    @property
+    def file_path(self) -> str:
+        """The graph's file path."""
+        return self._file_path
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
@@ -406,44 +408,24 @@ class Graph(Node):
                 node.invoke(monitor.child(1))
             monitor.done()
 
-    def to_json_dict(self):
+    @classmethod
+    def load(cls, file_path_or_fp: Union[str, IOBase], registry=REGISTRY) -> 'Graph':
         """
-        Return a JSON-serializable dictionary representation of this object.
+        Load a graph from a file or file pointer. The format is expected to be "graph-JSON".
 
-        :return: A JSON-serializable dictionary
+        :param file_path_or_fp: file path or file pointer
+        :param registry: Operation registry
+        :return: a graph
         """
-        # Developer note: keep variable naming consistent with Graph.from_json_dict() method
-        input_json_dict = OrderedDict()
-        for node_input in self._node_input_namespace[:]:
-            source = node_input.source
-            try:
-                source_json_dict = source.to_json_dict()
-            except AttributeError:
-                raise ValueError("input '%s' of graph '%s' is not JSON-serializable: source type: %s" %
-                                 (node_input.name, node_input.node.id, str(type(source))))
-            input_json_dict[node_input.name] = source_json_dict
-
-        output_json_dict = OrderedDict()
-        for node_output in self._node_output_namespace[:]:
-            source = node_output.source
-            try:
-                source_json_dict = source.to_json_dict()
-            except AttributeError:
-                raise ValueError("output '%s' of graph '%s' is not JSON-serializable: source type: %s" %
-                                 (node_output.name, node_output.node.id, str(type(source))))
-            output_json_dict[node_output.name] = source_json_dict
-
-        nodes_json_list = []
-        for node in self._nodes.values():
-            nodes_json_list.append(node.to_json_dict())
-
-        graph_json_dict = OrderedDict()
-        graph_json_dict['qualified_name'] = self.op_meta_info.qualified_name
-        graph_json_dict['input'] = input_json_dict
-        graph_json_dict['output'] = output_json_dict
-        graph_json_dict['nodes'] = nodes_json_list
-
-        return graph_json_dict
+        import json
+        if isinstance(file_path_or_fp, str):
+            file_path = file_path_or_fp
+            with open(file_path) as fp:
+                json_dict = json.load(fp)
+        else:
+            fp = file_path_or_fp
+            json_dict = json.load(fp)
+        return Graph.from_json_dict(json_dict, registry=registry)
 
     @classmethod
     def from_json_dict(cls, graph_json_dict, registry=REGISTRY):
@@ -555,6 +537,45 @@ class Graph(Node):
             other_node_output = other_node.output[other_node_output_name]
             node_output_ref.resolve(other_node_output)
             node_input.connect_source(other_node_output)
+
+    def to_json_dict(self):
+        """
+        Return a JSON-serializable dictionary representation of this object.
+
+        :return: A JSON-serializable dictionary
+        """
+        # Developer note: keep variable naming consistent with Graph.from_json_dict() method
+        input_json_dict = OrderedDict()
+        for node_input in self._node_input_namespace[:]:
+            source = node_input.source
+            try:
+                source_json_dict = source.to_json_dict()
+            except AttributeError:
+                raise ValueError("input '%s' of graph '%s' is not JSON-serializable: source type: %s" %
+                                 (node_input.name, node_input.node.id, str(type(source))))
+            input_json_dict[node_input.name] = source_json_dict
+
+        output_json_dict = OrderedDict()
+        for node_output in self._node_output_namespace[:]:
+            source = node_output.source
+            try:
+                source_json_dict = source.to_json_dict()
+            except AttributeError:
+                raise ValueError("output '%s' of graph '%s' is not JSON-serializable: source type: %s" %
+                                 (node_output.name, node_output.node.id, str(type(source))))
+            output_json_dict[node_output.name] = source_json_dict
+
+        nodes_json_list = []
+        for node in self._nodes.values():
+            nodes_json_list.append(node.to_json_dict())
+
+        graph_json_dict = OrderedDict()
+        graph_json_dict['qualified_name'] = self.op_meta_info.qualified_name
+        graph_json_dict['input'] = input_json_dict
+        graph_json_dict['output'] = output_json_dict
+        graph_json_dict['nodes'] = nodes_json_list
+
+        return graph_json_dict
 
     def __str__(self):
         return self.id
