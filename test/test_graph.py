@@ -2,7 +2,7 @@ import json
 import os.path
 from unittest import TestCase
 
-from ect.core.graph import NodeInput, NodeOutput, OpNode, ExternalSource, ConstantSource, Graph, GraphOutput, \
+from ect.core.graph import NodeInput, NodeOutput, OpNode, ParameterSource, ConstantSource, Graph, GraphOutput, \
     UndefinedSource, NodeOutputRef, GraphInput, GraphInputRef, GraphFileNode
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
 from ect.core.util import object_to_qualified_name
@@ -259,7 +259,7 @@ class OpNodeTest(TestCase):
             "op": "test.test_graph.Op3",
             "input": {
                 "u": {"undefined": true},
-                "v": {"external": true}
+                "v": {"parameter": true}
             }
         }
         """
@@ -278,7 +278,7 @@ class OpNodeTest(TestCase):
         self.assertIsInstance(node3.input.v, NodeInput)
         self.assertIsInstance(node3.output.w, NodeOutput)
         self.assertIsInstance(node3.input.u.source, UndefinedSource)
-        self.assertIsInstance(node3.input.v.source, ExternalSource)
+        self.assertIsInstance(node3.input.v.source, ParameterSource)
 
         self.assertIs(node3.input.u.source.value, UNDEFINED)
         self.assertIs(node3.input.v.source.value, None)
@@ -397,7 +397,7 @@ class GraphTest(TestCase):
         {
             "id": "my_workflow",
             "input": {
-                "p": {"external": true}
+                "p": {"parameter": true}
             },
             "output": {
                 "q": {"output_of": "op3.w"}
@@ -442,7 +442,7 @@ class GraphTest(TestCase):
         self.assertIn('q', graph.output)
 
         self.assertIsInstance(graph.input.p, NodeInput)
-        self.assertIsInstance(graph.input.p.source, ExternalSource)
+        self.assertIsInstance(graph.input.p.source, ParameterSource)
         self.assertIsInstance(graph.output.q, GraphOutput)
         self.assertIsInstance(graph.output.q.source, NodeOutputRef)
 
@@ -589,17 +589,17 @@ class UndefinedSourceTest(TestCase):
         self.assertEqual(repr(source), 'UndefinedSource()')
 
 
-class ExternalSourceTest(TestCase):
+class ParameterSourceTest(TestCase):
     def test_init(self):
-        source = ExternalSource()
+        source = ParameterSource()
         self.assertEqual(source.value, None)
         self.assertEqual(str(source), 'None')
-        self.assertEqual(repr(source), 'ExternalSource(None)')
+        self.assertEqual(repr(source), 'ParameterSource(None)')
 
         source.set_value(3.14)
         self.assertEqual(source.value, 3.14)
         self.assertEqual(str(source), '3.14')
-        self.assertEqual(repr(source), 'ExternalSource(3.14)')
+        self.assertEqual(repr(source), 'ParameterSource(3.14)')
 
 
 class ConstantSourceTest(TestCase):

@@ -8,18 +8,17 @@ interface Target {
     {abstract} set_value(value)
 }
 
-interface SourceHolder {
-    {abstract} source: Source
-    {abstract} connect_source(source)
-    {abstract} disconnect_source()
+class UndefinedSource implements Source {
+    get_value()
 }
+
 
 class ConstantSource implements Source {
     constant
     get_value()
 }
 
-class ExternalSource implements Source, Target {
+class ParameterSource implements Source, Target {
     value
     get_value()
     set_value(value)
@@ -33,7 +32,10 @@ class NodeOutputRef implements Source {
     get_value()
 }
 
-class OpNode {
+interface SourceHolder {
+    {abstract} source: Source
+    {abstract} connect_source(source)
+    {abstract} disconnect_source()
 }
 
 class NodeInput implements Source, SourceHolder {
@@ -48,6 +50,9 @@ class NodeOutput implements Source, Target {
     value: object
     get_value()
     set_value(value)
+}
+
+class ChildNode {
 }
 
 class Graph {
@@ -67,8 +72,8 @@ GraphInputRef --> GraphInput : graph_input
 NodeOutputRef --> NodeOutput : node_output
 SourceHolder --> Source : source
 
-OpNode "1" o-- "0..N" NodeInput
-OpNode "1" o-- "0..N" NodeOutput
+ChildNode "1" o-- "0..N" NodeInput
+ChildNode "1" o-- "0..N" NodeOutput
 
 Graph "1" o-- "0..N" GraphInput
 Graph "1" o-- "0..N" GraphOutput

@@ -15,9 +15,9 @@
         }
     },
     "input": {
-        "lat": {"external": true},
-        "lon": {"external": true},
-        "method": {"external": true}
+        "lat": {"parameter": true},
+        "lon": {"parameter": true},
+        "method": {"parameter": true}
     },
     "output": {
         "return": {"output_of": "timeseries_op.return"}

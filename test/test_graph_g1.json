@@ -12,7 +12,7 @@
         }
     },
     "input": {
-        "p": {"external": true}
+        "p": {"parameter": true}
     },
     "output": {
         "q": {"output_of": "op3.w"}

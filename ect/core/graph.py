@@ -30,7 +30,7 @@ Child node input sources are indicated in the input specification of a node's JS
 
 * ``{"input_from":`` *name* ``}``: the input named *name* of the current graph.
 * ``{"output_of":`` *node-id* ``.`` *name* ``}``: the output named *name* of another graph or node given by *node-id*.
-* ``{"external":`` *ignored-value* ``}``: a value parsed from the command-line or provided by a GUI. No value given.
+* ``{"parameter":`` *ignored-value* ``}``: parameter whose value is provided externally (CLI or GUI).
 * ``{"constant":``  *value* ``}``: a constant value, where *value* my be any JSON-value.
 * ``{"file":`` *file-path* ``}``: an object loaded from a file in a given format,
   e.g. netCDF/xarray dataset, Shapefile, JSON, PNG image, numpy-binary.
@@ -168,7 +168,7 @@ class ChildNode(Node):
             return None
         # todo (nf) - address code duplication in Graph.from_json_dict
         node_input_dict = json_dict.get('input', None)
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
+        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_input in node.input[:]:
             node_input_source_dict = node_input_dict.get(node_input.name, None)
             if node_input_source_dict is None:
@@ -474,12 +474,12 @@ class Graph(Node):
 
         graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
 
-        # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'external' can be altered,
+        # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'parameter' can be altered,
         # as they are Targets (they have a set_value(value) method) by CLI or GUI.
         # Other inputs (other than 'undefined') shall be treated as "local" inputs to the graph's node inputs.
 
         # todo (nf) - address code duplication here and in ChildNode.from_json_dict
-        source_classes = [ConstantSource, UndefinedSource, ExternalSource]
+        source_classes = [ConstantSource, UndefinedSource, ParameterSource]
         for node_input in graph.input[:]:
             node_input_source_dict = node_input_json_dict.get(node_input.name, {})
             source = None
@@ -492,7 +492,7 @@ class Graph(Node):
             else:
                 raise ValueError("unknown input type in graph '%s'" % graph_id)
 
-        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ExternalSource]
+        source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_output in graph.output[:]:
             node_output_source_dict = node_output_json_dict.get(node_output.name, {})
             source = None
@@ -591,8 +591,8 @@ class Target(metaclass=ABCMeta):
         """Set the *value* of this output."""
 
 
-class ExternalSource(Source, Target, Json):
-    """A source whose value can be set externally."""
+class ParameterSource(Source, Target, Json):
+    """A source representing a parameter whose value is provided externally (e.g. by CLI or GUI)."""
 
     def __init__(self, value=None):
         self._value = value
@@ -606,17 +606,17 @@ class ExternalSource(Source, Target, Json):
 
     @classmethod
     def from_json_dict(cls, json_dict: dict):
-        # The value of 'external' is ignored
-        return cls() if 'external' in json_dict else None
+        # The value of 'parameter' is ignored, should be 'true' or 'null'
+        return cls() if 'parameter' in json_dict else None
 
     def to_json_dict(self):
-        return dict(external=True)
+        return dict(parameter=True)
 
     def __str__(self):
         return str(self._value)
 
     def __repr__(self):
-        return "ExternalSource(%s)" % repr(self._value)
+        return "ParameterSource(%s)" % repr(self._value)
 
 
 class UndefinedSource(Source, Json):
@@ -628,7 +628,7 @@ class UndefinedSource(Source, Json):
 
     @classmethod
     def from_json_dict(cls, json_dict: dict):
-        # The value of 'external' is ignored
+        # The value of 'undefined' is ignored
         return UNDEFINED_SOURCE if 'undefined' in json_dict else None
 
     def to_json_dict(self):
