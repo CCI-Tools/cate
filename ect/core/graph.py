@@ -9,7 +9,7 @@ This module provides the following data types:
 
 * A :py:class:`Node` has zero or more ``NodeInput`` and zero or more ``NodeOutput`` objects
 * A :py:class:`OpNode` is a ``Node`` that wraps an executable operation.
-* A :py:class:`GraphFileNode` is a ``Node`` that wraps an executable ``Graph`` loaded from a JSON file.
+* A :py:class:`GraphNode` is a ``Node`` that wraps an executable ``Graph`` loaded from an external JSON resource.
 * A :py:class:`Graph` is a ``Node`` that contains other ``Node`` objects
 * A :py:class:`NodeInput` belongs to exactly one ``Node``, has a name, and has a ``source`` property which provides
   the input value. A source may be a constant or a connected ``NodeOutput`` of another node. Basically anything
