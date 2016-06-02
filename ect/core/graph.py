@@ -413,7 +413,7 @@ class Graph(Node):
         :return: A JSON-serializable dictionary
         """
         # Developer note: keep variable naming consistent with Graph.from_json_dict() method
-        node_input_json_dict = OrderedDict()
+        input_json_dict = OrderedDict()
         for node_input in self._node_input_namespace[:]:
             source = node_input.source
             try:
@@ -421,9 +421,9 @@ class Graph(Node):
             except AttributeError:
                 raise ValueError("input '%s' of graph '%s' is not JSON-serializable: source type: %s" %
                                  (node_input.name, node_input.node.id, str(type(source))))
-            node_input_json_dict[node_input.name] = source_json_dict
+            input_json_dict[node_input.name] = source_json_dict
 
-        node_output_json_dict = OrderedDict()
+        output_json_dict = OrderedDict()
         for node_output in self._node_output_namespace[:]:
             source = node_output.source
             try:
@@ -431,17 +431,17 @@ class Graph(Node):
             except AttributeError:
                 raise ValueError("output '%s' of graph '%s' is not JSON-serializable: source type: %s" %
                                  (node_output.name, node_output.node.id, str(type(source))))
-            node_output_json_dict[node_output.name] = source_json_dict
+            output_json_dict[node_output.name] = source_json_dict
 
-        graph_nodes_list = []
+        nodes_json_list = []
         for node in self._nodes.values():
-            graph_nodes_list.append(node.to_json_dict())
+            nodes_json_list.append(node.to_json_dict())
 
         graph_json_dict = OrderedDict()
-        graph_json_dict['id'] = self.id
-        graph_json_dict['input'] = node_input_json_dict
-        graph_json_dict['output'] = node_output_json_dict
-        graph_json_dict['nodes'] = graph_nodes_list
+        graph_json_dict['qualified_name'] = self.op_meta_info.qualified_name
+        graph_json_dict['input'] = input_json_dict
+        graph_json_dict['output'] = output_json_dict
+        graph_json_dict['nodes'] = nodes_json_list
 
         return graph_json_dict
 
@@ -449,22 +449,23 @@ class Graph(Node):
     def from_json_dict(cls, graph_json_dict, registry=REGISTRY):
         # Developer note: keep variable naming consistent with Graph.to_json_dict() method
 
-        graph_id = graph_json_dict.get('id', None)
+        qualified_name = graph_json_dict.get('qualified_name', None)
+        if qualified_name is None:
+            raise ValueError('missing mandatory "qualified_name" property in graph JSON')
+        header_json_dict = graph_json_dict.get('header', {})
         node_input_json_dict = graph_json_dict.get('input', {})
         node_output_json_dict = graph_json_dict.get('output', {})
         graph_nodes_json_list = graph_json_dict.get('nodes', [])
 
-        # todo (nf) - if you look at current graph JSON code, keeping a separate "op_meta_info" dict is ugly
-        # Also, inputs and outputs have to be specified twice. We may have inlined "qualified_name", "header"
-        # properties and the existing graph-level "input" and "output" dictionaries may be allowed to carry
-        # the info that is usually stored in "input" and "output" dicts of the  "op_meta_info" dict.
+        # todo (nf) - convert 'data_type' values in node_input_json_dict & node_output_json_dict
+        # todo (nf) - OpMetaInfo.input_dict: only add inputs whose source type is 'parameter'
+        # todo (nf) - OpMetaInfo.output_dict: only add inputs whose source type is 'output_of'
+        op_meta_info = OpMetaInfo(qualified_name,
+                                  has_monitor=True,
+                                  header_dict=header_json_dict,
+                                  input_dict=node_input_json_dict,
+                                  output_dict=node_output_json_dict)
 
-        # Convert op_meta_info
-        op_meta_info_json_dict = graph_json_dict.get('op_meta_info', None)
-        if op_meta_info_json_dict is not None:
-            op_meta_info = OpMetaInfo.from_json_dict(op_meta_info_json_dict, has_monitor=True)
-        else:
-            op_meta_info = OpMetaInfo(graph_id)
         for name, value in node_input_json_dict.items():
             if name not in op_meta_info.input:
                 op_meta_info.input[name] = {}
@@ -472,7 +473,8 @@ class Graph(Node):
             if name not in op_meta_info.output:
                 op_meta_info.output[name] = {}
 
-        graph = Graph(graph_id=graph_id, op_meta_info=op_meta_info)
+        # todo (nf) - remove graph_id kw, make op_meta_info required arg, Graph.id == Graph.op_meta_info.qualified_name
+        graph = Graph(graph_id=qualified_name, op_meta_info=op_meta_info)
 
         # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'parameter' can be altered,
         # as they are Targets (they have a set_value(value) method) by CLI or GUI.
@@ -490,7 +492,7 @@ class Graph(Node):
             if source is not None:
                 node_input.connect_source(source)
             else:
-                raise ValueError("unknown input type in graph '%s'" % graph_id)
+                raise ValueError("unknown input type in graph '%s'" % qualified_name)
 
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_output in graph.output[:]:
@@ -503,7 +505,7 @@ class Graph(Node):
             if source is not None:
                 node_output.connect_source(source)
             else:
-                raise ValueError("unknown output type in graph '%s'" % graph_id)
+                raise ValueError("unknown output type in graph '%s'" % qualified_name)
 
         # Convert all nodes
         node_classes = [OpNode, GraphFileNode]
@@ -517,7 +519,7 @@ class Graph(Node):
             if node is not None:
                 nodes.append(node)
             else:
-                raise ValueError("unknown node type in graph '%s'" % graph_id)
+                raise ValueError("unknown node type in graph '%s'" % qualified_name)
 
         graph.add_nodes(*nodes)
 

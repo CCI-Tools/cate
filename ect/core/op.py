@@ -60,7 +60,7 @@ class OpMetaInfo:
                  output_dict: dict = None):
         self._qualified_name = op_qualified_name
         self._has_monitor = has_monitor
-        self._header = header_dict if header_dict else OrderedDict()
+        self._header = header_dict if header_dict else dict()
         self._input_namespace = Namespace()
         if input_dict:
             for name, value in input_dict.items():

@@ -1,5 +1,5 @@
 {
-    "id": "timeseries_1",
+    "qualified_name": "timeseries_1",
     "op_meta_data" : {
         "qualified_name": "timeseries",
         "header": {

@@ -1,21 +1,21 @@
 {
-    "op_meta_data" : {
-        "qualified_name": "cool_graph",
-        "header": {
-            "description": "This is a test graph composed of 3 nodes."
-        },
-        "input": {
-            "p": {"data_type": "float", "description": "Parameter 'p'"}
-        },
-        "output": {
-            "q": {"data_type": "float", "description": "Parameter 'q'"}
-        }
+    "qualified_name": "cool_graph",
+    "header": {
+        "description": "This is a test graph composed of 3 nodes."
     },
     "input": {
-        "p": {"parameter": true}
+        "p": {
+            "parameter": true,
+            "data_type": "float",
+            "description": "Parameter 'p'"
+        }
     },
     "output": {
-        "q": {"output_of": "op3.w"}
+        "q": {
+            "output_of": "op3.w",
+            "data_type": "float",
+            "description": "Output 'q'"
+        }
     },
     "nodes": [
         {

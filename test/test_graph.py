@@ -1,5 +1,6 @@
 import json
 import os.path
+from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.graph import NodeInput, NodeOutput, OpNode, ParameterSource, ConstantSource, Graph, GraphOutput, \
@@ -395,12 +396,15 @@ class GraphTest(TestCase):
     def test_from_json_dict(self):
         graph_json_text = """
         {
-            "id": "my_workflow",
+            "qualified_name": "my_workflow",
+            "header": {
+                "description": "My workflow is not bad."
+            },
             "input": {
-                "p": {"parameter": true}
+                "p": {"parameter": true, "description": "Input 'p'"}
             },
             "output": {
-                "q": {"output_of": "op3.w"}
+                "q": {"output_of": "op3.w", "description": "Output 'q'"}
             },
             "nodes": [
                 {
@@ -433,7 +437,13 @@ class GraphTest(TestCase):
 
         self.assertIsNotNone(graph)
         self.assertEqual(graph.id, "my_workflow")
-        self.assertEqual(len(graph.nodes), 3)
+
+        self.assertEqual(graph.op_meta_info.qualified_name, graph.id)
+        self.assertEqual(graph.op_meta_info.header, dict(description="My workflow is not bad."))
+        self.assertEqual(len(graph.op_meta_info.input), 1)
+        self.assertEqual(len(graph.op_meta_info.output), 1)
+        self.assertEqual(graph.op_meta_info.input['p'], dict(parameter=True, description="Input 'p'"))
+        self.assertEqual(graph.op_meta_info.output['q'], dict(output_of="op3.w", description="Output 'q'"))
 
         self.assertEqual(len(graph.input), 1)
         self.assertEqual(len(graph.output), 1)
@@ -446,6 +456,7 @@ class GraphTest(TestCase):
         self.assertIsInstance(graph.output.q, GraphOutput)
         self.assertIsInstance(graph.output.q.source, NodeOutputRef)
 
+        self.assertEqual(len(graph.nodes), 3)
         node1 = graph.nodes[0]
         node2 = graph.nodes[1]
         node3 = graph.nodes[2]
@@ -458,7 +469,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('graph', input_dict=dict(p={}), output_dict=dict(q={})), graph_id='my_workflow')
+        graph = Graph(op_meta_info=OpMetaInfo('my_workflow', input_dict=dict(p={}), output_dict=dict(q={})), graph_id='my_workflow')
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -470,7 +481,7 @@ class GraphTest(TestCase):
 
         expected_json_text = """
         {
-            "id": "my_workflow",
+            "qualified_name": "my_workflow",
             "input": {
                 "p": {"undefined": true}
             },
