@@ -12,10 +12,22 @@ Module Requirements
 :Description: Allow querying registered ECV catalogues using a simple function that takes a set of query parameters
     and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
 :Specified in: <link to other RST page here>
-:Test: <link to test class.function here>
-:URD-Source: <CCIT-UR-DM0010 : The data module shall have the means
-    to attain meta-level status information per ECV type>
-:URD-Source: <CCIT-UR-DM0013 : The CCI Toolbox shall allow filtering for:>
+:Test: ``test_io.py``
+:URD-Source:
+    * CCIT-UR-DM0006: Data access to ESA CCI
+    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
+    * CCIT-UR-DM0013: The CCI Toolbox shall allow filtering
+
+----
+
+**Add catalogue**
+
+:Description: Allow adding of user defined catalogues specifying the access protocol and the layout of the data.
+    These catalogues can be used to access datasets.
+:Specified in: <link to other RST page here>
+:Test: ``test_io.py``
+:URD-Source:
+    * CCIT-UR-DM0011: Data access to non-CCI data
 
 ----
 
@@ -25,8 +37,16 @@ Module Requirements
    The dataset returned complies to the ECT common data model.
    The dataset to be returned can optionally be constrained in time and space.
 :Specified in: <link to other RST page here>
-:Test: <link to test class.function here>
-:URD-Source: <CCIT-UR-DM0001 : Data access and input>
+:Test: ``test_io.py``
+:URD-Source:
+    * CCIT-UR-DM0001: Data access and input
+    * CCIT-UR-DM0004: Open multiple inputs
+    * CCIT-UR-DM0005: Data access using different protocols>
+    * CCIT-UR-DM0007: Open single ECV
+    * CCIT-UR-DM0008: Open multiple ECV
+    * CCIT-UR-DM0009: Open any ECV
+    * CCIT-UR-DM0012: Open different formats
+
 
 
 
