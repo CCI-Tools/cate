@@ -529,7 +529,7 @@ class Graph(Node):
             graph_input_ref = node_input.source
             other_graph_input_name = graph_input_ref.name
             if other_graph_input_name not in self.input:
-                raise ValueError("undefined input '%s'", other_graph_input_name)
+                raise ValueError("undefined input '%s'" % other_graph_input_name)
             other_graph_input = self.input[other_graph_input_name]
             graph_input_ref.resolve(other_graph_input)
             node_input.connect_source(other_graph_input)
@@ -541,7 +541,7 @@ class Graph(Node):
             if other_node is None:
                 raise ValueError("unknown node '%s'" % other_node_id)
             if other_node_output_name not in other_node.output:
-                raise ValueError("unknown output '%s' of node '%s'", (other_node_output_name, other_node_id))
+                raise ValueError("unknown output '%s' of node '%s'" % (other_node_output_name, other_node_id))
             other_node_output = other_node.output[other_node_output_name]
             node_output_ref.resolve(other_node_output)
             node_input.connect_source(other_node_output)
