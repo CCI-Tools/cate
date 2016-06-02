@@ -40,7 +40,7 @@ class GraphNodeTest(TestCase):
         self.assertEqual(node.id, 'jojo_87')
         self.assertEqual(node.resource, self.file_path)
         self.assertEqual(str(node), 'jojo_87')
-        self.assertEqual(repr(node), "GraphNode(Graph(OpMetaData('cool_graph'), graph_id='cool_graph'), '%s', node_id='jojo_87')" % self.file_path)
+        self.assertEqual(repr(node), "GraphNode(Graph('cool_graph'), '%s', node_id='jojo_87')" % self.file_path)
 
         self.assertIsNotNone(node.graph)
         self.assertIn('p', node.graph.input)
@@ -351,7 +351,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
+        graph = Graph(OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -359,7 +359,7 @@ class GraphTest(TestCase):
         node3.input.v = node2.output.b
         graph.output.q = node3.output.w
 
-        self.assertRegex(graph.id, 'graph_[0-9]+')
+        self.assertEqual(graph.id, 'mygraph')
         self.assertEqual(len(graph.input), 1)
         self.assertEqual(len(graph.output), 1)
         self.assertIn('p', graph.input)
@@ -376,13 +376,13 @@ class GraphTest(TestCase):
         self.assertIsInstance(graph.output.q.source, NodeOutputRef)
 
         self.assertEqual(str(graph), graph.id)
-        self.assertEqual(repr(graph), "Graph(OpMetaData('mygraph'), graph_id='%s')" % graph.id)
+        self.assertEqual(repr(graph), "Graph('mygraph')")
 
     def test_invoke(self):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
+        graph = Graph(OpMetaInfo('mygraph', input_dict=dict(p={}), output_dict=dict(q={})))
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -472,7 +472,7 @@ class GraphTest(TestCase):
         node1 = OpNode(Op1, node_id='op1')
         node2 = OpNode(Op2, node_id='op2')
         node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(op_meta_info=OpMetaInfo('my_workflow', input_dict=dict(p={}), output_dict=dict(q={})), graph_id='my_workflow')
+        graph = Graph(OpMetaInfo('my_workflow', input_dict=dict(p={}), output_dict=dict(q={})))
         graph.add_nodes(node1, node2, node3)
         node1.input.x = graph.input.p
         node2.input.a = node1.output.y
@@ -553,7 +553,7 @@ class NodeInputTest(TestCase):
 
 class GraphInputTest(TestCase):
     def test_init(self):
-        graph = Graph(OpMetaInfo('mygraph', input_dict=dict(x={})), graph_id='mygraph_10')
+        graph = Graph(OpMetaInfo('mygraph_10', input_dict=dict(x={})))
         graph_input = GraphInput(graph, 'x')
         self.assertIs(graph_input.node, graph)
         self.assertIs(graph_input.graph, graph)
@@ -577,14 +577,14 @@ class NodeOutputTest(TestCase):
 
 class GraphOutputTest(TestCase):
     def test_init(self):
-        graph = Graph(graph_id='mygraph')
+        graph = Graph('mygraph')
         graph_output = GraphOutput(graph, 'y')
         self.assertIs(graph_output.graph, graph)
         self.assertEqual(graph_output.name, 'y')
         self.assertEqual(str(graph_output), 'mygraph.y')
 
     def test_source(self):
-        graph = Graph(graph_id='mygraph')
+        graph = Graph('mygraph')
         graph_output = GraphOutput(graph, 'y')
         self.assertIsInstance(graph_output.source, UndefinedSource)
         source = ConstantSource(2.9)

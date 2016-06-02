@@ -358,14 +358,15 @@ class Graph(Node):
     Inputs are exposed as attributes of the :py:attr:`input` property and are of type :py:class:`GraphInput`.
     Outputs are exposed as attributes of the :py:attr:`output` property and are of type :py:class:`GraphOutput`.
 
-    :param op_meta_info: An optional OpMetaInfo object. If not provided, a basic stump will be generated.
-    :param graph_id: An optional ID for the graph.
+    :param name_or_op_meta_info: Qualified operation name or meta-information object of type :py:class:`OpMetaInfo`.
     """
 
-    def __init__(self, op_meta_info: OpMetaInfo = None, graph_id: str = None):
-        op_meta_info = op_meta_info if op_meta_info is not None else OpMetaInfo('graph')
-        graph_id = graph_id if graph_id else 'graph_' + hex(id(self))[2:]
-        super(Graph, self).__init__(op_meta_info, graph_id)
+    def __init__(self, name_or_op_meta_info: Union[str, OpMetaInfo]):
+        if isinstance(name_or_op_meta_info, str):
+            op_meta_info = OpMetaInfo(name_or_op_meta_info)
+        else:
+            op_meta_info = name_or_op_meta_info
+        super(Graph, self).__init__(op_meta_info, op_meta_info.qualified_name)
         self._nodes = OrderedDict()
 
     @property
@@ -455,8 +456,7 @@ class Graph(Node):
             if name not in op_meta_info.output:
                 op_meta_info.output[name] = {}
 
-        # todo (nf) - remove graph_id kw, make op_meta_info required arg, Graph.id == Graph.op_meta_info.qualified_name
-        graph = Graph(graph_id=qualified_name, op_meta_info=op_meta_info)
+        graph = Graph(op_meta_info)
 
         # todo (nf) - here we must somehow deal with the fact that only graph inputs of type 'parameter' can be altered,
         # as they are Targets (they have a set_value(value) method) by CLI or GUI.
@@ -476,7 +476,6 @@ class Graph(Node):
                 node_input.connect_source(source)
             else:
                 node_input.connect_source(default_source_class())
-                #raise ValueError("unknown input type in graph '%s'" % qualified_name)
 
         source_classes = [GraphInputRef, NodeOutputRef, ConstantSource, UndefinedSource, ParameterSource]
         for node_output in graph.output[:]:
@@ -583,7 +582,7 @@ class Graph(Node):
         return self.id
 
     def __repr__(self):
-        return "Graph(OpMetaData(%s), graph_id=%s)" % (repr(self.op_meta_info.qualified_name), repr(self.id))
+        return "Graph(%s)" % repr(self.op_meta_info.qualified_name)
 
 
 class Json(metaclass=ABCMeta):

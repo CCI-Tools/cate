@@ -74,7 +74,6 @@ class OpMetaInfo:
     #: receive a :py:class:`Monitor` object as value.
     MONITOR_INPUT_NAME = 'monitor'
 
-    # todo (nf) - use name '_return_' to avoid confusion with reserved Python keyword
     #: The constant ``'return'``, which is the name of a single, unnamed operation output.
     RETURN_OUTPUT_NAME = 'return'
 
