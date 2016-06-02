@@ -5,7 +5,7 @@ from time import sleep
 from unittest import TestCase
 
 from ect.core import cli
-from ect.core.monitor import starting, Monitor
+from ect.core.monitor import Monitor
 
 
 @contextmanager
@@ -192,7 +192,7 @@ def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.
     """Timeseries dummy function for testing."""
     print('lat=%s lon=%s method=%s' % (lat, lon, method))
     work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
-    with starting(monitor, 'Extracting timeseries data', sum(work_units)):
+    with monitor.starting('Extracting timeseries data', sum(work_units)):
         for work_unit in work_units:
             sleep(work_unit / 10.)
             monitor.progress(work_unit)

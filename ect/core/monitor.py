@@ -9,7 +9,7 @@ Example usage:::
     from ect.core.monitor import starting
 
     def long_running_task(a, b, c, monitor):
-        with starting(monitor, 'doing a long running task', total_work=100)
+        with monitor.starting('doing a long running task', total_work=100)
             # do 30% of the work here
             monitor.progress(work=30)
             # do 70% of the work here
@@ -18,7 +18,7 @@ Example usage:::
 If your function makes calls to other functions that also support a monitor, use a *child-monitor*:::
 
     def long_running_task(a, b, c, monitor):
-        with starting(monitor, 'doing a long running task', total_work=100)
+        with monitor.starting('doing a long running task', total_work=100)
             # let other_task do 30% of the work
             other_task(a, b, c, monitor=monitor.child(work=30))
             # let other_task do 70% of the work
@@ -36,25 +36,6 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 
 
-@contextmanager
-def starting(monitor, label: str, total_work: float = None):
-    """
-    A context manager for easier use of progress monitors.
-    Calls the monitor's ``start`` method with *label* and *total_work*.
-    Will then take care of calling :py:method:`Monitor.done`.
-
-    :param monitor: The monitor
-    :param label: Passed to the monitor's ``start`` method
-    :param total_work: Passed to the monitor's ``start`` method
-    :return:
-    """
-    monitor.start(label, total_work=total_work)
-    try:
-        yield monitor
-    finally:
-        monitor.done()
-
-
 class Monitor(metaclass=ABCMeta):
     """
     A monitor is used to both observe and control a running operation.
@@ -67,6 +48,24 @@ class Monitor(metaclass=ABCMeta):
 
     #: `NULL` is a valid monitor that has no effect. Use instead of passing ``None``
     NULL = None
+
+    @contextmanager
+    def starting(self, label: str, total_work: float = None):
+        """
+        A context manager for easier use of progress monitors.
+        Calls the monitor's ``start`` method with *label* and *total_work*.
+        Will then take care of calling :py:method:`Monitor.done`.
+
+        :param monitor: The monitor
+        :param label: Passed to the monitor's ``start`` method
+        :param total_work: Passed to the monitor's ``start`` method
+        :return:
+        """
+        self.start(label, total_work=total_work)
+        try:
+            yield self
+        finally:
+            self.done()
 
     @abstractmethod
     def start(self, label: str, total_work: float = None):

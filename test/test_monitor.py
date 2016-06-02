@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor, starting
+from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor
 
 
 class NullMonitorTest(TestCase):
@@ -21,8 +21,15 @@ class ConsoleMonitorTest(TestCase):
         monitor.progress(work=5, msg='phase 1')
         monitor.progress(msg='phase 2')
         monitor.progress(work=4)
+        monitor.progress()
         monitor.done()
         self.assertTrue(True)
+
+    def test_label_req(self):
+        monitor = ConsoleMonitor()
+        with self.assertRaises(ValueError):
+            # "ValueError: label must be given"
+            monitor.start('', total_work=10)
 
     def test_child_monitor(self):
         monitor = ConsoleMonitor()
@@ -49,7 +56,7 @@ class RecordingMonitorTest(TestCase):
 
     def test_context_manager(self):
         monitor = RecordingMonitor()
-        with starting(monitor, 'task A', total_work=10):
+        with monitor.starting('task A', total_work=10):
             monitor.progress(work=1)
             monitor.progress(work=5, msg='phase 1')
             monitor.progress(msg='phase 2')
@@ -114,6 +121,13 @@ class ChildMonitorTest(TestCase):
                                            ('progress', 2.0, None, 100),
                                            ('progress', 0.0, 'sub-task A.3', 100),
                                            ('done',)])
+
+    def test_label_req(self):
+        monitor = RecordingMonitor()
+        sub_monitor = monitor.child(10)
+        with self.assertRaises(ValueError):
+            # "ValueError: label must be given"
+            sub_monitor.start('', total_work=10)
 
 
 class RecordingMonitor(Monitor):
