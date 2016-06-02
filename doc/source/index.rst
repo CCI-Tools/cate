@@ -14,6 +14,7 @@ Contents:
 
    intro
    quick_start
+   use_cases
    architecture
    tech_spec
    api_reference
