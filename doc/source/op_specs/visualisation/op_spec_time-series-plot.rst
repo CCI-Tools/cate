@@ -35,6 +35,11 @@ Options
 
 ---------------------------------
 
+:name: multiple datasets, lagged
+:description: plots multiple time series on the same axes in a lagged manner
+
+---------------------------------
+
 :name: plot settings
 :description: settings for the plot 
 :settings: legend, colours, symbols
