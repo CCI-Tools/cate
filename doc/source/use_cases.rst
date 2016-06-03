@@ -13,19 +13,19 @@ how a user is expecting to work with the CCI Toolbox.
 Use Case #1 - IPCC Support
 ==========================
 
-:User Characteristics: international climate research community and international bodies
+:User Characteristics: international climate research community, international bodies
 
 :Problem Definition: In its Summary for Policy Makers, the fifth IPCC Assessment Report [RD-2] shows
     four ECVs of the marine environment as indicators of a changing climate. This figure depicting the “(a)
-    extent of Northern Hemisphere March-April (spring) average snow cover; (b) extent of Arctic July-August-September (summer) average sea ice; (c) change in
-    global mean upper ocean (0–700 m) heat content aligned to 2006−2010, and relative to the mean of all datasets for
-    1970; (d) global mean sea level relative to the 1900–1905 mean of the longest running dataset, and with all datasets
-    aligned to have the same value in 1993, the first year of satellite altimetry data” in the form of annual values with
-    available uncertainties expressed as shadings, could also constitute a CCI Toolbox product. For a second figure,
-    change in sea ice extent and ocean heat content are calculated on a regional basis and contrasted with land surface
-    temperature anomalies. Additionally, global averages of land surface, land and ocean surface temperature as well as
-    ocean heat content changes are presented. All observational time series are compared with model output. This could
-    have been a CCI Toolbox operation, too.
+    extent of Northern Hemisphere March-April (spring) average snow cover; (b) extent of Arctic July-August-September
+    (summer) average sea ice; (c) change in global mean upper ocean (0–700 m) heat content aligned to 2006−2010,
+    and relative to the mean of all datasets for1970; (d) global mean sea level relative to the 1900–1905 mean of the
+    longest running dataset, and with all datasets aligned to have the same value in 1993, the first year of satellite
+    altimetry data” in the form of annual values with available uncertainties expressed as shadings, could also
+    constitute a CCI Toolbox product. For a second figure, change in sea ice extent and ocean heat content are
+    calculated on a regional basis and contrasted with land surface temperature anomalies. Additionally, global
+    averages of land surface, land and ocean surface temperature as well as ocean heat content changes are presented.
+    All observational time series are compared with model output. This could have been a CCI Toolbox operation, too.
 
 :Required Toolbox Features Step 1:
 
