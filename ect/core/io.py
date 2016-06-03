@@ -4,8 +4,8 @@ Module Description
 
 This module provides ECT's data access API.
 
-Module Requirements
-===================
+Technical Requirements
+======================
 
 **Query catalogue**
 
