@@ -54,11 +54,12 @@ Module Reference
 ================
 """
 import json
+import os
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import StringIO, IOBase
-from typing import Sequence, Union, List
+from typing import Sequence, Union, List, Tuple
 
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
@@ -81,19 +82,20 @@ class DataSource(metaclass=ABCMeta):
         """The catalogue to which this data source belongs."""
 
     @abstractmethod
-    def open_dataset(self, **constraints) -> Dataset:
+    def open_dataset(self, time_range=None) -> Dataset:
         """
-        Open a dataset with the given *constraints*.
+        Open a dataset with the given constraints.
 
-        :param constraints: open constraints.
+        :param time_range: a tuple of datetime or str, optional. To limits the dataset in time.
         """
 
-    def matches_filter(self, **constraints) -> bool:
+    def __str__(self):
+        return self.name
+
+    def matches_filter(self, name=None) -> bool:
         """Test if this data source matches the given *constraints*."""
-        if constraints:
-            for key, value in constraints.items():
-                if key == 'name' and value not in self.name:
-                    return False
+        if name and name != self.name:
+            return False
         return True
 
 
@@ -102,11 +104,11 @@ class Catalogue(metaclass=ABCMeta):
 
     # TODO (mz, nf) - define constraints --> have a look at Iris Constraint class
     @abstractmethod
-    def query(self, **constraints) -> Sequence[DataSource]:
+    def query(self, name=None) -> Sequence[DataSource]:
         """
         Query this catalogue using the given *constraints*.
 
-        :param constraints: Query constraints.
+        :param name: An optional name of the dataset.
         :return: Sequence of data sources.
         """
 
@@ -139,16 +141,15 @@ class CatalogueRegistry:
 CATALOGUE_REGISTRY = CatalogueRegistry()
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, **constraints) \
-        -> Sequence[DataSource]:
+def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, name=None) -> Sequence[DataSource]:
     """Query the catalogue(s) for data sources matching the given constrains.
 
     Parameters
     ----------
     catalogues : Catalogue or Sequence[Catalogue]
        If given these catalogues will be queried. Otherwise all registered catalogues will be used.
-    constraints : dict, optional
-       The contains may limit the dataset in space or time.
+    name : str, optional
+       The name of the dataset.
 
     Returns
     -------
@@ -168,19 +169,19 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]]=None, *
     results = []
     # noinspection PyTypeChecker
     for catalogue in catalogue_list:
-        results.extend(catalogue.query(**constraints))
+        results.extend(catalogue.query(name))
     return results
 
 
-def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
+def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Dataset:
     """Load and decode a dataset.
 
     Parameters
     ----------
     data_source : str or DataSource
        Strings are interpreted as the identifier of an ECV dataset.
-    constraints : str, optional
-       The contains may limit the dataset in space or time.
+    time_range : a tuple of datetime or str, optional
+       The *time_range*, if given, limits the dataset in time.
 
     Returns
     -------
@@ -202,7 +203,7 @@ def open_dataset(data_source: Union[DataSource, str], **constraints) -> Dataset:
         elif len(data_sources) > 1:
             raise ValueError('%s data_sources found for the given query term' % len(data_sources))
         data_source = data_sources[0]
-    return data_source.open_dataset(**constraints)
+    return data_source.open_dataset(time_range)
 
 
 class FileSetDataSource(DataSource):
@@ -244,12 +245,12 @@ class FileSetDataSource(DataSource):
     def catalogue(self) -> 'FileSetCatalogue':
         return self._file_set_catalogue
 
-    def open_dataset(self, **constraints) -> Dataset:
-        first_time = constraints.get('first_time', None)
-        last_time = constraints.get('last_time', None)
-        paths = self.resolve_paths(first_time=first_time, last_time=last_time)
+    def open_dataset(self, time_range=None) -> Dataset:
+        paths = self.resolve_paths(time_range)
+        unique_paths = list(set(paths))
+        existing_paths = [p for p in unique_paths if os.path.exists(p)]
         # TODO (mz) - differentiate between xarray and shapefile
-        xr_dataset = open_xarray_dataset(paths)
+        xr_dataset = open_xarray_dataset(existing_paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
 
@@ -271,28 +272,29 @@ class FileSetDataSource(DataSource):
     def _full_pattern(self) -> str:
         return self._base_dir + "/" + self._file_pattern
 
-    def resolve_paths(self, first_time: Union[str, datetime]=None, last_time: Union[str, datetime]=None) -> \
-            Sequence[str]:
+    def resolve_paths(self, time_range: Tuple[Union[str, datetime], Union[str, datetime]]=(None, None)) \
+            -> Sequence[str]:
         """Return a list of all paths between the given times.
 
         For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
 
         Parameters
         ----------
-        first_time : str or datetime
-            The first date of the time range, can be None if the file set has a *start_time*.
-            In this case the *start_time* is used.
-        last_time : str or datetime
-            The last date of the time range, can be None if the file set has a *end_time*.
-            In this case the *end_time* is used.
+        time_range : a tuple of datetime or str, optional
+               The *time_range*, if given, limits the dataset in time.
+               The first date of the time range, can be None if the file set has a *start_time*.
+               In this case the *start_time* is used.
+               The last date of the time range, can be None if the file set has a *end_time*.
+               In this case the *end_time* is used.
         """
-        if first_time is None and (self._fileset_info is None or self._fileset_info.start_time is None):
-            raise ValueError("neither first_time nor start_time are given")
-        dt1 = _as_datetime(first_time, self._fileset_info.start_time)
+        (begin, end) = time_range
+        if begin is None and (self._fileset_info is None or self._fileset_info.start_time is None):
+            raise ValueError("neither the beginning of the interval nor start_time are given")
+        dt1 = _as_datetime(begin, self._fileset_info.start_time)
 
-        if last_time is None and (self._fileset_info is None or self._fileset_info.end_time is None):
-            raise ValueError("neither last_time nor end_time are given")
-        dt2 = _as_datetime(last_time, self._fileset_info.end_time)
+        if end is None and (self._fileset_info is None or self._fileset_info.end_time is None):
+            raise ValueError("neither the end of the interval nor end_time are given")
+        dt2 = _as_datetime(end, self._fileset_info.end_time)
 
         if dt1 > dt2:
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
@@ -359,8 +361,8 @@ class FileSetCatalogue(Catalogue):
     def root_dir(self) -> str:
         return self._root_dir
 
-    def query(self, **constraints) -> Sequence[DataSource]:
-        return [ds for ds in self._data_sources if ds.matches_filter(**constraints)]
+    def query(self, name=None) -> Sequence[DataSource]:
+        return [ds for ds in self._data_sources if ds.matches_filter(name)]
 
     def expand_from_json(self, json_fp_or_str: Union[str, IOBase]):
         if isinstance(json_fp_or_str, str):
@@ -369,6 +371,7 @@ class FileSetCatalogue(Catalogue):
             fp = json_fp_or_str
         for data in json.load(fp):
             if 'start_date' in data and 'end_date' in data and 'num_files' in data and 'size_mb' in data:
+                # TODO (mz) - used named parameters
                 file_set_info = FileSetInfo(
                     datetime.now(),  # TODO (mz) - put scan time into JSON
                     data['start_date'],
@@ -378,9 +381,10 @@ class FileSetCatalogue(Catalogue):
                 )
             else:
                 file_set_info = None
+            # TODO (mz) - used named parameters
             self._data_sources.append(FileSetDataSource(
                 self,
-                data['name'],
+                data['name'].replace('/', '_'), # TODO (mz) - chnage this in the JSON file
                 data['base_dir'],
                 data['file_pattern'],
                 fileset_info=file_set_info

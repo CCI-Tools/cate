@@ -19,7 +19,25 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
     engine = 'h5netcdf'
     lock = xr.backends.api._default_lock(paths[0], None)
     # TODO (mz) - get correct chunking from netcdf metadata
-    datasets = [xr.open_dataset(p, engine=engine, chunks=chunks, lock=lock, **kwargs) for p in paths]
+
+
+    def _x_open(p):
+        print(p)
+        return
+
+    datasets = []
+    probed_engine = None
+    for p in paths:
+        if not probed_engine:
+            try:
+                from xarray.backends import H5NetCDFStore
+                store = H5NetCDFStore(p)
+                print(store)
+                probed_engine = 'h5netcdf'
+            except OSError:
+                probed_engine = 'netcdf4'
+        da = xr.open_dataset(p, engine=probed_engine, chunks=chunks, lock=lock, **kwargs)
+        datasets.append(da)
 
     preprocessed_datasets = []
     file_objs = []
@@ -43,7 +61,7 @@ def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
     """
     if len(datasets) == 0:
         raise ValueError()
-    if 'time' in datasets[0].dim:
+    if 'time' in datasets[0].dims:
         xr.auto_combine(datasets, concat_dim='time')
     else:
         time_index = [_extract_time_index(ds) for ds in datasets]
