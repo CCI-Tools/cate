@@ -1,20 +1,21 @@
 import xarray as xr
 
 from ect.core.cdm_xarray import XArrayDatasetAdapter
-from ect.core.op import op_input
+from ect.core.op import op_input, op_output
 from ect import Dataset
 
 
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill', None])
+@op_output('return', description='A timeseries dataset.')
 def timeseries(ds: Dataset, lat: float, lon: float, method: str='nearest') -> Dataset:
     if isinstance(ds, XArrayDatasetAdapter):
         wrapped_xarray = ds.wrapped_dataset
         xarray_timeseries = _xarray_timeseries(wrapped_xarray, lat=lat, lon=lon, method=method)
         return XArrayDatasetAdapter(xarray_timeseries)
     else:
-        raise NotImplementedError('shapefiles are not supported currently')
+        raise NotImplementedError('shapefiles are currently not supported')
 
 
 def _xarray_timeseries(xarray: xr.Dataset, lat: float, lon: float, method: str) -> xr.Dataset:
