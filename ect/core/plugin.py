@@ -101,4 +101,4 @@ def ect_init(*arg, **kwargs):
 
 
 #: Mapping of ECT entry point names to JSON-serializable plugin meta-information.
-REGISTRY = _load_plugins()
+PLUGIN_REGISTRY = _load_plugins()

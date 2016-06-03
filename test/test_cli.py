@@ -113,7 +113,7 @@ class CliTest(TestCase):
         self.assertEqual(serr.getvalue(), "ect: error: unknown operation 'pipapo'\n")
 
     def test_command_run_with_op(self):
-        from ect.core.op import REGISTRY as OP_REGISTRY
+        from ect.core.op import OP_REGISTRY as OP_REGISTRY
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
@@ -152,7 +152,7 @@ class CliTest(TestCase):
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
     def test_command_run_with_graph(self):
-        from ect.core.op import REGISTRY as OP_REGISTRY
+        from ect.core.op import OP_REGISTRY as OP_REGISTRY
         import os.path
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)

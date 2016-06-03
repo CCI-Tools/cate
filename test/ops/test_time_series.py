@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 
 from ect.core.cdm_xarray import XArrayDatasetAdapter
-from ect.ops.time_series import timeseries
+from ect.ops.timeseries import timeseries
 
 
 class TimeSeriesTest(TestCase):

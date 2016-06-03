@@ -61,7 +61,7 @@ from io import IOBase
 from typing import Sequence, Optional, Union
 
 from ect.core import Monitor
-from .op import REGISTRY, UNDEFINED, OpMetaInfo, OpRegistration
+from .op import OP_REGISTRY, UNDEFINED, OpMetaInfo, OpRegistration
 from .util import Namespace
 
 
@@ -163,7 +163,7 @@ class ChildNode(Node):
         super(ChildNode, self).__init__(op_meta_info, node_id=node_id)
 
     @classmethod
-    def from_json_dict(cls, json_dict, registry=REGISTRY) -> Optional['ChildNode']:
+    def from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['ChildNode']:
         node = cls.new_node_from_json_dict(json_dict, registry=registry)
         if node is None:
             return None
@@ -185,7 +185,7 @@ class ChildNode(Node):
 
     @classmethod
     @abstractmethod
-    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         """Create a new child node instance from the given *json_dict*"""
 
     def to_json_dict(self):
@@ -267,7 +267,7 @@ class GraphNode(ChildNode):
             node_output.set_value(graph_output.value)
 
     @classmethod
-    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         resource = json_dict.get('graph', None)
         if resource is None:
             return None
@@ -291,7 +291,7 @@ class OpNode(ChildNode):
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, operation, node_id=None, registry=REGISTRY):
+    def __init__(self, operation, node_id=None, registry=OP_REGISTRY):
         if not operation:
             raise ValueError('operation must be given')
         if isinstance(operation, str):
@@ -336,7 +336,7 @@ class OpNode(ChildNode):
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].set_value(return_value)
 
     @classmethod
-    def new_node_from_json_dict(cls, json_dict, registry=REGISTRY):
+    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         op_name = json_dict.get('op', None)
         if op_name is None:
             return None
@@ -408,7 +408,7 @@ class Graph(Node):
             monitor.done()
 
     @classmethod
-    def load(cls, file_path_or_fp: Union[str, IOBase], registry=REGISTRY) -> 'Graph':
+    def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Graph':
         """
         Load a graph from a file or file pointer. The format is expected to be "graph-JSON".
 
@@ -427,7 +427,7 @@ class Graph(Node):
         return Graph.from_json_dict(json_dict, registry=registry)
 
     @classmethod
-    def from_json_dict(cls, graph_json_dict, registry=REGISTRY):
+    def from_json_dict(cls, graph_json_dict, registry=OP_REGISTRY):
         # Developer note: keep variable naming consistent with Graph.to_json_dict() method
 
         qualified_name = graph_json_dict.get('qualified_name', None)

@@ -2,7 +2,7 @@ import xarray as xr
 
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.op import op_input, op_output
-from ect import Dataset
+from ect.core.cdm import Dataset
 
 
 @op_input('lat', value_range=[-90, 90])

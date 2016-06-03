@@ -463,10 +463,10 @@ class _DefaultOpRegistry(OpRegistry):
 # see Python libs 'pinject' (Google), 'inject', and others
 
 #: The default operation registry of type :py:class:`ect.core.op.OpRegistry`.
-REGISTRY = _DefaultOpRegistry()
+OP_REGISTRY = _DefaultOpRegistry()
 
 
-def op(registry=REGISTRY):
+def op(registry=OP_REGISTRY):
     """
     Classes or functions annotated by this decorator are added to the given *registry*.
     Classes annotated by this decorator must have callable instances. Callable instances
@@ -490,7 +490,7 @@ def op_input(input_name: str,
              data_type=None,
              value_set=None,
              value_range=None,
-             registry=REGISTRY,
+             registry=OP_REGISTRY,
              **kwargs):
     """
     Define an operation input.
@@ -526,7 +526,7 @@ def op_input(input_name: str,
 
 def op_output(output_name: str,
               data_type=None,
-              registry=REGISTRY,
+              registry=OP_REGISTRY,
               **kwargs):
     """
     Define an operation output.
@@ -557,7 +557,7 @@ def op_output(output_name: str,
 
 
 def op_return(data_type=None,
-              registry=REGISTRY,
+              registry=OP_REGISTRY,
               **kwargs):
     """
     Define an operation's single return value.

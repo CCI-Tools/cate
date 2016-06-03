@@ -42,10 +42,6 @@ class Command(metaclass=ABCMeta):
     ``REGISTRY``.
     """
 
-    #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
-    #: ECT plugins may extend this list by their commands during plugin initialisation.
-    REGISTRY = []
-
     #: Success value to be returned by :py:method:`execute`. Its value is ``(0, None)``.
     STATUS_OK = (0, None)
 
@@ -135,7 +131,7 @@ class Run(Command):
 
     @staticmethod
     def _invoke_operation(op_name: str, op_monitor: bool, op_args: list, op_kwargs: dict):
-        from ect.core.op import REGISTRY as OP_REGISTRY
+        from ect.core.op import OP_REGISTRY as OP_REGISTRY
         op = OP_REGISTRY.get_op(op_name)
         if op is None:
             return 1, "error: unknown operation '%s'" % op_name
@@ -189,13 +185,13 @@ class List(Command):
 
     def execute(self, command_args):
         if command_args.category == 'pi':
-            from ect.core.plugin import REGISTRY as PLUGIN_REGISTRY
+            from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
             List.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
         elif command_args.category == 'ds':
             data_sources_registry = []
             List.list_items('data source', 'data sources', data_sources_registry, command_args.pattern)
         elif command_args.category == 'op':
-            from ect.core.op import REGISTRY as OP_REGISTRY
+            from ect.core.op import OP_REGISTRY as OP_REGISTRY
             List.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
 
     @staticmethod
@@ -253,13 +249,14 @@ class Docs(Command):
 
 #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
 #: ECT plugins may extend this list by their commands during plugin initialisation.
-Command.REGISTRY.extend([
+COMMAND_REGISTRY = [
     List,
     Run,
     Copyright,
     License,
     Docs,
-])
+]
+
 
 # todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
 
@@ -283,7 +280,7 @@ def main(args=None):
         help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
     )
 
-    for command_class in Command.REGISTRY:
+    for command_class in COMMAND_REGISTRY:
         command_name, command_parser_kwargs = command_class.name_and_parser_kwargs()
         command_parser = subparsers.add_parser(command_name, **command_parser_kwargs)
         command_class.configure_parser(command_parser)

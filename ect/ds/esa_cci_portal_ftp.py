@@ -4,7 +4,7 @@ import pkgutil
 from ect.core.io import FileSetCatalogue, CATALOGUE_REGISTRY
 
 
-def _add_default_file_catalogue():
+def add_default_file_catalogue():
     ect_root_dir = 'ECT_DATA_ROOT'
     if 'ECT_DATA_ROOT' in os.environ:
         ect_root_dir = os.environ['ECT_DATA_ROOT']
@@ -13,5 +13,3 @@ def _add_default_file_catalogue():
     CATALOGUE_REGISTRY.add_catalogue('default', cat)
 
 
-def init_plugin():
-    _add_default_file_catalogue()

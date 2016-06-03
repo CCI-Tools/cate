@@ -53,8 +53,8 @@ class IOTest(TestCase):
     def test_query_data_sources_default_catalogue(self):
         self.assertEqual(0, len(io.CATALOGUE_REGISTRY))
         try:
-            from ect.ds.esa_cci_portal_ftp import init_plugin
-            init_plugin()
+            from ect.ds.esa_cci_portal_ftp import add_default_file_catalogue
+            add_default_file_catalogue()
             self.assertEqual(1, len(io.CATALOGUE_REGISTRY))
 
             data_sources = io.query_data_sources()
