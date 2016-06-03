@@ -110,7 +110,14 @@ class CliTest(TestCase):
             status = cli.main(args=['run', 'pipapo', 'lat=13.2', 'lon=52.9'])
             self.assertEqual(status, 1)
         self.assertEqual(sout.getvalue(), '')
-        self.assertEqual(serr.getvalue(), "ect: error: unknown operation 'pipapo'\n")
+        self.assertEqual(serr.getvalue(), "ect: error: command 'run': unknown operation 'pipapo'\n")
+
+    def test_command_run_noargs(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['run'])
+            self.assertEqual(status, 2)
+        self.assertEqual(sout.getvalue(), '')
+        self.assertEqual(serr.getvalue(), "ect: error: command 'run' requires OP argument\n")
 
     def test_command_run_with_op(self):
         from ect.core.op import OP_REGISTRY as OP_REGISTRY
@@ -146,7 +153,7 @@ class CliTest(TestCase):
                 status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
                 self.assertEqual(status, 2)
             self.assertEqual(sout.getvalue(), '')
-            self.assertEqual(serr.getvalue(), "ect: error: keyword 'l*t' is not a valid identifier\n")
+            self.assertEqual(serr.getvalue(), "ect: error: command 'run': keyword 'l*t' is not a valid identifier\n")
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)

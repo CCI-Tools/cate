@@ -100,11 +100,13 @@ class Command(metaclass=ABCMeta):
 
 
 class Run(Command):
+    CMD_NAME = 'run'
+
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Run an operation OP with given arguments.'
-        return 'run', dict(help=help_line,
-                           description='%s Type "list ops" to list all available operations.' % help_line)
+        return cls.CMD_NAME, dict(help=help_line,
+                                  description='%s Type "list ops" to list all available operations.' % help_line)
 
     @classmethod
     def configure_parser(cls, parser):
@@ -117,6 +119,8 @@ class Run(Command):
 
     def execute(self, command_args):
         op_name = command_args.op_name
+        if not op_name:
+            return 2, "error: command '%s' requires OP argument" % self.CMD_NAME
         is_graph_file = op_name.endswith('.json') and os.path.isfile(op_name)
 
         op_args = []
@@ -127,7 +131,7 @@ class Run(Command):
             if len(kwarg) == 2:
                 kw, arg = kwarg
                 if not kw.isidentifier():
-                    return 2, "error: keyword '%s' is not a valid identifier" % kw
+                    return 2, "error: command '%s': keyword '%s' is not a valid identifier" % (self.CMD_NAME, kw)
             try:
                 # try converting arg into a Python object
                 arg = eval(arg)
@@ -149,7 +153,7 @@ class Run(Command):
         from ect.core.op import OP_REGISTRY as OP_REGISTRY
         op = OP_REGISTRY.get_op(op_name)
         if op is None:
-            return 1, "error: unknown operation '%s'" % op_name
+            return 1, "error: command '%s': unknown operation '%s'" % (Run.CMD_NAME, op_name)
         print('Running operation %s with args=%s and kwargs=%s' % (op_name, op_args, dict(op_kwargs)))
         if op_monitor:
             monitor = ConsoleMonitor()
@@ -162,7 +166,8 @@ class Run(Command):
     @staticmethod
     def _invoke_graph(graph_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
         if op_args:
-            return 1, "error: can't run graph with arguments %s, please provide keywords only" % op_args
+            return 1, "error: command '%s': can't run graph with arguments %s, please provide keywords only" % \
+                   (Run.CMD_NAME, op_args)
 
         from ect.core.graph import Graph
         graph = Graph.load(graph_file)
@@ -271,7 +276,6 @@ COMMAND_REGISTRY = [
     License,
     Docs,
 ]
-
 
 
 # todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
