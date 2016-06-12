@@ -29,6 +29,10 @@ class ShapefileDatasetAdapter(DatasetAdapter):
         # implement me using fiona or pyshp API
         pass
 
+    def filter_dataset(self, filter_: tuple = None):
+        # TODO Implement me?
+        pass
+
 
 def add_shapefile_dataset(container: DatasetCollection, shapefile, name: str = None):
     container.add_dataset(ShapefileDatasetAdapter(shapefile), name=name)

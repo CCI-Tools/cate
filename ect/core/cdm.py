@@ -52,6 +52,20 @@ class Dataset(metaclass=ABCMeta):
         Closes data access.
         """
 
+    @abstractmethod
+    def filter_dataset(self, filter_=None):
+        """
+        Filter the dataset, by leaving only the desired variables.
+        Changes the dataset in place.
+
+        :param filter_: The ECV variables to keep
+        :return: filtered dataset of the type 'Dataset'
+        """
+        # TODO: Really has to be figured out how this is supposed to work
+        # architecturally. Our Xarray based dataset already includes many
+        # DataArray variables that need to be filtered out. It's a question
+        # how it is going to be with the shapefile implementation.
+
 
 class DatasetAdapter(Dataset, metaclass=ABCMeta):
     """

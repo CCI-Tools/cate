@@ -28,6 +28,19 @@ class XArrayDatasetAdapter(DatasetAdapter):
         # implement me using xarray Dataset API
         pass
 
+    def filter_dataset(self, filter_: tuple = None):
+        if not filter_:
+            return
+
+        existing_variables = list(self._wrapped_dataset.data_vars.keys())
+        for item in filter_:
+            try:
+                existing_variables.remove(item)
+            except ValueError:
+                pass
+
+        return  XArrayDatasetAdapter(self._wrapped_dataset.drop(existing_variables))
+
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset, name: str = None):
     container.add_dataset(XArrayDatasetAdapter(xr_dataset), name=name)
