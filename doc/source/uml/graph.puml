@@ -2,27 +2,30 @@
 
 abstract Node {
     id : str
-    input : NodeInputNamespace
-    output : NodeOutputNamespace
+    input : List[NodeConnector]
+    output : List[NodeConnector]
     {abstract} from_json_dict(json_dict)
     {abstract} to_json_dict() : dict
     {abstract} invoke(monitor, **args)
 }
 
-class Graph implements Node {
+class Graph extends Node {
     from_json_dict(json_dict)
     to_json_dict() : dict
     invoke(monitor, **args)
 }
 
-class GraphNode implements Node {
+class ChildNode extends Node {
+}
+
+class GraphNode extends ChildNode {
     resource : str
     from_json_dict(json_dict)
     to_json_dict() : dict
     invoke(monitor, **args)
 }
 
-class OpNode implements Node {
+class OpNode extends ChildNode {
     op_name : str
     from_json_dict(json_dict)
     to_json_dict() : dict
@@ -37,9 +40,10 @@ class op.OpMetaInfo {
 }
 
 GraphNode --> Graph: graph
-OpNode --> op.OpRegistration : op_registration
-Node --> op.OpMetaInfo: op_meta_info
+OpNode o--> op.OpRegistration : op_registration
+Node o--> op.OpMetaInfo: op_meta_info
 Graph o--> "0..N" Node: nodes
+ChildNode --> Node : parent
 
 
 note left of Graph

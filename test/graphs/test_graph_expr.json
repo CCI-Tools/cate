@@ -1,0 +1,28 @@
+{
+    "qualified_name": "expr_graph",
+    "header": {
+        "description": "This is a test graph composed of a single ExprNode."
+    },
+    "input": {
+        "a": {},
+        "b": {},
+        "c": {}
+    },
+    "output": {
+        "x": {"source": "expr_node.x"},
+        "y": {"source": "expr_node.y"}
+    },
+    "nodes": [{
+        "id": "expr_node",
+        "expression": "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)",
+        "input": {
+            "a": "expr_graph.a",
+            "b": "expr_graph.b",
+            "c": "expr_graph.c"
+        },
+        "output": {
+            "x": {},
+            "y": {}
+        }
+    }]
+}

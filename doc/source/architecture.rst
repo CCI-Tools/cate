@@ -52,8 +52,8 @@ Workflow Management (**graph** Module)
 
    Important components of the **graph** module
 
-.. figure:: _static/uml/graph_details.svg
-   :scale: 50 %
+.. figure:: _static/uml/graph_node_connector.svg
+   :scale: 100 %
    :align: center
 
    Details of the **graph** module

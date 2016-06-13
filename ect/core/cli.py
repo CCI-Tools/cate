@@ -174,7 +174,7 @@ class Run(Command):
 
         for name, value in op_kwargs.items():
             if name in graph.input:
-                graph.input[name].connect_source(value)
+                graph.input[name].value = value
 
         print('Running graph %s with kwargs=%s' % (graph_file, dict(op_kwargs)))
         if op_monitor:

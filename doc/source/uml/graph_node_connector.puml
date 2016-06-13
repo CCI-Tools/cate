@@ -1,0 +1,21 @@
+@startuml
+
+
+class Node {
+    id : str
+    {abstract} from_json_dict(json_dict)
+    {abstract} to_json_dict() : dict
+    {abstract} invoke(monitor, **args)
+}
+
+class NodeConnector {
+    name: str
+    value: object
+}
+
+Node o--> "0..N" NodeConnector : input
+Node o--> "0..N" NodeConnector : output
+NodeConnector --> Node : node
+NodeConnector --> NodeConnector : source
+
+@enduml
