@@ -5,19 +5,16 @@
     },
     "input": {
         "lat": {
-            "parameter": true,
             "data_type": "float",
             "valid_range": [-90, 90],
             "description": "Latitude in degrees"
         },
         "lon": {
-            "parameter": true,
             "data_type": "float",
             "valid_range": [-180, 180],
             "description": "Longitude in degrees"
         },
         "method": {
-            "parameter": true,
             "data_type": "str",
             "value_set": ["NEAREST", "BILINEAR", "BICUBIC"],
             "description": "Interpolation method"
@@ -25,7 +22,7 @@
     },
     "output": {
         "return": {
-            "output_of": "timeseries_op.return",
+            "source": "timeseries_op.return",
             "data_type": "list",
             "description": "Time series as list of values"
         }
@@ -35,9 +32,9 @@
             "id": "timeseries_op",
             "op": "test.test_cli.timeseries",
             "input": {
-                "lat": { "input_from": "lat" },
-                "lon": { "input_from": "lon" },
-                "method": { "input_from": "method" }
+                "lat": "lat",
+                "lon": "lon",
+                "method": "method"
             }
         }
     ]

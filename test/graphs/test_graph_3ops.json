@@ -5,14 +5,13 @@
     },
     "input": {
         "p": {
-            "parameter": true,
             "data_type": "float",
             "description": "Parameter 'p'"
         }
     },
     "output": {
         "q": {
-            "output_of": "op3.w",
+            "source": "op3.w",
             "data_type": "float",
             "description": "Output 'q'"
         }
@@ -22,22 +21,22 @@
             "id": "op1",
             "op": "test.test_graph.Op1",
             "input": {
-                "x": { "input_from": "p" }
+                "x": "p"
             }
         },
         {
             "id": "op2",
             "op": "test.test_graph.Op2",
             "input": {
-                "a": {"output_of": "op1.y"}
+                "a": "op1.y"
             }
         },
         {
             "id": "op3",
             "op": "test.test_graph.Op3",
             "input": {
-                "v": {"output_of": "op2.b"},
-                "u": {"output_of": "op1.y"}
+                "v": "op2.b",
+                "u": "op1.y"
             }
         }
     ]
