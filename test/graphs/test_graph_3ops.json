@@ -21,7 +21,7 @@
             "id": "op1",
             "op": "test.test_graph.Op1",
             "input": {
-                "x": "p"
+                "x": ".p"
             }
         },
         {

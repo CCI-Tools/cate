@@ -74,8 +74,10 @@ class Node(metaclass=ABCMeta):
     def __init__(self,
                  op_meta_info: OpMetaInfo,
                  node_id: str):
-        assert op_meta_info is not None
-        assert node_id
+        if not op_meta_info:
+            raise ValueError('op_meta_info must be given')
+        if not node_id:
+            raise ValueError('node_id must be given')
         self._op_meta_info = op_meta_info
         self._id = node_id
         self._input = self._new_input_namespace()
@@ -278,7 +280,7 @@ class Graph(Node):
         for graph_node_json_dict in nodes_json_list:
             node_count += 1
             node = None
-            for node_class in [OpNode, GraphNode]:
+            for node_class in [OpNode, GraphNode, ExprNode]:
                 node = node_class.from_json_dict(graph_node_json_dict, registry=registry)
                 if node is not None:
                     nodes.append(node)
@@ -367,14 +369,32 @@ class ChildNode(Node):
         node = cls.new_node_from_json_dict(json_dict, registry=registry)
         if node is None:
             return None
+
         node_input_dict = json_dict.get('input', {})
-        for node_input in node.input[:]:
+        for name, properties in node_input_dict.items():
+            if name not in node.input:
+                # update op_meta_info
+                node.op_meta_info.input[name] = node.op_meta_info.input.get(name, {})
+                # then create a new NodeConnector
+                node.input[name] = NodeConnector(node, name)
+            node_input = node.input[name]
             node_input.from_json_dict(node_input_dict)
+
+        node_output_dict = json_dict.get('output', {})
+        for name, properties in node_output_dict.items():
+            if name not in node.output:
+                # first update op_meta_info
+                node.op_meta_info.output[name] = node.op_meta_info.output.get(name, {})
+                # then create a new NodeConnector
+                node.output[name] = NodeConnector(node, name)
+            node_output = node.output[name]
+            node_output.from_json_dict(node_output_dict)
+
         return node
 
     @classmethod
     @abstractmethod
-    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['ChildNode']:
         """Create a new child node instance from the given *json_dict*"""
 
     def to_json_dict(self):
@@ -383,15 +403,16 @@ class ChildNode(Node):
 
         :return: A JSON-serializable dictionary
         """
-        node_input_dict = OrderedDict()
-        for node_input in self.input[:]:
-            node_input_dict[node_input.name] = node_input.to_json_dict()
 
         node_dict = OrderedDict()
         node_dict['id'] = self.id
+
         self.enhance_json_dict(node_dict)
-        if node_input_dict:
-            node_dict['input'] = node_input_dict
+
+        node_dict['input'] = OrderedDict(
+            [(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
+        node_dict['output'] = OrderedDict(
+            [(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
 
         return node_dict
 
@@ -532,6 +553,65 @@ class OpNode(ChildNode):
         return "OpNode(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
 
 
+class ExprNode(ChildNode):
+    """
+    An ``ExprNode`` is a child node that computes its output by a simple (Python) expression.
+
+    :param expression: A simple (Python) expression.
+    :param input_dict: input name to input properties mapping.
+    :param output_dict: output name to output properties mapping.
+    :param node_id: A node ID. If None, a unique ID will be generated.
+    """
+
+    def __init__(self, expression, input_dict=None, output_dict=None, node_id=None):
+        if not expression:
+            raise ValueError('expression must be given')
+        node_id = node_id if node_id else 'expr_node_' + hex(id(self))[2:]
+        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        if len(op_meta_info.output) == 0:
+            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        super(ExprNode, self).__init__(op_meta_info, node_id)
+        self._expression = expression
+
+    @property
+    def expression(self):
+        """The expression."""
+        return self._expression
+
+    def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying operation :py:attr:`op` with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
+        input_values = OrderedDict()
+        for node_input in self.input[:]:
+            input_values[node_input.name] = node_input.value
+
+        return_value = eval(self.expression, None, input_values)
+
+        if self.op_meta_info.has_named_outputs:
+            for output_name, output_value in return_value.items():
+                self.output[output_name].value = output_value
+        else:
+            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+
+    @classmethod
+    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        expression = json_dict.get('expression', None)
+        if expression is None:
+            return None
+        return cls(expression, node_id=json_dict.get('id', None))
+
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        node_dict['expression'] = self.expression
+
+    def __repr__(self):
+        return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
+
+
 class NodeConnector:
     """Represents a named input or output of a :py:class:`Node`. """
 
@@ -585,7 +665,7 @@ class NodeConnector:
     def resolve_source_ref(self):
         if self._source_ref:
             other_node_id, other_name = self._source_ref
-            if other_node_id:
+            if other_node_id and other_name:
                 root_node = self._node.root_node
                 other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
                 if other_node:
@@ -599,7 +679,22 @@ class NodeConnector:
                 else:
                     raise ValueError("cannot connect '%s' with '%s.%s' because node '%s' does not exist" % (
                         self, other_node_id, other_name, other_node_id))
-            else:
+            elif other_node_id:
+                root_node = self._node.root_node
+                other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
+                if other_node:
+                    if len(other_node.output) == 1:
+                        node_connector = other_node.output[0]
+                        self.source = node_connector
+                        return
+                    else:
+                        raise ValueError(
+                            "cannot connect '%s' with node '%s' because it has %s outputs" % (
+                                self, other_node_id, len(other_node.output)))
+                else:
+                    raise ValueError("cannot connect '%s' with output of node '%s' because node '%s' does not exist" % (
+                        self, other_node_id, other_node_id))
+            elif other_name:
                 # look for 'other_name' first in this scope and then the parent scopes
                 other_node = self._node
                 while other_node:
@@ -609,19 +704,22 @@ class NodeConnector:
                         return
                     other_node = other_node.parent_node
                 raise ValueError(
-                    "cannot connect '%s' with '%s' because '%s' does not exist" % (
+                    "cannot connect '%s' with '.%s' because '%s' does not exist in any scope" % (
                         self, other_name, other_name))
 
     def from_json_dict(self, json_dict):
         self._source_ref = None
         self._source = None
         self._value = None
+
         if json_dict is None:
             return
+
         connector_source_def = json_dict.get(self.name, None)
-        if not connector_source_def:
-            connector_source_def = self.name
-        elif not isinstance(connector_source_def, str):
+        if connector_source_def is None:
+            return
+
+        if not isinstance(connector_source_def, str):
             connector_json_dict = connector_source_def
             if 'source' in connector_json_dict:
                 if 'value' in connector_json_dict:
@@ -636,16 +734,20 @@ class NodeConnector:
             else:
                 return
 
+        source_format_msg = "error decoding '%s' because the \"source\" value format is " \
+                            "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
+
         parts = connector_source_def.rsplit('.', maxsplit=1)
         if len(parts) == 1 and parts[0]:
-            node_id = None
-            connector_name = parts[0]
-        elif len(parts) == 2 and parts[0] and parts[1]:
             node_id = parts[0]
+            connector_name = None
+        elif len(parts) == 2:
+            if not parts[1]:
+                raise ValueError(source_format_msg % self)
+            node_id = parts[0] if parts[0] else None
             connector_name = parts[1]
         else:
-            raise ValueError(
-                "error decoding '%s' because the \"source\" value format is neither <name> nor <node-id>.<name>" % self)
+            raise ValueError(source_format_msg % self)
         self._source_ref = node_id, connector_name
 
     def to_json_dict(self):

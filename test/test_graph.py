@@ -3,8 +3,8 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.graph import OpNode, Graph, GraphNode, NodeConnector
-from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo, UNDEFINED
+from ect.core.graph import OpNode, Graph, GraphNode, NodeConnector, ExprNode
+from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
 
 
@@ -34,91 +34,310 @@ def get_resource(rel_path):
     return os.path.join(os.path.dirname(__file__), rel_path).replace('\\', '/')
 
 
-class NodeConnectorTest(TestCase):
+class GraphTest(TestCase):
     def test_init(self):
-        node = OpNode(Op1, node_id='myop')
-        source = NodeConnector(node, 'x')
+        node1 = OpNode(Op1, node_id='op1')
+        node2 = OpNode(Op2, node_id='op2')
+        node3 = OpNode(Op3, node_id='op3')
+        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        graph.add_nodes(node1, node2, node3)
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
-        self.assertIs(source.node, node)
-        self.assertEqual(source.node_id, 'myop')
-        self.assertEqual(source.name, 'x')
-        self.assertEqual(source.source, None)
-        self.assertEqual(source.value, None)
-        self.assertEqual(str(source), 'myop.x')
-        self.assertEqual(repr(source), "NodeConnector('myop', 'x')")
+        self.assertEqual(graph.id, 'mygraph')
+        self.assertEqual(len(graph.input), 1)
+        self.assertEqual(len(graph.output), 1)
+        self.assertIn('p', graph.input)
+        self.assertIn('q', graph.output)
 
-    def test_resolve_source_ref(self):
-        node1 = OpNode(Op1, node_id='myop1')
-        connector1 = node1.output.y
+        self.assertEqual(graph.nodes, [node1, node2, node3])
 
-        node2 = OpNode(Op2, node_id='myop2')
+        self.assertIsNone(graph.input.p.source)
+        self.assertIsNone(graph.input.p.value)
 
-        node2.input.a._source_ref = ('myop1', 'y')
+        self.assertIs(graph.output.q.source, node3.output.w)
+        self.assertIsNone(graph.output.q.value)
 
-        g = Graph(OpMetaInfo('mygraph', has_monitor=True, input_dict=OrderedDict(x={}), output_dict=OrderedDict(b={})))
-        g.add_nodes(node1, node2)
+        self.assertEqual(str(graph), graph.id)
+        self.assertEqual(repr(graph), "Graph('mygraph')")
 
-        node2.input.a.resolve_source_ref()
+    def test_invoke(self):
+        node1 = OpNode(Op1, node_id='op1')
+        node2 = OpNode(Op2, node_id='op2')
+        node3 = OpNode(Op3, node_id='op3')
+        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        graph.add_nodes(node1, node2, node3)
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
-        self.assertEqual(node2.input.a._source_ref, ('myop1', 'y'))
-        self.assertIs(node2.input.a.source, node1.output.y)
-        self.assertIs(node2.input.a.value, None)
+        graph.input.p.value = 3
+        return_value = graph.invoke()
+        output_value = graph.output.q.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
 
     def test_from_json_dict(self):
-        node2 = OpNode(Op2, node_id='myop2')
-        connector2 = NodeConnector(node2, 'a')
+        graph_json_text = """
+        {
+            "qualified_name": "my_workflow",
+            "header": {
+                "description": "My workflow is not bad."
+            },
+            "input": {
+                "p": {"description": "Input 'p'"}
+            },
+            "output": {
+                "q": {"source": "op3.w", "description": "Output 'q'"}
+            },
+            "nodes": [
+                {
+                    "id": "op1",
+                    "op": "test.test_graph.Op1",
+                    "input": {
+                        "x": { "source": ".p" }
+                    }
+                },
+                {
+                    "id": "op2",
+                    "op": "test.test_graph.Op2",
+                    "input": {
+                        "a": {"source": "op1"}
+                    }
+                },
+                {
+                    "id": "op3",
+                    "op": "test.test_graph.Op3",
+                    "input": {
+                        "u": {"source": "op1.y"},
+                        "v": {"source": "op2.b"}
+                    }
+                }
+            ]
+        }
+        """
+        graph_json_dict = json.loads(graph_json_text)
+        graph = Graph.from_json_dict(graph_json_dict)
 
-        connector2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
-        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        self.assertIsNotNone(graph)
+        self.assertEqual(graph.id, "my_workflow")
 
-        # "myop1.y" is a shorthand for {"source": "myop1.y"}
-        connector2.from_json_dict(json.loads('{"a": "myop1.y"}'))
-        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        self.assertEqual(graph.op_meta_info.qualified_name, graph.id)
+        self.assertEqual(graph.op_meta_info.header, dict(description="My workflow is not bad."))
+        self.assertEqual(len(graph.op_meta_info.input), 1)
+        self.assertEqual(len(graph.op_meta_info.output), 1)
+        self.assertEqual(graph.op_meta_info.input['p'], dict(description="Input 'p'"))
+        self.assertEqual(graph.op_meta_info.output['q'], dict(source="op3.w", description="Output 'q'"))
 
-        connector2.from_json_dict(json.loads('{"a": {"source": "x"}}'))
-        self.assertEqual(connector2._source_ref, (None, 'x'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        self.assertEqual(len(graph.input), 1)
+        self.assertEqual(len(graph.output), 1)
 
-        # "x" is a shorthand for {"source": "x"}
-        connector2.from_json_dict(json.loads('{"a": "x"}'))
-        self.assertEqual(connector2._source_ref, (None, 'x'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        self.assertIn('p', graph.input)
+        self.assertIn('q', graph.output)
 
-        # if "a"'s source is not defined it is assumed we search for another source named "a"
-        connector2.from_json_dict(json.loads('{}'))
-        self.assertEqual(connector2._source_ref, (None, 'a'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        self.assertEqual(len(graph.nodes), 3)
+        node1 = graph.nodes[0]
+        node2 = graph.nodes[1]
+        node3 = graph.nodes[2]
 
-        connector2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
-        self.assertEqual(connector2._source_ref, None)
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, 2.6)
+        self.assertEqual(node1.id, 'op1')
+        self.assertEqual(node2.id, 'op2')
+        self.assertEqual(node3.id, 'op3')
 
+        self.assertIs(node1.input.x.source, graph.input.p)
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, node2.output.b)
+        self.assertIs(graph.output.q.source, node3.output.w)
+
+    def test_from_json_dict_empty(self):
+        json_dict = json.loads('{"qualified_name": "hello"}')
+        graph = Graph.from_json_dict(json_dict)
+        self.assertEqual(graph.id, 'hello')
+
+    def test_from_json_dict_invalids(self):
+        json_dict = json.loads('{"header": {}}')
         with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
-        self.assertEqual(str(cm.exception),
-                         "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
+            Graph.from_json_dict(json_dict)
+        self.assertEqual(str(cm.exception), 'missing mandatory property "qualified_name" in graph JSON')
 
-        expected_msg = "error decoding 'myop2.a' because the \"source\" value format is neither <name> nor <node-id>.<name>"
+    def test_to_json_dict(self):
+        node1 = OpNode(Op1, node_id='op1')
+        node2 = OpNode(Op2, node_id='op2')
+        node3 = OpNode(Op3, node_id='op3')
+        graph = Graph(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        graph.add_nodes(node1, node2, node3)
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
-        with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": ""}}'))
-        self.assertEqual(str(cm.exception), expected_msg)
+        graph_dict = graph.to_json_dict()
 
-        with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
-        self.assertEqual(str(cm.exception), expected_msg)
+        expected_json_text = """
+        {
+            "qualified_name": "my_workflow",
+            "input": {
+                "p": {}
+            },
+            "output": {
+                "q": {"source": "op3.w"}
+            },
+            "nodes": [
+                {
+                    "id": "op1",
+                    "op": "test.test_graph.Op1",
+                    "input": {
+                        "x": { "source": "my_workflow.p" }
+                    },
+                    "output": {
+                        "y": {}
+                    }
+                },
+                {
+                    "id": "op2",
+                    "op": "test.test_graph.Op2",
+                    "input": {
+                        "a": {"source": "op1.y"}
+                    },
+                    "output": {
+                        "b": {}
+                    }
+                },
+                {
+                    "id": "op3",
+                    "op": "test.test_graph.Op3",
+                    "input": {
+                        "v": {"source": "op2.b"},
+                        "u": {"source": "op1.y"}
+                    },
+                    "output": {
+                        "w": {}
+                    }
+                }
+            ]
+        }
+        """
 
-        with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": ".var"}}'))
-        self.assertEqual(str(cm.exception), expected_msg)
+        actual_json_text = json.dumps(graph_dict, indent=4)
+        expected_json_obj = json.loads(expected_json_text)
+        actual_json_obj = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\nexpected:\n%s\n%s\nbut got:\n%s\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
+
+
+class ExprNodeTest(TestCase):
+    expression = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"
+
+    def test_init(self):
+        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        self.assertEqual(node.id, 'bibo_8')
+        self.assertEqual(node.expression, self.expression)
+        self.assertEqual(str(node), 'bibo_8')
+        self.assertEqual(repr(node), "ExprNode('%s', node_id='bibo_8')" % self.expression)
+
+        node = ExprNode(self.expression)
+        self.assertEqual(node.op_meta_info.input, {})
+        self.assertEqual(node.op_meta_info.output, {'return': {}})
+
+    def test_from_json_dict(self):
+        json_text = """
+        {
+            "id": "bibo_8",
+            "input": {
+                "a": {},
+                "b": {},
+                "c": {}
+            },
+            "output": {
+                "x": {},
+                "y": {}
+            },
+            "expression": "%s"
+        }
+        """ % self.expression
+
+        json_dict = json.loads(json_text)
+
+        node = ExprNode.from_json_dict(json_dict)
+
+        self.assertIsInstance(node, ExprNode)
+        self.assertEqual(node.id, "bibo_8")
+        self.assertEqual(node.expression, self.expression)
+        self.assertIn('a', node.input)
+        self.assertIn('b', node.input)
+        self.assertIn('c', node.input)
+        self.assertIn('x', node.output)
+        self.assertIn('y', node.output)
+
+    def test_to_json_dict(self):
+        expected_json_text = """
+        {
+            "id": "bibo_8",
+            "input": {
+                "a": {},
+                "b": {},
+                "c": {}
+            },
+            "output": {
+                "x": {},
+                "y": {}
+            },
+            "expression": "%s"
+        }
+        """ % self.expression
+
+        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        actual_json_dict = node.to_json_dict()
+
+        actual_json_text = json.dumps(actual_json_dict, indent=4)
+        expected_json_dict = json.loads(expected_json_text)
+        actual_json_dict = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_dict, expected_json_dict,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
+
+    def test_invoke(self):
+        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        a = 1.5
+        b = -2.6
+        c = 4.3
+        node.input.a.value = a
+        node.input.b.value = b
+        node.input.c.value = c
+        return_value = node.invoke()
+        output_value_x = node.output.x.value
+        output_value_y = node.output.y.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value_x, 1 + 2 * a)
+        self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
+
+    def test_invoke_from_graph(self):
+        resource = get_resource('graphs/test_graph_expr.json')
+        graph = Graph.load(resource)
+        a = 1.5
+        b = -2.6
+        c = 4.3
+        graph.input.a.value = a
+        graph.input.b.value = b
+        graph.input.c.value = c
+        return_value = graph.invoke()
+        output_value_x = graph.output.x.value
+        output_value_y = graph.output.y.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value_x, 1 + 2 * a)
+        self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
 
 class GraphNodeTest(TestCase):
@@ -177,6 +396,9 @@ class GraphNodeTest(TestCase):
             "graph": "%s",
             "input": {
                 "p": {}
+            },
+            "output": {
+                "q": {}
             }
         }
         """ % resource
@@ -346,7 +568,7 @@ class OpNodeTest(TestCase):
             "op": "test.test_graph.Op3",
             "input": {
                 "u": {"source": "stat_op.stats"},
-                "v": {"source": "latitude"}
+                "v": {"source": ".latitude"}
             }
         }
         """
@@ -381,6 +603,9 @@ class OpNodeTest(TestCase):
             "input": {
                 "v": {},
                 "u": {"value": 2.8}
+            },
+            "output": {
+                "w": {}
             }
         }
         """
@@ -396,187 +621,120 @@ class OpNodeTest(TestCase):
                               120 * '-', actual_json_text))
 
 
-class GraphTest(TestCase):
+class NodeConnectorTest(TestCase):
     def test_init(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
-        node2.input.a.source = node1.output.y
-        node3.input.u.source = node1.output.y
-        node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        node = OpNode(Op1, node_id='myop')
+        source = NodeConnector(node, 'x')
 
-        self.assertEqual(graph.id, 'mygraph')
-        self.assertEqual(len(graph.input), 1)
-        self.assertEqual(len(graph.output), 1)
-        self.assertIn('p', graph.input)
-        self.assertIn('q', graph.output)
+        self.assertIs(source.node, node)
+        self.assertEqual(source.node_id, 'myop')
+        self.assertEqual(source.name, 'x')
+        self.assertEqual(source.source, None)
+        self.assertEqual(source.value, None)
+        self.assertEqual(str(source), 'myop.x')
+        self.assertEqual(repr(source), "NodeConnector('myop', 'x')")
 
-        self.assertEqual(graph.nodes, [node1, node2, node3])
+    def test_resolve_source_ref(self):
+        node1 = OpNode(Op1, node_id='myop1')
+        connector1 = node1.output.y
 
-        self.assertIsNone(graph.input.p.source)
-        self.assertIsNone(graph.input.p.value)
+        node2 = OpNode(Op2, node_id='myop2')
 
-        self.assertIs(graph.output.q.source, node3.output.w)
-        self.assertIsNone(graph.output.q.value)
+        node2.input.a._source_ref = ('myop1', 'y')
 
-        self.assertEqual(str(graph), graph.id)
-        self.assertEqual(repr(graph), "Graph('mygraph')")
+        g = Graph(OpMetaInfo('mygraph', has_monitor=True, input_dict=OrderedDict(x={}), output_dict=OrderedDict(b={})))
+        g.add_nodes(node1, node2)
 
-    def test_invoke(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
-        node2.input.a.source = node1.output.y
-        node3.input.u.source = node1.output.y
-        node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        node2.input.a.resolve_source_ref()
 
-        graph.input.p.value = 3
-        return_value = graph.invoke()
-        output_value = graph.output.q.value
-        self.assertEqual(return_value, None)
-        self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
+        self.assertEqual(node2.input.a._source_ref, ('myop1', 'y'))
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node2.input.a.value, None)
 
     def test_from_json_dict(self):
-        graph_json_text = """
-        {
-            "qualified_name": "my_workflow",
-            "header": {
-                "description": "My workflow is not bad."
-            },
-            "input": {
-                "p": {"description": "Input 'p'"}
-            },
-            "output": {
-                "q": {"output_of": "op3.w", "description": "Output 'q'"}
-            },
-            "nodes": [
-                {
-                    "id": "op1",
-                    "op": "test.test_graph.Op1",
-                    "input": {
-                        "x": { "input_from": "p" }
-                    }
-                },
-                {
-                    "id": "op2",
-                    "op": "test.test_graph.Op2",
-                    "input": {
-                        "a": {"output_of": "op1.y"}
-                    }
-                },
-                {
-                    "id": "op3",
-                    "op": "test.test_graph.Op3",
-                    "input": {
-                        "v": {"output_of": "op2.b"},
-                        "u": {"output_of": "op1.y"}
-                    }
-                }
-            ]
-        }
-        """
-        graph_json_dict = json.loads(graph_json_text)
-        graph = Graph.from_json_dict(graph_json_dict)
+        node2 = OpNode(Op2, node_id='myop2')
+        connector2 = NodeConnector(node2, 'a')
 
-        self.assertIsNotNone(graph)
-        self.assertEqual(graph.id, "my_workflow")
+        connector2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
+        self.assertEqual(connector2._source_ref, None)
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, 2.6)
 
-        self.assertEqual(graph.op_meta_info.qualified_name, graph.id)
-        self.assertEqual(graph.op_meta_info.header, dict(description="My workflow is not bad."))
-        self.assertEqual(len(graph.op_meta_info.input), 1)
-        self.assertEqual(len(graph.op_meta_info.output), 1)
-        self.assertEqual(graph.op_meta_info.input['p'], dict(description="Input 'p'"))
-        self.assertEqual(graph.op_meta_info.output['q'], dict(output_of="op3.w", description="Output 'q'"))
+        connector2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
+        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-        self.assertEqual(len(graph.input), 1)
-        self.assertEqual(len(graph.output), 1)
+        # "myop1.y" is a shorthand for {"source": "myop1.y"}
+        connector2.from_json_dict(json.loads('{"a": "myop1.y"}'))
+        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-        self.assertIn('p', graph.input)
-        self.assertIn('q', graph.output)
+        connector2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
+        self.assertEqual(connector2._source_ref, (None, 'y'))
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-        self.assertEqual(len(graph.nodes), 3)
-        node1 = graph.nodes[0]
-        node2 = graph.nodes[1]
-        node3 = graph.nodes[2]
+        # ".x" is a shorthand for {"source": ".x"}
+        connector2.from_json_dict(json.loads('{"a": ".y"}'))
+        self.assertEqual(connector2._source_ref, (None, 'y'))
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-        self.assertEqual(node1.id, 'op1')
-        self.assertEqual(node2.id, 'op2')
-        self.assertEqual(node3.id, 'op3')
+        # "myop1" is a shorthand for {"source": "myop1"}
+        connector2.from_json_dict(json.loads('{"a": "myop1"}'))
+        self.assertEqual(connector2._source_ref, ('myop1', None))
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-    def test_from_json_dict_empty(self):
-        json_dict = json.loads('{"qualified_name": "hello"}')
-        graph = Graph.from_json_dict(json_dict)
-        self.assertEqual(graph.id, 'hello')
+        # if "a" is defined, but neither "source" nor "value" is given, it will neither have a source nor a value
+        connector2.from_json_dict(json.loads('{"a": {}}'))
+        self.assertEqual(connector2._source_ref, None)
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
+        connector2.from_json_dict(json.loads('{"a": null}'))
+        self.assertEqual(connector2._source_ref, None)
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
 
-    def test_from_json_dict_invalids(self):
-        json_dict = json.loads('{"header": {}}')
+        # if "a" is not defined at all, it will neither have a source nor a value
+        connector2.from_json_dict(json.loads('{}'))
+        self.assertEqual(connector2._source_ref, None)
+        self.assertEqual(connector2._source, None)
+        self.assertEqual(connector2._value, None)
+
         with self.assertRaises(ValueError) as cm:
-            Graph.from_json_dict(json_dict)
-        self.assertEqual(str(cm.exception), 'missing mandatory property "qualified_name" in graph JSON')
+            connector2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
+        self.assertEqual(str(cm.exception),
+                         "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
+
+        expected_msg = "error decoding 'myop2.a' because the \"source\" value format is " \
+                       "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
+
+        with self.assertRaises(ValueError) as cm:
+            connector2.from_json_dict(json.loads('{"a": {"source": ""}}'))
+        self.assertEqual(str(cm.exception), expected_msg)
+
+        with self.assertRaises(ValueError) as cm:
+            connector2.from_json_dict(json.loads('{"a": {"source": "."}}'))
+        self.assertEqual(str(cm.exception), expected_msg)
+
+        with self.assertRaises(ValueError) as cm:
+            connector2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
+        self.assertEqual(str(cm.exception), expected_msg)
 
     def test_to_json_dict(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
+        node1 = OpNode(Op1, node_id='myop1')
+        node2 = OpNode(Op2, node_id='myop2')
+
+        self.assertEqual(node2.input.a.to_json_dict(), dict())
+
+        node2.input.a.value = 982
+        self.assertEqual(node2.input.a.to_json_dict(), dict(value=982))
+
         node2.input.a.source = node1.output.y
-        node3.input.u.source = node1.output.y
-        node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        self.assertEqual(node2.input.a.to_json_dict(), dict(source='myop1.y'))
 
-        graph_dict = graph.to_json_dict()
-
-        expected_json_text = """
-        {
-            "qualified_name": "my_workflow",
-            "input": {
-                "p": {}
-            },
-            "output": {
-                "q": {"source": "op3.w"}
-            },
-            "nodes": [
-                {
-                    "id": "op1",
-                    "op": "test.test_graph.Op1",
-                    "input": {
-                        "x": { "source": "my_workflow.p" }
-                    }
-                },
-                {
-                    "id": "op2",
-                    "op": "test.test_graph.Op2",
-                    "input": {
-                        "a": {"source": "op1.y"}
-                    }
-                },
-                {
-                    "id": "op3",
-                    "op": "test.test_graph.Op3",
-                    "input": {
-                        "v": {"source": "op2.b"},
-                        "u": {"source": "op1.y"}
-                    }
-                }
-            ]
-        }
-        """
-
-        actual_json_text = json.dumps(graph_dict, indent=4)
-        expected_json_obj = json.loads(expected_json_text)
-        actual_json_obj = json.loads(actual_json_text)
-
-        self.assertEqual(actual_json_obj, expected_json_obj,
-                         msg='\nexpected:\n%s\n%s\nbut got:\n%s\n%s\n' %
-                             (120 * '-', expected_json_text,
-                              120 * '-', actual_json_text))
+        node2.input.a.source = None
+        self.assertEqual(node2.input.a.to_json_dict(), dict())
