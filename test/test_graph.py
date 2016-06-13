@@ -37,41 +37,36 @@ def get_resource(rel_path):
 class NodeConnectorTest(TestCase):
     def test_init(self):
         node = OpNode(Op1, node_id='myop')
-        source = NodeConnector(node, 'x', False)
+        source = NodeConnector(node, 'x')
 
         self.assertIs(source.node, node)
         self.assertEqual(source.node_id, 'myop')
         self.assertEqual(source.name, 'x')
-        self.assertEqual(source.is_source, False)
         self.assertEqual(source.source, None)
         self.assertEqual(source.value, None)
         self.assertEqual(str(source), 'myop.x')
-        self.assertEqual(repr(source), "NodeConnector('myop', 'x', is_source=False)")
+        self.assertEqual(repr(source), "NodeConnector('myop', 'x')")
 
     def test_resolve_source_ref(self):
         node1 = OpNode(Op1, node_id='myop1')
         connector1 = node1.output.y
 
         node2 = OpNode(Op2, node_id='myop2')
-        connector2 = node2.input.a
 
-        connector2._source_ref = ('myop1', 'y')
+        node2.input.a._source_ref = ('myop1', 'y')
 
         g = Graph(OpMetaInfo('mygraph', has_monitor=True, input_dict=OrderedDict(x={}), output_dict=OrderedDict(b={})))
         g.add_nodes(node1, node2)
 
-        connector2.resolve_source_ref()
+        node2.input.a.resolve_source_ref()
 
-        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
-        self.assertEqual(connector2.node_id, 'myop2')
-        self.assertEqual(connector2.name, 'a')
-        self.assertEqual(connector2.is_source, False)
-        self.assertIs(connector2.source, connector1)
-        self.assertEqual(connector2.value, None)
+        self.assertEqual(node2.input.a._source_ref, ('myop1', 'y'))
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node2.input.a.value, None)
 
     def test_from_json_dict(self):
         node2 = OpNode(Op2, node_id='myop2')
-        connector2 = NodeConnector(node2, 'a', False)
+        connector2 = NodeConnector(node2, 'a')
 
         connector2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
         self.assertEqual(connector2._source_ref, ('myop1', 'y'))
@@ -111,11 +106,6 @@ class NodeConnectorTest(TestCase):
         self.assertEqual(str(cm.exception),
                          "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
 
-        with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"default_value": 2.6}}'))
-        self.assertEqual(str(cm.exception),
-                         "error decoding 'myop2' because either \"source\" or \"value\" must be provided")
-
         expected_msg = "error decoding 'myop2.a' because the \"source\" value format is neither <name> nor <node-id>.<name>"
 
         with self.assertRaises(ValueError) as cm:
@@ -152,7 +142,7 @@ class GraphNodeTest(TestCase):
             "id": "graph_ref_89",
             "graph": "%s",
             "input": {
-                "p": {"constant": 2.8}
+                "p": {"value": 2.8}
             }
         }
         """ % resource
@@ -166,7 +156,8 @@ class GraphNodeTest(TestCase):
         self.assertEqual(node.resource, resource)
         self.assertIn('p', node.input)
         self.assertIn('q', node.output)
-        self.assertEqual(node.input.p.source.value, 2.8)
+        self.assertEqual(node.input.p.value, 2.8)
+        self.assertEqual(node.output.q.value, None)
 
         self.assertIsNotNone(node.graph)
         self.assertIn('p', node.graph.input)
@@ -185,7 +176,7 @@ class GraphNodeTest(TestCase):
             "id": "jojo_87",
             "graph": "%s",
             "input": {
-                "p": {"undefined": true}
+                "p": {}
             }
         }
         """ % resource
@@ -204,7 +195,7 @@ class GraphNodeTest(TestCase):
         graph = Graph.load(resource)
         node = GraphNode(graph, resource, node_id='jojo_87')
 
-        node.input.p = 3
+        node.input.p.value = 3
         return_value = node.invoke()
         output_value = node.output.q.value
         self.assertEqual(return_value, None)
@@ -245,22 +236,22 @@ class OpNodeTest(TestCase):
 
     def test_invoke(self):
         node1 = OpNode(Op1)
-        node1.input.x = 3
+        node1.input.x.value = 3
         return_value = node1.invoke()
         output_value = node1.output.y.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 3 + 1)
 
         node2 = OpNode(Op2)
-        node2.input.a = 3
+        node2.input.a.value = 3
         return_value = node2.invoke()
         output_value = node2.output.b.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * 3)
 
         node3 = OpNode(Op3)
-        node3.input.u = 4
-        node3.input.v = 5
+        node3.input.u.value = 4
+        node3.input.v.value = 5
         return_value = node3.invoke()
         output_value = node3.output.w.value
         self.assertEqual(return_value, None)
@@ -287,56 +278,49 @@ class OpNodeTest(TestCase):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
-        node2.input.a.connect_source(node1.output.y)
-        node3.input.u.connect_source(node1.output.y)
-        node3.input.v.connect_source(node2.output.b)
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
         self.assertConnectionsAreOk(node1, node2, node3)
 
-        node1 = OpNode(Op1)
-        node2 = OpNode(Op2)
-        node3 = OpNode(Op3)
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-        self.assertConnectionsAreOk(node1, node2, node3)
-
-        with self.assertRaisesRegex(AttributeError, "'a' is not an input"):
-            node1.input.a = node3.input.u
+        with self.assertRaises(AttributeError) as cm:
+            node1.input.a.source = node3.input.u
+        self.assertEqual(str(cm.exception), "attribute 'a' not found")
 
     def test_disconnect_source(self):
         node1 = OpNode(Op1)
         node2 = OpNode(Op2)
         node3 = OpNode(Op3)
 
-        node2.input.a.connect_source(node1.output.y)
-        node3.input.u.connect_source(node1.output.y)
-        node3.input.v.connect_source(node2.output.b)
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
         self.assertConnectionsAreOk(node1, node2, node3)
 
-        node3.input.v.disconnect_source()
+        node3.input.v.source = None
 
-        self.assertIs(node2.input.a.source.node_output, node1.output.y)
-        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
 
-        node2.input.a.disconnect_source()
+        node2.input.a.source = None
 
-        self.assertIs(node3.input.u.source.node_output, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
 
-        node3.input.u.disconnect_source()
+        node3.input.u.source = None
 
     def assertConnectionsAreOk(self, node1, node2, node3):
-        self.assertIs(node2.input.a.source.node_output, node1.output.y)
-        self.assertIs(node3.input.u.source.node_output, node1.output.y)
-        self.assertIs(node3.input.v.source.node_output, node2.output.b)
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, node2.output.b)
 
-    def test_from_json_dict_const_param(self):
+    def test_from_json_dict_value(self):
         json_text = """
         {
             "id": "op3",
             "op": "test.test_graph.Op3",
             "input": {
-                "u": {"undefined": true},
-                "v": {"parameter": true}
+                "u": {"value": 647},
+                "v": {"value": 2.9}
             }
         }
         """
@@ -352,17 +336,17 @@ class OpNodeTest(TestCase):
         self.assertIn('v', node3.input)
         self.assertIn('w', node3.output)
 
-        self.assertIs(node3.input.u.source.value, UNDEFINED)
-        self.assertIs(node3.input.v.source.value, None)
+        self.assertEqual(node3.input.u.value, 647)
+        self.assertEqual(node3.input.v.value, 2.9)
 
-    def test_from_json_dict_output_of_param(self):
+    def test_from_json_dict_source(self):
         json_text = """
         {
             "id": "op3",
             "op": "test.test_graph.Op3",
             "input": {
-                "u": {"output_of": "stat_op.stats"},
-                "v": {"constant": "nearest"}
+                "u": {"source": "stat_op.stats"},
+                "v": {"source": "latitude"}
             }
         }
         """
@@ -379,13 +363,14 @@ class OpNodeTest(TestCase):
         self.assertIn('w', node3.output)
         u_source = node3.input.u.source
         v_source = node3.input.v.source
-        self.assertEqual(u_source.node_id, 'stat_op')
-        self.assertEqual(u_source.name, 'stats')
-        self.assertEqual(v_source.value, 'nearest')
+        self.assertEqual(node3.input.u._source_ref, ('stat_op', 'stats'))
+        self.assertEqual(node3.input.u.source, None)
+        self.assertEqual(node3.input.v._source_ref, (None, 'latitude'))
+        self.assertEqual(node3.input.v.source, None)
 
     def test_to_json_dict(self):
         node3 = OpNode(Op3, node_id='op3')
-        node3.input.u = 2.8
+        node3.input.u.value = 2.8
 
         node3_dict = node3.to_json_dict()
 
@@ -394,8 +379,8 @@ class OpNodeTest(TestCase):
             "id": "op3",
             "op": "test.test_graph.Op3",
             "input": {
-                "v": {"undefined": true},
-                "u": {"constant": 2.8}
+                "v": {},
+                "u": {"value": 2.8}
             }
         }
         """
@@ -418,11 +403,11 @@ class GraphTest(TestCase):
         node3 = OpNode(Op3, node_id='op3')
         graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
         graph.add_nodes(node1, node2, node3)
-        node1.input.x = graph.input.p
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-        graph.output.q = node3.output.w
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
         self.assertEqual(graph.id, 'mygraph')
         self.assertEqual(len(graph.input), 1)
@@ -432,13 +417,11 @@ class GraphTest(TestCase):
 
         self.assertEqual(graph.nodes, [node1, node2, node3])
 
-        self.assertIsInstance(graph.input.p, NodeConnector)
-        self.assertIs(graph.input.p.source, None)
-        self.assertIsInstance(node1.input.x, NodeConnector)
-        self.assertIs(node1.input.x.source, None)
+        self.assertIsNone(graph.input.p.source)
+        self.assertIsNone(graph.input.p.value)
 
-        self.assertIsInstance(graph.output.q, NodeConnector)
-        self.assertIs(graph.output.q.source, None)
+        self.assertIs(graph.output.q.source, node3.output.w)
+        self.assertIsNone(graph.output.q.value)
 
         self.assertEqual(str(graph), graph.id)
         self.assertEqual(repr(graph), "Graph('mygraph')")
@@ -449,13 +432,13 @@ class GraphTest(TestCase):
         node3 = OpNode(Op3, node_id='op3')
         graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
         graph.add_nodes(node1, node2, node3)
-        node1.input.x = graph.input.p
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-        graph.output.q = node3.output.w
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
-        graph.input.p = 3
+        graph.input.p.value = 3
         return_value = graph.invoke()
         output_value = graph.output.q.value
         self.assertEqual(return_value, None)
@@ -545,11 +528,11 @@ class GraphTest(TestCase):
         node3 = OpNode(Op3, node_id='op3')
         graph = Graph(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
         graph.add_nodes(node1, node2, node3)
-        node1.input.x = graph.input.p
-        node2.input.a = node1.output.y
-        node3.input.u = node1.output.y
-        node3.input.v = node2.output.b
-        graph.output.q = node3.output.w
+        node1.input.x.source = graph.input.p
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        graph.output.q.source = node3.output.w
 
         graph_dict = graph.to_json_dict()
 
@@ -557,32 +540,32 @@ class GraphTest(TestCase):
         {
             "qualified_name": "my_workflow",
             "input": {
-                "p": {"undefined": true}
+                "p": {}
             },
             "output": {
-                "q": {"output_of": "op3.w"}
+                "q": {"source": "op3.w"}
             },
             "nodes": [
                 {
                     "id": "op1",
                     "op": "test.test_graph.Op1",
                     "input": {
-                        "x": { "input_from": "p" }
+                        "x": { "source": "my_workflow.p" }
                     }
                 },
                 {
                     "id": "op2",
                     "op": "test.test_graph.Op2",
                     "input": {
-                        "a": {"output_of": "op1.y"}
+                        "a": {"source": "op1.y"}
                     }
                 },
                 {
                     "id": "op3",
                     "op": "test.test_graph.Op3",
                     "input": {
-                        "v": {"output_of": "op2.b"},
-                        "u": {"output_of": "op1.y"}
+                        "v": {"source": "op2.b"},
+                        "u": {"source": "op1.y"}
                     }
                 }
             ]

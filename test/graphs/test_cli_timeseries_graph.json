@@ -32,9 +32,9 @@
             "id": "timeseries_op",
             "op": "test.test_cli.timeseries",
             "input": {
-                "lat": "lat",
-                "lon": "lon",
-                "method": "method"
+                "lat": "timeseries.lat",
+                "lon": "timeseries.lon",
+                "method": "timeseries.method"
             }
         }
     ]
