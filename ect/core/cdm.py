@@ -155,6 +155,9 @@ class DatasetCollection(Dataset):
             dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi), name=name)
         return dsc
 
+    def filter_dataset(self, filter_=None):
+        raise NotImplementedError()
+
     def close(self):
         """
         Closes all datasets.
