@@ -153,7 +153,7 @@ Example
               if(time(t).ge.t1.and.time(t).le.t2)then
                 data_new(x,y,t)=data_old(x,y,t)
               endif
-            enddo !k
-          enddo !j
+            enddo !x
+          enddo !y
         enddo !t
   c-----------------------------------------------------------
