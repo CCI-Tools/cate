@@ -1,0 +1,36 @@
+name: ect-core
+dependencies:
+- colorama=0.3.7=py35_0
+- coverage=4.1=py35_0
+- cycler=0.10.0=py35_0
+- h5netcdf=0.2.2=py35_0
+- h5py=2.6.0=np111py35_1
+- hdf5=1.8.16=vc14_0
+- jpeg=8d=vc14_0
+- libpng=1.6.22=vc14_0
+- libtiff=4.0.6=vc14_2
+- matplotlib=1.5.1=np111py35_0
+- mkl=11.3.3=1
+- numpy=1.11.0=py35_1
+- openssl=1.0.2h=vc14_0
+- pandas=0.18.1=np111py35_0
+- pip=8.1.2=py35_0
+- py=1.4.31=py35_0
+- pyparsing=2.1.4=py35_0
+- pyqt=4.11.4=py35_6
+- pytest=2.9.2=py35_0
+- pytest-cov=2.2.1=py35_0
+- python=3.5.1=4
+- python-dateutil=2.5.3=py35_0
+- pytz=2016.4=py35_0
+- qt=4.8.7=vc14_8
+- scipy=0.17.1=np111py35_0
+- setuptools=23.0.0=py35_0
+- sip=4.16.9=py35_2
+- six=1.10.0=py35_0
+- tk=8.5.18=vc14_0
+- vs2015_runtime=14.00.23026.0=0
+- wheel=0.29.0=py35_0
+- xarray=0.7.2=py35_0
+- zlib=1.2.8=vc14_3
+
