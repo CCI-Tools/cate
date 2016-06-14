@@ -1,3 +1,8 @@
+#
+# This is a basic build configuration for Travis CI.
+# See http://conda.pydata.org/docs/travis.html for more info.
+#
+
 language: python
 python:
   - "3.5"
@@ -17,7 +22,8 @@ install:
 
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-cov
   - source activate test-environment
-  - conda install numpy scipy matplotlib numba h5py dask xarray
+  - conda install xarray dask numpy scipy matplotlib numba h5py
+  - conda install -c IOOS h5netcdf
   - python setup.py install
 
 script:
