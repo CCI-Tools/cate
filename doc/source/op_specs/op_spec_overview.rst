@@ -18,9 +18,10 @@ Operations
 
 - Filtering and Selections
 	
-	- Spatial Sub-setting
+	- Spatial Filtering
 	- Spatial Resolution *(either Geometric Adjustment or selection from different available datasets)*
 	- Selection of a season of interest *(-> Calculations)*	
+	- Temporal Filtering
 	- Temporal Resolution *(either Non-Geometric Adjustment or selection from different available datasets)*	
 	- Pixel Class Extraction
 	- Pixel Extraction by Values
