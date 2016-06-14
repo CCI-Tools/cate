@@ -1,8 +1,8 @@
 .. ECT documentation master file
 
-=========================
-CCI Toolbox Documentation
-=========================
+=============================
+ESA CCI Toolbox Documentation
+=============================
 
 .. toctree::
    :caption: Table of Contents

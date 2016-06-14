@@ -2,12 +2,19 @@
 Module Description
 ==================
 
-This modules provides classes and functions allowing to maintain *operations*.
+This modules provides classes and functions allowing to maintain *operations*. Operations can be called from
+the ECT command-line interface, may be referenced from within processing graphs, or may be called remotely e.g. from
+graphical user interface or web frontend. An operation (:py:class:`OpRegistration`) comprises a Python callable and
+some additional meta-information (:py:class:`OpMetaInfo`) that allows for automatic input validation,
+input value conversion, monitoring, and inter-connection of multiple operations using graphs.
+
+Operations are registered in operation registries (:py:class:`OpRegistry`), the default operation registry is
+accessible via the global, read-only ``OP_REGISTRY`` variable.
 
 Design targets:
 
-* Simplicity - exploit Python language to let users express an operation in an intuitive form.
-* Stay with Python base types instead og introducing a number of new data structures.
+* Exploit Python language to let users express an operation in an intuitive form.
+* Stay with Python base types instead of introducing a number of new data structures.
 * Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs from
   Python code
 * An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and its
@@ -19,7 +26,6 @@ Design targets:
 * Initial operation meta information will be derived from Python code introspection
 * Operations should take an optional *monitor* which will be passed by the framework to observe the progress and
   to cancel an operation
-
 
 Module Reference
 ================
@@ -470,7 +476,7 @@ def op(registry=OP_REGISTRY):
     """
     Classes or functions annotated by this decorator are added to the given *registry*.
     Classes annotated by this decorator must have callable instances. Callable instances
-    and functions must have the following signature:
+    and functions must have the following signature:::
 
         operation(**input_values) -> dict
 

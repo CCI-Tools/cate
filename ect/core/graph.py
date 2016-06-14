@@ -41,7 +41,7 @@ Where *OP* shall be a registered operation or a graph.
 
 Implementation note: An ``OpResolver.find_op(op_name)`` may be utilized to resolve
 operation names. If we move module ``workflow`` out of core, it may register a new OpResolver that can resolve
-Graph file names (*.graph.json) as operations.
+Graph file names (\*.graph.json) as operations.
 
 Module Reference
 ================

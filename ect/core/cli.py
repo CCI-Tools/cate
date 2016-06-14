@@ -46,8 +46,7 @@ Type "ect license" for details.
 
 _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
 
-# todo (nf) - ECT documentation URL shall later point to ReadTheDocs
-_DOCS_URL = 'https://github.com/CCI-Tools/ect-core'
+_DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
 
 class Command(metaclass=ABCMeta):
@@ -57,7 +56,7 @@ class Command(metaclass=ABCMeta):
     ``REGISTRY``.
     """
 
-    #: Success value to be returned by :py:method:`execute`. Its value is ``(0, None)``.
+    #: Success value to be returned by :py:meth:`execute`. Its value is ``(0, None)``.
     STATUS_OK = (0, None)
 
     @classmethod

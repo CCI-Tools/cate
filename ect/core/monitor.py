@@ -42,11 +42,12 @@ class Monitor(metaclass=ABCMeta):
     Pass ``Monitor.NULL`` to ECT API functions that expect a monitor instead of passing ``None``.
 
     The ``Monitor`` class is an abstract base class and clients must implement the following three abstract methods:
-    :py:method:`start`, :py:method:`progress`, and :py:method:`done`.
+    :py:meth:`start`, :py:meth:`progress`, and :py:meth:`done`.
 
     """
 
-    #: `NULL` is a valid monitor that has no effect. Use instead of passing ``None``
+    #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
+    #: functions and methods that expect an argument of type ``Monitor``.
     NULL = None
 
     @contextmanager
@@ -54,7 +55,7 @@ class Monitor(metaclass=ABCMeta):
         """
         A context manager for easier use of progress monitors.
         Calls the monitor's ``start`` method with *label* and *total_work*.
-        Will then take care of calling :py:method:`Monitor.done`.
+        Will then take care of calling :py:meth:`Monitor.done`.
 
         :param monitor: The monitor
         :param label: Passed to the monitor's ``start`` method
