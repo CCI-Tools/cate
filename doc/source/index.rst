@@ -3,12 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ECT's documentation!
-===============================
-
-Contents:
+CCI Toolbox Documentation
+=========================
 
 .. toctree::
+   :caption: Table of Contents
    :maxdepth: 1
    :numbered:
 
