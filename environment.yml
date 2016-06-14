@@ -1,6 +1,5 @@
 name: ect_env
 dependencies:
-- alabaster=0.7.8
 - babel=2.3.3=py35_0
 - bokeh=0.11.1=py35_0
 - chest=0.2.3=py35_0
