@@ -10,7 +10,6 @@ dependencies:
 - cycler=0.10.0=py35_0
 - dask=0.9.0=py35_0
 - docutils=0.12=py35_2
-- h5netcdf=0.2.2=py35_0
 - h5py=2.6.0=np111py35_1
 - hdf5=1.8.16=0
 - heapdict=1.0.0=py35_1
