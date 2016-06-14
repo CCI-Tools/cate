@@ -69,6 +69,6 @@ Operations UC9
 
 *not implemented as operations*
 
-- *Load Image*
+- *Load Data*
 - *Save Image*
 - *(Save Plot)*
