@@ -10,10 +10,13 @@ Each case is driven by a problem definition, which is given in the beginning and
 a typical question. This is followed by the required toolbox features and a sequence of single steps,
 how a user is expecting to work with the CCI Toolbox.
 
-Use Case #1 - IPCC Support
-==========================
+IPCC Support
+============
+.. use case #1
 
-:User Characteristics: international climate research community, international bodies
+:User Types:
+    * International climate research community
+    * International bodies
 
 :Problem Definition: In its Summary for Policy Makers, the fifth IPCC Assessment Report [RD-2] shows
     four ECVs of the marine environment as indicators of a changing climate. This figure depicting the “(a)
@@ -47,10 +50,12 @@ Use Case #1 - IPCC Support
     * Ensemble statistics to show model ensemble mean and uncertainties in comparison to results based
       on (satellite) observations
 
-Use Case #2 - School Seminar Climate and Weather
-================================================
+School Seminar Climate and Weather
+==================================
+.. use case #2
 
-:User Characteristics: knowledgeable public
+:User Types:
+    * Knowledgeable public
 
 :Problem Definition: As a school project, measurements of air temperature, precipitation and wind speed from the
     school-run weather station shall be compared to long-term climate data in the form of ESA’s CCI Cloud and
@@ -72,11 +77,14 @@ Use Case #2 - School Seminar Climate and Weather
 :Notes: This could also be a user visiting the website of a meteorological station and the website has included a
     widget that accesses the toolbox to perform the steps described.
 
-Use Case #3 - Glaciers and Sea Level Rise
-=========================================
+Glaciers and Sea Level Rise
+===========================
+.. use case #3
 
-:User Characteristics: international climate research community, earth system science community, earth system
-    reanalysis community
+:User Types:
+    * International climate research community
+    * Earth system science community
+    * Earth system reanalysis community
 
 :Problem Definition: A scientist wants to know: “What is the contribution of all glaciers to global sea level
     rise over a given time period in the future?”.
@@ -95,10 +103,12 @@ Use Case #3 - Glaciers and Sea Level Rise
     * Running of a prediction model (user-supplied plug-in or use of CLI, API), output creation (maps, graphs, tables)
       and comparison with validation data
 
-Use Case #4 - Extreme Weather Climate Service
-=============================================
+Extreme Weather Climate Service
+===============================
+.. use case #4
 
-:User Characteristics: climate service developers and providers
+:User Types:
+    * Climate service developers and providers
 
 :Problem Definition: In March 2012, the article “US heatwave may have been made more likely by global warming” by
     Andrew Freedman, senior science writer for Climate Central, was published in *The Guardian*. He wrote
@@ -116,10 +126,12 @@ Use Case #4 - Extreme Weather Climate Service
     * Computation of anomalies
     * Map generation and with a simple colour coding to present a clear message
 
-Use Case #5 - School Seminar Glacier
-====================================
+School Seminar Glacier
+======================
+.. use case #5
 
-:User Characteristics: undergraduate and postgraduate students
+:User Types:
+    * Undergraduate and postgraduate students
 
 :Problem Definition: A student (at school) wants to know for a seminar paper: “What is the largest glacier in the
     world and how has this glacier changed in the past compared to other glacierized regions?”.
@@ -134,10 +146,12 @@ Use Case #5 - School Seminar Glacier
     * Data comparison (statistical values, deviations, graphs, maps, animations) and export
 
 
-Use Case #6 - Teleconnection Explorer
-=====================================
+Teleconnection Explorer
+=======================
+.. use case #6
 
-:User Characteristics: undergraduate and postgraduate students
+:User Types:
+    * Undergraduate and postgraduate students
 
 :Problem Definition: As part of a project on climatic teleconnection, a student investigates how El Niño-Southern
     Oscillation (ENSO) relates to monsoon rainfall. A result could be a plot showing the sliding correlation between
@@ -172,10 +186,12 @@ In case of choosing the MEI instead of a solely SST-based index:
     * Generation of maps and plots
     * Export of the data
 
-Use Case #7 - Regional Cryosphere Climate Service
-=================================================
+Regional Cryosphere Climate Service
+===================================
+.. use case #7
 
-:User Characteristics: climate service developers and providers
+:User Types:
+    * Climate service developers and providers
 
 :Problem Definition: The Federal Office of Environment (FOEN) in Switzerland wants to provide an internet-based
     platform to disseminate latest information on the cryosphere and its changes in Switzerland. Such information could
@@ -200,10 +216,12 @@ Use Case #7 - Regional Cryosphere Climate Service
 :Note: The general decision on layout, data sets etc. will be taken by the FOEN outside the CCI Toolbox but
     will be input to the selection options.
 
-Use Case #8 - World Glacier Monitoring Service
-==============================================
+World Glacier Monitoring Service
+================================
+.. use case #8
 
-:User Characteristics: international bodies
+:User Types:
+    * International bodies
 
 :Problem Definition: A service of the World Glacier Monitoring Service (WGMS) based on ESA CCI products,
     combined with other environmental parameters as well as meta data on glaciers, could be the provision of a
@@ -221,10 +239,12 @@ Use Case #8 - World Glacier Monitoring Service
     * Additional: Selection of locations, time-periods, Calculation of means, anomalies, variances
     * Quality checks and data upload to the database
 
-Use Case #9 - Relationships between Aerosol and Cloud ECV
-=========================================================
+Relationships between Aerosol and Cloud ECV
+===========================================
+.. use case #9
 
-:User Characteristics: earth system science community
+:User Types:
+    * Earth system science community
 
 :Problem Definition: A climate scientist wishes to analyse potential correlations between Aerosol and Cloud ECVs.
 
@@ -235,10 +255,12 @@ Use Case #9 - Relationships between Aerosol and Cloud ECV
     * Visualisation of both times series at the same time: e.g. time series plot, time series animation
     * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics on disk (format options)
 
-Use Case - #10 Scientific Investigation of NAO Signature
-========================================================
+Scientific Investigation of NAO Signature
+=========================================
+.. use case #10
 
-:User Characteristics: earth system science community
+:User Types:
+    * Earth system science community
 
 :Problem Definition: A climate scientist wishes to investigate the signature of the North Atlantic Oscillation (NAO)
     in multiple ECVs using a processor built by another climate scientist and contributed to the toolbox.
@@ -252,10 +274,12 @@ Use Case - #10 Scientific Investigation of NAO Signature
     * Generation of time-series plot for each ECV
     * Export statistics output to local disk
 
-Use Case #11 - School Project on Arctic Climate Change
-======================================================
+School Project on Arctic Climate Change
+=======================================
+.. use case #11
 
-:User Characteristics: undergraduate and postgraduate students
+:User Types:
+    * Undergraduate and postgraduate students
 
 :Problem Definition: As part of a project on Arctic climate change, an undergraduate student wishes to look at
     different ECVs on a polar stereographic projection.
@@ -268,10 +292,13 @@ Use Case #11 - School Project on Arctic Climate Change
     * Gap-filling (user-chosen strategy)
     * Generation of scalable maps
 
-Use Case #12 - Marine Environmental Monitoring
-==============================================
+Marine Environmental Monitoring
+===============================
+.. use case #12
 
-:User Characteristics: climate service developers and providers, knowledgeable public
+:User Types:
+    * Climate service developers and providers
+    * Knowledgeable public
 
 :Problem Definition: The eReef project examines the living conditions of the Great Barrier Reef via
     two subprojects. On the one hand, the aim of the Marine Water Quality Dashboard is to estimate water
@@ -290,10 +317,14 @@ Use Case #12 - Marine Environmental Monitoring
     * Index calculation (plug-in, CLI, API)
     * Visualisation, graphs, data export
 
-Use Case #13 - Drought Occurrence Monitoring in Eastern Africa
-==============================================================
+Drought Occurrence Monitoring in Eastern Africa
+===============================================
+.. use case #13
 
-:User Characteristics: climate service developers and providers, international bodies, knowledgeable public
+:User Types:
+    * Climate service developers and providers
+    * International bodies
+    * Knowledgeable public
 
 :Problem Definition: Due to time-lagged teleconnections, weather conditions in Eastern Africa are highly influenced
     by climate modes of variability in remote regions. Therefore, climate indices such as for ENSO, MJO or QBO as well
@@ -311,10 +342,13 @@ Use Case #13 - Drought Occurrence Monitoring in Eastern Africa
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
-Use Case #14 - Drought Impact Monitoring and Assessment in China
-================================================================
+Drought Impact Monitoring and Assessment in China
+=================================================
+.. use case #14
 
-:User Characteristics: climate service developers and providers, international bodies
+:User Types:
+    * Climate service developers and providers
+    * International bodies
 
 :Problem Definition: (Solely basic idea taken from WMO (2015))
     Drought occurrence and severity in terms of fire, vegetation state and soil moisture shall be estimated by the
@@ -332,10 +366,13 @@ Use Case #14 - Drought Impact Monitoring and Assessment in China
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
-Use Case #15 - Renewable Energy Resource Assessment with regard to Topography
-=============================================================================
+Renewable Energy Resource Assessment with regard to Topography
+==============================================================
+.. use case #15
 
-:User Characteristics: climate service developers and providers, international bodies
+:User Types:
+    * Climate service developers and providers
+    * International bodies
 
 :Problem Definition: The long-term potential for renewable energy generation is to be estimated by considering the
     effect of cloud features, aerosols, ozone and water vapour on solar irradiance as well as topographical data.
@@ -353,10 +390,12 @@ Use Case #15 - Renewable Energy Resource Assessment with regard to Topography
     * Estimation of Solar Power potential from pixel count
     * Export of Results
 
-Use Case #16 - Monitoring Tropical Deforestation
-================================================
+Monitoring Tropical Deforestation
+=================================
 
-:User Characteristics: climate service developers, climate service providers, international bodies
+:User Types:
+    * Climate service developers and providers
+    * International bodies
 
 :Problem Definition: Maps of forest cover, change and deforestation shall be produced depicting forest status and
     trends. Additionally, vector data regarding infrastructure (e.g. road works) could be obtained from local
@@ -373,10 +412,13 @@ Use Case #16 - Monitoring Tropical Deforestation
     * Visualisation of forest area changes (animated?), relation to infrastructure
     * Data export
 
-Use Case #17 - Stratospheric Ozone Monitoring and Assessment
-============================================================
+Stratospheric Ozone Monitoring and Assessment
+=============================================
+.. use case #17
 
-:User Characteristics: climate service developers and providers, international bodies
+:User Types:
+    * Climate service developers and providers
+    * International bodies
 
 :Problem Definition: As UV exposure is a highly relevant health factor, the state of the ozone layer shall
     be monitored as well as its influence parameters.
@@ -393,10 +435,12 @@ Use Case #17 - Stratospheric Ozone Monitoring and Assessment
     * Trend analysis of stratospheric ozone concentrations
     * Visualisation (maps, graphs) and export of the results
 
-Use Case #18 - Examination of ENSO and its Impacts based on ESA CCI Data
-========================================================================
+Examination of ENSO and its Impacts based on ESA CCI Data
+=========================================================
+.. use case #18
 
-:User Characteristics: undergraduate and postgraduate students
+:User Types:
+    * Undergraduate and postgraduate students
 
 :Problem Definition: As a project work, a student’s task is to conduct an examination of ENSO solely by the use
     of ESA CCI data. For this, the first principal component of the combined EOF analysis of cloud cover, sea level
@@ -423,10 +467,12 @@ Use Case #18 - Examination of ENSO and its Impacts based on ESA CCI Data
     * Option to manually select point location on globe to compare data with PC1
     * Storage of plots, time series data, correlation statistics on local disk
 
-Use Case #19 - GHG Emissions over Europe
-========================================
+GHG Emissions over Europe
+=========================
+.. use case #19
 
-:User Characteristics: knowledgeable public
+:User Types:
+    * Knowledgeable public
 
 :Problem Definition: A person wants to know how greenhouse gas emissions over Europe evolved during the last years.
 
@@ -436,16 +482,18 @@ Use Case #19 - GHG Emissions over Europe
     * Temporal and spatial subsetting
     * Generation of maps/animations depicting the evolution of GHG emissions
 
-Use Case #20 - Examination of North Eastern Atlantic SST Projections
-====================================================================
+Examination of North Eastern Atlantic SST Projections
+=====================================================
+.. use case #20
 
-:User Characteristics: climate research community
+:User Types:
+    * Climate research community
 
 :Problem Definition: A climate scientist uses CCI data to validate the output of several CMIP5 models concerning SST
-        in the north eastern Atlantic Ocean.
-        Afterwards he picks the best model runs to perform a trend analysis regarding the future evolution
-        using the ensemble mean and uncertainties as well as probability density functions. Applying an Analysis of
-        Variance, he examines the different results of the models.
+    in the north eastern Atlantic Ocean.
+    Afterwards he picks the best model runs to perform a trend analysis regarding the future evolution
+    using the ensemble mean and uncertainties as well as probability density functions. Applying an Analysis of
+    Variance, he examines the different results of the models.
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI SST data
@@ -459,10 +507,12 @@ Use Case #20 - Examination of North Eastern Atlantic SST Projections
     * Visualisation
     * Data export
 
-Use Case #21 - Investigation of Relationships between Ice Sheet ECV Parameters
-==============================================================================
+Investigation of Relationships between Ice Sheet ECV Parameters
+===============================================================
+.. use case #21
 
-:User Characteristics: earth system science community
+:User Types:
+    * Earth system science community
 
 :Problem Definition: A scientist wants to gain insight into the relationship between the Ice Sheets CCI ECV
     parameters. At first, Surface Elevation Change (SEC), Ice Velocity (IV), and Gravitational Mass Balance (GMB)
