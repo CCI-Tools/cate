@@ -1,6 +1,11 @@
 Operations UC9 
 ==============
 
+- Filtering and Selections
+
+	- Spatial Filtering
+	- Temporal Filtering
+
 - Geometric Adjustment
 
 	- Co-Registration
@@ -22,6 +27,6 @@ Operations UC9
 
 *not implemented as operations*
 
-- *Parameter Settings* (selection of time span and AOI -> as default to all Operations)
+- *Load Data*
 - *Save Image*
 - *(Save Plot)*
