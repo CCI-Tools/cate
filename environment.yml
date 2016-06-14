@@ -55,6 +55,5 @@ dependencies:
 - xarray=0.7.2=py35_0
 - zlib=1.2.8=vc14_3
 - pip:
-  - ect-core==0.1.0
   - sphinx-rtd-theme==0.1.9
 
