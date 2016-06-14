@@ -12,32 +12,44 @@ b)	The user selects the operation :doc:`Co-Registration <../geometric-adjustment
 c)	The user selects the particular options (use of grid1 or grid2, interpolation method, propagation of uncertainties analysis).
 d)	The user clicks a button to execute.
 e)	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
-f)	The user selects a geospatial point of interest on a rotatable globe. 
-g)	The user selects start and end years of a time range. 
-h)	The user selects the operation :doc:`Time Series Plot <../visualisation/op_spec_time-series-plot>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
-i)	The user selects options (multiple datasets).
-j)	The user clicks a button to execute.
-k)	The Toolbox plots time series on the same axes. 
-l)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
-m)	The user selects options (scatter-plot).
-n)	The user clicks a button to execute.
-o)	The Toolbox plots a scatter-plot and correlation statistics on the screen. 
-p)	The user clicks on a “Save Image” option which saves the plot as a PNG file
-q)	The user re-specifies the geospatial area of interest as a polygon on the rotatable globe.
-r)	The user selects the operation :doc:`Animated Map <../visualisation/op_spec_animated-map>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`. 
-s)	The user selects options (multiple datasets).
+f)  The user selects the operation :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+g)  The user selects options (geospatial point of interest on a rotatable globe (GUI) or specifies coordinates).
+h)  The user clicks a button to execute.
+i)  The Toolbox creates a spatial subset of the data. 
+j)  The user selects the operation :doc:`Temporal Filtering <../filtering_selections/op_spec_temporal-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+k)  The user selects start and end years of a time range.
+l)  The user clicks a button to execute.
+m)  The Toolbox creates a temporal subset of the data. 
+n)	The user selects the operation :doc:`Time Series Plot <../visualisation/op_spec_time-series-plot>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
+o)	The user selects options (multiple datasets).
+p)	The user clicks a button to execute.
+q)	The Toolbox plots time series on the same axes. 
+r)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
+s)	The user selects options (scatter-plot).
 t)	The user clicks a button to execute.
-u)	The Toolbox displays side-by-side animations.
-v)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
-w)	The user selects options (map).
-x)	The user clicks a button to execute.
-y)	The Toolbox performs a pixel-by-pixel correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
-z)	The user clicks a button to save the output.
+u)	The Toolbox plots a scatter-plot and correlation statistics on the screen. 
+v)	The user choses a “Save Image” option which saves the plot as a PNG file
+w)	The user re-specifies the geospatial area of interest as a polygon on the rotatable globe (GUI) or by specifying coordinates.
+x)	The user selects the operation :doc:`Animated Map <../visualisation/op_spec_animated-map>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
+y)	The user selects options (multiple datasets).
+z)	The user clicks a button to execute.
+aa)	The Toolbox displays side-by-side animations.
+bb)	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
+cc)	The user selects options (map).
+dd)	The user clicks a button to execute.
+ee)	The Toolbox performs a pixel-by-pixel correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
+ff)	The user clicks a button to save the output.
 
 
 Operations UC9 
 ==============
 
+- :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`
+
+	- :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial_filtering>`
+	- :doc:`Temporal Filtering <../filtering_selections/op_spec_temporal_filtering>`
+	
+	
 - :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`
 
 	- :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>`
@@ -52,11 +64,11 @@ Operations UC9
 		
 	- :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`
 	
-		- :doc:`Product-Moment Correlation Coefficient (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>`
+		- :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>`
 
 
 *not implemented as operations*
 
-- *Parameter Settings* (selection of time span and AOI -> as default to all Operations)
+- *Load Data*
 - *Save Image*
 - *(Save Plot)*
