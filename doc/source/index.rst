@@ -1,8 +1,6 @@
-.. ECT documentation master file, created by
-   sphinx-quickstart on Thu Mar 24 11:37:10 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. ECT documentation master file
 
+=========================
 CCI Toolbox Documentation
 =========================
 
