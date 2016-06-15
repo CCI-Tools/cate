@@ -8,6 +8,17 @@ In this section, the basic operations and data processors used in the ESA CCI To
 This documentation is not targeted at software end users but may be of interest to those wishing to understand
 the details of the algorithms and methods used.
 
+Filtering and Selections
+========================
+
+.. toctree::
+   :maxdepth: 1
+   :numbered:
+
+   op_specs/filtering_selections/op_spec_category_filtering_selections
+   op_specs/filtering_selections/op_spec_spatial-filtering
+   op_specs/filtering_selections/op_spec_temporal-filtering
+
 Visualisation
 =============
 
@@ -19,7 +30,6 @@ Visualisation
    op_specs/visualisation/op_spec_time-series-plot
    op_specs/visualisation/op_spec_animated-map
 
-
 Geometric Adjustments
 =====================
 
@@ -28,7 +38,7 @@ Geometric Adjustments
    :numbered:
 
    op_specs/geometric-adjustments/op_spec_category_geometric-adjustment
-   op_specs/geometric-adjustments/op_spec_reprojection
+   op_specs/geometric-adjustments/op_spec_coregistration
 
 Data Inter-Comparison
 =====================
