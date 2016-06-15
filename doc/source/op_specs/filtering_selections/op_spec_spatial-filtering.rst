@@ -10,7 +10,7 @@ Operation
 
 :Operation name: Spatial Filtering
 :Algorithm name: *XXX*
-:Algorithm reference: `? <>`_ 
+:Algorithm reference: *XXX* 
 :Description: This Operation provides the functionality to select data of a region of interest. All data outside will be discarded.
 :Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
 
