@@ -154,7 +154,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/logo/cci-toolbox-logo.png'
+html_logo = '_static/logo/cci-toolbox-logo-html.png'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -255,7 +255,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = '_static/logo/cci-toolbox-logo.png'
+latex_logo = '_static/logo/cci-toolbox-latex.jpg'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
