@@ -1,4 +1,4 @@
-<img alt="ECT: ESA CCI Toolbox" style="display:block;margin-left:auto;margin-right:auto" src="https://raw.githubusercontent.com/CCI-Tools/ect-core/master/doc/source/_static/logo/cci-toolbox-logo-latex.jpg" />
+<img alt="ECT: ESA CCI Toolbox" align="middle" src="https://raw.githubusercontent.com/CCI-Tools/ect-core/master/doc/source/_static/logo/cci-toolbox-logo-latex.jpg" />
 
 
 [![Build Status](https://travis-ci.org/CCI-Tools/ect-core.svg?branch=master)](https://travis-ci.org/CCI-Tools/ect-core)
