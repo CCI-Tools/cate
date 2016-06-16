@@ -37,11 +37,12 @@ Use Case #9 Relationships between Aerosol and Cloud ECV
 #.	The user selects options (multiple datasets).
 #.	The user clicks a button to execute.
 #.	The Toolbox displays side-by-side animations.
+#.	The user clicks a button to save the animated maps as GIF files.
 #.	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
 #.	The user selects options (map).
 #.	The user clicks a button to execute.
 #.	The Toolbox performs a pixel-by-pixel correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
-#.	The user clicks a button to save the output.
+#.	The user clicks buttons to save the map (PNG) as well as the correlation statistics (ASCII).
 
 
 Operations UC9 
