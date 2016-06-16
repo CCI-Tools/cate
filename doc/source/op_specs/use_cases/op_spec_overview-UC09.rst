@@ -28,7 +28,7 @@ Operations UC9
 
 *not implemented as operations*
 
-- *Load Data*
+- *Load Data (access, input, variable filtering)*
 - *Save Image (PNG)*
 - *Save Image (GIF)*
 - *Save Table (ASCII)*
