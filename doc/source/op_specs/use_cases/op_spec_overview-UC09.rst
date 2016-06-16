@@ -3,8 +3,9 @@ Operations UC9
 
 - Filtering and Selections
 
-	- Spatial Filtering
+	- Spatial Filtering (Point)
 	- Temporal Filtering
+	- Spatial Filtering (Polygon)
 
 - Geometric Adjustment
 
