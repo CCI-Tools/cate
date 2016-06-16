@@ -99,7 +99,7 @@ Open the ``notebooks`` folder and select a use case.
 
 ### Contributors
 
-Contributors are asked to read and adhere to our [Developer guide](https://github.com/CCI-Tools/ect-core/wiki/Developer-guide).
+Contributors are asked to read and adhere to our [Developer Guide](https://github.com/CCI-Tools/ect-core/wiki/Developer-Guide).
 
 ### Unit-testing
 
