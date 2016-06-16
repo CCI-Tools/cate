@@ -13,7 +13,7 @@ Use Case #9 Relationships between Aerosol and Cloud ECV
 #.	The user clicks a button to execute.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
 #.	The user selects the operation :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
-#.	The user selects options (geospatial point of interest on a rotatable globe (GUI) or specifies coordinates).
+#.	The user selects options (geospatial point of interest on a rotatable globe (GUI) or specification of coordinates).
 #.	The user clicks a button to execute.
 #.	The Toolbox creates a spatial subset of the data. 
 #.	The user selects the operation :doc:`Temporal Filtering <../filtering_selections/op_spec_temporal-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
@@ -28,8 +28,11 @@ Use Case #9 Relationships between Aerosol and Cloud ECV
 #.	The user selects options (scatter-plot).
 #.	The user clicks a button to execute.
 #.	The Toolbox plots a scatter-plot and correlation statistics on the screen. 
-#.	The user choses a “Save Image” option which saves the plot as a PNG file
-#.	The user re-specifies the geospatial area of interest as a polygon on the rotatable globe (GUI) or by specifying coordinates.
+#.	The user choses a “Save Image” option which saves the plot as a PNG file.
+#.	The user selects the operation :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+#.	The user selects options (polygon on the rotatable globe (GUI) or specification of coordinates).
+#.	The user clicks a button to execute.
+#.	The Toolbox creates a spatial subset of the data. 
 #.	The user selects the operation :doc:`Animated Map <../visualisation/op_spec_animated-map>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
 #.	The user selects options (multiple datasets).
 #.	The user clicks a button to execute.
