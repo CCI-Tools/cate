@@ -34,23 +34,24 @@ ECT can be run from sources directly, once the following module requirements are
 * ``h5py``
 * ``h5netcdf``
 
-The most up-to-date list of module requirements is found in the project's ``setup.py`` file.  
+The most up-to-date list of module requirements is found in the project's ``setup.py`` file. Do not install now, please read further first.
 
-### Using a Miniconda / Anaconda environment (recommended)
+### Installation into a Conda environment (recommended)
 
-It is recommended to install ECT into an isolated Miniconda or Anaconda environment, because this approach avoids 
-clashes with existing 3rd-party module versions and also usually avoids platform-specific issues caused by module binaries. 
+It is recommended to install ECT into an isolated Conda ([Miniconda](http://conda.pydata.org/miniconda.html) or 
+[Anaconda](https://www.continuum.io/downloads)) environment, because this approach avoidsclashes with existing versions of 
+ECT's 3rd-party module requirements and also usually avoids platform-specific issues caused by module native binaries.
 
-If you use a Miniconda or Anaconda, you can create a isolated environment for ECT like so
+Using Conda, you can create a isolated environment for ECT like so
 
     $ conda env create -f environment.yml
     
-Then activate the new environment ``ect``:
+Then you activate the new environment ``ect``:
      
     $ source activate ect
     
 Windows users can omit the ``source`` command and just type ``activate ect``.
-Unfortunately, the ``h5netcdf`` dependency is not on the Anaconda default channel and need to be installed separately:   
+Unfortunately, the ``h5netcdf`` dependency is not on the Anaconda default channel and needs to be installed separately:   
     
     $ conda install -c IOOS h5netcdf 
 
@@ -58,7 +59,7 @@ You can now safely install ECT into the new, isolated ``ect`` conda environment.
     
     $ python setup.py install
     
-### Using a plain Python 3 environment (not recommended) 
+### Installation into an existing Python 3 environment (not recommended) 
 
 To install ECT into an existing Python 3.5+ environment just for the current user, use
 
