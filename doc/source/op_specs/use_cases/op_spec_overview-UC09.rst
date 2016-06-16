@@ -3,9 +3,9 @@ Operations UC9
 
 - Filtering and Selections
 
-	- Spatial Filtering (Point)
+	- Spatial Filtering *(point)*
 	- Temporal Filtering
-	- Spatial Filtering (Polygon)
+	- Spatial Filtering *(polygon)*
 
 - Geometric Adjustment
 
@@ -21,13 +21,14 @@ Operations UC9
 		
 	- Correlation Analysis
 	
-		- Product-Moment Correlation (Pearson) 
-
+		- Product-Moment Correlation (Pearson) *(one pixel; scatter plot)*
+		- Product-Moment Correlation (Pearson) *(pixel-by-pixel; map)*
 
 
 
 *not implemented as operations*
 
 - *Load Data*
-- *Save Image*
-- *(Save Plot)*
+- *Save Image (PNG)*
+- *Save Image (GIF)*
+- *Save Table (ASCII)*
