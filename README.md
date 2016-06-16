@@ -84,8 +84,8 @@ To test the installation, first run the ECT command-line interface. Type
     
     $ ect -h
 
-IPython notebooks for various ECT use cases are on the way, they will appear in
-https://github.com/CCI-Tools/ect-core/tree/master/notebooks.
+IPython notebooks for various ECT use cases are on the way, they will appear in the project's
+[notebooks](https://github.com/CCI-Tools/ect-core/tree/master/notebooks) folder.
 
 To use them interactively, you'll need to install Jupyter and run its Notebook app:
 
