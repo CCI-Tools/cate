@@ -93,3 +93,25 @@ To use them interactively, you'll need to install Jupyter and run its Notebook a
     $ jupyter notebook
 
 Open the ``notebooks`` folder and select a use case.
+
+
+## Development
+
+### Contributors
+
+Contributors are asked to read and adhere to our [Developer guide](https://github.com/CCI-Tools/ect-core/wiki/Developer-guide).
+
+### Unit-testing
+
+For unit testing we use ``pytest`` and its coverage plugin ``pytest-cov``.
+
+To run the unit-tests with coverage, type
+
+    $ export NUMBA_DISABLE_JIT=1
+    $ py.test --cov=ect test
+    
+We need to set environment variable ``NUMBA_DISABLE_JIT`` to disable JIT compilation by ``numba``, so that 
+coverage reaches the actual Python code. We use Numba's JIT compilation to speed up numeric Python 
+number crunching code.
+
+
