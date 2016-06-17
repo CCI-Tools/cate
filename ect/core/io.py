@@ -61,6 +61,8 @@ from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple
 
+from dedop.util.monitor import Monitor
+
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
@@ -95,8 +97,23 @@ class DataSource(metaclass=ABCMeta):
             return False
         return True
 
-    def __str__(self):
+    # noinspection PyMethodMayBeStatic
+    def sync(self, monitor: Monitor = Monitor.NULL):
+        """
+        Synchronize remote data with locally stored data.
+        The default implementation does nothing.
+
+        :param monitor: a progress monitor.
+        """
+        pass
+
+    @property
+    def info_string(self):
+        """Return some textual information about this data source. Useful for CLI / REPL applications."""
         return self.name
+
+    def __str__(self):
+        return self.info_string
 
     @abstractmethod
     def _repr_html_(self):
@@ -337,20 +354,49 @@ class FileSetDataSource(DataSource):
             path = path.replace('{DD}', '%02d' % dt.day)
         return path
 
+    def sync(self, monitor: Monitor = Monitor.NULL):
+        """
+        Synchronize remote data with locally stored data.
+        The default implementation does nothing.
+
+        :param monitor: a progress monitor.
+        """
+        paths = self.resolve_paths()
+        with monitor.starting("Synchronising", total_work=len(paths)):
+            for path in paths:
+                if monitor.is_cancelled():
+                    return
+                self._sync_file(path, monitor.child(1))
+
+    def _sync_file(self, path, monitor):
+        with monitor.starting(path, 1):
+            # TODO (forman, 20160617) - rsync FTP and local dir here
+            monitor.progress(1)
+
     def __repr__(self):
         return "FileSetDataSource(%s, %s, %s)" % (repr(self._name), repr(self._base_dir), repr(self._file_pattern))
 
+    @property
+    def info_string(self):
+        table_data = self.get_table_data()
+        if self._fileset_info:
+            table_data.update(self._fileset_info.get_table_data())
+        return '\n'.join(['%s: %s' % (name, value)
+                          for name, value in table_data.items()])
+
     def _repr_html_(self):
         import html
-        table_data = OrderedDict([('Name', '<strong>%s<strong>' % html.escape(self._name)),
-                                  ('Base directory', '<strong>%s<strong>' % html.escape(self._base_dir)),
-                                  ('File pattern', '<strong>%s<strong>' % html.escape(self._file_pattern)),
-                                  ('File set info',
-                                   self._fileset_info._repr_html_() if self._fileset_info else '-- missing --'),
-                                  ])
-        return '<table style="border:0;">%s</table>' % '\n'.join(
-            ['<tr><td>%s</td><td>%s</td></tr>' % (name, value)
-             for name, value in table_data.items()])
+        table_data = self.get_table_data()
+        if self._fileset_info:
+            table_data.update(self._fileset_info.get_table_data())
+        rows = '\n'.join(['<tr><td>%s</td><td><strong>%s</strong></td></tr>' % (name, html.escape(str(value)))
+                          for name, value in table_data.items()])
+        return '<table style="border:0;">%s</table>' % rows
+
+    def get_table_data(self):
+        return OrderedDict([('Name', self._name),
+                            ('Base directory', self._base_dir),
+                            ('File pattern', self._file_pattern)])
 
 
 class FileSetInfo:
@@ -398,17 +444,25 @@ class FileSetInfo:
     def size_in_mb(self):
         return self._size_in_mb
 
+    def info_string(self):
+        table_data = self.get_table_data()
+        return '\n'.join(['%s:\t\t%s' % (name, str(value)) for name, value in table_data.items()])
+
     def _repr_html_(self):
         import html
+        table_data = self.get_table_data()
+        return '<table style="border:0;">%s</table>' % '\n'.join(
+            ['<tr><td>%s</td><td><strong>%s</strong></td></tr>' % (name, html.escape(str(value)))
+             for name, value in table_data.items()])
+
+    def get_table_data(self):
         table_data = OrderedDict([('Last update time', self._info_update_time),
                                   ('Data start time', self._start_time),
                                   ('Data stop time', self._end_time),
                                   ('#Files', self._num_files),
                                   ('Size (MB)', self._size_in_mb),
                                   ])
-        return '<table style="border:0;">%s</table>' % '\n'.join(
-            ['<tr><td>%s</td><td><strong>%s<strong></td></tr>' % (name, html.escape(str(value)))
-             for name, value in table_data.items()])
+        return table_data
 
 
 class FileSetCatalog(Catalog):
