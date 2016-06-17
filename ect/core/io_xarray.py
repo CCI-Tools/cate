@@ -18,7 +18,7 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
     # open all datasets
     engine = 'h5netcdf'
     lock = xr.backends.api._default_lock(paths[0], None)
-    # TODO (mz) - get correct chunking from netcdf metadata
+    # TODO (forman, 20160601): align with chunking from netcdf metadata attribute
 
 
     def _x_open(p):
@@ -77,7 +77,7 @@ def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
         if '_FillValue' in attrs and 'missing_value' in attrs:
             # xarray as of version 0.7.2 does not handle it correctly,
             # if both values are set to NaN. (because the values are compared using '==')
-            # TODO (mz) - report github issue and PR to xarray
+            # TODO (mzuehlke, 20160601): report github issue and PR to xarray
             del attrs['missing_value']
     return dataset
 

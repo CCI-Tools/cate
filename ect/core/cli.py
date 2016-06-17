@@ -277,7 +277,7 @@ COMMAND_REGISTRY = [
 ]
 
 
-# todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
+# TODO (forman, 20160526): cli.main() should never exit the interpreter, configure argparse parser accordingly
 
 def main(args=None):
     """

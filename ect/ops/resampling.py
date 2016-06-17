@@ -171,7 +171,7 @@ def _resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, out):
         if out_h > src_h:
             temp = np.zeros((src_h, out_w), dtype=src.dtype)
             temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, temp)
-            # todo - write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
+            # TODO (forman, 20160617): write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
             return _upsample_2d(temp, mask, use_mask, us_method, fill_value, out)
         else:
             return _downsample_2d(src, mask, use_mask, ds_method, fill_value, out)
@@ -179,7 +179,7 @@ def _resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, out):
         if out_w > src_w:
             temp = np.zeros((out_h, src_w), dtype=src.dtype)
             temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, temp)
-            # todo - write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
+            # TODO (forman, 20160617): write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
             return _upsample_2d(temp, mask, use_mask, us_method, fill_value, out)
         else:
             return _downsample_2d(src, mask, use_mask, ds_method, fill_value, out)

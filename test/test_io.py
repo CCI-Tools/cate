@@ -13,6 +13,9 @@ class SimpleCatalogue(io.Catalogue):
     def query(self, name=None) -> Sequence[io.DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(name)]
 
+    def _repr_html_(self):
+        return ''
+
 
 class SimpleDataSource(io.DataSource):
     def __init__(self, name: str):
@@ -30,14 +33,27 @@ class SimpleDataSource(io.DataSource):
     def open_dataset(self, time_range=None) -> io.Dataset:
         return None
 
+    def __repr__(self):
+        return "SimpleDataSource(%s)" % repr(self._name)
+
+    def _repr_html_(self):
+        return self._name
+
 
 class InMemoryDataSource(SimpleDataSource):
     def __init__(self, data):
-        super(InMemoryDataSource, self).__init__("im_mem")
+        super(InMemoryDataSource, self).__init__("in_memory")
         self._data = data
 
     def open_dataset(self, time_range=None) -> io.Dataset:
         return XArrayDatasetAdapter(self._data)
+
+    def __repr__(self):
+        return "InMemoryDataSource(%s)" % repr(self._data)
+
+    def _repr_html_(self):
+        import html
+        return html.escape(repr(self._data))
 
 
 class IOTest(TestCase):
@@ -60,9 +76,9 @@ class IOTest(TestCase):
             data_sources = io.query_data_sources()
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 98)
-            self.assertEqual(data_sources[0].name, "aerosol_ATSR2_SU_L3_v4.2_DAILY")
+            self.assertEqual(data_sources[0].name, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
 
-            data_sources = io.query_data_sources(name="aerosol_ATSR2_SU_L3_v4.2_DAILY")
+            data_sources = io.query_data_sources(name="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 1)
 
@@ -162,7 +178,7 @@ class FileSetDataSourceTest(TestCase):
         self.ds1 = fileset_catalogue._data_sources[1]
 
     def test_from_json(self):
-        self.assertEqual('aerosol_ATSR2_SU_L3_v4.2_DAILY', self.ds0.name)
+        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.2_DAILY', self.ds0.name)
         json_dict = self.ds0.to_json_dict()
 
         self.assertEqual('aerosol/data/ATSR2_SU/L3/v4.2/DAILY', json_dict['base_dir'])
@@ -175,7 +191,7 @@ class FileSetDataSourceTest(TestCase):
         self.assertEqual(2631, fileset_info['num_files'])
         self.assertEqual(42338, fileset_info['size_in_mb'])
 
-        self.assertEqual('aerosol_ATSR2_SU_L3_v4.21_MONTHLY', self.ds1.name)
+        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.21_MONTHLY', self.ds1.name)
         json_dict = self.ds1.to_json_dict()
 
         self.assertEqual('aerosol/data/ATSR2_SU/L3/v4.21/MONTHLY', json_dict['base_dir'])
