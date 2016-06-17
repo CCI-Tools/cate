@@ -2,7 +2,7 @@ import os
 import os.path
 import pkgutil
 
-from ect.core.io import FileSetCatalogue, CATALOGUE_REGISTRY
+from ect.core.io import FileSetCatalog, CATALOG_REGISTRY
 
 from unittest import TestCase
 
@@ -12,10 +12,10 @@ import os.path
 
 class EsaCciPortalFtpTest(TestCase):
     def test_default_file_catalogue(self):
-        if not CATALOGUE_REGISTRY.get_catalogue('default'):
+        if not CATALOG_REGISTRY.get_catalog('default'):
             add_default_file_catalogue()
 
-        catalog = CATALOGUE_REGISTRY.get_catalogue('default')
+        catalog = CATALOG_REGISTRY.get_catalog('default')
         self.assertIsNotNone(catalog)
         self.assertEqual(catalog.root_dir, os.path.expanduser(os.path.join('~', '.ect', 'data_sources', 'esa_cci_portal_ftp')))
 

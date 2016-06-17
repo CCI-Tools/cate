@@ -1,12 +1,12 @@
 @startuml
 
-class CatalogueRegistry {
-    get_catalogues(name): Catalogue
-    add_catalogue(Catalogue): void
-    remove_catalogue(Catalogue): void
+class CatalogRegistry {
+    get_catalogs(name): Catalog
+    add_catalog(Catalog): void
+    remove_catalog(Catalog): void
 }
 
-interface Catalogue {
+interface Catalog {
     {abstract} query(filter): DataSource
 }
 
@@ -14,7 +14,7 @@ interface DataSource {
     {abstract} open_dataset(constraints): cdm.Dataset
 }
 
-class FileSetCatalogue implements Catalogue {
+class FileSetCatalog implements Catalog {
     root_dir
     query(filter): DataSource
 }
@@ -34,16 +34,16 @@ class FileSetInfo  {
     size_in_mb
 }
 
-CatalogueRegistry o--> "N" Catalogue
-Catalogue  ..>  DataSource: <provide>
+CatalogRegistry o--> "N" Catalog
+Catalog  ..>  DataSource: <provide>
 
 DataSource ..>  interface cdm.Dataset: <open>
 
 
-FileSetCatalogue "1" o-- "N" FileSetDataSource
+FileSetCatalog "1" o-- "N" FileSetDataSource
 FileSetDataSource -- "0..1" FileSetInfo
 
-note left of FileSetCatalogue
+note left of FileSetCatalog
 Users may create their own.
 The default instance mirrors
 the CCI Portal's FTP tree.

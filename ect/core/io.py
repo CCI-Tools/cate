@@ -78,7 +78,7 @@ class DataSource(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def catalogue(self) -> 'Catalogue':
+    def catalog(self) -> 'Catalog':
         """The catalogue to which this data source belongs."""
 
     @abstractmethod
@@ -103,7 +103,7 @@ class DataSource(metaclass=ABCMeta):
         """Provide an HTML representation of this object for IPython."""
 
 
-class Catalogue(metaclass=ABCMeta):
+class Catalog(metaclass=ABCMeta):
     """Represents a catalogue of data sources."""
 
     # TODO (mzuehlke, forman, 20160603): define constraints --> have a look at Iris Constraint class
@@ -121,53 +121,54 @@ class Catalogue(metaclass=ABCMeta):
         """Provide an HTML representation of this object for IPython."""
 
 
-class CatalogueRegistry:
+class CatalogRegistry:
     """
-    Registry of :py:class:`Catalogue` objects.
+    Registry of :py:class:`Catalog` objects.
     """
 
     def __init__(self):
-        self._catalogues = dict()
+        self._catalogs = dict()
 
-    def get_catalogue(self, name: str) -> Catalogue:
-        return self._catalogues.get(name, None)
+    def get_catalog(self, name: str) -> Catalog:
+        return self._catalogs.get(name, None)
 
-    def get_catalogues(self) -> Sequence[Catalogue]:
-        return self._catalogues.values()
+    def get_catalogs(self) -> Sequence[Catalog]:
+        return self._catalogs.values()
 
-    def add_catalogue(self, name: str, catalogue: Catalogue):
-        self._catalogues[name] = catalogue
+    def add_catalog(self, name: str, catalogue: Catalog):
+        self._catalogs[name] = catalogue
 
-    def remove_catalogue(self, name: str):
-        del self._catalogues[name]
+    def remove_catalog(self, name: str):
+        del self._catalogs[name]
 
     def __len__(self):
-        return len(self._catalogues)
+        return len(self._catalogs)
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
         import pprint
-        return pprint.pformat(self._catalogues)
+        return pprint.pformat(self._catalogs)
 
     def _repr_html_(self):
         rows = []
-        for name, cat in self._catalogues.items():
+        for name, cat in self._catalogs.items():
             rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(cat)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
-#: The catalogue registry of type :py:class:`CatalogueRegistry`.
-CATALOGUE_REGISTRY = CatalogueRegistry()
+#: The data catalogue registry of type :py:class:`CatalogueRegistry`.
+#: Use it add new data catalogues to ECT.
+CATALOG_REGISTRY = CatalogRegistry()
 
 
-def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None, name=None) -> Sequence[DataSource]:
+def query_data_sources(catalogs: Union[Catalog, Sequence[Catalog]] = None, name=None) -> Sequence[DataSource]:
     """Query the catalogue(s) for data sources matching the given constrains.
 
     Parameters
     ----------
-    catalogues : Catalogue or Sequence[Catalogue]
+    catalogs : Catalog or Sequence[Catalog]
        If given these catalogues will be queried. Otherwise all registered catalogues will be used.
     name : str, optional
        The name of the dataset.
@@ -181,12 +182,12 @@ def query_data_sources(catalogues: Union[Catalogue, Sequence[Catalogue]] = None,
     --------
     open_dataset
     """
-    if catalogues is None:
-        catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
-    elif isinstance(catalogues, Catalogue):
-        catalogue_list = [catalogues]
+    if catalogs is None:
+        catalogue_list = CATALOG_REGISTRY.get_catalogs()
+    elif isinstance(catalogs, Catalog):
+        catalogue_list = [catalogs]
     else:
-        catalogue_list = catalogues
+        catalogue_list = catalogs
     results = []
     # noinspection PyTypeChecker
     for catalogue in catalogue_list:
@@ -217,7 +218,7 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        catalogue_list = CATALOGUE_REGISTRY.get_catalogues()
+        catalogue_list = CATALOG_REGISTRY.get_catalogs()
         data_sources = query_data_sources(catalogue_list, name=data_source)
         if len(data_sources) == 0:
             raise ValueError('No data_source found')
@@ -247,7 +248,7 @@ class FileSetDataSource(DataSource):
     """
 
     def __init__(self,
-                 file_set_catalogue: 'FileSetCatalogue',
+                 file_set_catalogue: 'FileSetCatalog',
                  name: str,
                  base_dir: str,
                  file_pattern: str,
@@ -263,7 +264,7 @@ class FileSetDataSource(DataSource):
         return self._name
 
     @property
-    def catalogue(self) -> 'FileSetCatalogue':
+    def catalog(self) -> 'FileSetCatalog':
         return self._file_set_catalogue
 
     def open_dataset(self, time_range=None) -> Dataset:
@@ -321,8 +322,8 @@ class FileSetDataSource(DataSource):
             raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
 
         paths = [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
-        if self.catalogue:
-            paths = [self.catalogue.root_dir + '/' + p for p in paths]
+        if self.catalog:
+            paths = [self.catalog.root_dir + '/' + p for p in paths]
         return paths
 
     # noinspection PyUnresolvedReferences
@@ -410,7 +411,7 @@ class FileSetInfo:
              for name, value in table_data.items()])
 
 
-class FileSetCatalogue(Catalogue):
+class FileSetCatalog(Catalog):
     """
     A catalogue for a fileset in the the operating system's file system.
     It is composed of data sources of type :py:class:`FileSetDataSource` that are represented by
@@ -457,8 +458,8 @@ class FileSetCatalogue(Catalogue):
             self._data_sources.append(file_set_data_source)
 
     @classmethod
-    def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetCatalogue':
-        catalogue = FileSetCatalogue(root_dir)
+    def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetCatalog':
+        catalogue = FileSetCatalog(root_dir)
         catalogue.expand_from_json(json_fp_or_str)
         return catalogue
 
