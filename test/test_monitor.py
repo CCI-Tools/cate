@@ -9,20 +9,26 @@ class NullMonitorTest(TestCase):
         self.assertEqual(repr(Monitor.NULL), 'Monitor.NULL')
 
     def test_child_monitor(self):
-        sub_monitor = Monitor.NULL.child(10)
-        self.assertIs(sub_monitor, Monitor.NULL)
+        self.assertIs(Monitor.NULL.child(10), Monitor.NULL)
+
+    def test_cancel(self):
+        m = Monitor.NULL
+        m.start('task A', total_work=10)
+        self.assertFalse(m.is_cancelled())
+        m.cancel()
+        self.assertFalse(m.is_cancelled())
 
 
 class ConsoleMonitorTest(TestCase):
     def test_console_monitor(self):
-        monitor = ConsoleMonitor()
-        monitor.start('task A', total_work=10)
-        monitor.progress(work=1)
-        monitor.progress(work=5, msg='phase 1')
-        monitor.progress(msg='phase 2')
-        monitor.progress(work=4)
-        monitor.progress()
-        monitor.done()
+        m = ConsoleMonitor()
+        m.start('task A', total_work=10)
+        m.progress(work=1)
+        m.progress(work=5, msg='phase 1')
+        m.progress(msg='phase 2')
+        m.progress(work=4)
+        m.progress()
+        m.done()
         self.assertTrue(True)
 
     def test_label_req(self):
@@ -36,98 +42,123 @@ class ConsoleMonitorTest(TestCase):
         child_monitor = monitor.child(7.5)
         self.assertIsInstance(child_monitor, ChildMonitor)
 
+    def test_cancel(self):
+        m = ConsoleMonitor()
+        m.start('task A', total_work=10)
+        self.assertFalse(m.is_cancelled())
+        m.cancel()
+        self.assertTrue(m.is_cancelled())
+
 
 class RecordingMonitorTest(TestCase):
     def test_recording_monitor(self):
         # test the RecordingMonitor used for testing
-        monitor = RecordingMonitor()
-        monitor.start('task A', total_work=10)
-        monitor.progress(work=1)
-        monitor.progress(work=5, msg='phase 1')
-        monitor.progress(msg='phase 2')
-        monitor.progress(work=4)
-        monitor.done()
-        self.assertEqual(monitor.records, [('start', 'task A', 10),
-                                           ('progress', 1, None, 10),
-                                           ('progress', 5, 'phase 1', 60),
-                                           ('progress', None, 'phase 2', None),
-                                           ('progress', 4, None, 100),
-                                           ('done',)])
+        m = RecordingMonitor()
+        m.start('task A', total_work=10)
+        m.progress(work=1)
+        m.progress(work=5, msg='phase 1')
+        m.progress(msg='phase 2')
+        m.progress(work=4)
+        m.done()
+        self.assertEqual(m.records, [('start', 'task A', 10),
+                                     ('progress', 1, None, 10),
+                                     ('progress', 5, 'phase 1', 60),
+                                     ('progress', None, 'phase 2', None),
+                                     ('progress', 4, None, 100),
+                                     ('done',)])
 
     def test_context_manager(self):
-        monitor = RecordingMonitor()
-        with monitor.starting('task A', total_work=10):
-            monitor.progress(work=1)
-            monitor.progress(work=5, msg='phase 1')
-            monitor.progress(msg='phase 2')
-            monitor.progress(work=4)
+        m = RecordingMonitor()
+        with m.starting('task A', total_work=10):
+            m.progress(work=1)
+            m.progress(work=5, msg='phase 1')
+            m.progress(msg='phase 2')
+            m.progress(work=4)
 
-        self.assertEqual(monitor.records, [('start', 'task A', 10),
-                                           ('progress', 1, None, 10),
-                                           ('progress', 5, 'phase 1', 60),
-                                           ('progress', None, 'phase 2', None),
-                                           ('progress', 4, None, 100),
-                                           ('done',)])
+        self.assertEqual(m.records, [('start', 'task A', 10),
+                                     ('progress', 1, None, 10),
+                                     ('progress', 5, 'phase 1', 60),
+                                     ('progress', None, 'phase 2', None),
+                                     ('progress', 4, None, 100),
+                                     ('done',)])
 
 
 class ChildMonitorTest(TestCase):
     def test_child_monitor(self):
-        monitor = RecordingMonitor()
-        sub_monitor = monitor.child(10)
+        m = RecordingMonitor()
+        sub_monitor = m.child(10)
         self.assertIsInstance(sub_monitor, ChildMonitor)
 
-        monitor.start('task A', total_work=10)
+        m.start('task A', total_work=10)
 
-        sm1 = monitor.child(work=1)
-        sm1.start('sub-task A.1', 100)
-        sm1.progress(work=30)
-        sm1.progress(work=20)
-        sm1.progress(work=50)
-        sm1.done()
+        cm1 = m.child(work=1)
+        cm1.start('sub-task A.1', 100)
+        cm1.progress(work=30)
+        cm1.progress(work=20)
+        cm1.progress(work=50)
+        cm1.done()
 
-        sm2 = monitor.child(work=5)
-        sm2.start('sub-task A.2', 100)
-        sm2.progress(work=30)
-        sm2.progress(work=20)
-        sm2.progress(work=50)
-        sm2.done()
+        cm2 = m.child(work=5)
+        cm2.start('sub-task A.2', 100)
+        cm2.progress(work=30)
+        cm2.progress(work=20)
+        cm2.progress(work=50)
+        cm2.done()
 
-        sm3 = monitor.child(work=4)
-        sm3.start('sub-task A.3', 100)
-        sm3.progress(work=30)
-        sm3.progress(work=20)
-        sm3.progress(work=50)
-        sm3.done()
+        cm3 = m.child(work=4)
+        cm3.start('sub-task A.3', 100)
+        cm3.progress(work=30)
+        cm3.progress(work=20)
+        cm3.progress(work=50)
+        cm3.done()
 
-        monitor.done()
+        m.done()
 
         # import pprint
         # pprint.pprint(monitor.records)
 
-        self.assertEqual(monitor.records, [('start', 'task A', 10),
-                                           ('progress', 0.0, 'sub-task A.1', 0),
-                                           ('progress', 0.3, None, 3),
-                                           ('progress', 0.2, None, 5),
-                                           ('progress', 0.5, None, 10),
-                                           ('progress', 0.0, 'sub-task A.1', 10),
-                                           ('progress', 0.0, 'sub-task A.2', 10),
-                                           ('progress', 1.5, None, 25),
-                                           ('progress', 1.0, None, 35),
-                                           ('progress', 2.5, None, 60),
-                                           ('progress', 0.0, 'sub-task A.2', 60),
-                                           ('progress', 0.0, 'sub-task A.3', 60),
-                                           ('progress', 1.2, None, 72),
-                                           ('progress', 0.8, None, 80),
-                                           ('progress', 2.0, None, 100),
-                                           ('progress', 0.0, 'sub-task A.3', 100),
-                                           ('done',)])
+        self.assertEqual(m.records, [('start', 'task A', 10),
+                                     ('progress', 0.0, 'sub-task A.1', 0),
+                                     ('progress', 0.3, None, 3),
+                                     ('progress', 0.2, None, 5),
+                                     ('progress', 0.5, None, 10),
+                                     ('progress', 0.0, 'sub-task A.1', 10),
+                                     ('progress', 0.0, 'sub-task A.2', 10),
+                                     ('progress', 1.5, None, 25),
+                                     ('progress', 1.0, None, 35),
+                                     ('progress', 2.5, None, 60),
+                                     ('progress', 0.0, 'sub-task A.2', 60),
+                                     ('progress', 0.0, 'sub-task A.3', 60),
+                                     ('progress', 1.2, None, 72),
+                                     ('progress', 0.8, None, 80),
+                                     ('progress', 2.0, None, 100),
+                                     ('progress', 0.0, 'sub-task A.3', 100),
+                                     ('done',)])
+
+    def test_cancel(self):
+        m = RecordingMonitor()
+        sub_monitor = m.child(10)
+        self.assertIsInstance(sub_monitor, ChildMonitor)
+
+        m.start('task A', total_work=10)
+
+        cm = m.child(work=1)
+        cm.start('sub-task A.1', 100)
+
+        self.assertFalse(cm.is_cancelled())
+        self.assertFalse(m.is_cancelled())
+
+        cm.cancel()
+
+        self.assertTrue(cm.is_cancelled())
+        self.assertTrue(m.is_cancelled())
 
     def test_label_req(self):
-        monitor = RecordingMonitor()
-        sub_monitor = monitor.child(10)
+        m = RecordingMonitor()
+        sm = m.child(10)
         with self.assertRaises(ValueError):
             # "ValueError: label must be given"
-            sub_monitor.start('', total_work=10)
+            sm.start('', total_work=10)
 
 
 class RecordingMonitor(Monitor):
@@ -138,6 +169,7 @@ class RecordingMonitor(Monitor):
         self._label = None
         self._worked = None
         self._total_work = None
+        self._cancelled = None
 
     @property
     def records(self):
@@ -147,6 +179,7 @@ class RecordingMonitor(Monitor):
         self._label = label
         self._worked = 0.
         self._total_work = total_work
+        self._cancelled = False
         self._records.append(('start', label, total_work))
 
     def progress(self, work: float = None, msg: str = None):
@@ -158,3 +191,10 @@ class RecordingMonitor(Monitor):
 
     def done(self):
         self._records.append(('done',))
+
+    def cancel(self):
+        self._records.append(('cancel',))
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
