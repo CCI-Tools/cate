@@ -29,21 +29,7 @@ from ect.version import __version__
 #: Name of the ECT CLI executable.
 CLI_NAME = 'ect'
 
-_COPYRIGHT_INFO = """
-ECT - The ESA CCI Toolbox, Copyright (C) 2016 by European Space Agency (ESA)
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.
-
-Type "ect license" for details.
-"""
-
+_COPYRIGHT_INFO_PATH = os.path.dirname(__file__) + '/../../COPYRIGHT'
 _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
 
 _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
@@ -280,7 +266,9 @@ class Copyright(Command):
         return 'copyright', dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
-        print(_COPYRIGHT_INFO)
+        with open(_COPYRIGHT_INFO_PATH) as fp:
+            content = fp.read()
+            print(content)
 
 
 class License(Command):
