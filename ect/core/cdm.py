@@ -61,7 +61,7 @@ class Dataset(metaclass=ABCMeta):
         :param filter_: The ECV variables to keep
         :return: filtered dataset of the type 'Dataset'
         """
-        # TODO: Really has to be figured out how this is supposed to work
+        # TODO (JanisGailis, 20160612): Really has to be figured out how this is supposed to work
         # architecturally. Our Xarray based dataset already includes many
         # DataArray variables that need to be filtered out. It's a question
         # how it is going to be with the shapefile implementation.

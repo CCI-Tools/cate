@@ -50,3 +50,5 @@ doc/build/
 .idea/
 *.iml
 
+# Jupyter / IPython notebooks
+.ipynb_checkpoints

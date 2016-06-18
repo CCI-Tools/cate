@@ -30,7 +30,7 @@ class ShapefileDatasetAdapter(DatasetAdapter):
         pass
 
     def filter_dataset(self, filter_: tuple = None):
-        # TODO Implement me?
+        # implement me using fiona or pyshp API (e.g. feature attribute filtering)
         pass
 
 

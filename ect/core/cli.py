@@ -172,11 +172,47 @@ class Run(Command):
         return None
 
 
+class DataSource(Command):
+    CMD_NAME = 'ds'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Data source operations.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser(cls, parser):
+        parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
+                            help='Data source name. Type "ect list ds" to show all possible names.')
+        parser.add_argument('--info', '-i', action='store_true', default=True,
+                            help="Display information about the data source DS_NAME.")
+        parser.add_argument('--sync', '-s', action='store_true', default=False,
+                            help="Synchronise a remote data source DS_NAME with its local version.")
+
+    def execute(self, command_args):
+        from ect.core.io import CATALOG_REGISTRY
+        catalog = CATALOG_REGISTRY.get_catalog('default')
+
+        for ds_name in command_args.ds_names:
+            data_sources = catalog.query(name=ds_name)
+            if not data_sources or len(data_sources) == 0:
+                print("Unknown data source '%s'" % ds_name)
+                continue
+            data_source = data_sources[0]
+            if command_args.info and not command_args.sync:
+                print(data_source.info_string)
+            if command_args.sync:
+                print("Synchronising data source '%s'" % data_source)
+                data_source.sync(monitor=ConsoleMonitor())
+
+
 class List(Command):
+    CMD_NAME = 'list'
+
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'List items of a various categories.'
-        return 'list', dict(help=help_line, description=help_line)
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser(cls, parser):
@@ -193,8 +229,12 @@ class List(Command):
             from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
             List.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
         elif command_args.category == 'ds':
-            data_sources_registry = []
-            List.list_items('data source', 'data sources', data_sources_registry, command_args.pattern)
+            from ect.core.io import CATALOG_REGISTRY
+            catalog = CATALOG_REGISTRY.get_catalog('default')
+            if catalog is None:
+                return 2, "error: command '%s': no catalog named 'default' found" % self.CMD_NAME
+            List.list_items('data source', 'data sources', [data_source.name for data_source in catalog.query()],
+                            command_args.pattern)
         elif command_args.category == 'op':
             from ect.core.op import OP_REGISTRY as OP_REGISTRY
             List.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
@@ -259,13 +299,14 @@ class Docs(Command):
 COMMAND_REGISTRY = [
     List,
     Run,
+    DataSource,
     Copyright,
     License,
     Docs,
 ]
 
 
-# todo (nf) - cli.main() should never exit the interpreter, configure argparse parser accordingly
+# TODO (forman, 20160526): cli.main() should never exit the interpreter, configure argparse parser accordingly
 
 def main(args=None):
     """
