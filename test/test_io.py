@@ -153,7 +153,9 @@ class IOTest(TestCase):
 
 
 class FileSetDataSourceTest(TestCase):
-    JSON = '''[
+    JSON = '''{
+     "remore_url": null,
+     "data_sources": [
      {
         "name":"aerosol/ATSR2_SU/L3/v4.2/DAILY",
         "base_dir":"aerosol/data/ATSR2_SU/L3/v4.2/DAILY",
@@ -168,7 +170,7 @@ class FileSetDataSourceTest(TestCase):
         "base_dir":"aerosol/data/ATSR2_SU/L3/v4.21/MONTHLY",
         "file_pattern":"{YYYY}/{YYYY}{MM}-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2_ERS2-SU_MONTHLY-v4.21.nc"
       }
-     ]'''
+     ]}'''
 
     def setUp(self):
         fileset_catalogue = io.FileSetCatalog.from_json('TEST_ROOT_DIR', FileSetDataSourceTest.JSON)

@@ -61,15 +61,14 @@ from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple
 
-from ect.core.monitor import Monitor
-
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
-
+from ect.core.monitor import Monitor
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
+
 
 class DataSource(metaclass=ABCMeta):
     """
@@ -359,8 +358,6 @@ class FileSetDataSource(DataSource):
 
         return [self._resolve_base_path(date1 + timedelta(days=i)) for i in range((date2 - date1).days + 1)]
 
-
-
     def _resolve_base_path(self, date: datetime):
         resolved_path = self._file_pattern
         resolved_path = resolved_path.replace('{YYYY}', '%04d' % date.year)
@@ -486,26 +483,37 @@ class FileSetCatalog(Catalog):
     the operating system's file system.
 
     :param root_dir: The path to the fileset's root directory.
+    :param remote_url: Optional URL of the catalogue's remote service.
     """
 
-    def __init__(self, root_dir: str):
+    def __init__(self, root_dir: str, remote_url:str = None):
         self._root_dir = root_dir
+        self._remote_url = remote_url
         self._data_sources = []
 
     @property
     def root_dir(self) -> str:
-        """The path to the fileset's root directory. """
+        """The path to the fileset's root directory."""
         return self._root_dir
+
+    @property
+    def remote_url(self) -> str:
+        """Optional URL of the catalogue's remote service."""
+        return self._remote_url
 
     def query(self, name=None) -> Sequence[DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(name)]
 
-    def expand_from_json(self, json_fp_or_str: Union[str, IOBase]):
+    def load_from_json(self, json_fp_or_str: Union[str, IOBase]):
         if isinstance(json_fp_or_str, str):
             fp = StringIO(json_fp_or_str)
         else:
             fp = json_fp_or_str
-        for data in json.load(fp):
+        catalog_dict = json.load(fp)
+        remote_url = catalog_dict.get('remote_url', self._remote_url)
+        data_sources_json = catalog_dict.get('data_sources', [])
+        data_sources = []
+        for data in data_sources_json:
             file_set_info = None
             if 'start_date' in data and 'end_date' in data and 'num_files' in data and 'size_mb' in data:
                 # TODO (mzuehlke, 20160603): used named parameters
@@ -522,13 +530,15 @@ class FileSetCatalog(Catalog):
                                                      data['base_dir'],
                                                      data['file_pattern'],
                                                      fileset_info=file_set_info)
+            data_sources.append(file_set_data_source)
 
-            self._data_sources.append(file_set_data_source)
+        self._remote_url = remote_url
+        self._data_sources.extend(data_sources)
 
     @classmethod
     def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetCatalog':
         catalogue = FileSetCatalog(root_dir)
-        catalogue.expand_from_json(json_fp_or_str)
+        catalogue.load_from_json(json_fp_or_str)
         return catalogue
 
     def __repr__(self):
