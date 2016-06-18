@@ -61,7 +61,7 @@ from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple
 
-from dedop.util.monitor import Monitor
+from ect.core.monitor import Monitor
 
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
