@@ -61,12 +61,15 @@ from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple
 
-from dedop.util.monitor import Monitor
+from ect.core.monitor import Monitor
 
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 
+
+Time = Union[str, datetime]
+TimeRange = Tuple[Time, Time]
 
 class DataSource(metaclass=ABCMeta):
     """
@@ -309,10 +312,9 @@ class FileSetDataSource(DataSource):
 
     @property
     def _full_pattern(self) -> str:
-        return self._base_dir + "/" + self._file_pattern
+        return self._base_dir + '/' + self._file_pattern
 
-    def resolve_paths(self, time_range: Tuple[Union[str, datetime], Union[str, datetime]] = (None, None)) \
-            -> Sequence[str]:
+    def resolve_paths(self, time_range: TimeRange = (None, None)) -> List[str]:
         """Return a list of all paths between the given times.
 
         For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
@@ -326,33 +328,45 @@ class FileSetDataSource(DataSource):
                The last date of the time range, can be None if the file set has a *end_time*.
                In this case the *end_time* is used.
         """
-        (begin, end) = time_range
-        if begin is None and (self._fileset_info is None or self._fileset_info.start_time is None):
-            raise ValueError("neither the beginning of the interval nor start_time are given")
-        dt1 = _as_datetime(begin, self._fileset_info.start_time)
+        return [self.catalog.root_dir + '/' + p for p in self.resolve_base_paths(time_range)]
 
-        if end is None and (self._fileset_info is None or self._fileset_info.end_time is None):
-            raise ValueError("neither the end of the interval nor end_time are given")
-        dt2 = _as_datetime(end, self._fileset_info.end_time)
+    def resolve_base_paths(self, time_range: TimeRange = (None, None)) -> List[str]:
+        """Return a list of all paths between the given times.
 
-        if dt1 > dt2:
-            raise ValueError("start time '%s' is after end time '%s'" % (dt1, dt2))
+        For all dates, including the first and the last time, the wildcard in the pattern is resolved for the date.
 
-        paths = [self._resolve_date(dt1 + timedelta(days=x)) for x in range((dt2 - dt1).days + 1)]
-        if self.catalog:
-            paths = [self.catalog.root_dir + '/' + p for p in paths]
-        return paths
+        Parameters
+        ----------
+        time_range : a tuple of datetime or str, optional
+               The *time_range*, if given, limits the dataset in time.
+               The first date of the time range, can be None if the file set has a *start_time*.
+               In this case the *start_time* is used.
+               The last date of the time range, can be None if the file set has a *end_time*.
+               In this case the *end_time* is used.
+        """
 
-    # noinspection PyUnresolvedReferences
-    def _resolve_date(self, dt: datetime):
-        path = self._full_pattern
-        if '{YYYY}' in path:
-            path = path.replace('{YYYY}', '%04d' % dt.year)
-        if '{MM}' in path:
-            path = path.replace('{MM}', '%02d' % dt.month)
-        if '{DD}' in path:
-            path = path.replace('{DD}', '%02d' % dt.day)
-        return path
+        date1 = _as_datetime(time_range[0], self._fileset_info.start_time if self._fileset_info else None)
+        date2 = _as_datetime(time_range[1], self._fileset_info.end_time if self._fileset_info else None)
+
+        if date1 is None:
+            raise ValueError("illegal time_range: can't determine start of interval")
+
+        if date2 is None:
+            raise ValueError("illegal time_range: can't determine end of interval")
+
+        if date1 > date2:
+            raise ValueError("start time '%s' is after end time '%s'" % (date1, date2))
+
+        return [self._resolve_base_path(date1 + timedelta(days=i)) for i in range((date2 - date1).days + 1)]
+
+
+
+    def _resolve_base_path(self, date: datetime):
+        resolved_path = self._file_pattern
+        resolved_path = resolved_path.replace('{YYYY}', '%04d' % date.year)
+        resolved_path = resolved_path.replace('{MM}', '%02d' % date.month)
+        resolved_path = resolved_path.replace('{DD}', '%02d' % date.day)
+        return self._base_dir + '/' + resolved_path
 
     def sync(self, monitor: Monitor = Monitor.NULL):
         """
@@ -530,7 +544,7 @@ class FileSetCatalog(Catalog):
             self._root_dir, '\n'.join(rows))
 
 
-def _as_datetime(dt: Union[str, datetime], default) -> datetime:
+def _as_datetime(dt: Time, default) -> datetime:
     if dt is None:
         return default
     if isinstance(dt, str):
