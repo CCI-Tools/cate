@@ -67,7 +67,7 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
-from ect.core.monitor import Monitor
+from ect.core.monitor import Monitor, ConsoleMonitor
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
@@ -385,7 +385,7 @@ class FileSetDataSource(DataSource):
         ftp_base_dir = url.path
 
         expected_remote_files = self._get_expected_remote_files(time_range)
-        with monitor.starting('synchronising', len(expected_remote_files)):
+        with monitor.starting('Synchronising %s' % self._name, len(expected_remote_files)):
             try:
                 with ftplib.FTP(ftp_host_name) as ftp:
                     ftp.login()
@@ -433,18 +433,27 @@ class FileSetDataSource(DataSource):
 
             if files_to_download:
                 size_in_mibs = file_set_size / (1024 * 1024)
-                monitor.progress(msg='%s: synchronising %d file(s) with total size %.1f MiB' % (expected_dir_path,
-                                                                                                len(files_to_download),
-                                                                                                size_in_mibs))
+                print('Synchronising %s, contains %d file(s), total size %.1f MiB' % (expected_dir_path,
+                                                                                      len(files_to_download),
+                                                                                      size_in_mibs))
                 local_dir = os.path.join(self._file_set_catalog.root_dir, expected_dir_path)
                 os.makedirs(local_dir, exist_ok=True)
-                for existing_filename, existing_file_info in files_to_download.items():
-                    if monitor.is_cancelled():
-                        return
-                    downloader = FtpDownloader(ftp, existing_filename, existing_file_info, local_dir, monitor)
-                    downloader.start()
+                child_monitor = monitor.child(work=1)
+                with child_monitor.starting(expected_dir_path, len(files_to_download)):
+                    for existing_filename, existing_file_info in files_to_download.items():
+                        if monitor.is_cancelled():
+                            return
+                        # TODO (forman, 20160619): design problem here, download_monitor should be a child of monitor
+                        # but I want the child monitor to be a individual ConsoleMonitor as well.
+                        download_monitor = ConsoleMonitor(stay_in_line=True, progress_bar_size=34)
+                        downloader = FtpDownloader(ftp,
+                                                   existing_filename, existing_file_info, local_dir,
+                                                   download_monitor)
+                        downloader.start()
+                        if download_monitor.is_cancelled():
+                            monitor.cancel()
 
-            monitor.progress(work=1)
+            monitor.progress(work=1, msg=expected_dir_path)
 
     def _get_expected_remote_files(self, time_range: TimeRange = (None, None)) -> Mapping[str, Mapping[str, Any]]:
         expected_remote_files = OrderedDict()
@@ -488,7 +497,13 @@ class FileSetDataSource(DataSource):
 
 
 class FtpDownloader:
-    def __init__(self, ftp, filename, file_info, local_dir, monitor, block_size=10 * 1024):
+    def __init__(self,
+                 ftp: ftplib.FTP,
+                 filename: str,
+                 file_info: dict,
+                 local_dir: str,
+                 monitor: Monitor,
+                 block_size: int = 10 * 1024):
         self._ftp = ftp
         self._filename = filename
         self._local_dir = local_dir
@@ -499,30 +514,28 @@ class FtpDownloader:
         self._fp = None
         self._message = None
 
-    def start(self):
-        sys.stdout.write(self._filename)
-        sys.stdout.write(': ')
+    def start(self) -> bool:
+        with self._monitor.starting(self._filename, total_work=self._file_size):
+            return self._start()
 
+    def _start(self) -> bool:
         local_file = os.path.join(self._local_dir, self._filename)
         if os.path.exists(local_file):
             local_size = os.path.getsize(local_file)
             # TODO (forman, 20160619): use 'modify' from file_info, to update outdated local files
             if local_size > 0 and local_size == self._file_size:
-                print('local file is up-to-date')
-                return
+                self._monitor.progress(msg='local file is up-to-date')
+                return True
             else:
                 # remove the old outdated file
                 os.remove(local_file)
-
         rest = None
-
         filename_incomplete = self._filename + '.incomplete'
         local_file_incomplete = os.path.join(self._local_dir, filename_incomplete)
         if os.path.exists(local_file_incomplete):
             # TODO (forman, 20160619): reuse what has already been downloaded, then set variable 'rest' accordingly.
             # Brute force approach here: delete what has already been downloaded
             os.remove(local_file_incomplete)
-
         error_msg = None
         with open(local_file_incomplete, 'wb') as fp:
             self._fp = fp
@@ -532,14 +545,12 @@ class FtpDownloader:
                 error_msg = 'download cancelled'
             except ftplib.Error as ftp_err:
                 error_msg = 'download error: ' + str(ftp_err)
-
-        sys.stdout.write('\n')
+        #sys.stdout.write('\n')
         if error_msg is None:
             os.rename(local_file_incomplete, local_file)
         else:
-            print(error_msg)
+            self._monitor.progress(msg=error_msg)
             os.remove(local_file_incomplete)
-
         return error_msg is None
 
     def on_new_block(self, bytes_block):
@@ -548,17 +559,7 @@ class FtpDownloader:
         self._fp.write(bytes_block)
         block_size = len(bytes_block)
         self._bytes_written += block_size
-        ratio_done = self._bytes_written / self._file_size
-        progress_points_max = 30
-        progress_points = int(progress_points_max * ratio_done + 0.5)
-        percentage = int(100 * ratio_done + 0.5)
-
-        self._message = '\r%s [%s%s] %3d%%' % (self._filename,
-                                               '#' * progress_points,
-                                               '-' * (progress_points_max - progress_points),
-                                               percentage)
-        sys.stdout.write(self._message)
-        sys.stdout.flush()
+        self._monitor.progress(block_size)
 
 
 class FileSetInfo:

@@ -73,12 +73,18 @@ class CliDataSourceTest(unittest.TestCase):
             status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync'])
             self.assertEqual(status, 0)
 
+    @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
+    def test_command_ds_sync_with_period(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync', '--period', '2010-10-01'])
+            self.assertEqual(status, 0)
+
     def test_command_run_no_args(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['ds'])
             self.assertEqual(status, 2)
         self.assertEqual(sout.getvalue(), '')
-        self.assertEqual(serr.getvalue(), "usage: ect ds [-h] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
+        self.assertEqual(serr.getvalue(), "usage: ect ds [-h] [--period PERIOD] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
                                           "ect: ect ds: error: the following arguments are required: DS_NAME\n\n")
 
 

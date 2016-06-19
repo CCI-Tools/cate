@@ -184,6 +184,8 @@ class DataSource(Command):
     def configure_parser(cls, parser):
         parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
                             help='Data source name. Type "ect list ds" to show all possible names.')
+        parser.add_argument('--period', '-p', nargs=1, metavar='PERIOD',
+                            help='Limit to date/time period. Format is DATE[,DATE] with DATE := YYYY[-MM[-DD]]')
         parser.add_argument('--info', '-i', action='store_true', default=True,
                             help="Display information about the data source DS_NAME.")
         parser.add_argument('--sync', '-s', action='store_true', default=False,
@@ -192,6 +194,15 @@ class DataSource(Command):
     def execute(self, command_args):
         from ect.core.io import CATALOG_REGISTRY
         catalog = CATALOG_REGISTRY.get_catalog('default')
+
+        time_range = (None, None)
+        period = command_args.period[0]
+        if period:
+            time_range = period.split(',')
+            if len(time_range) == 1:
+                time_range = (time_range[0], time_range[0])
+            elif len(time_range) == 2:
+                time_range = (time_range[0], time_range[1])
 
         for ds_name in command_args.ds_names:
             data_sources = catalog.query(name=ds_name)
@@ -202,8 +213,7 @@ class DataSource(Command):
             if command_args.info and not command_args.sync:
                 print(data_source.info_string)
             if command_args.sync:
-                print("Synchronising data source '%s'" % data_source)
-                data_source.sync(monitor=ConsoleMonitor())
+                data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
 
 
 class List(Command):
