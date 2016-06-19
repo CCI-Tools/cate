@@ -84,7 +84,7 @@ class Command(metaclass=ABCMeta):
         """
 
 
-class Run(Command):
+class RunCommand(Command):
     CMD_NAME = 'run'
 
     @classmethod
@@ -138,7 +138,7 @@ class Run(Command):
         from ect.core.op import OP_REGISTRY as OP_REGISTRY
         op = OP_REGISTRY.get_op(op_name)
         if op is None:
-            return 1, "error: command '%s': unknown operation '%s'" % (Run.CMD_NAME, op_name)
+            return 1, "error: command '%s': unknown operation '%s'" % (RunCommand.CMD_NAME, op_name)
         print('Running operation %s with args=%s and kwargs=%s' % (op_name, op_args, dict(op_kwargs)))
         if op_monitor:
             monitor = ConsoleMonitor()
@@ -152,7 +152,7 @@ class Run(Command):
     def _invoke_graph(graph_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
         if op_args:
             return 1, "error: command '%s': can't run graph with arguments %s, please provide keywords only" % \
-                   (Run.CMD_NAME, op_args)
+                   (RunCommand.CMD_NAME, op_args)
 
         from ect.core.graph import Graph
         graph = Graph.load(graph_file)
@@ -172,7 +172,7 @@ class Run(Command):
         return None
 
 
-class DataSource(Command):
+class DataSourceCommand(Command):
     CMD_NAME = 'ds'
 
     @classmethod
@@ -255,7 +255,7 @@ class DataSource(Command):
         return date1, date2
 
 
-class List(Command):
+class ListCommand(Command):
     CMD_NAME = 'list'
 
     @classmethod
@@ -276,17 +276,17 @@ class List(Command):
     def execute(self, command_args):
         if command_args.category == 'pi':
             from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
-            List.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
+            ListCommand.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
         elif command_args.category == 'ds':
             from ect.core.io import CATALOG_REGISTRY
             catalog = CATALOG_REGISTRY.get_catalog('default')
             if catalog is None:
                 return 2, "error: command '%s': no catalog named 'default' found" % self.CMD_NAME
-            List.list_items('data source', 'data sources', [data_source.name for data_source in catalog.query()],
-                            command_args.pattern)
+            ListCommand.list_items('data source', 'data sources', [data_source.name for data_source in catalog.query()],
+                                   command_args.pattern)
         elif command_args.category == 'op':
             from ect.core.op import OP_REGISTRY as OP_REGISTRY
-            List.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
+            ListCommand.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
 
     @staticmethod
     def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
@@ -308,7 +308,7 @@ class List(Command):
             print('%4d: %s' % (no, item))
 
 
-class Copyright(Command):
+class CopyrightCommand(Command):
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Print copyright information.'
@@ -320,7 +320,7 @@ class Copyright(Command):
             print(content)
 
 
-class License(Command):
+class LicenseCommand(Command):
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Print license information.'
@@ -332,7 +332,7 @@ class License(Command):
             print(content)
 
 
-class Docs(Command):
+class DocsCommand(Command):
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Display documentation in a browser window.'
@@ -346,12 +346,12 @@ class Docs(Command):
 #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
-    List,
-    Run,
-    DataSource,
-    Copyright,
-    License,
-    Docs,
+    ListCommand,
+    RunCommand,
+    DataSourceCommand,
+    CopyrightCommand,
+    LicenseCommand,
+    DocsCommand,
 ]
 
 

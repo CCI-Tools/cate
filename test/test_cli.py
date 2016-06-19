@@ -51,7 +51,7 @@ class CliTest(unittest.TestCase):
         self.assertEqual(status, 0)
 
 
-class CliDataSourceTest(unittest.TestCase):
+class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
@@ -80,27 +80,27 @@ class CliDataSourceTest(unittest.TestCase):
             self.assertEqual(status, 0)
 
     def test_command_ds_parse_period(self):
-        from ect.core.cli import DataSource
+        from ect.core.cli import DataSourceCommand
         from datetime import date
 
-        self.assertEqual(DataSource.parse_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSource.parse_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
-        self.assertEqual(DataSource.parse_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSource.parse_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
-        self.assertEqual(DataSource.parse_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
 
-        self.assertEqual(DataSource.parse_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
-        self.assertEqual(DataSource.parse_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
-        self.assertEqual(DataSource.parse_period('2010-12,2011-12'), (date(2010, 12, 1), date(2011, 12, 31)))
-        self.assertEqual(DataSource.parse_period('2010-02-04,2019-02-04'), (date(2010, 2, 4), date(2019, 2, 4)))
-        self.assertEqual(DataSource.parse_period('2010-12-31,2010-01-06'), (date(2010, 12, 31), date(2010, 1, 6)))
+        self.assertEqual(DataSourceCommand.parse_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-12,2011-12'), (date(2010, 12, 1), date(2011, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-02-04,2019-02-04'), (date(2010, 2, 4), date(2019, 2, 4)))
+        self.assertEqual(DataSourceCommand.parse_period('2010-12-31,2010-01-06'), (date(2010, 12, 31), date(2010, 1, 6)))
 
         # errors
-        self.assertEqual(DataSource.parse_period('2010-12-31,2010-01'), None)
-        self.assertEqual(DataSource.parse_period('2010,2010-01'), None)
-        self.assertEqual(DataSource.parse_period('2010-01,2010-76'), None)
-        self.assertEqual(DataSource.parse_period('2010-1-3-83,2010-01'), None)
-        self.assertEqual(DataSource.parse_period('20L0-1-3-83,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_period('2010-12-31,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_period('2010,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_period('2010-01,2010-76'), None)
+        self.assertEqual(DataSourceCommand.parse_period('2010-1-3-83,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_period('20L0-1-3-83,2010-01'), None)
 
     def test_command_run_no_args(self):
         with fetch_std_streams() as (sout, serr):
@@ -111,7 +111,7 @@ class CliDataSourceTest(unittest.TestCase):
                                           "ect: ect ds: error: the following arguments are required: DS_NAME\n\n")
 
 
-class CliRunTest(unittest.TestCase):
+class CliRunCommandTest(unittest.TestCase):
     def test_command_run_with_unknown_op(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['run', 'pipapo', 'lat=13.2', 'lon=52.9'])
@@ -209,7 +209,7 @@ class CliRunTest(unittest.TestCase):
         self.assertEqual(status, 0)
 
 
-class CliListTest(unittest.TestCase):
+class CliListCommandTest(unittest.TestCase):
     def test_command_list(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['list'])
@@ -247,7 +247,7 @@ class CliListTest(unittest.TestCase):
         self.assertEqual(serr.getvalue(), '')
 
 
-class CliLicenseTest(unittest.TestCase):
+class CliLicenseCommandTest(unittest.TestCase):
     def test_command_license(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['license'])
@@ -256,7 +256,7 @@ class CliLicenseTest(unittest.TestCase):
         self.assertEqual(serr.getvalue(), '')
 
 
-class CliCopyrightTest(unittest.TestCase):
+class CliCopyrightCommandTest(unittest.TestCase):
     def test_command_copyright(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['copyright'])
