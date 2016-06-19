@@ -196,8 +196,8 @@ class DataSource(Command):
         catalog = CATALOG_REGISTRY.get_catalog('default')
 
         time_range = (None, None)
-        period = command_args.period[0]
-        if period:
+        if command_args.period:
+            period = command_args.period[0]
             time_range = period.split(',')
             if len(time_range) == 1:
                 time_range = (time_range[0], time_range[0])
