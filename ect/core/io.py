@@ -53,13 +53,16 @@ Technical Requirements
 Module Reference
 ================
 """
+import ftplib
 import json
 import os
+import sys
+import urllib.parse
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import StringIO, IOBase
-from typing import Sequence, Union, List, Tuple
+from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 from ect.core import Dataset
 from ect.core.cdm_xarray import XArrayDatasetAdapter
@@ -100,11 +103,12 @@ class DataSource(metaclass=ABCMeta):
         return True
 
     # noinspection PyMethodMayBeStatic
-    def sync(self, monitor: Monitor = Monitor.NULL):
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL):
         """
         Synchronize remote data with locally stored data.
         The default implementation does nothing.
 
+        :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
         :param monitor: a progress monitor.
         """
         pass
@@ -272,7 +276,7 @@ class FileSetDataSource(DataSource):
                  base_dir: str,
                  file_pattern: str,
                  fileset_info: 'FileSetInfo' = None):
-        self._file_set_catalogue = file_set_catalogue
+        self._file_set_catalog = file_set_catalogue
         self._name = name
         self._base_dir = base_dir
         self._file_pattern = file_pattern
@@ -284,7 +288,7 @@ class FileSetDataSource(DataSource):
 
     @property
     def catalog(self) -> 'FileSetCatalog':
-        return self._file_set_catalogue
+        return self._file_set_catalog
 
     def open_dataset(self, time_range=None) -> Dataset:
         paths = self.resolve_paths(time_range)
@@ -365,24 +369,97 @@ class FileSetDataSource(DataSource):
         resolved_path = resolved_path.replace('{DD}', '%02d' % date.day)
         return self._base_dir + '/' + resolved_path
 
-    def sync(self, monitor: Monitor = Monitor.NULL):
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL):
         """
         Synchronize remote data with locally stored data.
-        The default implementation does nothing.
 
+        :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
         :param monitor: a progress monitor.
         """
-        paths = self.resolve_paths()
-        with monitor.starting("Synchronising", total_work=len(paths)):
-            for path in paths:
+        assert self._file_set_catalog.remote_url
+
+        url = urllib.parse.urlparse(self._file_set_catalog.remote_url)
+        if url.scheme != 'ftp':
+            raise ValueError("invalid remote URL: cannot deal with scheme %s" % repr(url.scheme))
+        ftp_host_name = url.hostname
+        ftp_base_dir = url.path
+
+        expected_remote_files = self._get_expected_remote_files(time_range)
+        with monitor.starting('synchronising', len(expected_remote_files)):
+            try:
+                with ftplib.FTP(ftp_host_name) as ftp:
+                    ftp.login()
+                    self._sync_files(ftp, ftp_base_dir, expected_remote_files, monitor)
+            except ftplib.Error as ftp_err:
+                if not monitor.is_cancelled():
+                    print('FTP error: %s' % ftp_err)
+
+    def _sync_files(self, ftp, ftp_base_dir, expected_remote_files, monitor: Monitor):
+        for expected_dir_path, expected_filename_dict in expected_remote_files.items():
+            if monitor.is_cancelled():
+                return
+
+            ftp_dir = ftp_base_dir + '/' + expected_dir_path
+            try:
+                ftp.cwd(ftp_dir)
+            except ftplib.Error:
+                # Note: If we can't CWD to ftp_dir, this usually means,
+                # expected_dir_path may refer to a time range that is not covered remotely.
+                monitor.progress(work=1)
+                continue
+
+            try:
+                remote_dir_content = ftp.mlsd(facts=['type', 'size', 'modify'])
+            except ftplib.Error:
+                # Note: If we can't MLSD the CWD ftp_dir, we have a problem.
+                monitor.progress(work=1)
+                continue
+
+            files_to_download = OrderedDict()
+
+            file_set_size = 0
+            for existing_filename, facts in remote_dir_content:
                 if monitor.is_cancelled():
                     return
-                self._sync_file(path, monitor.child(1))
+                if facts.get('type', None) == 'file' and existing_filename in expected_filename_dict:
+                    # update expected_filename_dict with facts of existing_filename
+                    expected_filename_dict[existing_filename] = facts
+                    file_size = int(facts.get('size', '-1'))
+                    if file_size > 0:
+                        file_set_size += file_size
+                    # TODO (forman, 20160619): put also 'modify' in file_info, to update outdated local files
+                    existing_file_info = dict(size=file_size)
+                    files_to_download[existing_filename] = existing_file_info
 
-    def _sync_file(self, path, monitor):
-        with monitor.starting(path, 1):
-            # TODO (forman, 20160617) - rsync FTP and local dir here
-            monitor.progress(1)
+            if files_to_download:
+                size_in_mibs = file_set_size / (1024 * 1024)
+                monitor.progress(msg='%s: synchronising %d file(s) with total size %.1f MiB' % (expected_dir_path,
+                                                                                                len(files_to_download),
+                                                                                                size_in_mibs))
+                local_dir = os.path.join(self._file_set_catalog.root_dir, expected_dir_path)
+                os.makedirs(local_dir, exist_ok=True)
+                for existing_filename, existing_file_info in files_to_download.items():
+                    if monitor.is_cancelled():
+                        return
+                    downloader = FtpDownloader(ftp, existing_filename, existing_file_info, local_dir, monitor)
+                    downloader.start()
+
+            monitor.progress(work=1)
+
+    def _get_expected_remote_files(self, time_range: TimeRange = (None, None)) -> Mapping[str, Mapping[str, Any]]:
+        expected_remote_files = OrderedDict()
+        expected_remote_files_list = self.resolve_base_paths(time_range)
+        for expected_remote_file in expected_remote_files_list:
+            # we don't use os.path here, because FTP always uses '/' separators
+            components = expected_remote_file.split('/')
+            dir_path = '/'.join(components[0:-1])
+            filename = components[-1]
+            filename_dict = expected_remote_files.get(dir_path, None)
+            if filename_dict is None:
+                filename_dict = OrderedDict()
+                expected_remote_files[dir_path] = filename_dict
+            filename_dict[filename] = None
+        return expected_remote_files
 
     def __repr__(self):
         return "FileSetDataSource(%s, %s, %s)" % (repr(self._name), repr(self._base_dir), repr(self._file_pattern))
@@ -408,6 +485,80 @@ class FileSetDataSource(DataSource):
         return OrderedDict([('Name', self._name),
                             ('Base directory', self._base_dir),
                             ('File pattern', self._file_pattern)])
+
+
+class FtpDownloader:
+    def __init__(self, ftp, filename, file_info, local_dir, monitor, block_size=10 * 1024):
+        self._ftp = ftp
+        self._filename = filename
+        self._local_dir = local_dir
+        self._monitor = monitor
+        self._block_size = block_size
+        self._file_size = file_info.get('size', 0)
+        self._bytes_written = 0
+        self._fp = None
+        self._message = None
+
+    def start(self):
+        sys.stdout.write(self._filename)
+        sys.stdout.write(': ')
+
+        local_file = os.path.join(self._local_dir, self._filename)
+        if os.path.exists(local_file):
+            local_size = os.path.getsize(local_file)
+            # TODO (forman, 20160619): use 'modify' from file_info, to update outdated local files
+            if local_size > 0 and local_size == self._file_size:
+                print('local file is up-to-date')
+                return
+            else:
+                # remove the old outdated file
+                os.remove(local_file)
+
+        rest = None
+
+        filename_incomplete = self._filename + '.incomplete'
+        local_file_incomplete = os.path.join(self._local_dir, filename_incomplete)
+        if os.path.exists(local_file_incomplete):
+            # TODO (forman, 20160619): reuse what has already been downloaded, then set variable 'rest' accordingly.
+            # Brute force approach here: delete what has already been downloaded
+            os.remove(local_file_incomplete)
+
+        error_msg = None
+        with open(local_file_incomplete, 'wb') as fp:
+            self._fp = fp
+            try:
+                self._ftp.retrbinary('RETR ' + self._filename, self.on_new_block, blocksize=self._block_size, rest=rest)
+            except KeyboardInterrupt:
+                error_msg = 'download cancelled'
+            except ftplib.Error as ftp_err:
+                error_msg = 'download error: ' + str(ftp_err)
+
+        sys.stdout.write('\n')
+        if error_msg is None:
+            os.rename(local_file_incomplete, local_file)
+        else:
+            print(error_msg)
+            os.remove(local_file_incomplete)
+
+        return error_msg is None
+
+    def on_new_block(self, bytes_block):
+        if self._monitor.is_cancelled():
+            raise KeyboardInterrupt()
+        self._fp.write(bytes_block)
+        block_size = len(bytes_block)
+        self._bytes_written += block_size
+        ratio_done = self._bytes_written / self._file_size
+        progress_points_max = 30
+        progress_points = int(progress_points_max * ratio_done + 0.5)
+        percentage = int(100 * ratio_done + 0.5)
+
+        self._message = '\r%s [%s%s] %3d%%' % (self._filename,
+                                               '#' * progress_points,
+                                               '-' * (progress_points_max - progress_points),
+                                               percentage)
+        sys.stdout.write(self._message)
+        sys.stdout.flush()
 
 
 class FileSetInfo:
@@ -486,7 +637,7 @@ class FileSetCatalog(Catalog):
     :param remote_url: Optional URL of the catalogue's remote service.
     """
 
-    def __init__(self, root_dir: str, remote_url:str = None):
+    def __init__(self, root_dir: str, remote_url: str = None):
         self._root_dir = root_dir
         self._remote_url = remote_url
         self._data_sources = []
@@ -517,7 +668,8 @@ class FileSetCatalog(Catalog):
             file_set_info = None
             if 'start_date' in data and 'end_date' in data and 'num_files' in data and 'size_mb' in data:
                 # TODO (mzuehlke, 20160603): used named parameters
-                file_set_info = FileSetInfo(datetime.now(),  # TODO (mzuehlke, 20160603): include scan time in JSON
+                file_set_info = FileSetInfo('2016-05-26 15:32:52',
+                                            # TODO (mzuehlke, 20160603): include scan time in JSON
                                             data['start_date'],
                                             data['end_date'],
                                             data['num_files'],
