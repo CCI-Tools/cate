@@ -1,5 +1,5 @@
 {
-  "remote_url": "ftp://anon-ftp.ceda.ac.uk/neodc/esacci/",
+  "remote_url": "ftp://anon-ftp.ceda.ac.uk/neodc/esacci",
   "terms_and_conditions": "esacci_terms_and_conditions.txt",
   "data_sources": [
     {
