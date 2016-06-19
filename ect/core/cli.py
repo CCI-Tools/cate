@@ -306,21 +306,43 @@ COMMAND_REGISTRY = [
 ]
 
 
-# TODO (forman, 20160526): cli.main() should never exit the interpreter, configure argparse parser accordingly
+class NoExitArgumentParser(argparse.ArgumentParser):
+    """
+    Special ``argparse.ArgumentParser`` that never directly exits the current process.
+    It raises an ``ExitException`` instead.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(NoExitArgumentParser, self).__init__(*args, **kwargs)
+
+    def exit(self, status=0, message=None):
+        """Overrides the base class method in order to raise an ``ExitException``."""
+        raise NoExitArgumentParser.ExitException(status, message)
+
+    class ExitException(Exception):
+        """Raises instead of exiting the current process."""
+
+        def __init__(self, status, message):
+            self.status = status
+            self.message = message
+
+        def __str__(self):
+            return '%s (%s)' % (self.message, self.status)
+
 
 def main(args=None):
     """
     The CLI's entry point function.
 
     :param args: list of command-line arguments of type ``str``.
-    :return: A tuple (*status*, *message*)
+    :return: An exit code where ``0`` stands for success.
     """
 
     if not args:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(prog=CLI_NAME,
-                                     description='ESA CCI Toolbox command-line interface, version %s' % __version__)
+    parser = NoExitArgumentParser(prog=CLI_NAME,
+                                  description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
     subparsers = parser.add_subparsers(
         dest='command_name',
@@ -334,17 +356,21 @@ def main(args=None):
         command_class.configure_parser(command_parser)
         command_parser.set_defaults(command_class=command_class)
 
-    args_obj = parser.parse_args(args)
+    try:
+        args_obj = parser.parse_args(args)
 
-    if args_obj.command_name and args_obj.command_class:
-        assert args_obj.command_name and args_obj.command_class
-        status_and_message = args_obj.command_class().execute(args_obj)
-        if not status_and_message:
-            status_and_message = Command.STATUS_OK
-        status, message = status_and_message
-    else:
-        parser.print_help()
-        status, message = 0, None
+        if args_obj.command_name and args_obj.command_class:
+            assert args_obj.command_name and args_obj.command_class
+            status_and_message = args_obj.command_class().execute(args_obj)
+            if not status_and_message:
+                status_and_message = Command.STATUS_OK
+            status, message = status_and_message
+        else:
+            parser.print_help()
+            status, message = 0, None
+
+    except NoExitArgumentParser.ExitException as e:
+        status, message = e.status, e.message
 
     if message:
         if status:
