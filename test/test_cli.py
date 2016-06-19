@@ -73,11 +73,34 @@ class CliDataSourceTest(unittest.TestCase):
             status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync'])
             self.assertEqual(status, 0)
 
-    #@unittest.skip(reason="skipped unless you want to debug data source synchronisation")
+    @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync', '--period', '2010-12'])
             self.assertEqual(status, 0)
+
+    def test_command_ds_parse_period(self):
+        from ect.core.cli import DataSource
+        from datetime import date
+
+        self.assertEqual(DataSource.parse_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSource.parse_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
+        self.assertEqual(DataSource.parse_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSource.parse_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
+        self.assertEqual(DataSource.parse_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
+
+        self.assertEqual(DataSource.parse_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
+        self.assertEqual(DataSource.parse_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
+        self.assertEqual(DataSource.parse_period('2010-12,2011-12'), (date(2010, 12, 1), date(2011, 12, 31)))
+        self.assertEqual(DataSource.parse_period('2010-02-04,2019-02-04'), (date(2010, 2, 4), date(2019, 2, 4)))
+        self.assertEqual(DataSource.parse_period('2010-12-31,2010-01-06'), (date(2010, 12, 31), date(2010, 1, 6)))
+
+        # errors
+        self.assertEqual(DataSource.parse_period('2010-12-31,2010-01'), None)
+        self.assertEqual(DataSource.parse_period('2010,2010-01'), None)
+        self.assertEqual(DataSource.parse_period('2010-01,2010-76'), None)
+        self.assertEqual(DataSource.parse_period('2010-1-3-83,2010-01'), None)
+        self.assertEqual(DataSource.parse_period('20L0-1-3-83,2010-01'), None)
 
     def test_command_run_no_args(self):
         with fetch_std_streams() as (sout, serr):
