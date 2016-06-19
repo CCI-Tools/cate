@@ -34,12 +34,15 @@ from contextlib import contextmanager
 
 class Monitor(metaclass=ABCMeta):
     """
-    A monitor is used to both observe and control a running operation.
-    Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
+    A monitor is used to both observe and control a running task.
 
-    The ``Monitor`` class is an abstract base class and clients must implement the following three abstract methods:
+    The ``Monitor`` class is an abstract base class for concrete monitors.
+    Derived classes must implement the following three abstract methods:
     :py:meth:`start`, :py:meth:`progress`, and :py:meth:`done`.
+    Derived classes must implement also the following two abstract methods, if they want cancellation support:
+    :py:meth:`cancel` and :py:meth:`is_cancelled`.
 
+    Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
     """
 
     #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
