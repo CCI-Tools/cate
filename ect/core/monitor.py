@@ -226,7 +226,10 @@ class ConsoleMonitor(Monitor):
             self._last_percentage = percentage
 
     def done(self):
-        line = '%s: done' % self._label
+        if self.is_cancelled():
+            line = '%s: cancelled' % self._label
+        else:
+            line = '%s: done' % self._label
         self.write_line(line)
         signal.signal(signal.SIGINT, self._old_ctrl_c_handler)
 
