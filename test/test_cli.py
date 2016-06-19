@@ -1,8 +1,8 @@
 import sys
+import unittest
 from contextlib import contextmanager
 from io import StringIO
 from time import sleep
-from unittest import TestCase
 
 from ect.core import cli
 from ect.core.monitor import Monitor
@@ -29,82 +29,60 @@ def fetch_std_streams():
         sys.stderr = old_stderr
 
 
-class CliTest(TestCase):
+class CliTest(unittest.TestCase):
     def test_noargs(self):
-        with self.assertRaises(SystemExit):
-            cli.main()
-
-    def test_command_run_help(self):
-        with self.assertRaises(SystemExit):
-            cli.main(args=['run', '-h'])
-
-        with self.assertRaises(SystemExit):
-            cli.main(args=['run', '-help'])
+        import sys
+        sys.argv = []
+        status = cli.main()
+        self.assertEqual(status, 0)
 
     def test_invalid_command(self):
-        with self.assertRaises(SystemExit):
-            cli.main(['pipo'])
-
-    def test_option_help(self):
-        with self.assertRaises(SystemExit):
-            cli.main(args=['--h'])
-        with self.assertRaises(SystemExit):
-            cli.main(args=['--help'])
+        status = cli.main(['pipo'])
+        self.assertEqual(status, 2)
 
     def test_option_version(self):
-        with self.assertRaises(SystemExit):
-            cli.main(args=['--version'])
+        status = cli.main(args=['--version'])
+        self.assertEqual(status, 0)
 
-    def test_command_license(self):
-        with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['license'])
-            self.assertEqual(status, 0)
-        self.assertIn('GNU GENERAL PUBLIC LICENSE', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
+    def test_option_help(self):
+        status = cli.main(args=['--h'])
+        self.assertEqual(status, 0)
+        status = cli.main(args=['--help'])
+        self.assertEqual(status, 0)
 
-    def test_command_copyright(self):
-        with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['copyright'])
-            self.assertEqual(status, 0)
-        self.assertIn('European Space Agency', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
 
-    def test_command_list(self):
+class CliDataSourceTest(unittest.TestCase):
+    def test_command_ds_info(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['list'])
+            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
             self.assertEqual(status, 0)
-        self.assertIn('operation', sout.getvalue())
-        self.assertIn('found', sout.getvalue())
+        out1 = sout.getvalue()
+        self.assertTrue('Base directory' in out1)
         self.assertEqual(serr.getvalue(), '')
 
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['list', 'op'])
+            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--info'])
             self.assertEqual(status, 0)
-        self.assertIn('operation', sout.getvalue())
-        self.assertIn('found', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
+        out2 = sout.getvalue()
 
+        self.assertEqual(out1, out2)
+
+    @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
+    def test_command_ds_sync(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['list', 'pi'])
+            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync'])
             self.assertEqual(status, 0)
-        self.assertIn('plugin', sout.getvalue())
-        self.assertIn('found', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
 
+    def test_command_run_no_args(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['list', 'ds'])
-            self.assertEqual(status, 0)
-        self.assertIn('data source', sout.getvalue())
-        self.assertIn('found', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
+            status = cli.main(args=['ds'])
+            self.assertEqual(status, 2)
+        self.assertEqual(sout.getvalue(), '')
+        self.assertEqual(serr.getvalue(), "usage: ect ds [-h] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
+                                          "ect: ect ds: error: the following arguments are required: DS_NAME\n\n")
 
-        with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['list', '--pattern', 'sst*', 'ds'])
-            self.assertEqual(status, 0)
-        self.assertIn('data source', sout.getvalue())
-        self.assertIn('found', sout.getvalue())
-        self.assertEqual(serr.getvalue(), '')
 
+class CliRunTest(unittest.TestCase):
     def test_command_run_with_unknown_op(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['run', 'pipapo', 'lat=13.2', 'lon=52.9'])
@@ -142,8 +120,8 @@ class CliTest(TestCase):
             soutv = sout.getvalue()
             self.assertTrue('Running operation ' in soutv)
             self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
-            self.assertTrue('Extracting timeseries data: start' in soutv)
-            self.assertTrue('Extracting timeseries data: 33%' in soutv)
+            self.assertTrue('Extracting timeseries data: started' in soutv)
+            self.assertTrue('Extracting timeseries data:  33%' in soutv)
             self.assertTrue('Extracting timeseries data: done' in soutv)
             self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
@@ -185,14 +163,77 @@ class CliTest(TestCase):
             soutv = sout.getvalue()
             self.assertTrue('Running graph ' in soutv)
             self.assertTrue('lat=13.2 lon=52.9' in soutv)
-            self.assertTrue('Extracting timeseries data: start' in soutv)
-            self.assertTrue('Extracting timeseries data: 33%' in soutv)
+            self.assertTrue('Extracting timeseries data: started' in soutv)
+            self.assertTrue('Extracting timeseries data:  33%' in soutv)
             self.assertTrue('Extracting timeseries data: done' in soutv)
             self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+
+    def test_command_run_help(self):
+        status = cli.main(args=['run', '-h'])
+        self.assertEqual(status, 0)
+
+        status = cli.main(args=['run', '--help'])
+        self.assertEqual(status, 0)
+
+
+class CliListTest(unittest.TestCase):
+    def test_command_list(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list'])
+            self.assertEqual(status, 0)
+        self.assertIn('operation', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', 'op'])
+            self.assertEqual(status, 0)
+        self.assertIn('operation', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', 'pi'])
+            self.assertEqual(status, 0)
+        self.assertIn('plugin', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', 'ds'])
+            self.assertEqual(status, 0)
+        self.assertIn('data source', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['list', '--pattern', 'sst*', 'ds'])
+            self.assertEqual(status, 0)
+        self.assertIn('data source', sout.getvalue())
+        self.assertIn('found', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+
+class CliLicenseTest(unittest.TestCase):
+    def test_command_license(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['license'])
+            self.assertEqual(status, 0)
+        self.assertIn('GNU GENERAL PUBLIC LICENSE', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
+
+
+class CliCopyrightTest(unittest.TestCase):
+    def test_command_copyright(self):
+        with fetch_std_streams() as (sout, serr):
+            status = cli.main(args=['copyright'])
+            self.assertEqual(status, 0)
+        self.assertIn('European Space Agency', sout.getvalue())
+        self.assertEqual(serr.getvalue(), '')
 
 
 def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
