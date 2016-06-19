@@ -205,6 +205,7 @@ class ConsoleMonitor(Monitor):
         self._total_work = None
         self._percentage = None
         self._cancelled = False
+        self._last_line_len = None
         self._old_ctrl_c_handler = False
         self._msg = None
 
@@ -213,9 +214,11 @@ class ConsoleMonitor(Monitor):
             raise ValueError('label must be given')
         self._label = label
         self._worked = 0.
-        self._percentage = 0
+        self._percentage = None
         self._total_work = total_work
         self._old_ctrl_c_handler = signal.signal(signal.SIGINT, self._on_ctrl_c)
+        #if self._stay_in_line:
+        #    sys.stdout.write('\n')
         self._report_progress(msg='started')
 
     def progress(self, work: float = None, msg: str = None):
@@ -234,7 +237,7 @@ class ConsoleMonitor(Monitor):
         if self.is_cancelled():
             self._report_progress(msg='cancelled')
         else:
-            self._report_progress(msg='done')
+            self._report_progress(msg='done' if self._msg is None else self._msg)
         if self._stay_in_line:
             sys.stdout.write('\n')
 
@@ -262,6 +265,11 @@ class ConsoleMonitor(Monitor):
         if self._stay_in_line:
             sys.stdout.write('\r')
             sys.stdout.write(line)
+            if self._last_line_len:
+                delta = self._last_line_len - len(line)
+                if delta > 0:
+                    sys.stdout.write(' ' * delta)
+            self._last_line_len = len(line)
         else:
             sys.stdout.write(line)
             sys.stdout.write('\n')
