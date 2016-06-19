@@ -56,11 +56,10 @@ Module Reference
 import ftplib
 import json
 import os
-import sys
 import urllib.parse
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
@@ -545,7 +544,7 @@ class FtpDownloader:
                 error_msg = 'download cancelled'
             except ftplib.Error as ftp_err:
                 error_msg = 'download error: ' + str(ftp_err)
-        #sys.stdout.write('\n')
+        # sys.stdout.write('\n')
         if error_msg is None:
             os.rename(local_file_incomplete, local_file)
         else:
@@ -717,6 +716,6 @@ def _as_datetime(dt: Time, default) -> datetime:
             return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
         except ValueError:
             return datetime.strptime(dt, "%Y-%m-%d")
-    if isinstance(dt, datetime):
+    if isinstance(dt, datetime) or isinstance(dt, date):
         return dt
     raise TypeError()

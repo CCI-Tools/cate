@@ -185,7 +185,7 @@ class DataSource(Command):
         parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
                             help='Data source name. Type "ect list ds" to show all possible names.')
         parser.add_argument('--period', '-p', nargs=1, metavar='PERIOD',
-                            help='Limit to date/time period. Format is DATE[,DATE] with DATE := YYYY[-MM[-DD]]')
+                            help='Limit to date/time period. Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
         parser.add_argument('--info', '-i', action='store_true', default=True,
                             help="Display information about the data source DS_NAME.")
         parser.add_argument('--sync', '-s', action='store_true', default=False,
@@ -195,14 +195,12 @@ class DataSource(Command):
         from ect.core.io import CATALOG_REGISTRY
         catalog = CATALOG_REGISTRY.get_catalog('default')
 
-        time_range = (None, None)
         if command_args.period:
-            period = command_args.period[0]
-            time_range = period.split(',')
-            if len(time_range) == 1:
-                time_range = (time_range[0], time_range[0])
-            elif len(time_range) == 2:
-                time_range = (time_range[0], time_range[1])
+            time_range = self._parse_period(command_args.period[0])
+            if not time_range:
+                return 2, "invalid PERIOD: " + command_args.period[0]
+        else:
+            time_range = None
 
         for ds_name in command_args.ds_names:
             data_sources = catalog.query(name=ds_name)
@@ -214,6 +212,43 @@ class DataSource(Command):
                 print(data_source.info_string)
             if command_args.sync:
                 data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
+
+    @staticmethod
+    def _parse_period(period):
+        from datetime import date, timedelta
+        period = period.split(',')
+        period_comp_count = len(period)
+        if period_comp_count < 1 or period_comp_count > 2:
+            return None
+        if len(period) == 1:
+            period = period, period
+        period1_comp = period[0].split('-')
+        period2_comp = period[1].split('-')
+        num_date_args = len(period1_comp)
+        if num_date_args < 1 or num_date_args > 3:
+            return None
+        if num_date_args != len(period2_comp):
+            return None
+        date_args1 = [0, 1, 1]
+        date_args2 = [0, 1, 1]
+        for i in range(num_date_args):
+            date_args1[i] = int(period1_comp[i])
+            date_args2[i] = int(period2_comp[i])
+        date1 = date(*date_args1)
+        date2 = date(*date_args2)
+        if num_date_args == 1:
+            date2 = date(date2.year + 1, 1, 1)
+        elif num_date_args == 2:
+            year = date2.year
+            month = date2.month + 1
+            if month == 13:
+                year += 1
+                month = 1
+            date2 = date(year, month, 1)
+        else:
+            date2 = date(date2.year, date2.month, date2.day) + timedelta(days=1)
+        date2 += timedelta(microseconds=-1)
+        return date1, date2
 
 
 class List(Command):
