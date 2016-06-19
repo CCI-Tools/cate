@@ -28,6 +28,7 @@ prints progress output directly to the console.
 
 """
 import signal
+import sys
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 
@@ -71,6 +72,10 @@ class Monitor(metaclass=ABCMeta):
     def start(self, label: str, total_work: float = None):
         """
         Call to signal that a task has started.
+
+        Note that *label* and *total_work* are not passed ``__init__``, because they are usually not known at
+        constructions time. It is the responsibility of the task to derive the appropriate values for these.
+
 
         :param label: A task label
         :param total_work: The total amount of work
@@ -192,53 +197,79 @@ class ConsoleMonitor(Monitor):
     A simple console monitor that directly writes to stdout and detects cancellation requests via CTRL+C.
     """
 
-    def __init__(self):
+    def __init__(self, stay_in_line=False, progress_bar_size=None):
+        self._stay_in_line = stay_in_line
+        self._progress_bar_size = progress_bar_size
         self._label = None
         self._worked = None
         self._total_work = None
+        self._percentage = None
         self._cancelled = False
         self._old_ctrl_c_handler = False
-        self._last_percentage = None
+        self._msg = None
 
     def start(self, label: str, total_work: float = None):
         if not label:
             raise ValueError('label must be given')
         self._label = label
         self._worked = 0.
+        self._percentage = 0
         self._total_work = total_work
-        line = '%s: start' % self._label
-        self.write_line(line)
         self._old_ctrl_c_handler = signal.signal(signal.SIGINT, self._on_ctrl_c)
+        self._report_progress(msg='started')
 
     def progress(self, work: float = None, msg: str = None):
         percentage = None
         if work is not None:
             self._worked += work
-            percentage = int(100. * self._worked / self._total_work + 0.5)
-        # only display progress on integer percentage change
-        if percentage != self._last_percentage:
-            if msg is not None and percentage is not None:
-                line = '%s: %d%%: %s' % (self._label, percentage, msg)
-            elif percentage is not None:
-                line = '%s: %d%%' % (self._label, percentage)
-            elif msg:
-                line = '%s: %s' % (self._label, msg)
-            else:
-                line = '%s: progress' % self._label
-            self.write_line(line)
-            self._last_percentage = percentage
+            percentage = self._calc_percentage()
+        # only display progress on integer percentage change or message change
+        if percentage != self._percentage or msg != self._msg:
+            self._report_progress(percentage, msg)
+        self._percentage = percentage
+        self._msg = msg
 
     def done(self):
-        if self.is_cancelled():
-            line = '%s: cancelled' % self._label
-        else:
-            line = '%s: done' % self._label
-        self.write_line(line)
         signal.signal(signal.SIGINT, self._old_ctrl_c_handler)
+        if self.is_cancelled():
+            self._report_progress(msg='cancelled')
+        else:
+            self._report_progress(msg='done')
+        if self._stay_in_line:
+            sys.stdout.write('\n')
 
-    # noinspection PyMethodMayBeStatic
-    def write_line(self, line):
-        print(line)
+    def _report_progress(self, percentage=None, msg=None):
+
+        percentage_str = ''
+        progress_bar_str = ''
+
+        if percentage is not None:
+            percentage_str = '%3d%%' % percentage
+            if self._progress_bar_size:
+                done_count = int(self._progress_bar_size * percentage / 100 + 0.5)
+                remaining_count = self._progress_bar_size - done_count
+                progress_bar_str = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)
+
+        if percentage is not None and msg:
+            line = '%s: %s%s %s' % (self._label, progress_bar_str, percentage_str, msg)
+        elif percentage is not None:
+            line = '%s: %s%s' % (self._label, progress_bar_str, percentage_str)
+        elif msg:
+            line = '%s: %s' % (self._label, msg)
+        else:
+            line = '%s: progress' % self._label
+
+        if self._stay_in_line:
+            sys.stdout.write('\r')
+            sys.stdout.write(line)
+        else:
+            sys.stdout.write(line)
+            sys.stdout.write('\n')
+        sys.stdout.flush()
+
+    def _calc_percentage(self):
+        return round(100. * self._worked / self._total_work) \
+            if self._worked is not None and self._total_work is not None else None
 
     def cancel(self):
         self._cancelled = True
