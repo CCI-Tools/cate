@@ -77,6 +77,11 @@ class DataSource(metaclass=ABCMeta):
     An abstract data source from which datasets can be retrieved.
     """
 
+    # TODO (forman, 20160620): DataSource must include a schema describing its contents and structure
+    # - see http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/ncml/AnnotatedSchema4.html
+    # - see http://geojson.org/geojson-spec.html
+    # - see https://en.wikipedia.org/wiki/Shapefile
+
     @property
     @abstractmethod
     def name(self) -> str:
