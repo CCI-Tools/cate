@@ -1,0 +1,24 @@
+@startuml
+participant User
+
+User -> Workflow: invoke()
+activate Workflow #FFBBBB
+
+Workflow -> Workflow: for all steps
+activate Workflow #DarkSalmon
+
+Workflow -> OpStep: invoke()
+activate OpStep
+
+OpStep -> PyFunction: _call_()
+activate OpStep
+
+PyFunction --> OpStep
+deactivate OpStep
+OpStep --> Workflow
+deactivate OpStep
+deactivate Workflow
+Workflow --> User
+deactivate Workflow
+
+@enduml

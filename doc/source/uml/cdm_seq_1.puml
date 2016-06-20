@@ -1,0 +1,19 @@
+@startuml
+participant User
+
+User -> DatasetCollection: timeseries()
+activate DatasetCollection #FFBBBB
+
+DatasetCollection -> DatasetCollection: for all datasets
+activate DatasetCollection #DarkSalmon
+
+DatasetCollection -> Dataset: timeseries()
+activate Dataset
+
+Dataset --> DatasetCollection
+deactivate Dataset
+deactivate DatasetCollection
+DatasetCollection --> User
+deactivate DatasetCollection
+
+@enduml

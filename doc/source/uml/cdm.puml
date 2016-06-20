@@ -2,8 +2,8 @@
 
 interface Dataset {
     {abstract} schema(): Schema
-    {abstract} gap_fill(): Dataset
-    {abstract} time_series(): Dataset
+    {abstract} gapfill(): Dataset
+    {abstract} timeseries(): Dataset
     {abstract} subset(): Dataset
     {abstract} resample(): Dataset
     {abstract} close()
@@ -19,11 +19,11 @@ abstract DatasetAdapter implements Dataset {
 class DatasetCollection implements Dataset {
 }
 
-class cdm_xarray.XarrayDatasetAdapter extends DatasetAdapter {
+class cdm.xarray.XarrayDatasetAdapter extends DatasetAdapter {
     wrapped_dataset(): xarray.Dataset
 }
 
-class cdm_shapefile.ShapefileDatasetAdapter extends DatasetAdapter {
+class cdm.shapefile.ShapefileDatasetAdapter extends DatasetAdapter {
     wrapped_dataset(): shapefile.Dataset
 }
 

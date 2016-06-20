@@ -1,0 +1,55 @@
+@startuml
+
+interface DataStore {
+    {abstract} query(constraints): DataSource
+}
+
+interface DataSource {
+    {abstract} get_dataset_schema()
+    {abstract} open_dataset(constraints): cdm.Dataset
+}
+
+class FileSetDataStore implements DataStore {
+    root_dir
+    query(constraints): DataSource
+}
+
+class FileSetDataSource implements DataSource {
+    name
+    base_dir
+    file_pattern
+    get_dataset_schema()
+    open_dataset(constraints): cdm.Dataset
+}
+
+class FileSetInfo  {
+    info_update_time
+    start_time
+    end_time
+    num_files
+    size_in_mb
+}
+
+
+FileSetDataSource -->  interface cdm.Schema: schema
+FileSetDataSource ..>  interface cdm.xarray.XArrayDatasetAdapter: <open>
+FileSetDataSource ..>  interface cdm.shapefile.ShapefileDatasetAdapter: <open>
+
+
+FileSetDataStore "1" o-- "N" FileSetDataSource
+FileSetDataSource -- "0..1" FileSetInfo
+
+note left of FileSetDataStore
+Users may create their own.
+The default instance mirrors
+the CCI Portal's FTP tree.
+end note
+
+note left of FileSetDataSource
+open_dataset() will look for
+actual file types and return
+either an <b>netCDF</b> (<i>xarray</i>) or
+<b>Shapefile</b> dataset instance.
+end note
+
+@enduml
