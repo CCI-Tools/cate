@@ -14,6 +14,7 @@ Therefore, UML diagrams have to be build manually: Type
 
      $ java -jar plantuml.jar -h
      $ java -jar plantuml.jar source/uml/*.puml -o ../_static/uml -tsvg
+     $ java -jar plantuml.jar source/uml/*.puml -o ../_static/uml -tpng
 
 To build the ECT documentation run:
 

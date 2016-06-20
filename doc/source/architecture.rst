@@ -13,7 +13,7 @@ Module Breakdown
 Common Data Model (**cdm** Module)
 ==================================
 
-.. figure:: _static/uml/cdm.svg
+.. figure:: _static/uml/cdm.png
    :scale: 100 %
    :align: center
 
@@ -22,7 +22,7 @@ Common Data Model (**cdm** Module)
 Data Sources API (**io** Module)
 ================================
 
-.. figure:: _static/uml/io.svg
+.. figure:: _static/uml/io.png
    :scale: 100 %
    :align: center
 
@@ -31,37 +31,46 @@ Data Sources API (**io** Module)
 Operations and Processor Management (**op** Module)
 ===================================================
 
-.. figure:: _static/uml/op.svg
+.. figure:: _static/uml/op.png
    :scale: 100 %
    :align: center
 
    Important components of the **op** module
 
-.. figure:: _static/uml/monitor.svg
+.. figure:: _static/uml/monitor.png
    :scale: 100 %
    :align: center
 
    Important components of the **monitor** module
 
-Workflow Management (**graph** Module)
-======================================
+Workflow Management (**workflow** Module)
+=========================================
 
-.. figure:: _static/uml/graph.svg
+.. figure:: _static/uml/workflow.png
    :scale: 100 %
    :align: center
 
-   Important components of the **graph** module
+   Important components of the **workflow** module
 
-.. figure:: _static/uml/graph_node_connector.svg
+.. figure:: _static/uml/workflow_node_connector.png
    :scale: 100 %
    :align: center
 
-   Details of the **graph** module
+   Details of the **workflow** module
 
 Command-Line Interface, CLI (**cli** Module)
 ============================================
 
-.. figure:: _static/uml/cli.svg
+.. figure:: _static/uml/cli.png
+   :scale: 100 %
+   :align: center
+
+   Important of the **cli** module
+
+Plugins Concept (**plugin** Module)
+===================================
+
+.. figure:: _static/uml/plugin.png
    :scale: 100 %
    :align: center
 

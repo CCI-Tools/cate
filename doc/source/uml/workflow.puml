@@ -1,0 +1,70 @@
+@startuml
+
+abstract Node {
+    id : str
+    input : List[NodeConnector]
+    output : List[NodeConnector]
+    {abstract} from_json_dict(json_dict)
+    {abstract} to_json_dict() : dict
+    {abstract} invoke(monitor, **args)
+}
+
+class Workflow extends Node {
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+abstract class Step extends Node {
+}
+
+class WorkflowStep extends Step {
+    resource : str
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+class OpStep extends Step {
+    op_registration : OpRegistration
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+class ExprStep extends Step {
+    expression : str
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+class ProcessStep extends Step {
+    command_line : List[str]
+    from_json_dict(json_dict)
+    to_json_dict() : dict
+    invoke(monitor, **args)
+}
+
+class op.OpMetaInfo {
+    qualified_name : str
+    header : dict
+    input : dict
+    output : dict
+}
+
+WorkflowStep --> Workflow: workflow
+OpStep o--> op.OpRegistration
+Node o--> op.OpMetaInfo: op_meta_info
+Workflow o--> "0..N" Step: steps
+Step --> Node : parent
+
+
+note left of Workflow
+Collection pattern:
+a Workflow is a Node,
+and aggregates Steps,
+which are Nodes as well.
+end note
+
+@enduml

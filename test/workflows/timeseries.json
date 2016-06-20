@@ -1,7 +1,7 @@
 {
     "qualified_name": "timeseries",
     "header": {
-        "description": "This graph wraps the 'timeseries' operation."
+        "description": "This workflow wraps the 'timeseries' operation."
     },
     "input": {
         "lat": {
@@ -27,7 +27,7 @@
             "description": "Time series as list of values"
         }
     },
-    "nodes": [
+    "steps": [
         {
             "id": "timeseries_op",
             "op": "test.test_cli.timeseries",

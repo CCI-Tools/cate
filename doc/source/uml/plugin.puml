@@ -1,0 +1,21 @@
+@startuml
+
+
+object globals {
+    PLUGIN_REGISTRY: Dict[str, callable]
+    _load_plugins()
+}
+
+note left of globals
+When the plugin module is imported,
+_load_plugins() is invoked and
+PLUGIN_REGISTRY contains all loaded
+plugins.
+
+PLUGIN_REGISTRY is a mapping
+of entry point names to some
+callable Python object.
+
+end note
+
+@enduml

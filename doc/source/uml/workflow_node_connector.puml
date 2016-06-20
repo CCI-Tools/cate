@@ -1,7 +1,7 @@
 @startuml
 
 
-class Node {
+abstract class Node {
     id : str
     {abstract} from_json_dict(json_dict)
     {abstract} to_json_dict() : dict

@@ -2,46 +2,44 @@
 Module Description
 ==================
 
-Provides classes that are used to construct processing graphs (workflows, networks) from registered operations
-and connected graphs of such.
+Provides classes that are used to construct processing *workflows* (networks, directed acyclic graphs) from registered
+from processing *steps* including Python callables, Python expressions, external processes, and other workflows.
 
 This module provides the following data types:
 
 * A :py:class:`Node` has zero or more ``NodeInput`` and zero or more ``NodeOutput`` objects
-* A :py:class:`OpNode` is a ``Node`` that wraps an executable operation.
-* A :py:class:`GraphNode` is a ``Node`` that wraps an executable ``Graph`` loaded from an external JSON resource.
-* A :py:class:`Graph` is a ``Node`` that contains other ``Node`` objects
-* A :py:class:`NodeInput` belongs to exactly one ``Node``, has a name, and has a ``source`` property which provides
-  the input value. A source may be a constant or a connected ``NodeOutput`` of another node. Basically anything
-  can act as a source that has a ``value`` property.
-* A :py:class:`NodeOutput` belongs to exactly one ``Node``, has a name and has a ``value`` property and
-  can therefore act as a source for a ``NodeInput``.
+* A :py:class:`Workflow` is a ``Node`` that is composed of ``Step`` objects
+* A :py:class:`Step` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
+* A :py:class:`OpStep` is a ``Step`` that invokes a Python operation (any callable).
+* A :py:class:`ExprStep` is a ``Step`` that executes a Python expression string.
+* A :py:class:`WorkflowStep` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
+* A :py:class:`NodeConnector` belongs to exactly one ``Node``. Node connectors represent both the named inputs and
+  outputs of node. A node connector has a name, a property ``source``, and a property ``value``.
+  If ``source`` is set, it must be another ``NodeConnector`` that provides the actual connector's value.
+  The value of the ``value`` property can be basically anything that has an external (JSON) representation.
 
 Technical Requirements
 ======================
 
-A graph is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
-connect the grap's outputs to outputs of contained child nodes.
+A workflow is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
+connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow.
 
-A graph's child nodes are required to specify all of their input sources. Valid input sources for a child node
-are the graph's inputs or other child node's outputs.
+A workflow's step nodes are required to specify all of their input sources. Valid input sources for a step node
+are the workflow's inputs or other step node's outputs, or constant values.
 
-Child node input sources are indicated in the input specification of a node's JSON representation:
+Step node inputs and workflow outputs are indicated in the input specification of a node's external JSON
+representation:
 
-* ``{"source":`` *node-id* ``.`` *name* ``}``: the output named *name* of another node given by *node-id*.
-* ``{"source":`` *name* ``}``: a graph input or node output named *name* of this node or any parent node.
-* ``{"value":``  *value* ``}``: a constant value, where *value* my be any JSON-value.
+* ``{"source": "NODE_ID.NAME" }``: the output named *NAME* of another node given by *NODE_ID*.
+* ``{"source": ".NAME" }``: a workflow input named *NAME*.
+* ``{"value": NUM|STR|LIST|DICT|null }``: a constant (JSON) value.
 
-Graphs shall be callable by the CLI in the same way as single operations. The command line form for calling an
+Workflows are callable by the CLI in the same way as single operations. The command line form for calling an
 operation is currently:::
 
-    ect run OP [ARGS]
+    ect run OP|WORKFLOW [ARGS]
 
-Where *OP* shall be a registered operation or a graph.
-
-Implementation note: An ``OpResolver.find_op(op_name)`` may be utilized to resolve
-operation names. If we move module ``workflow`` out of core, it may register a new OpResolver that can resolve
-Graph file names (\*.graph.json) as operations.
+Where *OP* is a registered operation and *WORKFLOW* is a JSON file containing a JSON workflow representation.
 
 Module Reference
 ================
@@ -50,7 +48,7 @@ Module Reference
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from io import IOBase
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, List
 
 from ect.core import Monitor
 from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
@@ -59,8 +57,7 @@ from .util import Namespace
 
 class Node(metaclass=ABCMeta):
     """
-    Base class for all nodes including parent nodes (e.g. :py:class:`Graph`) and child nodes (e.g. :py:class:`OpNode`)
-    and :py:class:`GraphNode`).
+    Base class for all nodes including parent nodes (e.g. :py:class:`Workflow`) and child nodes (e.g. :py:class:`Step`).
 
     All nodes have inputs and outputs, and can be invoked to perform some operation.
 
@@ -171,9 +168,9 @@ class Node(metaclass=ABCMeta):
         return Namespace([(name, NodeConnector(self, name)) for name in names])
 
 
-class Graph(Node):
+class Workflow(Node):
     """
-    A graph of (connected) nodes.
+    A workflow of (connected) steps.
 
     :param name_or_op_meta_info: Qualified operation name or meta-information object of type :py:class:`OpMetaInfo`.
     """
@@ -183,65 +180,65 @@ class Graph(Node):
             op_meta_info = OpMetaInfo(name_or_op_meta_info)
         else:
             op_meta_info = name_or_op_meta_info
-        super(Graph, self).__init__(op_meta_info, op_meta_info.qualified_name)
-        self._nodes = OrderedDict()
+        super(Workflow, self).__init__(op_meta_info, op_meta_info.qualified_name)
+        self._steps = OrderedDict()
 
     @property
-    def nodes(self) -> Sequence[Node]:
-        return list(self._nodes.values())
+    def steps(self) -> List['Step']:
+        return list(self._steps.values())
 
-    def find_node(self, node_id) -> Node:
+    def find_node(self, step_id) -> 'Step':
         # is it the ID of one of the direct children?
-        if node_id in self._nodes:
-            return self._nodes[node_id]
+        if step_id in self._steps:
+            return self._steps[step_id]
         # is it the ID of one of the children of the children?
-        for node in self._nodes.values():
-            other_node = node.find_node(node_id)
+        for node in self._steps.values():
+            other_node = node.find_node(step_id)
             if other_node:
                 return other_node
         return None
 
-    def add_nodes(self, *nodes: Sequence[Node]):
-        for node in nodes:
-            self._nodes[node.id] = node
-            node._parent_node = self
+    def add_steps(self, *steps: Sequence['Step']):
+        for step in steps:
+            self._steps[step.id] = step
+            step._parent_node = self
 
-    def remove_node(self, node: Node):
-        if node.id in self._nodes:
-            self._nodes.remove(node.id)
-            node._parent_node = None
+    def remove_step(self, step: 'Step'):
+        if step.id in self._steps:
+            self._steps.remove(step.id)
+            step._parent_node = None
 
     def resolve_source_refs(self):
         """Resolve unresolved source references in inputs and outputs."""
-        super(Graph, self).resolve_source_refs()
-        for node in self._nodes.values():
+        super(Workflow, self).resolve_source_refs()
+        for node in self._steps.values():
             node.resolve_source_refs()
 
     def invoke(self, monitor=Monitor.NULL):
         """
-        Invoke this graph by invoking all all of its child nodes.
+        Invoke this workflow by invoking all all of its step nodes.
         The node invocation order is determined by the input requirements of individual nodes.
 
         :param monitor: An optional progress monitor.
         """
-        nodes = self.nodes
-        node_count = len(nodes)
-        if node_count == 1:
-            nodes[0].invoke(monitor)
-        elif node_count > 1:
-            monitor.start("Executing graph '%s'" % self.id, node_count)
-            for node in nodes:
-                node.invoke(monitor.child(1))
+        steps = self.steps
+        step_count = len(steps)
+        if step_count == 1:
+            steps[0].invoke(monitor)
+        elif step_count > 1:
+            monitor.start("Executing workflow '%s'" % self.id, step_count)
+            for step in steps:
+                step.invoke(monitor.child(1))
             monitor.done()
 
     @classmethod
-    def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Graph':
+    def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Workflow':
         """
-        Load a graph from a file or file pointer. The format is expected to be "graph-JSON".
+        Load a workflow from a file or file pointer. The format is expected to be "Workflow JSON".
 
         :param file_path_or_fp: file path or file pointer
         :param registry: Operation registry
-        :return: a graph
+        :return: a workflow
         """
         import json
         if isinstance(file_path_or_fp, str):
@@ -251,19 +248,19 @@ class Graph(Node):
         else:
             fp = file_path_or_fp
             json_dict = json.load(fp)
-        return Graph.from_json_dict(json_dict, registry=registry)
+        return Workflow.from_json_dict(json_dict, registry=registry)
 
     @classmethod
-    def from_json_dict(cls, graph_json_dict, registry=OP_REGISTRY):
-        # Developer note: keep variable naming consistent with Graph.to_json_dict() method
+    def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY):
+        # Developer note: keep variable naming consistent with Workflow.to_json_dict() method
 
-        qualified_name = graph_json_dict.get('qualified_name', None)
+        qualified_name = workflow_json_dict.get('qualified_name', None)
         if qualified_name is None:
-            raise ValueError('missing mandatory property "qualified_name" in graph JSON')
-        header_json_dict = graph_json_dict.get('header', {})
-        input_json_dict = graph_json_dict.get('input', {})
-        output_json_dict = graph_json_dict.get('output', {})
-        nodes_json_list = graph_json_dict.get('nodes', [])
+            raise ValueError('missing mandatory property "qualified_name" in Workflow-JSON')
+        header_json_dict = workflow_json_dict.get('header', {})
+        input_json_dict = workflow_json_dict.get('input', {})
+        output_json_dict = workflow_json_dict.get('output', {})
+        steps_json_list = workflow_json_dict.get('steps', [])
 
         # convert 'data_type' entries to Python types in op_meta_info_input_json_dict & node_output_json_dict
         input_obj_dict = OpMetaInfo.json_dict_to_object_dict(input_json_dict)
@@ -274,30 +271,30 @@ class Graph(Node):
                                   input_dict=input_obj_dict,
                                   output_dict=output_obj_dict)
 
-        # parse all nodes
-        nodes = []
-        node_count = 0
-        for graph_node_json_dict in nodes_json_list:
-            node_count += 1
+        # parse all step nodes
+        steps = []
+        step_count = 0
+        for step_json_dict in steps_json_list:
+            step_count += 1
             node = None
-            for node_class in [OpNode, GraphNode, ExprNode]:
-                node = node_class.from_json_dict(graph_node_json_dict, registry=registry)
+            for node_class in [OpStep, WorkflowStep, ExprStep]:
+                node = node_class.from_json_dict(step_json_dict, registry=registry)
                 if node is not None:
-                    nodes.append(node)
+                    steps.append(node)
                     break
             if node is None:
-                raise ValueError("unknown type for node #%s in graph '%s'" % (node_count, qualified_name))
+                raise ValueError("unknown type for node #%s in workflow '%s'" % (step_count, qualified_name))
 
-        graph = Graph(op_meta_info)
-        graph.add_nodes(*nodes)
+        workflow = Workflow(op_meta_info)
+        workflow.add_steps(*steps)
 
-        for node_input in graph.input[:]:
+        for node_input in workflow.input[:]:
             node_input.from_json_dict(input_json_dict)
-        for node_output in graph.output[:]:
+        for node_output in workflow.output[:]:
             node_output.from_json_dict(output_json_dict)
 
-        graph.resolve_source_refs()
-        return graph
+        workflow.resolve_source_refs()
+        return workflow
 
     def to_json_dict(self):
         """
@@ -305,7 +302,7 @@ class Graph(Node):
 
         :return: A JSON-serializable dictionary
         """
-        # Developer note: keep variable naming consistent with Graph.from_json_dict() method
+        # Developer note: keep variable naming consistent with Workflow.from_json_dict() method
 
         # convert all inputs to JSON dicts
         input_json_dict = OrderedDict()
@@ -323,40 +320,40 @@ class Graph(Node):
                 node_output_json_dict.update(self.op_meta_info.output[node_output.name])
             output_json_dict[node_output.name] = node_output_json_dict
 
-        # convert all nodes to JSON dicts
-        nodes_json_list = []
-        for node in self._nodes.values():
-            nodes_json_list.append(node.to_json_dict())
+        # convert all step nodes to JSON dicts
+        steps_json_list = []
+        for step in self._steps.values():
+            steps_json_list.append(step.to_json_dict())
 
         # convert 'data_type' Python types entries to JSON-strings
         input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
-        graph_json_dict = OrderedDict()
-        graph_json_dict['qualified_name'] = self.op_meta_info.qualified_name
-        graph_json_dict['input'] = input_json_dict
-        graph_json_dict['output'] = output_json_dict
-        graph_json_dict['nodes'] = nodes_json_list
+        workflow_json_dict = OrderedDict()
+        workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
+        workflow_json_dict['input'] = input_json_dict
+        workflow_json_dict['output'] = output_json_dict
+        workflow_json_dict['steps'] = steps_json_list
 
-        return graph_json_dict
+        return workflow_json_dict
 
     def __str__(self):
         return self.id
 
     def __repr__(self):
-        return "Graph(%s)" % repr(self.op_meta_info.qualified_name)
+        return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
 
 
-class ChildNode(Node):
+class Step(Node):
     """
-    An inner node of a graph.
+    A step is an inner node of a workflow.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
     :param node_id: A node ID. If None, a unique name will be generated.
     """
 
     def __init__(self, op_meta_info: OpMetaInfo, node_id: str):
-        super(ChildNode, self).__init__(op_meta_info, node_id)
+        super(Step, self).__init__(op_meta_info, node_id)
         self._parent_node = None
 
     @property
@@ -365,8 +362,8 @@ class ChildNode(Node):
         return self._parent_node
 
     @classmethod
-    def from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['ChildNode']:
-        node = cls.new_node_from_json_dict(json_dict, registry=registry)
+    def from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['Step']:
+        node = cls.new_step_from_json_dict(json_dict, registry=registry)
         if node is None:
             return None
 
@@ -394,8 +391,8 @@ class ChildNode(Node):
 
     @classmethod
     @abstractmethod
-    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['ChildNode']:
-        """Create a new child node instance from the given *json_dict*"""
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['Step']:
+        """Create a new step node instance from the given *json_dict*"""
 
     def to_json_dict(self):
         """
@@ -418,84 +415,83 @@ class ChildNode(Node):
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
-        """Enhance the given JSON-compatible *node_dict* by child node specific elements."""
+        """Enhance the given JSON-compatible *node_dict* by step specific elements."""
 
     def __str__(self):
         """String representation."""
         return self.id
 
 
-class GraphNode(ChildNode):
+class WorkflowStep(Step):
     """
-    A `GraphNode` is a child node that uses an externally stored :py:class:`Graph` for its computations.
+    A `WorkflowStep` is a step node that invokes an externally stored :py:class:`Workflow`.
 
-    :param graph: The referenced graph.
-    :param resource: A resource (e.g. file path, URL) from which the graph was loaded.
+    :param workflow: The referenced workflow.
+    :param resource: A resource (e.g. file path, URL) from which the workflow was loaded.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, graph, resource, node_id=None):
-        if not graph:
-            raise ValueError('graph must be given')
+    def __init__(self, workflow, resource, node_id=None):
+        if not workflow:
+            raise ValueError('workflow must be given')
         if not resource:
             raise ValueError('resource must be given')
-        node_id = node_id if node_id else 'graph_node_' + hex(id(self))[2:]
-        super(GraphNode, self).__init__(graph.op_meta_info, node_id)
-        self._graph = graph
+        node_id = node_id if node_id else 'workflow_step_' + hex(id(self))[2:]
+        super(WorkflowStep, self).__init__(workflow.op_meta_info, node_id)
+        self._workflow = workflow
         self._resource = resource
-        # Connect the graph's inputs with this node's input sources
-        for graph_input in graph.input[:]:
-            name = graph_input.name
+        # Connect the workflow's inputs with this node's input sources
+        for workflow_input in workflow.input[:]:
+            name = workflow_input.name
             assert name in self.input
-            graph_input.source = self.input[name]
+            workflow_input.source = self.input[name]
 
     @property
-    def graph(self) -> 'Graph':
-        """The graph."""
-        return self._graph
+    def workflow(self) -> 'Workflow':
+        """The workflow."""
+        return self._workflow
 
     @property
     def resource(self) -> str:
-        """The graph's file path."""
+        """The workflow's resource path (file path, URL)."""
         return self._resource
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
-        Invoke this node's underlying :py:attr:`graph` with input values from
+        Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying graph's return value(s).
+        be set from the underlying workflow's return value(s).
 
         :param monitor: An optional progress monitor.
         """
-        self._graph.invoke(monitor=monitor)
-        # transfer graph output values into this node's output values
-        for graph_output in self._graph.output[:]:
-            assert graph_output.name in self.output
-            node_output = self.output[graph_output.name]
-            node_output.value = graph_output.value
+        self._workflow.invoke(monitor=monitor)
+        # transfer workflow output values into this node's output values
+        for workflow_output in self._workflow.output[:]:
+            assert workflow_output.name in self.output
+            node_output = self.output[workflow_output.name]
+            node_output.value = workflow_output.value
 
     @classmethod
-    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
-        resource = json_dict.get('graph', None)
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        resource = json_dict.get('workflow', None)
         if resource is None:
             return None
-        graph = Graph.load(resource, registry=registry)
-        return GraphNode(graph, resource, node_id=json_dict.get('id', None))
+        workflow = Workflow.load(resource, registry=registry)
+        return WorkflowStep(workflow, resource, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['graph'] = self._resource
+        node_dict['workflow'] = self._resource
 
     def __repr__(self):
-        return "GraphNode(%s, '%s', node_id='%s')" % (repr(self._graph), self.resource, self.id)
+        return "WorkflowStep(%s, '%s', node_id='%s')" % (repr(self._workflow), self.resource, self.id)
 
 
-class OpNode(ChildNode):
+class OpStep(Step):
     """
-    Nodes can be used to construct networks or graphs of operations.
-    Input and output of an operation are available as node attributes of type :py:class:`Connector`.
+    An `OpStep` is a step node that invokes a registered operation of type :py:class:`OpRegistration`.
 
     :param operation: A fully qualified operation name or operation object such as a class or callable.
-    :param registry: An operation registry to be used to lookup the operation, if given by name..
+    :param registry: An operation registry to be used to lookup the operation, if given by name.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
@@ -509,9 +505,9 @@ class OpNode(ChildNode):
         else:
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
-        node_id = node_id if node_id else 'op_node_' + hex(id(self))[2:]
+        node_id = node_id if node_id else 'op_step_' + hex(id(self))[2:]
         op_meta_info = op_registration.meta_info
-        super(OpNode, self).__init__(op_meta_info, node_id)
+        super(OpStep, self).__init__(op_meta_info, node_id)
         self._op_registration = op_registration
 
     @property
@@ -540,7 +536,7 @@ class OpNode(ChildNode):
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     @classmethod
-    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         op_name = json_dict.get('op', None)
         if op_name is None:
             return None
@@ -550,14 +546,14 @@ class OpNode(ChildNode):
         node_dict['op'] = self.op_meta_info.qualified_name
 
     def __repr__(self):
-        return "OpNode(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
+        return "OpStep(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
 
 
-class ExprNode(ChildNode):
+class ExprStep(Step):
     """
-    An ``ExprNode`` is a child node that computes its output by a simple (Python) expression.
+    An ``ExprStep`` is a step node that computes its output from a simple (Python) expression string.
 
-    :param expression: A simple (Python) expression.
+    :param expression: A simple (Python) expression string.
     :param input_dict: input name to input properties mapping.
     :param output_dict: output name to output properties mapping.
     :param node_id: A node ID. If None, a unique ID will be generated.
@@ -566,11 +562,11 @@ class ExprNode(ChildNode):
     def __init__(self, expression, input_dict=None, output_dict=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
-        node_id = node_id if node_id else 'expr_node_' + hex(id(self))[2:]
+        node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
         if len(op_meta_info.output) == 0:
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(ExprNode, self).__init__(op_meta_info, node_id)
+        super(ExprStep, self).__init__(op_meta_info, node_id)
         self._expression = expression
 
     @property
@@ -599,7 +595,7 @@ class ExprNode(ChildNode):
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     @classmethod
-    def new_node_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         expression = json_dict.get('expression', None)
         if expression is None:
             return None

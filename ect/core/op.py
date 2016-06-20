@@ -3,10 +3,10 @@ Module Description
 ==================
 
 This modules provides classes and functions allowing to maintain *operations*. Operations can be called from
-the ECT command-line interface, may be referenced from within processing graphs, or may be called remotely e.g. from
+the ECT command-line interface, may be referenced from within processing workflows, or may be called remotely e.g. from
 graphical user interface or web frontend. An operation (:py:class:`OpRegistration`) comprises a Python callable and
 some additional meta-information (:py:class:`OpMetaInfo`) that allows for automatic input validation,
-input value conversion, monitoring, and inter-connection of multiple operations using graphs.
+input value conversion, monitoring, and inter-connection of multiple operations using processing workflows and steps.
 
 Operations are registered in operation registries (:py:class:`OpRegistry`), the default operation registry is
 accessible via the global, read-only ``OP_REGISTRY`` variable.

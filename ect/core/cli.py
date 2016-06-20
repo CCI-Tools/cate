@@ -110,7 +110,7 @@ class RunCommand(Command):
         op_name = command_args.op_name
         if not op_name:
             return 2, "error: command '%s' requires OP argument" % self.CMD_NAME
-        is_graph_file = op_name.endswith('.json') and os.path.isfile(op_name)
+        is_workflow = op_name.endswith('.json') and os.path.isfile(op_name)
 
         op_args = []
         op_kwargs = OrderedDict()
@@ -132,8 +132,8 @@ class RunCommand(Command):
             else:
                 op_kwargs[kw] = arg
 
-        if is_graph_file:
-            return self._invoke_graph(command_args.op_name, command_args.monitor, op_args, op_kwargs)
+        if is_workflow:
+            return self._invoke_workflow(command_args.op_name, command_args.monitor, op_args, op_kwargs)
         else:
             return self._invoke_operation(command_args.op_name, command_args.monitor, op_args, op_kwargs)
 
@@ -153,26 +153,26 @@ class RunCommand(Command):
         return None
 
     @staticmethod
-    def _invoke_graph(graph_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
+    def _invoke_workflow(workflow_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
         if op_args:
-            return 1, "error: command '%s': can't run graph with arguments %s, please provide keywords only" % \
+            return 1, "error: command '%s': can't run workflow with arguments %s, please provide keywords only" % \
                    (RunCommand.CMD_NAME, op_args)
 
-        from ect.core.graph import Graph
-        graph = Graph.load(graph_file)
+        from ect.core.workflow import Workflow
+        workflow = Workflow.load(workflow_file)
 
         for name, value in op_kwargs.items():
-            if name in graph.input:
-                graph.input[name].value = value
+            if name in workflow.input:
+                workflow.input[name].value = value
 
-        print('Running graph %s with kwargs=%s' % (graph_file, dict(op_kwargs)))
+        print('Running workflow %s with kwargs=%s' % (workflow_file, dict(op_kwargs)))
         if op_monitor:
             monitor = ConsoleMonitor()
         else:
             monitor = Monitor.NULL
-        graph.invoke(monitor=monitor)
-        for graph_output in graph.output[:]:
-            print('Output: %s = %s' % (graph_output.name, graph_output.value))
+        workflow.invoke(monitor=monitor)
+        for workflow_output in workflow.output[:]:
+            print('Output: %s = %s' % (workflow_output.name, workflow_output.value))
         return None
 
 

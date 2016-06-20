@@ -20,10 +20,10 @@ Module ``ect.core.op``
 .. automodule:: ect.core.op
     :members:
 
-Module ``ect.core.graph``
--------------------------
+Module ``ect.core.workflow``
+----------------------------
 
-.. automodule:: ect.core.graph
+.. automodule:: ect.core.workflow
     :members:
 
 Module ``ect.core.plugin``

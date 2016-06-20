@@ -165,32 +165,32 @@ class CliRunCommandTest(unittest.TestCase):
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
-    def test_command_run_with_graph(self):
+    def test_command_run_with_workflow(self):
         from ect.core.op import OP_REGISTRY as OP_REGISTRY
         import os.path
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
-        graph_file = os.path.join(os.path.dirname(__file__), 'graphs/test_cli_timeseries_graph.json')
-        self.assertTrue(os.path.exists(graph_file), msg='missing test file %s' % graph_file)
+        workflow_file = os.path.join(os.path.dirname(__file__), 'workflows/timeseries.json')
+        self.assertTrue(os.path.exists(workflow_file), msg='missing test file %s' % workflow_file)
 
         try:
             # Run without progress monitor
             with fetch_std_streams() as (sout, serr):
-                status = cli.main(args=['run', graph_file, 'lat=13.2', 'lon=52.9'])
+                status = cli.main(args=['run', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = sout.getvalue()
-            self.assertTrue('Running graph ' in soutv)
+            self.assertTrue('Running workflow ' in soutv)
             self.assertTrue('lat=13.2 lon=52.9' in soutv)
             self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(serr.getvalue(), '')
 
             # Run with progress monitor
             with fetch_std_streams() as (sout, serr):
-                status = cli.main(args=['run', '--monitor', graph_file, 'lat=13.2', 'lon=52.9'])
+                status = cli.main(args=['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = sout.getvalue()
-            self.assertTrue('Running graph ' in soutv)
+            self.assertTrue('Running workflow ' in soutv)
             self.assertTrue('lat=13.2 lon=52.9' in soutv)
             self.assertTrue('Extracting timeseries data: started' in soutv)
             self.assertTrue('Extracting timeseries data:  33%' in soutv)

@@ -3,7 +3,7 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.graph import OpNode, Graph, GraphNode, NodeConnector, ExprNode
+from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
 
@@ -34,60 +34,60 @@ def get_resource(rel_path):
     return os.path.join(os.path.dirname(__file__), rel_path).replace('\\', '/')
 
 
-class GraphTest(TestCase):
+class WorkflowTest(TestCase):
     def test_init(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
+        node1 = OpStep(Op1, node_id='op1')
+        node2 = OpStep(Op2, node_id='op2')
+        node3 = OpStep(Op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('myWorkflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow.add_steps(node1, node2, node3)
+        node1.input.x.source = workflow.input.p
         node2.input.a.source = node1.output.y
         node3.input.u.source = node1.output.y
         node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        workflow.output.q.source = node3.output.w
 
-        self.assertEqual(graph.id, 'mygraph')
-        self.assertEqual(len(graph.input), 1)
-        self.assertEqual(len(graph.output), 1)
-        self.assertIn('p', graph.input)
-        self.assertIn('q', graph.output)
+        self.assertEqual(workflow.id, 'myWorkflow')
+        self.assertEqual(len(workflow.input), 1)
+        self.assertEqual(len(workflow.output), 1)
+        self.assertIn('p', workflow.input)
+        self.assertIn('q', workflow.output)
 
-        self.assertEqual(graph.nodes, [node1, node2, node3])
+        self.assertEqual(workflow.steps, [node1, node2, node3])
 
-        self.assertIsNone(graph.input.p.source)
-        self.assertIsNone(graph.input.p.value)
+        self.assertIsNone(workflow.input.p.source)
+        self.assertIsNone(workflow.input.p.value)
 
-        self.assertIs(graph.output.q.source, node3.output.w)
-        self.assertIsNone(graph.output.q.value)
+        self.assertIs(workflow.output.q.source, node3.output.w)
+        self.assertIsNone(workflow.output.q.value)
 
-        self.assertEqual(str(graph), graph.id)
-        self.assertEqual(repr(graph), "Graph('mygraph')")
+        self.assertEqual(str(workflow), workflow.id)
+        self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
 
     def test_invoke(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('mygraph', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
+        node1 = OpStep(Op1, node_id='op1')
+        node2 = OpStep(Op2, node_id='op2')
+        node3 = OpStep(Op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('myWorkflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow.add_steps(node1, node2, node3)
+        node1.input.x.source = workflow.input.p
         node2.input.a.source = node1.output.y
         node3.input.u.source = node1.output.y
         node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        workflow.output.q.source = node3.output.w
 
-        graph.input.p.value = 3
-        return_value = graph.invoke()
-        output_value = graph.output.q.value
+        workflow.input.p.value = 3
+        return_value = workflow.invoke()
+        output_value = workflow.output.q.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
 
     def test_from_json_dict(self):
-        graph_json_text = """
+        workflow_json_text = """
         {
             "qualified_name": "my_workflow",
             "header": {
-                "description": "My workflow is not bad."
+                "description": "My workflow is not too bad."
             },
             "input": {
                 "p": {"description": "Input 'p'"}
@@ -95,24 +95,24 @@ class GraphTest(TestCase):
             "output": {
                 "q": {"source": "op3.w", "description": "Output 'q'"}
             },
-            "nodes": [
+            "steps": [
                 {
                     "id": "op1",
-                    "op": "test.test_graph.Op1",
+                    "op": "test.test_workflow.Op1",
                     "input": {
                         "x": { "source": ".p" }
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.test_graph.Op2",
+                    "op": "test.test_workflow.Op2",
                     "input": {
                         "a": {"source": "op1"}
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.test_graph.Op3",
+                    "op": "test.test_workflow.Op3",
                     "input": {
                         "u": {"source": "op1.y"},
                         "v": {"source": "op2.b"}
@@ -121,64 +121,64 @@ class GraphTest(TestCase):
             ]
         }
         """
-        graph_json_dict = json.loads(graph_json_text)
-        graph = Graph.from_json_dict(graph_json_dict)
+        workflow_json_dict = json.loads(workflow_json_text)
+        workflow = Workflow.from_json_dict(workflow_json_dict)
 
-        self.assertIsNotNone(graph)
-        self.assertEqual(graph.id, "my_workflow")
+        self.assertIsNotNone(workflow)
+        self.assertEqual(workflow.id, "my_workflow")
 
-        self.assertEqual(graph.op_meta_info.qualified_name, graph.id)
-        self.assertEqual(graph.op_meta_info.header, dict(description="My workflow is not bad."))
-        self.assertEqual(len(graph.op_meta_info.input), 1)
-        self.assertEqual(len(graph.op_meta_info.output), 1)
-        self.assertEqual(graph.op_meta_info.input['p'], dict(description="Input 'p'"))
-        self.assertEqual(graph.op_meta_info.output['q'], dict(source="op3.w", description="Output 'q'"))
+        self.assertEqual(workflow.op_meta_info.qualified_name, workflow.id)
+        self.assertEqual(workflow.op_meta_info.header, dict(description="My workflow is not too bad."))
+        self.assertEqual(len(workflow.op_meta_info.input), 1)
+        self.assertEqual(len(workflow.op_meta_info.output), 1)
+        self.assertEqual(workflow.op_meta_info.input['p'], dict(description="Input 'p'"))
+        self.assertEqual(workflow.op_meta_info.output['q'], dict(source="op3.w", description="Output 'q'"))
 
-        self.assertEqual(len(graph.input), 1)
-        self.assertEqual(len(graph.output), 1)
+        self.assertEqual(len(workflow.input), 1)
+        self.assertEqual(len(workflow.output), 1)
 
-        self.assertIn('p', graph.input)
-        self.assertIn('q', graph.output)
+        self.assertIn('p', workflow.input)
+        self.assertIn('q', workflow.output)
 
-        self.assertEqual(len(graph.nodes), 3)
-        node1 = graph.nodes[0]
-        node2 = graph.nodes[1]
-        node3 = graph.nodes[2]
+        self.assertEqual(len(workflow.steps), 3)
+        node1 = workflow.steps[0]
+        node2 = workflow.steps[1]
+        node3 = workflow.steps[2]
 
         self.assertEqual(node1.id, 'op1')
         self.assertEqual(node2.id, 'op2')
         self.assertEqual(node3.id, 'op3')
 
-        self.assertIs(node1.input.x.source, graph.input.p)
+        self.assertIs(node1.input.x.source, workflow.input.p)
         self.assertIs(node2.input.a.source, node1.output.y)
         self.assertIs(node3.input.u.source, node1.output.y)
         self.assertIs(node3.input.v.source, node2.output.b)
-        self.assertIs(graph.output.q.source, node3.output.w)
+        self.assertIs(workflow.output.q.source, node3.output.w)
 
     def test_from_json_dict_empty(self):
         json_dict = json.loads('{"qualified_name": "hello"}')
-        graph = Graph.from_json_dict(json_dict)
-        self.assertEqual(graph.id, 'hello')
+        workflow = Workflow.from_json_dict(json_dict)
+        self.assertEqual(workflow.id, 'hello')
 
     def test_from_json_dict_invalids(self):
         json_dict = json.loads('{"header": {}}')
         with self.assertRaises(ValueError) as cm:
-            Graph.from_json_dict(json_dict)
-        self.assertEqual(str(cm.exception), 'missing mandatory property "qualified_name" in graph JSON')
+            Workflow.from_json_dict(json_dict)
+        self.assertEqual(str(cm.exception), 'missing mandatory property "qualified_name" in Workflow-JSON')
 
     def test_to_json_dict(self):
-        node1 = OpNode(Op1, node_id='op1')
-        node2 = OpNode(Op2, node_id='op2')
-        node3 = OpNode(Op3, node_id='op3')
-        graph = Graph(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        graph.add_nodes(node1, node2, node3)
-        node1.input.x.source = graph.input.p
+        node1 = OpStep(Op1, node_id='op1')
+        node2 = OpStep(Op2, node_id='op2')
+        node3 = OpStep(Op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow.add_steps(node1, node2, node3)
+        node1.input.x.source = workflow.input.p
         node2.input.a.source = node1.output.y
         node3.input.u.source = node1.output.y
         node3.input.v.source = node2.output.b
-        graph.output.q.source = node3.output.w
+        workflow.output.q.source = node3.output.w
 
-        graph_dict = graph.to_json_dict()
+        workflow_dict = workflow.to_json_dict()
 
         expected_json_text = """
         {
@@ -189,10 +189,10 @@ class GraphTest(TestCase):
             "output": {
                 "q": {"source": "op3.w"}
             },
-            "nodes": [
+            "steps": [
                 {
                     "id": "op1",
-                    "op": "test.test_graph.Op1",
+                    "op": "test.test_workflow.Op1",
                     "input": {
                         "x": { "source": "my_workflow.p" }
                     },
@@ -202,7 +202,7 @@ class GraphTest(TestCase):
                 },
                 {
                     "id": "op2",
-                    "op": "test.test_graph.Op2",
+                    "op": "test.test_workflow.Op2",
                     "input": {
                         "a": {"source": "op1.y"}
                     },
@@ -212,7 +212,7 @@ class GraphTest(TestCase):
                 },
                 {
                     "id": "op3",
-                    "op": "test.test_graph.Op3",
+                    "op": "test.test_workflow.Op3",
                     "input": {
                         "v": {"source": "op2.b"},
                         "u": {"source": "op1.y"}
@@ -225,7 +225,7 @@ class GraphTest(TestCase):
         }
         """
 
-        actual_json_text = json.dumps(graph_dict, indent=4)
+        actual_json_text = json.dumps(workflow_dict, indent=4)
         expected_json_obj = json.loads(expected_json_text)
         actual_json_obj = json.loads(actual_json_text)
 
@@ -239,13 +239,13 @@ class ExprNodeTest(TestCase):
     expression = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"
 
     def test_init(self):
-        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        node = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
         self.assertEqual(node.id, 'bibo_8')
         self.assertEqual(node.expression, self.expression)
         self.assertEqual(str(node), 'bibo_8')
         self.assertEqual(repr(node), "ExprNode('%s', node_id='bibo_8')" % self.expression)
 
-        node = ExprNode(self.expression)
+        node = ExprStep(self.expression)
         self.assertEqual(node.op_meta_info.input, {})
         self.assertEqual(node.op_meta_info.output, {'return': {}})
 
@@ -268,9 +268,9 @@ class ExprNodeTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node = ExprNode.from_json_dict(json_dict)
+        node = ExprStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node, ExprNode)
+        self.assertIsInstance(node, ExprStep)
         self.assertEqual(node.id, "bibo_8")
         self.assertEqual(node.expression, self.expression)
         self.assertIn('a', node.input)
@@ -296,7 +296,7 @@ class ExprNodeTest(TestCase):
         }
         """ % self.expression
 
-        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        node = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
         actual_json_dict = node.to_json_dict()
 
         actual_json_text = json.dumps(actual_json_dict, indent=4)
@@ -309,7 +309,7 @@ class ExprNodeTest(TestCase):
                               120 * '-', actual_json_text))
 
     def test_invoke(self):
-        node = ExprNode(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        node = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
         a = 1.5
         b = -2.6
         c = 4.3
@@ -323,43 +323,43 @@ class ExprNodeTest(TestCase):
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
-    def test_invoke_from_graph(self):
-        resource = get_resource('graphs/test_graph_expr.json')
-        graph = Graph.load(resource)
+    def test_invoke_from_workflow(self):
+        resource = get_resource('workflows/one_expr.json')
+        workflow = Workflow.load(resource)
         a = 1.5
         b = -2.6
         c = 4.3
-        graph.input.a.value = a
-        graph.input.b.value = b
-        graph.input.c.value = c
-        return_value = graph.invoke()
-        output_value_x = graph.output.x.value
-        output_value_y = graph.output.y.value
+        workflow.input.a.value = a
+        workflow.input.b.value = b
+        workflow.input.c.value = c
+        return_value = workflow.invoke()
+        output_value_x = workflow.output.x.value
+        output_value_y = workflow.output.y.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
 
-class GraphNodeTest(TestCase):
+class WorkflowNodeTest(TestCase):
     def test_init(self):
-        resource = get_resource('graphs/test_graph_3ops.json')
-        graph = Graph.load(resource)
-        node = GraphNode(graph, resource, node_id='jojo_87')
+        resource = get_resource('workflows/three_ops.json')
+        workflow = Workflow.load(resource)
+        node = WorkflowStep(workflow, resource, node_id='jojo_87')
         self.assertEqual(node.id, 'jojo_87')
         self.assertEqual(node.resource, resource)
         self.assertEqual(str(node), 'jojo_87')
-        self.assertEqual(repr(node), "GraphNode(Graph('cool_graph'), '%s', node_id='jojo_87')" % resource)
+        self.assertEqual(repr(node), "WorkflowStep(Workflow('cool_workflow'), '%s', node_id='jojo_87')" % resource)
 
-        self.assertIsNotNone(node.graph)
-        self.assertIn('p', node.graph.input)
-        self.assertIn('q', node.graph.output)
+        self.assertIsNotNone(node.workflow)
+        self.assertIn('p', node.workflow.input)
+        self.assertIn('q', node.workflow.output)
 
     def test_from_json_dict(self):
-        resource = get_resource('graphs/test_graph_3ops.json')
+        resource = get_resource('workflows/three_ops.json')
         json_text = """
         {
-            "id": "graph_ref_89",
-            "graph": "%s",
+            "id": "workflow_ref_89",
+            "workflow": "%s",
             "input": {
                 "p": {"value": 2.8}
             }
@@ -368,32 +368,32 @@ class GraphNodeTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node = GraphNode.from_json_dict(json_dict)
+        node = WorkflowStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node, GraphNode)
-        self.assertEqual(node.id, "graph_ref_89")
+        self.assertIsInstance(node, WorkflowStep)
+        self.assertEqual(node.id, "workflow_ref_89")
         self.assertEqual(node.resource, resource)
         self.assertIn('p', node.input)
         self.assertIn('q', node.output)
         self.assertEqual(node.input.p.value, 2.8)
         self.assertEqual(node.output.q.value, None)
 
-        self.assertIsNotNone(node.graph)
-        self.assertIn('p', node.graph.input)
-        self.assertIn('q', node.graph.output)
+        self.assertIsNotNone(node.workflow)
+        self.assertIn('p', node.workflow.input)
+        self.assertIn('q', node.workflow.output)
 
-        self.assertIs(node.graph.input.p.source, node.input.p)
+        self.assertIs(node.workflow.input.p.source, node.input.p)
 
     def test_to_json_dict(self):
-        resource = get_resource('graphs/test_graph_3ops.json')
-        graph = Graph.load(resource)
-        node = GraphNode(graph, resource, node_id='jojo_87')
+        resource = get_resource('workflows/three_ops.json')
+        workflow = Workflow.load(resource)
+        node = WorkflowStep(workflow, resource, node_id='jojo_87')
         actual_json_dict = node.to_json_dict()
 
         expected_json_text = """
         {
             "id": "jojo_87",
-            "graph": "%s",
+            "workflow": "%s",
             "input": {
                 "p": {}
             },
@@ -413,9 +413,9 @@ class GraphNodeTest(TestCase):
                               120 * '-', actual_json_text))
 
     def test_invoke(self):
-        resource = get_resource('graphs/test_graph_3ops.json')
-        graph = Graph.load(resource)
-        node = GraphNode(graph, resource, node_id='jojo_87')
+        resource = get_resource('workflows/three_ops.json')
+        workflow = Workflow.load(resource)
+        node = WorkflowStep(workflow, resource, node_id='jojo_87')
 
         node.input.p.value = 3
         return_value = node.invoke()
@@ -426,9 +426,9 @@ class GraphNodeTest(TestCase):
 
 class OpNodeTest(TestCase):
     def test_init(self):
-        node = OpNode(Op3)
+        node = OpStep(Op3)
 
-        self.assertRegex(node.id, 'op_node_[0-9]+')
+        self.assertRegex(node.id, 'op_step_[0-9]+')
 
         self.assertTrue(len(node.input), 2)
         self.assertTrue(len(node.output), 1)
@@ -446,32 +446,32 @@ class OpNodeTest(TestCase):
         self.assertEqual(node.output.w.name, 'w')
 
         self.assertEqual(str(node), node.id)
-        self.assertEqual(repr(node), "OpNode(test.test_graph.Op3, node_id='%s')" % node.id)
+        self.assertEqual(repr(node), "OpStep(test.test_workflow.Op3, node_id='%s')" % node.id)
 
     def test_init_operation_and_name_are_equivalent(self):
-        node3 = OpNode(Op3)
+        node3 = OpStep(Op3)
         self.assertIsNotNone(node3.op)
         self.assertIsNotNone(node3.op_meta_info)
-        node31 = OpNode(object_to_qualified_name(Op3))
+        node31 = OpStep(object_to_qualified_name(Op3))
         self.assertIs(node31.op, node3.op)
         self.assertIs(node31.op_meta_info, node3.op_meta_info)
 
     def test_invoke(self):
-        node1 = OpNode(Op1)
+        node1 = OpStep(Op1)
         node1.input.x.value = 3
         return_value = node1.invoke()
         output_value = node1.output.y.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 3 + 1)
 
-        node2 = OpNode(Op2)
+        node2 = OpStep(Op2)
         node2.input.a.value = 3
         return_value = node2.invoke()
         output_value = node2.output.b.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * 3)
 
-        node3 = OpNode(Op3)
+        node3 = OpStep(Op3)
         node3.input.u.value = 4
         node3.input.v.value = 5
         return_value = node3.invoke()
@@ -482,24 +482,24 @@ class OpNodeTest(TestCase):
     def test_init_failures(self):
         with self.assertRaises(ValueError):
             # "ValueError: operation with name 'test_node.NodeTest' not registered"
-            OpNode(OpNodeTest)
+            OpStep(OpNodeTest)
 
         with self.assertRaises(ValueError):
             # "ValueError: operation with name 'X' not registered"
-            OpNode('X')
+            OpStep('X')
 
         with self.assertRaises(ValueError):
             # "ValueError: operation with name 'X.Y' not registered"
-            OpNode('X.Y')
+            OpStep('X.Y')
 
         with self.assertRaises(ValueError):
             # "ValueError: operation must be given"
-            OpNode(None)
+            OpStep(None)
 
     def test_connect_source(self):
-        node1 = OpNode(Op1)
-        node2 = OpNode(Op2)
-        node3 = OpNode(Op3)
+        node1 = OpStep(Op1)
+        node2 = OpStep(Op2)
+        node3 = OpStep(Op3)
         node2.input.a.source = node1.output.y
         node3.input.u.source = node1.output.y
         node3.input.v.source = node2.output.b
@@ -510,9 +510,9 @@ class OpNodeTest(TestCase):
         self.assertEqual(str(cm.exception), "attribute 'a' not found")
 
     def test_disconnect_source(self):
-        node1 = OpNode(Op1)
-        node2 = OpNode(Op2)
-        node3 = OpNode(Op3)
+        node1 = OpStep(Op1)
+        node2 = OpStep(Op2)
+        node3 = OpStep(Op3)
 
         node2.input.a.source = node1.output.y
         node3.input.u.source = node1.output.y
@@ -539,7 +539,7 @@ class OpNodeTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.test_graph.Op3",
+            "op": "test.test_workflow.Op3",
             "input": {
                 "u": {"value": 647},
                 "v": {"value": 2.9}
@@ -549,9 +549,9 @@ class OpNodeTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node3 = OpNode.from_json_dict(json_dict)
+        node3 = OpStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node3, OpNode)
+        self.assertIsInstance(node3, OpStep)
         self.assertEqual(node3.id, "op3")
         self.assertIsInstance(node3.op, OpRegistration)
         self.assertIn('u', node3.input)
@@ -565,7 +565,7 @@ class OpNodeTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.test_graph.Op3",
+            "op": "test.test_workflow.Op3",
             "input": {
                 "u": {"source": "stat_op.stats"},
                 "v": {"source": ".latitude"}
@@ -575,9 +575,9 @@ class OpNodeTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node3 = OpNode.from_json_dict(json_dict)
+        node3 = OpStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node3, OpNode)
+        self.assertIsInstance(node3, OpStep)
         self.assertEqual(node3.id, "op3")
         self.assertIsInstance(node3.op, OpRegistration)
         self.assertIn('u', node3.input)
@@ -591,7 +591,7 @@ class OpNodeTest(TestCase):
         self.assertEqual(node3.input.v.source, None)
 
     def test_to_json_dict(self):
-        node3 = OpNode(Op3, node_id='op3')
+        node3 = OpStep(Op3, node_id='op3')
         node3.input.u.value = 2.8
 
         node3_dict = node3.to_json_dict()
@@ -599,7 +599,7 @@ class OpNodeTest(TestCase):
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.test_graph.Op3",
+            "op": "test.test_workflow.Op3",
             "input": {
                 "v": {},
                 "u": {"value": 2.8}
@@ -623,7 +623,7 @@ class OpNodeTest(TestCase):
 
 class NodeConnectorTest(TestCase):
     def test_init(self):
-        node = OpNode(Op1, node_id='myop')
+        node = OpStep(Op1, node_id='myop')
         source = NodeConnector(node, 'x')
 
         self.assertIs(source.node, node)
@@ -635,15 +635,15 @@ class NodeConnectorTest(TestCase):
         self.assertEqual(repr(source), "NodeConnector('myop', 'x')")
 
     def test_resolve_source_ref(self):
-        node1 = OpNode(Op1, node_id='myop1')
-        connector1 = node1.output.y
-
-        node2 = OpNode(Op2, node_id='myop2')
-
+        node1 = OpStep(Op1, node_id='myop1')
+        node2 = OpStep(Op2, node_id='myop2')
         node2.input.a._source_ref = ('myop1', 'y')
 
-        g = Graph(OpMetaInfo('mygraph', has_monitor=True, input_dict=OrderedDict(x={}), output_dict=OrderedDict(b={})))
-        g.add_nodes(node1, node2)
+        g = Workflow(OpMetaInfo('myWorkflow',
+                                has_monitor=True,
+                                input_dict=OrderedDict(x={}),
+                                output_dict=OrderedDict(b={})))
+        g.add_steps(node1, node2)
 
         node2.input.a.resolve_source_ref()
 
@@ -652,7 +652,7 @@ class NodeConnectorTest(TestCase):
         self.assertIs(node2.input.a.value, None)
 
     def test_from_json_dict(self):
-        node2 = OpNode(Op2, node_id='myop2')
+        node2 = OpStep(Op2, node_id='myop2')
         connector2 = NodeConnector(node2, 'a')
 
         connector2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
@@ -725,8 +725,8 @@ class NodeConnectorTest(TestCase):
         self.assertEqual(str(cm.exception), expected_msg)
 
     def test_to_json_dict(self):
-        node1 = OpNode(Op1, node_id='myop1')
-        node2 = OpNode(Op2, node_id='myop2')
+        node1 = OpStep(Op1, node_id='myop1')
+        node2 = OpStep(Op2, node_id='myop2')
 
         self.assertEqual(node2.input.a.to_json_dict(), dict())
 
