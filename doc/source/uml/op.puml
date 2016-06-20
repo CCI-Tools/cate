@@ -14,7 +14,7 @@ class OpRegistration {
 
 
 class OpMetaInfo {
-    qualfied_name : str
+    qualified_name : str
     header : OrderedDict
     input : OrderedDict
     output : OrderedDict
@@ -22,5 +22,12 @@ class OpMetaInfo {
 
 OpRegistry o--> "N" OpRegistration
 OpRegistration --> OpMetaInfo: op_meta_info
+
+object globals {
+    OP_REGISTRY: OpRegistry
+    @op(**properties)
+    @op_input(name, **properties)
+    @op_output(name, **properties)
+}
 
 @enduml

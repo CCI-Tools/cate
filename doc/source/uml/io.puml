@@ -1,28 +1,31 @@
 @startuml
 
-class CatalogRegistry {
-    get_catalogs(name): Catalog
-    add_catalog(Catalog): void
-    remove_catalog(Catalog): void
+class DataStoreRegistry {
+    get_data_stores(): List[DataStore]
+    get_data_store(name): DataStore
+    add_data_store(DataStore): void
+    remove_data_store(DataStore): void
 }
 
-interface Catalog {
-    {abstract} query(filter): DataSource
+interface DataStore {
+    {abstract} query(constraints): DataSource
 }
 
 interface DataSource {
+    {abstract} get_dataset_schema()
     {abstract} open_dataset(constraints): cdm.Dataset
 }
 
-class FileSetCatalog implements Catalog {
+class FileSetDataStore implements DataStore {
     root_dir
-    query(filter): DataSource
+    query(constraints): DataSource
 }
 
 class FileSetDataSource implements DataSource {
     name
     base_dir
     file_pattern
+    get_dataset_schema()
     open_dataset(constraints): cdm.Dataset
 }
 
@@ -34,16 +37,17 @@ class FileSetInfo  {
     size_in_mb
 }
 
-CatalogRegistry o--> "N" Catalog
-Catalog  ..>  DataSource: <provide>
+DataStoreRegistry o--> "N" DataStore
+DataStore  ..>  DataSource: <provide>
 
 DataSource ..>  interface cdm.Dataset: <open>
+FileSetDataSource -->  interface cdm.Schema: schema
 
 
-FileSetCatalog "1" o-- "N" FileSetDataSource
+FileSetDataStore "1" o-- "N" FileSetDataSource
 FileSetDataSource -- "0..1" FileSetInfo
 
-note left of FileSetCatalog
+note left of FileSetDataStore
 Users may create their own.
 The default instance mirrors
 the CCI Portal's FTP tree.
@@ -52,8 +56,15 @@ end note
 note left of FileSetDataSource
 open_dataset() will look for
 actual file types and return
-either an xarray or shapefile
-Dataset instance.
+either an <b>netCDF</b> (<i>xarray</i>) or
+<b>Shapefile</b> Dataset instance.
 end note
+
+object globals {
+    DATA_STORE_REGISTRY: DataStoreRegistry
+    query_data_sources(data_stores, constraints)
+    open_dataset(data_stores, name)
+}
+
 
 @enduml

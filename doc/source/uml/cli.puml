@@ -6,13 +6,13 @@ interface Command {
     execute(self, command_args: argparse.Namespace)
 }
 
-class List implements Command {
+class ListCommand implements Command {
 }
 
-class Run implements Command {
+class RunCommand implements Command {
 }
 
-class Docs implements Command {
+class DataSourceCommand implements Command {
 }
 
 

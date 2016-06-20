@@ -1,11 +1,15 @@
 @startuml
 
 interface Dataset {
-    gap_fill(): Datset
-    time_series(): Datset
-    subset(): Datset
-    resample(): Datset
-    close()
+    {abstract} schema(): Schema
+    {abstract} gap_fill(): Dataset
+    {abstract} time_series(): Dataset
+    {abstract} subset(): Dataset
+    {abstract} resample(): Dataset
+    {abstract} close()
+}
+
+abstract Schema {
 }
 
 abstract DatasetAdapter implements Dataset {
@@ -24,6 +28,7 @@ class cdm_shapefile.ShapefileDatasetAdapter extends DatasetAdapter {
 }
 
 DatasetCollection o--> "0..N" Dataset
+Dataset --> "1" Schema
 
 note right of DatasetCollection
 Collection pattern
