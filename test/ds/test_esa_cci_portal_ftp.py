@@ -1,21 +1,18 @@
 import os
 import os.path
-import pkgutil
-
-from ect.core.io import FileSetCatalog, CATALOG_REGISTRY
-
+import os.path
 from unittest import TestCase
 
-from ect.ds.esa_cci_portal_ftp import add_default_file_catalogue
+from ect.core.io import DATA_STORE_REGISTRY
+from ect.ds.esa_cci_portal_ftp import set_default_data_store
 
-import os.path
 
 class EsaCciPortalFtpTest(TestCase):
-    def test_default_file_catalogue(self):
-        if not CATALOG_REGISTRY.get_catalog('default'):
-            add_default_file_catalogue()
+    def test_set_default_data_store(self):
+        if not DATA_STORE_REGISTRY.get_data_store('default'):
+            set_default_data_store()
 
-        catalog = CATALOG_REGISTRY.get_catalog('default')
-        self.assertIsNotNone(catalog)
-        self.assertEqual(catalog.root_dir, os.path.expanduser(os.path.join('~', '.ect', 'data_sources', 'esa_cci_portal_ftp')))
-
+        data_store = DATA_STORE_REGISTRY.get_data_store('default')
+        self.assertIsNotNone(data_store)
+        self.assertEqual(data_store.root_dir,
+                         os.path.expanduser(os.path.join('~', '.ect', 'data_stores', 'esa_cci_portal_ftp')))

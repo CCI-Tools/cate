@@ -85,6 +85,10 @@ class Command(metaclass=ABCMeta):
 
 
 class RunCommand(Command):
+    """
+    The ``run`` command is used to invoke registered operations and JSON workflows.
+    """
+
     CMD_NAME = 'run'
 
     @classmethod
@@ -173,6 +177,10 @@ class RunCommand(Command):
 
 
 class DataSourceCommand(Command):
+    """
+    The ``ds`` command implements various operations w.r.t. data sources.
+    """
+
     CMD_NAME = 'ds'
 
     @classmethod
@@ -192,8 +200,8 @@ class DataSourceCommand(Command):
                             help="Synchronise a remote data source DS_NAME with its local version.")
 
     def execute(self, command_args):
-        from ect.core.io import CATALOG_REGISTRY
-        catalog = CATALOG_REGISTRY.get_catalog('default')
+        from ect.core.io import DATA_STORE_REGISTRY
+        data_store = DATA_STORE_REGISTRY.get_data_store('default')
 
         if command_args.period:
             time_range = self.parse_period(command_args.period[0])
@@ -203,7 +211,7 @@ class DataSourceCommand(Command):
             time_range = None
 
         for ds_name in command_args.ds_names:
-            data_sources = catalog.query(name=ds_name)
+            data_sources = data_store.query(name=ds_name)
             if not data_sources or len(data_sources) == 0:
                 print("Unknown data source '%s'" % ds_name)
                 continue
@@ -256,6 +264,10 @@ class DataSourceCommand(Command):
 
 
 class ListCommand(Command):
+    """
+    The ``list`` command is used to list the content of various ECT registries.
+    """
+
     CMD_NAME = 'list'
 
     @classmethod
@@ -278,12 +290,12 @@ class ListCommand(Command):
             from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
             ListCommand.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
         elif command_args.category == 'ds':
-            from ect.core.io import CATALOG_REGISTRY
-            catalog = CATALOG_REGISTRY.get_catalog('default')
-            if catalog is None:
-                return 2, "error: command '%s': no catalog named 'default' found" % self.CMD_NAME
-            ListCommand.list_items('data source', 'data sources', [data_source.name for data_source in catalog.query()],
-                                   command_args.pattern)
+            from ect.core.io import DATA_STORE_REGISTRY
+            data_store = DATA_STORE_REGISTRY.get_data_store('default')
+            if data_store is None:
+                return 2, "error: command '%s': no data_store named 'default' found" % self.CMD_NAME
+            ListCommand.list_items('data source', 'data sources',
+                                   [data_source.name for data_source in data_store.query()], command_args.pattern)
         elif command_args.category == 'op':
             from ect.core.op import OP_REGISTRY as OP_REGISTRY
             ListCommand.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
@@ -309,10 +321,14 @@ class ListCommand(Command):
 
 
 class CopyrightCommand(Command):
+    """
+    The ``cr`` command is used to display ECT's copyright information.
+    """
+
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Print copyright information.'
-        return 'copyright', dict(help=help_line, description=help_line)
+        return 'cr', dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
         with open(_COPYRIGHT_INFO_PATH) as fp:
@@ -321,10 +337,14 @@ class CopyrightCommand(Command):
 
 
 class LicenseCommand(Command):
+    """
+    The ``lic`` command is used to display ECT's licensing information.
+    """
+
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Print license information.'
-        return 'license', dict(help=help_line, description=help_line)
+        return 'lic', dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
         with open(_LICENSE_INFO_PATH) as fp:
@@ -333,10 +353,14 @@ class LicenseCommand(Command):
 
 
 class DocsCommand(Command):
+    """
+    The ``doc`` command is used to display ECT's documentation.
+    """
+
     @classmethod
     def name_and_parser_kwargs(cls):
         help_line = 'Display documentation in a browser window.'
-        return 'docs', dict(help=help_line, description=help_line)
+        return 'doc', dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
         import webbrowser

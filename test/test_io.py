@@ -6,7 +6,7 @@ import ect.core.io as io
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 
 
-class SimpleCatalog(io.Catalog):
+class SimpleDataStore(io.DataStore):
     def __init__(self, data_sources: Sequence[io.DataSource]):
         self._data_sources = list(data_sources)
 
@@ -20,11 +20,11 @@ class SimpleCatalog(io.Catalog):
 class SimpleDataSource(io.DataSource):
     def __init__(self, name: str):
         self._name = name
-        self._catalogue = None
+        self._data_store = None
 
     @property
-    def catalog(self) -> io.Catalog:
-        return self.catalog
+    def data_store(self) -> io.DataStore:
+        return self.data_store
 
     @property
     def name(self) -> str:
@@ -58,20 +58,20 @@ class InMemoryDataSource(SimpleDataSource):
 
 class IOTest(TestCase):
     def setUp(self):
-        self.DS_AEROSL = SimpleDataSource('aerosol')
+        self.DS_AEROSOL = SimpleDataSource('aerosol')
         self.DS_OZONE = SimpleDataSource('ozone')
-        self.TEST_CATALOGUE = SimpleCatalog([self.DS_AEROSL, self.DS_OZONE])
-        self.DS_AEROSL._catalogue = self.TEST_CATALOGUE
-        self.DS_OZONE._catalogue = self.TEST_CATALOGUE
+        self.TEST_DATA_STORE = SimpleDataStore([self.DS_AEROSOL, self.DS_OZONE])
+        self.DS_AEROSOL._data_store = self.TEST_DATA_STORE
+        self.DS_OZONE._data_store = self.TEST_DATA_STORE
         self.DS_SST = SimpleDataSource('sst')
-        self.TEST_CATALOGUE_SST = SimpleCatalog([self.DS_SST])
+        self.TEST_DATA_STORE_SST = SimpleDataStore([self.DS_SST])
 
-    def test_query_data_sources_default_catalogue(self):
-        self.assertEqual(0, len(io.CATALOG_REGISTRY))
+    def test_query_data_sources_default_data_store(self):
+        self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
         try:
-            from ect.ds.esa_cci_portal_ftp import add_default_file_catalogue
-            add_default_file_catalogue()
-            self.assertEqual(1, len(io.CATALOG_REGISTRY))
+            from ect.ds.esa_cci_portal_ftp import set_default_data_store
+            set_default_data_store()
+            self.assertEqual(1, len(io.DATA_STORE_REGISTRY))
 
             data_sources = io.query_data_sources()
             self.assertIsNotNone(data_sources)
@@ -86,19 +86,19 @@ class IOTest(TestCase):
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 0)
         finally:
-            io.CATALOG_REGISTRY._catalogs.clear()
-        self.assertEqual(0, len(io.CATALOG_REGISTRY))
+            io.DATA_STORE_REGISTRY._data_stores.clear()
+        self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
 
-    def test_query_data_sources_with_catalogue(self):
-        data_sources = io.query_data_sources(catalogs=self.TEST_CATALOGUE)
+    def test_query_data_sources_with_data_store_value(self):
+        data_sources = io.query_data_sources(data_stores=self.TEST_DATA_STORE)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
         self.assertEqual(data_sources[0].name, "aerosol")
         self.assertEqual(data_sources[1].name, "ozone")
 
-    def test_query_data_sources_with_catalogue_list(self):
-        catalogue_list = [self.TEST_CATALOGUE, self.TEST_CATALOGUE_SST]
-        data_sources = io.query_data_sources(catalogs=catalogue_list)
+    def test_query_data_sources_with_data_store_list(self):
+        data_stores = [self.TEST_DATA_STORE, self.TEST_DATA_STORE_SST]
+        data_sources = io.query_data_sources(data_stores=data_stores)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 3)
         self.assertEqual(data_sources[0].name, "aerosol")
@@ -106,17 +106,17 @@ class IOTest(TestCase):
         self.assertEqual(data_sources[2].name, "sst")
 
     def test_query_data_sources_with_constrains(self):
-        data_sources = io.query_data_sources(catalogs=self.TEST_CATALOGUE, name="aerosol")
+        data_sources = io.query_data_sources(data_stores=self.TEST_DATA_STORE, name="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].name, "aerosol")
 
-        data_sources = io.query_data_sources(catalogs=self.TEST_CATALOGUE, name="ozone")
+        data_sources = io.query_data_sources(data_stores=self.TEST_DATA_STORE, name="ozone")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].name, "ozone")
 
-        data_sources = io.query_data_sources(catalogs=self.TEST_CATALOGUE, name="Z")
+        data_sources = io.query_data_sources(data_stores=self.TEST_DATA_STORE, name="Z")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
@@ -143,13 +143,13 @@ class IOTest(TestCase):
         try:
             ds_a1 = SimpleDataSource('aerosol')
             ds_a2 = SimpleDataSource('aerosol')
-            duplicated_cat = SimpleCatalog([ds_a1, ds_a2])
-            io.CATALOG_REGISTRY.add_catalog('duplicated_cat', duplicated_cat)
+            duplicated_cat = SimpleDataStore([ds_a1, ds_a2])
+            io.DATA_STORE_REGISTRY.add_data_store('duplicated_cat', duplicated_cat)
             with self.assertRaises(ValueError) as cm:
                 io.open_dataset('aerosol')
             self.assertEqual('2 data_sources found for the given query term', str(cm.exception))
         finally:
-            io.CATALOG_REGISTRY._catalogs.clear()
+            io.DATA_STORE_REGISTRY._data_stores.clear()
 
 
 class FileSetDataSourceTest(TestCase):
@@ -173,11 +173,11 @@ class FileSetDataSourceTest(TestCase):
      ]}'''
 
     def setUp(self):
-        fileset_catalogue = io.FileSetCatalog.from_json('TEST_ROOT_DIR', FileSetDataSourceTest.JSON)
-        self.assertIsNotNone(fileset_catalogue)
-        self.assertEqual(2, len(fileset_catalogue._data_sources))
-        self.ds0 = fileset_catalogue._data_sources[0]
-        self.ds1 = fileset_catalogue._data_sources[1]
+        data_store = io.FileSetDataStore.from_json('TEST_ROOT_DIR', FileSetDataSourceTest.JSON)
+        self.assertIsNotNone(data_store)
+        self.assertEqual(2, len(data_store._data_sources))
+        self.ds0 = data_store._data_sources[0]
+        self.ds1 = data_store._data_sources[1]
 
     def test_from_json(self):
         self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.2_DAILY', self.ds0.name)
@@ -274,68 +274,68 @@ class FileSetDataSourceTest(TestCase):
             io._as_datetime("42", None)
 
 
-class CatalogueRegistryTest(TestCase):
+class DataStoreRegistryTest(TestCase):
     def setUp(self):
-        self.c1 = io.FileSetCatalog('root')
-        self.c2 = io.FileSetCatalog('root')
-        self.c3 = io.FileSetCatalog('root')
+        self.c1 = io.FileSetDataStore('root')
+        self.c2 = io.FileSetDataStore('root')
+        self.c3 = io.FileSetDataStore('root')
 
     def test_init(self):
-        catalogue_registry = io.CatalogRegistry()
-        self.assertEqual(0, len(catalogue_registry))
+        data_store_registry = io.DataStoreRegistry()
+        self.assertEqual(0, len(data_store_registry))
 
     def test_add(self):
-        catalogue_registry = io.CatalogRegistry()
-        catalogue_registry.add_catalog('c1', self.c1)
-        self.assertEqual(1, len(catalogue_registry))
-        catalogue_registry.add_catalog('c2', self.c2)
-        self.assertEqual(2, len(catalogue_registry))
-        catalogue_registry.add_catalog('c2', self.c3)
-        self.assertEqual(2, len(catalogue_registry))
+        data_store_registry = io.DataStoreRegistry()
+        data_store_registry.add_data_store('c1', self.c1)
+        self.assertEqual(1, len(data_store_registry))
+        data_store_registry.add_data_store('c2', self.c2)
+        self.assertEqual(2, len(data_store_registry))
+        data_store_registry.add_data_store('c2', self.c3)
+        self.assertEqual(2, len(data_store_registry))
 
     def test_remove(self):
-        catalogue_registry = io.CatalogRegistry()
-        catalogue_registry.add_catalog('c1', self.c1)
-        catalogue_registry.add_catalog('c2', self.c2)
-        self.assertEqual(2, len(catalogue_registry))
-        catalogue_registry.remove_catalog('c1')
-        self.assertEqual(1, len(catalogue_registry))
+        data_store_registry = io.DataStoreRegistry()
+        data_store_registry.add_data_store('c1', self.c1)
+        data_store_registry.add_data_store('c2', self.c2)
+        self.assertEqual(2, len(data_store_registry))
+        data_store_registry.remove_data_store('c1')
+        self.assertEqual(1, len(data_store_registry))
         with self.assertRaises(KeyError):
-            catalogue_registry.remove_catalog('c0')
-        self.assertEqual(1, len(catalogue_registry))
+            data_store_registry.remove_data_store('c0')
+        self.assertEqual(1, len(data_store_registry))
 
-    def test_get_catalogue(self):
-        catalogue_registry = io.CatalogRegistry()
-        catalogue_registry.add_catalog('c1', self.c1)
-        catalogue_registry.add_catalog('c2', self.c2)
-        self.assertEqual(2, len(catalogue_registry))
+    def test_get_data_store(self):
+        data_store_registry = io.DataStoreRegistry()
+        data_store_registry.add_data_store('c1', self.c1)
+        data_store_registry.add_data_store('c2', self.c2)
+        self.assertEqual(2, len(data_store_registry))
 
-        rc2 = catalogue_registry.get_catalog('c2')
+        rc2 = data_store_registry.get_data_store('c2')
         self.assertIsNotNone(rc2)
         self.assertIs(self.c2, rc2)
-        self.assertEqual(2, len(catalogue_registry))
+        self.assertEqual(2, len(data_store_registry))
 
-        rc0 = catalogue_registry.get_catalog('c0')
+        rc0 = data_store_registry.get_data_store('c0')
         self.assertIsNone(rc0)
 
-    def test_get_catalogues(self):
-        catalogue_registry = io.CatalogRegistry()
-        catalogue_registry.add_catalog('c1', self.c1)
-        catalogue_registry.add_catalog('c2', self.c2)
-        self.assertEqual(2, len(catalogue_registry))
+    def test_get_data_stores(self):
+        data_store_registry = io.DataStoreRegistry()
+        data_store_registry.add_data_store('c1', self.c1)
+        data_store_registry.add_data_store('c2', self.c2)
+        self.assertEqual(2, len(data_store_registry))
 
-        rcALL = catalogue_registry.get_catalogs()
-        self.assertIsNotNone(rcALL)
-        self.assertEqual(2, len(rcALL))
+        data_stores = data_store_registry.get_data_stores()
+        self.assertIsNotNone(data_stores)
+        self.assertEqual(2, len(data_stores))
 
 
-class FileSetCatalogueTest(TestCase):
+class FileSetDataStoreTest(TestCase):
     def test_it(self):
         root_dir = 'ROOT'
-        catalog = io.FileSetCatalog.from_json(root_dir, FileSetDataSourceTest.JSON)
-        self.assertIsNotNone(catalog)
-        self.assertEqual('ROOT', catalog.root_dir)
-        query_results = catalog.query()
+        data_store = io.FileSetDataStore.from_json(root_dir, FileSetDataSourceTest.JSON)
+        self.assertIsNotNone(data_store)
+        self.assertEqual('ROOT', data_store.root_dir)
+        query_results = data_store.query()
         self.assertIsNotNone(query_results)
         self.assertEqual(2, len(query_results))
 

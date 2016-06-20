@@ -7,9 +7,9 @@ This module provides ECT's data access API.
 Technical Requirements
 ======================
 
-**Query catalogue**
+**Query data store**
 
-:Description: Allow querying registered ECV catalogues using a simple function that takes a set of query parameters
+:Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
     and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
 :Specified in: <link to other RST page here>
 :Test: ``test_io.py``
@@ -20,10 +20,10 @@ Technical Requirements
 
 ----
 
-**Add catalogue**
+**Add data store**
 
-:Description: Allow adding of user defined catalogues specifying the access protocol and the layout of the data.
-    These catalogues can be used to access datasets.
+:Description: Allow adding of user defined data stores specifying the access protocol and the layout of the data.
+    These data stores can be used to access datasets.
 :Specified in: <link to other RST page here>
 :Test: ``test_io.py``
 :URD-Source:
@@ -33,7 +33,7 @@ Technical Requirements
 
 **Open dataset**
 
-:Description: Allow opening an ECV dataset given an identifier returned by the *catalogue query*.
+:Description: Allow opening an ECV dataset given an identifier returned by the *data store query*.
    The dataset returned complies to the ECT common data model.
    The dataset to be returned can optionally be constrained in time and space.
 :Specified in: <link to other RST page here>
@@ -85,12 +85,12 @@ class DataSource(metaclass=ABCMeta):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Human-readable dataset name."""
+        """Human-readable data source name."""
 
     @property
     @abstractmethod
-    def catalog(self) -> 'Catalog':
-        """The catalogue to which this data source belongs."""
+    def data_store(self) -> 'DataStore':
+        """The data store to which this data source belongs."""
 
     @abstractmethod
     def open_dataset(self, time_range=None) -> Dataset:
@@ -130,16 +130,16 @@ class DataSource(metaclass=ABCMeta):
         """Provide an HTML representation of this object for IPython."""
 
 
-class Catalog(metaclass=ABCMeta):
-    """Represents a catalogue of data sources."""
+class DataStore(metaclass=ABCMeta):
+    """Represents a data store of data sources."""
 
     # TODO (mzuehlke, forman, 20160603): define constraints --> have a look at Iris Constraint class
     @abstractmethod
     def query(self, name=None) -> Sequence[DataSource]:
         """
-        Query this catalogue using the given *constraints*.
+        Retrieve data sources in this data store using the given constraints.
 
-        :param name: An optional name of the dataset.
+        :param name: Name of the data source.
         :return: Sequence of data sources.
         """
 
@@ -148,77 +148,77 @@ class Catalog(metaclass=ABCMeta):
         """Provide an HTML representation of this object for IPython."""
 
 
-class CatalogRegistry:
+class DataStoreRegistry:
     """
-    Registry of :py:class:`Catalog` objects.
+    Registry of :py:class:`DataStore` objects.
     """
 
     def __init__(self):
-        self._catalogs = dict()
+        self._data_stores = dict()
 
-    def get_catalog(self, name: str) -> Catalog:
-        return self._catalogs.get(name, None)
+    def get_data_store(self, name: str) -> DataStore:
+        return self._data_stores.get(name, None)
 
-    def get_catalogs(self) -> Sequence[Catalog]:
-        return self._catalogs.values()
+    def get_data_stores(self) -> Sequence[DataStore]:
+        return self._data_stores.values()
 
-    def add_catalog(self, name: str, catalogue: Catalog):
-        self._catalogs[name] = catalogue
+    def add_data_store(self, name: str, data_store: DataStore):
+        self._data_stores[name] = data_store
 
-    def remove_catalog(self, name: str):
-        del self._catalogs[name]
+    def remove_data_store(self, name: str):
+        del self._data_stores[name]
 
     def __len__(self):
-        return len(self._catalogs)
+        return len(self._data_stores)
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
         import pprint
-        return pprint.pformat(self._catalogs)
+        return pprint.pformat(self._data_stores)
 
     def _repr_html_(self):
         rows = []
-        for name, cat in self._catalogs.items():
+        for name, cat in self._data_stores.items():
             rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(cat)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
-#: The data catalogue registry of type :py:class:`CatalogueRegistry`.
-#: Use it add new data catalogues to ECT.
-CATALOG_REGISTRY = CatalogRegistry()
+#: The data data store registry of type :py:class:`DataStoreRegistry`.
+#: Use it add new data stores to ECT.
+DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
-def query_data_sources(catalogs: Union[Catalog, Sequence[Catalog]] = None, name=None) -> Sequence[DataSource]:
-    """Query the catalogue(s) for data sources matching the given constrains.
+def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
+    """Query the data store(s) for data sources matching the given constrains.
 
     Parameters
     ----------
-    catalogs : Catalog or Sequence[Catalog]
-       If given these catalogues will be queried. Otherwise all registered catalogues will be used.
+    data_stores : DataStore or Sequence[DataStore]
+       If given these data stores will be queried. Otherwise all registered data stores will be used.
     name : str, optional
-       The name of the dataset.
+       The name of a data source.
 
     Returns
     -------
-    datasource : List[DataSource]
+    data_source : List[DataSource]
        All data sources matching the given constrains.
 
     See Also
     --------
     open_dataset
     """
-    if catalogs is None:
-        catalogue_list = CATALOG_REGISTRY.get_catalogs()
-    elif isinstance(catalogs, Catalog):
-        catalogue_list = [catalogs]
+    if data_stores is None:
+        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    elif isinstance(data_stores, DataStore):
+        data_store_list = [data_stores]
     else:
-        catalogue_list = catalogs
+        data_store_list = data_stores
     results = []
     # noinspection PyTypeChecker
-    for catalogue in catalogue_list:
-        results.extend(catalogue.query(name))
+    for data_store in data_store_list:
+        results.extend(data_store.query(name))
     return results
 
 
@@ -245,8 +245,8 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        catalogue_list = CATALOG_REGISTRY.get_catalogs()
-        data_sources = query_data_sources(catalogue_list, name=data_source)
+        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+        data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
             raise ValueError('No data_source found')
         elif len(data_sources) > 1:
@@ -275,12 +275,12 @@ class FileSetDataSource(DataSource):
     """
 
     def __init__(self,
-                 file_set_catalogue: 'FileSetCatalog',
+                 file_set_data_store: 'FileSetDataStore',
                  name: str,
                  base_dir: str,
                  file_pattern: str,
                  fileset_info: 'FileSetInfo' = None):
-        self._file_set_catalog = file_set_catalogue
+        self._file_set_data_store = file_set_data_store
         self._name = name
         self._base_dir = base_dir
         self._file_pattern = file_pattern
@@ -291,8 +291,8 @@ class FileSetDataSource(DataSource):
         return self._name
 
     @property
-    def catalog(self) -> 'FileSetCatalog':
-        return self._file_set_catalog
+    def data_store(self) -> 'FileSetDataStore':
+        return self._file_set_data_store
 
     def open_dataset(self, time_range=None) -> Dataset:
         paths = self.resolve_paths(time_range)
@@ -335,7 +335,7 @@ class FileSetDataSource(DataSource):
                The last date of the time range, can be None if the file set has a *end_time*.
                In this case the *end_time* is used.
         """
-        return [self.catalog.root_dir + '/' + p for p in self.resolve_base_paths(time_range)]
+        return [self.data_store.root_dir + '/' + p for p in self.resolve_base_paths(time_range)]
 
     def resolve_base_paths(self, time_range: TimeRange = (None, None)) -> List[str]:
         """Return a list of all paths between the given times.
@@ -380,9 +380,9 @@ class FileSetDataSource(DataSource):
         :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
         :param monitor: a progress monitor.
         """
-        assert self._file_set_catalog.remote_url
+        assert self._file_set_data_store.remote_url
 
-        url = urllib.parse.urlparse(self._file_set_catalog.remote_url)
+        url = urllib.parse.urlparse(self._file_set_data_store.remote_url)
         if url.scheme != 'ftp':
             raise ValueError("invalid remote URL: cannot deal with scheme %s" % repr(url.scheme))
         ftp_host_name = url.hostname
@@ -440,7 +440,7 @@ class FileSetDataSource(DataSource):
                 print('Synchronising %s, contains %d file(s), total size %.1f MiB' % (expected_dir_path,
                                                                                       len(files_to_download),
                                                                                       size_in_mibs))
-                local_dir = os.path.join(self._file_set_catalog.root_dir, expected_dir_path)
+                local_dir = os.path.join(self._file_set_data_store.root_dir, expected_dir_path)
                 os.makedirs(local_dir, exist_ok=True)
                 child_monitor = monitor.child(work=1)
                 with child_monitor.starting(expected_dir_path, len(files_to_download)):
@@ -632,14 +632,14 @@ class FileSetInfo:
         return table_data
 
 
-class FileSetCatalog(Catalog):
+class FileSetDataStore(DataStore):
     """
-    A catalogue for a fileset in the the operating system's file system.
+    A data store for a fileset in the the operating system's file system.
     It is composed of data sources of type :py:class:`FileSetDataSource` that are represented by
     the operating system's file system.
 
     :param root_dir: The path to the fileset's root directory.
-    :param remote_url: Optional URL of the catalogue's remote service.
+    :param remote_url: Optional URL of the data store's remote service.
     """
 
     def __init__(self, root_dir: str, remote_url: str = None):
@@ -654,7 +654,7 @@ class FileSetCatalog(Catalog):
 
     @property
     def remote_url(self) -> str:
-        """Optional URL of the catalogue's remote service."""
+        """Optional URL of the data store's remote service."""
         return self._remote_url
 
     def query(self, name=None) -> Sequence[DataSource]:
@@ -665,9 +665,9 @@ class FileSetCatalog(Catalog):
             fp = StringIO(json_fp_or_str)
         else:
             fp = json_fp_or_str
-        catalog_dict = json.load(fp)
-        remote_url = catalog_dict.get('remote_url', self._remote_url)
-        data_sources_json = catalog_dict.get('data_sources', [])
+        data_store_dict = json.load(fp)
+        remote_url = data_store_dict.get('remote_url', self._remote_url)
+        data_sources_json = data_store_dict.get('data_sources', [])
         data_sources = []
         for data in data_sources_json:
             file_set_info = None
@@ -693,13 +693,13 @@ class FileSetCatalog(Catalog):
         self._data_sources.extend(data_sources)
 
     @classmethod
-    def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetCatalog':
-        catalogue = FileSetCatalog(root_dir)
-        catalogue.load_from_json(json_fp_or_str)
-        return catalogue
+    def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetDataStore':
+        data_store = FileSetDataStore(root_dir)
+        data_store.load_from_json(json_fp_or_str)
+        return data_store
 
     def __repr__(self):
-        return "FileSetCatalogue(%s)" % repr(self._root_dir)
+        return "FileSetFileStore(%s)" % repr(self._root_dir)
 
     def _repr_html_(self):
         rows = []
@@ -707,7 +707,7 @@ class FileSetCatalog(Catalog):
         for ds in self._data_sources:
             row_count += 1
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, ds._repr_html_()))
-        return '<p>Contents of FileSetCatalogue for root <code>%s<code></p><table>%s</table>' % (
+        return '<p>Contents of FileSetFileStore for root <code>%s<code></p><table>%s</table>' % (
             self._root_dir, '\n'.join(rows))
 
 

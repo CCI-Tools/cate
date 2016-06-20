@@ -250,7 +250,7 @@ class CliListCommandTest(unittest.TestCase):
 class CliLicenseCommandTest(unittest.TestCase):
     def test_command_license(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['license'])
+            status = cli.main(args=['lic'])
             self.assertEqual(status, 0)
         self.assertIn('GNU GENERAL PUBLIC LICENSE', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
@@ -259,7 +259,7 @@ class CliLicenseCommandTest(unittest.TestCase):
 class CliCopyrightCommandTest(unittest.TestCase):
     def test_command_copyright(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['copyright'])
+            status = cli.main(args=['cr'])
             self.assertEqual(status, 0)
         self.assertIn('European Space Agency', sout.getvalue())
         self.assertEqual(serr.getvalue(), '')
