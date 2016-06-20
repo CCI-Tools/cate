@@ -6,6 +6,12 @@ object globals {
     open_dataset(data_stores, name)
 }
 
+note bottom of globals
+Plugins can extend
+DATA_STORE_REGISTRY
+by adding new data stores
+end note
+
 class DataStoreRegistry {
     get_data_stores(): List[DataStore]
     get_data_store(name): DataStore
@@ -28,11 +34,6 @@ DataStore  ..>  DataSource: <provide>
 DataSource ..>  interface cdm.Dataset: <open>
 DataSource ..>  interface cdm.Schema: <provide>
 
-note bottom of globals
-Plugins can extend
-DATA_STORE_REGISTRY
-by adding new data stores
-end note
 
 
 @enduml

@@ -3,19 +3,19 @@
 
 abstract class Node {
     id : str
-    {abstract} from_json_dict(json_dict)
-    {abstract} to_json_dict() : dict
-    {abstract} invoke(monitor, **args)
 }
 
 class NodeConnector {
+    node: Node
     name: str
+    source: NodeConnector
     value: object
 }
 
 Node o--> "0..N" NodeConnector : input
 Node o--> "0..N" NodeConnector : output
-NodeConnector --> Node : node
-NodeConnector --> NodeConnector : source
+
+NodeConnector --> NodeConnector
+NodeConnector --> Node
 
 @enduml

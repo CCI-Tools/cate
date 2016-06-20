@@ -13,20 +13,34 @@ Module Breakdown
 Common Data Model (**cdm** Module)
 ==================================
 
+
 .. figure:: _static/uml/cdm.png
-   :scale: 100 %
+   :scale: 50 %
    :align: center
 
-   Important components of the Common Data Model in the **cdm** module
+   DatasetCollection, Dataset, and DatasetAdapter of the **cdm** module
 
-Data Sources API (**io** Module)
-================================
+.. figure:: _static/uml/cdm_seq_2.png
+   :scale: 50 %
+   :align: right
+
+   Dataset collections delegate processing requests to their datasets
+
+Data Stores and Data Sources (**io** Module)
+============================================
 
 .. figure:: _static/uml/io.png
    :scale: 100 %
    :align: center
 
-   Important components of the **io** module
+   DataStore and DataSource of the **io** module
+
+
+.. figure:: _static/uml/io_file_set.png
+   :scale: 100 %
+   :align: center
+
+   FileSetDataStore and FileSetDataSource of the **io** module
 
 Operations and Processor Management (**op** Module)
 ===================================================
@@ -35,7 +49,7 @@ Operations and Processor Management (**op** Module)
    :scale: 100 %
    :align: center
 
-   Important components of the **op** module
+   OpRegistry, OpRegistration, and OpMetaInfo of the **op** module
 
 .. figure:: _static/uml/monitor.png
    :scale: 100 %
@@ -50,22 +64,34 @@ Workflow Management (**workflow** Module)
    :scale: 100 %
    :align: center
 
-   Important components of the **workflow** module
+   Workflow, Node, Step, and Step specialisations of the **workflow** module
 
 .. figure:: _static/uml/workflow_node_connector.png
    :scale: 100 %
    :align: center
 
-   Details of the **workflow** module
+   NodeConnector of the **workflow** module
 
-Command-Line Interface, CLI (**cli** Module)
-============================================
+.. figure:: _static/uml/workflow_seq.png
+   :scale: 100 %
+   :align: center
+
+   By invoking a Workflow, the contained steps are invoked
+
+
+Data Presentation (**present** Module)
+======================================
+
+TODO - nothing here so far
+
+Command-Line Interface (**cli** Module)
+=======================================
 
 .. figure:: _static/uml/cli.png
    :scale: 100 %
    :align: center
 
-   Important of the **cli** module
+   Command and Command specialisations of the **cli** module
 
 Plugins Concept (**plugin** Module)
 ===================================
@@ -74,4 +100,4 @@ Plugins Concept (**plugin** Module)
    :scale: 100 %
    :align: center
 
-   Important of the **cli** module
+   The **plugin** module

@@ -1,5 +1,21 @@
 @startuml
 
+object globals {
+    OP_REGISTRY: OpRegistry
+    @op(**properties)
+    @op_input(name, **properties)
+    @op_output(name, **properties)
+}
+
+note bottom of globals
+Plugins can extend OP_REGISTRY
+by adding new operations to it.
+
+To register a Python function or
+class, the @op, @op_input,
+@op_output decorators are used.
+end note
+
 class OpRegistry {
     get_op(name): OpRegistration
     add_op(operation): OpRegistration
@@ -22,12 +38,5 @@ class OpMetaInfo {
 
 OpRegistry o--> "N" OpRegistration
 OpRegistration --> OpMetaInfo: op_meta_info
-
-object globals {
-    OP_REGISTRY: OpRegistry
-    @op(**properties)
-    @op_input(name, **properties)
-    @op_output(name, **properties)
-}
 
 @enduml
