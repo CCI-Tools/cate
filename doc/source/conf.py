@@ -82,6 +82,9 @@ project_title = 'ESA CCI Toolbox'
 copyright = '2016 by European Space Agency (ESA)'
 author = software_name + ' Development Team'
 
+# If true, figures, tables and code-blocks are automatically numbered if they have a caption.
+numfig = True
+
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
