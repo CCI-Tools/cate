@@ -69,7 +69,7 @@ class IOTest(TestCase):
     def test_query_data_sources_default_data_store(self):
         self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
         try:
-            from ect.ds.esa_cci_portal_ftp import set_default_data_store
+            from ect.ds.esa_cci_ftp import set_default_data_store
             set_default_data_store()
             self.assertEqual(1, len(io.DATA_STORE_REGISTRY))
 
