@@ -458,8 +458,8 @@ Given here is an early version of the CCI Toolbox CLI usage::
 
 .. _plugin:
 
-Plugins Concept
-===============
+Plugin Concept
+==============
 
 A CCI Toolbox *plugin* is actually any Python module that extend one of the registry singletons introduced in the
 previous sections:
