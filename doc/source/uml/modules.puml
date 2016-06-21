@@ -3,6 +3,7 @@
 node "CCI_Toolbox_Core" {
     package "ect.ds" {
         DS - [esa_cci_ftp_ds]
+        [more ds...] #white
     }
 
     package ect.ops {
@@ -11,7 +12,7 @@ node "CCI_Toolbox_Core" {
         [resample]
         [mapping]
         [plot]
-        [others]
+        [more ops...] #white
     }
 
     package "ect.core" {
@@ -33,7 +34,8 @@ node "CCI_Toolbox_GUI" {
 }
 
 node "CCI_Portal" {
-    FTP - [esa_cci_ftp]
+    FTP - [cci_ftp_service]
+    [more services...] #white
 }
 
 

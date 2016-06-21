@@ -4,8 +4,8 @@ from contextlib import contextmanager
 from io import StringIO
 from time import sleep
 
-from ect.core import cli
 from ect.core.monitor import Monitor
+from ect.ui import cli
 
 
 @contextmanager
@@ -80,7 +80,7 @@ class CliDataSourceCommandTest(unittest.TestCase):
             self.assertEqual(status, 0)
 
     def test_command_ds_parse_period(self):
-        from ect.core.cli import DataSourceCommand
+        from ect.ui.cli import DataSourceCommand
         from datetime import date
 
         self.assertEqual(DataSourceCommand.parse_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
@@ -171,7 +171,7 @@ class CliRunCommandTest(unittest.TestCase):
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
-        workflow_file = os.path.join(os.path.dirname(__file__), 'workflows/timeseries.json')
+        workflow_file = os.path.join(os.path.dirname(__file__), 'timeseries.json')
         self.assertTrue(os.path.exists(workflow_file), msg='missing test file %s' % workflow_file)
 
         try:
