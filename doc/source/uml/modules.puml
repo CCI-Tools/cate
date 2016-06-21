@@ -1,0 +1,50 @@
+@startuml
+
+node "CCI_Toolbox_Core" {
+    package "ect.ds" {
+        DS - [esa_cci_ftp_ds]
+    }
+
+    package ect.ops {
+        [timeseries]
+        [gapfill]
+        [resample]
+        [mapping]
+        [plot]
+        [others]
+    }
+
+    package "ect.core" {
+        [cdm]
+        [io]
+
+        [op]
+        [workflow]
+    }
+
+    package "ect.ui" {
+        CLI - [cli]
+        WebAPI - [ws]
+    }
+}
+
+node "CCI_Toolbox_GUI" {
+    [web_app]
+}
+
+node "CCI_Portal" {
+    FTP - [esa_cci_ftp]
+}
+
+
+
+[io] ..> [cdm]
+[workflow] ..> [op]
+[esa_cci_ftp_ds] ..> FTP
+[esa_cci_ftp_ds] ..> io
+
+ect.ops .r.> [cdm]
+
+[web_app] --> WebAPI
+
+@enduml
