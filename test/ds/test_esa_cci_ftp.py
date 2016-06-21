@@ -4,7 +4,7 @@ import os.path
 from unittest import TestCase
 
 from ect.core.io import DATA_STORE_REGISTRY
-from ect.ds.esa_cci_portal_ftp import set_default_data_store
+from ect.ds.esa_cci_ftp import set_default_data_store
 
 
 class EsaCciPortalFtpTest(TestCase):
