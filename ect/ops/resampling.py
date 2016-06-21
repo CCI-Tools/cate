@@ -1,3 +1,8 @@
+"""
+Provides various resampling methods including up- and downsampling.
+"""
+
+
 import numpy as np
 from numba import jit
 

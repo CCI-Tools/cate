@@ -1,3 +1,7 @@
+"""
+Simple time-series extraction operation.
+"""
+
 import xarray as xr
 
 from ect.core.cdm_xarray import XArrayDatasetAdapter
@@ -10,6 +14,15 @@ from ect.core.cdm import Dataset
 @op_input('method', value_set=['nearest', 'ffill', 'bfill', None])
 @op_output('return', description='A timeseries dataset.')
 def timeseries(ds: Dataset, lat: float, lon: float, method: str='nearest') -> Dataset:
+    """
+    Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method*.
+
+    :param ds: The dataset of type :py:class:`Dataset`.
+    :param lat: The latitude in the range of -90 to 90 degrees.
+    :param lon: The longitude in the range of -180 to 180 degrees.
+    :param method: One of ``nearest``, ``ffill``, ``bfill``.
+    :return:
+    """
     if isinstance(ds, XArrayDatasetAdapter):
         wrapped_xarray = ds.wrapped_dataset
         xarray_timeseries = _xarray_timeseries(wrapped_xarray, lat=lat, lon=lon, method=method)
