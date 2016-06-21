@@ -180,8 +180,8 @@ class DataStoreRegistry:
 
     def _repr_html_(self):
         rows = []
-        for name, cat in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(cat)))
+        for name, data_store in self._data_stores.items():
+            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(data_store)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
