@@ -1,3 +1,10 @@
+.. _Intergovernmental Panel on Climate Change: http://www.ipcc.ch/
+.. _CCI Climate Modelling User Group: http://www.esa-cmug-cci.org/
+.. _WCRP Grand Science Challenges: http://www.wcrp-climate.org/grand-challenges
+.. _International Geosphere-Biosphere Programme: http://www.igbp.net/
+.. _Coupled Model Intercomparison Project: http://cmip-pcmdi.llnl.gov/
+.. _Coupled Carbon Cycle Climate Intercomparison Project: http://www.wcrp-climate.org/modelling-wgcm-mip-catalogue/modelling-wgcm-mips/230-modelling-wgcm-c4mip
+
 =========
 Use Cases
 =========
@@ -5,10 +12,24 @@ Use Cases
 Use cases provide application scenarios and requirements along which it will be demonstrated
 how the CCI Toolbox will be implemented and operated.
 
-Use cases are defined at user level, i.e. applicable for one or more user communities.
-Each case is driven by a problem definition, which is given in the beginning and which addresses
-a typical question. This is followed by the required toolbox features and a sequence of single steps,
-how a user is expecting to work with the CCI Toolbox.
+Use cases are defined for various user types and their climate questions come from diverse various application areas.
+
+==== ============================================ ===============================
+Nr   User Type                                    Description of application area
+==== ============================================ ===============================
+1    International climate research community     Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC) scientific assessments, including climate model development, verification and data-assimilation, and scientists performing research on climate change monitoring, detection, attribution and mitigation. This includes (but is not limited to) the `CCI Climate Modelling User Group`_ (CMUG) and the Climate Research Groups (CRG) within each CCI ECV project.
+2    Earth system science community               Working at a higher level than individual climate indicators, interested in Earth processes, interactions and feedbacks involving a fusion of theory, observations and models to which ECVs can play a role. This community includes, but is not exclusive to, those interested in `WCRP Grand Science Challenges`_, climate system integrative approaches, major science themes, global change and socio-economic impact of climate change. Example potential users include the `International Geosphere-Biosphere Programme`_ (IGBP), dynamic global vegetation modellers, the `Coupled Model Intercomparison Project`_ (CMIP), and the `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
+3    Climate service developers and providers	  For use in the development and provision of climate services. The provision of climate services is outside the scope of the CCI programme, nevertheless the Agency aims to proactively support parties involved in the development and provision of such services
+4    Earth system reanalysis community            For use in reanalysis model development, verification and data-assimilation
+5    International bodies                         Responsible for climate change policy making and coordination of climate change measurement, mitigation and adaptation efforts, including UNFCCC, CEOS, IPCC, and COP participants.
+6    Undergraduate and postgraduate students      Academic interest in climate change. Sustained and dedicated actions to generate and disseminate a substantial volume of effective communication and educational materials on the specific subject of Earth Observation and Climate Change to a wider audience are required by the Agency. The CCI Toolbox shall support this endeavour.
+7    Knowledgeable public                         Access and interaction to the latest scientific data on climate change.
+==== ============================================ ===============================
+
+Each use case is introduced by a problem definition, which addresses a typical climate problem.
+This is followed by the required CCI Toolbox features and a sequence of single steps,
+how a user is expecting to use these features in the CCI Toolbox.
+
 
 IPCC Support
 ============
