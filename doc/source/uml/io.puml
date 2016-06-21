@@ -26,6 +26,7 @@ interface DataStore {
 interface DataSource {
     {abstract} get_dataset_schema()
     {abstract} open_dataset(constraints): cdm.Dataset
+    {abstract} sync(time_range)
 }
 
 DataStoreRegistry o--> "N" DataStore

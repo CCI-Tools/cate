@@ -7,9 +7,11 @@ interface DataStore {
 interface DataSource {
     {abstract} get_dataset_schema()
     {abstract} open_dataset(constraints): cdm.Dataset
+    {abstract} sync(time_range)
 }
 
 class FileSetDataStore implements DataStore {
+    remote_url
     root_dir
     query(constraints): DataSource
 }
@@ -20,6 +22,7 @@ class FileSetDataSource implements DataSource {
     file_pattern
     get_dataset_schema()
     open_dataset(constraints): cdm.Dataset
+    sync(time_range)
 }
 
 class FileSetInfo  {

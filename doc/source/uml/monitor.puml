@@ -1,11 +1,13 @@
 @startuml
 
-interface Monitor {
+abstract class Monitor {
     {static} NULL: Monitor
     {abstract} start(self, label: str, total_work: float)
     {abstract} progress(self, work: float = None, msg: str)
     {abstract} done(self)
-    {abstract} child(self, work: float): Monitor
+    child(self, work: float): Monitor
+    cancel()
+    is_cancelled(): bool
 }
 
 class ConsoleMonitor implements Monitor {

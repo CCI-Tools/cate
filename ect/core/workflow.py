@@ -7,7 +7,7 @@ from processing *steps* including Python callables, Python expressions, external
 
 This module provides the following data types:
 
-* A :py:class:`Node` has zero or more ``NodeInput`` and zero or more ``NodeOutput`` objects
+* A :py:class:`Node` has zero or more *inputs* and zero or more *outputs* and can be invoked
 * A :py:class:`Workflow` is a ``Node`` that is composed of ``Step`` objects
 * A :py:class:`Step` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
 * A :py:class:`OpStep` is a ``Step`` that invokes a Python operation (any callable).

@@ -10,10 +10,10 @@ activate Workflow #DarkSalmon
 Workflow -> OpStep: invoke()
 activate OpStep
 
-OpStep -> PyFunction: _call_()
+OpStep -> operation: _call_()
 activate OpStep
 
-PyFunction --> OpStep
+operation --> OpStep
 deactivate OpStep
 OpStep --> Workflow
 deactivate OpStep
