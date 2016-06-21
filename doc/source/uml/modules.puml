@@ -1,18 +1,19 @@
 @startuml
 
+
 node "CCI_Toolbox_Core" {
     package "ect.ds" {
-        DS - [esa_cci_ftp_ds]
-        [more ds...] #white
+        DS - [esa_cci_ftp]
+        [more data stores...] #white
     }
 
     package ect.ops {
-        [timeseries]
+        OP-[timeseries]
         [gapfill]
         [resample]
-        [mapping]
+        [filter]
         [plot]
-        [more ops...] #white
+        [more operations...] #white
     }
 
     package "ect.core" {
@@ -30,20 +31,23 @@ node "CCI_Toolbox_Core" {
 }
 
 node "CCI_Toolbox_GUI" {
-    [web_app]
+    package "ect.gui" {
+        [web_app]
+    }
 }
 
-node "CCI_Portal" {
-    FTP - [cci_ftp_service]
+cloud {
+node "CCI_Data_Access_Portal" #eeeeee {
+    FTP - [ftp_service]
     [more services...] #white
 }
-
+}
 
 
 [io] ..> [cdm]
 [workflow] ..> [op]
-[esa_cci_ftp_ds] ..> FTP
-[esa_cci_ftp_ds] ..> io
+[esa_cci_ftp] ..> FTP
+[esa_cci_ftp] ..> io
 
 ect.ops .r.> [cdm]
 
