@@ -192,7 +192,7 @@ class DataSourceCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
                             help='Data source name. Type "ect list ds" to show all possible names.')
-        parser.add_argument('--period', '-p', nargs=1, metavar='PERIOD',
+        parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
                             help='Limit to date/time period. Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
         parser.add_argument('--info', '-i', action='store_true', default=True,
                             help="Display information about the data source DS_NAME.")
@@ -203,10 +203,10 @@ class DataSourceCommand(Command):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
 
-        if command_args.period:
-            time_range = self.parse_period(command_args.period[0])
+        if command_args.time:
+            time_range = self.parse_time_period(command_args.time[0])
             if not time_range:
-                return 2, "invalid PERIOD: " + command_args.period[0]
+                return 2, "invalid PERIOD: " + command_args.time[0]
         else:
             time_range = None
 
@@ -222,7 +222,7 @@ class DataSourceCommand(Command):
                 data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
 
     @staticmethod
-    def parse_period(period):
+    def parse_time_period(period):
         from datetime import date, timedelta
         period_parts = period.split(',')
         num_period_parts = len(period_parts)

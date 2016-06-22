@@ -76,38 +76,38 @@ class CliDataSourceCommandTest(unittest.TestCase):
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
         with fetch_std_streams() as (sout, serr):
-            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync', '--period', '2010-12'])
+            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync', '--time', '2010-12'])
             self.assertEqual(status, 0)
 
-    def test_command_ds_parse_period(self):
+    def test_command_ds_parse_time_period(self):
         from ect.ui.cli import DataSourceCommand
         from datetime import date
 
-        self.assertEqual(DataSourceCommand.parse_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
 
-        self.assertEqual(DataSourceCommand.parse_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-12,2011-12'), (date(2010, 12, 1), date(2011, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-02-04,2019-02-04'), (date(2010, 2, 4), date(2019, 2, 4)))
-        self.assertEqual(DataSourceCommand.parse_period('2010-12-31,2010-01-06'), (date(2010, 12, 31), date(2010, 1, 6)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12,2011-12'), (date(2010, 12, 1), date(2011, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04,2019-02-04'), (date(2010, 2, 4), date(2019, 2, 4)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01-06'), (date(2010, 12, 31), date(2010, 1, 6)))
 
         # errors
-        self.assertEqual(DataSourceCommand.parse_period('2010-12-31,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_period('2010,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_period('2010-01,2010-76'), None)
-        self.assertEqual(DataSourceCommand.parse_period('2010-1-3-83,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_period('20L0-1-3-83,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_time_period('2010,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-01,2010-76'), None)
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-1-3-83,2010-01'), None)
+        self.assertEqual(DataSourceCommand.parse_time_period('20L0-1-3-83,2010-01'), None)
 
     def test_command_run_no_args(self):
         with fetch_std_streams() as (sout, serr):
             status = cli.main(args=['ds'])
             self.assertEqual(status, 2)
         self.assertEqual(sout.getvalue(), '')
-        self.assertEqual(serr.getvalue(), "usage: ect ds [-h] [--period PERIOD] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
+        self.assertEqual(serr.getvalue(), "usage: ect ds [-h] [--time PERIOD] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
                                           "ect: ect ds: error: the following arguments are required: DS_NAME\n\n")
 
 
