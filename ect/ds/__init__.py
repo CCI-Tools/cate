@@ -7,5 +7,8 @@ This is a plugin package automatically imported by the installation script's ent
 
 
 def ect_init():
+    """Plugin initializer.
+    Sets the default data store."""
+
     from .esa_cci_ftp import set_default_data_store
     set_default_data_store()
