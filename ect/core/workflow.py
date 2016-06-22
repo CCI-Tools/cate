@@ -41,8 +41,14 @@ operation is currently:::
 
 Where *OP* is a registered operation and *WORKFLOW* is a JSON file containing a JSON workflow representation.
 
-Module Reference
-================
+Verification
+============
+
+The module's unit-tests are located in `test/test_workflow.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_workflow.py>`_
+and may be executed using ``$ py.test test/test_workflow.py --cov=ect/core/workflow.py`` for extra code coverage information.
+
+Components
+==========
 """
 
 from abc import ABCMeta, abstractmethod

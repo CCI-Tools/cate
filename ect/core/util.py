@@ -6,8 +6,14 @@ Provides random utility functions.
 
 *Implementation note: this module shall not have any dependencies to higher-level ECT modules.*
 
-Module Reference
-================
+Verification
+============
+
+The module's unit-tests are located in `test/test_util.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_util.py>`_
+and may be executed using ``$ py.test test/test_util.py --cov=ect/core/util.py`` for extra code coverage information.
+
+Components
+==========
 """
 from collections import OrderedDict
 

@@ -26,6 +26,15 @@ If your function makes calls to other functions that also support a monitor, use
 The module also provides a simple but still useful default implementation :py:class:`ConsoleMonitor`, which
 prints progress output directly to the console.
 
+Verification
+============
+
+The module's unit-tests are located in `test/test_monitor.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_monitor.py>`_
+and may be executed using ``$ py.test test/test_monitor.py --cov=ect/core/monitor.py`` for extra code coverage information.
+
+Components
+==========
+
 """
 import signal
 import sys

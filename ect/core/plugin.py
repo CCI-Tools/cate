@@ -37,8 +37,14 @@ or::
 
 The return values are ignored.
 
-Module Reference
-================
+Verification
+============
+
+The module's unit-tests are located in `test/test_plugin.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_plugin.py>`_
+and may be executed using ``$ py.test test/test_plugin.py --cov=ect/core/plugin.py`` for extra code coverage information.
+
+Components
+==========
 """
 
 import sys

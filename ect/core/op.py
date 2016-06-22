@@ -27,8 +27,15 @@ Design targets:
 * Operations should take an optional *monitor* which will be passed by the framework to observe the progress and
   to cancel an operation
 
-Module Reference
-================
+Verification
+============
+
+The module's unit-tests are located in `test/test_op.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_op.py>`_
+and may be executed using ``$ py.test test/test_op.py --cov=ect/core/plugin.py`` for extra code coverage information.
+
+
+Components
+==========
 """
 
 from collections import OrderedDict

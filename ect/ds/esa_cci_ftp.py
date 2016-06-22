@@ -1,6 +1,15 @@
 """
 This plugin module adds the ESA CCI Data Portal's FTP data source to
 the data store registry and makes it the default data store.
+
+Verification
+============
+
+The module's unit-tests are located in `test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+and may be executed using ``$ py.test test/ds/test_esa_cci_ftp.py --cov=ect/ds/esa_cci_ftp.py`` for extra code coverage information.
+
+Components
+==========
 """
 
 import os

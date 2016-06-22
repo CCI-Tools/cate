@@ -36,20 +36,20 @@ def resample_2d(src, w, h, ds_method=DS_MEAN, us_method=US_LINEAR, fill_value=No
 
     :param src: 2-D *ndarray*
     :param w: *int*
-    New grid width
+        New grid width
     :param h:  *int*
-    New grid height
+        New grid height
     :param ds_method: one of the *DS_* constants, optional
-    Grid cell aggregation method for a possible downsampling
+        Grid cell aggregation method for a possible downsampling
     :param us_method: one of the *US_* constants, optional
-    Grid cell interpolation method for a possible upsampling
+        Grid cell interpolation method for a possible upsampling
     :param fill_value: *scalar*, optional
-    If ``None``, it is taken from **src** if it is a masked array,
-    otherwise from *out* if it is a masked array,
-    otherwise numpy's default value is used.
+        If ``None``, it is taken from **src** if it is a masked array,
+        otherwise from *out* if it is a masked array,
+        otherwise numpy's default value is used.
     :param out: 2-D *ndarray*, optional
-    Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
-    shape as the expected output.
+        Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
+        shape as the expected output.
     :return: An resampled version of the *src* array.
     """
     out = _get_out(out, src, (h, w))
@@ -66,18 +66,18 @@ def upsample_2d(src, w, h, method=US_LINEAR, fill_value=None, out=None):
 
     :param src: 2-D *ndarray*
     :param w: *int*
-    Grid width, which must be greater than or equal to *src.shape[-1]*
+        Grid width, which must be greater than or equal to *src.shape[-1]*
     :param h:  *int*
-    Grid height, which must be greater than or equal to *src.shape[-2]*
+        Grid height, which must be greater than or equal to *src.shape[-2]*
     :param method: one of the *US_* constants, optional
-    Grid cell interpolation method
+        Grid cell interpolation method
     :param fill_value: *scalar*, optional
-    If ``None``, it is taken from **src** if it is a masked array,
-    otherwise from *out* if it is a masked array,
-    otherwise numpy's default value is used.
+        If ``None``, it is taken from **src** if it is a masked array,
+        otherwise from *out* if it is a masked array,
+        otherwise numpy's default value is used.
     :param out: 2-D *ndarray*, optional
-    Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
-    shape as the expected output.
+        Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
+        shape as the expected output.
     :return: An upsampled version of the *src* array.
     """
     out = _get_out(out, src, (h, w))
@@ -94,18 +94,18 @@ def downsample_2d(src, w, h, method=DS_MEAN, fill_value=None, out=None):
 
     :param src: 2-D *ndarray*
     :param w: *int*
-    Grid width, which must be less than or equal to *src.shape[-1]*
+        Grid width, which must be less than or equal to *src.shape[-1]*
     :param h:  *int*
-    Grid height, which must be less than or equal to *src.shape[-2]*
+        Grid height, which must be less than or equal to *src.shape[-2]*
     :param method: one of the *DS_* constants, optional
-    Grid cell aggregation method
+        Grid cell aggregation method
     :param fill_value: *scalar*, optional
-    If ``None``, it is taken from **src** if it is a masked array,
-    otherwise from *out* if it is a masked array,
-    otherwise numpy's default value is used.
+        If ``None``, it is taken from **src** if it is a masked array,
+        otherwise from *out* if it is a masked array,
+        otherwise numpy's default value is used.
     :param out: 2-D *ndarray*, optional
-    Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
-    shape as the expected output.
+        Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
+        shape as the expected output.
     :return: A downsampled version of the *src* array.
     """
     out = _get_out(out, src, (h, w))

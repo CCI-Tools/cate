@@ -1,5 +1,14 @@
 """
 Simple time-series extraction operation.
+
+Verification
+============
+
+The module's unit-tests are located in `test/ops/test_timeseries.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ops/test_timeseries.py>`_
+and may be executed using ``$ py.test test/ops/test_timeseries.py --cov=ect/ops/timeseries.py`` for extra code coverage information.
+
+Components
+==========
 """
 
 import xarray as xr
