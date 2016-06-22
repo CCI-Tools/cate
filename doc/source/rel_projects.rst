@@ -15,14 +15,14 @@ With Iris you can:
 
 * Use a single API to work on your data, irrespective of its original format.
 * Read and write (CF-)netCDF, GRIB, and PP files.
-* Easily produce graphs and maps via integration with matplotlib and cartopy.
+* Easily produce graphs and maps via integration with ``matplotlib`` and ``cartopy``.
 
 
 AOCW
 ====
 
 The `Apache Open Climate Workbench <https://climate.apache.org/>`_ is Python library for common model evaluation tasks
- as well as a flexible RESTful API, which allows integrating the capabilities of the toolkit into their workflow
+as well as a flexible RESTful API, which allows integrating the capabilities of the toolkit into their workflow
 regardless of language and environment by performing HTTP requests.
 
 
