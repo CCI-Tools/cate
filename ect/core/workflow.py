@@ -2,7 +2,7 @@
 Description
 ===========
 
-Provides classes that are used to construct processing *workflows* (networks, directed acyclic graphs) from registered
+Provides classes that are used to construct processing *workflows* (networks, directed acyclic graphs)
 from processing *steps* including Python callables, Python expressions, external processes, and other workflows.
 
 This module provides the following data types:
@@ -17,9 +17,6 @@ This module provides the following data types:
   outputs of node. A node connector has a name, a property ``source``, and a property ``value``.
   If ``source`` is set, it must be another ``NodeConnector`` that provides the actual connector's value.
   The value of the ``value`` property can be basically anything that has an external (JSON) representation.
-
-Technical Requirements
-======================
 
 A workflow is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
 connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow.
@@ -40,6 +37,35 @@ operation is currently:::
     ect run OP|WORKFLOW [ARGS]
 
 Where *OP* is a registered operation and *WORKFLOW* is a JSON file containing a JSON workflow representation.
+
+Technical Requirements
+======================
+
+**Combine processors and other operations to create operation chains or processing graphs**
+
+:Description: Provide the means to connect multiple processing steps, which may be registered operations, operating
+system calls, remote service invocations.
+
+:URD-Sources:
+    * CCIT-UR-LM0001: processor management allowing easy selection of tools and functionalities.
+    * CCIT-UR-LM0002: accommodating ECV-specific processors in cases where the processing is specific to an ECV.
+    * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language (Graph Builder).
+    * CCIT-UR-LM0004: selection of a number of predefined standard processing chains.
+    * CCIT-UR-LM0005: means to configure a processor chain comprised of one processor only from the library to execute on data from the Common Data Model.
+
+----
+
+**Programming language neutral representation**
+
+:Description: Processing graphs must be representable in a programming language neutral representation such as
+XML, JSON, YAML, so they can be designed by non-programmers and can be easily serialised, e.g. for communication with
+a web service.
+
+:URD-Source:
+    * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language
+    * CCIT-UR-CL0001: reading and executing script files written in XML or similar
+
+----
 
 Verification
 ============

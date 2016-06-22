@@ -2,14 +2,26 @@
 Description
 ===========
 
+.. _xarray: http://xarray.pydata.org/en/stable/
+.. _Dask: http://dask.pydata.org/en/latest/
+.. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
+.. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
+.. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
+.. _Fiona: http://toblerity.org/fiona/
+.. _CCI Toolbox URD: https://www.dropbox.com/s/0bhp6uwwk6omj8k/CCITBX-URD-v1.0Rev1.pdf?dl=0
+
 This module provides classes and interfaces used to harmonise the access to and operations on various
 types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
 `ESRI Shapefile`_ files.
 
 The goal of the ECT is to reuse existing, and well-known APIs for a given data type to a maximum extend
 instead of creating a complex new API. The ECT's common data model is therefore designed as a thin
-wrapper around the `xarray` N-D Gridded Datasets Python API that represents nicely netCDF, HDF-5 and OPeNDAP
-data types, i.e. Unidata's `Common Data Model`_.
+wrapper around the xarray_ N-D Gridded Datasets Python API that represents nicely netCDF, HDF-5 and OPeNDAP
+data types, i.e. Unidata's `Common Data Model`_. For the ESRI Shapefile representation we target at
+Fiona_, which reads and writes spatial data files.
+
+The use of xarray_ allows the CCI Toolbox to access and process very large datasets without the need to load them
+entirely into memory. This feature is enabled by the internal use of the Dask_ library.
 
 The ECT common data model exposes three important classes:
 
@@ -18,26 +30,18 @@ The ECT common data model exposes three important classes:
 3. :py:class:`DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the
    common ``Dataset`` interface
 
-.. _xarray: http://xarray.pydata.org/en/stable/
-.. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
-.. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
-.. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
 
 Technical Requirements
 ======================
 
-**Query data store**
+The design of this module is driven by the following technical requirements given in the `CCI Toolbox URD`_:
 
-:Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
-    and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
-:Specified in: <link to other RST page here>
-:URD-Source:
-    * CCIT-UR-DM0006: Data access to ESA CCI
-    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
-    * CCIT-UR-DM0013: The CCI Toolbox shall allow filtering
-
-----
-
+* CCIT-UR-DM0001: access and input different kinds and sizes of data.
+* CCIT-UR-DM0002: large datasets
+* CCIT-UR-DM0003: multi-dimensional data
+* CCIT-UR-DM0004: multiple inputs
+* CCIT-UR-DM0011: access to and ingestion of non-CCI data:
+* CCIT-UR-DM0012: handle different input file formats
 
 Verification
 ============

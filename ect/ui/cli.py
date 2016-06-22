@@ -18,6 +18,7 @@ Technical Requirements
 :Description: The CCI Toolbox should only have a single CLI executable that comes with multiple sub-commands
     instead of maintaining a number of different executables for each purpose. Plugins shall be able to add new
     CLI sub-commands.
+
 :URD-Source:
     * CCIT-UR-CR0001: Extensibility.
     * CCIT-UR-A0002: Offer a Command Line Interface (CLI).
@@ -47,6 +48,7 @@ Technical Requirements
 
 :URD-Source:
     * CCIT-UR-DM0009: Holding information of any CCI ECV type
+    * CCIT-UR-DM0010: Attain meta-level status information per ECV type
 
 ----
 

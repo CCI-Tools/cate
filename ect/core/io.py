@@ -11,7 +11,7 @@ Technical Requirements
 
 :Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
     and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
-:Specified in: <link to other RST page here>
+
 :URD-Source:
     * CCIT-UR-DM0006: Data access to ESA CCI
     * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
@@ -23,7 +23,7 @@ Technical Requirements
 
 :Description: Allow adding of user defined data stores specifying the access protocol and the layout of the data.
     These data stores can be used to access datasets.
-:Specified in: <link to other RST page here>
+
 :URD-Source:
     * CCIT-UR-DM0011: Data access to non-CCI data
 
@@ -34,7 +34,7 @@ Technical Requirements
 :Description: Allow opening an ECV dataset given an identifier returned by the *data store query*.
    The dataset returned complies to the ECT common data model.
    The dataset to be returned can optionally be constrained in time and space.
-:Specified in: <link to other RST page here>
+
 :URD-Source:
     * CCIT-UR-DM0001: Data access and input
     * CCIT-UR-DM0004: Open multiple inputs

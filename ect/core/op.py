@@ -11,21 +11,64 @@ input value conversion, monitoring, and inter-connection of multiple operations 
 Operations are registered in operation registries (:py:class:`OpRegistry`), the default operation registry is
 accessible via the global, read-only ``OP_REGISTRY`` variable.
 
-Design targets:
+Technical Requirements
+======================
 
-* Exploit Python language to let users express an operation in an intuitive form.
-* Stay with Python base types instead of introducing a number of new data structures.
-* Derive meta information such as names, types and documentation for the operation, its inputs, and its outputs from
-  Python code
-* An operation should be able to explain itself when used in a REPL in terms of its algorithms, its inputs, and its
-  outputs.
-* Three simple class annotations shall be used to decorate operations classes: an optional ``operation`` decorator,
-  one or more ``input``, ``output`` decorators.
-* Operation registration is done by operation class annotations.
-* It shall be possible to register any Python-callable of the from ``op(*args, **kwargs)`` as an operation.
-* Initial operation meta information will be derived from Python code introspection
-* Operations should take an optional *monitor* which will be passed by the framework to observe the progress and
-  to cancel an operation
+**Operation registration, lookup, and invocation**
+
+:Description: Maintain a central place in the software that manages the available operations such as data processors,
+data converters, analysis functions, etc. Operations can be added, removed and retrieved.
+Operations are designed to be executed by the framework in a controlled way, i.e. an operation's task
+can be monitored and cancelled, it's input and out values can be validated w.r.t. the operation's meta-information.
+
+:URD-Sources:
+    * CCIT-UR-CR0001: Extensibility.
+    * CCIT-UR-E0002: dynamic extension of all modules at runtime, c) The Logic Module to introduce new processors
+    * CCIT-UR-LM0001: processor management allowing easy selection of tools and functionalities
+
+----
+
+**Exploit Python language features**
+
+:Description: Exploit Python language to let API users express an operation in an intuitive form. For the framework API,
+stay with Python base types as far as possible instead of introducing a number of new data structures.
+Let the framework derive meta information such as names, types and documentation for the operation, its inputs,
+and its outputs from the user's Python code.
+It shall be possible to register any Python-callable of the from ``f(*args, **kwargs)`` as an operation.
+
+----
+
+**Add extra meta-information to operations**
+
+:Description: Initial operation meta-information will be derived from Python code introspection. It shall include
+the user function's docstring and information about the arguments an its return values, exploiting any type annotations.
+For example, the following properties can be associated with input arguments: data type, default value, value set,
+valid range, if it is mandatory or optional, expected dataset schema so that operations can be ECV-specific.
+Meta-information is required to let an operation explain itself when used in a (IPython) REPL or when web service is
+requested to respond with an operations's capabilities.
+API users shall be able to extend the initial meta-information derived from Python code.
+
+:URD-Source:
+    * CCIT-UR-LM0006: offer default values for lower level users as well as selectable options for higher level users.
+    * CCIT-UR-LM0002: accommodating ECV-specific processors in cases where the processing is specific to an ECV.
+
+----
+
+**Static annotation vs. dynamic, programmatic registration**
+
+:Description: Operation registration and meta-information extension shall also be done by operation class /
+function *decorators*. The API shall provide a simple set of dedicated decorators that API user's attach to their
+operations. They will automatically register the user function as operation and add any extra meta-information.
+
+----
+
+**Operation monitoring**
+
+:Description: Operation registration should recognise an optional *monitor* argument of a user function:
+``f(*args, monitor=Monitor.NULL, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) will be passed
+by the framework to the user function in order to observe the progress and to cancel an operation.
+
+----
 
 Verification
 ============
