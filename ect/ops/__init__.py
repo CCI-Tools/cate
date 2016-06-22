@@ -5,8 +5,8 @@ This is a plugin package automatically imported by the installation script's ent
 (see the projects ``setup.py`` file).
 """
 
-from .timeseries import timeseries
 from .resampling import resample_2d, downsample_2d, upsample_2d
+from .timeseries import timeseries
 
 __all__ = [
     'timeseries',
@@ -17,7 +17,9 @@ __all__ = [
 
 
 def ect_init():
-    """Plugin initializer.
-    Currently no implementation here, because operations are registered automatically
-    via decorators."""
+    """
+    Plugin initializer.
+
+    Left empty because operations are registered automatically via decorators.
+    """
     pass

@@ -5,10 +5,17 @@ This is a plugin package automatically imported by the installation script's ent
 (see the projects ``setup.py`` file).
 """
 
+from .esa_cci_ftp import set_default_data_store
+
+__all__ = [
+    'set_default_data_store',
+]
+
 
 def ect_init():
-    """Plugin initializer.
-    Sets the default data store."""
+    """
+    Plugin initializer.
+    Sets the default data store.
+    """
 
-    from .esa_cci_ftp import set_default_data_store
     set_default_data_store()

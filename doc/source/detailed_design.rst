@@ -13,7 +13,7 @@ The documentation is generated for individual modules. Note that this modularisa
 subset of the components, types, interfaces, and variables describes here and is described in chapter :doc:`api_reference`.
 
 Each top level module documentation in the following sections provides a *Module Description* that provides
-the module's purpose, contents, and possibly its usage. Module descriptions may link into :doc:`op_spec` for further
+the module's purpose, contents, and possibly its usage. Module descriptions may link into :doc:`op_specs` for further
 explanation and traceability of the detailed design. An optional sub-section *Technical Requirements* provides a
 mapping from URD requirements to technical requirements and software features that drove the design of a module.
 If available, links to `verifying unit-tests`_ are given.
@@ -76,20 +76,12 @@ Module unit-tests: `test/test_util.py <https://github.com/CCI-Tools/ect-core/blo
 .. automodule:: ect.core.util
     :members:
 
-Module ``ect.core.ui.cli``
-==========================
+Module ``ect.ui.cli``
+=====================
 
 Module unit-tests: `test/ui/test_cli.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ui/test_cli.py>`_.
 
-.. automodule:: ect.core.cli
-    :members:
-
-Module ``ect.core.ui.cli``
-==========================
-
-Module unit-tests: `test/ui/test_cli.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ui/test_cli.py>`_.
-
-.. automodule:: ect.core.cli
+.. automodule:: ect.ui.cli
     :members:
 
 Module ``ect.ops``
