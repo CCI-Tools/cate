@@ -63,13 +63,7 @@ Operations
 Workflows
 =========
 
-.. autoclass:: ect.Node
-    :members:
-
 .. autoclass:: ect.Workflow
-    :members:
-
-.. autoclass:: ect.Step
     :members:
 
 .. autoclass:: ect.OpStep
@@ -79,6 +73,15 @@ Workflows
     :members:
 
 .. autoclass:: ect.WorkflowStep
+    :members:
+
+.. autoclass:: ect.Step
+    :members:
+
+.. autoclass:: ect.Node
+    :members:
+
+.. autoclass:: ect.NodeConnector
     :members:
 
 Task Monitoring
