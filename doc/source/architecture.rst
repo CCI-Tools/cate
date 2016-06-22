@@ -9,10 +9,6 @@
 Architecture
 ============
 
-
-Scope and Purpose
-=================
-
 This chapter describes the internal, technical design of the CCI Toolbox that has been developed on the basis of the
 `CCI Toolbox User Requirements Document`_ (URD), the climate data exploitation :doc:`use_cases` defined in the URD, as
 well as the abstract :doc:`op_specs` that have been derived from both.
