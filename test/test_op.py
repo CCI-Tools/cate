@@ -3,7 +3,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.monitor import Monitor
-from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output
+from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
 from ect.core.util import object_to_qualified_name
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
@@ -279,7 +279,7 @@ class OpTest(TestCase):
             registry.remove_op(C, fail_if_not_exists=True)
 
     def test_C_op(self):
-        @op(registry=self.registry)
+        @op(author='Ernie and Bert', registry=self.registry)
         class C_op:
             """Hi, I am C_op!"""
 
@@ -294,7 +294,7 @@ class OpTest(TestCase):
         self.assertIs(op_reg.operation, C_op)
         self._assertMetaInfo(op_reg.meta_info,
                              object_to_qualified_name(C_op),
-                             dict(description='Hi, I am C_op!'),
+                             dict(description='Hi, I am C_op!', author='Ernie and Bert'),
                              OrderedDict(),
                              OrderedDict({RETURN: {}}))
 
@@ -466,6 +466,12 @@ class OpTest(TestCase):
                              dict(description='Hi, I am C_op_inp_out!'),
                              expected_inputs,
                              expected_outputs)
+
+
+class DefaultOpRegistryTest(TestCase):
+    def test_it(self):
+        self.assertIsNotNone(OP_REGISTRY)
+        self.assertEqual(repr(OP_REGISTRY), 'OP_REGISTRY')
 
 
 class MyMonitor(Monitor):

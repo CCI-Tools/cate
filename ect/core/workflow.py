@@ -44,7 +44,7 @@ Technical Requirements
 **Combine processors and other operations to create operation chains or processing graphs**
 
 :Description: Provide the means to connect multiple processing steps, which may be registered operations, operating
-system calls, remote service invocations.
+    system calls, remote service invocations.
 
 :URD-Sources:
     * CCIT-UR-LM0001: processor management allowing easy selection of tools and functionalities.
@@ -58,8 +58,8 @@ system calls, remote service invocations.
 **Programming language neutral representation**
 
 :Description: Processing graphs must be representable in a programming language neutral representation such as
-XML, JSON, YAML, so they can be designed by non-programmers and can be easily serialised, e.g. for communication with
-a web service.
+    XML, JSON, YAML, so they can be designed by non-programmers and can be easily serialised, e.g. for communication with
+    a web service.
 
 :URD-Source:
     * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language

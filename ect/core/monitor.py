@@ -5,26 +5,6 @@ Description
 This module defines the :py:class:`Monitor` interface that may be used by functions and methods
 that offer support for observation and control of long-running tasks.
 
-Example usage:::
-    from ect.core.util.monitor import starting
-
-    def long_running_task(a, b, c, monitor):
-        with monitor.starting('doing a long running task', total_work=100)
-            # do 30% of the work here
-            monitor.progress(work=30)
-            # do 70% of the work here
-            monitor.progress(work=70)
-
-If your function makes calls to other functions that also support a monitor, use a *child-monitor*:::
-
-    def long_running_task(a, b, c, monitor):
-        with monitor.starting('doing a long running task', total_work=100)
-            # let other_task do 30% of the work
-            other_task(a, b, c, monitor=monitor.child(work=30))
-            # let other_task do 70% of the work
-            other_task(a, b, c, monitor=monitor.child(work=70))
-
-
 The module also provides a simple but still useful default implementation :py:class:`ConsoleMonitor`, which
 prints progress output directly to the console.
 
@@ -55,6 +35,25 @@ class Monitor(metaclass=ABCMeta):
     :py:meth:`cancel` and :py:meth:`is_cancelled`.
 
     Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
+
+    Given here is an example of how progress monitors should be used by functions:::
+
+        def long_running_task(a, b, c, monitor):
+            with monitor.starting('doing a long running task', total_work=100)
+                # do 30% of the work here
+                monitor.progress(work=30)
+                # do 70% of the work here
+                monitor.progress(work=70)
+
+    If a function makes calls to other functions that also support a monitor, a *child-monitor* is used:::
+
+        def long_running_task(a, b, c, monitor):
+            with monitor.starting('doing a long running task', total_work=100)
+                # let other_task do 30% of the work
+                other_task(a, b, c, monitor=monitor.child(work=30))
+                # let other_task do 70% of the work
+                other_task(a, b, c, monitor=monitor.child(work=70))
+
     """
 
     #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
@@ -205,7 +204,11 @@ class ChildMonitor(Monitor):
 
 class ConsoleMonitor(Monitor):
     """
-    A simple console monitor that directly writes to stdout and detects cancellation requests via CTRL+C.
+    A simple console monitor that directly writes to ``sys.stdout`` and detects user cancellation requests via CTRL+C.
+
+    :param stay_in_line: If ``True``, the text written out will stay in the same line.
+    :param progress_bar_size: If ``> 0``, a progress monitor of *progress_bar_size* characters
+        will be written to the console.
     """
 
     def __init__(self, stay_in_line=False, progress_bar_size=None):

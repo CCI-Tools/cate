@@ -17,9 +17,9 @@ Technical Requirements
 **Operation registration, lookup, and invocation**
 
 :Description: Maintain a central place in the software that manages the available operations such as data processors,
-data converters, analysis functions, etc. Operations can be added, removed and retrieved.
-Operations are designed to be executed by the framework in a controlled way, i.e. an operation's task
-can be monitored and cancelled, it's input and out values can be validated w.r.t. the operation's meta-information.
+    data converters, analysis functions, etc. Operations can be added, removed and retrieved.
+    Operations are designed to be executed by the framework in a controlled way, i.e. an operation's task
+    can be monitored and cancelled, it's input and out values can be validated w.r.t. the operation's meta-information.
 
 :URD-Sources:
     * CCIT-UR-CR0001: Extensibility.
@@ -31,22 +31,22 @@ can be monitored and cancelled, it's input and out values can be validated w.r.t
 **Exploit Python language features**
 
 :Description: Exploit Python language to let API users express an operation in an intuitive form. For the framework API,
-stay with Python base types as far as possible instead of introducing a number of new data structures.
-Let the framework derive meta information such as names, types and documentation for the operation, its inputs,
-and its outputs from the user's Python code.
-It shall be possible to register any Python-callable of the from ``f(*args, **kwargs)`` as an operation.
+    stay with Python base types as far as possible instead of introducing a number of new data structures.
+    Let the framework derive meta information such as names, types and documentation for the operation, its inputs,
+    and its outputs from the user's Python code.
+    It shall be possible to register any Python-callable of the from ``f(*args, **kwargs)`` as an operation.
 
 ----
 
 **Add extra meta-information to operations**
 
 :Description: Initial operation meta-information will be derived from Python code introspection. It shall include
-the user function's docstring and information about the arguments an its return values, exploiting any type annotations.
-For example, the following properties can be associated with input arguments: data type, default value, value set,
-valid range, if it is mandatory or optional, expected dataset schema so that operations can be ECV-specific.
-Meta-information is required to let an operation explain itself when used in a (IPython) REPL or when web service is
-requested to respond with an operations's capabilities.
-API users shall be able to extend the initial meta-information derived from Python code.
+    the user function's docstring and information about the arguments an its return values, exploiting any type annotations.
+    For example, the following properties can be associated with input arguments: data type, default value, value set,
+    valid range, if it is mandatory or optional, expected dataset schema so that operations can be ECV-specific.
+    Meta-information is required to let an operation explain itself when used in a (IPython) REPL or when web service is
+    requested to respond with an operations's capabilities.
+    API users shall be able to extend the initial meta-information derived from Python code.
 
 :URD-Source:
     * CCIT-UR-LM0006: offer default values for lower level users as well as selectable options for higher level users.
@@ -57,16 +57,16 @@ API users shall be able to extend the initial meta-information derived from Pyth
 **Static annotation vs. dynamic, programmatic registration**
 
 :Description: Operation registration and meta-information extension shall also be done by operation class /
-function *decorators*. The API shall provide a simple set of dedicated decorators that API user's attach to their
-operations. They will automatically register the user function as operation and add any extra meta-information.
+    function *decorators*. The API shall provide a simple set of dedicated decorators that API user's attach to their
+    operations. They will automatically register the user function as operation and add any extra meta-information.
 
 ----
 
 **Operation monitoring**
 
 :Description: Operation registration should recognise an optional *monitor* argument of a user function:
-``f(*args, monitor=Monitor.NULL, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) will be passed
-by the framework to the user function in order to observe the progress and to cancel an operation.
+    ``f(*args, monitor=Monitor.NULL, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) will be passed
+    by the framework to the user function in order to observe the progress and to cancel an operation.
 
 ----
 
@@ -501,7 +501,7 @@ class OpRegistry:
 
 class _DefaultOpRegistry(OpRegistry):
     def __repr__(self):
-        return 'REGISTRY'
+        return 'OP_REGISTRY'
 
 
 # check (nf) - for more flexibility, REGISTRY may be configured by dependency injection
@@ -511,22 +511,25 @@ class _DefaultOpRegistry(OpRegistry):
 OP_REGISTRY = _DefaultOpRegistry()
 
 
-def op(registry=OP_REGISTRY):
+def op(registry=OP_REGISTRY, **properties):
     """
-    Classes or functions annotated by this decorator are added to the given *registry*.
-    Classes annotated by this decorator must have callable instances. Callable instances
-    and functions must have the following signature:::
+    ``op`` is a decorator function that registers a Python function or class in the default operation registry or
+    the one given by *registry*, if any.
+    Any other keywords arguments in *header* are added to the operation's meta-information header.
+    Classes annotated by this decorator must have callable instances.
 
-        operation(**input_values) -> dict
-
+    :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     :param registry: The operation registry.
     """
 
-    def _op(operation):
-        registry.add_op(operation, fail_if_exists=False)
-        return operation
+    def decorator(func_or_class):
+        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
+        header = op_registration.meta_info.header
+        new_header = dict(**properties)
+        _update_properties(header, new_header)
+        return func_or_class
 
-    return _op
+    return decorator
 
 
 def op_input(input_name: str,
@@ -536,11 +539,12 @@ def op_input(input_name: str,
              value_set=None,
              value_range=None,
              registry=OP_REGISTRY,
-             **kwargs):
+             **properties):
     """
-    Define an operation input.
-    This is a decorator function used to annotate classes or functions which are added the given *registry*
-    (if not already done) and are assigned a new input with the given *input_name*.
+    ``op_input`` is a decorator function that provides meta-information for an operation input identified by
+    *input_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
+    operation registry or the one given by *registry*, if any.
+    Any other keywords arguments in *properties* are added to the input's meta-information.
 
     :param input_name: The name of an input.
     :param required: If ``True``, a value must be provided, otherwise *default_value* is used.
@@ -549,11 +553,12 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
                       must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
-    :param registry: The operation registry.
+    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the named output.
+    :param registry: Optional operation registry.
     """
 
-    def decorator(operation):
-        op_registration = registry.add_op(operation, fail_if_exists=False)
+    def decorator(func_or_class):
+        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
         input_namespace = op_registration.meta_info.input
         if input_name not in input_namespace:
             input_namespace[input_name] = dict()
@@ -562,9 +567,9 @@ def op_input(input_name: str,
                               default_value=default_value,
                               required=required,
                               value_set=value_set,
-                              value_range=value_range, **kwargs)
+                              value_range=value_range, **properties)
         _update_properties(input_properties, new_properties)
-        return operation
+        return func_or_class
 
     return decorator
 
@@ -572,19 +577,21 @@ def op_input(input_name: str,
 def op_output(output_name: str,
               data_type=None,
               registry=OP_REGISTRY,
-              **kwargs):
+              **properties):
     """
-    Define an operation output.
-    This is a decorator function used to annotate classes or functions which are added the given *registry*
-    (if not already done) and are assigned a new output with the given *output_name*.
+    ``op_output`` is a decorator function that provides meta-information for an operation output identified by
+    *output_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
+    operation registry or the one given by *registry*, if any.
+    Any other keywords arguments in *properties* are added to the output's meta-information.
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
-    :param registry: The operation registry.
+    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the named output.
+    :param registry: Optional operation registry.
     """
 
-    def _op_output(operation):
-        op_registration = registry.add_op(operation, fail_if_exists=False)
+    def decorator(func_or_class):
+        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
         output_namespace = op_registration.meta_info.output
         if not op_registration.meta_info.has_named_outputs:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
@@ -594,28 +601,30 @@ def op_output(output_name: str,
         elif output_name not in output_namespace:
             output_namespace[output_name] = dict()
         output_properties = output_namespace[output_name]
-        new_properties = dict(data_type=data_type, **kwargs)
+        new_properties = dict(data_type=data_type, **properties)
         _update_properties(output_properties, new_properties)
-        return operation
+        return func_or_class
 
-    return _op_output
+    return decorator
 
 
 def op_return(data_type=None,
               registry=OP_REGISTRY,
-              **kwargs):
+              **properties):
     """
-    Define an operation's single return value.
-    This is a decorator function used to annotate classes or functions which are added the given *registry*
-    (if not already done) and are assigned a new single output.
+    ``op_return`` is a decorator function that provides meta-information for a single, anonymous operation return value
+    (whose output name is ``"return"``). If the decorated function or class is not registered as an operation yet,
+    it is added to the default operation registry or the one given by *registry*, if any.
+    Any other keywords arguments in *properties* are added to the output's meta-information.
 
-    :param data_type: The data type of the output value.
+    :param data_type: The data type of the return value.
+    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
     :param registry: The operation registry.
     """
     return op_output(OpMetaInfo.RETURN_OUTPUT_NAME,
                      data_type=data_type,
                      registry=registry,
-                     **kwargs)
+                     **properties)
 
 
 def _update_properties(old_properties: dict, new_properties: dict):
