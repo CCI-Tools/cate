@@ -1,4 +1,7 @@
 """
+Description
+===========
+
 This plugin module adds the ESA CCI Data Portal's FTP data source to
 the data store registry and makes it the default data store.
 

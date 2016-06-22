@@ -1,5 +1,11 @@
 """
+Description
+===========
+
 Provides various resampling methods including up- and downsampling.
+
+Components
+==========
 """
 
 

@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 Provides random utility functions.
 

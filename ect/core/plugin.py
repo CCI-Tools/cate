@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 The ``ect.core.plugin`` module exposes the ECT's plugin ``REGISTRY`` which is mapping from ECT entry point names to
 plugin meta information. An ECT plugin is any callable in an internal/extension module registered with ``ect_plugins``

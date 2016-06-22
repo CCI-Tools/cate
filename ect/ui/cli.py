@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 This module provides ECT's command-line interface (CLI) API and the CLI executable.
 
@@ -10,9 +10,64 @@ To use the CLI executable, invoke the module file as a script, type ``python3 cl
 The CLI operates on sub-commands. New sub-commands can be added by inheriting from the :py:class:`Command` class
 and extending the ``Command.REGISTRY`` list of known command classes.
 
+Technical Requirements
+======================
 
-Module Reference
-================
+**Extensible CLI with multiple sub-commands**
+
+:Description: The CCI Toolbox should only have a single CLI executable that comes with multiple sub-commands
+    instead of maintaining a number of different executables for each purpose. Plugins shall be able to add new
+    CLI sub-commands.
+:URD-Source:
+    * CCIT-UR-CR0001: Extensibility.
+    * CCIT-UR-A0002: Offer a Command Line Interface (CLI).
+
+----
+
+**Run operations and workflows**
+
+:Description: Allow for executing registered operations an workflows composed of operations.
+:URD-Source:
+    * CCIT-UR-CL0001: Reading and executing script files written in XML or similar
+
+----
+
+**List available data, operations and extensions**
+
+:Description: Allow for listing dynamic content including available data, operations and plugin extensions.
+:URD-Source:
+    * CCIT-UR-E0001: Dynamic extension by the use of plug-ins
+
+----
+
+**Display information about available climate data sources**
+
+:Description: Before downloading ECV datasets to the local computer, users shall be able to
+    display information about them, e.g. included variables, total size, spatial and temporal resolution.
+
+:URD-Source:
+    * CCIT-UR-DM0009: Holding information of any CCI ECV type
+
+----
+
+**Synchronize locally cached climate data**
+
+:Description: Allow for listing dynamic content including available data, operations and plugin extensions.
+:URD-Source:
+    * CCIT-UR-DM0006: Access to and ingestion of ESA CCI datasets
+
+----
+
+
+Verification
+============
+
+The module's unit-tests are located in `test/ui/test_cli.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ui/test_cli.py>`_
+and may be executed using ``$ py.test test/ui/test_cli.py --cov=ect/ui/cli.py`` for extra code coverage information.
+
+
+Components
+==========
 """
 
 import argparse
@@ -26,7 +81,7 @@ from typing import Tuple, Optional
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.version import __version__
 
-#: Name of the ECT CLI executable.
+#: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
 
 _COPYRIGHT_INFO_PATH = os.path.dirname(__file__) + '/../../COPYRIGHT'

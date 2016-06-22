@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 This module provides ECT's data access API.
 

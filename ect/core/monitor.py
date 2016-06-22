@@ -1,4 +1,6 @@
 """
+Description
+===========
 
 This module defines the :py:class:`Monitor` interface that may be used by functions and methods
 that offer support for observation and control of long-running tasks.

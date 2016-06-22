@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 Provides classes that are used to construct processing *workflows* (networks, directed acyclic graphs) from registered
 from processing *steps* including Python callables, Python expressions, external processes, and other workflows.

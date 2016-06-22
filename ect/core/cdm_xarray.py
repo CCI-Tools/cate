@@ -1,14 +1,16 @@
 """
-Module Description
-==================
+Description
+===========
 
-Implements the `xarray`_ and netCDF `Common Data Model`_ adapter for the ECT common data model.
+.. warning:: This module is only partially implemented and lacks essential functionality.
+
+Implements the `xarray`_ and netCDF `Common Data Model`_ adapter for the CCI Toolbox' Common Data Model.
 
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
 
-Module Reference
-================
+Components
+==========
 """
 
 import xarray as xr

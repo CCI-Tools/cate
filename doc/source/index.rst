@@ -1,12 +1,13 @@
 .. ECT documentation master file
 
-.. warning:: This site is under construction and is currently neither complete nor correct in form and content.
-             It will provide useful documentation once we release a first version of the *ESA CCI Toolbox* software,
-             which is planned for Summer 2016.
-
 =============================
 ESA CCI Toolbox Documentation
 =============================
+
+
+.. warning:: This site is under construction and is currently neither complete nor correct in form and content.
+             It will provide useful documentation once we release a first version of the *ESA CCI Toolbox* software,
+             which is planned for Summer 2016.
 
 .. toctree::
    :caption: Table of Contents

@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 This modules provides classes and functions allowing to maintain *operations*. Operations can be called from
 the ECT command-line interface, may be referenced from within processing workflows, or may be called remotely e.g. from

@@ -1,6 +1,6 @@
 """
-Module Description
-==================
+Description
+===========
 
 This module provides classes and interfaces used to harmonise the access to and operations on various
 types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
@@ -22,6 +22,21 @@ The ECT common data model exposes three important classes:
 .. _ESRI Shapefile: https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf
 .. _netCDF: http://www.unidata.ucar.edu/software/netcdf/docs/
 .. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
+
+Technical Requirements
+======================
+
+**Query data store**
+
+:Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
+    and returns data source identifiers that can be used to open respective ECV dataset in the ECT.
+:Specified in: <link to other RST page here>
+:URD-Source:
+    * CCIT-UR-DM0006: Data access to ESA CCI
+    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
+    * CCIT-UR-DM0013: The CCI Toolbox shall allow filtering
+
+----
 
 
 Verification
