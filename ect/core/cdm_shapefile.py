@@ -25,14 +25,15 @@ class ShapefileDatasetAdapter(DatasetAdapter):
 
     def subset(self, spatial_roi=None, temporal_roi=None):
         # implement me using fiona or pyshp API
+        #raise NotImplementedError()
         return self
+
+    def filter(self, variable_names:list=None, regex=False, copy:bool=False):
+        # implement me using fiona or pyshp API (e.g. feature attribute filtering)
+        raise NotImplementedError()
 
     def close(self):
         # implement me using fiona or pyshp API
-        pass
-
-    def filter_dataset(self, filter_: tuple = None):
-        # implement me using fiona or pyshp API (e.g. feature attribute filtering)
         pass
 
 

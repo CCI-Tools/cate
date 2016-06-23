@@ -116,12 +116,6 @@ class Dataset(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def close(self):
-        """
-        Closes data access.
-        """
-
-    @abstractmethod
     def filter(self, variable_names:list=None, regex=False, copy:bool=False):
         """
         Filter the dataset, by leaving only desired variables.
@@ -137,6 +131,11 @@ class Dataset(metaclass=ABCMeta):
         :return: a new, filtered dataset of type :py:class:`Dataset`
         """
 
+    @abstractmethod
+    def close(self):
+        """
+        Closes data access.
+        """
 
 
 class DatasetAdapter(Dataset, metaclass=ABCMeta):
@@ -245,7 +244,7 @@ class DatasetCollection(Dataset):
 
         dsc = DatasetCollection()
         for name, dataset in self._datasets.items():
-            dsc.add_dataset(dataset.filter(variable_names=variable_names, copy=copy))
+            dsc.add_dataset(dataset.filter(var_names=variable_names, copy=copy))
         return dsc
 
     def close(self):
