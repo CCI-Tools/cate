@@ -65,7 +65,7 @@ Technical Requirements
 
 ----
 
-**Handle large Data Sets*
+**Handle large Data Sets**
 
 :Description: A single variable in ECV dataset may contain tens of gigabytes of gridded data.
     The common data model must be able to "handle" data sizes by different means. For example, lazy loading

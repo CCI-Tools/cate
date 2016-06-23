@@ -19,9 +19,9 @@ see :numref:`user_types`.
 
 .. table:: User Types
    
-   ==== ============================================ ===================================================================
+   ==== ============================================ =====================================================================
    Nr   User Type                                    Description of application area
-   ==== ============================================ ===================================================================
+   ==== ============================================ =====================================================================
    1    International climate research community     Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC)
                                                      scientific assessments, including climate model development,
                                                      verification and data-assimilation, and scientists performing
@@ -29,6 +29,7 @@ see :numref:`user_types`.
                                                      mitigation. This includes (but is not limited to) the
                                                      `CCI Climate Modelling User Group`_ (CMUG) and the Climate
                                                      Research Groups (CRG) within each CCI ECV project.
+
    2    Earth system science community               Working at a higher level than individual climate indicators,
                                                      interested in Earth processes, interactions and feedbacks
                                                      involving a fusion of theory, observations and models to which
@@ -40,24 +41,29 @@ see :numref:`user_types`.
                                                      (IGBP), dynamic global vegetation modellers, the
                                                      `Coupled Model Intercomparison Project`_ (CMIP), and the
                                                      `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
+
    3    Climate service developers and providers	 For use in the development and provision of climate services.
                                                      The provision of climate services is outside the scope of the CCI
-                                                     programme, nevertheless the Agency aims to proactively support
+                                                     programme, nevertheless ESA aims to proactively support
                                                      parties involved in the development and provision of such services.
+
    4    Earth system reanalysis community            For use in reanalysis model development, verification and
                                                      data-assimilation.
+
    5    International bodies                         Responsible for climate change policy making and coordination of
                                                      climate change measurement, mitigation and adaptation efforts,
                                                      including UNFCCC, CEOS, IPCC, and COP participants.
+
    6    Undergraduate and postgraduate students      Academic interest in climate change. Sustained and dedicated
                                                      actions to generate and disseminate a substantial volume of
                                                      effective communication and educational materials on the specific
                                                      subject of Earth Observation and Climate Change to a wider
                                                      audience are required by the Agency. The CCI Toolbox shall
                                                      support this endeavour.
+
    7    Knowledgeable public                         Access and interaction to the latest scientific data on
                                                      climate change.
-   ==== ============================================ ===================================================================
+   ==== ============================================ =====================================================================
 
 Each use case is introduced by a problem definition, which addresses a typical climate problem.
 This is followed by the required CCI Toolbox features and a sequence of single steps,
@@ -195,7 +201,8 @@ School Seminar Glacier
     world and how has this glacier changed in the past compared to other glacierized regions?”.
 
 :Required Toolbox Features:
-    * Access to and ingestion of the Randolph Glacier Inventory (RGI; database with contributions of CCI Glaciers) via GLIMS homepage
+    * Access to and ingestion of the Randolph Glacier Inventory (RGI; database with contributions of CCI Glaciers) via
+      GLIMS homepage
     * Sorting for size
     * Selection, extraction and saving to disk of the data for the largest glacier
     * Access to and ingestion of glacier fluctuation data, e.g. from World Glacier Monitoring Service (WGMS)
@@ -220,19 +227,25 @@ Teleconnection Explorer
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI SST and Soil Moisture data
     * Geometric adjustments
-    * Spatial (manually by drawing a polygon of the particular area) and temporal filtering and subsetting for both data sets
+    * Spatial (manually by drawing a polygon of the particular area) and temporal filtering and subsetting for
+      both data sets
     * Calculation of anomalies and statistical quantities
     * Visual presentation of statistical results and time series
     * ENSO index calculation from SST data (built-in function, user-supplied plug-in or CLI, API)
-    * Calculation of the absolute anomaly on the log transformed soil moisture data (this should be a standard function/processor provided by the toolbox)
+    * Calculation of the absolute anomaly on the log transformed soil moisture data (this should be a standard
+      function/processor provided by the toolbox)
     * Calculation of the correlation between the two time series with a lag of 30 days
-    * Generation of a correlation map and export of the correlation data (format options) regarding the date range chosen
-    * Generation of a time series plot of the correlation by the selection of a location in South East Asia on the correlation map
+    * Generation of a correlation map and export of the correlation data (format options) regarding the date range
+      chosen
+    * Generation of a time series plot of the correlation by the selection of a location in South East Asia on
+      the correlation map
     * Saving of the image and the underlying data (format options)
 
 In case of choosing the MEI instead of a solely SST-based index:
 
-    * Access to and ingestion of additional datasets for MEI (sea-level pressure (P), zonal (U) and meridional (V) components of the surface wind, sea surface temperature (S), surface air temperature (A), and total cloudiness fraction of the sky (C))
+    * Access to and ingestion of additional datasets for MEI (sea-level pressure (P), zonal (U) and meridional (V)
+      components of the surface wind, sea surface temperature (S), surface air temperature (A), and total cloudiness
+      fraction of the sky (C))
     * Geometric adjustments
     * Index calculation including EOF analysis (incorporated by built-in function, user-supplied plug-in or CLI, API)
 
@@ -294,7 +307,8 @@ World Glacier Monitoring Service
     * Geometric adjustments
     * Subsetting and filtering of data according to user defined criteria
     * Data quality and consistency checks
-    * Search for information about persons responsible for meta data according to a list of criteria, procurement of meta data
+    * Search for information about persons responsible for meta data according to a list of criteria, procurement of
+      meta data
     * Adjustment of formats and metadata until they fit into the database (reference keys)
     * Additional: Selection of locations, time-periods, Calculation of means, anomalies, variances
     * Quality checks and data upload to the database
@@ -314,7 +328,12 @@ Relationships between Aerosol and Cloud ECV
     * Geometric adjustments
     * Spatial (point, polygon) and temporal subsetting
     * Visualisation of both times series at the same time: e.g. time series plot, time series animation
-    * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics on disk (format options)
+    * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics on disk
+      (format options)
+
+
+:Exemplary Workflow: :doc:`op_specs/uc_workflows/uc09_workflow`
+
 
 .. _uc_10:
 
@@ -332,7 +351,8 @@ Scientific Investigation of NAO Signature
     * Access to and ingestion of external data (NAO time series)
     * Geometric adjustments
     * Spatial and temporal subsetting
-    * Use of externally developed plug-in to apply R [RD-7]: removal of seasonal cycles, lag-correlation analysis between each ECV and the NAO index
+    * Use of externally developed plug-in to apply R [RD-7]: removal of seasonal cycles, lag-correlation analysis
+      between each ECV and the NAO index
     * Generation of time-series plot for each ECV
     * Export statistics output to local disk
 
@@ -373,7 +393,8 @@ Marine Environmental Monitoring
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI SST and Ocean Colour data
-    * Access to and ingestion of data concerning water constituents, plant growth, brightness, competitor relationships, coral vulnerability to heat stress
+    * Access to and ingestion of data concerning water constituents, plant growth, brightness, competitor relationships,
+      coral vulnerability to heat stress
     * Geometric adjustments
     * Temporal and spatial subsetting
     * Implementation of a water optical property model (plug-in, CLI, API)
@@ -403,7 +424,8 @@ Drought Occurrence Monitoring in Eastern Africa
     * Geometric adjustments
     * Spatial and temporal subsetting (for each variable)
     * NDVI and climate index calculation (ENSO, MJO, QBO indices), includes descriptive statistics
-    * Estimation of predictor (SST, SST gradients, OLR, cloud properties, climate indices) – predicant (NST and PRE E Africa) relationship by time-lagged (linear) regression model (plug-in, CLI, API)
+    * Estimation of predictor (SST, SST gradients, OLR, cloud properties, climate indices) – predicant (NST and PRE E
+      Africa) relationship by time-lagged (linear) regression model (plug-in, CLI, API)
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
@@ -428,7 +450,8 @@ Drought Impact Monitoring and Assessment in China
     * Geometric adjustments
     * Spatial and temporal subsetting (for each variable)
     * (Descriptive statistic analysis)
-    * Estimation of predictor (NST, PRE) – predicant (soil moisture, vegetation state, fire occurrence) and PRE E Africa) relationship by time-lagged (linear) regression model (plug-in, CLI, API)
+    * Estimation of predictor (NST, PRE) – predicant (soil moisture, vegetation state, fire occurrence) and PRE
+      E Africa) relationship by time-lagged (linear) regression model (plug-in, CLI, API)
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
@@ -446,7 +469,8 @@ Renewable Energy Resource Assessment with regard to Topography
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI Ozone, Clouds, Aerosols, Land Cover and Glaciers (albedo, snow/ice coverage)
-    * Access to and ingestion of non-CCI data (water vapour, pressure, precipitation, surface radiation budget), irradiance observations
+    * Access to and ingestion of non-CCI data (water vapour, pressure, precipitation, surface radiation budget),
+      irradiance observations
     * External topographical data: preprocessed data regarding roof area, tilt, orientation from DEM
     * Geometric adjustments
     * Spatial and temporal subsetting
@@ -472,7 +496,8 @@ Monitoring Tropical Deforestation
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI Land Cover data
-    * Access to and ingestion of additional data regarding biomass production, carbon emission, leaf areas, forest health
+    * Access to and ingestion of additional data regarding biomass production, carbon emission, leaf areas,
+      forest health
     * Additional: access  to and ingestion of vector data regarding infrastructure
     * Spatial and temporal adjustments and subsetting
     * Extraction of forest class
@@ -574,9 +599,11 @@ Examination of North Eastern Atlantic SST Projections
     * Filtering regarding variable
     * Geometric adjustments
     * Spatial and temporal subsetting
-    * Quality assessment of model data by means of satellite-observed SST data using plug-in/API (user-determined validation method), discarding of models undercutting certain values
+    * Quality assessment of model data by means of satellite-observed SST data using plug-in/API (user-determined
+      validation method), discarding of models undercutting certain values
     * Application of best models for trend analysis (removal of seasonal cycles)
-    * Calculation of SST anomaly/increase values for several time steps compared with reference data (ensemble mean and spread/uncertainties), construct probability density functions, examination of differing results by ANOVA
+    * Calculation of SST anomaly/increase values for several time steps compared with reference data (ensemble mean
+      and spread/uncertainties), construct probability density functions, examination of differing results by ANOVA
     * Visualisation
     * Data export
 
@@ -607,7 +634,8 @@ Investigation of Relationships between Ice Sheet ECV Parameters
     * Filtering of the SEC values and the GMB values; discarding of the ones outside the GMB basin polygon
     * Calculation of the average of the GMB and SEC values inside the basin polygon for each point in the time series
     * Plotting of the averaged values in a time series plot, comparison with the provided GMB total basin values
-    * Access to and ingestion of the CFL time series; each element in the time series is a set of (lon/lat) line segments
+    * Access to and ingestion of the CFL time series; each element in the time series is a set of (lon/lat) line
+      segments
     * Plotting of the CFL line segments on top of the IV magnitude for different years
 
 :Optional:
