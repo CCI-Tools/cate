@@ -34,14 +34,49 @@ The ECT common data model exposes three important classes:
 Technical Requirements
 ======================
 
-The design of this module is driven by the following technical requirements given in the `CCI Toolbox URD`_:
+**Common Data Model**
 
-* CCIT-UR-DM0001: access and input different kinds and sizes of data.
-* CCIT-UR-DM0002: large datasets
-* CCIT-UR-DM0003: multi-dimensional data
-* CCIT-UR-DM0004: multiple inputs
-* CCIT-UR-DM0011: access to and ingestion of non-CCI data:
-* CCIT-UR-DM0012: handle different input file formats
+:Description: A common data model is required that abstracts from underlying (climate) data formats.
+    of that abstracts design of this module is driven by the following technical requirements given in the
+    `CCI Toolbox URD`_.
+:URD References:
+    * CCIT-UR-DM0001: a) access, b) ingest, c) display, d) process different kinds and sizes of data
+    * CCIT-UR-DM0003: multi-dimensional data
+    * CCIT-UR-DM0005: access all ECV data products and metadata via standard user-community interfaces, protocols, and tools
+    * CCIT-UR-DM0006: access to and ingestion of ESA CCI datasets
+    * CCIT-UR-DM0011: access to and ingestion of non-CCI data
+    * CCIT-UR-DM0012: handle different input file formats
+
+----
+
+**Common Set of (Climate) Operations**
+
+:Description: Instances of the common data model are the input for various operations used for climate data
+    visualisation, processing, and analysis. Depending on the underlying data format / schema, a given
+    operations may not be applicable. The API shall provide the means to chack in advance, if a given operation
+    is applicable to a given common data model instance.
+:URD-References:
+    * CCIT-UR-LM0009 - CCIT-UR-LM0018: Geometric Adjustments/Co-registration.
+    * CCIT-UR-LM0019 - CCIT-UR-LM0024: Non-geometric Adjustments.
+    * CCIT-UR-LM0025 - CCIT-UR-LM0034: Filtering, Extractions, Definitions, Selections.
+    * CCIT-UR-LM0035 - CCIT-UR-LM0043: Statistics and Calculations.
+    * CCIT-UR-LM0044: GIS Tools.
+    * CCIT-UR-LM0045 - CCIT-UR-LM0050: Evaluation and Quality Control.
+
+----
+
+**Handle large Data Sets*
+
+:Description: A single variable in ECV dataset may contain tens of gigabytes of gridded data.
+    The common data model must be able to "handle" data sizes by different means. For example, lazy loading
+    of data into memory combined with a programming model that allows for partial processing of data subsets
+    within an operation.
+:URD References:
+    * CCIT-UR-DM0002: handle large datasets
+    * CCIT-UR-DM0003: multi-dimensional data
+    * CCIT-UR-DM0004: multiple inputs
+
+----
 
 Verification
 ============
@@ -87,18 +122,21 @@ class Dataset(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def filter_dataset(self, filter_=None):
+    def filter(self, variable_names:list=None, regex=False, copy:bool=False):
         """
-        Filter the dataset, by leaving only the desired variables.
-        Changes the dataset in place.
+        Filter the dataset, by leaving only desired variables.
 
-        :param filter_: The ECV variables to keep
-        :return: filtered dataset of the type 'Dataset'
+        Whether the ``filter`` method returns a view or a copy of the underlying data depends on the concrete format and
+        nature of the data.
+
+        .. _regex: https://docs.python.org/3.5/library/re.html
+
+        :param variable_names: List of regex patterns that identify the variables to keep.
+        :param regex: If ``True``, *variable_names* is expected to contain regex_ patterns.
+        :param copy: If ``True``, the returned dataset will likely contain data copies of the original dataset
+        :return: a new, filtered dataset of type :py:class:`Dataset`
         """
-        # TODO (JanisGailis, 20160612): Really has to be figured out how this is supposed to work
-        # architecturally. Our Xarray based dataset already includes many
-        # DataArray variables that need to be filtered out. It's a question
-        # how it is going to be with the shapefile implementation.
+
 
 
 class DatasetAdapter(Dataset, metaclass=ABCMeta):
@@ -189,8 +227,26 @@ class DatasetCollection(Dataset):
             dsc.add_dataset(dataset.subset(spatial_roi=spatial_roi, temporal_roi=temporal_roi), name=name)
         return dsc
 
-    def filter_dataset(self, filter_=None):
-        raise NotImplementedError()
+    def filter(self, variable_names: list = None, regex=False, copy: bool = False):
+        """
+        Filter the dataset in the collection, by leaving only desired variables. Return a new collection
+        that contains the filtered datasets.
+
+        Whether the ``filter`` method returns a view or a copy of the underlying data depends on the concrete format and
+        nature of the data.
+
+        .. _regex: https://docs.python.org/3.5/library/re.html
+
+        :param variable_names: List of variable_names that identify the variables to keep
+        :param regex: If ``True``, *variable_names* is expected to contain regex_ patterns.
+        :param copy: If ``True``, the returned dataset will likely contain data copies of the original dataset
+        :return: a new, filtered dataset of type :py:class:`Dataset`
+        """
+
+        dsc = DatasetCollection()
+        for name, dataset in self._datasets.items():
+            dsc.add_dataset(dataset.filter(variable_names=variable_names, copy=copy))
+        return dsc
 
     def close(self):
         """
