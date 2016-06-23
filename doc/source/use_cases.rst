@@ -12,7 +12,7 @@ Use Cases
 Use cases provide application scenarios and requirements along which it will be demonstrated
 how the CCI Toolbox will be implemented and operated.
 
-Use cases are defined for various user types and their climate questions come from diverse various application areas, see :numref:`user_type`.
+Use cases are defined for various user types and their climate questions come from diverse various application areas as listed in :numref:`user_type`.
 
 .. _user_type:
 
