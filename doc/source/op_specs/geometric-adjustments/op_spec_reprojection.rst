@@ -13,7 +13,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX*
 :Description: This Operation converts spatial data from one coordinate system to another.
-:Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
+:Utilised in workflow(s): :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 

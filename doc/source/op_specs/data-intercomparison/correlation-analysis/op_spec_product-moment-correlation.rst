@@ -13,7 +13,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: `Wikipedia entry on Pearson product-moment correlation coefficient <https://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient>`_
 :Description: This Operation performs a correlation analysis for metrically scaled data (assumption: normal distribution). 
-:Applicable use cases: :doc:`UC9 <../../use_cases/UC09>`
+:Utilised in workflow(s): :doc:`../../uc_workflows/uc09_workflow`
 
 --------------------------
 

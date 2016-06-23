@@ -12,7 +12,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX* 
 :Description: This Operation allows the selection of data within a time range. Only the data that falls within the selected time period is kept, if any.
-:Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
+:Utilised in workflow(s): :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 

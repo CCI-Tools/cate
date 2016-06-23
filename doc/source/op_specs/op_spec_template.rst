@@ -8,7 +8,7 @@ Define the processor and point to the applicable algorithm for implementation of
 :Algorithm name: Some name
 :Algorithm reference: an URL
 :Description: Free text description
-:Applicable use cases: Which use cases from URD this processor is used for.
+:Utilised in workflow(s): Which use cases from URD this processor is used for.
 
 --------------------------
 

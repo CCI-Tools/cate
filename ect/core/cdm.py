@@ -56,12 +56,12 @@ Technical Requirements
     operations may not be applicable. The API shall provide the means to chack in advance, if a given operation
     is applicable to a given common data model instance.
 :URD-References:
-    * CCIT-UR-LM0009 - CCIT-UR-LM0018: Geometric Adjustments/Co-registration.
-    * CCIT-UR-LM0019 - CCIT-UR-LM0024: Non-geometric Adjustments.
-    * CCIT-UR-LM0025 - CCIT-UR-LM0034: Filtering, Extractions, Definitions, Selections.
-    * CCIT-UR-LM0035 - CCIT-UR-LM0043: Statistics and Calculations.
+    * CCIT-UR-LM0009 to CCIT-UR-LM0018: Geometric Adjustments/Co-registration.
+    * CCIT-UR-LM0019 to CCIT-UR-LM0024: Non-geometric Adjustments.
+    * CCIT-UR-LM0025 to CCIT-UR-LM0034: Filtering, Extractions, Definitions, Selections.
+    * CCIT-UR-LM0035 to CCIT-UR-LM0043: Statistics and Calculations.
     * CCIT-UR-LM0044: GIS Tools.
-    * CCIT-UR-LM0045 - CCIT-UR-LM0050: Evaluation and Quality Control.
+    * CCIT-UR-LM0045 to CCIT-UR-LM0050: Evaluation and Quality Control.
 
 ----
 

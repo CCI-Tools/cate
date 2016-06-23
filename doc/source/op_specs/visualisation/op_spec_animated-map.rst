@@ -12,7 +12,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: `Wikipedia entry on animated mapping <https://en.wikipedia.org/wiki/Animated_mapping>`_
 :Description: This operation produces and displays one or multiple animated map showing the data of different time steps.
-:Applicable use cases: :doc:`UC9 <../use_cases/UC09>`
+:Utilised in workflow(s): :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 
