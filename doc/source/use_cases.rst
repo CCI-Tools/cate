@@ -14,7 +14,7 @@ how the CCI Toolbox will be implemented and operated.
 
 Use cases are defined for various user types and their climate questions come from diverse various application areas, see :numref:`user_type`.
 
-.. _user_type
+.. _user_type:
 
 .. table:: User Types
    
