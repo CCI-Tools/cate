@@ -12,7 +12,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX* 
 :Description: This Operation provides the functionality to select data of a region of interest. All data outside will be discarded.
-:Utilised in workflow(s): :doc:`../uc_workflows/uc09_workflow`
+:Utilised in: :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 

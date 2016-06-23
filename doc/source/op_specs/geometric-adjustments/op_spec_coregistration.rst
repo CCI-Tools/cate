@@ -13,7 +13,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: `Wikipedia entry on image registration <https://en.wikipedia.org/wiki/Image_registration>`_ 
 :Description: This Operation interpolates spatial data of one dataset (slave) onto the coordinate system of another dataset (master).
-:Utilised in workflow(s): :doc:`../uc_workflows/uc09_workflow`
+:Utilised in: :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 
