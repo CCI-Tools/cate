@@ -23,24 +23,24 @@ see :numref:`user_types`.
    Nr   User Type                                    Description of application area
    ==== ============================================ =====================================================================
    1    International climate research community     Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC)
-   \                                                  scientific assessments, including climate model development,
-   \                                                  verification and data-assimilation, and scientists performing
-   \                                                  research on climate change monitoring, detection, attribution and
-   \                                                  mitigation. This includes (but is not limited to) the
-   \                                                  `CCI Climate Modelling User Group`_ (CMUG) and the Climate
-   \                                                  Research Groups (CRG) within each CCI ECV project.
+                                                     scientific assessments, including climate model development,
+                                                     verification and data-assimilation, and scientists performing
+                                                     research on climate change monitoring, detection, attribution and
+                                                     mitigation. This includes (but is not limited to) the
+                                                     `CCI Climate Modelling User Group`_ (CMUG) and the Climate
+                                                     Research Groups (CRG) within each CCI ECV project.
 
    2    Earth system science community               Working at a higher level than individual climate indicators,
-                                                     | interested in Earth processes, interactions and feedbacks
-                                                     | involving a fusion of theory, observations and models to which
-                                                     | ECVs can play a role. This community includes, but is not exclusive
-                                                     | to, those interested in `WCRP Grand Science Challenges`_, climate
-                                                     | system integrative approaches, major science themes, global change
-                                                     | and socio-economic impact of climate change. Example potential
-                                                     | users include the `International Geosphere-Biosphere Programme`_
-                                                     | (IGBP), dynamic global vegetation modellers, the
-                                                     | `Coupled Model Intercomparison Project`_ (CMIP), and the
-                                                     | `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
+                                                     interested in Earth processes, interactions and feedbacks
+                                                     involving a fusion of theory, observations and models to which
+                                                     ECVs can play a role. This community includes, but is not exclusive
+                                                     to, those interested in `WCRP Grand Science Challenges`_, climate
+                                                     system integrative approaches, major science themes, global change
+                                                     and socio-economic impact of climate change. Example potential
+                                                     users include the `International Geosphere-Biosphere Programme`_
+                                                     (IGBP), dynamic global vegetation modellers, the
+                                                     `Coupled Model Intercomparison Project`_ (CMIP), and the
+                                                     `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
 
    3    Climate service developers and providers	  For use in the development and provision of climate services. 
                                                      The provision of climate services is outside the scope of the CCI
@@ -81,34 +81,22 @@ see :numref:`user_types`.
 
 .. table:: User Types 3
 
-.. tabularcolumns:: |L|L|L|
+.. list-table:: User Types
+   :widths: 5 10 35
+   :header-rows: 1
 
-   +----+-----------------------+----------------------------------------------------------------+
-   | Nr | User Type             | Description of application area                                |
-   +====+=======================+================================================================+
-   | 1  | International climate | Contributing to `Intergovernmental Panel on Climate Change`_   |
-   |    | | research community  | | (IPCC) scientific assessments, including climate model       |
-   |    |                       | | development, verification and data-assimilation, and         | 
-   |    |                       | | scientists performing research on climate change monitoring, |
-   |    |                       | | detection, attribution and mitigation. This includes (but is |
-   |    |                       | | not limited to) the `CCI Climate Modelling User Group`_      |
-   |    |                       | | (CMUG) and the Climate Research Groups (CRG) within each CCI |
-   |    |                       | | ECV project.                                                 |
-   +----+-----------------------+----------------------------------------------------------------+
-   | 2  | Earth system science  | Working at a higher level than individual climate indicators,  |
-   |    | community             | | interested in Earth processes, interactions and feedbacks    |
-   |    |                       | | involving a fusion of theory, observations and models to     |
-   |    |                       | | which ECVs can play a role.                                  |
-   |    |                       | | This community includes, but is not exclusive to, those      |
-   |    |                       | | interested in`WCRP Grand ScienceChallenges`_ , major science |    
-   |    |                       | | themes, climate system integrative approaches, global change | 
-   |    |                       | | and socio-economic impact of climate change.                 | 
-   |    |                       | | Example potential users include the vegetation modellers,    | 
-   |    |                       | | the `Coupled Model Intercomparison Project`_ (CMIP), and the |
-   |    |                       | | `Coupled Carbon Cycle Climate Intercomparison Project`_      |
-   |    |                       | | (C4MIP).                                                     |
-   +----+-----------------------+----------------------------------------------------------------+  
-
+   * - Nr
+     - User Type
+     - Application Area
+   * - 1
+     - International climate research community
+     - Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC) scientific assessments, including climate model development, verification and data-assimilation, and scientists performing research on climate change monitoring, detection, attribution and mitigation. This includes (but is not limited to) the `CCI Climate Modelling User Group`_ (CMUG) and the Climate Research Groups (CRG) within each CCI ECV project.
+   * - 2
+     - Earth system science community
+     - Working at a higher level than individual climate indicators, interested in Earth processes, interactions and feedbacks involving a fusion of theory, observations and models to which ECVs can play a role. This community includes, but is not exclusive to, those interested in `WCRP Grand Science Challenges`_, climate system integrative approaches, major science themes, global change and socio-economic impact of climate change. Example potential users include the `International Geosphere-Biosphere Programme`_ (IGBP), dynamic global vegetation modellers, the `Coupled Model Intercomparison Project`_ (CMIP), and the `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
+   * - 3
+     - Climate service developers and providers
+     - For use in the development and provision of climate services. The provision of climate services is outside the scope of the CCI programme, nevertheless the Agency aims to proactively support parties involved in the development and provision of such services
 
 
 Each use case is introduced by a problem definition, which addresses a typical climate problem.
