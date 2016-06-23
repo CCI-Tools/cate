@@ -35,14 +35,12 @@ technology for the desktop operating system integration). It will us a Python (R
 user's computer and providing the CCI Toolbox' WebAPI service to the GUI. This design allows for later
 extensions towards a web application with possibly multiple remote WebAPI services.
 
-The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal. Note that although the CCI
-Toolbox GUI and Core are shown as separate nodes, they are deployed as a single software installation on the user's
-computer.
-
 The ESA `CCI Open Data Portal`_ is the central climate data provider for the CCI Toolbox. It provides time series of essential
 climate variables (ECVs) in various spatial and temporal resolutions in netCDF and Shapefile format. At the time of
 writing (June 2016), the only operational data access service is via FTP. However, the CCI Portal will soon offer
 also data access via a dedicated THREDDS_ server and will support *OPEeNDAP* and *OGC WCS* services.
+
+The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal.
 
 .. _uml_modules:
 
@@ -155,8 +153,8 @@ unhappy to deal with yet another API for netCDF, HDF5, or Shapefiles.
 
 Therefore it has been decided to make the CCI Toolbox CDM a lightweight wrapper around existing data models that exists already
 for a given format. This wrapper will just make sure that (climate) operations can be performed on the different
-data models. CCI Toolbox users can still decide to switch to the underlying, dedicated data model of a format or stay
-with he lightweight wrapper that can peroform toolbox operations on a variety of data formats.
+data models. CCI Toolbox users can still decide to switch to the underlying, dedicated data model of a specific format or stay
+with the lightweight wrapper used by the CCI Toolbox CDM.
 However, this approach burdens the CCI Toolbox developer with having to implement each operation for each the
 supported data formats. But in doing so comes another advantage: the operations may be implemented very effectively
 and performant with respect to a given data layout.
@@ -173,7 +171,7 @@ The CCI Toolbox CDM is implemented in the ``cdm`` module and comprises the follo
    DatasetCollection, Dataset, DatasetAdapter
 
 
-The ``Dataset`` interface defines the abstract operations that can be performed an all supported data formats. The
+The ``Dataset`` interface defines the abstract operations that can be performed on all supported data formats. The
 ``DatasetAdapter`` is the base class for all ``Dataset`` implementations for a given data model. :numref:`uml_cdm`
 shows two implementations:
 
@@ -253,7 +251,7 @@ year, month, day of month as variables:
 
 A common usage of the ``FileSetDataStore`` is to act as a local *cache* for some remote data service
 (property ``remote_url``), e.g. for the CCI FTP service.
-Another common use case of the is to let users add their own
+Another common use case of the ``FileSetDataStore`` is to let users add their own
 local data stores to the CCI Toolbox.
 
 
@@ -273,7 +271,7 @@ operation and allows for automatic input validation, input value conversion, mon
 specifies an operation's signature in terms of its expected inputs and produced outputs.
 
 The CCI Toolbox framework may invoke an operation with a ``Monitor`` object, if the operation supports it. The operation
-can report processing progress to the monitor or check th monitor if a user has requested to cancel the (long running)
+can report processing progress to the monitor or check the monitor if a user has requested to cancel the (long running)
 operation.
 
 .. _uml_op:
