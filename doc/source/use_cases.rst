@@ -12,46 +12,61 @@ Use Cases
 Use cases provide application scenarios and requirements along which it will be demonstrated
 how the CCI Toolbox will be implemented and operated.
 
-Use cases are defined for various user types and their climate questions come from diverse various application areas as listed in :numref:`user_type`.
+Use cases are defined for various user types and their climate questions come from diverse various application areas,
+see :numref:`user_types`.
 
-.. _user_type:
+.. _user_types:
 
 .. table:: User Types
    
-   +----+-----------------------+---------------------------------------------------------------+
-   | Nr | User Type             | Description of application area                               |
-   +====+=======================+===============================================================+
-   | 1  | International climate | Contributing to `Intergovernmental Panel on Climate Change`_  |
-   |    | research community    | (IPCC) scientific assessments, including climate model        |
-   |    |                       | development, verification and data-assimilation, and          | 
-   |    |                       | scientists performing research on climate change monitoring,  |
-   |    |                       | detection, attribution and mitigation. This includes (but is  |
-   |    |                       | not limited to) the `CCI Climate Modelling User Group`_       |
-   |    |                       | (CMUG) and the Climate Research Groups (CRG) within each CCI  |
-   |    |                       | ECV project.                                                  |
-   +----+-----------------------+---------------------------------------------------------------+
-   | 2  | Earth system science  | Working at a higher level than individual climate indicators, |
-   |    | community             | interested in Earth processes, interactions and feedbacks     |
-   |    |                       | involving a fusion of theory, observations and models to      |
-   |    |                       | which ECVs can play a role.                                   |
-   |    |                       | This community includes, but is not exclusive to, those       |
-   |    |                       | interested in`WCRP Grand ScienceChallenges`_, major science   |    
-   |    |                       | themes, climate system integrative approaches, global change  | 
-   |    |                       | and socio-economic impact of climate change.                  | 
-   |    |                       | Example potential users include the vegetation modellers, the | 
-   |    |                       | `Coupled Model Intercomparison Project`_ (CMIP), and the      |
-   |    |                       | `Coupled Carbon Cycle Climate Intercomparison Project`_       |
-   |    |                       | (C4MIP).                                                      |
-   +----+-----------------------+---------------------------------------------------------------+  
+   ==== ============================================ ===================================================================
+   Nr   User Type                                    Description of application area
+   ==== ============================================ ===================================================================
+   1    International climate research community     Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC)
+                                                     scientific assessments, including climate model development,
+                                                     verification and data-assimilation, and scientists performing
+                                                     research on climate change monitoring, detection, attribution and
+                                                     mitigation. This includes (but is not limited to) the
+                                                     `CCI Climate Modelling User Group`_ (CMUG) and the Climate
+                                                     Research Groups (CRG) within each CCI ECV project.
+   2    Earth system science community               Working at a higher level than individual climate indicators,
+                                                     interested in Earth processes, interactions and feedbacks
+                                                     involving a fusion of theory, observations and models to which
+                                                     ECVs can play a role. This community includes, but is not exclusive
+                                                     to, those interested in `WCRP Grand Science Challenges`_, climate
+                                                     system integrative approaches, major science themes, global change
+                                                     and socio-economic impact of climate change. Example potential
+                                                     users include the `International Geosphere-Biosphere Programme`_
+                                                     (IGBP), dynamic global vegetation modellers, the
+                                                     `Coupled Model Intercomparison Project`_ (CMIP), and the
+                                                     `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
+   3    Climate service developers and providers	 For use in the development and provision of climate services.
+                                                     The provision of climate services is outside the scope of the CCI
+                                                     programme, nevertheless the Agency aims to proactively support
+                                                     parties involved in the development and provision of such services.
+   4    Earth system reanalysis community            For use in reanalysis model development, verification and
+                                                     data-assimilation.
+   5    International bodies                         Responsible for climate change policy making and coordination of
+                                                     climate change measurement, mitigation and adaptation efforts,
+                                                     including UNFCCC, CEOS, IPCC, and COP participants.
+   6    Undergraduate and postgraduate students      Academic interest in climate change. Sustained and dedicated
+                                                     actions to generate and disseminate a substantial volume of
+                                                     effective communication and educational materials on the specific
+                                                     subject of Earth Observation and Climate Change to a wider
+                                                     audience are required by the Agency. The CCI Toolbox shall
+                                                     support this endeavour.
+   7    Knowledgeable public                         Access and interaction to the latest scientific data on
+                                                     climate change.
+   ==== ============================================ ===================================================================
 
 Each use case is introduced by a problem definition, which addresses a typical climate problem.
 This is followed by the required CCI Toolbox features and a sequence of single steps,
 how a user is expecting to use these features in the CCI Toolbox.
 
+.. _uc_01:
 
 IPCC Support
 ============
-.. use case #1
 
 :User Types:
     * International climate research community
@@ -89,9 +104,10 @@ IPCC Support
     * Ensemble statistics to show model ensemble mean and uncertainties in comparison to results based
       on (satellite) observations
 
+.. _uc_02:
+
 School Seminar Climate and Weather
 ==================================
-.. use case #2
 
 :User Types:
     * Knowledgeable public
@@ -116,9 +132,10 @@ School Seminar Climate and Weather
 :Notes: This could also be a user visiting the website of a meteorological station and the website has included a
     widget that accesses the toolbox to perform the steps described.
 
+.. _uc_03:
+
 Glaciers and Sea Level Rise
 ===========================
-.. use case #3
 
 :User Types:
     * International climate research community
@@ -142,9 +159,10 @@ Glaciers and Sea Level Rise
     * Running of a prediction model (user-supplied plug-in or use of CLI, API), output creation (maps, graphs, tables)
       and comparison with validation data
 
+.. _uc_04:
+
 Extreme Weather Climate Service
 ===============================
-.. use case #4
 
 :User Types:
     * Climate service developers and providers
@@ -165,9 +183,10 @@ Extreme Weather Climate Service
     * Computation of anomalies
     * Map generation and with a simple colour coding to present a clear message
 
+.. _uc_05:
+
 School Seminar Glacier
 ======================
-.. use case #5
 
 :User Types:
     * Undergraduate and postgraduate students
@@ -184,10 +203,10 @@ School Seminar Glacier
     * Extraction of a summary of global glacier fluctuations from WGMS data base
     * Data comparison (statistical values, deviations, graphs, maps, animations) and export
 
+.. _uc_06:
 
 Teleconnection Explorer
 =======================
-.. use case #6
 
 :User Types:
     * Undergraduate and postgraduate students
@@ -225,9 +244,10 @@ In case of choosing the MEI instead of a solely SST-based index:
     * Generation of maps and plots
     * Export of the data
 
+.. _uc_07:
+
 Regional Cryosphere Climate Service
 ===================================
-.. use case #7
 
 :User Types:
     * Climate service developers and providers
@@ -255,9 +275,10 @@ Regional Cryosphere Climate Service
 :Note: The general decision on layout, data sets etc. will be taken by the FOEN outside the CCI Toolbox but
     will be input to the selection options.
 
+.. _uc_08:
+
 World Glacier Monitoring Service
 ================================
-.. use case #8
 
 :User Types:
     * International bodies
@@ -278,9 +299,10 @@ World Glacier Monitoring Service
     * Additional: Selection of locations, time-periods, Calculation of means, anomalies, variances
     * Quality checks and data upload to the database
 
+.. _uc_09:
+
 Relationships between Aerosol and Cloud ECV
 ===========================================
-.. use case #9
 
 :User Types:
     * Earth system science community
@@ -294,9 +316,10 @@ Relationships between Aerosol and Cloud ECV
     * Visualisation of both times series at the same time: e.g. time series plot, time series animation
     * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics on disk (format options)
 
+.. _uc_10:
+
 Scientific Investigation of NAO Signature
 =========================================
-.. use case #10
 
 :User Types:
     * Earth system science community
@@ -313,9 +336,10 @@ Scientific Investigation of NAO Signature
     * Generation of time-series plot for each ECV
     * Export statistics output to local disk
 
+.. _uc_11:
+
 School Project on Arctic Climate Change
 =======================================
-.. use case #11
 
 :User Types:
     * Undergraduate and postgraduate students
@@ -331,9 +355,10 @@ School Project on Arctic Climate Change
     * Gap-filling (user-chosen strategy)
     * Generation of scalable maps
 
+.. _uc_12:
+
 Marine Environmental Monitoring
 ===============================
-.. use case #12
 
 :User Types:
     * Climate service developers and providers
@@ -356,9 +381,10 @@ Marine Environmental Monitoring
     * Index calculation (plug-in, CLI, API)
     * Visualisation, graphs, data export
 
+.. _uc_13:
+
 Drought Occurrence Monitoring in Eastern Africa
 ===============================================
-.. use case #13
 
 :User Types:
     * Climate service developers and providers
@@ -381,9 +407,10 @@ Drought Occurrence Monitoring in Eastern Africa
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
+.. _uc_14:
+
 Drought Impact Monitoring and Assessment in China
 =================================================
-.. use case #14
 
 :User Types:
     * Climate service developers and providers
@@ -405,9 +432,10 @@ Drought Impact Monitoring and Assessment in China
     * Run model by means of latest meteorological data
     * Visualisation and export of results (graphs, maps, animations, tables)
 
+.. _uc_15:
+
 Renewable Energy Resource Assessment with regard to Topography
 ==============================================================
-.. use case #15
 
 :User Types:
     * Climate service developers and providers
@@ -428,6 +456,8 @@ Renewable Energy Resource Assessment with regard to Topography
     * Visualisation of suitable areas in a map
     * Estimation of Solar Power potential from pixel count
     * Export of Results
+
+.. _uc_16:
 
 Monitoring Tropical Deforestation
 =================================
@@ -451,9 +481,10 @@ Monitoring Tropical Deforestation
     * Visualisation of forest area changes (animated?), relation to infrastructure
     * Data export
 
+.. _uc_17:
+
 Stratospheric Ozone Monitoring and Assessment
 =============================================
-.. use case #17
 
 :User Types:
     * Climate service developers and providers
@@ -474,9 +505,10 @@ Stratospheric Ozone Monitoring and Assessment
     * Trend analysis of stratospheric ozone concentrations
     * Visualisation (maps, graphs) and export of the results
 
+.. _uc_18:
+
 Examination of ENSO and its Impacts based on ESA CCI Data
 =========================================================
-.. use case #18
 
 :User Types:
     * Undergraduate and postgraduate students
@@ -506,9 +538,10 @@ Examination of ENSO and its Impacts based on ESA CCI Data
     * Option to manually select point location on globe to compare data with PC1
     * Storage of plots, time series data, correlation statistics on local disk
 
+.. _uc_19:
+
 GHG Emissions over Europe
 =========================
-.. use case #19
 
 :User Types:
     * Knowledgeable public
@@ -521,9 +554,10 @@ GHG Emissions over Europe
     * Temporal and spatial subsetting
     * Generation of maps/animations depicting the evolution of GHG emissions
 
+.. _uc_20:
+
 Examination of North Eastern Atlantic SST Projections
 =====================================================
-.. use case #20
 
 :User Types:
     * Climate research community
@@ -546,9 +580,10 @@ Examination of North Eastern Atlantic SST Projections
     * Visualisation
     * Data export
 
+.. _uc_21:
+
 Investigation of Relationships between Ice Sheet ECV Parameters
 ===============================================================
-.. use case #21
 
 :User Types:
     * Earth system science community
