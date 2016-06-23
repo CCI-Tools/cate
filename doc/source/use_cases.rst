@@ -42,8 +42,8 @@ see :numref:`user_types`.
                                                      `Coupled Model Intercomparison Project`_ (CMIP), and the
                                                      `Coupled Carbon Cycle Climate Intercomparison Project`_ (C4MIP).
 
-   3    Climate service developers and providers	  For use in the development and provision of climate services. The 
-                                                     provision of climate services is outside the scope of the CCI
+   3    Climate service developers and providers	  For use in the development and provision of climate services. 
+                                                     The provision of climate services is outside the scope of the CCI
                                                      programme, nevertheless ESA aims to proactively support
                                                      parties involved in the development and provision of such services.
 
