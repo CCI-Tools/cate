@@ -94,17 +94,17 @@ see :numref:`user_types`.
    |    |                       | | ECV project.                                                 |
    +----+-----------------------+----------------------------------------------------------------+
    | 2  | Earth system science  | Working at a higher level than individual climate indicators,  |
-   |    | community             | | interested in Earth processes, interactions and feedbacks      |
-   |    |                       | | involving a fusion of theory, observations and models to       |
-   |    |                       | | which ECVs can play a role.                                    |
-   |    |                       | | This community includes, but is not exclusive to, those        |
-   |    |                       | | interested in`WCRP Grand ScienceChallenges`_ , major science   |    
-   |    |                       | | themes, climate system integrative approaches, global change   | 
-   |    |                       | | and socio-economic impact of climate change.                   | 
-   |    |                       | | Example potential users include the vegetation modellers, the  | 
-   |    |                       | | `Coupled Model Intercomparison Project`_ (CMIP), and the       |
-   |    |                       | | `Coupled Carbon Cycle Climate Intercomparison Project`_        |
-   |    |                       | | (C4MIP).                                                       |
+   |    | community             | | interested in Earth processes, interactions and feedbacks    |
+   |    |                       | | involving a fusion of theory, observations and models to     |
+   |    |                       | | which ECVs can play a role.                                  |
+   |    |                       | | This community includes, but is not exclusive to, those      |
+   |    |                       | | interested in`WCRP Grand ScienceChallenges`_ , major science |    
+   |    |                       | | themes, climate system integrative approaches, global change | 
+   |    |                       | | and socio-economic impact of climate change.                 | 
+   |    |                       | | Example potential users include the vegetation modellers,    | 
+   |    |                       | | the `Coupled Model Intercomparison Project`_ (CMIP), and the |
+   |    |                       | | `Coupled Carbon Cycle Climate Intercomparison Project`_      |
+   |    |                       | | (C4MIP).                                                     |
    +----+-----------------------+----------------------------------------------------------------+  
 
 
