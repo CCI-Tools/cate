@@ -23,12 +23,12 @@ see :numref:`user_types`.
    Nr   User Type                                    Description of application area
    ==== ============================================ =====================================================================
    1    International climate research community     Contributing to `Intergovernmental Panel on Climate Change`_ (IPCC)
-                                                     | scientific assessments, including climate model development,
-                                                     | verification and data-assimilation, and scientists performing
-                                                     | research on climate change monitoring, detection, attribution and
-                                                     | mitigation. This includes (but is not limited to) the
-                                                     | `CCI Climate Modelling User Group`_ (CMUG) and the Climate
-                                                     | Research Groups (CRG) within each CCI ECV project.
+                                                     \ scientific assessments, including climate model development,
+                                                     \ verification and data-assimilation, and scientists performing
+                                                     \ research on climate change monitoring, detection, attribution and
+                                                     \ mitigation. This includes (but is not limited to) the
+                                                     \ `CCI Climate Modelling User Group`_ (CMUG) and the Climate
+                                                     \ Research Groups (CRG) within each CCI ECV project.
 
    2    Earth system science community               Working at a higher level than individual climate indicators,
                                                      | interested in Earth processes, interactions and feedbacks
