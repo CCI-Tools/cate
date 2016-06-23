@@ -79,6 +79,37 @@ see :numref:`user_types`.
    7    Knowledgeable public                         Access and interaction to the latest scientific data on climate change.
    ==== ============================================ ===============================
 
+.. table:: User Types 3
+
+   +----+-----------------------+---------------------------------------------------------------+
+   | Nr | User Type             | Description of application area                               |
+   +====+=======================+===============================================================+
+   | 1  | International climate | Contributing to `Intergovernmental Panel on Climate Change`_  |
+   |    | research community    | (IPCC) scientific assessments, including climate model        |
+   |    |                       | development, verification and data-assimilation, and          | 
+   |    |                       | scientists performing research on climate change monitoring,  |
+   |    |                       | detection, attribution and mitigation. This includes (but is  |
+   |    |                       | not limited to) the `CCI Climate Modelling User Group`_       |
+   |    |                       | (CMUG) and the Climate Research Groups (CRG) within each CCI  |
+   |    |                       | ECV project.                                                  |
+   +----+-----------------------+---------------------------------------------------------------+
+   | 2  | Earth system science  | Working at a higher level than individual climate indicators, |
+   |    | community             | interested in Earth processes, interactions and feedbacks     |
+   |    |                       | involving a fusion of theory, observations and models to      |
+   |    |                       | which ECVs can play a role.                                   |
+   |    |                       | This community includes, but is not exclusive to, those       |
+   |    |                       | interested in`WCRP Grand ScienceChallenges`_ , major science  |    
+   |    |                       | themes, climate system integrative approaches, global change  | 
+   |    |                       | and socio-economic impact of climate change.                  | 
+   |    |                       | Example potential users include the vegetation modellers, the | 
+   |    |                       | `Coupled Model Intercomparison Project`_ (CMIP), and the      |
+   |    |                       | `Coupled Carbon Cycle Climate Intercomparison Project`_       |
+   |    |                       | (C4MIP).                                                      |
+   +----+-----------------------+---------------------------------------------------------------+  
+
+
+
+
 
 Each use case is introduced by a problem definition, which addresses a typical climate problem.
 This is followed by the required CCI Toolbox features and a sequence of single steps,
