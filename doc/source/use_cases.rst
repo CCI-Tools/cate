@@ -81,6 +81,8 @@ see :numref:`user_types`.
 
 .. table:: User Types 3
 
+   \begin{tabular}{|p{1c}|p{2.5c|p{5c}}
+   
    +----+-----------------------+----------------------------------------------------------------+
    | Nr | User Type             | Description of application area                                |
    +====+=======================+================================================================+
@@ -107,8 +109,7 @@ see :numref:`user_types`.
    |    |                       | | (C4MIP).                                                     |
    +----+-----------------------+----------------------------------------------------------------+  
 
-
-
+   \end{tabular}
 
 
 Each use case is introduced by a problem definition, which addresses a typical climate problem.
