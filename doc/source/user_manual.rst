@@ -10,8 +10,8 @@ Index
    :maxdepth: 1
    :numbered:
 
-   user_manual/command_line_interface
-   user_manual/desktop_interface
-   user_manual/configuration
+   user_manual/um_cli
+   user_manual/um_gui
+   user_manual/um_conf
 
 

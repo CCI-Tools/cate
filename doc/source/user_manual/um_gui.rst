@@ -11,7 +11,7 @@ demonstration prototype. The envisaged GUI may look similar later:
 
 .. _demo_gui_1:
 
-.. figure:: _static/figures/demo_gui_1.png
+.. figure:: ../_static/figures/demo_gui_1.png
    :scale: 50 %
    :align: center
 
@@ -19,7 +19,7 @@ demonstration prototype. The envisaged GUI may look similar later:
 
 .. _demo_gui_2:
 
-.. figure:: _static/figures/demo_gui_2.png
+.. figure:: ../_static/figures/demo_gui_2.png
    :scale: 50 %
    :align: center
 
