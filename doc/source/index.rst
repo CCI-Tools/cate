@@ -14,7 +14,7 @@ ESA CCI Toolbox Documentation
    :maxdepth: 1
    :numbered:
 
-   intro
+   introduction
    quick_start
    user_manual
    use_cases
