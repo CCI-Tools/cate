@@ -1,6 +1,6 @@
-===================
-CCI Toolbox Desktop
-===================
+=================
+Desktop Interface
+=================
 
 The CCI Toolbox Desktop is a desktop application and will be the primary graphical user interface (GUI)
 of the CCI Toolbox. As the phrasing *will be* implies, the GUI has not yet been developed.

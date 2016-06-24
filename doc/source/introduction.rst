@@ -27,7 +27,7 @@ between its CCI projects and the ECVs generated there, and the wider climate cha
 .. _ect_context:
 
 .. figure:: _static/figures/ect_context.png
-   :scale: 75 %
+   :scale: 60 %
    :align: center
 
    CCI Toolbox context
