@@ -19,24 +19,31 @@ The CCI Toolbox is supposed to work on up-to-date Windows, MacOS X, and Linux.
 Python
 ======
 
+The following Python environment and dependency requirements are only important for you
+if you install the CCI Toolbox (Python) Core using the project's ``setup.py`` script.
+See section :doc:`um_install` for more information.
+
+The project will later provide a *self-contained installer program* or alternatively,
+*a self-unpacking ZIP file*; then Python environment and dependencies will be part of the
+CCI Toolbox distribution.
+
 -----------
 Environment
 -----------
 
 The ESA CCI Toolbox relies on latest Python language features and therefore requires Python 3.5+.
 It is recommended to run it within a Python `Anaconda 3.5 <https://www.continuum.io/>`_
-or Python `Miniconda 3.5 <http://conda.pydata.org/miniconda.html>`_ distribution.
+or Python `Miniconda 3.5 <http://conda.pydata.org/miniconda.html>`_ environment.
+
+If you run it with the `standard CPython <https://www.python.org/downloads/>`_ installation,
+make sure you use a 64-bit version.
 
 ------------
 Dependencies
 ------------
 
 The following dependencies are only important for you if you install the CCI Toolbox (Python) Core
-using the provided ``setup.py`` script.
-
-The project will later provide a self-contained installer or self-unpacking ZIP file; then the dependencies will
-already be part of the installation.
-
+using the project's ``setup.py`` script.
 
 API Dependencies
 ----------------
