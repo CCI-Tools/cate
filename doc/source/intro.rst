@@ -1,8 +1,0 @@
-============
-Introduction
-============
-
-
-Project Background
-==================
-

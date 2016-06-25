@@ -176,7 +176,7 @@ The ``Dataset`` interface defines the abstract operations that can be performed 
 shows two implementations:
 
 * ``XarrayDatasetAdapter``: a ``Dataset`` implementation for the netCDF CD CDM provided by the excellent xarray_ Python library
-* ``ShapefileDatasetAdapter``: a ``Dataset`` implementation for ESRI Shapefiles data models, e.g. as prvided by the
+* ``ShapefileDatasetAdapter``: a ``Dataset`` implementation for ESRI Shapefiles data models, e.g. as provided by the
   Fiona_ Python library
 
 The ``Schema`` is a meta-model that describes a dataset's supposed structure and and contents.

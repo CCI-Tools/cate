@@ -14,15 +14,14 @@ ESA CCI Toolbox Documentation
    :maxdepth: 1
    :numbered:
 
-   intro
+   introduction
    quick_start
    user_manual
    use_cases
-   architecture
-   tech_spec
-   api_reference
-   detailed_design
    op_specs
+   api_reference
+   architecture
+   detailed_design
    rel_projects
 
 
