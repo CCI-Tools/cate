@@ -1,0 +1,68 @@
+@startuml
+
+class Schema {
+    name: str
+}
+
+class Dimension {
+    name: str
+}
+
+class Attribute {
+    name: str
+    data_type: type
+    value: object
+}
+
+class Variable {
+    name: str
+    data_type: type
+}
+
+Schema o--> Variable
+Schema o--> Dimension
+Variable --> Dimension
+Variable o--> Attribute
+Schema o--> Attribute
+Dimension o--> Attribute
+
+
+note left of Schema
+A **Schema** corresponds to specifc **Dataset** type.
+
+Both a **DataSource** and a **Dataset** know their schema.
+We will use schemas mostly to check operation applicability
+and do input validation. Therefore we will focus on the
+variables and their dimensions expected in a dataset.
+For this reason we resign the **Group** schema here, which
+is defined as part of the netCDF 4 CDM.
+
+However, original grouping is retained by using //path names//
+for Variables and attributes.
+end note
+
+note right of Variable
+Note that a variable's value is not a
+property of **Variable** because this
+is a //schema// of a variable.
+end note
+
+note left of Dimension
+In the netCDF CDM, the only property of a
+**Dimension** is //length//. We make //length//
+an optional attribute. Remember that the "features"
+read from a Shapefile may have two dimensions
+(e.g. lat / lon) but no actual //length//. However, a
+dimension might have other attributes in this case,
+such as //units=degrees// and //crs=WGS84// .
+end note
+
+note right of Attribute
+Attributes are meta-data. Since this is a //schema//,
+the attribute's //value// used here represents an
+invariant across a given number of datasets instances.
+If //value// is not known, this still means that all
+these datasets share the attribute with the given //name//.
+end note
+
+@enduml
