@@ -583,7 +583,7 @@ class OpStep(Step):
 
 class ExprStep(Step):
     """
-    An ``ExprStep`` is a step node that computes its output from a simple (Python) expression string.
+    An ``ExprStep`` is a step node that computes its output from a simple (Python) *expression* string.
 
     :param expression: A simple (Python) expression string.
     :param input_dict: input name to input properties mapping.
@@ -591,7 +591,7 @@ class ExprStep(Step):
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, expression, input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, expression:str, input_dict=None, output_dict=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
         node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
@@ -602,7 +602,7 @@ class ExprStep(Step):
         self._expression = expression
 
     @property
-    def expression(self):
+    def expression(self) -> str:
         """The expression."""
         return self._expression
 
@@ -639,7 +639,124 @@ class ExprStep(Step):
     def __repr__(self):
         return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
 
+# TODO (nf, 20160625) - add test
+class NoOpStep(Step):
+    """
+    A ``NoOpStep`` "performs" a no-op, which basically means, it does nothing.
+    However, it might still be useful to define step that or duplicates or renames output values by connecting
+    its own output ports with any of its own input ports. In other cases it might be useful to have a
+    ``NoOpStep`` as a placeholder or blackbox for some other real operation that will be put into place at a later
+    point in time.
 
+    :param input_dict: input name to input properties mapping.
+    :param output_dict: output name to output properties mapping.
+    :param node_id: A node ID. If None, a unique ID will be generated.
+    """
+
+    def __init__(self, input_dict=None, output_dict=None, node_id=None):
+        node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
+        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        if len(op_meta_info.output) == 0:
+            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        super(NoOpStep, self).__init__(op_meta_info, node_id)
+
+    def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying operation :py:attr:`op` with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
+        input_values = OrderedDict()
+        for node_input in self.input[:]:
+            input_values[node_input.name] = node_input.value
+
+    @classmethod
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        no_op = json_dict.get('no_op', None)
+        if no_op is None:
+            return None
+        return cls(node_id=json_dict.get('id', None))
+
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        node_dict['no_op'] = True
+
+    def __repr__(self):
+        return "NoOpStep(node_id='%s')" % self.id
+
+# TODO (nf, 20160625) - add test
+class SubProcessStep(Step):
+    """
+    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the given *arguments*.
+
+    :param arguments: The sub process' arguments as list where the first entry is usually an executable and
+           remaining entries are the executable's arguments.
+    :param input_dict: input name to input properties mapping.
+    :param output_dict: output name to output properties mapping.
+    :param node_id: A node ID. If None, a unique ID will be generated.
+    """
+
+    def __init__(self, arguments:List[str], input_dict=None, output_dict=None, node_id=None):
+        if not arguments:
+            raise ValueError('arguments must be given')
+        node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
+        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        if len(op_meta_info.output) == 0:
+            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        super(SubProcessStep, self).__init__(op_meta_info, node_id)
+        self._arguments = arguments
+
+    @property
+    def arguments(self) -> List[str]:
+        """The sub process' arguments."""
+        return self._arguments
+
+    def invoke(self, monitor: Monitor = Monitor.NULL):
+        """
+        Invoke this node's underlying operation :py:attr:`op` with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param monitor: An optional progress monitor.
+        """
+        input_values = OrderedDict()
+        for node_input in self.input[:]:
+            input_values[node_input.name] = node_input.value
+
+        # TODO (nf, 20160625) - add option to transform given arguments list into a new one from given input values
+        # For example: 1) use input as new argument (replacement)
+        #              2) generate text file (e.g. parameter / config file) from template and from input values
+        #                 use new filename as new argument
+        # TODO (nf, 20160625) - add option to generate dictionary of named output values
+        # TODO (nf, 20160625) - add monitor
+        # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
+        #              2) send all sdtout lines to monitor as textual messages
+
+        import subprocess
+        return_value = subprocess.run(self._arguments).returncode
+
+        #
+        if self.op_meta_info.has_named_outputs:
+            for output_name, output_value in return_value.items():
+                self.output[output_name].value = output_value
+        else:
+            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+
+    @classmethod
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        expression = json_dict.get('expression', None)
+        if expression is None:
+            return None
+        return cls(expression, node_id=json_dict.get('id', None))
+
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        node_dict['expression'] = self.expression
+
+    def __repr__(self):
+        return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
+
+# TODO (nf, 20160625) - rename into NodePort, this is shorter and more intuitive
 class NodeConnector:
     """Represents a named input or output of a :py:class:`Node`. """
 

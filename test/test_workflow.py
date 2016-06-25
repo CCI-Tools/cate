@@ -3,7 +3,7 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep
+from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep, Step
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
 
@@ -620,6 +620,209 @@ class OpNodeTest(TestCase):
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
 
+
+class CommandLineStep(Step):
+    def __init__(self, command_line:list, node_id=None):
+        self._command_line = command_line
+        super(CommandLineStep, self).__init__(OpMetaInfo(node_id), node_id)
+
+
+
+class CommandLineStepTest(TestCase):
+    def test_init(self):
+        step = CommandLineStep()
+
+        self.assertRegex(step.id, 'cl_step_[0-9]+')
+
+        self.assertTrue(len(step.input), 2)
+        self.assertTrue(len(step.output), 1)
+
+        self.assertTrue(hasattr(step.input, 'u'))
+        self.assertIs(step.input.u.node, step)
+        self.assertEqual(step.input.u.name, 'u')
+
+        self.assertTrue(hasattr(step.input, 'v'))
+        self.assertIs(step.input.v.node, step)
+        self.assertEqual(step.input.v.name, 'v')
+
+        self.assertTrue(hasattr(step.output, 'w'))
+        self.assertIs(step.output.w.node, step)
+        self.assertEqual(step.output.w.name, 'w')
+
+        self.assertEqual(str(step), step.id)
+        self.assertEqual(repr(step), "OpStep(test.test_workflow.Op3, node_id='%s')" % step.id)
+
+    def test_init_operation_and_name_are_equivalent(self):
+        node3 = OpStep(Op3)
+        self.assertIsNotNone(node3.op)
+        self.assertIsNotNone(node3.op_meta_info)
+        node31 = OpStep(object_to_qualified_name(Op3))
+        self.assertIs(node31.op, node3.op)
+        self.assertIs(node31.op_meta_info, node3.op_meta_info)
+
+    def test_invoke(self):
+        node1 = OpStep(Op1)
+        node1.input.x.value = 3
+        return_value = node1.invoke()
+        output_value = node1.output.y.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 3 + 1)
+
+        node2 = OpStep(Op2)
+        node2.input.a.value = 3
+        return_value = node2.invoke()
+        output_value = node2.output.b.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * 3)
+
+        node3 = OpStep(Op3)
+        node3.input.u.value = 4
+        node3.input.v.value = 5
+        return_value = node3.invoke()
+        output_value = node3.output.w.value
+        self.assertEqual(return_value, None)
+        self.assertEqual(output_value, 2 * 4 + 3 * 5)
+
+    def test_init_failures(self):
+        with self.assertRaises(ValueError):
+            # "ValueError: operation with name 'test_node.NodeTest' not registered"
+            OpStep(OpNodeTest)
+
+        with self.assertRaises(ValueError):
+            # "ValueError: operation with name 'X' not registered"
+            OpStep('X')
+
+        with self.assertRaises(ValueError):
+            # "ValueError: operation with name 'X.Y' not registered"
+            OpStep('X.Y')
+
+        with self.assertRaises(ValueError):
+            # "ValueError: operation must be given"
+            OpStep(None)
+
+    def test_connect_source(self):
+        node1 = OpStep(Op1)
+        node2 = OpStep(Op2)
+        node3 = OpStep(Op3)
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        self.assertConnectionsAreOk(node1, node2, node3)
+
+        with self.assertRaises(AttributeError) as cm:
+            node1.input.a.source = node3.input.u
+        self.assertEqual(str(cm.exception), "attribute 'a' not found")
+
+    def test_disconnect_source(self):
+        node1 = OpStep(Op1)
+        node2 = OpStep(Op2)
+        node3 = OpStep(Op3)
+
+        node2.input.a.source = node1.output.y
+        node3.input.u.source = node1.output.y
+        node3.input.v.source = node2.output.b
+        self.assertConnectionsAreOk(node1, node2, node3)
+
+        node3.input.v.source = None
+
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
+
+        node2.input.a.source = None
+
+        self.assertIs(node3.input.u.source, node1.output.y)
+
+        node3.input.u.source = None
+
+    def assertConnectionsAreOk(self, node1, node2, node3):
+        self.assertIs(node2.input.a.source, node1.output.y)
+        self.assertIs(node3.input.u.source, node1.output.y)
+        self.assertIs(node3.input.v.source, node2.output.b)
+
+    def test_from_json_dict_value(self):
+        json_text = """
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "u": {"value": 647},
+                "v": {"value": 2.9}
+            }
+        }
+        """
+
+        json_dict = json.loads(json_text)
+
+        node3 = OpStep.from_json_dict(json_dict)
+
+        self.assertIsInstance(node3, OpStep)
+        self.assertEqual(node3.id, "op3")
+        self.assertIsInstance(node3.op, OpRegistration)
+        self.assertIn('u', node3.input)
+        self.assertIn('v', node3.input)
+        self.assertIn('w', node3.output)
+
+        self.assertEqual(node3.input.u.value, 647)
+        self.assertEqual(node3.input.v.value, 2.9)
+
+    def test_from_json_dict_source(self):
+        json_text = """
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "u": {"source": "stat_op.stats"},
+                "v": {"source": ".latitude"}
+            }
+        }
+        """
+
+        json_dict = json.loads(json_text)
+
+        node3 = OpStep.from_json_dict(json_dict)
+
+        self.assertIsInstance(node3, OpStep)
+        self.assertEqual(node3.id, "op3")
+        self.assertIsInstance(node3.op, OpRegistration)
+        self.assertIn('u', node3.input)
+        self.assertIn('v', node3.input)
+        self.assertIn('w', node3.output)
+        u_source = node3.input.u.source
+        v_source = node3.input.v.source
+        self.assertEqual(node3.input.u._source_ref, ('stat_op', 'stats'))
+        self.assertEqual(node3.input.u.source, None)
+        self.assertEqual(node3.input.v._source_ref, (None, 'latitude'))
+        self.assertEqual(node3.input.v.source, None)
+
+    def test_to_json_dict(self):
+        node3 = OpStep(Op3, node_id='op3')
+        node3.input.u.value = 2.8
+
+        node3_dict = node3.to_json_dict()
+
+        expected_json_text = """
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "v": {},
+                "u": {"value": 2.8}
+            },
+            "output": {
+                "w": {}
+            }
+        }
+        """
+
+        actual_json_text = json.dumps(node3_dict)
+
+        expected_json_obj = json.loads(expected_json_text)
+        actual_json_obj = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
 
 class NodeConnectorTest(TestCase):
     def test_init(self):
