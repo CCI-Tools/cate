@@ -37,6 +37,23 @@ def timeseries(ds: Dataset, lat: float, lon: float, method: str='nearest') -> Da
         raise NotImplementedError('shapefiles are currently not supported')
 
 
+@op_input('ds', description='A dataset from which to extract time series')
+@op_output('return', description='A timeseries dataset')
+def timeseries_mean(ds:Dataset):
+    """
+    Extract spatial mean timeseries from the given dataset
+
+    :param ds: The dataset of type :py:class:`Dataset`
+    :return: Time series dataset
+    """
+    if not isinstance(ds, XArrayDatasetAdapter):
+        raise NotImplementedError('only raster datasets are currently supported')
+
+    reduce_along = {'dim':['lat','lon']}
+    retset = ds.wrapped_dataset.mean(**reduce_along)
+    return XArrayDatasetAdapter(retset)
+
+
 def _xarray_timeseries(xarray: xr.Dataset, lat: float, lon: float, method: str) -> xr.Dataset:
     lat_dim = _get_lat_dim_name(xarray)
     lon_dim = _get_lon_dim_name(xarray)

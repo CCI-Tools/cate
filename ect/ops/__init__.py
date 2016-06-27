@@ -25,13 +25,26 @@ Components
 """
 
 from .resampling import resample_2d, downsample_2d, upsample_2d
-from .timeseries import timeseries
+from .timeseries import timeseries, timeseries_mean
+from .harmonize import harmonize
+from .filter import filter_dataset
+from .coregistration import coregister
+from .subset import subset_spatial, subset_temporal, subset_temporal_index
+from .correlation import pearson_correlation
 
 __all__ = [
     'timeseries',
+    'timeseries_mean'
     'resample_2d',
     'downsample_2d',
     'upsample_2d',
+    'harmonize',
+    'filter_dataset',
+    'coregister',
+    'subset_spatial',
+    'subset_temporal',
+    'subset_temporal_index',
+    'person_correlation'
 ]
 
 

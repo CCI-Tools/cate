@@ -70,6 +70,8 @@ from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
 
+import xarray as xr
+
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
 
@@ -301,7 +303,11 @@ class FileSetDataSource(DataSource):
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
-        xr_dataset = open_xarray_dataset(existing_paths)
+
+        # TODO (gailis, 20160623): open_xarray_dataset for some reason is a lot
+        # slower than the native xr.open_mfdataset
+        #xr_dataset = open_xarray_dataset(existing_paths)
+        xr_dataset = xr.open_mfdataset(existing_paths, concat_dim='time')
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
 

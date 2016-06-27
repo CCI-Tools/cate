@@ -45,7 +45,23 @@ class XArrayDatasetAdapter(DatasetAdapter):
                     if prog.match(dropped_var_name):
                         dropped_var_names.remove(dropped_var_name)
 
-        return XArrayDatasetAdapter(self._wrapped_dataset.drop(dropped_var_names))
+        filtered = self._wrapped_dataset.drop(dropped_var_names)
+
+        # Drop the redundant dimensions
+        keep_dimensions = list()
+        for key in filtered.data_vars.keys():
+            for dim in filtered[key].dims:
+                if dim not in keep_dimensions:
+                    keep_dimensions.append(dim)
+
+        drop_dimensions = list()
+        for dim in filtered.dims:
+            if dim not in keep_dimensions:
+                drop_dimensions.append(dim)
+
+        filtered = filtered.drop(drop_dimensions)
+
+        return XArrayDatasetAdapter(filtered)
 
     def close(self):
         # implement me using xarray Dataset API
