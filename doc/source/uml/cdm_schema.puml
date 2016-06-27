@@ -62,7 +62,7 @@ Attributes are meta-data. Since this is a //schema//,
 the attribute's //value// used here represents an
 invariant across a given number of datasets instances.
 If //value// is not known, this still means that all
-these datasets share the attribute with the given //name//.
+these datasets share an attribute with the given //name//.
 end note
 
 @enduml
