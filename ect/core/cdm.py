@@ -116,7 +116,7 @@ class Dataset(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def filter(self, variable_names:list=None, regex=False, copy:bool=False):
+    def filter(self, variable_names:list=None, regex:bool=False, copy:bool=False):
         """
         Filter the dataset, by leaving only desired variables.
 
