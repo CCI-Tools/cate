@@ -27,6 +27,10 @@ class SimpleDataSource(io.DataSource):
         return self.data_store
 
     @property
+    def schema(self) -> io.Schema:
+        return None
+
+    @property
     def name(self) -> str:
         return self._name
 
