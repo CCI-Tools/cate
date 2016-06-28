@@ -51,15 +51,16 @@ Technical Requirements
     * CCIT-UR-LM0002: accommodating ECV-specific processors in cases where the processing is specific to an ECV.
     * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language (Graph Builder).
     * CCIT-UR-LM0004: selection of a number of predefined standard processing chains.
-    * CCIT-UR-LM0005: means to configure a processor chain comprised of one processor only from the library to execute on data from the Common Data Model.
+    * CCIT-UR-LM0005: means to configure a processor chain comprised of one processor only from the library to
+      execute on data from the Common Data Model.
 
 ----
 
 **Programming language neutral representation**
 
 :Description: Processing graphs must be representable in a programming language neutral representation such as
-    XML, JSON, YAML, so they can be designed by non-programmers and can be easily serialised, e.g. for communication with
-    a web service.
+    XML, JSON, YAML, so they can be designed by non-programmers and can be easily serialised, e.g. for communication
+    with a web service.
 
 :URD-Source:
     * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language
@@ -70,8 +71,10 @@ Technical Requirements
 Verification
 ============
 
-The module's unit-tests are located in `test/test_workflow.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_workflow.py>`_
-and may be executed using ``$ py.test test/test_workflow.py --cov=ect/core/workflow.py`` for extra code coverage information.
+The module's unit-tests are located in
+`test/test_workflow.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_workflow.py>`_
+and may be executed using ``$ py.test test/test_workflow.py --cov=ect/core/workflow.py`` for extra code
+coverage information.
 
 Components
 ==========
@@ -309,7 +312,7 @@ class Workflow(Node):
         for step_json_dict in steps_json_list:
             step_count += 1
             node = None
-            for node_class in [OpStep, WorkflowStep, ExprStep]:
+            for node_class in [OpStep, WorkflowStep, ExprStep, NoOpStep, SubProcessStep]:
                 node = node_class.from_json_dict(step_json_dict, registry=registry)
                 if node is not None:
                     steps.append(node)
@@ -591,7 +594,7 @@ class ExprStep(Step):
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, expression:str, input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, expression: str, input_dict=None, output_dict=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
         node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
@@ -639,7 +642,7 @@ class ExprStep(Step):
     def __repr__(self):
         return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
 
-# TODO (nf, 20160625) - add test
+
 class NoOpStep(Step):
     """
     A ``NoOpStep`` "performs" a no-op, which basically means, it does nothing.
@@ -654,7 +657,7 @@ class NoOpStep(Step):
     """
 
     def __init__(self, input_dict=None, output_dict=None, node_id=None):
-        node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
+        node_id = node_id if node_id else 'no_op_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
         if len(op_meta_info.output) == 0:
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
@@ -685,6 +688,7 @@ class NoOpStep(Step):
     def __repr__(self):
         return "NoOpStep(node_id='%s')" % self.id
 
+
 # TODO (nf, 20160625) - add test
 class SubProcessStep(Step):
     """
@@ -697,7 +701,7 @@ class SubProcessStep(Step):
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, arguments:List[str], input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, arguments: List[str], input_dict=None, output_dict=None, node_id=None):
         if not arguments:
             raise ValueError('arguments must be given')
         node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
@@ -751,10 +755,11 @@ class SubProcessStep(Step):
         return cls(expression, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['expression'] = self.expression
+        node_dict['arguments'] = self.arguments
 
     def __repr__(self):
-        return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
+        return "SubProcessStep(%s, node_id='%s')" % (repr(self.arguments), self.id)
+
 
 # TODO (nf, 20160625) - rename into NodePort, this is shorter and more intuitive
 class NodeConnector:
