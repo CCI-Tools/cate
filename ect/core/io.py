@@ -65,101 +65,13 @@ from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
-from ect.core import Dataset
+from ect.core.cdm import Dataset, Schema
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
-
-
-class Schema:
-    """
-    .. _Schema for NcML: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/ncml/AnnotatedSchema4.html
-    .. _netCDF Java Schema: https://www.unidata.ucar.edu/software/netcdf/java/docs/ucar/netcdf/Schema.html
-    .. _GeoJSON: http://geojson.org/geojson-spec.html
-    .. _Shapefile: https://en.wikipedia.org/wiki/Shapefile
-
-    Simple data structure description that focuses on the (geophysical) variables provided by some dataset. It is
-    mainly modelled after the netCDF CD common data model (see also `Schema for NcML`_, `netCDF Java Schema`_).
-    However, this schema intentionally lacks the explicit definition of *groups*, as defined by the netCDF CDM.
-    Groups are no more than a physical container of variables which can be easily represented as parent
-    path components of names of variables, dimensions, and attributes. E.g. if a variable is named ``data/ndvi`` then
-    it is in group ``data``. If an attribute is named ``data/ndvi/originator`` then it is an attribute of variable
-    ``ndvi`` which is in the group ``data``.
-
-    This schema allows to represent both raster / gridded data types and GIS data. Raster / gridded data may originate
-    from netCDF, HDF, GeoTIFF, or others. GIS-type vector data types may originate
-    from a Shapefile_ or GeoJSON_ file. It comprises only three basic data structures:
-
-    * ``Variable`` the primary data provided by a dataset, usually geophysical, climate measurements or computed values.
-    * ``Dimension`` provides a description of a dimension used by one or more N-D variables.
-    * ``Attribute`` provides meta-information to variables and any groups that occur as path components of an
-      attribute name.
-
-    Important note: The name ``Attribute`` used here must not be confused with the "attribute" of a "(simple)
-    feature type" as used within the OGC GML/GIS terminology.
-    The CCI Toolbox maps attributes of OGC features types to *Variables* to match the terminology used in
-    this schema.
-
-    :param variables: variables in this schema
-    :param dimensions: dimensions in this schema
-    :param attributes: attributes in this schema
-    """
-
-    def __init__(self,
-                 variables: List['Schema.Variable'],
-                 dimensions: List['Schema.Dimension'],
-                 attributes: List['Schema.Attribute']):
-        self.variables = variables
-        self.dimensions = dimensions
-        self.attributes = attributes
-
-    class Variable:
-        """
-        Represents a (geophysical) variable of a specified data type and array shape.
-        """
-
-        def __init__(self,
-                     name: str,
-                     data_type: type,
-                     shape: tuple,
-                     dimensions: List['Schema.Dimension'],
-                     attributes: List['Schema.Attribute']):
-            self.name = name
-            self.shape = shape
-            self.data_type = data_type
-            self.dimensions = dimensions
-            self.attributes = attributes
-
-    class Dimension:
-        """
-        Provides a description of a dimension used by one or more N-D variables.
-
-        TODO (forman, 20160623): generify Dimension, add optional units, add optional CRS, make length optional,
-        so that it can represent also GIS variables (individual "attributes" of "features")
-        """
-
-        def __init__(self, name: str, length: int):
-            self.name = name
-            self.length = length
-
-    class Attribute:
-        """
-        An attribute is a name-value pair of a specified type.
-        The main purpose of attributes is to attach meta-information to datasets and variables.
-        Values are usually scalars and may remain constant over
-        multiple datasets that use the same schema (e.g. missing value, coordinate reference system, originator).
-        """
-
-        def __init__(self,
-                     name: str,
-                     data_type: type,
-                     value: object):
-            self.name = name
-            self.data_type = data_type
-            self.value = value
 
 
 class DataSource(metaclass=ABCMeta):
@@ -382,7 +294,7 @@ class FileSetDataSource(DataSource):
 
     @property
     def schema(self) -> Schema:
-        # TODO (forman, 20160623): return a valid Schema
+        # TODO (forman, 20160623): let FileSetDataSource return a valid schema
         return None
 
     @property
