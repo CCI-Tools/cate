@@ -18,11 +18,11 @@ This module provides the following data types:
   If ``source`` is set, it must be another ``NodePort`` that provides the actual port's value.
   The value of the ``value`` property can be basically anything that has an external (JSON) representation.
 
-A workflow is required to specify its input and output ports. Input source may be left unspecified, while it is mandatory to
-connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow.
-
-All step nodes of a workflow are required to specify all of their input sources or specify a value.
-Valid input sources for a step node are the workflow's inputs or other step node's outputs, or constant values.
+Workflow input ports are usually unspecified, but ``value`` may be set.
+Workflow output ports and a step's input ports are usually connected with output ports of other contained steps
+or inputs of the workflow via the ``source`` attribute.
+A step's output ports are usually unconnected because their ``value`` attribute is set by a step's concrete
+implementation.
 
 Step node inputs and workflow outputs are indicated in the input specification of a node's external JSON
 representation:
@@ -94,11 +94,14 @@ Components
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from io import IOBase
-from typing import Sequence, Optional, Union, List, Mapping, Dict
+from typing import Sequence, Optional, Union, List, Dict
 
-from ect.core import Monitor
+from .monitor import Monitor
 from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
 from .util import Namespace
+from .workflow_svg import Drawing as _Drawing
+from .workflow_svg import Graph as _Graph
+from .workflow_svg import Node as _Node
 
 
 class Node(metaclass=ABCMeta):
@@ -392,6 +395,15 @@ class Workflow(Node):
 
     def __repr__(self):
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
+
+    def _repr_svg_(self):
+        """
+        Get a SVG-representation for IPython notebooks.
+
+        :return: An SVG-representation of this workflow.
+        """
+        graph = _convert_workflow_to_graph(self)
+        return _Drawing(graph).to_svg()
 
 
 class Step(Node):
@@ -719,7 +731,7 @@ class SubProcessStep(Step):
     def __init__(self,
                  sub_process_arguments: List[str],
                  environment_variables: Dict[str, str] = None,
-                 working_directory:str= '',
+                 working_directory: str = '',
                  input_dict=None,
                  output_dict=None,
                  node_id=None):
@@ -951,3 +963,42 @@ class NodePort:
 
     def __repr__(self):
         return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))
+
+
+def _convert_workflow_to_graph(workflow: Workflow):
+    graph_nodes = {step.id: _convert_step_to_graph_node(step) for step in workflow.steps}
+    graph = _Graph(workflow.op_meta_info.qualified_name,
+                   [name for name, _ in workflow.input],
+                   [name for name, _ in workflow.output],
+                   list(graph_nodes.values()))
+
+    graph_nodes[workflow.id] = graph
+    _wire_target_node_graph_nodes(workflow, graph_nodes)
+    for step in workflow.steps:
+        _wire_target_node_graph_nodes(step, graph_nodes)
+
+    return graph
+
+
+def _convert_step_to_graph_node(step: Step):
+    return _Node(step.op_meta_info.qualified_name,
+                 [name for name, _ in step.input],
+                 [name for name, _ in step.output])
+
+
+def _wire_target_node_graph_nodes(target_node, graph_nodes):
+    for _, target_port in target_node.input:
+        _wire_target_port_graph_nodes(target_port, graph_nodes)
+    for _, target_port in target_node.output:
+        _wire_target_port_graph_nodes(target_port, graph_nodes)
+
+
+def _wire_target_port_graph_nodes(target_port, graph_nodes):
+    if target_port.source is None:
+        return
+    target_node = target_port.node
+    target_gnode = graph_nodes[target_node.id]
+    source_port = target_port.source
+    source_node = source_port.node
+    source_gnode = graph_nodes[source_node.id]
+    source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))

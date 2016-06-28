@@ -3,6 +3,7 @@ Internal module that implements the representation of a :py:class:`Workflow` as 
 """
 
 from abc import abstractmethod, ABCMeta
+from collections import OrderedDict
 from math import sqrt, atan2, degrees
 from typing import List
 
@@ -126,17 +127,25 @@ class Node:
 
     def __init__(self, name: str, input_names: List[str], output_names: List[str]):
         self.name = name
-        self.input_ports = []
-        self.output_ports = []
-        for name in input_names:
-            self.input_ports.append(InputPort(self, name))
-        for name in output_names:
-            self.output_ports.append(OutputPort(self, name))
+        self.input_ports = OrderedDict([(name, InputPort(self, name)) for name in input_names])
+        self.output_ports = OrderedDict([(name, OutputPort(self, name)) for name in output_names])
         self.layer_index = 0
         self.box = None
 
     @property
     def nodes(self) -> List['Node']:
+        return None
+
+    def find_port(self, name) -> 'Port':
+        """
+        Find port with given name. Output ports are searched first, then input ports.
+        :param name: The port name
+        :return: The port, or ``None`` if it couldn't be found.
+        """
+        if name in self.output_ports:
+            return self.output_ports[name]
+        if name in self.input_ports:
+            return self.input_ports[name]
         return None
 
     def style(self, drawing_config: 'DrawingConfig'):
@@ -161,11 +170,11 @@ class Node:
         text = '<text x="%s" y="%s">%s</text>' % (self.box.x + text_dx, self.box.y + text_dy, self.name)
         svg_lines.append(text)
 
-        for input_port in self.input_ports:
+        for input_port in self.input_ports.values():
             for outgoing_edge in input_port.outgoing_edges:
                 self._outgoing_edge_svg(drawing_config, outgoing_edge, svg_lines)
 
-        for output_port in self.output_ports:
+        for output_port in self.output_ports.values():
             for outgoing_edge in output_port.outgoing_edges:
                 self._outgoing_edge_svg(drawing_config, outgoing_edge, svg_lines)
 
@@ -174,7 +183,7 @@ class Node:
         text_size = drawing_config.port_font_size
         text_style = 'font-family: Verdana; font-size: %s;' % text_size
 
-        for input_port in self.input_ports:
+        for input_port in self.input_ports.values():
             cx, cy = input_port.center()
             circle = '<circle cx="%s" cy="%s" r="%s" style="%s"/>' % (cx, cy, r, node_style)
             text_width = text_size * len(input_port.name)
@@ -183,7 +192,7 @@ class Node:
             svg_lines.append(circle)
             svg_lines.append(text)
 
-        for output_port in self.output_ports:
+        for output_port in self.output_ports.values():
             cx, cy = output_port.center()
             circle = '<circle cx="%s" cy="%s" r="%s" style="%s"/>' % (cx, cy, r, node_style)
             text = '<text x="%s" y="%s" style="%s">%s</text>' % (
@@ -229,12 +238,12 @@ class Node:
         box = Box(width=drawing_config.min_node_width, height=box_height)
 
         cy = (box_height - input_port_panel_height) / 2 + r
-        for input_port in self.input_ports:
+        for input_port in self.input_ports.values():
             input_port.cy = cy
             cy += 2 * r + pg
 
         cy = (box_height - output_port_panel_height) / 2 + r
-        for output_port in self.output_ports:
+        for output_port in self.output_ports.values():
             output_port.cy = cy
             cy += 2 * r + pg
 
@@ -250,10 +259,10 @@ class Node:
         return '\n    '.join(parts)
 
     def _debug_str_input_ports(self):
-        return self._debug_str_ports(self.input_ports)
+        return self._debug_str_ports(self.input_ports.values())
 
     def _debug_str_output_ports(self):
-        return self._debug_str_ports(self.output_ports)
+        return self._debug_str_ports(self.output_ports.values())
 
     def _debug_str(self):
         return '\n%s:' \
@@ -277,7 +286,7 @@ class Graph(Node):
 
     def __init__(self, name: str, input_names: List[str], output_names: List[str], nodes: List[Node]):
         super(Graph, self).__init__(name, input_names, output_names)
-        self._nodes = nodes
+        self._nodes = list(nodes)
         self.layers = None
 
     @property
@@ -328,14 +337,14 @@ class Graph(Node):
         # Naive graph input/output port layout
 
         # The cy of an input port is the cy of the node pointed to by the first outgoing edge
-        for input_port in self.input_ports:
+        for input_port in self.input_ports.values():
             if input_port.outgoing_edges:
                 outgoing_edge = input_port.outgoing_edges[0]
                 cx, cy = outgoing_edge.port_2.center()
                 input_port.cy = cy
 
         # The cy of an output port is the cy of the node pointed to by the incoming edge
-        for output_port in self.output_ports:
+        for output_port in self.output_ports.values():
             if output_port.incoming_edge:
                 incoming_edge = output_port.incoming_edge
                 cx, cy = incoming_edge.port_1.center()
@@ -380,14 +389,14 @@ class Graph(Node):
         box_height += vg
         return Box(width=box_width, height=box_height)
 
-    def _set_layer_index_of_connected_nodes(self, node, layer_index, parents: List[Node]):
+    def _set_layer_index_of_connected_nodes(self, node:Node, layer_index:int, parents: List[Node]):
         if layer_index > node.layer_index:
             node.layer_index = layer_index
         # For all inputs of this node
-        for input_port in node.input_ports:
+        for input_port in node.input_ports.values():
             self._set_layer_of_outgoing_edges(input_port, layer_index, parents)
         # For all outputs of this node
-        for output_port in node.output_ports:
+        for output_port in node.output_ports.values():
             self._set_layer_of_outgoing_edges(output_port, layer_index, parents)
 
     def _set_layer_of_outgoing_edges(self, port: Port, layer_index: int, parents):
@@ -404,19 +413,19 @@ class Graph(Node):
         node_3 = Node('step_3', ['p', 'q'], ['P', 'Q'])
         graph = Graph('workflow', ['a', 'b', 'c'], ['x', 'y', 'z'], [node_1, node_2, node_3])
 
-        graph.input_ports[0].connect(node_1.input_ports[0])
-        graph.input_ports[1].connect(node_1.input_ports[1])
-        graph.input_ports[2].connect(node_3.input_ports[1])
-        node_1.output_ports[0].connect(node_2.input_ports[0])
-        node_1.output_ports[0].connect(node_3.input_ports[0])
-        node_2.output_ports[0].connect(graph.output_ports[0])
-        node_3.output_ports[0].connect(graph.output_ports[1])
-        node_3.output_ports[1].connect(graph.output_ports[2])
+        graph.input_ports['a'].connect(node_1.input_ports['a'])
+        graph.input_ports['b'].connect(node_1.input_ports['b'])
+        graph.input_ports['c'].connect(node_3.input_ports['q'])
+        node_1.output_ports['c'].connect(node_2.input_ports['x'])
+        node_1.output_ports['c'].connect(node_3.input_ports['p'])
+        node_2.output_ports['y'].connect(graph.output_ports['x'])
+        node_3.output_ports['P'].connect(graph.output_ports['y'])
+        node_3.output_ports['Q'].connect(graph.output_ports['z'])
 
         return graph
 
     def __str__(self):
-        return '%s(%s)' % (self.name, ' '.join([str(node) for node in self.nodes]))
+        return '%s(%s)' % (self.name, ' '.join([str(node) for node in self.nodes.keys()]))
 
 
 class DrawingConfig:

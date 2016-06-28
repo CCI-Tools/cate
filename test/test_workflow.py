@@ -234,6 +234,22 @@ class WorkflowTest(TestCase):
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
 
+    def test_repr_svg(self):
+        step1 = OpStep(Op1, node_id='op1')
+        step2 = OpStep(Op2, node_id='op2')
+        step3 = OpStep(Op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow.add_steps(step1, step2, step3)
+        step1.input.x.source = workflow.input.p
+        step2.input.a.source = step1.output.y
+        step3.input.u.source = step1.output.y
+        step3.input.v.source = step2.output.b
+        workflow.output.q.source = step3.output.w
+
+        workflow_json = workflow._repr_svg_()
+        # print('\n\n%s\n\n' % workflow_json)
+        self.assertIsNotNone(workflow_json)
+
 
 class ExprStepTest(TestCase):
     expression = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"

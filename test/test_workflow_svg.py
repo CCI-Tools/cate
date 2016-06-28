@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ect.core.workflow_svg import Drawing, Graph, Node
+from ect.core.workflow_svg import Drawing, Graph
 
 
 class WorkflowSvgTest(TestCase):
@@ -13,12 +13,12 @@ class WorkflowSvgTest(TestCase):
         'test_workflow_svg.svg' accordingly (after visual inspection).
         """
         graph = Graph.test_graph()
-        node_1, node_2,node_3 = graph.nodes
+        node_1, node_2, node_3 = graph.nodes
 
-        #print(graph._debug_str())
-        #print(node_1._debug_str())
-        #print(node_2._debug_str())
-        #print(node_3._debug_str())
+        # print(graph._debug_str())
+        # print(node_1._debug_str())
+        # print(node_2._debug_str())
+        # print(node_3._debug_str())
 
         drawing = Drawing(graph)
         drawing.layout()
@@ -34,6 +34,7 @@ class WorkflowSvgTest(TestCase):
         self.assertEqual(layers[1], [node_2, node_3])
 
         actual_svg = drawing.to_svg()
+        #self._write_svg_html(actual_svg)
 
         import os.path
         with open(os.path.join(os.path.dirname(__file__), 'test_workflow_svg.svg'), 'r') as fp:
@@ -41,12 +42,8 @@ class WorkflowSvgTest(TestCase):
 
         self.assertEqual(actual_svg, expected_svg)
 
-        #self._write_svg_html(actual_svg)
-
     def _write_svg_html(self, svg):
-        print(svg)
+        #print(svg)
         import os.path
         with open(os.path.join(os.path.dirname(__file__), '..', 'test_workflow_svg.html'), 'w') as fp:
             fp.write('<html>\n%s\n</html>' % svg)
-
-
