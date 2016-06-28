@@ -100,6 +100,8 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
 
+from ect.core.util import object_to_qualified_name, qualified_name_to_object
+
 
 class Schema:
     """
@@ -130,8 +132,8 @@ class Schema:
     The CCI Toolbox maps attributes of OGC features types to *Variables* to match the terminology used in
     this schema.
 
-    :param variables: variables in this schema
     :param dimensions: dimensions in this schema
+    :param variables: variables in this schema
     :param attributes: attributes in this schema
     """
 
@@ -140,21 +142,51 @@ class Schema:
                  lon_name: str = 'lon',
                  lat_name: str = 'lat',
                  time_name: str = 'time',
-                 variables: List['Schema.Variable'] = list(),
-                 dimensions: List['Schema.Dimension'] = list(),
-                 attributes: List['Schema.Attribute'] = list()):
+                 dimensions: List['Schema.Dimension'] = None,
+                 variables: List['Schema.Variable'] = None,
+                 attributes: List['Schema.Attribute'] = None):
+
+        if not name:
+            raise ValueError('name must be given')
         self.name = name
         self.lon_name = lon_name
         self.lat_name = lat_name
         self.time_name = time_name
-        self.variables = variables
-        self.dimensions = dimensions
-        self.attributes = attributes
+        self.dimensions = list(dimensions) if dimensions else []
+        self.variables =  list(variables) if variables else []
+        self.attributes =  list(attributes) if attributes else []
+
+    def dimension(self, index_or_name):
+        try:
+            return self.dimensions[index_or_name]
+        except (IndexError, TypeError):
+            for dimension in self.dimensions:
+                if dimension.name == index_or_name:
+                    return dimension
+        return None
 
     @classmethod
     def from_json_dict(cls, json_dict) -> 'Schema':
-        # TODO (nf, 20160627): implement Schema.from_json_dict
-        return None
+        name = json_dict.get('name', None)
+        lon_name = json_dict.get('lon_name', 'lon')
+        lat_name = json_dict.get('lat_name', 'lat')
+        time_name = json_dict.get('time_name', 'time')
+        json_dimensions = json_dict.get('dimensions', [])
+        json_variables = json_dict.get('variables', [])
+        json_attributes = json_dict.get('attributes', [])
+        dimensions = []
+        for json_dimensions in json_dimensions:
+            dimensions.append(Schema.Dimension.from_json_dict(json_dimensions))
+        variables = []
+        for json_variable in json_variables:
+            variables.append(Schema.Variable.from_json_dict(json_variable))
+        attributes = []
+        for json_attribute in json_attributes:
+            attributes.append(Schema.Attribute.from_json_dict(json_attribute))
+        return Schema(name, lon_name, lat_name, time_name,
+                      dimensions=dimensions,
+                      variables=variables,
+                      attributes=attributes)
 
     def to_json_dict(self) -> dict:
         json_dict = OrderedDict()
@@ -175,24 +207,40 @@ class Schema:
         def __init__(self,
                      name: str,
                      data_type: type,
-                     dimensions: List['Schema.Dimension'],
-                     attributes: List['Schema.Attribute']):
+                     dimension_names: List[str] = None,
+                     attributes: List['Schema.Attribute'] = None):
             self.name = name
             self.data_type = data_type
-            self.dimensions = dimensions
-            self.attributes = attributes
+            self.dimension_names = list(dimension_names) if dimension_names else []
+            self.attributes = list(attributes) if attributes else []
+
+        @property
+        def rank(self):
+            return len(self.dimension_names)
+
+        def dimension(self, schema: 'Schema', index: int):
+            name = self.dimension_names[index]
+            return schema.dimension(name)
 
         @classmethod
         def from_json_dict(cls, json_dict) -> 'Schema.Variable':
-            # TODO (nf, 20160627): implement Schema.from_json_dict
-            return None
+            name = json_dict.get('name', None)
+            data_type = qualified_name_to_object(json_dict.get('data_type', None))
+            dimension_names = json_dict.get('dimension_names', [])
+            json_attributes = json_dict.get('attributes', [])
+            attributes = []
+            for json_attribute in json_attributes:
+                attributes.append(Schema.Attribute.from_json_dict(json_attribute))
+            return Schema.Variable(name,
+                                   data_type,
+                                   dimension_names=dimension_names,
+                                   attributes=attributes)
 
         def to_json_dict(self) -> dict:
             json_dict = OrderedDict()
             json_dict['name'] = self.name
-            # TODO (nf, 20160627): convert self.data_type to str
-            json_dict['data_type'] = self.data_type
-            json_dict['dimensions'] = [dimension.name for dimension in self.dimensions]
+            json_dict['data_type'] = object_to_qualified_name(self.data_type)
+            json_dict['dimension_names'] = self.dimension_names
             json_dict['attributes'] = [attribute.to_json_dict() for attribute in self.attributes]
             return json_dict
 
@@ -202,14 +250,21 @@ class Schema:
         """
 
         def __init__(self, name: str,
-                     attributes: List['Schema.Attribute'] = list()):
+                     length=None,
+                     attributes: List['Schema.Attribute'] = None):
             self.name = name
-            self.attributes = attributes
+            self.attributes = list(attributes) if attributes else []
+            if length is not None:
+                self.attributes.append(Schema.Attribute('length', int, length))
 
         @classmethod
         def from_json_dict(cls, json_dict) -> 'Schema.Dimension':
-            # TODO (nf, 20160627): implement Schema.from_json_dict
-            return None
+            name = json_dict.get('name', None)
+            json_attributes = json_dict.get('attributes', [])
+            attributes = []
+            for json_attribute in json_attributes:
+                attributes.append(Schema.Attribute.from_json_dict(json_attribute))
+            return Schema.Dimension(name, attributes=attributes)
 
         def to_json_dict(self) -> dict:
             json_dict = OrderedDict()
@@ -235,14 +290,16 @@ class Schema:
 
         @classmethod
         def from_json_dict(cls, json_dict) -> 'Schema.Attribute':
-            # TODO (nf, 20160627): implement Schema.from_json_dict
-            return None
+            name = json_dict.get('name', None)
+            data_type = qualified_name_to_object(json_dict.get('data_type', None))
+            # TODO (nf, 20160627): convert JSON value to Python value
+            value = json_dict.get('value', None)
+            return Schema.Attribute(name, data_type, value=value)
 
         def to_json_dict(self) -> dict:
             json_dict = OrderedDict()
             json_dict['name'] = self.name
-            # TODO (nf, 20160627): convert self.data_type to str
-            json_dict['data_type'] = self.data_type
+            json_dict['data_type'] = object_to_qualified_name(self.data_type)
             # TODO (nf, 20160627): convert self.value to JSON value
             json_dict['value'] = self.value
             return json_dict
