@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor
+from ect.core.util import fetch_std_streams
 
 
 class NullMonitorTest(TestCase):
@@ -22,20 +23,33 @@ class NullMonitorTest(TestCase):
 class ConsoleMonitorTest(TestCase):
     def test_console_monitor(self):
         m = ConsoleMonitor()
-        m.start('task A', total_work=10)
-        m.progress(work=1)
-        m.progress(work=5, msg='phase 1')
-        m.progress(msg='phase 2')
-        m.progress(work=4)
-        m.progress()
-        m.done()
+        with fetch_std_streams() as (stdout, stderr):
+            m.start('task A', total_work=10)
+            m.progress(work=1)
+            m.progress(work=5, msg='phase 1')
+            m.progress(msg='phase 2')
+            m.progress(work=4)
+            m.progress()
+            m.done()
+        actual_stdout = stdout.getvalue()
+        expected_stdout = 'task A: started\n' + \
+                          'task A:  10%\n' + \
+                          'task A:  60% phase 1\n' + \
+                          'task A: phase 2\n' + \
+                          'task A: 100%\n' + \
+                          'task A: progress\n' + \
+                          'task A: done\n'
+
+        self.assertEqual(actual_stdout, expected_stdout)
+        self.assertEqual(stderr.getvalue(), '')
         self.assertTrue(True)
 
     def test_label_req(self):
         monitor = ConsoleMonitor()
-        with self.assertRaises(ValueError):
-            # "ValueError: label must be given"
-            monitor.start('', total_work=10)
+        with fetch_std_streams():
+            with self.assertRaises(ValueError):
+                # "ValueError: label must be given"
+                monitor.start('', total_work=10)
 
     def test_child_monitor(self):
         monitor = ConsoleMonitor()
@@ -44,10 +58,11 @@ class ConsoleMonitorTest(TestCase):
 
     def test_cancel(self):
         m = ConsoleMonitor()
-        m.start('task A', total_work=10)
-        self.assertFalse(m.is_cancelled())
-        m.cancel()
-        self.assertTrue(m.is_cancelled())
+        with fetch_std_streams():
+            m.start('task A', total_work=10)
+            self.assertFalse(m.is_cancelled())
+            m.cancel()
+            self.assertTrue(m.is_cancelled())
 
 
 class RecordingMonitorTest(TestCase):

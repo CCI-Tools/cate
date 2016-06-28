@@ -9,13 +9,17 @@ Provides random utility functions.
 Verification
 ============
 
-The module's unit-tests are located in `test/test_util.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_util.py>`_
-and may be executed using ``$ py.test test/test_util.py --cov=ect/core/util.py`` for extra code coverage information.
+The module's unit-tests are located in
+`test/test_util.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_util.py>`_ and may be executed using
+``$ py.test test/test_util.py --cov=ect/core/util.py`` for extra code coverage information.
 
 Components
 ==========
 """
+import sys
 from collections import OrderedDict
+from contextlib import contextmanager
+from io import StringIO
 
 
 class Namespace:
@@ -49,8 +53,6 @@ class Namespace:
     1
     >>> ns[:]
     [1, 2]
-    >>> ns(obj)
-    [('a', 1), ('z', 2)]
     >>> ns = Namespace([('a', 1), ('z', 2)])
     >>> list(ns)
     [('a', 1), ('z', 2)]
@@ -282,3 +284,38 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
     if fail:
         raise ValueError("missing attribute '__name__'")
     return None
+
+
+@contextmanager
+def fetch_std_streams():
+    """
+    A context manager which can be used to temporarily fetch the standard output streams
+    ``sys.stdout`` and  ``sys.stderr``.
+
+    Usage:::
+
+        with fetch_std_streams() as stdout, stderr
+            sys.stdout.write('yes')
+            sys.stderr.write('oh no')
+        print('fetched', stdout.getvalue())
+        print('fetched', stderr.getvalue())
+
+    :return: yields  ``sys.stdout`` and  ``sys.stderr`` redirected into buffers of type ``StringIO``
+    """
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+
+    sys.stdout = StringIO()
+    sys.stderr = StringIO()
+
+    try:
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr

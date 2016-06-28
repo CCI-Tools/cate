@@ -65,7 +65,7 @@ from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
-from ect.core import Dataset
+from ect.core.cdm import Dataset, Schema
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
@@ -79,15 +79,15 @@ class DataSource(metaclass=ABCMeta):
     An abstract data source from which datasets can be retrieved.
     """
 
-    # TODO (forman, 20160620): DataSource must include a schema describing its contents and structure
-    # - see http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/ncml/AnnotatedSchema4.html
-    # - see http://geojson.org/geojson-spec.html
-    # - see https://en.wikipedia.org/wiki/Shapefile
-
     @property
     @abstractmethod
     def name(self) -> str:
         """Human-readable data source name."""
+
+    @property
+    @abstractmethod
+    def schema(self) -> Schema:
+        """The data :py:class:`Schema` for any dataset provided by this data source."""
 
     @property
     @abstractmethod
@@ -291,6 +291,11 @@ class FileSetDataSource(DataSource):
     @property
     def name(self):
         return self._name
+
+    @property
+    def schema(self) -> Schema:
+        # TODO (forman, 20160623): let FileSetDataSource return a valid schema
+        return None
 
     @property
     def data_store(self) -> 'FileSetDataStore':
