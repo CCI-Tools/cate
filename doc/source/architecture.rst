@@ -337,24 +337,25 @@ into the dataset outputs for processing traceability and later data history reco
 
 Like the ``OpRegistration``, every ``Node`` has an associated ``OpMetaInfo`` object specifying the node's
 signature in terms of its inputs and outputs. The actual ``Node`` inputs and outputs are modelled by the
-``NodeConnector`` class. As shown in :numref:`uml_workflow_node_connector`, a given node connector belongs to exactly
-one ``Node`` and represents either a named input or output of that node. A node connector has a name, a property
-``source``, and a property ``value``. If ``source`` is set, it must be another ``NodeConnector`` that provides the
-actual connector's value. The value of the ``value`` property can be basically anything that has an external (JSON)
+``NodePort`` class. As shown in :numref:`uml_workflow_node_port`, a given node port belongs to exactly
+one ``Node`` and represents either a named input or output of that node. A node port has a name, a property
+``source``, and a property ``value``. If ``source`` is set, it must be another ``NodePort`` that provides the
+actual port's value. The value of the ``value`` property can be basically anything that has an external (JSON)
 representation.
 
-.. _uml_workflow_node_connector:
+.. _uml_workflow_node_port:
 
-.. figure:: _static/uml/workflow_node_connector.png
+.. figure:: _static/uml/workflow_node_port.png
    :scale: 75 %
    :align: right
 
-   NodeConnector
+   Node and NodePort
 
-A workflow is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
-connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow. A workflow's step nodes
-are required to specify all of their input sources. Valid input sources for a step node are the workflow's inputs or
-other step node's outputs, or constant values.
+Workflow input ports are usually unspecified, but ``value`` may be set.
+Workflow output ports and a step's input ports are usually connected with output ports of other contained steps
+or inputs of the workflow via the ``source`` attribute.
+A step's output ports are usually unconnected because their ``value`` attribute is set by a step's concrete
+implementation.
 
 .. _uml_workflow_seq:
 

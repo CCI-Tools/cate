@@ -13,16 +13,16 @@ This module provides the following data types:
 * A :py:class:`OpStep` is a ``Step`` that invokes a Python operation (any callable).
 * A :py:class:`ExprStep` is a ``Step`` that executes a Python expression string.
 * A :py:class:`WorkflowStep` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
-* A :py:class:`NodeConnector` belongs to exactly one ``Node``. Node connectors represent both the named inputs and
-  outputs of node. A node connector has a name, a property ``source``, and a property ``value``.
-  If ``source`` is set, it must be another ``NodeConnector`` that provides the actual connector's value.
+* A :py:class:`NodePort` belongs to exactly one ``Node``. Node ports represent both the named inputs and
+  outputs of node. A node port has a name, a property ``source``, and a property ``value``.
+  If ``source`` is set, it must be another ``NodePort`` that provides the actual port's value.
   The value of the ``value`` property can be basically anything that has an external (JSON) representation.
 
-A workflow is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
+A workflow is required to specify its input and output ports. Input source may be left unspecified, while it is mandatory to
 connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow.
 
-A workflow's step nodes are required to specify all of their input sources. Valid input sources for a step node
-are the workflow's inputs or other step node's outputs, or constant values.
+All step nodes of a workflow are required to specify all of their input sources or specify a value.
+Valid input sources for a step node are the workflow's inputs or other step node's outputs, or constant values.
 
 Step node inputs and workflow outputs are indicated in the input specification of a node's external JSON
 representation:
@@ -48,11 +48,22 @@ Technical Requirements
 
 :URD-Sources:
     * CCIT-UR-LM0001: processor management allowing easy selection of tools and functionalities.
-    * CCIT-UR-LM0002: accommodating ECV-specific processors in cases where the processing is specific to an ECV.
     * CCIT-UR-LM0003: easy construction of graphs without any knowledge of a programming language (Graph Builder).
     * CCIT-UR-LM0004: selection of a number of predefined standard processing chains.
     * CCIT-UR-LM0005: means to configure a processor chain comprised of one processor only from the library to
       execute on data from the Common Data Model.
+
+----
+
+**Integration of external, ECV-specific programs**
+
+:Description: Some processing step might only be solved by executing an external tool. Therefore,
+    a special workflow step shall allow for invocation of external programs hereby mapping input values to
+    program arguments, and program outputs to step outputs. It shall also be possible to monitor the state of the
+    running sub-process.
+
+:URD-Source:
+    * CCIT-UR-LM0002: accommodating ECV-specific processors in cases where the processing is specific to an ECV.
 
 ----
 
@@ -97,7 +108,7 @@ class Node(metaclass=ABCMeta):
     All nodes have inputs and outputs, and can be invoked to perform some operation.
 
     Inputs and outputs are exposed as attributes of the :py:attr:`input` and :py:attr:`output` properties and
-    are both of type :py:class:`NodeConnector`.
+    are both of type :py:class:`NodePort`.
 
     :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
     :param node_id: A node ID. If None, a unique name will be generated.
@@ -177,8 +188,12 @@ class Node(metaclass=ABCMeta):
         for node_input in self._input[:]:
             node_input.resolve_source_ref()
 
-    def find_connector(self, name):
-        """Resolve unresolved source references in inputs and outputs."""
+    def find_port(self, name) -> 'NodePort':
+        """
+        Find port with given name. Output ports are searched first, then input ports.
+        :param name: The port name
+        :return: The port, or ``None`` if it couldn't be found.
+        """
         if name in self._output:
             return self._output[name]
         if name in self._input:
@@ -200,7 +215,7 @@ class Node(metaclass=ABCMeta):
         return self._new_namespace(self.op_meta_info.output.keys())
 
     def _new_namespace(self, names):
-        return Namespace([(name, NodeConnector(self, name)) for name in names])
+        return Namespace([(name, NodePort(self, name)) for name in names])
 
 
 class Workflow(Node):
@@ -407,8 +422,8 @@ class Step(Node):
             if name not in node.input:
                 # update op_meta_info
                 node.op_meta_info.input[name] = node.op_meta_info.input.get(name, {})
-                # then create a new NodeConnector
-                node.input[name] = NodeConnector(node, name)
+                # then create a new port
+                node.input[name] = NodePort(node, name)
             node_input = node.input[name]
             node_input.from_json_dict(node_input_dict)
 
@@ -417,8 +432,8 @@ class Step(Node):
             if name not in node.output:
                 # first update op_meta_info
                 node.op_meta_info.output[name] = node.op_meta_info.output.get(name, {})
-                # then create a new NodeConnector
-                node.output[name] = NodeConnector(node, name)
+                # then create a new port
+                node.output[name] = NodePort(node, name)
             node_output = node.output[name]
             node_output.from_json_dict(node_output_dict)
 
@@ -689,7 +704,6 @@ class NoOpStep(Step):
         return "NoOpStep(node_id='%s')" % self.id
 
 
-# TODO (nf, 20160625) - add test
 class SubProcessStep(Step):
     """
     A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
@@ -737,15 +751,15 @@ class SubProcessStep(Step):
         for node_input in self.input[:]:
             input_values[node_input.name] = node_input.value
 
-        # TODO (nf, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
+        # TODO (forman, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
         #                      from given input values
         # For example: 1) use input as new argument (replacement) --> DONE
         #              2) generate text file (e.g. parameter / config file) from template and from input values
         #                 use new filename as new argument
-        # TODO (nf, 20160625): SubProcessStep: add option to generate dictionary of named output values
+        # TODO (forman, 20160625): SubProcessStep: add option to generate dictionary of named output values
         # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
         #              2) send all sdtout lines to monitor as textual messages
-        # TODO (nf, 20160625): SubProcessStep: use monitor here
+        # TODO (forman, 20160625): SubProcessStep: use monitor here
 
         interpolated_arguments = []
         for arg in self._sub_process_arguments:
@@ -756,7 +770,6 @@ class SubProcessStep(Step):
         import subprocess
         return_value = subprocess.run(interpolated_arguments, shell=True).returncode
 
-        #
         if self.op_meta_info.has_named_outputs:
             # will never reach this code, see to-do above
             for output_name, output_value in return_value.items():
@@ -782,9 +795,8 @@ class SubProcessStep(Step):
         return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
 
 
-# TODO (nf, 20160625) - rename into NodePort, this is shorter and more intuitive
-class NodeConnector:
-    """Represents a named input or output of a :py:class:`Node`. """
+class NodePort:
+    """Represents a named input or output port of a :py:class:`Node`. """
 
     def __init__(self, node: Node, name: str):
         assert node is not None
@@ -822,11 +834,11 @@ class NodeConnector:
         self._source_ref = None
 
     @property
-    def source(self) -> 'NodeConnector':
+    def source(self) -> 'NodePort':
         return self._source
 
     @source.setter
-    def source(self, new_source: 'NodeConnector'):
+    def source(self, new_source: 'NodePort'):
         if self is new_source:
             raise ValueError("cannot connect '%s' with itself" % self)
         self._source = new_source
@@ -840,9 +852,9 @@ class NodeConnector:
                 root_node = self._node.root_node
                 other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
                 if other_node:
-                    node_connector = other_node.find_connector(other_name)
-                    if node_connector:
-                        self.source = node_connector
+                    node_port = other_node.find_port(other_name)
+                    if node_port:
+                        self.source = node_port
                         return
                     raise ValueError(
                         "cannot connect '%s' with '%s.%s' because node '%s' has no input/output named '%s'" % (
@@ -855,8 +867,8 @@ class NodeConnector:
                 other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
                 if other_node:
                     if len(other_node.output) == 1:
-                        node_connector = other_node.output[0]
-                        self.source = node_connector
+                        node_port = other_node.output[0]
+                        self.source = node_port
                         return
                     else:
                         raise ValueError(
@@ -869,9 +881,9 @@ class NodeConnector:
                 # look for 'other_name' first in this scope and then the parent scopes
                 other_node = self._node
                 while other_node:
-                    node_connector = other_node.find_connector(other_name)
-                    if node_connector:
-                        self.source = node_connector
+                    node_port = other_node.find_port(other_name)
+                    if node_port:
+                        self.source = node_port
                         return
                     other_node = other_node.parent_node
                 raise ValueError(
@@ -886,40 +898,40 @@ class NodeConnector:
         if json_dict is None:
             return
 
-        connector_source_def = json_dict.get(self.name, None)
-        if connector_source_def is None:
+        port_json = json_dict.get(self.name, None)
+        if port_json is None:
             return
-
-        if not isinstance(connector_source_def, str):
-            connector_json_dict = connector_source_def
-            if 'source' in connector_json_dict:
-                if 'value' in connector_json_dict:
-                    raise ValueError(
-                        "error decoding '%s' because \"source\" and \"value\" are mutually exclusive" % self)
-                connector_source_def = connector_json_dict['source']
-            elif 'value' in connector_json_dict:
-                # Care: constant may be converted to a real Python value here
-                # Must add converter callback, or so.
-                self.value = connector_json_dict['value']
-                return
-            else:
-                return
 
         source_format_msg = "error decoding '%s' because the \"source\" value format is " \
                             "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
 
-        parts = connector_source_def.rsplit('.', maxsplit=1)
+        if not isinstance(port_json, str):
+            port_json_dict = port_json
+            if 'source' in port_json_dict:
+                if 'value' in port_json_dict:
+                    raise ValueError(
+                        "error decoding '%s' because \"source\" and \"value\" are mutually exclusive" % self)
+                port_json = port_json_dict['source']
+            elif 'value' in port_json_dict:
+                # Care: constant may be converted to a real Python value here
+                # Must add converter callback, or so.
+                self.value = port_json_dict['value']
+                return
+            else:
+                return
+
+        parts = port_json.rsplit('.', maxsplit=1)
         if len(parts) == 1 and parts[0]:
             node_id = parts[0]
-            connector_name = None
+            port_name = None
         elif len(parts) == 2:
             if not parts[1]:
                 raise ValueError(source_format_msg % self)
             node_id = parts[0] if parts[0] else None
-            connector_name = parts[1]
+            port_name = parts[1]
         else:
             raise ValueError(source_format_msg % self)
-        self._source_ref = node_id, connector_name
+        self._source_ref = node_id, port_name
 
     def to_json_dict(self):
         """
@@ -938,4 +950,4 @@ class NodeConnector:
         return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):
-        return "NodeConnector(%s, %s)" % (repr(self.node_id), repr(self.name))
+        return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))

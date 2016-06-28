@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep, NoOpStep, SubProcessStep
+from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
 
 
 @op_input('x')
@@ -527,6 +527,7 @@ class OpStepTest(TestCase):
         step2.input.a.source = None
 
         self.assertIs(step3.input.u.source, step1.output.y)
+        self.assertIs(step3.input.u.source, step1.output.y)
 
         step3.input.u.source = None
 
@@ -691,7 +692,7 @@ class NoOpStepTest(TestCase):
         self.assertEqual(step.output.d._source_ref, ('op3', 'a'))
 
         json_dict_2 = step.to_json_dict()
-        #self.assertEqual(json_dict, json_dict_2)
+        # self.assertEqual(json_dict, json_dict_2)
 
 
 class SubProcessStepTest(TestCase):
@@ -717,9 +718,6 @@ class SubProcessStepTest(TestCase):
         self.assertEqual(repr(step), "SubProcessStep(['cd', '{{dir}}'], node_id='%s')" % step.id)
 
     def test_invoke(self):
-
-        import os
-
         step = SubProcessStep(['cd', '{{dir}}'],
                               input_dict=OrderedDict([('dir', dict(data_type=str))]))
 
@@ -755,10 +753,10 @@ class SubProcessStepTest(TestCase):
         # self.assertEqual(json_dict, json_dict_2)
 
 
-class NodeConnectorTest(TestCase):
+class NodePortTest(TestCase):
     def test_init(self):
         step = OpStep(Op1, node_id='myop')
-        source = NodeConnector(step, 'x')
+        source = NodePort(step, 'x')
 
         self.assertIs(source.node, step)
         self.assertEqual(source.node_id, 'myop')
@@ -766,7 +764,7 @@ class NodeConnectorTest(TestCase):
         self.assertEqual(source.source, None)
         self.assertEqual(source.value, None)
         self.assertEqual(str(source), 'myop.x')
-        self.assertEqual(repr(source), "NodeConnector('myop', 'x')")
+        self.assertEqual(repr(source), "NodePort('myop', 'x')")
 
     def test_resolve_source_ref(self):
         step1 = OpStep(Op1, node_id='myop1')
@@ -787,59 +785,59 @@ class NodeConnectorTest(TestCase):
 
     def test_from_json_dict(self):
         step2 = OpStep(Op2, node_id='myop2')
-        connector2 = NodeConnector(step2, 'a')
+        port2 = NodePort(step2, 'a')
 
-        connector2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
-        self.assertEqual(connector2._source_ref, None)
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, 2.6)
+        port2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
+        self.assertEqual(port2._source_ref, None)
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, 2.6)
 
-        connector2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
-        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
+        self.assertEqual(port2._source_ref, ('myop1', 'y'))
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         # "myop1.y" is a shorthand for {"source": "myop1.y"}
-        connector2.from_json_dict(json.loads('{"a": "myop1.y"}'))
-        self.assertEqual(connector2._source_ref, ('myop1', 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": "myop1.y"}'))
+        self.assertEqual(port2._source_ref, ('myop1', 'y'))
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
-        connector2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
-        self.assertEqual(connector2._source_ref, (None, 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
+        self.assertEqual(port2._source_ref, (None, 'y'))
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         # ".x" is a shorthand for {"source": ".x"}
-        connector2.from_json_dict(json.loads('{"a": ".y"}'))
-        self.assertEqual(connector2._source_ref, (None, 'y'))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": ".y"}'))
+        self.assertEqual(port2._source_ref, (None, 'y'))
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         # "myop1" is a shorthand for {"source": "myop1"}
-        connector2.from_json_dict(json.loads('{"a": "myop1"}'))
-        self.assertEqual(connector2._source_ref, ('myop1', None))
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": "myop1"}'))
+        self.assertEqual(port2._source_ref, ('myop1', None))
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         # if "a" is defined, but neither "source" nor "value" is given, it will neither have a source nor a value
-        connector2.from_json_dict(json.loads('{"a": {}}'))
-        self.assertEqual(connector2._source_ref, None)
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
-        connector2.from_json_dict(json.loads('{"a": null}'))
-        self.assertEqual(connector2._source_ref, None)
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{"a": {}}'))
+        self.assertEqual(port2._source_ref, None)
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
+        port2.from_json_dict(json.loads('{"a": null}'))
+        self.assertEqual(port2._source_ref, None)
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         # if "a" is not defined at all, it will neither have a source nor a value
-        connector2.from_json_dict(json.loads('{}'))
-        self.assertEqual(connector2._source_ref, None)
-        self.assertEqual(connector2._source, None)
-        self.assertEqual(connector2._value, None)
+        port2.from_json_dict(json.loads('{}'))
+        self.assertEqual(port2._source_ref, None)
+        self.assertEqual(port2._source, None)
+        self.assertEqual(port2._value, None)
 
         with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
+            port2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
         self.assertEqual(str(cm.exception),
                          "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
 
@@ -847,15 +845,15 @@ class NodeConnectorTest(TestCase):
                        "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
 
         with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": ""}}'))
+            port2.from_json_dict(json.loads('{"a": {"source": ""}}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": "."}}'))
+            port2.from_json_dict(json.loads('{"a": {"source": "."}}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            connector2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
+            port2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
     def test_to_json_dict(self):

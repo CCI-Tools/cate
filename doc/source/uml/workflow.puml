@@ -2,8 +2,8 @@
 
 abstract Node {
     id : str
-    input : List[NodeConnector]
-    output : List[NodeConnector]
+    input : Dict[str, NodePort]
+    output : Dict[str, NodePort]
     {abstract} from_json_dict(json_dict)
     {abstract} to_json_dict() : dict
     {abstract} invoke(monitor, **args)
