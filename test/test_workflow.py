@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
 from ect.core.util import object_to_qualified_name
-from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep, NoOpStep
+from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodeConnector, ExprStep, NoOpStep, SubProcessStep
 
 
 @op_input('x')
@@ -689,6 +689,70 @@ class NoOpStepTest(TestCase):
         self.assertEqual(step.input.b.value, 2.9)
         self.assertEqual(step.output.c._source_ref, ('op3', 'b'))
         self.assertEqual(step.output.d._source_ref, ('op3', 'a'))
+
+        json_dict_2 = step.to_json_dict()
+        #self.assertEqual(json_dict, json_dict_2)
+
+
+class SubProcessStepTest(TestCase):
+    def test_init(self):
+        step = SubProcessStep(['cd', '{{dir}}'],
+                              input_dict=OrderedDict([('dir', dict(data_type=str))]))
+
+        self.assertRegex(step.id, 'sub_process_step_[0-9]+')
+
+        self.assertIsNotNone(step.op_meta_info)
+        self.assertEqual(step.op_meta_info.qualified_name, step.id)
+
+        self.assertTrue(len(step.input), 1)
+        self.assertTrue(len(step.output), 1)
+
+        self.assertTrue(hasattr(step.input, 'dir'))
+        self.assertIs(step.input.dir.node, step)
+
+        self.assertTrue(hasattr(step.output, 'return'))
+        self.assertIs(step.output['return'].node, step)
+
+        self.assertEqual(str(step), step.id)
+        self.assertEqual(repr(step), "SubProcessStep(['cd', '{{dir}}'], node_id='%s')" % step.id)
+
+    def test_invoke(self):
+
+        import os
+
+        step = SubProcessStep(['cd', '{{dir}}'],
+                              input_dict=OrderedDict([('dir', dict(data_type=str))]))
+
+        step.input.dir.value = '..'
+
+        return_value = step.invoke()
+
+        self.assertEqual(return_value, None)
+        self.assertEqual(step.output['return'].value, 0)
+
+    def test_from_and_to_json(self):
+        json_text = """
+        {
+            "id": "op3",
+            "sub_process_arguments": ["cd", "{{dir}}"],
+            "input": {
+                "dir": {"value": "."}
+            }
+        }
+        """
+
+        json_dict = json.loads(json_text)
+
+        step = SubProcessStep.from_json_dict(json_dict)
+
+        self.assertIsInstance(step, SubProcessStep)
+        self.assertEqual(step.id, "op3")
+        self.assertIn('dir', step.input)
+        self.assertIn('return', step.output)
+        self.assertEqual(step.input.dir.value, '.')
+
+        json_dict_2 = step.to_json_dict()
+        # self.assertEqual(json_dict, json_dict_2)
 
 
 class NodeConnectorTest(TestCase):

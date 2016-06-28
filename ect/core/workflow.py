@@ -83,7 +83,7 @@ Components
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from io import IOBase
-from typing import Sequence, Optional, Union, List
+from typing import Sequence, Optional, Union, List, Mapping, Dict
 
 from ect.core import Monitor
 from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
@@ -692,29 +692,38 @@ class NoOpStep(Step):
 # TODO (nf, 20160625) - add test
 class SubProcessStep(Step):
     """
-    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the given *arguments*.
+    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
+    given *sub_process_arguments*.
 
-    :param arguments: The sub process' arguments as list where the first entry is usually an executable and
+    :param sub_process_arguments: The sub process' arguments as list where the first entry is usually an executable and
            remaining entries are the executable's arguments.
     :param input_dict: input name to input properties mapping.
     :param output_dict: output name to output properties mapping.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, arguments: List[str], input_dict=None, output_dict=None, node_id=None):
-        if not arguments:
-            raise ValueError('arguments must be given')
+    def __init__(self,
+                 sub_process_arguments: List[str],
+                 environment_variables: Dict[str, str] = None,
+                 working_directory:str= '',
+                 input_dict=None,
+                 output_dict=None,
+                 node_id=None):
+        if not sub_process_arguments:
+            raise ValueError('sub_process_arguments must be given')
         node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
         if len(op_meta_info.output) == 0:
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(SubProcessStep, self).__init__(op_meta_info, node_id)
-        self._arguments = arguments
+        self._sub_process_arguments = sub_process_arguments
+        self._environment_variables = dict(environment_variables) if environment_variables else {}
+        self._working_directory = working_directory
 
     @property
-    def arguments(self) -> List[str]:
+    def sub_process_arguments(self) -> List[str]:
         """The sub process' arguments."""
-        return self._arguments
+        return self._sub_process_arguments
 
     def invoke(self, monitor: Monitor = Monitor.NULL):
         """
@@ -728,20 +737,28 @@ class SubProcessStep(Step):
         for node_input in self.input[:]:
             input_values[node_input.name] = node_input.value
 
-        # TODO (nf, 20160625) - add option to transform given arguments list into a new one from given input values
-        # For example: 1) use input as new argument (replacement)
+        # TODO (nf, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
+        #                      from given input values
+        # For example: 1) use input as new argument (replacement) --> DONE
         #              2) generate text file (e.g. parameter / config file) from template and from input values
         #                 use new filename as new argument
-        # TODO (nf, 20160625) - add option to generate dictionary of named output values
-        # TODO (nf, 20160625) - add monitor
+        # TODO (nf, 20160625): SubProcessStep: add option to generate dictionary of named output values
         # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
         #              2) send all sdtout lines to monitor as textual messages
+        # TODO (nf, 20160625): SubProcessStep: use monitor here
+
+        interpolated_arguments = []
+        for arg in self._sub_process_arguments:
+            for key, value in input_values.items():
+                arg = arg.replace('{{%s}}' % key, str(value))
+            interpolated_arguments.append(arg)
 
         import subprocess
-        return_value = subprocess.run(self._arguments).returncode
+        return_value = subprocess.run(interpolated_arguments, shell=True).returncode
 
         #
         if self.op_meta_info.has_named_outputs:
+            # will never reach this code, see to-do above
             for output_name, output_value in return_value.items():
                 self.output[output_name].value = output_value
         else:
@@ -749,16 +766,20 @@ class SubProcessStep(Step):
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
-        expression = json_dict.get('expression', None)
-        if expression is None:
+        sub_process_arguments = json_dict.get('sub_process_arguments', None)
+        working_directory = json_dict.get('working_directory', None)
+        environment_variables = json_dict.get('environment_variables', None)
+        if sub_process_arguments is None:
             return None
-        return cls(expression, node_id=json_dict.get('id', None))
+        return cls(sub_process_arguments, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['arguments'] = self.arguments
+        node_dict['sub_process_arguments'] = self._sub_process_arguments
+        node_dict['working_directory'] = self._working_directory
+        node_dict['environment_variables'] = self._environment_variables
 
     def __repr__(self):
-        return "SubProcessStep(%s, node_id='%s')" % (repr(self.arguments), self.id)
+        return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
 
 
 # TODO (nf, 20160625) - rename into NodePort, this is shorter and more intuitive
