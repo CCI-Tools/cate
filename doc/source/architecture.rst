@@ -37,10 +37,10 @@ extensions towards a web application with possibly multiple remote WebAPI servic
 
 The ESA `CCI Open Data Portal`_ is the central climate data provider for the CCI Toolbox. It provides time series of essential
 climate variables (ECVs) in various spatial and temporal resolutions in netCDF and Shapefile format. At the time of
-writing (June 2016), the only operational data access service is via FTP. However, the CCI Portal will soon offer
+writing (June 2016), the only operational data access service is via FTP. However, the CCI Open Data Portal will soon offer
 also data access via a dedicated THREDDS_ server and will support *OPEeNDAP* and *OGC WCS* services.
 
-The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal.
+The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
 
 .. _uml_modules:
 
@@ -48,7 +48,7 @@ The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core,
    :scale: 100 %
    :align: center
 
-   CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal.
+   CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
 
 Note that although the CCI Toolbox GUI and Core are shown in :numref:`uml_modules` as separate nodes, they are combined in
 one software installation on the user's computer.
@@ -99,7 +99,7 @@ Package ``ect.ds``
 
 The Python package ``ect.ds`` contains specific climate data stores (DS). Every module in this package is
 dedicated to a specific data store. The ``esa_cci_ftp`` module provides the data store that represents the
-ESA CCI Data Access Portal's FTP data.
+ESA CCI Open Data Portal's FTP data.
 
 The package ``ect.ds`` is a *plugin* package. The modules in ``ect.ds`` are activated during installation
 and their data sources are registered once the module is imported. In fact, no module in package ``ect.core``
@@ -225,8 +225,8 @@ The CCI Toolbox ``io`` module comprises the following abstract types:
 
 The ``DataStoreRegistry`` manages the set of currently known data stores. The default data store registry is accessible
 via the variable ``DATA_STORE_REGISTRY``. Plugins may register new data stores here. There will be at least one
-data store available which is by default the data store that mirrors parts of the CCI Portal's FTP tree on the user's
-computer.
+data store available which is by default the data store that mirrors parts of the FTP tree of CCI Open Data Portal
+on the user's computer.
 
 The ``DataStore.query()`` allows for querying a data store for data sources given some optional constraints.
 

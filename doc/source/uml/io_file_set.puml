@@ -45,7 +45,8 @@ FileSetDataSource -- "0..1" FileSetInfo
 note left of FileSetDataStore
 Users may create their own.
 The default instance mirrors
-the CCI Portal's FTP tree.
+the FTP tree of the CCI Open
+Data Portal.
 end note
 
 note left of FileSetDataSource

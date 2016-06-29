@@ -17,8 +17,8 @@ System that supports the UNFCCC_, the United Nations Framework Convention on Cli
 
 In the ESA CCI programme **14 Essential Climate Variables** (ECV) are produced by individual expert teams,
 and cross-cutting activities provide coordination, harmonisation and support. The **CCI Toolbox** and the
-**CCI Data Access Portal** are the two main technical support projects within the programme.
-The CCI Data Access Portal will provide a single point of harmonised access to a subset of mature and validated
+**CCI Open Data Portal** are the two main technical support projects within the programme.
+The CCI Open Data Portal will provide a single point of harmonised access to a subset of mature and validated
 ECV-related data products. The CCI Toolbox will provide tools that support visualisation, analysis and processing across
 CCI and other climate data products. With these two technical cross cutting activities ESA is providing an interface
 between its CCI projects and the ECVs generated there, and the wider climate change user community
