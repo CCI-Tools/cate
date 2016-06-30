@@ -265,7 +265,7 @@ class DataSourceCommand(Command):
             if not time_range:
                 return 2, "invalid PERIOD: " + command_args.time[0]
         else:
-            time_range = None
+            time_range = (None, None)
 
         for ds_name in command_args.ds_names:
             data_sources = data_store.query(name=ds_name)
