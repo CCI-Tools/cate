@@ -37,8 +37,6 @@ Technical Requirements
 **Common Data Model**
 
 :Description: A common data model is required that abstracts from underlying (climate) data formats.
-    of that abstracts design of this module is driven by the following technical requirements given in the
-    `CCI Toolbox URD`_.
 :URD References:
     * CCIT-UR-DM0001: a) access, b) ingest, c) display, d) process different kinds and sizes of data
     * CCIT-UR-DM0003: multi-dimensional data
