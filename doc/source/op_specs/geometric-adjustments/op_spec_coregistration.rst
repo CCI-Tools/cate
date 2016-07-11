@@ -137,17 +137,17 @@ Parameters
 
 
 
-Computational complexity
-========================
+.. Computational complexity
+.. ========================
 
 .. *Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.*
 
---------------------------
+.. --------------------------
 
-:time: *Time complexity*
-:memory: *Memory complexity*
+.. :time: *Time complexity*
+.. :memory: *Memory complexity*
 
---------------------------
+.. --------------------------
 
 .. Convergence
 .. ===========
