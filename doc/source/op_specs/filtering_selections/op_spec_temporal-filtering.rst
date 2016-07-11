@@ -16,12 +16,12 @@ Operation
 
 --------------------------
 
-Options
-========================
+.. Options
+.. ========================
 
 .. *Describe options regarding the use of the Operation.*
 
---------------------------
+.. --------------------------
 
 
 Input data
@@ -94,7 +94,7 @@ Parameters
 --------------------------
 
 :name: start date, t1
-:type: *double?*
+:type: integer or double
 :valid values: [1; +infinity]
 :default value: first time step defined by input data 
 :description: first step of time period to be employed
@@ -102,7 +102,7 @@ Parameters
 --------------------------
 
 :name: end date, t2
-:type: *double?*
+:type: integer or double
 :valid values: [1; +infinity]
 :default value: last time step defined by input data 
 :description: last step of time period to be employed
