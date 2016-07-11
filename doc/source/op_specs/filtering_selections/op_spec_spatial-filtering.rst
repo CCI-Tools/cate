@@ -110,7 +110,7 @@ Parameters
 :name: lon, x (longitudinal position)
 :type: floating point number
 :valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: -
+.. :default value: -
 :description: longitudinal coordinate of point of interest
 
 --------------------------
@@ -118,7 +118,7 @@ Parameters
 :name: lat, y (latitudinal position)
 :type: floating point number
 :valid values: [-90.; +90.]
-:default value: -
+.. :default value: -
 :description: latitudinal coordinate of point of interest
 
 ---------------------------------
