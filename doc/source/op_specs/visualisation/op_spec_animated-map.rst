@@ -153,7 +153,7 @@ Parameters
 .. *If there are combinations of input data that can lead to the algorithm failing, describe here what they are and how the algorithm should respond to this. For example, by logging a message*
 
 .. Example
-=======
+.. =======
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
 .. ::
