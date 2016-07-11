@@ -22,18 +22,3 @@ Operations
 
 :Operation name: Temporal Filtering
 :Operation description: creates temporal subsets
-
----------------------------------
-
-:Operation name: 
-:Operation description: 
-
----------------------------------
-
-:Operation name: 
-:Operation description: 
-
----------------------------------
-
-:Operation name: 
-:Operation description: 
