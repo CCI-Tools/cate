@@ -86,8 +86,8 @@ Input data
 
 -----------------------------
 
-:name: time (steps)
-:type: *double?*
+:name: time (time, t)
+:type: integer or double
 :range: [0; +infinity]
 :dimensionality: vector
 :description: days/months since ...
