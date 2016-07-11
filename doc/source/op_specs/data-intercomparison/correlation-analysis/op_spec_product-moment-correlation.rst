@@ -109,7 +109,7 @@ Input data
 
 -----------------------------
 
-:name: time
+:name: time (time, t)
 :type: integer or double
 :range: [0; +infinity]
 :dimensionality: vector
