@@ -110,7 +110,7 @@ Input data
 -----------------------------
 
 :name: time (steps)
-:type: double?
+:type: *double?*
 :range: [0; +infinity]
 :dimensionality: vector
 :description: days/months since ...
