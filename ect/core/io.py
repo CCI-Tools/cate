@@ -250,9 +250,9 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError('No data_source found for the given query term %s' % data_source)
+            raise ValueError("No data_source found for the given query term '%s'" % data_source)
         elif len(data_sources) > 1:
-            raise ValueError('%s data_sources found for the given query term %s' % (len(data_sources), data_source))
+            raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
     return data_source.open_dataset(time_range)
 
