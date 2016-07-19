@@ -250,9 +250,9 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError('No data_source found')
+            raise ValueError('No data_source found for the given query term %s' % data_source)
         elif len(data_sources) > 1:
-            raise ValueError('%s data_sources found for the given query term' % len(data_sources))
+            raise ValueError('%s data_sources found for the given query term %s' % (len(data_sources), data_source))
         data_source = data_sources[0]
     return data_source.open_dataset(time_range)
 
@@ -305,6 +305,8 @@ class FileSetDataSource(DataSource):
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
+        if len(existing_paths) == 0:
+            raise ValueError('No local file available. Consider syncing the dataset.')
         # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
         xr_dataset = open_xarray_dataset(existing_paths)
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
