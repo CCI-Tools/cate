@@ -858,6 +858,22 @@ class NodePort:
         self._value = None
 
     def resolve_source_ref(self):
+        """
+        Resolve this node port's source reference, if any.
+
+        If the source reference has the form *node-id*`.`*port-name* then *node-id* must be the ID of the
+        workflow or any contained step and *port-name* must be a name either of one of its output or input ports.
+        Output ports are searched first.
+
+        If the source reference has the form `.`*port-name* then *node-id* is set to the workflow's ID
+        and *port-name* must be a name either of one of the workflow's output or input ports.
+        Again, output ports are searched first.
+
+        If the source reference has the form *node-id* then *node-id* must be the ID of the
+        workflow or any contained step which has exactly one output.
+
+        :raise ValueError: if the source reference is invalid.
+        """
         if self._source_ref:
             other_node_id, other_name = self._source_ref
             if other_node_id and other_name:
@@ -884,7 +900,7 @@ class NodePort:
                         return
                     else:
                         raise ValueError(
-                            "cannot connect '%s' with node '%s' because it has %s outputs" % (
+                            "cannot connect '%s' with node '%s' because it has %s named outputs" % (
                                 self, other_node_id, len(other_node.output)))
                 else:
                     raise ValueError("cannot connect '%s' with output of node '%s' because node '%s' does not exist" % (
