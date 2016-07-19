@@ -27,8 +27,9 @@ implementation.
 Step node inputs and workflow outputs are indicated in the input specification of a node's external JSON
 representation:
 
-* ``{"source": "NODE_ID.NAME" }``: the output named *NAME* of another node given by *NODE_ID*.
-* ``{"source": ".NAME" }``: a workflow input named *NAME*.
+* ``{"source": "NODE_ID.PORT_NAME" }``: the output (or input) named *PORT_NAME* of another node given by *NODE_ID*.
+* ``{"source": ".PORT_NAME" }``: current step's output (or input) named *PORT_NAME* or of any of its parents.
+* ``{"source": "NODE_ID" }``: the one and only output of a workflow or of one of its nodes given by *NODE_ID*.
 * ``{"value": NUM|STR|LIST|DICT|null }``: a constant (JSON) value.
 
 Workflows are callable by the CLI in the same way as single operations. The command line form for calling an
@@ -186,10 +187,10 @@ class Node(metaclass=ABCMeta):
 
     def resolve_source_refs(self):
         """Resolve unresolved source references in inputs and outputs."""
-        for node_output in self._output[:]:
-            node_output.resolve_source_ref()
-        for node_input in self._input[:]:
-            node_input.resolve_source_ref()
+        for node_output_port in self._output[:]:
+            node_output_port.resolve_source_ref()
+        for node_input_port in self._input[:]:
+            node_input_port.resolve_source_ref()
 
     def find_port(self, name) -> 'NodePort':
         """
@@ -862,15 +863,18 @@ class NodePort:
         Resolve this node port's source reference, if any.
 
         If the source reference has the form *node-id*`.`*port-name* then *node-id* must be the ID of the
-        workflow or any contained step and *port-name* must be a name either of one of its output or input ports.
-        Output ports are searched first.
+        workflow or any contained step and *port-name* must be a name either of one of its input or output ports.
 
-        If the source reference has the form `.`*port-name* then *node-id* is set to the workflow's ID
-        and *port-name* must be a name either of one of the workflow's output or input ports.
-        Again, output ports are searched first.
+        If the source reference has the form `.`*port-name* then *node-id* will refer to either the current step or any
+        of its parent nodes that contains an input or output named *port-name*.
 
         If the source reference has the form *node-id* then *node-id* must be the ID of the
         workflow or any contained step which has exactly one output.
+
+        If *node-id* refers to a workflow, then *port-name* is resolved first against the workflow's inputs
+        followed by its outputs.
+        If *node-id* refers to a workflow's step, then *port-name* is resolved first against the step's outputs
+        followed by its inputs.
 
         :raise ValueError: if the source reference is invalid.
         """
