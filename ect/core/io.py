@@ -64,9 +64,9 @@ from collections import OrderedDict
 from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
+import xarray as xr
 
-from ect.core.cdm import Dataset, Schema
-from ect.core.cdm_xarray import XArrayDatasetAdapter
+from ect.core.cdm import Schema
 from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
 
@@ -95,11 +95,12 @@ class DataSource(metaclass=ABCMeta):
         """The data store to which this data source belongs."""
 
     @abstractmethod
-    def open_dataset(self, time_range=None) -> Dataset:
+    def open_dataset(self, time_range=None) -> xr.Dataset:
         """
         Open a dataset with the given constraints.
 
         :param time_range: a tuple of datetime or str, optional. To limits the dataset in time.
+        :return: A xarray dataset or a Shapfile TBD.
         """
 
     def matches_filter(self, name=None) -> bool:
@@ -224,7 +225,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
     return results
 
 
-def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Dataset:
+def open_dataset(data_source: Union[DataSource, str], time_range=None) -> xr.Dataset:
     """Load and decode a dataset.
 
     Parameters
@@ -236,8 +237,8 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
 
     Returns
     -------
-    dataset : Dataset
-       The newly created dataset.
+    dataset : xarry.Dataset
+       The newly created dataset  or a Shapfile TBD..
 
     See Also
     --------
@@ -301,16 +302,14 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range=None) -> Dataset:
+    def open_dataset(self, time_range=None) -> xr.Dataset:
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
         # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
-        xr_dataset = open_xarray_dataset(existing_paths)
-        cdm_dataset = XArrayDatasetAdapter(xr_dataset)
-        return cdm_dataset
+        return open_xarray_dataset(existing_paths)
 
     def to_json_dict(self):
         """

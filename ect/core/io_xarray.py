@@ -20,7 +20,7 @@ import pandas as pd
 import xarray as xr
 
 
-def open_xarray_dataset(paths, chunks=None, **kwargs):
+def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
     """
     Adapted version of the xarray 'open_mfdataset' function.
     """
