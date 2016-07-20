@@ -69,7 +69,13 @@ Workflows
 .. autoclass:: ect.OpStep
     :members:
 
+.. autoclass:: ect.NoOpStep
+    :members:
+
 .. autoclass:: ect.ExprStep
+    :members:
+
+.. autoclass:: ect.SubProcessStep
     :members:
 
 .. autoclass:: ect.WorkflowStep
@@ -81,7 +87,7 @@ Workflows
 .. autoclass:: ect.Node
     :members:
 
-.. autoclass:: ect.NodeConnector
+.. autoclass:: ect.NodePort
     :members:
 
 Task Monitoring

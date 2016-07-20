@@ -37,10 +37,10 @@ extensions towards a web application with possibly multiple remote WebAPI servic
 
 The ESA `CCI Open Data Portal`_ is the central climate data provider for the CCI Toolbox. It provides time series of essential
 climate variables (ECVs) in various spatial and temporal resolutions in netCDF and Shapefile format. At the time of
-writing (June 2016), the only operational data access service is via FTP. However, the CCI Portal will soon offer
+writing (June 2016), the only operational data access service is via FTP. However, the CCI Open Data Portal will soon offer
 also data access via a dedicated THREDDS_ server and will support *OPEeNDAP* and *OGC WCS* services.
 
-The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal.
+The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
 
 .. _uml_modules:
 
@@ -48,7 +48,7 @@ The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core,
    :scale: 100 %
    :align: center
 
-   CCI Toolbox GUI, CCI Toolbox Core, and the CCI Portal.
+   CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
 
 Note that although the CCI Toolbox GUI and Core are shown in :numref:`uml_modules` as separate nodes, they are combined in
 one software installation on the user's computer.
@@ -99,7 +99,7 @@ Package ``ect.ds``
 
 The Python package ``ect.ds`` contains specific climate data stores (DS). Every module in this package is
 dedicated to a specific data store. The ``esa_cci_ftp`` module provides the data store that represents the
-ESA CCI Data Access Portal's FTP data.
+ESA CCI Open Data Portal's FTP data.
 
 The package ``ect.ds`` is a *plugin* package. The modules in ``ect.ds`` are activated during installation
 and their data sources are registered once the module is imported. In fact, no module in package ``ect.core``
@@ -225,8 +225,8 @@ The CCI Toolbox ``io`` module comprises the following abstract types:
 
 The ``DataStoreRegistry`` manages the set of currently known data stores. The default data store registry is accessible
 via the variable ``DATA_STORE_REGISTRY``. Plugins may register new data stores here. There will be at least one
-data store available which is by default the data store that mirrors parts of the CCI Portal's FTP tree on the user's
-computer.
+data store available which is by default the data store that mirrors parts of the FTP tree of CCI Open Data Portal
+on the user's computer.
 
 The ``DataStore.query()`` allows for querying a data store for data sources given some optional constraints.
 
@@ -337,24 +337,25 @@ into the dataset outputs for processing traceability and later data history reco
 
 Like the ``OpRegistration``, every ``Node`` has an associated ``OpMetaInfo`` object specifying the node's
 signature in terms of its inputs and outputs. The actual ``Node`` inputs and outputs are modelled by the
-``NodeConnector`` class. As shown in :numref:`uml_workflow_node_connector`, a given node connector belongs to exactly
-one ``Node`` and represents either a named input or output of that node. A node connector has a name, a property
-``source``, and a property ``value``. If ``source`` is set, it must be another ``NodeConnector`` that provides the
-actual connector's value. The value of the ``value`` property can be basically anything that has an external (JSON)
+``NodePort`` class. As shown in :numref:`uml_workflow_node_port`, a given node port belongs to exactly
+one ``Node`` and represents either a named input or output of that node. A node port has a name, a property
+``source``, and a property ``value``. If ``source`` is set, it must be another ``NodePort`` that provides the
+actual port's value. The value of the ``value`` property can be basically anything that has an external (JSON)
 representation.
 
-.. _uml_workflow_node_connector:
+.. _uml_workflow_node_port:
 
-.. figure:: _static/uml/workflow_node_connector.png
+.. figure:: _static/uml/workflow_node_port.png
    :scale: 75 %
    :align: right
 
-   NodeConnector
+   Node and NodePort
 
-A workflow is required to specify its inputs and outputs. Input source may be left unspecified, while it is mandatory to
-connect the workflow's outputs to outputs of contained step nodes or inputs of the workflow. A workflow's step nodes
-are required to specify all of their input sources. Valid input sources for a step node are the workflow's inputs or
-other step node's outputs, or constant values.
+Workflow input ports are usually unspecified, but ``value`` may be set.
+Workflow output ports and a step's input ports are usually connected with output ports of other contained steps
+or inputs of the workflow via the ``source`` attribute.
+A step's output ports are usually unconnected because their ``value`` attribute is set by a step's concrete
+implementation.
 
 .. _uml_workflow_seq:
 

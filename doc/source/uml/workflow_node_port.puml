@@ -1,0 +1,21 @@
+@startuml
+
+
+abstract class Node {
+    id : str
+}
+
+class NodePort {
+    node: Node
+    name: str
+    source: NodePort
+    value: object
+}
+
+Node o--> "0..N" NodePort : input
+Node o--> "0..N" NodePort : output
+
+NodePort --> NodePort
+NodePort --> Node
+
+@enduml

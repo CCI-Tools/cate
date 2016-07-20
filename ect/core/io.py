@@ -65,7 +65,7 @@ from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
-from ect.core import Dataset
+from ect.core.cdm import Dataset, Schema
 from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
@@ -81,15 +81,15 @@ class DataSource(metaclass=ABCMeta):
     An abstract data source from which datasets can be retrieved.
     """
 
-    # TODO (forman, 20160620): DataSource must include a schema describing its contents and structure
-    # - see http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/ncml/AnnotatedSchema4.html
-    # - see http://geojson.org/geojson-spec.html
-    # - see https://en.wikipedia.org/wiki/Shapefile
-
     @property
     @abstractmethod
     def name(self) -> str:
         """Human-readable data source name."""
+
+    @property
+    @abstractmethod
+    def schema(self) -> Schema:
+        """The data :py:class:`Schema` for any dataset provided by this data source."""
 
     @property
     @abstractmethod
@@ -252,9 +252,9 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> Datase
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError('No data_source found')
+            raise ValueError("No data_source found for the given query term '%s'" % data_source)
         elif len(data_sources) > 1:
-            raise ValueError('%s data_sources found for the given query term' % len(data_sources))
+            raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
     return data_source.open_dataset(time_range)
 
@@ -295,6 +295,11 @@ class FileSetDataSource(DataSource):
         return self._name
 
     @property
+    def schema(self) -> Schema:
+        # TODO (forman, 20160623): let FileSetDataSource return a valid schema
+        return None
+
+    @property
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
@@ -302,6 +307,8 @@ class FileSetDataSource(DataSource):
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
+        if len(existing_paths) == 0:
+            raise ValueError('No local file available. Consider syncing the dataset.')
         # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
 
         # TODO (gailis, 20160623): open_xarray_dataset for some reason is a lot

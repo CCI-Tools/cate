@@ -11,8 +11,10 @@ prints progress output directly to the console.
 Verification
 ============
 
-The module's unit-tests are located in `test/test_monitor.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_monitor.py>`_
-and may be executed using ``$ py.test test/test_monitor.py --cov=ect/core/monitor.py`` for extra code coverage information.
+The module's unit-tests are located in
+`test/test_monitor.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_monitor.py>`_
+and may be executed using ``$ py.test test/test_monitor.py --cov=ect/core/monitor.py`` for extra
+code coverage information.
 
 Components
 ==========
@@ -67,7 +69,6 @@ class Monitor(metaclass=ABCMeta):
         Calls the monitor's ``start`` method with *label* and *total_work*.
         Will then take care of calling :py:meth:`Monitor.done`.
 
-        :param monitor: The monitor
         :param label: Passed to the monitor's ``start`` method
         :param total_work: Passed to the monitor's ``start`` method
         :return:
@@ -231,7 +232,7 @@ class ConsoleMonitor(Monitor):
         self._percentage = None
         self._total_work = total_work
         self._old_ctrl_c_handler = signal.signal(signal.SIGINT, self._on_ctrl_c)
-        #if self._stay_in_line:
+        # if self._stay_in_line:
         #    sys.stdout.write('\n')
         self._report_progress(msg='started')
 

@@ -37,7 +37,7 @@ node "CCI_Toolbox_GUI" {
 }
 
 cloud {
-node "CCI_Data_Access_Portal" #eeeeee {
+node "CCI_Open_Data_Portal" #eeeeee {
     FTP - [ftp_service]
     [more services...] #white
 }

@@ -64,7 +64,8 @@ class XArrayDatasetAdapter(DatasetAdapter):
         return XArrayDatasetAdapter(filtered)
 
     def close(self):
-        self._wrapped_dataset.close()
+        if hasattr(self._wrapped_dataset, 'close'):
+            self._wrapped_dataset.close()
 
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset, name: str = None):

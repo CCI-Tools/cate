@@ -4,30 +4,30 @@ Temporal Filtering
 
 Operation
 =========
-*Define the Operation and point to the applicable algorithm for implementation of this Operation, by following this convention:*
+.. *Define the Operation and point to the applicable algorithm for implementation of this Operation, by following this convention:*
 
 --------------------------
 
 :Operation name: Temporal Filtering
-:Algorithm name: *XXX*
-:Algorithm reference: *XXX* 
+.. :Algorithm name: *XXX*
+.. :Algorithm reference: *XXX* 
 :Description: This Operation allows the selection of data within a time range. Only the data that falls within the selected time period is kept, if any.
 :Utilised in: :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
 
-Options
-========================
+.. Options
+.. ========================
 
-*Describe options regarding the use of the Operation.*
+.. *Describe options regarding the use of the Operation.*
 
---------------------------
+.. --------------------------
 
 
 Input data
 ==========
 
-*Describe all input data (except for parameters) here, following this convention:*
+.. *Describe all input data (except for parameters) here, following this convention:*
 
 --------------------------
 
@@ -74,7 +74,7 @@ Input data
 
 Output data
 ===========
-*Description of anticipated output data.*
+.. *Description of anticipated output data.*
 
 --------------------------
 
@@ -89,12 +89,12 @@ Output data
 Parameters
 ==========
 
-*Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
+.. *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
 
 --------------------------
 
 :name: start date, t1
-:type: *double?*
+:type: integer or double
 :valid values: [1; +infinity]
 :default value: first time step defined by input data 
 :description: first step of time period to be employed
@@ -102,7 +102,7 @@ Parameters
 --------------------------
 
 :name: end date, t2
-:type: *double?*
+:type: integer or double
 :valid values: [1; +infinity]
 :default value: last time step defined by input data 
 :description: last step of time period to be employed
@@ -110,32 +110,32 @@ Parameters
 -----------------------------
 
 
-Computational complexity
-==============================
+.. Computational complexity
+.. ==============================
 
-*Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.*
+.. *Describe how the algorithm memory requirement and processing time scale with input size. Most algorithms should be linear or in n*log(n) time, where n is the number of elements of the input.*
 
---------------------------
+.. --------------------------
 
-:time: *Time complexity*
-:memory: *Memory complexity*
+.. :time: *Time complexity*
+.. :memory: *Memory complexity*
 
---------------------------
+.. --------------------------
 
-Convergence
-===========
+.. Convergence
+.. ===========
 
-*If the algorithm is iterative, define the criteria for the algorithm to stop processing and return a value. Describe the behavior of the algorithm if the convergence criteria are never reached.*
+.. *If the algorithm is iterative, define the criteria for the algorithm to stop processing and return a value. Describe the behavior of the algorithm if the convergence criteria are never reached.*
 
-Known error conditions
-======================
+.. Known error conditions
+.. ======================
 
-*If there are combinations of input data that can lead to the algorithm failing, describe here what they are and how the algorithm should respond to this. For example, by logging a message*
+.. *If there are combinations of input data that can lead to the algorithm failing, describe here what they are and how the algorithm should respond to this. For example, by logging a message*
 
 Example
 =======
 
-*If there is a code example (Matlab, Python, etc) available, provide it here.*
+.. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
 ::
 
