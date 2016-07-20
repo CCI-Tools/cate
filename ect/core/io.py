@@ -306,8 +306,8 @@ class FileSetDataSource(DataSource):
 
         # TODO (gailis, 20160623): open_xarray_dataset for some reason is a lot
         # slower than the native xr.open_mfdataset
-        xr_dataset = open_xarray_dataset(existing_paths)
-        # xr_dataset = xr.open_mfdataset(existing_paths, concat_dim='time')
+        # xr_dataset = open_xarray_dataset(existing_paths)
+        xr_dataset = xr.open_mfdataset(existing_paths, concat_dim='time')
         cdm_dataset = XArrayDatasetAdapter(xr_dataset)
         return cdm_dataset
 

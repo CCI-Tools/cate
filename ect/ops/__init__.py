@@ -31,6 +31,7 @@ from .filter import filter_dataset
 from .coregistration import coregister
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .correlation import pearson_correlation
+from .plot import plot_map
 
 __all__ = [
     'timeseries',
@@ -44,7 +45,8 @@ __all__ = [
     'subset_spatial',
     'subset_temporal',
     'subset_temporal_index',
-    'person_correlation'
+    'person_correlation',
+    'plot_map'
 ]
 
 
