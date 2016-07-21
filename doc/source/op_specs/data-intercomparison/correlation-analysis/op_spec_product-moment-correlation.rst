@@ -26,7 +26,7 @@ Options
 
 :name: temporal correlation
 :description: performs a correlation analysis regarding temporally variable values
-:items: one location, pixel-by-pixel, spatial mean
+:items: one grid cell, cell-by-cell, spatial mean
 
 -------------------------------------
 
@@ -47,7 +47,7 @@ Options
 ---------------------------------
 
 :name: map
-:description: produces and displays a map showing pixel-by-pixel correlations
+:description: produces and displays a map showing cell-by-cell correlations
 
 ---------------------------------
 
@@ -97,7 +97,7 @@ Input data
 :type: floating point number
 :range: [-infinity; +infinity]
 :dimensionality: cube or 4D
-:description: values of a certain variable
+:description: values of a certain geophysical quantity
 
 -----------------------------
 
@@ -105,7 +105,7 @@ Input data
 :type: floating point number
 :range: [-infinity; +infinity]
 :dimensionality: cube or 4D
-:description: values of a certain variable
+:description: values of a certain geophysical quantity
 
 -----------------------------
 
