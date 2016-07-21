@@ -2,7 +2,7 @@ import xarray as xr
 
 from ect.core.op import op
 
-# TODO (mz, 201607211): parma 'copy' unused
+# TODO (mz, 201607211): parameter 'copy' is not implemented
 
 @op()
 def filter(dataset: xr.Dataset, variable_names: list = None, regex = False, copy: bool = False) -> xr.Dataset:
