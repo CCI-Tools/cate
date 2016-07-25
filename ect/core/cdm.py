@@ -15,20 +15,12 @@ types of climate datasets, for example gridded data stored in `netCDF`_ files an
 `ESRI Shapefile`_ files.
 
 The goal of the ECT is to reuse existing, and well-known APIs for a given data type to a maximum extend
-instead of creating a complex new API. The ECT's common data model is therefore designed as a thin
-wrapper around the xarray_ N-D Gridded Datasets Python API that represents nicely netCDF, HDF-5 and OPeNDAP
-data types, i.e. Unidata's `Common Data Model`_. For the ESRI Shapefile representation we target at
-Fiona_, which reads and writes spatial data files.
+instead of creating a complex new API. Therefore ECT uses the xarray_ N-D Gridded Datasets Python API
+that represents nicely netCDF, HDF-5 and OPeNDAP data types, i.e. Unidata's `Common Data Model`_.
+For the ESRI Shapefile representation we target at Fiona_, which reads and writes spatial data files.
 
 The use of xarray_ allows the CCI Toolbox to access and process very large datasets without the need to load them
 entirely into memory. This feature is enabled by the internal use of the Dask_ library.
-
-The ECT common data model exposes three important classes:
-
-1. :py:class:`Dataset` - an abstract interface describing the common ECT dataset API
-2. :py:class:`DatasetAdapter` - wraps an existing dataset and adapts it to the common ``Dataset`` interface
-3. :py:class:`DatasetCollection` - a collection of ``Dataset`` objects and at the same time compatible with the
-   common ``Dataset`` interface
 
 
 Technical Requirements
