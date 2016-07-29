@@ -22,7 +22,7 @@ from ect.core.cdm import Dataset
 @op_input('master', description='Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
 @op_output('return', description='The resampled slave dataset')
-def coregister(master:Dataset, slave:Dataset, method:int):
+def coregister(master:Dataset, slave:Dataset, method:str):
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master.

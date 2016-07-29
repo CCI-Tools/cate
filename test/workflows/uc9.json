@@ -31,6 +31,10 @@
     "output_path": {
       "data_type": "str",
       "description": "Output folder"
+    },
+    "interpolation_type": {
+        "data_type": "str",
+        "description": "Interpolation type"
     }
    },
   "steps": [
@@ -106,7 +110,7 @@
     },
     {
       "id": "construct_filename4",
-      "expression": "str(folder+'/fig4.png')",
+      "expression": "str(folder+'/correlation.txt')",
       "input": {
         "folder": "uc9.output_path"
       }
@@ -147,6 +151,48 @@
         "variable": "uc9.var2",
         "time": "const_zero",
         "path": "construct_filename2"
+      }
+    },
+    {
+      "id": "coregister",
+      "op": "ect.ops.coregistration.coregister",
+      "input": {
+        "master": "filter2",
+        "slave": "filter1",
+        "method": "uc9.interpolation_type"
+      }
+    },
+    {
+      "id": "plot_map3",
+      "op": "ect.ops.plot.plot_map",
+      "input": {
+        "ds": "coregister",
+        "variable": "uc9.var1",
+        "time": "const_zero",
+        "path": "construct_filename3"
+      }
+    },
+    {
+      "id": "timeseries1",
+      "op": "ect.ops.timeseries.timeseries_mean",
+      "input": {
+        "ds": "coregister"
+      }
+    },
+    {
+      "id": "timeseries2",
+      "op": "ect.ops.timeseries.timeseries_mean",
+      "input": {
+        "ds": "filter2"
+      }
+    },
+    {
+      "id": "correlation",
+      "op": "ect.ops.correlation.pearson_correlation",
+      "input": {
+        "ds_y": "timeseries1",
+        "ds_x": "timeseries2",
+        "path": "construct_filename4"
       }
     }
   ]

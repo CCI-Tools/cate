@@ -16,7 +16,8 @@ from ect.core.cdm import Dataset
 
 @op_input('ds_y', description="The 'dependent' Time series dataset")
 @op_input('ds_x', description="The 'variable' Time series dataset")
-def pearson_correlation(ds_y:Dataset, ds_x:Dataset):
+@op_input('path', description="File path where to save the correlation parameters")
+def pearson_correlation(ds_y:Dataset, ds_x:Dataset, path:str=None):
     """
     Do product moment Pearson's correlation analysis.
     This assumes that the input datasets are 'timeseries' datasets,
@@ -58,4 +59,11 @@ def pearson_correlation(ds_y:Dataset, ds_x:Dataset):
 
     corr_coef = a/(math.sqrt(b*c))
     test = corr_coef*math.sqrt((len(array_y.data)-2)/(1-pow(corr_coef, 2)))
+
+    # Save the result if file path is given
+    if path:
+        with open(path, "w") as text_file:
+            print("Correlation coefficient: {}".format(corr_coef.values), file=text_file)
+            print("Test value: {}".format(test.values), file=text_file)
+
     return {'correlation_coefficient':corr_coef, 'test_value':test}
