@@ -57,19 +57,33 @@
       }
     },
     {
-      "id": "filter1",
-      "expression": "ds1.filter([var1])",
+      "id": "filter_list1",
+      "expression": "tuple([var])",
       "input": {
-        "ds1": "open_ds1",
-        "var1": "uc9.var1"
+        "var": "uc9.var1"
+      }
+    },
+    {
+      "id": "filter_list2",
+      "expression": "tuple([var])",
+      "input": {
+        "var": "uc9.var2"
+      }
+    },
+    {
+      "id": "filter1",
+      "op": "ect.ops.filter.filter_dataset",
+      "input": {
+        "dataset": "open_ds1",
+        "variable_names": "filter_list1"
       }
     },
     {
       "id": "filter2",
-      "expression": "ds2.filter([var2])",
+      "op": "ect.ops.filter.filter_dataset",
       "input": {
-        "ds2": "open_ds2",
-        "var2": "uc9.var2"
+        "dataset": "open_ds2",
+        "variable_names": "filter_list2"
       }
     },
     {

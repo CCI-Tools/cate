@@ -311,7 +311,9 @@ class FileSetDataSource(DataSource):
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
         # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
-        return open_xarray_dataset(existing_paths)
+        # return open_xarray_dataset(existing_paths)
+        # TODO (Gailis, 20160729): The normal way still does not work for me.
+        return xr.open_mfdataset(existing_paths, concat_dim='time')
 
     def to_json_dict(self):
         """

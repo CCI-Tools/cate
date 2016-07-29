@@ -10,9 +10,7 @@ Components
 
 import xarray as xr
 
-from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.op import op_input, op_output
-from ect.core.cdm import Dataset
 
 @op_input('datasets', description='A list of datasets to harmonize')
 def harmonize(datasets:list):
@@ -26,17 +24,17 @@ def harmonize(datasets:list):
         _harmonize_dataset(dataset)
 
 
-def _harmonize_dataset(ds:Dataset):
+def _harmonize_dataset(ds:xr.Dataset):
     """
     Harmonize a single dataset
 
     :param Dataset: A dataset to harmonize
     """
-    lat_name = _get_lat_dim_name(ds._wrapped_dataset)
-    lon_name = _get_lon_dim_name(ds._wrapped_dataset)
+    lat_name = _get_lat_dim_name(ds)
+    lon_name = _get_lon_dim_name(ds)
 
     name_dict = {lat_name:'lat', lon_name:'lon'}
-    ds._wrapped_dataset.rename(name_dict, inplace=True)
+    ds.rename(name_dict, inplace=True)
 
 def _get_lon_dim_name(xarray: xr.Dataset) -> str:
     return _get_dim_name(xarray, ['lon', 'longitude', 'long'])

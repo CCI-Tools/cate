@@ -14,33 +14,24 @@ import os
 import numpy as np
 from mpl_toolkits import basemap
 
-from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.op import op_input, op_output
-from ect.core.cdm import Dataset
 
-@op_input('slave', description='Dataset that will be resampled on the masters grid')
-@op_input('master', description='Dataset whose lat/lon coordinates are used as the resampling grid')
+@op_input('slave', description='xr.Dataset that will be resampled on the masters grid')
+@op_input('master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
 @op_output('return', description='The resampled slave dataset')
-def coregister(master:Dataset, slave:Dataset, method:str):
+def coregister(master:xr.Dataset, slave:xr.Dataset, method:str):
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master.
 
-    :param master: The master dataset of type :py:class:`Dataset`
-    :param slave: The slave dataset of type :py:class:`Dataset`
+    :param master: The master dataset of type :py:class:`xr.Dataset`
+    :param slave: The slave dataset of type :py:class:`xr.Dataset`
     :param method: Interpolation method to use. 'nearest','bilinear','cubic' 
     :return: The slave dataset resampled on the master's grid
     """
-    if not isinstance(master, XArrayDatasetAdapter):
-        raise NotImplementedError('only raster implementation is currently present')
-
-    if not isinstance(slave, XArrayDatasetAdapter):
-        raise NotImplementedError('only raster implementation is currently present')
-
     methods = {'nearest':0, 'bilinear':1, 'cubic':3}
-    return XArrayDatasetAdapter(_resample_dataset(master._wrapped_dataset,
-        slave._wrapped_dataset, methods[method]))
+    return (_resample_dataset(master, slave, methods[method]))
 
 
 def _resample_slice(slice_, grid_lon, grid_lat, order=1):

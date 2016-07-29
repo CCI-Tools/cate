@@ -8,16 +8,15 @@ Components
 ==========
 """
 import math
+import xarray as xr
 
-from ect.core.cdm_xarray import XArrayDatasetAdapter
 from ect.core.op import op_input, op_output
-from ect.core.cdm import Dataset
 
 
 @op_input('ds_y', description="The 'dependent' Time series dataset")
 @op_input('ds_x', description="The 'variable' Time series dataset")
 @op_input('path', description="File path where to save the correlation parameters")
-def pearson_correlation(ds_y:Dataset, ds_x:Dataset, path:str=None):
+def pearson_correlation(ds_y:xr.Dataset, ds_x:xr.Dataset, path:str=None):
     """
     Do product moment Pearson's correlation analysis.
     This assumes that the input datasets are 'timeseries' datasets,
@@ -28,8 +27,8 @@ def pearson_correlation(ds_y:Dataset, ds_x:Dataset, path:str=None):
     :param ds_y: The 'dependent' time series dataset
     :param ds_x: The 'variable' time series dataset
     """
-    xr_y = ds_y.wrapped_dataset
-    xr_x = ds_x.wrapped_dataset
+    xr_y = ds_y
+    xr_x = ds_x
 
     # We Expect to have a single variable in the dataset
     if len(xr_y.data_vars) != 1 or len(xr_x.data_vars) != 1:

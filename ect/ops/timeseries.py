@@ -27,34 +27,28 @@ def timeseries(dataset: xr.Dataset, lat: float, lon: float, method: str='nearest
     :param method: One of ``nearest``, ``ffill``, ``bfill``.
     :return:
     """
-    if isinstance(ds, XArrayDatasetAdapter):
-        wrapped_xarray = ds.wrapped_dataset
-        xarray_timeseries = _xarray_timeseries(wrapped_xarray, lat=lat, lon=lon, method=method)
-        return XArrayDatasetAdapter(xarray_timeseries)
-    else:
-        raise NotImplementedError('shapefiles are currently not supported')
+    wrapped_xarray = dataset
+    xarray_timeseries = _xarray_timeseries(wrapped_xarray, lat=lat, lon=lon, method=method)
+    return xarray_timeseries
 
 
 @op_input('ds', description='A dataset from which to extract time series')
 @op_output('return', description='A timeseries dataset')
-def timeseries_mean(ds:Dataset):
+def timeseries_mean(ds: xr.Dataset):
     """
     Extract spatial mean timeseries from the given dataset
 
     :param ds: The dataset of type :py:class:`Dataset`
     :return: Time series dataset
     """
-    if not isinstance(ds, XArrayDatasetAdapter):
-        raise NotImplementedError('only raster datasets are currently supported')
-
     reduce_along = {'dim':['lat','lon']}
-    retset = ds.wrapped_dataset.mean(**reduce_along)
-    return XArrayDatasetAdapter(retset)
+    retset = ds.mean(**reduce_along)
+    return retset
 
 
-def _xarray_timeseries(xarray: xr.Dataset, lat: float, lon: float, method: str) -> xr.Dataset:
-    lat_dim = _get_lat_dim_name(xarray)
-    lon_dim = _get_lon_dim_name(xarray)
+def _xarray_timeseries(dataset: xr.Dataset, lat: float, lon: float, method: str) -> xr.Dataset:
+    lat_dim = _get_lat_dim_name(dataset)
+    lon_dim = _get_lon_dim_name(dataset)
     indexers = {lat_dim: lat, lon_dim: lon}
     return dataset.sel(method=method, **indexers)
 

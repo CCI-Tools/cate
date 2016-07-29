@@ -8,15 +8,14 @@ Components
 ==========
 """
 
-from ect.core.cdm_xarray import XArrayDatasetAdapter
+import xarray as xr
 from ect.core.op import op_input, op_output
-from ect.core.cdm import Dataset
 
 @op_input('ds', description='A dataset to subset')
 @op_input('lat', description='[lat_min, lat_max] to select')
 @op_input('lon', description='[lon_min, lon_max] to select')
 @op_output('return', description='The subset dataset')
-def subset_spatial(ds:Dataset, lat:list, lon:list):
+def subset_spatial(ds:xr.Dataset, lat:list, lon:list):
     """
     Do a spatial subset of the dataset
 
@@ -28,13 +27,13 @@ def subset_spatial(ds:Dataset, lat:list, lon:list):
     lat_slice = slice(lat[0], lat[1])
     lon_slice = slice(lon[0], lon[1])
     indexers = {'lat':lat_slice, 'lon':lon_slice}
-    return XArrayDatasetAdapter(ds._wrapped_dataset.sel(**indexers))
+    return ds.sel(**indexers)
 
 
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_min, time_max] to select')
 @op_output('return', description='The subset dataset')
-def subset_temporal(ds:Dataset, time:list):
+def subset_temporal(ds:xr.Dataset, time:list):
     """
     Do a temporal subset of the dataset
 
@@ -44,13 +43,13 @@ def subset_temporal(ds:Dataset, time:list):
     """
     time_slice = slice(time[0], time[1])
     indexers = {'time':time_slice}
-    return XArrayDatasetAdapter(ds._wrapped_dataset.sel(**indexers))
+    return ds.sel(**indexers)
 
 
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_index_min, time_index_max] to select')
 @op_output('return', description='The subset dataset')
-def subset_temporal_index(ds:Dataset, time:list):
+def subset_temporal_index(ds:xr.Dataset, time:list):
     """
     Do a temporal indices based subset
 
@@ -60,4 +59,4 @@ def subset_temporal_index(ds:Dataset, time:list):
     """
     time_slice = slice(time[0], time[1])
     indexers = {'time':time_slice}
-    return XArrayDatasetAdapter(ds._wrapped_dataset.isel(**indexers))
+    return ds.isel(**indexers)
