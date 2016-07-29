@@ -4,7 +4,7 @@ Description
 
 .. warning:: This module is only partially implemented and lacks essential functionality.
 
-This module implements the `xarray`_ and netCDF `Common Data Model`_ adapter for the CCI Toolbox' Common Data Model.
+This module implements the `xarray`_ and netCDF `Common Data Model`_ data access for the CCI Toolbox.
 
 .. _xarray: http://xarray.pydata.org/en/stable/
 .. _Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM
@@ -20,7 +20,7 @@ import pandas as pd
 import xarray as xr
 
 
-def open_xarray_dataset(paths, chunks=None, **kwargs):
+def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
     """
     Adapted version of the xarray 'open_mfdataset' function.
     """
