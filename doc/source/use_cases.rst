@@ -469,8 +469,8 @@ Monitoring Tropical Deforestation
     * International bodies
 
 :Problem Definition: Maps of forest cover, change and deforestation shall be produced depicting forest status and
-    trends. Additionally, vector data regarding infrastructure (e.g. road works) could be obtained from local
-    authorities and compared with forest evolution.
+    trends for 5-year periods centred around 2000, 2005, and 2010. Additionally, vector data regarding infrastructure
+    (e.g. road works) could be obtained from local authorities and compared with forest evolution.
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI Land Cover data
