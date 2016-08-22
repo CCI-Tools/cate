@@ -13,6 +13,7 @@ setup(
     license='GPL 3',
     author='ESA CCI Toolbox Development Team',
     packages=packages,
+    data_files=[('ect/ds', ['ect/ds/esa_cci_ftp.json'])],
     entry_points={
         'console_scripts': [
             'ect = ect.ui.cli:main',
