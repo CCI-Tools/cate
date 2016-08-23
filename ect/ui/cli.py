@@ -74,7 +74,6 @@ Components
 
 import argparse
 import os.path
-import os.path
 import sys
 from abc import ABCMeta
 from collections import OrderedDict
