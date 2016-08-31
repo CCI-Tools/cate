@@ -5,7 +5,7 @@ This sections describes an exemplary workflow performed to accomplish the climat
 Use Case #9 :ref:`uc_09`.
 
 
-#.	The user selects CCI data products from a checklist. 
+#.	The user selects CCI data products from a checklist (geophysical quantities: aerosol optical depth or absorbing aerosol index, cloud cover). 
 #.	The user selects the operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the operation category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
 #.	The user selects the particular options (use of grid1 or grid2, interpolation method, propagation of uncertainties analysis).
 #.	The user executes the operation.
@@ -19,7 +19,7 @@ Use Case #9 :ref:`uc_09`.
 #.  	The user executes the operation.
 #.  	The Toolbox creates a temporal subset of the data. 
 #.  	The user selects the operation :doc:`Time Series Plot <../visualisation/op_spec_time-series-plot>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
-#.	The user selects options (multiple datasets).
+#.	The user selects options (multiple data products).
 #.	The user executes the operation.
 #.	The Toolbox plots time series on the same axes. 
 #.	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
@@ -35,14 +35,14 @@ Use Case #9 :ref:`uc_09`.
 #.	The user re-specifies the geospatial area of interest as a polygon on the rotatable globe (GUI) or by specifying coordinates.
 
 #.	The user selects the operation :doc:`Animated Map <../visualisation/op_spec_animated-map>` from the operation category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
-#.	The user selects options (multiple datasets).
+#.	The user selects options (multiple data products).
 #.	The user executes the operation.
 #.	The Toolbox displays side-by-side animations.
 #.	The user saves the animated maps as GIF files.
 #.	The user selects the operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (operation category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, operation subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
-#.	The user selects options (map).
+#.	The user selects options (grid cell-by-grid cell, map).
 #.	The user executes the operation.
-#.	The Toolbox performs a pixel-by-pixel correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
+#.	The Toolbox performs a grid cell-by-grid list correlation between the two twodimensional time series, and generates a correlation map displayed on the screen. 
 #.	The user saves the map (PNG) as well as the correlation statistics (ASCII).
 
 

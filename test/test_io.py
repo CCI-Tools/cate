@@ -131,7 +131,7 @@ class IOTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             io.open_dataset('foo')
-        self.assertEqual('No data_source found', str(cm.exception))
+        self.assertEqual("No data_source found for the given query term 'foo'", str(cm.exception))
 
         inmem_data_source = InMemoryDataSource('42')
         dataset1 = io.open_dataset(inmem_data_source)
@@ -151,7 +151,7 @@ class IOTest(TestCase):
             io.DATA_STORE_REGISTRY.add_data_store('duplicated_cat', duplicated_cat)
             with self.assertRaises(ValueError) as cm:
                 io.open_dataset('aerosol')
-            self.assertEqual('2 data_sources found for the given query term', str(cm.exception))
+            self.assertEqual("2 data_sources found for the given query term 'aerosol'", str(cm.exception))
         finally:
             io.DATA_STORE_REGISTRY._data_stores.clear()
 

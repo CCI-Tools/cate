@@ -30,14 +30,8 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
         raise IOError('no files to open')
 
     # open all datasets
-    engine = 'h5netcdf'
     lock = xr.backends.api._default_lock(paths[0], None)
     # TODO (forman, 20160601): align with chunking from netcdf metadata attribute
-
-
-    def _x_open(p):
-        print(p)
-        return
 
     datasets = []
     probed_engine = None
@@ -45,12 +39,11 @@ def open_xarray_dataset(paths, chunks=None, **kwargs):
         if not probed_engine:
             try:
                 from xarray.backends import H5NetCDFStore
-                store = H5NetCDFStore(p)
-                print(store)
+                H5NetCDFStore(p)
                 probed_engine = 'h5netcdf'
             except OSError:
                 probed_engine = 'netcdf4'
-        da = xr.open_dataset(p, engine=probed_engine, chunks=chunks, lock=lock, **kwargs)
+        da = xr.open_dataset(p, engine=probed_engine, chunks=chunks or {}, lock=lock, **kwargs)
         datasets.append(da)
 
     preprocessed_datasets = []
@@ -74,9 +67,9 @@ def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
     Combines all datasets into a single.
     """
     if len(datasets) == 0:
-        raise ValueError()
+        raise ValueError('No dataset for combining')
     if 'time' in datasets[0].dims:
-        xr.auto_combine(datasets, concat_dim='time')
+        return xr.auto_combine(datasets, concat_dim='time')
     else:
         time_index = [_extract_time_index(ds) for ds in datasets]
         return xr.concat(datasets, pd.Index(time_index, name='time'))

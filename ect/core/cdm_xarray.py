@@ -48,9 +48,8 @@ class XArrayDatasetAdapter(DatasetAdapter):
         return XArrayDatasetAdapter(self._wrapped_dataset.drop(dropped_var_names))
 
     def close(self):
-        # implement me using xarray Dataset API
-        #raise NotImplementedError()
-        pass
+        if hasattr(self._wrapped_dataset, 'close'):
+            self._wrapped_dataset.close()
 
 
 def add_xarray_dataset(container: DatasetCollection, xr_dataset: xr.Dataset, name: str = None):
