@@ -4,6 +4,16 @@ from ect.core.workflow_svg import Drawing, Graph
 
 
 class WorkflowSvgTest(TestCase):
+    def test_routing(self):
+        from ect.core.workflow import Workflow
+        import os.path
+        workflow = Workflow.load(os.path.join(os.path.dirname(__file__), 'workflows', 'four_steps_chain.json'))
+
+        actual_svg = workflow._repr_svg_()
+        self._write_svg_html(actual_svg)
+
+        #self.assertEqual(actual_svg, expected_svg)
+
     def test_it(self):
         """
         By intention, not actually a rigorous test.

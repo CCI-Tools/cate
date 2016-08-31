@@ -335,20 +335,31 @@ class Graph(Node):
         self.box = self._layout_box(drawing_config)
 
         # Naive graph input/output port layout
+        r = drawing_config.port_radius
+        g = drawing_config.port_gap
+        cy_delta_min = 2 * r + g
 
         # The cy of an input port is the cy of the node pointed to by the first outgoing edge
+        last_cy = 0
         for input_port in self.input_ports.values():
             if input_port.outgoing_edges:
                 outgoing_edge = input_port.outgoing_edges[0]
                 cx, cy = outgoing_edge.port_2.center()
+                if cy - last_cy < cy_delta_min:
+                    cy = last_cy + cy_delta_min
                 input_port.cy = cy
+                last_cy = cy
 
         # The cy of an output port is the cy of the node pointed to by the incoming edge
+        last_cy = 0
         for output_port in self.output_ports.values():
             if output_port.incoming_edge:
                 incoming_edge = output_port.incoming_edge
                 cx, cy = incoming_edge.port_1.center()
+                if cy - last_cy < cy_delta_min:
+                    cy = last_cy + cy_delta_min
                 output_port.cy = cy
+                last_cy = cy
 
     def _compute_layers(self):
         layer_dict = dict()
