@@ -175,8 +175,9 @@ Operations
 - Ice Sheets Analysis *-> part of BA + GIS?*
 
 
-**not specified as operations**
+**not implemented as as operations**
 
-- *Parameter Settings* (selection of time span and AOI -> as default to all Operations)
+- *Load Data*
+- *Save Table*
 - *Save Image*
 - *(Save Plot)*
