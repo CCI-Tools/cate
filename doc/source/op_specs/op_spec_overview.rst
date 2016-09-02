@@ -17,12 +17,12 @@ Operations
 	- Temporal Gap Filling
 	- Temporal Concatenation
 
-- Filtering and Selections
+- Subsetting and Selections
 	
-	- Spatial Filtering
+	- Spatial Subsetting
 	- Spatial Resolution *(either Geometric Adjustment or selection from different available datasets)*
 	- Selection of a season of interest *(-> Calculations)*	
-	- Temporal Filtering
+	- Temporal Subsetting
 	- Temporal Resolution *(either Non-Geometric Adjustment or selection from different available datasets)*	
 	- Pixel Class Extraction
 	- Pixel Extraction by Values
