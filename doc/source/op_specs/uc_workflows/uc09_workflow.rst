@@ -10,11 +10,11 @@ Use Case #9 :ref:`uc_09`.
 #.	The user selects the particular options (use of grid1 or grid2, interpolation method, propagation of uncertainties analysis).
 #.	The user executes the operation.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
-#.	The user selects the operation :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+#.	The user selects the operation :doc:`Spatial Subsetting <../subsetting_selections/op_spec_spatial-subsetting>` from the operation category :doc:`Subsetting and Selections <../subsetting_selections/op_spec_category_subsetting_selections>`.
 #.	The user selects options (geospatial point of interest on a rotatable globe (GUI) or specification of coordinates).
 #.	The user executes the operation.
 #.	The Toolbox creates a spatial subset of the data. 
-#.	The user selects the operation :doc:`Temporal Filtering <../filtering_selections/op_spec_temporal-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+#.	The user selects the operation :doc:`Temporal Subsetting <../subsetting_selections/op_spec_temporal-subsetting>` from the operation category :doc:`Subsetting and Selections <../subsetting_selections/op_spec_category_subsetting_selections>`.
 #.  	The user selects start and end years of a time range.
 #.  	The user executes the operation.
 #.  	The Toolbox creates a temporal subset of the data. 
@@ -27,7 +27,7 @@ Use Case #9 :ref:`uc_09`.
 #.	The user executes the operation.
 #.	The Toolbox plots a scatter-plot and correlation statistics on the screen. 
 #.	The user choses a “Save Image” option which saves the plot as a PNG file.
-#.	The user selects the operation :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>` from the operation category :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`.
+#.	The user selects the operation :doc:`Spatial Subsetting <../subsetting_selections/op_spec_spatial-subsetting>` from the operation category :doc:`Subsetting and Selections <../subsetting_selections/op_spec_category_subsetting_selections>`.
 #.	The user selects options (geospatial area of interest as a polygon on the rotatable globe (GUI) or specification of coordinates).
 #.	The user executes the operation.
 #.	The Toolbox creates a spatial subset of the data. 
@@ -49,10 +49,10 @@ Use Case #9 :ref:`uc_09`.
 Utilised Operations
 ===================
 
-- :doc:`Filtering and Selections <../filtering_selections/op_spec_category_filtering_selections>`
+- :doc:`Subsetting and Selections <../subsetting_selections/op_spec_category_subsetting_selections>`
 
-	- :doc:`Spatial Filtering <../filtering_selections/op_spec_spatial-filtering>`
-	- :doc:`Temporal Filtering <../filtering_selections/op_spec_temporal-filtering>`
+	- :doc:`Spatial Subsetting <../subsetting_selections/op_spec_spatial-subsetting>`
+	- :doc:`Temporal Subsetting <../subsetting_selections/op_spec_temporal-subsetting>`
 	
 	
 - :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`
