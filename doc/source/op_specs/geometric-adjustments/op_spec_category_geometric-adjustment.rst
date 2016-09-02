@@ -14,6 +14,12 @@ Operations
 ==========
 
 
+:Operation name: Co-Registration
+:Operation description: interpolates spatial data of one dataset (slave) onto the coordinate system of another dataset (master)
+
+---------------------------------
+
+
 :Operation name: Reprojection
 :Operation description: transfers data onto another coordinate system
 
