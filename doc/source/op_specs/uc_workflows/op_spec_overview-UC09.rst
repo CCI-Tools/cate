@@ -1,11 +1,11 @@
 Operations UC9 
 ==============
 
-- Filtering and Selections
+- Subsetting and Selections
 
-	- Spatial Filtering *(point)*
-	- Temporal Filtering
-	- Spatial Filtering *(polygon)*
+	- Spatial Subsetting *(point)*
+	- Temporal Subsetting
+	- Spatial Subsetting *(polygon)*
 
 - Geometric Adjustment
 
