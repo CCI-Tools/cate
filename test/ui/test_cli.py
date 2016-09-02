@@ -31,6 +31,13 @@ class CliTest(unittest.TestCase):
             status = cli.main(args=['--help'])
             self.assertEqual(status, 0)
 
+    def test_parse_write_arg(self):
+        self.assertEqual(cli._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
+        self.assertEqual(cli._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
+        self.assertEqual(cli._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', 'PNG'))
+        self.assertEqual(cli._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
+                         ('ds', '/home/norman/data.nc', 'NETCDF4'))
+
 
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
@@ -117,22 +124,22 @@ class CliRunCommandTest(unittest.TestCase):
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
         try:
-            # Run without progress monitor
+            # Run without --monitor and --write
             with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
+                status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = stdout.getvalue()
-            self.assertTrue('Running operation ' in soutv)
+            self.assertTrue("Running '" in soutv)
             self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
             self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(stderr.getvalue(), '')
 
-            # Run with progress monitor
+            # Run with --monitor and without --write
             with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', '--monitor', op_reg.meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
+                status = cli.main(args=['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = stdout.getvalue()
-            self.assertTrue('Running operation ' in soutv)
+            self.assertTrue("Running '" in soutv)
             self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
             self.assertTrue('Extracting timeseries data: started' in soutv)
             self.assertTrue('Extracting timeseries data:  33%' in soutv)
@@ -140,9 +147,25 @@ class CliRunCommandTest(unittest.TestCase):
             self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(stderr.getvalue(), '')
 
+            # Run with --monitor and --write
+            with fetch_std_streams() as (stdout, stderr):
+                status = cli.main(
+                    args=['run', '--monitor', '--write', 'timeseries.txt', op_reg.op_meta_info.qualified_name,
+                          'lat=13.2',
+                          'lon=52.9'])
+                self.assertEqual(status, 0)
+            soutv = stdout.getvalue()
+            self.assertTrue("Running '" in soutv)
+            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
+            self.assertTrue('Extracting timeseries data: started' in soutv)
+            self.assertTrue('Extracting timeseries data:  33%' in soutv)
+            self.assertTrue('Extracting timeseries data: done' in soutv)
+            self.assertTrue('Writing output to timeseries.txt using format TXT...' in soutv)
+            self.assertEqual(stderr.getvalue(), '')
+
             # Run with invalid keyword
             with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', op_reg.meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
+                status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
                 self.assertEqual(status, 2)
             self.assertEqual(stdout.getvalue(), '')
             self.assertEqual(stderr.getvalue(), "ect: error: command 'run': keyword 'l*t' is not a valid identifier\n")
@@ -160,27 +183,41 @@ class CliRunCommandTest(unittest.TestCase):
         self.assertTrue(os.path.exists(workflow_file), msg='missing test file %s' % workflow_file)
 
         try:
-            # Run without progress monitor
+            # Run without --monitor and --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = stdout.getvalue()
-            self.assertTrue('Running workflow ' in soutv)
+            self.assertTrue("Running '" in soutv)
             self.assertTrue('lat=13.2 lon=52.9' in soutv)
-            self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
             self.assertEqual(stderr.getvalue(), '')
 
-            # Run with progress monitor
+            # Run with --monitor and without --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = stdout.getvalue()
-            self.assertTrue('Running workflow ' in soutv)
+            self.assertTrue("Running '" in soutv)
             self.assertTrue('lat=13.2 lon=52.9' in soutv)
             self.assertTrue('Extracting timeseries data: started' in soutv)
             self.assertTrue('Extracting timeseries data:  33%' in soutv)
             self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Output: return = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertEqual(stderr.getvalue(), '')
+
+            # Run with --monitor and --write
+            with fetch_std_streams() as (stdout, stderr):
+                status = cli.main(
+                    args=['run', '--monitor', '--write', 'timeseries.txt', workflow_file, 'lat=13.2', 'lon=52.9'])
+                self.assertEqual(status, 0)
+            soutv = stdout.getvalue()
+            self.assertTrue("Running '" in soutv)
+            self.assertTrue('lat=13.2 lon=52.9' in soutv)
+            self.assertTrue('Extracting timeseries data: started' in soutv)
+            self.assertTrue('Extracting timeseries data:  33%' in soutv)
+            self.assertTrue('Extracting timeseries data: done' in soutv)
+            self.assertTrue('Writing output to timeseries.txt using format TXT...' in soutv)
             self.assertEqual(stderr.getvalue(), '')
 
         finally:

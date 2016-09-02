@@ -91,6 +91,30 @@ _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
 _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
 
+def _parse_write_arg(write_arg):
+    """
+    Parse string *write_arg* as "[NAME=]PATH[,FORMAT]" and return tuple NAME,PATH,FORMAT.
+
+    :param write_arg: string argument expected to have format "[NAME=]PATH[,FORMAT]"
+    :return: The tuple NAME,PATH,FORMAT
+    """
+    name, path, format = None, None, None
+    name_and_path = write_arg.split('=')
+    if len(name_and_path) == 2:
+        name, path = name_and_path
+    else:
+        path = write_arg
+    path_and_format = path.rsplit(',')
+    if len(path_and_format) == 2:
+        path, format = path_and_format
+    if not format and path:
+        import os.path
+        _, ext = os.path.splitext(path)
+        if len(ext) > 1:
+            format = ext[1:]
+    return name if name else None, path if path else None, format.upper() if format else None
+
+
 class Command(metaclass=ABCMeta):
     """
     Represents (sub-)command for ECT's command-line interface.
@@ -157,6 +181,12 @@ class RunCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('--monitor', '-m', action='store_true',
                             help='Display progress information during execution.')
+        parser.add_argument('--write', '-w', action='append', metavar='FILE', dest='write_args',
+                            help='Write result to FILE where file has the format [NAME=]PATH[,FORMAT].\n'
+                                 'If FORMAT is not provided file format is derived from the object\n'
+                                 'type and the PATH\'s filename extensions. If OP returns multiple '
+                                 'named output values, NAME is used to identify them. Multiple -w '
+                                 'options may be used in this case.')
         parser.add_argument('op_name', metavar='OP', nargs='?',
                             help="Fully qualified operation name or alias")
         parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
@@ -189,47 +219,56 @@ class RunCommand(Command):
                 op_kwargs[kw] = arg
 
         if is_workflow:
-            return self._invoke_workflow(command_args.op_name, command_args.monitor, op_args, op_kwargs)
+            if op_args:
+                return 1, "error: command '%s': can't run workflow with arguments %s, please provide keywords only" % \
+                       (RunCommand.CMD_NAME, op_args)
+            from ect.core.workflow import Workflow
+            op = Workflow.load(command_args.op_name)
         else:
-            return self._invoke_operation(command_args.op_name, command_args.monitor, op_args, op_kwargs)
+            from ect.core.op import OP_REGISTRY as OP_REGISTRY
+            op = OP_REGISTRY.get_op(command_args.op_name)
+            if op is None:
+                return 1, "error: command '%s': unknown operation '%s'" % (RunCommand.CMD_NAME, op_name)
 
-    @staticmethod
-    def _invoke_operation(op_name: str, op_monitor: bool, op_args: list, op_kwargs: dict):
-        from ect.core.op import OP_REGISTRY as OP_REGISTRY
-        op = OP_REGISTRY.get_op(op_name)
-        if op is None:
-            return 1, "error: command '%s': unknown operation '%s'" % (RunCommand.CMD_NAME, op_name)
-        print('Running operation %s with args=%s and kwargs=%s' % (op_name, op_args, dict(op_kwargs)))
-        if op_monitor:
+        write_args = None
+        if command_args.write_args:
+            write_args = list(map(_parse_write_arg, command_args.write_args))
+            if op.op_meta_info.has_named_outputs:
+                for out_name, out_path, out_format in write_args:
+                    if not out_name:
+                        return 1, "error: command '%s': all --write options must have output names" % RunCommand.CMD_NAME
+                    if out_name not in op.op_meta_info.output:
+                        return 1, "error: command '%s': --write option with unknown output named \"%s\"" % (RunCommand.CMD_NAME, out_name)
+            else:
+                if len(write_args) > 1:
+                    return 1, "error: command '%s': multiple --write options given for singular result" % RunCommand.CMD_NAME
+                out_name, out_path, out_format = write_args[0]
+                if out_name and out_name != 'return':
+                    return 1, "error: command '%s': --write option with named output for singular result" % RunCommand.CMD_NAME
+
+        if command_args.monitor:
             monitor = ConsoleMonitor()
         else:
             monitor = Monitor.NULL
+
+        print("Running '%s' with args=%s and kwargs=%s" % (op.op_meta_info.qualified_name, op_args, dict(op_kwargs)))
         return_value = op(*op_args, monitor=monitor, **op_kwargs)
-        print('Output: %s' % return_value)
-        return None
-
-    @staticmethod
-    def _invoke_workflow(workflow_file: str, op_monitor: bool, op_args: list, op_kwargs: dict):
-        if op_args:
-            return 1, "error: command '%s': can't run workflow with arguments %s, please provide keywords only" % \
-                   (RunCommand.CMD_NAME, op_args)
-
-        from ect.core.workflow import Workflow
-        workflow = Workflow.load(workflow_file)
-
-        for name, value in op_kwargs.items():
-            if name in workflow.input:
-                workflow.input[name].value = value
-
-        print('Running workflow %s with kwargs=%s' % (workflow_file, dict(op_kwargs)))
-        if op_monitor:
-            monitor = ConsoleMonitor()
+        if op.op_meta_info.has_named_outputs:
+            if write_args:
+                for out_name, out_path, out_format in write_args:
+                    out_value = return_value[out_name].value
+                    print("Writing output '%s' to %s using format %s..." % (out_name, out_path, out_format))
+            else:
+                for output in return_value:
+                    print("Output '%s': %s" % (output.name, output.value))
         else:
-            monitor = Monitor.NULL
-        workflow.invoke(monitor=monitor)
-        for workflow_output in workflow.output[:]:
-            print('Output: %s = %s' % (workflow_output.name, workflow_output.value))
-        return None
+            if write_args:
+                out_name, out_path, out_format = write_args[0]
+                print("Writing output to %s using format %s..." % (out_path, out_format))
+            else:
+                print('Output: %s' % return_value)
+
+        return self.STATUS_OK
 
 
 class DataSourceCommand(Command):
@@ -249,7 +288,8 @@ class DataSourceCommand(Command):
         parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
                             help='Data source name. Type "ect list ds" to show all possible names.')
         parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
-                            help='Limit to date/time period. Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
+                            help='Limit to date/time period. '
+                                 'Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
         parser.add_argument('--info', '-i', action='store_true', default=True,
                             help="Display information about the data source DS_NAME.")
         parser.add_argument('--sync', '-s', action='store_true', default=False,
@@ -473,11 +513,10 @@ def main(args=None):
     parser = NoExitArgumentParser(prog=CLI_NAME,
                                   description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
-    subparsers = parser.add_subparsers(
-        dest='command_name',
-        metavar='COMMAND',
-        help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
-    )
+    subparsers = parser.add_subparsers(dest='command_name',
+                                       metavar='COMMAND',
+                                       help='One of the following commands. '
+                                            'Type "COMMAND -h" to get command-specific help.')
 
     for command_class in COMMAND_REGISTRY:
         command_name, command_parser_kwargs = command_class.name_and_parser_kwargs()
