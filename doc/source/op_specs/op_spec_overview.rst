@@ -5,6 +5,7 @@ Operations
 
 - Geometric Adjustment
 
+	- Co-Registration
 	- Reprojection
 	- Resampling
 	- Geospatial Gap Filling
