@@ -12,16 +12,16 @@ allow invocation of functions from the CCI Toolbox' command-line interface (CLI)
 The intended readership of this chapter are software end users wishing to understand the details of the algorithms
 and methods used in the CCI Toolbox.
 
-Filtering and Selections
-========================
+Subsetting and Selections
+=========================
 
 .. toctree::
    :maxdepth: 1
    :numbered:
 
-   op_specs/filtering_selections/op_spec_category_filtering_selections
-   op_specs/filtering_selections/op_spec_spatial-filtering
-   op_specs/filtering_selections/op_spec_temporal-filtering
+   op_specs/subsetting_selections/op_spec_category_subsetting_selections
+   op_specs/subsetting_selections/op_spec_spatial-subsetting
+   op_specs/subsetting_selections/op_spec_temporal-subsetting
 
 Visualisation
 =============
