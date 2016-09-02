@@ -285,37 +285,75 @@ class DataSourceCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        parser.add_argument('ds_names', metavar='DS_NAME', nargs='+', default='op',
-                            help='Data source name. Type "ect list ds" to show all possible names.')
-        parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
-                            help='Limit to date/time period. '
-                                 'Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
-        parser.add_argument('--info', '-i', action='store_true', default=True,
-                            help="Display information about the data source DS_NAME.")
-        parser.add_argument('--sync', '-s', action='store_true', default=False,
-                            help="Synchronise a remote data source DS_NAME with its local version.")
+        ds_parser = parser.add_subparsers(dest='ds_cmd')
+        parser.set_defaults(ds_parser=parser)
 
-    def execute(self, command_args):
+        list_parser = ds_parser.add_parser('list', help='List all available data sources')
+        list_parser.add_argument('--pattern', '-p', nargs=1, metavar='PATTERN',
+                                 help='A pattern matched against the datasource names')
+        list_parser.set_defaults(ds_command=cls.execute_list)
+
+        sync_parser = ds_parser.add_parser('sync', help='Synchronise a remote data source DS_NAME with its local version.')
+        sync_parser.add_argument('ds_name', metavar='DS_NAME', nargs=1,
+                                 help='Data source name. Type "ect ds list" to show all possible names.')
+        sync_parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
+                                 help='Limit to date/time period. Format of PERIOD is DATE[,DATE] where DATE is YYYY[-MM[-DD]]')
+        sync_parser.set_defaults(ds_command=cls.execute_sync)
+
+        info_parser = ds_parser.add_parser('info', help='Display information about the data source DS_NAME.')
+        info_parser.add_argument('ds_name', metavar='DS_NAME', nargs=1,
+                                 help='Data source name. Type "ect ds list" to show all possible names.')
+        info_parser.set_defaults(ds_command=cls.execute_info)
+
+    @classmethod
+    def execute_list(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
+        if data_store is None:
+            return 2, "error: command 'ds list': no data_store named 'default' found"
+        pattern = None
+        if command_args.pattern:
+            pattern = command_args.pattern[0]
+        list_items('data source', 'data sources',
+                               [data_source.name for data_source in data_store.query()], pattern)
 
+    @classmethod
+    def execute_info(cls, command_args):
+        from ect.core.io import DATA_STORE_REGISTRY
+        data_store = DATA_STORE_REGISTRY.get_data_store('default')
+        if data_store is None:
+            return 2, "error: command 'ds info': no data_store named 'default' found"
+
+        data_sources = data_store.query(name=command_args.ds_name[0])
+        if not data_sources or len(data_sources) == 0:
+            print("Unknown 1 data source '%s'" % command_args.ds_name[0])
+        else:
+            for data_source in data_sources:
+                print(data_source.info_string)
+
+    @classmethod
+    def execute_sync(cls, command_args):
+        from ect.core.io import DATA_STORE_REGISTRY
+        data_store = DATA_STORE_REGISTRY.get_data_store('default')
+        if data_store is None:
+            return 2, "error: command 'ds sync': no data_store named 'default' found"
+
+        data_sources = data_store.query(name=command_args.ds_name[0])
+        data_source = data_sources[0]
         if command_args.time:
-            time_range = self.parse_time_period(command_args.time[0])
+            time_range = cls.parse_time_period(command_args.time[0])
             if not time_range:
                 return 2, "invalid PERIOD: " + command_args.time[0]
         else:
             time_range = (None, None)
+        data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
 
-        for ds_name in command_args.ds_names:
-            data_sources = data_store.query(name=ds_name)
-            if not data_sources or len(data_sources) == 0:
-                print("Unknown data source '%s'" % ds_name)
-                continue
-            data_source = data_sources[0]
-            if command_args.info and not command_args.sync:
-                print(data_source.info_string)
-            if command_args.sync:
-                data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
+    def execute(self, command_args):
+        if hasattr(command_args, 'ds_command') and command_args.ds_command:
+            return command_args.ds_command(command_args)
+        else:
+            command_args.ds_parser.print_help()
+            return 0, None
 
     @staticmethod
     def parse_time_period(period):
@@ -384,36 +422,36 @@ class ListCommand(Command):
     def execute(self, command_args):
         if command_args.category == 'pi':
             from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
-            ListCommand.list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
+            list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
         elif command_args.category == 'ds':
             from ect.core.io import DATA_STORE_REGISTRY
             data_store = DATA_STORE_REGISTRY.get_data_store('default')
             if data_store is None:
                 return 2, "error: command '%s': no data_store named 'default' found" % self.CMD_NAME
-            ListCommand.list_items('data source', 'data sources',
+            list_items('data source', 'data sources',
                                    [data_source.name for data_source in data_store.query()], command_args.pattern)
         elif command_args.category == 'op':
             from ect.core.op import OP_REGISTRY as OP_REGISTRY
-            ListCommand.list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
+            list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
 
-    @staticmethod
-    def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
-        if pattern:
-            # see https://docs.python.org/3.5/library/fnmatch.html
-            import fnmatch
-            pattern = pattern.lower()
-            names = [name for name in names if fnmatch.fnmatch(name.lower(), pattern)]
-        item_count = len(names)
-        if item_count == 1:
-            print('One %s found' % category_singular_name)
-        elif item_count > 1:
-            print('%d %s found' % (item_count, category_plural_name))
-        else:
-            print('No %s found' % category_plural_name)
-        no = 0
-        for item in names:
-            no += 1
-            print('%4d: %s' % (no, item))
+
+def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
+    if pattern:
+        # see https://docs.python.org/3.5/library/fnmatch.html
+        import fnmatch
+        pattern = pattern.lower()
+        names = [name for name in names if fnmatch.fnmatch(name.lower(), pattern)]
+    item_count = len(names)
+    if item_count == 1:
+        print('One %s found' % category_singular_name)
+    elif item_count > 1:
+        print('%d %s found' % (item_count, category_plural_name))
+    else:
+        print('No %s found' % category_plural_name)
+    no = 0
+    for item in names:
+        no += 1
+        print('%4d: %s' % (no, item))
 
 
 class CopyrightCommand(Command):
@@ -513,10 +551,11 @@ def main(args=None):
     parser = NoExitArgumentParser(prog=CLI_NAME,
                                   description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
-    subparsers = parser.add_subparsers(dest='command_name',
-                                       metavar='COMMAND',
-                                       help='One of the following commands. '
-                                            'Type "COMMAND -h" to get command-specific help.')
+    subparsers = parser.add_subparsers(
+        dest='command_name',
+        metavar='COMMAND',
+        help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
+    )
 
     for command_class in COMMAND_REGISTRY:
         command_name, command_parser_kwargs = command_class.name_and_parser_kwargs()

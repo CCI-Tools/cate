@@ -42,29 +42,37 @@ class CliTest(unittest.TestCase):
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
+            status = cli.main(args=['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
             self.assertEqual(status, 0)
         out1 = stdout.getvalue()
         self.assertTrue('Base directory' in out1)
         self.assertEqual(stderr.getvalue(), '')
 
+    def test_command_ds_list(self):
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--info'])
+            status = cli.main(args=['ds', 'list'])
             self.assertEqual(status, 0)
-        out2 = stdout.getvalue()
+        out1 = stdout.getvalue()
+        self.assertTrue('98 data sources found' in out1)
+        self.assertEqual(stderr.getvalue(), '')
 
-        self.assertEqual(out1, out2)
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['ds', 'list', '--pattern', 'CLOUD*'])
+            self.assertEqual(status, 0)
+        out1 = stdout.getvalue()
+        self.assertTrue('19 data sources found' in out1)
+        self.assertEqual(stderr.getvalue(), '')
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync(self):
         with fetch_std_streams():
-            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync'])
+            status = cli.main(args=['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
             self.assertEqual(status, 0)
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
         with fetch_std_streams():
-            status = cli.main(args=['ds', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--sync', '--time', '2010-12'])
+            status = cli.main(args=['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--time', '2010-12'])
             self.assertEqual(status, 0)
 
     def test_command_ds_parse_time_period(self):
@@ -96,11 +104,22 @@ class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_run_no_args(self):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ds'])
-            self.assertEqual(status, 2)
-        self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(),
-                         "usage: ect ds [-h] [--time PERIOD] [--info] [--sync] DS_NAME [DS_NAME ...]\n"
-                         "ect: ect ds: error: the following arguments are required: DS_NAME\n\n")
+            self.assertEqual(status, 0)
+        self.assertEqual(stderr.getvalue(), '')
+        self.assertEqual(stdout.getvalue(),
+                         "usage: ect ds [-h] {list,sync,info} ...\n"
+                         "\n"
+                         "Data source operations.\n"
+                         "\n"
+                         "positional arguments:\n"
+                         "  {list,sync,info}\n"
+                         "    list            List all available data sources\n"
+                         "    sync            Synchronise a remote data source DS_NAME with its local\n"
+                         "                    version.\n"
+                         "    info            Display information about the data source DS_NAME.\n"
+                         "\n"
+                         "optional arguments:\n"
+                         "  -h, --help        show this help message and exit\n")
 
 
 class CliRunCommandTest(unittest.TestCase):
