@@ -177,6 +177,28 @@ class Node(metaclass=ABCMeta):
         :param monitor: An optional progress monitor.
         """
 
+    def __call__(self, monitor=Monitor.NULL, **input_values):
+        """
+        Make this class instance's callable.
+
+        The method
+        1. sets this node's :py:attr:`input` values from given *kwargs*;
+        2. calls ``invoke(monitor)``;
+        3. returns this node's output values retrieved from :py:attr:`output`.
+
+        :param monitor: An optional progress monitor.
+        :param input_values: The input values.
+        :return: The output values.
+        """
+        for name, value in input_values.items():
+            if name in self.input:
+                self.input[name].value = value
+        self.invoke(monitor=monitor)
+        if self.op_meta_info.has_named_outputs:
+            return {output.name: output.value for output in self.output[:]}
+        else:
+            return self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value
+
     @abstractmethod
     def to_json_dict(self):
         """
@@ -597,6 +619,19 @@ class OpStep(Step):
                 self.output[output_name].value = output_value
         else:
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+
+    def __call__(self, monitor=Monitor.NULL, **input_values):
+        """
+        Make this class instance's callable.
+
+        The method directly calls the operation without setting this node's :py:attr:`input` values
+        and consequently ignoring this step's :py:attr:`output` values.
+
+        :param monitor: An optional progress monitor.
+        :param input_values: The input value(s).
+        :return: The output value(s).
+        """
+        return self._op_registration(monitor=monitor, **input_values)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
