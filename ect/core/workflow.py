@@ -591,7 +591,7 @@ class OpStep(Step):
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
         assert op_registration is not None
         node_id = node_id if node_id else 'op_step_' + hex(id(self))[2:]
-        op_meta_info = op_registration.meta_info
+        op_meta_info = op_registration.op_meta_info
         super(OpStep, self).__init__(op_meta_info, node_id)
         self._op_registration = op_registration
 
