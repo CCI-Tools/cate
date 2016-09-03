@@ -1,3 +1,4 @@
+import os
 import sys
 import unittest
 from time import sleep
@@ -34,7 +35,8 @@ class CliTest(unittest.TestCase):
     def test_parse_write_arg(self):
         self.assertEqual(cli._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
         self.assertEqual(cli._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
-        self.assertEqual(cli._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', 'PNG'))
+        self.assertEqual(cli._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', None))
+        self.assertEqual(cli._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
         self.assertEqual(cli._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
@@ -169,7 +171,7 @@ class CliRunCommandTest(unittest.TestCase):
             # Run with --monitor and --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(
-                    args=['run', '--monitor', '--write', 'timeseries.txt', op_reg.op_meta_info.qualified_name,
+                    args=['run', '--monitor', '--write', 'timeseries_data.txt', op_reg.op_meta_info.qualified_name,
                           'lat=13.2',
                           'lon=52.9'])
                 self.assertEqual(status, 0)
@@ -179,8 +181,10 @@ class CliRunCommandTest(unittest.TestCase):
             self.assertTrue('Extracting timeseries data: started' in soutv)
             self.assertTrue('Extracting timeseries data:  33%' in soutv)
             self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Writing output to timeseries.txt using format TXT...' in soutv)
+            self.assertTrue('Writing output to timeseries_data.txt using TEXT format...' in soutv)
             self.assertEqual(stderr.getvalue(), '')
+            self.assertTrue(os.path.isfile('timeseries_data.txt'))
+            os.remove('timeseries_data.txt')
 
             # Run with invalid keyword
             with fetch_std_streams() as (stdout, stderr):
@@ -228,7 +232,7 @@ class CliRunCommandTest(unittest.TestCase):
             # Run with --monitor and --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(
-                    args=['run', '--monitor', '--write', 'timeseries.txt', workflow_file, 'lat=13.2', 'lon=52.9'])
+                    args=['run', '--monitor', '--write', 'timeseries_data.json', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
             soutv = stdout.getvalue()
             self.assertTrue("Running '" in soutv)
@@ -236,8 +240,10 @@ class CliRunCommandTest(unittest.TestCase):
             self.assertTrue('Extracting timeseries data: started' in soutv)
             self.assertTrue('Extracting timeseries data:  33%' in soutv)
             self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Writing output to timeseries.txt using format TXT...' in soutv)
+            self.assertTrue('Writing output to timeseries_data.json using JSON format...' in soutv)
             self.assertEqual(stderr.getvalue(), '')
+            self.assertTrue(os.path.isfile('timeseries_data.json'))
+            os.remove('timeseries_data.json')
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)

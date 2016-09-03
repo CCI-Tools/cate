@@ -81,6 +81,7 @@ from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.version import __version__
+from ect.core.writer import find_writer
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
@@ -98,20 +99,10 @@ def _parse_write_arg(write_arg):
     :param write_arg: string argument expected to have format "[NAME=]PATH[,FORMAT]"
     :return: The tuple NAME,PATH,FORMAT
     """
-    name, path, format = None, None, None
-    name_and_path = write_arg.split('=')
-    if len(name_and_path) == 2:
-        name, path = name_and_path
-    else:
-        path = write_arg
-    path_and_format = path.rsplit(',')
-    if len(path_and_format) == 2:
-        path, format = path_and_format
-    if not format and path:
-        import os.path
-        _, ext = os.path.splitext(path)
-        if len(ext) > 1:
-            format = ext[1:]
+    name_and_path = write_arg.split('=', maxsplit=2)
+    name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
+    path_and_format = path.rsplit(',', maxsplit=2)
+    path, format = path_and_format if len(path_and_format) == 2 else (path, None)
     return name if name else None, path if path else None, format.upper() if format else None
 
 
@@ -257,14 +248,24 @@ class RunCommand(Command):
             if write_args:
                 for out_name, out_path, out_format in write_args:
                     out_value = return_value[out_name].value
-                    print("Writing output '%s' to %s using format %s..." % (out_name, out_path, out_format))
+                    writer = find_writer(out_value, out_path, format_name=out_format)
+                    if writer:
+                        print("Writing output '%s' to %s using %s format..." % (out_name, out_path, writer.format_name))
+                        writer.write(out_value, out_path)
+                    else:
+                        return 1, "error: command '%s': unknown format for --write output '%s'" % (RunCommand.CMD_NAME, out_name)
             else:
                 for output in return_value:
                     print("Output '%s': %s" % (output.name, output.value))
         else:
             if write_args:
-                out_name, out_path, out_format = write_args[0]
-                print("Writing output to %s using format %s..." % (out_path, out_format))
+                _, out_path, out_format = write_args[0]
+                writer = find_writer(return_value, out_path, format_name=out_format)
+                if writer:
+                    print("Writing output to %s using %s format..." % (out_path, writer.format_name))
+                    writer.write(return_value, out_path)
+                else:
+                    return 1, "error: command '%s': unknown format for --write option" % RunCommand.CMD_NAME
             else:
                 print('Output: %s' % return_value)
 
