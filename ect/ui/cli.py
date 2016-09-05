@@ -305,7 +305,7 @@ class OperationCommand(Command):
 
         info_parser = op_parser.add_parser('info', help='Show usage information about an operation')
         info_parser.add_argument('op_name', metavar='OP', nargs='?',
-                                    help="Fully qualified operation name or alias")
+                                 help="Fully qualified operation name or alias")
         info_parser.set_defaults(op_command=cls.execute_info)
 
     @classmethod
@@ -470,32 +470,48 @@ class DataSourceCommand(Command):
         return date1, date2
 
 
-class ListCommand(Command):
+class PluginCommand(Command):
     """
-    The ``list`` command is used to list the content of various ECT registries.
+    The ``pi`` command lists the content of various plugin registry.
     """
 
-    CMD_NAME = 'list'
+    CMD_NAME = 'pi'
 
     @classmethod
     def name_and_parser_kwargs(cls):
-        help_line = 'List items of a various categories.'
+        help_line = 'List installed plugins.'
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser(cls, parser):
-        parser.add_argument('category', metavar='CAT', choices=['pi'], nargs='?', default='op',
-                            help="Category to list items of. "
-                                 "'pi' lists plugins")
-        parser.add_argument('--pattern', '-p', metavar='PAT', nargs='?', default=None,
-                            help="A wildcard pattern to filter listed items. "
-                                 "'*' matches zero or many characters, '?' matches a single character. "
-                                 "The comparison is case insensitive.")
+        pi_parser = parser.add_subparsers(
+            dest='pi_command',
+            metavar='COMMAND',
+            help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
+        )
+        parser.set_defaults(op_parser=parser)
+
+        list_parser = pi_parser.add_parser('list', help='List all available plugins')
+        list_parser.add_argument('--pattern', '-p', nargs=1, metavar='PATTERN',
+                                 help="A wildcard pattern to filter plugin names. "
+                                      "'*' matches zero or many characters, '?' matches a single character. "
+                                      "The comparison is case insensitive.")
+        list_parser.set_defaults(op_command=cls.execute_list)
+
+    @classmethod
+    def execute_list(cls, command_args):
+        from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
+        pattern = None
+        if command_args.pattern:
+            pattern = command_args.pattern[0]
+        list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), pattern)
 
     def execute(self, command_args):
-        if command_args.category == 'pi':
-            from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
-            list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
+        if hasattr(command_args, 'op_command') and command_args.op_command:
+            return command_args.op_command(command_args)
+        else:
+            command_args.op_parser.print_help()
+            return 0, None
 
 
 def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
@@ -567,10 +583,10 @@ class DocsCommand(Command):
 #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
-    ListCommand,
     RunCommand,
     DataSourceCommand,
     OperationCommand,
+    PluginCommand,
     CopyrightCommand,
     LicenseCommand,
     DocsCommand,

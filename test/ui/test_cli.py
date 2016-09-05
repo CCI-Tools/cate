@@ -46,8 +46,7 @@ class CliOperationCommandTest(unittest.TestCase):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'info', 'ect.ops.timeseries.timeseries'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('Extract time-series' in out1)
+        self.assertIn('Extract time-series', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
@@ -66,46 +65,41 @@ class CliOperationCommandTest(unittest.TestCase):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'list'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('operations found' in out1)
+        self.assertIn('operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'list', '-p', '*data*'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('operations found' in out1)
+        self.assertIn('operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'list', '-p', 'wronpattern'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('No operations found' in out1)
+        self.assertIn('No operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
+
 
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('Base directory' in out1)
+        self.assertIn('Base directory', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
     def test_command_ds_list(self):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ds', 'list'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('98 data sources found' in out1)
+        self.assertIn('98 data sources found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ds', 'list', '--pattern', 'CLOUD*'])
             self.assertEqual(status, 0)
-        out1 = stdout.getvalue()
-        self.assertTrue('19 data sources found' in out1)
+        self.assertIn('19 data sources found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
@@ -192,23 +186,21 @@ class CliRunCommandTest(unittest.TestCase):
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
+            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
 
             # Run with --monitor and without --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
-            self.assertTrue('Extracting timeseries data: started' in soutv)
-            self.assertTrue('Extracting timeseries data:  33%' in soutv)
-            self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
+            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
+            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
 
             # Run with --monitor and --write
@@ -218,13 +210,12 @@ class CliRunCommandTest(unittest.TestCase):
                           'lat=13.2',
                           'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9 method=nearest' in soutv)
-            self.assertTrue('Extracting timeseries data: started' in soutv)
-            self.assertTrue('Extracting timeseries data:  33%' in soutv)
-            self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Writing output to timeseries_data.txt using TEXT format...' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
+            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
+            self.assertIn('Writing output to timeseries_data.txt using TEXT format...', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
             self.assertTrue(os.path.isfile('timeseries_data.txt'))
             os.remove('timeseries_data.txt')
@@ -253,23 +244,21 @@ class CliRunCommandTest(unittest.TestCase):
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9' in soutv)
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
+            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
 
             # Run with --monitor and without --write
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9' in soutv)
-            self.assertTrue('Extracting timeseries data: started' in soutv)
-            self.assertTrue('Extracting timeseries data:  33%' in soutv)
-            self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
+            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
+            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
 
             # Run with --monitor and --write
@@ -277,13 +266,12 @@ class CliRunCommandTest(unittest.TestCase):
                 status = cli.main(
                     args=['run', '--monitor', '--write', 'timeseries_data.json', workflow_file, 'lat=13.2', 'lon=52.9'])
                 self.assertEqual(status, 0)
-            soutv = stdout.getvalue()
-            self.assertTrue("Running '" in soutv)
-            self.assertTrue('lat=13.2 lon=52.9' in soutv)
-            self.assertTrue('Extracting timeseries data: started' in soutv)
-            self.assertTrue('Extracting timeseries data:  33%' in soutv)
-            self.assertTrue('Extracting timeseries data: done' in soutv)
-            self.assertTrue('Writing output to timeseries_data.json using JSON format...' in soutv)
+            self.assertIn("Running '", stdout.getvalue())
+            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
+            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
+            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
+            self.assertIn('Writing output to timeseries_data.json using JSON format...', stdout.getvalue())
             self.assertEqual(stderr.getvalue(), '')
             self.assertTrue(os.path.isfile('timeseries_data.json'))
             os.remove('timeseries_data.json')
@@ -301,15 +289,13 @@ class CliRunCommandTest(unittest.TestCase):
             self.assertEqual(status, 0)
 
 
-class CliListCommandTest(unittest.TestCase):
+class CliPluginCommandTest(unittest.TestCase):
     def test_command_list(self):
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['list', 'pi'])
+            status = cli.main(args=['pi', 'list'])
             self.assertEqual(status, 0)
-        self.assertIn('plugin', stdout.getvalue())
-        self.assertIn('found', stdout.getvalue())
+        self.assertIn('plugins found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
-
 
 
 class CliLicenseCommandTest(unittest.TestCase):
