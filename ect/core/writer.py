@@ -174,7 +174,7 @@ class _NetCDF4Writer(_NetCDFWriter):
         return 'NETCDF4'
 
     def write(self, obj, file_path, **kwargs):
-        obj.to_netcdf(file_path, format='NETCDF4')
+        obj.to_netcdf(file_path, format='NETCDF4', engine='h5netcdf')
 
 
 WRITER_REGISTRY.writers.extend([
