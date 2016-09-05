@@ -298,9 +298,8 @@ class OperationCommand(Command):
                                  help="A wildcard pattern to filter operation names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        # TODO mz 2016-09-05, add tags to 'op' decorator
-        # list_parser.add_argument('--tag', '-t', nargs=1, metavar='TAG',
-        #                          help='A tag as a category for operation')
+        list_parser.add_argument('--tag', '-t', nargs=1, metavar='TAG',
+                                 help='A tag as a category for operation')
         list_parser.set_defaults(op_command=cls.execute_list)
 
         info_parser = op_parser.add_parser('info', help='Show usage information about an operation')
@@ -311,10 +310,21 @@ class OperationCommand(Command):
     @classmethod
     def execute_list(cls, command_args):
         from ect.core.op import OP_REGISTRY
+        op_registrations = OP_REGISTRY.op_registrations
+
+        def _op_has_tag(op_registration, tag_value):
+            op_meta_info_header = op_registration.op_meta_info.header
+            if 'tag' in op_meta_info_header and op_meta_info_header['tag'] == tag_value:
+                return True
+            return False
+
+        op_names = op_registrations.keys()
+        if command_args.tag:
+            op_names = [name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag[0])]
         pattern = None
         if command_args.pattern:
             pattern = command_args.pattern[0]
-        list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), pattern)
+        list_items('operation', 'operations', op_names, pattern)
 
     @classmethod
     def execute_info(cls, command_args):

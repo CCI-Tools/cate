@@ -80,6 +80,11 @@ class CliOperationCommandTest(unittest.TestCase):
         self.assertIn('No operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'list', '--tag', 'io'])
+            self.assertEqual(status, 0)
+        self.assertIn('2 operations found', stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), '')
 
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
