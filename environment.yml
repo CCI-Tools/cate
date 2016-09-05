@@ -11,9 +11,8 @@ dependencies:
 - docutils=0.12=py35_2
 - fontconfig=2.11.1=5
 - freetype=2.5.5=1
-#- h5netcdf=0.2.2=py35_0
-- h5py=2.6.0=np111py35_1
-- hdf5=1.8.16=0
+- netcdf4=1.2.4=np111py35_0
+- hdf5=1.8.17=1
 - heapdict=1.0.0=py35_1
 - imagesize=0.7.1=py35_0
 - jinja2=2.8=py35_1
@@ -57,7 +56,7 @@ dependencies:
 - toolz=0.8.0=py35_0
 - tornado=4.3=py35_1
 - wheel=0.29.0=py35_0
-- xarray=0.7.2=py35_0
+- xarray=0.8.2=py35_0
 - xz=5.0.5=1
 - yaml=0.1.6=0
 - zlib=1.2.8=3
