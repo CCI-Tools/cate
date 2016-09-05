@@ -65,13 +65,13 @@ class CliOperationCommandTest(unittest.TestCase):
             status = cli.main(args=['op', 'info', 'foobarbaz'])
             self.assertEqual(status, 2)
         self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(), "ect: Unknown operation 'foobarbaz'\n")
+        self.assertEqual(stderr.getvalue(), "ect: error: command 'op info': unknown operation 'foobarbaz'\n")
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'info'])
             self.assertEqual(status, 2)
         self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(), 'ect: No operation name given\n')
+        self.assertIn("usage: ect op info [-h] OP\n", stderr.getvalue())
 
     def test_command_op_list(self):
         with fetch_std_streams() as (stdout, stderr):
@@ -81,13 +81,13 @@ class CliOperationCommandTest(unittest.TestCase):
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list', '-p', '*data*'])
+            status = cli.main(args=['op', 'list', '-n', '*data*'])
             self.assertEqual(status, 0)
         self.assertIn('operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list', '-p', 'wronpattern'])
+            status = cli.main(args=['op', 'list', '-n', 'nevermatch'])
             self.assertEqual(status, 0)
         self.assertIn('No operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
@@ -97,6 +97,7 @@ class CliOperationCommandTest(unittest.TestCase):
             self.assertEqual(status, 0)
         self.assertIn('2 operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
+
 
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
@@ -114,7 +115,7 @@ class CliDataSourceCommandTest(unittest.TestCase):
         self.assertEqual(stderr.getvalue(), '')
 
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'list', '--pattern', 'CLOUD*'])
+            status = cli.main(args=['ds', 'list', '--id', 'CLOUD*'])
             self.assertEqual(status, 0)
         self.assertIn('19 data sources found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
@@ -165,14 +166,14 @@ class CliDataSourceCommandTest(unittest.TestCase):
         self.assertEqual(stdout.getvalue(),
                          "usage: ect ds [-h] COMMAND ...\n"
                          "\n"
-                         "Data source operations.\n"
+                         "Manage data sources.\n"
                          "\n"
                          "positional arguments:\n"
                          "  COMMAND     One of the following commands. Type \"COMMAND -h\" to get command-\n"
                          "              specific help.\n"
                          "    list      List all available data sources\n"
-                         "    sync      Synchronise a remote data source DS_NAME with its local version.\n"
-                         "    info      Display information about the data source DS_NAME.\n"
+                         "    sync      Synchronise a remote data source with its local version.\n"
+                         "    info      Display information about a data source.\n"
                          "\n"
                          "optional arguments:\n"
                          "  -h, --help  show this help message and exit\n")
@@ -320,16 +321,7 @@ class CliLicenseCommandTest(unittest.TestCase):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['lic'])
             self.assertEqual(status, 0)
-        self.assertIn('GNU GENERAL PUBLIC LICENSE', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-
-class CliCopyrightCommandTest(unittest.TestCase):
-    def test_command_copyright(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['cr'])
-            self.assertEqual(status, 0)
-        self.assertIn('European Space Agency', stdout.getvalue())
+        self.assertIn('GNU General Public License', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
 
