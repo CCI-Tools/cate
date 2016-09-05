@@ -272,6 +272,68 @@ class RunCommand(Command):
         return self.STATUS_OK
 
 
+class OperationCommand(Command):
+    """
+    The ``op`` command implements various operations w.r.t. operations.
+    """
+
+    CMD_NAME = 'op'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Operations and processors.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser(cls, parser):
+        op_parser = parser.add_subparsers(dest='op_command')
+        parser.set_defaults(op_parser=parser)
+
+        list_parser = op_parser.add_parser('list', help='List all available operations')
+        list_parser.add_argument('--pattern', '-p', nargs=1, metavar='PATTERN',
+                                 help="A wildcard pattern to filter operation names. "
+                                      "'*' matches zero or many characters, '?' matches a single character. "
+                                      "The comparison is case insensitive.")
+        # TODO mz 2016-09-05, add tags to 'op' decorator
+        # list_parser.add_argument('--tag', '-t', nargs=1, metavar='TAG',
+        #                          help='A tag as a category for operation')
+        list_parser.set_defaults(op_command=cls.execute_list)
+
+        info_parser = op_parser.add_parser('info', help='Show usage information about an operation')
+        info_parser.add_argument('op_name', metavar='OP', nargs='?',
+                                    help="Fully qualified operation name or alias")
+        info_parser.set_defaults(op_command=cls.execute_info)
+
+    @classmethod
+    def execute_list(cls, command_args):
+        from ect.core.op import OP_REGISTRY
+        pattern = None
+        if command_args.pattern:
+            pattern = command_args.pattern[0]
+        list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), pattern)
+
+    @classmethod
+    def execute_info(cls, command_args):
+        if not command_args.op_name:
+            return 2, 'No operation name given'
+        from ect.core.op import OP_REGISTRY
+        op_registration = OP_REGISTRY.get_op(command_args.op_name)
+        if op_registration:
+            op_meta_info = op_registration.op_meta_info
+            print('op: %s' % op_meta_info.qualified_name)
+            if 'description' in op_meta_info.header:
+                print(op_meta_info.header['description'])
+        else:
+            return 2, "Unknown operation '%s'" % command_args.op_name
+
+    def execute(self, command_args):
+        if hasattr(command_args, 'op_command') and command_args.op_command:
+            return command_args.op_command(command_args)
+        else:
+            command_args.op_parser.print_help()
+            return 0, None
+
+
 class DataSourceCommand(Command):
     """
     The ``ds`` command implements various operations w.r.t. data sources.
@@ -286,12 +348,14 @@ class DataSourceCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        ds_parser = parser.add_subparsers(dest='ds_cmd')
+        ds_parser = parser.add_subparsers(dest='ds_command')
         parser.set_defaults(ds_parser=parser)
 
         list_parser = ds_parser.add_parser('list', help='List all available data sources')
         list_parser.add_argument('--pattern', '-p', nargs=1, metavar='PATTERN',
-                                 help='A pattern matched against the datasource names')
+                                 help="A wildcard pattern to filter data source names. "
+                                      "'*' matches zero or many characters, '?' matches a single character. "
+                                      "The comparison is case insensitive.")
         list_parser.set_defaults(ds_command=cls.execute_list)
 
         sync_parser = ds_parser.add_parser('sync', help='Synchronise a remote data source DS_NAME with its local version.')
@@ -412,9 +476,9 @@ class ListCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        parser.add_argument('category', metavar='CAT', choices=['op', 'ds', 'pi'], nargs='?', default='op',
+        parser.add_argument('category', metavar='CAT', choices=['pi'], nargs='?', default='op',
                             help="Category to list items of. "
-                                 "'op' lists operations, 'ds' lists data sources, 'pi' lists plugins")
+                                 "'pi' lists plugins")
         parser.add_argument('--pattern', '-p', metavar='PAT', nargs='?', default=None,
                             help="A wildcard pattern to filter listed items. "
                                  "'*' matches zero or many characters, '?' matches a single character. "
@@ -424,16 +488,6 @@ class ListCommand(Command):
         if command_args.category == 'pi':
             from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
             list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), command_args.pattern)
-        elif command_args.category == 'ds':
-            from ect.core.io import DATA_STORE_REGISTRY
-            data_store = DATA_STORE_REGISTRY.get_data_store('default')
-            if data_store is None:
-                return 2, "error: command '%s': no data_store named 'default' found" % self.CMD_NAME
-            list_items('data source', 'data sources',
-                                   [data_source.name for data_source in data_store.query()], command_args.pattern)
-        elif command_args.category == 'op':
-            from ect.core.op import OP_REGISTRY as OP_REGISTRY
-            list_items('operation', 'operations', OP_REGISTRY.op_registrations.keys(), command_args.pattern)
 
 
 def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
@@ -508,6 +562,7 @@ COMMAND_REGISTRY = [
     ListCommand,
     RunCommand,
     DataSourceCommand,
+    OperationCommand,
     CopyrightCommand,
     LicenseCommand,
     DocsCommand,

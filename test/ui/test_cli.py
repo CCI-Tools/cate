@@ -41,6 +41,49 @@ class CliTest(unittest.TestCase):
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
+class CliOperationCommandTest(unittest.TestCase):
+    def test_command_op_info(self):
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'info', 'ect.ops.timeseries.timeseries'])
+            self.assertEqual(status, 0)
+        out1 = stdout.getvalue()
+        self.assertTrue('Extract time-series' in out1)
+        self.assertEqual(stderr.getvalue(), '')
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'info', 'foobarbaz'])
+            self.assertEqual(status, 2)
+        self.assertEqual(stdout.getvalue(), '')
+        self.assertEqual(stderr.getvalue(), "ect: Unknown operation 'foobarbaz'\n")
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'info'])
+            self.assertEqual(status, 2)
+        self.assertEqual(stdout.getvalue(), '')
+        self.assertEqual(stderr.getvalue(), 'ect: No operation name given\n')
+
+    def test_command_op_list(self):
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'list'])
+            self.assertEqual(status, 0)
+        out1 = stdout.getvalue()
+        self.assertTrue('operations found' in out1)
+        self.assertEqual(stderr.getvalue(), '')
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'list', '-p', '*data*'])
+            self.assertEqual(status, 0)
+        out1 = stdout.getvalue()
+        self.assertTrue('operations found' in out1)
+        self.assertEqual(stderr.getvalue(), '')
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['op', 'list', '-p', 'wronpattern'])
+            self.assertEqual(status, 0)
+        out1 = stdout.getvalue()
+        self.assertTrue('No operations found' in out1)
+        self.assertEqual(stderr.getvalue(), '')
+
 class CliDataSourceCommandTest(unittest.TestCase):
     def test_command_ds_info(self):
         with fetch_std_streams() as (stdout, stderr):
@@ -261,39 +304,12 @@ class CliRunCommandTest(unittest.TestCase):
 class CliListCommandTest(unittest.TestCase):
     def test_command_list(self):
         with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['list'])
-            self.assertEqual(status, 0)
-        self.assertIn('operation', stdout.getvalue())
-        self.assertIn('found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['list', 'op'])
-            self.assertEqual(status, 0)
-        self.assertIn('operation', stdout.getvalue())
-        self.assertIn('found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['list', 'pi'])
             self.assertEqual(status, 0)
         self.assertIn('plugin', stdout.getvalue())
         self.assertIn('found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['list', 'ds'])
-            self.assertEqual(status, 0)
-        self.assertIn('data source', stdout.getvalue())
-        self.assertIn('found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['list', '--pattern', 'sst*', 'ds'])
-            self.assertEqual(status, 0)
-        self.assertIn('data source', stdout.getvalue())
-        self.assertIn('found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
 
 
 class CliLicenseCommandTest(unittest.TestCase):
