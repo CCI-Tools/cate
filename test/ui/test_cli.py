@@ -32,6 +32,18 @@ class CliTest(unittest.TestCase):
             status = cli.main(args=['--help'])
             self.assertEqual(status, 0)
 
+    def test_parse_load_arg(self):
+        self.assertEqual(cli._parse_load_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+                         ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
+        self.assertEqual(cli._parse_load_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1,2011'),
+                         ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', '2011', None))
+        self.assertEqual(cli._parse_load_arg('SST_LT_ATSR_L3U_V01.0_ATSR1,,2012'),
+                         (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, '2012'))
+        self.assertEqual(cli._parse_load_arg('=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+                         (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
+        self.assertEqual(cli._parse_load_arg('sst2011='),
+                         ('sst2011', None, None, None))
+
     def test_parse_write_arg(self):
         self.assertEqual(cli._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
         self.assertEqual(cli._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
@@ -330,3 +342,15 @@ def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.
             sleep(work_unit / 10.)
             monitor.progress(work_unit)
     return work_units
+
+
+def timeseries2(var, lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+    """Timeseries dummy function for testing."""
+    print('lat=%s lon=%s method=%s' % (lat, lon, method))
+    work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
+    with monitor.starting('Extracting timeseries data', sum(work_units)):
+        for work_unit in work_units:
+            sleep(work_unit / 10.)
+            monitor.progress(work_unit)
+    ts = var[0, 0]
+    return ts

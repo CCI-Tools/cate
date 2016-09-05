@@ -64,7 +64,8 @@ Technical Requirements
 Verification
 ============
 
-The module's unit-tests are located in `test/ui/test_cli.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ui/test_cli.py>`_
+The module's unit-tests are located in
+`test/ui/test_cli.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ui/test_cli.py>`_
 and may be executed using ``$ py.test test/ui/test_cli.py --cov=ect/ui/cli.py`` for extra code coverage information.
 
 
@@ -80,8 +81,9 @@ from collections import OrderedDict
 from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
+from ect.core.objectio import find_writer
+from ect.ops.io import load_dataset
 from ect.version import __version__
-from ect.core.writer import find_writer
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
@@ -92,18 +94,47 @@ _LICENSE_INFO_PATH = os.path.dirname(__file__) + '/../../LICENSE'
 _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
 
+def _parse_load_arg(load_arg):
+    """
+    Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
+
+    :param load_arg: The DS string argument
+    :return: The tuple DS_NAME,DS_ID,DATE1,DATE2
+    """
+    ds_name_and_ds_id = load_arg.split('=', maxsplit=2)
+    ds_name, ds_id = ds_name_and_ds_id if len(ds_name_and_ds_id) == 2 else (None, load_arg)
+    ds_id_and_date_range = ds_id.rsplit(',', maxsplit=3)
+    if len(ds_id_and_date_range) == 3:
+        ds_id, date1, date2 = ds_id_and_date_range
+    elif len(ds_id_and_date_range) == 2:
+        ds_id, date1, date2 = ds_id_and_date_range[0], ds_id_and_date_range[1], None
+    else:
+        ds_id, date1, date2 = ds_id_and_date_range[0], None, None
+    return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else None, date2 if date2 else None
+
+
+def _parse_read_arg(read_arg):
+    """
+    Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and return tuple INP_NAME,PATH,FORMAT.
+
+    :param read_arg: The FILE string argument
+    :return: The tuple INP_NAME,PATH,FORMAT
+    """
+    return _parse_write_arg(read_arg)
+
+
 def _parse_write_arg(write_arg):
     """
-    Parse string *write_arg* as "[NAME=]PATH[,FORMAT]" and return tuple NAME,PATH,FORMAT.
+    Parse string argument ``FILE := "[OUT_NAME=]PATH[,FORMAT]`` and return tuple OUT_NAME,PATH,FORMAT.
 
-    :param write_arg: string argument expected to have format "[NAME=]PATH[,FORMAT]"
-    :return: The tuple NAME,PATH,FORMAT
+    :param write_arg: The FILE string argument
+    :return: The tuple OUT_NAME,PATH,FORMAT
     """
     name_and_path = write_arg.split('=', maxsplit=2)
     name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
     path_and_format = path.rsplit(',', maxsplit=2)
-    path, format = path_and_format if len(path_and_format) == 2 else (path, None)
-    return name if name else None, path if path else None, format.upper() if format else None
+    path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
+    return name if name else None, path if path else None, format_name.upper() if format_name else None
 
 
 class Command(metaclass=ABCMeta):
@@ -172,12 +203,30 @@ class RunCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('--monitor', '-m', action='store_true',
                             help='Display progress information during execution.')
+        parser.add_argument('--load', '-l', action='append', metavar='DATA_SOURCE', dest='load_args',
+                            help='Load dataset from data source DS.\n'
+                                 'The DS syntax is DS_NAME=DS_ID[,DATE1[,DATE2]]. '
+                                 'DS_ID must be a valid data source ID. Type "ect ds list" to show '
+                                 'all known data source IDs. DATE1 and DATE2 may be used to create '
+                                 'data subsets. The dataset loaded will be assigned to the arbitrary '
+                                 'name DS_NAME which is used to pass the datasets or its variables'
+                                 'as an OP argument. To pass a variable use syntax DS_NAME.VAR_NAME.')
+        parser.add_argument('--read', '-r', action='append', metavar='FILE', dest='read_args',
+                            help='Read object from FILE.\n'
+                                 'The FILE syntax is INP_NAME=PATH[,FORMAT]. '
+                                 'If FORMAT is not provided, file format is derived from the PATH\'s '
+                                 'filename extensions or file content. INP_NAME '
+                                 'may be passed as an OP argument that receives a dataset, dataset '
+                                 'variable or any other data type. To pass a variable of a dataset use '
+                                 'syntax INP_NAME.VAR_NAME')
         parser.add_argument('--write', '-w', action='append', metavar='FILE', dest='write_args',
-                            help='Write result to FILE where file has the format [NAME=]PATH[,FORMAT].\n'
-                                 'If FORMAT is not provided file format is derived from the object\n'
+                            help='Write result to FILE. '
+                                 'The FILE syntax is [OUT_NAME=]PATH[,FORMAT]. '
+                                 'If FORMAT is not provided, file format is derived from the object '
                                  'type and the PATH\'s filename extensions. If OP returns multiple '
-                                 'named output values, NAME is used to identify them. Multiple -w '
-                                 'options may be used in this case.')
+                                 'named output values, OUT_NAME is used to identify them. Multiple -w '
+                                 'options may be used in this case. Type "ect write list" to show'
+                                 'list of allowed format names.')
         parser.add_argument('op_name', metavar='OP', nargs='?',
                             help="Fully qualified operation name or alias")
         parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
@@ -188,6 +237,29 @@ class RunCommand(Command):
         if not op_name:
             return 2, "error: command '%s' requires OP argument" % self.CMD_NAME
         is_workflow = op_name.endswith('.json') and os.path.isfile(op_name)
+
+        namespace = dict()
+
+        if command_args.load_args:
+            load_args = list(map(_parse_load_arg, command_args.load_args))
+            for ds_name, ds_id, date1, date2 in load_args:
+                if not ds_name:
+                    return 1, "error: command '%s': missing DS_NAME in --load option" % RunCommand.CMD_NAME
+                if ds_name in namespace:
+                    return 1, "error: command '%s': ambiguous DS_NAME in --load option" % RunCommand.CMD_NAME
+                namespace[ds_name] = load_dataset(ds_id, date1, date2)
+
+        if command_args.read_args:
+            read_args = list(map(_parse_read_arg, command_args.read_args))
+            for inp_name, inp_path, inp_format in read_args:
+                if not inp_name:
+                    return 1, "error: command '%s': missing INP_NAME \"%s\" in --read option" % (
+                    RunCommand.CMD_NAME, inp_name)
+                if inp_name in namespace:
+                    return 1, "error: command '%s': ambiguous INP_NAME \"%s\" in --read option" % (
+                    RunCommand.CMD_NAME, inp_name)
+                from ect.core.objectio import read_object
+                namespace[inp_name] = read_object(inp_path, format_name=inp_format)
 
         op_args = []
         op_kwargs = OrderedDict()
@@ -202,8 +274,26 @@ class RunCommand(Command):
                 # try converting arg into a Python object
                 arg = eval(arg)
             except (SyntaxError, NameError):
-                # If it fails, we stay with default type (str)
-                pass
+                # Try converting arg to dataset (xarray.Dataset) or dataset variable (xarray.DataArray)
+                ds_name_and_var_name = arg.rsplit('.', maxsplit=2)
+                if len(ds_name_and_var_name) == 2:
+                    ds_name, var_name = ds_name_and_var_name
+                else:
+                    ds_name, var_name = ds_name_and_var_name[0], None
+                if ds_name in namespace:
+                    # arg is a dataset (xarray.Dataset)
+                    arg = namespace[ds_name]
+                if var_name:
+                    # arg is a dataset variable (xarray.DataArray)
+                    try:
+                        arg = arg[var_name]
+                    except (KeyError, TypeError):
+                        try:
+                            arg = getattr(arg, var_name)
+                        except AttributeError:
+                            return 2, "error: command '%s': invalid variable reference \"%s.%s\"" % (
+                                self.CMD_NAME, ds_name, var_name)
+                            # If arg couldn't be converted to dataset or variable, we stay with default type (str)
             if not kw:
                 op_args.append(arg)
             else:
@@ -227,15 +317,17 @@ class RunCommand(Command):
             if op.op_meta_info.has_named_outputs:
                 for out_name, out_path, out_format in write_args:
                     if not out_name:
-                        return 1, "error: command '%s': all --write options must have output names" % RunCommand.CMD_NAME
+                        return 1, "error: command '%s': all --write options must have an OUT_NAME" % RunCommand.CMD_NAME
                     if out_name not in op.op_meta_info.output:
-                        return 1, "error: command '%s': --write option with unknown output named \"%s\"" % (RunCommand.CMD_NAME, out_name)
+                        return 1, "error: command '%s': OUT_NAME \"%s\" in --write option is not an OP output" % (
+                            RunCommand.CMD_NAME, out_name)
             else:
                 if len(write_args) > 1:
                     return 1, "error: command '%s': multiple --write options given for singular result" % RunCommand.CMD_NAME
                 out_name, out_path, out_format = write_args[0]
                 if out_name and out_name != 'return':
-                    return 1, "error: command '%s': --write option with named output for singular result" % RunCommand.CMD_NAME
+                    return 1, "error: command '%s': OUT_NAME \"%s\" in --write option is not an OP output" % (
+                        RunCommand.CMD_NAME, out_name)
 
         if command_args.monitor:
             monitor = ConsoleMonitor()
@@ -253,7 +345,8 @@ class RunCommand(Command):
                         print("Writing output '%s' to %s using %s format..." % (out_name, out_path, writer.format_name))
                         writer.write(out_value, out_path)
                     else:
-                        return 1, "error: command '%s': unknown format for --write output '%s'" % (RunCommand.CMD_NAME, out_name)
+                        return 1, "error: command '%s': unknown format for --write output '%s'" % (
+                            RunCommand.CMD_NAME, out_name)
             else:
                 for output in return_value:
                     print("Output '%s': %s" % (output.name, output.value))
@@ -376,7 +469,8 @@ class DataSourceCommand(Command):
                                       "The comparison is case insensitive.")
         list_parser.set_defaults(ds_command=cls.execute_list)
 
-        sync_parser = ds_parser.add_parser('sync', help='Synchronise a remote data source DS_NAME with its local version.')
+        sync_parser = ds_parser.add_parser('sync',
+                                           help='Synchronise a remote data source DS_NAME with its local version.')
         sync_parser.add_argument('ds_name', metavar='DS_NAME', nargs=1,
                                  help='Data source name. Type "ect ds list" to show all possible names.')
         sync_parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
@@ -398,7 +492,7 @@ class DataSourceCommand(Command):
         if command_args.pattern:
             pattern = command_args.pattern[0]
         list_items('data source', 'data sources',
-                               [data_source.name for data_source in data_store.query()], pattern)
+                   [data_source.name for data_source in data_store.query()], pattern)
 
     @classmethod
     def execute_info(cls, command_args):
