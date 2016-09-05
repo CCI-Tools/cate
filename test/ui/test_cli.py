@@ -152,19 +152,19 @@ class CliDataSourceCommandTest(unittest.TestCase):
             self.assertEqual(status, 0)
         self.assertEqual(stderr.getvalue(), '')
         self.assertEqual(stdout.getvalue(),
-                         "usage: ect ds [-h] {list,sync,info} ...\n"
+                         "usage: ect ds [-h] COMMAND ...\n"
                          "\n"
                          "Data source operations.\n"
                          "\n"
                          "positional arguments:\n"
-                         "  {list,sync,info}\n"
-                         "    list            List all available data sources\n"
-                         "    sync            Synchronise a remote data source DS_NAME with its local\n"
-                         "                    version.\n"
-                         "    info            Display information about the data source DS_NAME.\n"
+                         "  COMMAND     One of the following commands. Type \"COMMAND -h\" to get command-\n"
+                         "              specific help.\n"
+                         "    list      List all available data sources\n"
+                         "    sync      Synchronise a remote data source DS_NAME with its local version.\n"
+                         "    info      Display information about the data source DS_NAME.\n"
                          "\n"
                          "optional arguments:\n"
-                         "  -h, --help        show this help message and exit\n")
+                         "  -h, --help  show this help message and exit\n")
 
 
 class CliRunCommandTest(unittest.TestCase):

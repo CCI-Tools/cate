@@ -286,7 +286,11 @@ class OperationCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        op_parser = parser.add_subparsers(dest='op_command')
+        op_parser = parser.add_subparsers(
+            dest='op_command',
+            metavar='COMMAND',
+            help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
+        )
         parser.set_defaults(op_parser=parser)
 
         list_parser = op_parser.add_parser('list', help='List all available operations')
@@ -348,7 +352,11 @@ class DataSourceCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        ds_parser = parser.add_subparsers(dest='ds_command')
+        ds_parser = parser.add_subparsers(
+            dest='ds_command',
+            metavar='COMMAND',
+            help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
+        )
         parser.set_defaults(ds_parser=parser)
 
         list_parser = ds_parser.add_parser('list', help='List all available data sources')
