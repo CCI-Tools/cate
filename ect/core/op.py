@@ -405,8 +405,8 @@ class OpRegistration:
                 is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
                 if data_type and not (isinstance(value, data_type) or is_float_type):
                     raise ValueError(
-                        "input '%s' for operation '%s' must be of type %s" % (
-                            name, self.op_meta_info.qualified_name, data_type))
+                        "input '%s' for operation '%s' must be of type %s, but got %s" % (
+                            name, self.op_meta_info.qualified_name, data_type, type(value)))
                 value_set = input_properties.get('value_set', None)
                 if value_set and value not in value_set:
                     raise ValueError(
