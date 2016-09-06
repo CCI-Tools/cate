@@ -13,11 +13,11 @@ class WriterRegistryTest(TestCase):
         self.assertTrue(len(OBJECT_IO_REGISTRY.object_io_list) >= 4)
 
     def test_format_names(self):
-        format_names = OBJECT_IO_REGISTRY.format_names
+        format_names = OBJECT_IO_REGISTRY.get_format_names()
         self.assertEqual(format_names, ['JSON', 'NETCDF3', 'NETCDF4', 'TEXT'])
 
     def test_find_reader(self):
-        reader = OBJECT_IO_REGISTRY.find_reader(file_obj='test.nc')
+        reader = OBJECT_IO_REGISTRY.find_reader(file='test.nc')
         self.assertIsNone(reader)
 
         reader = OBJECT_IO_REGISTRY.find_reader(format_name='NETCDF3', filename_ext='.nc')
@@ -25,7 +25,7 @@ class WriterRegistryTest(TestCase):
         self.assertEquals(reader.format_name, 'NETCDF3')
         self.assertEquals(reader.filename_ext, '.nc')
 
-        reader = OBJECT_IO_REGISTRY.find_reader(file_obj='hello.txt')
+        reader = OBJECT_IO_REGISTRY.find_reader(file='hello.txt')
         self.assertIsNotNone(reader)
         self.assertEquals(reader.format_name, 'TEXT')
         self.assertEquals(reader.filename_ext, '.txt')
@@ -35,7 +35,7 @@ class WriterRegistryTest(TestCase):
         self.assertEquals(reader.format_name, 'JSON')
         self.assertEquals(reader.filename_ext, '.json')
 
-        reader = OBJECT_IO_REGISTRY.find_reader(file_obj='meris_l1b.dim',
+        reader = OBJECT_IO_REGISTRY.find_reader(file='meris_l1b.dim',
                                                 default_reader=OBJECT_IO_REGISTRY.find_reader(format_name='NETCDF4'))
         self.assertIsNotNone(reader)
         self.assertEquals(reader.format_name, 'NETCDF4')
