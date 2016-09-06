@@ -34,17 +34,9 @@ def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
     # TODO (forman, 20160601): align with chunking from netcdf metadata attribute
 
     datasets = []
-    probed_engine = None
+    engine = 'netcdf4'
     for p in paths:
-        if not probed_engine:
-            try:
-                from xarray.backends import H5NetCDFStore
-                H5NetCDFStore(p)
-                probed_engine = 'h5netcdf'
-            except OSError:
-                probed_engine = 'netcdf4'
-        da = xr.open_dataset(p, engine=probed_engine, chunks=chunks or {}, lock=lock, **kwargs)
-        datasets.append(da)
+        datasets.append(xr.open_dataset(p, engine=engine, decode_cf=False, chunks=chunks or {}, lock=lock, **kwargs))
 
     preprocessed_datasets = []
     file_objs = []
