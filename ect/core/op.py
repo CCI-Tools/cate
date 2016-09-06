@@ -352,8 +352,8 @@ class OpRegistration:
 
         # set default_value where input values are missing
         for name, properties in self.op_meta_info.input.items():
-            if name not in input_values:
-                input_values[name] = properties.get('default_value', None)
+            if name not in input_values and 'default_value' in properties:
+                input_values[name] = properties['default_value']
 
         # validate the input_values using this operation's meta-info
         self.validate_input_values(input_values)
