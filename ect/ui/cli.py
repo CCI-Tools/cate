@@ -218,7 +218,7 @@ class RunCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('--monitor', '-m', action='store_true',
                             help='Display progress information during execution.')
-        parser.add_argument('--load', '-l', action='append', metavar='DATA_SOURCE', dest='load_args',
+        parser.add_argument('--load', '-l', action='append', metavar='DS', dest='load_args',
                             help='Load dataset from data source DS.\n'
                                  'The DS syntax is DS_NAME=DS_ID[,DATE1[,DATE2]]. '
                                  'DS_ID must be a valid data source ID. Type "ect ds list" to show '
@@ -274,7 +274,7 @@ class RunCommand(Command):
                     return 1, "error: command '%s': ambiguous INP_NAME \"%s\" in --read option" % (
                         RunCommand.CMD_NAME, inp_name)
                 from ect.core.objectio import read_object
-                namespace[inp_name] = read_object(inp_path, format_name=inp_format)
+                namespace[inp_name], _ = read_object(inp_path, format_name=inp_format)
 
         op_args = []
         op_kwargs = OrderedDict()
