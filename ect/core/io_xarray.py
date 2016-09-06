@@ -84,7 +84,8 @@ def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
         if '_FillValue' in attrs and 'missing_value' in attrs:
             # xarray as of version 0.7.2 does not handle it correctly,
             # if both values are set to NaN. (because the values are compared using '==')
-            # TODO (mzuehlke, 20160601): report github issue and PR to xarray
+            # reproducible with  engine='netcdf4'
+            # https://github.com/pydata/xarray/issues/997
             del attrs['missing_value']
     return dataset
 
