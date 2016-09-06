@@ -33,7 +33,13 @@ def _harmonize_dataset(ds:xr.Dataset):
     lat_name = _get_lat_dim_name(ds)
     lon_name = _get_lon_dim_name(ds)
 
-    name_dict = {lat_name:'lat', lon_name:'lon'}
+    name_dict = dict()
+    if lat_name:
+        name_dict[lat_name] = 'lat'
+
+    if lon_name:
+        name_dict[lon_name] = 'lon'
+
     ds.rename(name_dict, inplace=True)
 
 def _get_lon_dim_name(xarray: xr.Dataset) -> str:

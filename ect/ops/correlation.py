@@ -30,10 +30,9 @@ def pearson_correlation(ds_y:xr.Dataset, ds_x:xr.Dataset, path:str=None):
     xr_y = ds_y
     xr_x = ds_x
 
-    # We Expect to have a single variable in the dataset
+    # We Expect to have a single data variable in the dataset
     if len(xr_y.data_vars) != 1 or len(xr_x.data_vars) != 1:
-        # TODO (Gailis, 20160624) Should raise some kind of an error here.
-        return None
+        raise TypeError('Dataset should have a single data variable')
 
     array_y = None
     array_x = None

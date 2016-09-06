@@ -57,6 +57,8 @@ def subset_temporal_index(ds:xr.Dataset, time:list):
     :param time: A pair of time_min_index, time_max_index
     :return: Subset dataset
     """
-    time_slice = slice(time[0], time[1])
+    # we're creating a slice that includes both ends
+    # to have the same functionality as subset_temporal
+    time_slice = slice(time[0], time[1]+1)
     indexers = {'time':time_slice}
     return ds.isel(**indexers)

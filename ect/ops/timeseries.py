@@ -32,7 +32,7 @@ def timeseries(dataset: xr.Dataset, lat: float, lon: float, method: str='nearest
     return xarray_timeseries
 
 
-@op_input('ds', description='A dataset from which to extract time series')
+@op_input('ds', description='A dataset from which to extract time series', required=True)
 @op_output('return', description='A timeseries dataset')
 def timeseries_mean(ds: xr.Dataset):
     """
@@ -41,6 +41,7 @@ def timeseries_mean(ds: xr.Dataset):
     :param ds: The dataset of type :py:class:`Dataset`
     :return: Time series dataset
     """
+    # Expecting a harmonized dataset
     reduce_along = {'dim':['lat','lon']}
     retset = ds.mean(**reduce_along)
     return retset
