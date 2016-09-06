@@ -85,6 +85,16 @@ class ObjectIORegistry:
     def object_io_list(self):
         return self._object_io_list
 
+    @property
+    def format_names(self):
+        format_names = []
+        for object_io in self._object_io_list:
+            try:
+                format_names.append(object_io.format_name)
+            except AttributeError:
+                pass
+        return sorted(format_names)
+
     def find_reader(self, file_obj=None, format_name=None, filename_ext=None, default_reader=None, **kwargs):
 
         object_io_list = self._find_object_ios(format_name, filename_ext)
