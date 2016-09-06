@@ -2,7 +2,7 @@
 Description
 ===========
 
-Naive implementation of generic :py:func::``read_object`` / :py:func::``write_object`` functions operating
+Naive implementation of generic :py:func:``read_object`` / :py:func:``write_object`` functions operating
 on a global object I/O registry ``OBJECT_IO_REGISTRY``.
 
 """
@@ -13,11 +13,30 @@ import xarray as xr
 
 
 def find_reader(file_path, format_name=None, **kwargs):
+    """
+    Find a most suitable reader for given *file_path* and optional *format_name*.
+
+    :param file_path: A file path
+    :param format_name: An optional format name.
+    :param kwargs: Specific reader arguments passed to ``read_fitness`` method of a registered
+           :py:class:``ObjectIO``-compatible object
+    :return: An :py:class:``ObjectIO``-compatible object or ``None``.
+    """
     _, filename_ext = os.path.splitext(file_path)
     return OBJECT_IO_REGISTRY.find_reader(file_path, format_name=format_name, filename_ext=filename_ext, **kwargs)
 
 
 def find_writer(obj, file_path, format_name=None, **kwargs):
+    """
+    Find a most suitable writer for a given object *obj*, *file_path* and optional *format_name*.
+
+    :param obj: Any Python object
+    :param file_path: A file path
+    :param format_name: An optional format name.
+    :param kwargs: Specific reader arguments passed to ``write_fitness`` method of a registered
+           :py:class:``ObjectIO``-compatible object
+    :return: An :py:class:``ObjectIO``-compatible object or ``None``.
+    """
     _, filename_ext = os.path.splitext(file_path)
     return OBJECT_IO_REGISTRY.find_writer(obj, format_name=format_name, filename_ext=filename_ext, **kwargs)
 
@@ -158,6 +177,11 @@ OBJECT_IO_REGISTRY = ObjectIORegistry()
 
 
 class ObjectIO(metaclass=ABCMeta):
+    """
+    Interface that objects in the ``OBJECT_IO_REGISTRY`` must adhere to.
+    The same ``ObjectIO`` instance can represent both a data reader and data writer for a given file format.
+    """
+
     @property
     @abstractmethod
     def description(self):
