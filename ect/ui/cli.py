@@ -424,8 +424,14 @@ class OperationCommand(Command):
 
         def _op_has_tag(op_registration, tag_value):
             op_meta_info_header = op_registration.op_meta_info.header
-            if 'tag' in op_meta_info_header and op_meta_info_header['tag'] == tag_value:
-                return True
+            if 'tags' in op_meta_info_header:
+                import fnmatch
+                tag_value_lower = tag_value.lower()
+                tags_data = op_meta_info_header['tags']
+                if isinstance(tags_data, list):
+                    return any(fnmatch.fnmatch(single_tag.lower(), tag_value_lower) for single_tag in tags_data)
+                elif isinstance(tags_data, str):
+                    return fnmatch.fnmatch(tags_data.lower(), tag_value_lower)
             return False
 
         op_names = op_registrations.keys()
@@ -642,7 +648,6 @@ class PluginCommand(Command):
         else:
             command_args.op_parser.print_help()
             return 0, None
-
 
 def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
     if pattern:
