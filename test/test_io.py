@@ -2,9 +2,8 @@ from datetime import datetime
 from typing import Sequence
 from unittest import TestCase
 
+import xarray as xr
 import ect.core.io as io
-from ect.core.cdm_xarray import XArrayDatasetAdapter
-
 
 class SimpleDataStore(io.DataStore):
     def __init__(self, data_sources: Sequence[io.DataSource]):
@@ -34,7 +33,7 @@ class SimpleDataSource(io.DataSource):
     def name(self) -> str:
         return self._name
 
-    def open_dataset(self, time_range=None) -> io.Dataset:
+    def open_dataset(self, time_range=None):
         return None
 
     def __repr__(self):
@@ -49,8 +48,8 @@ class InMemoryDataSource(SimpleDataSource):
         super(InMemoryDataSource, self).__init__("in_memory")
         self._data = data
 
-    def open_dataset(self, time_range=None) -> io.Dataset:
-        return XArrayDatasetAdapter(self._data)
+    def open_dataset(self, time_range=None) -> xr.Dataset:
+        return xr.Dataset({'a':self._data})
 
     def __repr__(self):
         return "InMemoryDataSource(%s)" % repr(self._data)
@@ -133,15 +132,15 @@ class IOTest(TestCase):
             io.open_dataset('foo')
         self.assertEqual("No data_source found for the given query term 'foo'", str(cm.exception))
 
-        inmem_data_source = InMemoryDataSource('42')
+        inmem_data_source = InMemoryDataSource(42)
         dataset1 = io.open_dataset(inmem_data_source)
         self.assertIsNotNone(dataset1)
-        self.assertIsInstance(dataset1, XArrayDatasetAdapter)
-        self.assertEqual('42', dataset1.wrapped_dataset)
+        self.assertIsInstance(dataset1, xr.Dataset)
+        self.assertEqual(42, dataset1.a.values)
 
         dataset2 = inmem_data_source.open_dataset()
-        self.assertIsInstance(dataset2, XArrayDatasetAdapter)
-        self.assertEqual('42', dataset2.wrapped_dataset)
+        self.assertIsInstance(dataset2, xr.Dataset)
+        self.assertEqual(42, dataset2.a.values)
 
     def test_open_dataset_duplicated_names(self):
         try:
