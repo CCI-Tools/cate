@@ -10,14 +10,15 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input, op_return
 
 
+@op_input('ds')
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill', None])
-@op_output('return', description='A timeseries dataset.')
-def timeseries(dataset: xr.Dataset, lat: float, lon: float, method: str='nearest') -> xr.Dataset:
+@op_return(description='A timeseries dataset.')
+def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str='nearest') -> xr.Dataset:
     """
     Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method*.
 
@@ -27,10 +28,10 @@ def timeseries(dataset: xr.Dataset, lat: float, lon: float, method: str='nearest
     :param method: One of ``nearest``, ``ffill``, ``bfill``.
     :return:
     """
-    lat_dim = _get_lat_dim_name(dataset)
-    lon_dim = _get_lon_dim_name(dataset)
+    lat_dim = _get_lat_dim_name(ds)
+    lon_dim = _get_lon_dim_name(ds)
     indexers = {lat_dim: lat, lon_dim: lon}
-    return dataset.sel(method=method, **indexers)
+    return ds.sel(method=method, **indexers)
 
 
 def _get_lon_dim_name(xarray: xr.Dataset) -> str:
