@@ -26,7 +26,7 @@ Components
 
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .timeseries import timeseries
-from .io import load_dataset, save_dataset
+from .io import load_dataset, store_dataset
 
 __all__ = [
     'timeseries',
@@ -34,7 +34,7 @@ __all__ = [
     'downsample_2d',
     'upsample_2d',
     'load_dataset',
-    'save_dataset'
+    'store_dataset'
 ]
 
 

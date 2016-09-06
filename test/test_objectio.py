@@ -6,6 +6,8 @@ import pandas as pd
 import xarray as xr
 from ect.core.objectio import OBJECT_IO_REGISTRY, read_object, write_object
 
+__import__('ect.ops.io')
+
 
 class WriterRegistryTest(TestCase):
     def test_writers(self):

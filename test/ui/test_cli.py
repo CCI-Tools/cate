@@ -95,7 +95,7 @@ class CliOperationCommandTest(unittest.TestCase):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['op', 'list', '--tag', 'io'])
             self.assertEqual(status, 0)
-        self.assertIn('2 operations found', stdout.getvalue())
+        self.assertIn('9 operations found', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
 
