@@ -104,6 +104,7 @@ from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
 
+_UNDEFINED = object()
 
 class Node(metaclass=ABCMeta):
     """
@@ -610,7 +611,8 @@ class OpStep(Step):
         """
         input_values = OrderedDict()
         for node_input in self.input[:]:
-            input_values[node_input.name] = node_input.value
+            if node_input.has_value:
+                input_values[node_input.name] = node_input.value
 
         return_value = self._op_registration(monitor=monitor, **input_values)
 
@@ -854,7 +856,7 @@ class NodePort:
         self._name = name
         self._source_ref = None
         self._source = None
-        self._value = None
+        self._value = _UNDEFINED
 
     @property
     def node(self) -> Node:
@@ -869,9 +871,20 @@ class NodePort:
         return self._name
 
     @property
+    def has_value(self):
+        if self._source:
+            return True
+        elif self._value is _UNDEFINED:
+            return False
+        else:
+            return True
+
+    @property
     def value(self):
         if self._source:
             return self._source.value
+        elif self._value is _UNDEFINED:
+            return None
         else:
             return self._value
 
@@ -891,7 +904,7 @@ class NodePort:
             raise ValueError("cannot connect '%s' with itself" % self)
         self._source = new_source
         self._source_ref = (new_source.node_id, new_source.name) if new_source else None
-        self._value = None
+        self._value = _UNDEFINED
 
     def resolve_source_ref(self):
         """
