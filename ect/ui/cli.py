@@ -355,7 +355,7 @@ class RunCommand(Command):
         if op.op_meta_info.has_named_outputs:
             if write_args:
                 for out_name, out_path, out_format in write_args:
-                    out_value = return_value[out_name].value
+                    out_value = return_value[out_name]
                     writer = find_writer(out_value, out_path, format_name=out_format)
                     if writer:
                         print("Writing output '%s' to %s using %s format..." % (out_name, out_path, writer.format_name))
