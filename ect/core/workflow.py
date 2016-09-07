@@ -99,12 +99,11 @@ from typing import Sequence, Optional, Union, List, Dict
 
 from .monitor import Monitor
 from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
-from .util import Namespace
+from .util import Namespace, UNDEFINED
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
 
-_UNDEFINED = object()
 
 class Node(metaclass=ABCMeta):
     """
@@ -856,7 +855,7 @@ class NodePort:
         self._name = name
         self._source_ref = None
         self._source = None
-        self._value = _UNDEFINED
+        self._value = UNDEFINED
 
     @property
     def node(self) -> Node:
@@ -873,8 +872,8 @@ class NodePort:
     @property
     def has_value(self):
         if self._source:
-            return True
-        elif self._value is _UNDEFINED:
+            return self._source.has_value
+        elif self._value is UNDEFINED:
             return False
         else:
             return True
@@ -883,7 +882,7 @@ class NodePort:
     def value(self):
         if self._source:
             return self._source.value
-        elif self._value is _UNDEFINED:
+        elif self._value is UNDEFINED:
             return None
         else:
             return self._value
@@ -904,7 +903,7 @@ class NodePort:
             raise ValueError("cannot connect '%s' with itself" % self)
         self._source = new_source
         self._source_ref = (new_source.node_id, new_source.name) if new_source else None
-        self._value = _UNDEFINED
+        self._value = UNDEFINED
 
     def resolve_source_ref(self):
         """
@@ -1022,7 +1021,7 @@ class NodePort:
         json_dict = dict()
         if self._source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self._value is not None:
+        elif self._value is not UNDEFINED:
             json_dict['value'] = self._value
         return json_dict
 
