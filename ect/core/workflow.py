@@ -190,10 +190,25 @@ class Node(metaclass=ABCMeta):
         :param input_values: The input values.
         :return: The output values.
         """
+
         for name, value in input_values.items():
-            if name in self.input:
-                self.input[name].value = value
+            if name not in self.input:
+                raise ValueError("'%s' is not an input of node '%s'" % (name, self.op_meta_info.qualified_name))
+
+        for node_input in self.input[:]:
+            if node_input.name in input_values:
+                node_input.value = input_values[node_input.name]
+            else:
+                input_properties = self.op_meta_info.input[node_input.name]
+                if 'default_value' in input_properties:
+                    node_input.value = input_properties['default_value']
+                else:
+                    node_input.value = UNDEFINED
+
+        # TODO (marcoz, forman): perform same input validation for ops and workflows
+
         self.invoke(monitor=monitor)
+
         if self.op_meta_info.has_named_outputs:
             return {output.name: output.value for output in self.output[:]}
         else:
