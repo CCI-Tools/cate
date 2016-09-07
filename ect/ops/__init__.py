@@ -25,14 +25,29 @@ Components
 """
 
 from .resampling import resample_2d, downsample_2d, upsample_2d
-from .timeseries import timeseries
+from .timeseries import timeseries, timeseries_mean
+from .harmonize import harmonize
+from .filter import filter_dataset
+from .coregistration import coregister
+from .subset import subset_spatial, subset_temporal, subset_temporal_index
+from .correlation import pearson_correlation
+from .plot import plot_map
 from .io import load_dataset, store_dataset
 
 __all__ = [
     'timeseries',
+    'timeseries_mean'
     'resample_2d',
     'downsample_2d',
     'upsample_2d',
+    'harmonize',
+    'filter_dataset',
+    'coregister',
+    'subset_spatial',
+    'subset_temporal',
+    'subset_temporal_index',
+    'person_correlation',
+    'plot_map'
     'load_dataset',
     'store_dataset'
 ]
