@@ -295,9 +295,11 @@ class OpMetaInfo:
             arg_names = arg_names[1:]
             arg_count -= 1
         # Reserve input slots for input names, but 'monitor'
+        arg_pos = 0
         for arg_name in arg_names:
             if cls.MONITOR_INPUT_NAME != arg_name:
-                input_dict[arg_name] = dict()
+                input_dict[arg_name] = dict(position=arg_pos)
+                arg_pos += 1
             else:
                 has_monitor = True
         # Set 'default_value' for input names, but 'monitor'
@@ -308,7 +310,10 @@ class OpMetaInfo:
             for i in range(num_default_values):
                 arg_name = arg_names[i - num_default_values]
                 if cls.MONITOR_INPUT_NAME != arg_name:
-                    input_dict[arg_name]['default_value'] = default_values[i]
+                    default_value = default_values[i]
+                    input_dict[arg_name]['default_value'] = default_value
+                    if 'position' in input_dict[arg_name]:
+                        del input_dict[arg_name]['position']
         return input_dict, has_monitor
 
 
@@ -354,6 +359,9 @@ class OpRegistration:
         for name, properties in self.op_meta_info.input.items():
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
+            if name not in input_values and 'position' in properties:
+                raise ValueError("input '%s' for operation '%s' required" %
+                                 (name, self.op_meta_info.qualified_name))
 
         # validate the input_values using this operation's meta-info
         self.validate_input_values(input_values)
@@ -396,9 +404,15 @@ class OpRegistration:
             if name not in inputs:
                 raise ValueError("'%s' is not an input of operation '%s'" % (name, self.op_meta_info.qualified_name))
             input_properties = inputs[name]
-            if name not in inputs or (value is None and input_properties.get('required', False)):
-                raise ValueError(
-                    "input '%s' for operation '%s' required" % (name, self.op_meta_info.qualified_name))
+            if value is None:
+                default_is_none = input_properties.get('default_value', 1) is None
+                value_set = input_properties.get('value_set', None)
+                value_set_has_none = value_set and (None in value_set)
+                nullable = input_properties.get('nullable', False)
+                if not (default_is_none or value_set_has_none or nullable):
+                    raise ValueError(
+                        "input '%s' for operation '%s' is not nullable" % (name, self.op_meta_info.qualified_name))
+                continue
             data_type = input_properties.get('data_type', None)
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if data_type and not (isinstance(value, data_type) or is_float_type):
@@ -516,6 +530,9 @@ def op(registry=OP_REGISTRY, **properties):
     Any other keywords arguments in *header* are added to the operation's meta-information header.
     Classes annotated by this decorator must have callable instances.
 
+    When a function is registered, an introspection is performed. During this process, initial operation
+    the meta-information header property *description* is derived from the function's docstring.
+
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     :param registry: The operation registry.
     """
@@ -532,7 +549,7 @@ def op(registry=OP_REGISTRY, **properties):
 
 def op_input(input_name: str,
              default_value=None,
-             required=None,
+             position=None,
              data_type=None,
              value_set=None,
              value_range=None,
@@ -542,10 +559,27 @@ def op_input(input_name: str,
     ``op_input`` is a decorator function that provides meta-information for an operation input identified by
     *input_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
     operation registry or the one given by *registry*, if any.
-    Any other keywords arguments in *properties* are added to the input's meta-information.
+
+    When a function is registered, an introspection is performed. During this process, initial operation
+    meta-information input properties are derived for each positional and keyword argument named *input_name*:
+
+    ---------------- ------------------------------------------------------------------------------
+    Derived property Source
+    ---------------- ------------------------------------------------------------------------------
+    *position*       The position of a positional argument, e.g. ``2`` for input ``z`` in
+                     ``def f(x, y, z, c=2)``.
+    *default_value*  The value of a keyword argument, e.g. ``52.3`` for input ``latitude``
+                     from argument definition ``latitude:float=52.3``
+    *data_type*      The type annotation type, e.g. ``float`` for input ``latitude``
+                     from argument definition  ``latitude:float``
+    ---------------- ------------------------------------------------------------------------------
+
+    The derived properties listed above plus any of *value_set*, *value_range*, and any key-value pairs in *properties*
+    are added to the input's meta-information.
+    A key-value pair in *properties* will always overwrite the derived properties listed above.
 
     :param input_name: The name of an input.
-    :param required: If ``True``, a value must be provided, otherwise *default_value* is used.
+    :param position: The position of a positional input (not supported yet).
     :param default_value: A default value.
     :param data_type: The data type of the input values.
     :param value_set: A sequence of the valid values. Note that all values in this sequence
@@ -563,7 +597,7 @@ def op_input(input_name: str,
         input_properties = input_namespace[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
-                              required=required,
+                              position=position,
                               value_set=value_set,
                               value_range=value_range, **properties)
         _update_properties(input_properties, new_properties)
@@ -580,7 +614,20 @@ def op_output(output_name: str,
     ``op_output`` is a decorator function that provides meta-information for an operation output identified by
     *output_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
     operation registry or the one given by *registry*, if any.
-    Any other keywords arguments in *properties* are added to the output's meta-information.
+
+    If your function does not return multiple named outputs, use the :py:func:`op_return` decorator function.
+    Note that::
+
+        @op_return(...)
+        def my_func(...):
+            ...
+
+    if equivalent to::
+
+        @op_output('return', ...)
+        def my_func(...):
+            ...
+
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
@@ -614,6 +661,26 @@ def op_return(data_type=None,
     (whose output name is ``"return"``). If the decorated function or class is not registered as an operation yet,
     it is added to the default operation registry or the one given by *registry*, if any.
     Any other keywords arguments in *properties* are added to the output's meta-information.
+
+    When a function is registered, an introspection is performed. During this process, initial operation
+    meta-information output properties are derived from the function's return type annotation, that is
+    *data_type* will be e.g. ``float`` if a function is annotated as ``def f(x, y) -> float: ...``.
+
+    The derived *data_type* property and any key-value pairs in *properties* are added to the output's meta-information.
+    A key-value pair in *properties* will always overwrite a derived *data_type*.
+
+    If your function returns multiple named outputs, use the :py:func:`op_output` decorator function.
+    Note that::
+
+        @op_return(...)
+        def my_func(...):
+            ...
+
+    if equivalent to::
+
+        @op_output('return', ...)
+        def my_func(...):
+            ...
 
     :param data_type: The data type of the return value.
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
