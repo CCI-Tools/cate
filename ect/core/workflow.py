@@ -191,21 +191,14 @@ class Node(metaclass=ABCMeta):
         :return: The output values.
         """
 
-        for name, value in input_values.items():
-            if name not in self.input:
-                raise ValueError("'%s' is not an input of node '%s'" % (name, self.op_meta_info.qualified_name))
+        # set default_value where input values are missing
+        self.op_meta_info.set_default_input_values(input_values)
+
+        # validate the input_values using this workflows's meta-info
+        self.op_meta_info.validate_input_values(input_values)
 
         for node_input in self.input[:]:
-            if node_input.name in input_values:
-                node_input.value = input_values[node_input.name]
-            else:
-                input_properties = self.op_meta_info.input[node_input.name]
-                if 'default_value' in input_properties:
-                    node_input.value = input_properties['default_value']
-                else:
-                    node_input.value = UNDEFINED
-
-        # TODO (marcoz, forman): perform same input validation for ops and workflows
+            node_input.value = input_values[node_input.name]
 
         self.invoke(monitor=monitor)
 
@@ -647,7 +640,9 @@ class OpStep(Step):
         :param input_values: The input value(s).
         :return: The output value(s).
         """
-        return self._op_registration(monitor=monitor, **input_values)
+        if self.op_meta_info.has_monitor:
+            input_values[OpMetaInfo.MONITOR_INPUT_NAME] = monitor
+        return self._op_registration(**input_values)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
