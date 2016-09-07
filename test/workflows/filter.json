@@ -1,0 +1,64 @@
+{
+  "qualified_name": "workflow",
+  "header": {
+    "description": "An example and very simple 'calculation' workflow."
+  },
+  "input": {
+    "ds": {
+      "data_type": "str",
+      "description": "Data source name"
+    },
+    "var": {
+      "data_type": "str",
+      "description": "Variable name"
+    },
+    "start_date": {
+      "data_type": "str",
+      "description": "Start date for the dataset"
+    },
+    "end_date": {
+      "data_type": "str",
+      "description": "End date for the dataset"
+    },
+    "output_file": {
+      "data_type": "str",
+      "description": "The filename for the resulting dataset"
+    }
+  },
+  "output": {
+    "return": {
+      "source": "step_filter.return",
+      "data_type": "ect.Dataset",
+      "description": "A new dataset that just contains variable "
+    }
+  },
+  "steps": [
+    {
+      "id": "step_load_ds",
+      "op": "ect.ops.io.load_dataset",
+      "input": {
+        "data_source": "workflow.ds",
+        "start_date": "workflow.start_date",
+        "end_date": "workflow.end_date"
+      }
+    },
+    {
+      "id": "step_filter",
+      "expression": "ds.step_filter([var])",
+      "input": {
+        "ds": "step_load_ds",
+        "var": "workflow.var",
+        "ds2": "open_ds2",
+        "var2": "workflow.var2"
+      }
+    },
+    {
+      "id": "step_save_ds",
+      "op": "ect.ops.io.save_dataset",
+      "input": {
+        "data_set": "step_filter",
+        "output_file": "workflow.output_file"
+      }
+    }
+  ]
+}

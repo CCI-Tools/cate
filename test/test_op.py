@@ -175,7 +175,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f),
                              dict(description='Hi, I am f!'),
                              expected_inputs,
@@ -210,7 +210,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f_op),
                              dict(description='Hi, I am f_op!'),
                              expected_inputs,
@@ -239,7 +239,7 @@ class OpTest(TestCase):
         expected_inputs['w'] = dict(default_value=4.9)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f_op_inp_ret),
                              dict(description='Hi, I am f_op_inp_ret!'),
                              expected_inputs,
@@ -264,7 +264,7 @@ class OpTest(TestCase):
         op_reg = registry.get_op(object_to_qualified_name(C))
         self.assertIs(op_reg, added_op_reg)
         self.assertIs(op_reg.operation, C)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(C),
                              dict(description='Hi, I am C!'),
                              OrderedDict(),
@@ -292,7 +292,7 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(object_to_qualified_name(C_op))
         self.assertIs(op_reg.operation, C_op)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(C_op),
                              dict(description='Hi, I am C_op!', author='Ernie and Bert'),
                              OrderedDict(),
@@ -319,14 +319,14 @@ class OpTest(TestCase):
 
         op_reg = self.registry.get_op(f)
 
-        self.assertEqual(op_reg.meta_info.input['x'].get('data_type', None), float)
-        self.assertEqual(op_reg.meta_info.input['x'].get('value_range', None), [0.1, 0.9])
-        self.assertEqual(op_reg.meta_info.input['x'].get('default_value', None), 0.5)
-        self.assertEqual(op_reg.meta_info.input['y'].get('data_type', None), float)
-        self.assertEqual(op_reg.meta_info.input['a'].get('data_type', None), int)
-        self.assertEqual(op_reg.meta_info.input['a'].get('value_set', None), [1, 4, 5])
-        self.assertEqual(op_reg.meta_info.input['a'].get('default_value', None), 4)
-        self.assertEqual(op_reg.meta_info.output[RETURN].get('data_type', None), float)
+        self.assertEqual(op_reg.op_meta_info.input['x'].get('data_type', None), float)
+        self.assertEqual(op_reg.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(op_reg.op_meta_info.input['x'].get('default_value', None), 0.5)
+        self.assertEqual(op_reg.op_meta_info.input['y'].get('data_type', None), float)
+        self.assertEqual(op_reg.op_meta_info.input['a'].get('data_type', None), int)
+        self.assertEqual(op_reg.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(op_reg.op_meta_info.input['a'].get('default_value', None), 4)
+        self.assertEqual(op_reg.op_meta_info.output[RETURN].get('data_type', None), float)
 
         with self.assertRaises(ValueError) as cm:
             result = op_reg(x=0, y=3.)
@@ -334,7 +334,8 @@ class OpTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             result = op_reg(x='A', y=3.)
-        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.test_op.f' must be of type <class 'float'>")
+        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.test_op.f' must be of type <class 'float'>, "
+                                            "but got <class 'str'>")
 
         with self.assertRaises(ValueError) as cm:
             result = op_reg(x=0.4)
@@ -461,7 +462,7 @@ class OpTest(TestCase):
         expected_outputs = OrderedDict()
         expected_outputs['y'] = dict(data_type=list)
         expected_outputs['x'] = dict(data_type=float)
-        self._assertMetaInfo(op_reg.meta_info,
+        self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(C_op_inp_out),
                              dict(description='Hi, I am C_op_inp_out!'),
                              expected_inputs,

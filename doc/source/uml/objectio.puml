@@ -1,0 +1,48 @@
+@startuml
+
+class ObjectIORegistry {
+    object_io_list: List
+    find_reader(file_obj, format, ext): ObjectIO
+    find_writer(obj, format, ext): ObjectIO
+}
+
+ObjectIORegistry o--> "N" ObjectIO
+
+object globals {
+    find_reader(file_obj, format_name):
+    find_writer(obj, file_path, format_name)
+    read_object(file_obj, format_name)
+    writer_object(obj, file_path, format_name)
+    OBJECT_IO_REGISTRY: WriterRegistry
+}
+
+note left of globals
+OBJECT_IO_REGISTRY contains all known
+data reader and writer instances.
+end note
+
+abstract class ObjectIO {
+    description: str
+    format_name: str
+    filename_ext: str
+
+    read_fitness(file_obj): int
+    read(file_obj)
+    write_fitness(obj): int
+    write(obj, file_path)
+}
+
+class ect.ops.io.TextObjectIO extends ObjectIO {
+}
+
+class ect.ops.io.JsonObjectIO extends ObjectIO {
+}
+
+class ect.ops.io.Netcdf4ObjectIO extends ObjectIO {
+}
+
+class ect.ops.io.Netcdf3ObjectIO extends ObjectIO {
+}
+
+
+@enduml

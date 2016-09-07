@@ -35,7 +35,8 @@ def get_resource(rel_path):
 
 
 class WorkflowTest(TestCase):
-    def test_init(self):
+    @classmethod
+    def create_example_3_steps_workflow(cls):
         step1 = OpStep(Op1, node_id='op1')
         step2 = OpStep(Op2, node_id='op2')
         step3 = OpStep(Op3, node_id='op3')
@@ -46,6 +47,10 @@ class WorkflowTest(TestCase):
         step3.input.u.source = step1.output.y
         step3.input.v.source = step2.output.b
         workflow.output.q.source = step3.output.w
+        return step1, step2, step3, workflow
+
+    def test_init(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
 
         self.assertEqual(workflow.id, 'myWorkflow')
         self.assertEqual(len(workflow.input), 1)
@@ -65,22 +70,19 @@ class WorkflowTest(TestCase):
         self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
 
     def test_invoke(self):
-        step1 = OpStep(Op1, node_id='op1')
-        step2 = OpStep(Op2, node_id='op2')
-        step3 = OpStep(Op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('myWorkflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        workflow.add_steps(step1, step2, step3)
-        step1.input.x.source = workflow.input.p
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
-        workflow.output.q.source = step3.output.w
+        _, _, _, workflow = self.create_example_3_steps_workflow()
 
         workflow.input.p.value = 3
         return_value = workflow.invoke()
         output_value = workflow.output.q.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
+
+    def test_call(self):
+        _, _, _, workflow = self.create_example_3_steps_workflow()
+
+        output_value = workflow(p=3)
+        self.assertEqual(output_value, dict(q=2 * (3 + 1) + 3 * (2 * (3 + 1))))
 
     def test_from_json_dict(self):
         workflow_json_text = """
@@ -494,6 +496,20 @@ class OpStepTest(TestCase):
         output_value = step3.output.w.value
         self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * 4 + 3 * 5)
+
+    def test_call(self):
+        step1 = OpStep(Op1)
+        step1.input.x.value = 3
+        output_value = step1(x=3)
+        self.assertEqual(output_value, dict(y=3 + 1))
+
+        step2 = OpStep(Op2)
+        output_value = step2(a=3)
+        self.assertEqual(output_value, dict(b=2 * 3))
+
+        step3 = OpStep(Op3)
+        output_value = step3(u=4, v=5)
+        self.assertEqual(output_value, dict(w=2 * 4 + 3 * 5))
 
     def test_init_failures(self):
         with self.assertRaises(ValueError):

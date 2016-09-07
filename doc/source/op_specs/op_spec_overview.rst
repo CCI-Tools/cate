@@ -5,6 +5,7 @@ Operations
 
 - Geometric Adjustment
 
+	- Co-Registration
 	- Reprojection
 	- Resampling
 	- Geospatial Gap Filling
@@ -16,12 +17,12 @@ Operations
 	- Temporal Gap Filling
 	- Temporal Concatenation
 
-- Filtering and Selections
+- Subsetting and Selections
 	
-	- Spatial Filtering
+	- Spatial Subsetting
 	- Spatial Resolution *(either Geometric Adjustment or selection from different available datasets)*
 	- Selection of a season of interest *(-> Calculations)*	
-	- Temporal Filtering
+	- Temporal Subsetting
 	- Temporal Resolution *(either Non-Geometric Adjustment or selection from different available datasets)*	
 	- Pixel Class Extraction
 	- Pixel Extraction by Values
@@ -174,8 +175,9 @@ Operations
 - Ice Sheets Analysis *-> part of BA + GIS?*
 
 
-**not specified as operations**
+**not implemented as as operations**
 
-- *Parameter Settings* (selection of time span and AOI -> as default to all Operations)
+- *Load Data*
+- *Save Table*
 - *Save Image*
 - *(Save Plot)*
