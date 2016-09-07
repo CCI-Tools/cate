@@ -22,6 +22,19 @@ from contextlib import contextmanager
 from io import StringIO
 
 
+class _Undefined:
+
+    def __str__(self):
+        return "UNDEFINED"
+
+    def __repr__(self):
+        return "UNDEFINED"
+
+
+#: Value used to indicate an undefined state.
+UNDEFINED = _Undefined()
+
+
 class Namespace:
     """
     A dictionary-like object that has dynamic attributes.

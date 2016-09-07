@@ -2,9 +2,17 @@ from collections import OrderedDict
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
+from ect.core.util import UNDEFINED
 from ect.core.util import Namespace
 from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
+
+
+class UndefinedTest(TestCase):
+    def test_it(self):
+        self.assertIsNotNone(UNDEFINED)
+        self.assertEqual(str(UNDEFINED), 'UNDEFINED')
+        self.assertEqual(repr(UNDEFINED), 'UNDEFINED')
 
 
 class NamespaceTest(TestCase):
