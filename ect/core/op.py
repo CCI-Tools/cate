@@ -396,27 +396,25 @@ class OpRegistration:
             if name not in inputs:
                 raise ValueError("'%s' is not an input of operation '%s'" % (name, self.op_meta_info.qualified_name))
             input_properties = inputs[name]
-            if value is None:
-                if input_properties.get('required', False):
-                    raise ValueError(
-                        "input '%s' for operation '%s' required" % (name, self.op_meta_info.qualified_name))
-            else:
-                data_type = input_properties.get('data_type', None)
-                is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-                if data_type and not (isinstance(value, data_type) or is_float_type):
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be of type %s, but got %s" % (
-                            name, self.op_meta_info.qualified_name, data_type, type(value)))
-                value_set = input_properties.get('value_set', None)
-                if value_set and value not in value_set:
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be one of %s" % (
-                            name, self.op_meta_info.qualified_name, value_set))
-                value_range = input_properties.get('value_range', None)
-                if value_range and not (value_range[0] <= value <= value_range[1]):
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be in range %s" % (
-                            name, self.op_meta_info.qualified_name, value_range))
+            if name not in inputs or (value is None and input_properties.get('required', False)):
+                raise ValueError(
+                    "input '%s' for operation '%s' required" % (name, self.op_meta_info.qualified_name))
+            data_type = input_properties.get('data_type', None)
+            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+            if data_type and not (isinstance(value, data_type) or is_float_type):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be of type %s, but got %s" % (
+                        name, self.op_meta_info.qualified_name, data_type, type(value)))
+            value_set = input_properties.get('value_set', None)
+            if value_set and (value not in value_set):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be one of %s" % (
+                        name, self.op_meta_info.qualified_name, value_set))
+            value_range = input_properties.get('value_range', None)
+            if value_range and (value is None or not (value_range[0] <= value <= value_range[1])):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be in range %s" % (
+                        name, self.op_meta_info.qualified_name, value_range))
 
     def validate_output_values(self, output_values: Dict):
         outputs = self.op_meta_info.output

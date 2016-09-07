@@ -317,6 +317,9 @@ class OpTest(TestCase):
         def f(x, y: float, a=4):
             return a * x + y if a != 5 else 'foo'
 
+        self.assertEqual(f(y=1, x=8), 33)
+        self.assertEqual(f(**dict(a=5, x=8, y=1)), 'foo')
+
         op_reg = self.registry.get_op(f)
 
         self.assertEqual(op_reg.op_meta_info.input['x'].get('data_type', None), float)
