@@ -76,7 +76,7 @@ Components
 import argparse
 import os.path
 import sys
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import Tuple, Optional
 
@@ -199,6 +199,43 @@ class Command(metaclass=ABCMeta):
         :return: `None`` (= status ok) or a tuple (*status*, *message*) of type (``int``, ``str``)
                  where *message* may be ``None``.
         """
+
+
+class SubCommandCommand(Command, metaclass=ABCMeta):
+    @classmethod
+    def configure_parser(cls, parser):
+        parser.set_defaults(parser=parser)
+        subparsers = parser.add_subparsers(metavar='COMMAND',
+                                           help='One of the following commands. '
+                                                'Type "COMMAND -h" for help.')
+        cls.configure_parser_and_subparsers(parser, subparsers)
+
+    @classmethod
+    @abstractmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        """
+        Overrides must, e.g.::
+            list_parser.subparsers.add_parser('list', ...)
+            ...
+            list_parser.set_defaults(sub_command_function=cls._execute_list)
+
+        :param parser:
+        :param subparsers:
+        :return:
+        """
+        pass
+
+    def execute(self, command_args):
+        try:
+            sub_command_function = command_args.sub_command_function
+        except AttributeError:
+            try:
+                parser = command_args.parser
+            except AttributeError:
+                raise RuntimeError('neither command_args.sub_command_function nor command_args.parser defined')
+            parser.print_help()
+            return Command.STATUS_OK
+        return sub_command_function(command_args)
 
 
 class RunCommand(Command):
@@ -381,7 +418,7 @@ class RunCommand(Command):
         return self.STATUS_OK
 
 
-class OperationCommand(Command):
+class OperationCommand(SubCommandCommand):
     """
     The ``op`` command implements various operations w.r.t. *operations*.
     """
@@ -394,14 +431,8 @@ class OperationCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        op_parser = parser.add_subparsers(dest='op_command',
-                                          metavar='COMMAND',
-                                          help='One of the following commands. '
-                                               'Type "COMMAND -h" to get command-specific help.')
-        parser.set_defaults(op_parser=parser)
-
-        list_parser = op_parser.add_parser('list', help='List operations.')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List operations.')
         list_parser.add_argument('--name', '-n', metavar='NAME',
                                  help="A wildcard pattern to filter operation names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
@@ -410,15 +441,15 @@ class OperationCommand(Command):
                                  help="A wildcard pattern to filter operation tags. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(op_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        info_parser = op_parser.add_parser('info', help='Show usage information about an operation.')
+        info_parser = subparsers.add_parser('info', help='Show usage information about an operation.')
         info_parser.add_argument('op_name', metavar='OP',
                                  help="Fully qualified operation name.")
-        info_parser.set_defaults(op_command=cls.execute_info)
+        info_parser.set_defaults(sub_command_function=cls._execute_info)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.op import OP_REGISTRY
         op_registrations = OP_REGISTRY.op_registrations
 
@@ -443,7 +474,7 @@ class OperationCommand(Command):
         list_items('operation', 'operations', op_names, name_pattern)
 
     @classmethod
-    def execute_info(cls, command_args):
+    def _execute_info(cls, command_args):
         if not command_args.op_name:
             return 2, "error: command 'op info': missing OP argument"
         from ect.core.op import OP_REGISTRY
@@ -456,15 +487,8 @@ class OperationCommand(Command):
         else:
             return 2, "error: command 'op info': unknown operation '%s'" % command_args.op_name
 
-    def execute(self, command_args):
-        if hasattr(command_args, 'op_command') and command_args.op_command:
-            return command_args.op_command(command_args)
-        else:
-            command_args.op_parser.print_help()
-            return 0, None
 
-
-class DataSourceCommand(Command):
+class DataSourceCommand(SubCommandCommand):
     """
     The ``ds`` command implements various operations w.r.t. data sources.
     """
@@ -477,15 +501,8 @@ class DataSourceCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        ds_parser = parser.add_subparsers(
-            dest='ds_command',
-            metavar='COMMAND',
-            help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
-        )
-        parser.set_defaults(ds_parser=parser)
-
-        list_parser = ds_parser.add_parser('list', help='List all available data sources')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List all available data sources')
         list_parser.add_argument('--id', '-i', metavar='ID_PATTERN',
                                  help="A wildcard pattern to filter data source IDs. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
@@ -494,24 +511,24 @@ class DataSourceCommand(Command):
                                  help="A wildcard pattern to filter variable names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(ds_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        sync_parser = ds_parser.add_parser('sync',
-                                           help='Synchronise a remote data source with its local version.')
+        sync_parser = subparsers.add_parser('sync',
+                                            help='Synchronise a remote data source with its local version.')
         sync_parser.add_argument('ds_id', metavar='DS_ID',
                                  help='Data source ID. Type "ect ds list" to show all possible IDs.')
         sync_parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
                                  help='Limit to date/time period. Format of PERIOD is DATE[,DATE] '
                                       'where DATE is YYYY[-MM[-DD]]')
-        sync_parser.set_defaults(ds_command=cls.execute_sync)
+        sync_parser.set_defaults(sub_command_function=cls._execute_sync)
 
-        info_parser = ds_parser.add_parser('info', help='Display information about a data source.')
+        info_parser = subparsers.add_parser('info', help='Display information about a data source.')
         info_parser.add_argument('ds_id', metavar='DS_ID',
                                  help='Data source ID. Type "ect ds list" to show all possible IDs.')
-        info_parser.set_defaults(ds_command=cls.execute_info)
+        info_parser.set_defaults(sub_command_function=cls._execute_info)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -528,7 +545,7 @@ class DataSourceCommand(Command):
                    [data_source.name for data_source in data_store.query()], id_pattern)
 
     @classmethod
-    def execute_info(cls, command_args):
+    def _execute_info(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -542,7 +559,7 @@ class DataSourceCommand(Command):
                 print(data_source.info_string)
 
     @classmethod
-    def execute_sync(cls, command_args):
+    def _execute_sync(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -557,13 +574,6 @@ class DataSourceCommand(Command):
         else:
             time_range = (None, None)
         data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
-
-    def execute(self, command_args):
-        if hasattr(command_args, 'ds_command') and command_args.ds_command:
-            return command_args.ds_command(command_args)
-        else:
-            command_args.ds_parser.print_help()
-            return 0, None
 
     @staticmethod
     def parse_time_period(period):
@@ -607,7 +617,7 @@ class DataSourceCommand(Command):
         return date1, date2
 
 
-class PluginCommand(Command):
+class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
     """
@@ -620,34 +630,22 @@ class PluginCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        pi_parser = parser.add_subparsers(dest='pi_command',
-                                          metavar='COMMAND',
-                                          help='One of the following commands. '
-                                               'Type "COMMAND -h" to get command-specific help.')
-        parser.set_defaults(op_parser=parser)
-
-        list_parser = pi_parser.add_parser('list', help='List plugins')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List plugins')
         list_parser.add_argument('--name', '-n', metavar='NAME_PATTERN',
                                  help="A wildcard pattern to filter plugin names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(op_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
         list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), name_pattern)
 
-    def execute(self, command_args):
-        if hasattr(command_args, 'op_command') and command_args.op_command:
-            return command_args.op_command(command_args)
-        else:
-            command_args.op_parser.print_help()
-            return 0, None
 
 def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
     if pattern:
