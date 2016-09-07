@@ -1,7 +1,7 @@
 from unittest import TestCase
 import xarray as xr
 
-from ect.ops.filter import filter
+from ect.ops.filter import filter_dataset
 
 
 class TestFilter(TestCase):
@@ -9,22 +9,22 @@ class TestFilter(TestCase):
         dataset = xr.Dataset({'abc': ('x', [1, 2, 3]),
                                'bde': ('x', [4, 5, 6])})
 
-        actual = filter(dataset)
+        actual = filter_dataset(dataset)
         self.assertDatasetEqual(dataset, actual)
 
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         expected = expected.drop('abc')
-        actual = filter(dataset, variable_names=['xyz'])
+        actual = filter_dataset(dataset, variable_names=['xyz'])
         self.assertDatasetEqual(expected, actual)
 
-        actual = filter(dataset, variable_names=['abc'])
+        actual = filter_dataset(dataset, variable_names=['abc'])
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         self.assertDatasetEqual(expected, actual)
 
-        actual = filter(dataset, variable_names=['.*b.*'], regex=True)
+        actual = filter_dataset(dataset, variable_names=['.*b.*'], regex=True)
         self.assertDatasetEqual(dataset, actual)
 
-        actual = filter(dataset, variable_names=['.*c.*'], regex=True)
+        actual = filter_dataset(dataset, variable_names=['.*c.*'], regex=True)
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         self.assertDatasetEqual(expected, actual)
 
