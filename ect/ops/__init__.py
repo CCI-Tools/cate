@@ -32,7 +32,7 @@ from .coregistration import coregister
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .correlation import pearson_correlation
 from .plot import plot_map
-from .io import load_dataset, save_dataset
+from .io import load_dataset, store_dataset
 
 __all__ = [
     'timeseries',
@@ -49,7 +49,7 @@ __all__ = [
     'person_correlation',
     'plot_map'
     'load_dataset',
-    'save_dataset'
+    'store_dataset'
 ]
 
 

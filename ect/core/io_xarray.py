@@ -34,17 +34,9 @@ def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
     # TODO (forman, 20160601): align with chunking from netcdf metadata attribute
 
     datasets = []
-    probed_engine = None
+    engine = 'netcdf4'
     for p in paths:
-        if not probed_engine:
-            try:
-                from xarray.backends import H5NetCDFStore
-                H5NetCDFStore(p)
-                probed_engine = 'h5netcdf'
-            except OSError:
-                probed_engine = 'netcdf4'
-        da = xr.open_dataset(p, engine=probed_engine, chunks=chunks or {}, lock=lock, **kwargs)
-        datasets.append(da)
+        datasets.append(xr.open_dataset(p, engine=engine, decode_cf=False, chunks=chunks or {}, lock=lock, **kwargs))
 
     preprocessed_datasets = []
     file_objs = []
@@ -84,7 +76,8 @@ def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
         if '_FillValue' in attrs and 'missing_value' in attrs:
             # xarray as of version 0.7.2 does not handle it correctly,
             # if both values are set to NaN. (because the values are compared using '==')
-            # TODO (mzuehlke, 20160601): report github issue and PR to xarray
+            # reproducible with  engine='netcdf4'
+            # https://github.com/pydata/xarray/issues/997
             del attrs['missing_value']
     return dataset
 

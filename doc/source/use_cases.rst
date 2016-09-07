@@ -73,11 +73,10 @@ IPCC Support
 
 :Required Toolbox Features Step 1:
 
-    * Access to and ingestion of multi ESA CCI ECVs (Sea Ice, Ocean Colour, SST and Sea Level)
-    * Access to and ingestion of other ECV sources (ESA GlobSnow, historic non-ESA data)
+    * Access to and ingestion of multi ESA CCI ECVs (Sea Ice, SST and Sea Level)
+    * Access to and ingestion of other ECV sources (ESA GlobSnow)
     * Tools to perform QC on input data (at least visual checking, consistency with historic time series)
     * Resampling and aggregation to a common spatio-temporal grid including propagation of uncertainties
-    * Extraction of snow cover from LC
     * Comparison of sea ice coverage from Sea Ice, OC and SST (this may require own processors)
     * User programmed model to derive upper ocean heat content from SST
     * Aggregation to global averages including uncertainty propagation
@@ -85,7 +84,8 @@ IPCC Support
 
 :Additionally Required Toolbox Features Step 2:
 
-    * Access to and ingestion of further ESA data (LST from GlobTemperature) and model output
+    * Access to and ingestion of further ESA data (LST from GlobTemperature) and model output 
+      (sea ice, upper ocean heat content, LST, NST)
     * Band math or user programmed tool to combine SST and land surface temperature
     * Spatial filtering to perform the analysis on a regional scale (e.g. using shape files)
     * Ensemble statistics to show model ensemble mean and uncertainties in comparison to results based
@@ -106,7 +106,8 @@ School Seminar Climate and Weather
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI Cloud and Soil Moisture data
-    * Access to and ingestion of user supplied data; if required programming of an interface to a measurement device
+    * Access to and ingestion of user supplied data (NST, PRE, wind speed); 
+      if required programming of an interface to a measurement device
     * Extraction of cloud and soil moisture time series data corresponding to the location of the school
     * Calculating the climatological means from the time series including propagation of uncertainties
     * Filtering of the measurement data from the meteorological station: e.g. detection of outlier or gap filling
@@ -133,10 +134,8 @@ Glaciers and Sea Level Rise
     rise over a given time period in the future?”.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI Glacier, Ice Sheet and Sea Level data
+    * Access to and ingestion of ESA CCI Glacier and Sea Level data
     * Access to and ingestion of all relevant in-situ measurements from the past  (via WGMS)
-    * Access to and ingestion of a globally complete dataset of glacier outlines complete with a
-      time-stamp (vector data)
     * Access to and ingestion of topographic information for each glacier from a DEM
     * Spatial and temporal aggregation, re-gridding and possibly gap filling in order to make the data fields
       compatible with the model grid for model calibration and validation
@@ -224,14 +223,14 @@ Teleconnection Explorer
 
 In case of choosing the MEI instead of a solely SST-based index:
 
-    * Access to and ingestion of additional datasets for MEI (sea-level pressure (P), zonal (U) and meridional (V)
+    * Access to and ingestion of additional data for MEI (sea-level pressure (P), zonal (U) and meridional (V)
       components of the surface wind, sea surface temperature (S), surface air temperature (A), and total cloudiness
       fraction of the sky (C))
     * Geometric adjustments
     * Index calculation including EOF analysis (incorporated by built-in function, user-supplied plug-in or CLI, API)
 
 :Additional Features:
-    * Access to and ingestion of additional ESA CCI data sets
+    * Access to and ingestion of additional ESA CCI data (fire, clouds, ocean colour, sea ice)
     * Geometric adjustments
     * Spatial and temporal filtering
     * Calculation of statistic quantities and correlations
@@ -248,16 +247,15 @@ Regional Cryosphere Climate Service
 
 :Problem Definition: The Federal Office of Environment (FOEN) in Switzerland wants to provide an internet-based
     platform to disseminate latest information on the cryosphere and its changes in Switzerland. Such information could
-    be, for example, the number of days with snow or other parameters like the glacier extent, mean cloud coverage in
-    a specific region or start of the melting season. Before the technical work with the toolbox can be performed a
+    be, for example, the number of days with snow or other parameters like the glacier extent or start of the melting season. Before the technical work with the toolbox can be performed a
     user survey would be required to obtain detailed requirements for such a climate service.
 
 :Required Toolbox Features:
-    * Access to and ingestion of RGI Glacier and WGMS fluctuation data sets
+    * Access to and ingestion of RGI Glacier and WGMS fluctuation data
     * Access to and ingestion of meteorological and snow cover data (from MeteoSchweiz and Institute for Snow and
       Avalanche Research (SLF))
     * Geometric adjustments and spatial intersection
-    * Access to and ingestion of ESA CCI Glacier (+ Land Cover, Clouds) data sets
+    * Access to and ingestion of ESA CCI Glacier data
     * Access to and ingestion of latest meteorological data
     * Geometric adjustments
     * Extraction of area and time period
@@ -282,7 +280,7 @@ World Glacier Monitoring Service
     database of glacier volume changes derived from remote sensing data (e.g. DEM differencing and altimetry sensors)
 
 :Required Toolbox Features:
-    * Access to and ingestion of RGI Glacier and WGMS fluctuation data sets
+    * Access to and ingestion of RGI Glacier and WGMS fluctuation data
     * Access to and ingestion of ESA CCI Glacier data
     * Access to and ingestion of altimetry data and glacier meta data
     * Geometric adjustments
@@ -328,7 +326,7 @@ Scientific Investigation of NAO Signature
     in multiple ECVs using a processor built by another climate scientist and contributed to the toolbox.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI ECV data products
+    * Access to and ingestion of ESA CCI ECV data (e.g. clouds, sea ice, sea level, SST, soil moisture)
     * Access to and ingestion of external data (NAO time series)
     * Geometric adjustments
     * Spatial and temporal subsetting
@@ -349,8 +347,8 @@ School Project on Arctic Climate Change
     different ECVs on a polar stereographic projection.
 
 :Required Toolbox Features:
-    * Access to and ingestion of CCI ECV data products
-    * Access to and ingestion of ECV data products from external server
+    * Access to and ingestion of CCI ECV data (e.g. sea ice, ice sheets, sea level, SST, clouds aerosol)
+    * Access to and ingestion of ECV data from external server
     * Remapping to fit data onto user-chosen projection
     * Spatial and temporal subsetting
     * Gap-filling (user-chosen strategy)
@@ -374,8 +372,8 @@ Marine Environmental Monitoring
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI SST and Ocean Colour data
-    * Access to and ingestion of data concerning water constituents, plant growth, brightness, competitor relationships,
-      coral vulnerability to heat stress
+    * Access to and ingestion of data regarding brightness-plant growth relationships, competitor 
+      relationships (plant growth-coral vitality), and heat stress-coral vitality relationships.
     * Geometric adjustments
     * Temporal and spatial subsetting
     * Implementation of a water optical property model (plug-in, CLI, API)
@@ -400,8 +398,8 @@ Drought Occurrence Monitoring in Eastern Africa
     data.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI SST, Clouds, Land Cover data
-    * Access to and ingestion of non-CCI observational (e.g. NST, PRE, OLR, SLP)  and latest meteorological data
+    * Access to and ingestion of ESA CCI SST, Clouds, Soil Moisture, and Fire data
+    * Access to and ingestion of non-CCI observational (e.g. NST, PRE, OLR, SLP, NDVI)  and latest meteorological data
     * Geometric adjustments
     * Spatial and temporal subsetting (for each variable)
     * NDVI and climate index calculation (ENSO, MJO, QBO indices), includes descriptive statistics
@@ -426,8 +424,8 @@ Drought Impact Monitoring and Assessment in China
     which is afterwards run by actual meteorological data.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI Soil Moisture, Fire, Land Cover data
-    * Access to and ingestion of non-CCI NST and PRE observation and latest meteorological data
+    * Access to and ingestion of ESA CCI Soil Moisture and Fire data
+    * Access to and ingestion of non-CCI NST, PRE, and NDVI observation and latest meteorological data
     * Geometric adjustments
     * Spatial and temporal subsetting (for each variable)
     * (Descriptive statistic analysis)
@@ -449,9 +447,8 @@ Renewable Energy Resource Assessment with regard to Topography
     effect of cloud features, aerosols, ozone and water vapour on solar irradiance as well as topographical data.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI Ozone, Clouds, Aerosols, Land Cover and Glaciers (albedo, snow/ice coverage)
-    * Access to and ingestion of non-CCI data (water vapour, pressure, precipitation, surface radiation budget),
-      irradiance observations
+    * Access to and ingestion of ESA CCI Ozone, Clouds, and Aerosols data
+    * Access to and ingestion of non-CCI data (water vapour, irradiance)
     * External topographical data: preprocessed data regarding roof area, tilt, orientation from DEM
     * Geometric adjustments
     * Spatial and temporal subsetting
@@ -472,13 +469,11 @@ Monitoring Tropical Deforestation
     * International bodies
 
 :Problem Definition: Maps of forest cover, change and deforestation shall be produced depicting forest status and
-    trends. Additionally, vector data regarding infrastructure (e.g. road works) could be obtained from local
-    authorities and compared with forest evolution.
+    trends for 5-year periods centred around 2000, 2005, and 2010. Additionally, vector data regarding infrastructure
+    (e.g. road works) could be obtained from local authorities and compared with forest evolution.
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI Land Cover data
-    * Access to and ingestion of additional data regarding biomass production, carbon emission, leaf areas,
-      forest health
     * Additional: access  to and ingestion of vector data regarding infrastructure
     * Spatial and temporal adjustments and subsetting
     * Extraction of forest class
@@ -500,14 +495,13 @@ Stratospheric Ozone Monitoring and Assessment
     be monitored as well as its influence parameters.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI Ozone, GHG(, Aerosol) data
-    * Access to and ingestion of surface-based measurements of ozone-depleting substances and other emissions,
-        data regarding ozone-UV exposure relationships
+    * Access to and ingestion of ESA CCI Ozone data
+    * Access to and ingestion of surface-based measurements of ozone-depleting substances, data regarding UV exposure
     * Geometric adjustments
     * Spatial (horizontal and vertical) and temporal subsetting
     * Assessment of total ozone values as well as vertical profiles
-    * Estimation of UV exposure by the use of ozone-UV exposure relationship data
-    * Correlation analysis between ozone values and concentrations of various GHGs and ozone-depleting substances
+    * Estimation of ozone-UV exposure relationship data
+    * Correlation analysis between ozone values and concentrations of ozone-depleting substances
     * Trend analysis of stratospheric ozone concentrations
     * Visualisation (maps, graphs) and export of the results
 
@@ -526,8 +520,7 @@ Examination of ENSO and its Impacts based on ESA CCI Data
     tropical Pacific).
 
 :Required Toolbox Features:
-    * Access to and ingestion of ESA CCI Cloud, Sea Level and SST data
-    * Selection of required products/variables
+    * Access to and ingestion of ESA CCI Cloud, Fire, Ocean Colour, Soil Moisture, Sea Level, and SST data
     * Temporal/spatial selections or aggregations in case of differing temporal or spatial data set resolutions
     * Temporal and spatial filtering regarding time period and particular areas of interest, spatial mean values
       for ocean colour, fire, soil moisture (particular regional boundaries need to be assessed)
@@ -576,7 +569,7 @@ Examination of North Eastern Atlantic SST Projections
 
 :Required Toolbox Features:
     * Access to and ingestion of ESA CCI SST data
-    * Access to and ingestion of CMIP5 model data
+    * Access to and ingestion of CMIP5 model SST data
     * Filtering regarding variable
     * Geometric adjustments
     * Spatial and temporal subsetting
@@ -604,7 +597,7 @@ Investigation of Relationships between Ice Sheet ECV Parameters
     sea ice, SST around Greenland, glacier melt respectively cloud cover and SEC/IV.
 
 :Required Toolbox Features:
-    * Access to and ingestion of ECV parameter data (SEC, IV, GMB)
+    * Access to and ingestion of CCI Ie Sheets ECV data (SEC, IV, GMB)
     * Re-gridding of all data to the SEC grid
     * Display the data as different layers
     * Calculation of the IV vector magnitude (per pixel) and display as a new layer
@@ -615,15 +608,36 @@ Investigation of Relationships between Ice Sheet ECV Parameters
     * Filtering of the SEC values and the GMB values; discarding of the ones outside the GMB basin polygon
     * Calculation of the average of the GMB and SEC values inside the basin polygon for each point in the time series
     * Plotting of the averaged values in a time series plot, comparison with the provided GMB total basin values
-    * Access to and ingestion of the CFL time series; each element in the time series is a set of (lon/lat) line
+    * Access to and ingestion of the CCI Ice Sheets CFL time series; each element in the time series is a set of (lon/lat) line
       segments
     * Plotting of the CFL line segments on top of the IV magnitude for different years
 
 :Optional:
-    * Access to and ingestion of ECV parameter data (sea ice, SST, glacier melt, cloud cover)
+    * Access to and ingestion of CCI ECV data (sea ice, SST, glaciers, clouds)
     * Re-gridding of all data to the SEC grid
     * Temporal and spatial subsetting
     * Calculation of correlation coefficients
     * Visualisation and export
+
+.. _uc_22:
+
+Anaylsis of Equatorial Aerosol and Cloud Features using Hovmöller Diagrams
+==========================================================================
+
+
+:User Types:
+    * Earth system science community
+
+:Problem Definition: A scientist wants to analyze the relation of aerosols and clouds in the equatorial region 
+    (5° S–5° N) by means of Hovmöller diagrams displaying the equatorial mean value as portion of the mean value
+    over all latitudes for cloud fraction and aerosol optical depth (y-axis e.g. months since 1980, x-axis 
+    longitudes e.g. 100° W–80° E).
+
+:Required Toolbox Features:
+    * Access to and ingestion of ESA CCI Aerosol and Cloud data 
+    * Geometric adjustments
+    * Temporal subsetting
+    * Calculation of requested anomaly values and side-by-side display of Hovmöller diagrams
+
 
 

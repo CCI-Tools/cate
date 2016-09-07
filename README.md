@@ -35,8 +35,7 @@ ECT can be run from sources directly, once the following module requirements are
 * ``scipy``
 * ``matplotlib``
 * ``numba``
-* ``h5py``
-* ``h5netcdf``
+* ``netcdf4``
 
 The most up-to-date list of module requirements is found in the project's ``setup.py`` file. Do not install now, please read further first.
 
@@ -55,9 +54,6 @@ Then you activate the new environment ``ect``:
     $ source activate ect
     
 Windows users can omit the ``source`` command and just type ``activate ect``.
-Unfortunately, the ``h5netcdf`` dependency is not on the Anaconda default channel and needs to be installed separately:   
-    
-    $ conda install -c IOOS h5netcdf 
 
 You can now safely install ECT into the new, isolated ``ect`` conda environment.    
     

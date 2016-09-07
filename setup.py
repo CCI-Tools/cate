@@ -1,4 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+
+packages = find_packages(exclude=["test", "test.*"])
 
 # Same effect as "from ect import __version__", but avoids importing ect:
 with open('ect/version.py') as f:
@@ -10,7 +12,8 @@ setup(
     description='ESA CCI Toolbox Python Core',
     license='GPL 3',
     author='ESA CCI Toolbox Development Team',
-    packages=['ect'],
+    packages=packages,
+    data_files=[('ect/ds', ['ect/ds/esa_cci_ftp.json'])],
     entry_points={
         'console_scripts': [
             'ect = ect.ui.cli:main',
@@ -20,9 +23,8 @@ setup(
             'ect_ds = ect.ds:ect_init',
         ],
     },
-    install_requires=['xarray >= 0.7',
-                      'h5py >= 2.5',
-                      'h5netcdf >= 0.2',
+    install_requires=['xarray >= 0.8',
+                      'netcdf4 >= 1.2.4',
                       'dask >= 0.8',
                       'numba >= 0.26',
                       'numpy >= 1.7',
