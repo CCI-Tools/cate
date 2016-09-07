@@ -2,20 +2,21 @@
 Tests for plotting operations
 """
 
-from unittest import TestCase
-import xarray as xr
-import numpy as np
 import os
+from unittest import TestCase
 
+import numpy as np
+import xarray as xr
 from ect.ops import plot
+
 
 class TestPlot(TestCase):
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
         dataset = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.random.rand(180,360,6)),
-            'second': (['lat', 'lon', 'time'], np.random.rand(180,360,6)),
+            'first': (['lat', 'lon', 'time'], np.random.rand(180, 360, 6)),
+            'second': (['lat', 'lon', 'time'], np.random.rand(180, 360, 6)),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
 
@@ -35,5 +36,5 @@ class TestPlot(TestCase):
 
         # Test value error is raised when passing an unexpected dataset type
         with self.assertRaises(NotImplementedError):
-            plot.plot_map([1,2,4], extents=[1,2,3,4], path='remove_me.jpeg')
+            plot.plot_map([1, 2, 4], extents=[1, 2, 3, 4], path='remove_me.jpeg')
         self.assertFalse(os.path.isfile('remove_me.jpg'))
