@@ -316,6 +316,82 @@ class OpMetaInfo:
                         del input_dict[arg_name]['position']
         return input_dict, has_monitor
 
+    def set_default_input_values(self, input_values: Dict):
+        """
+        If any missing input value in *input_values*, set value of "default_value" property, if it exists.
+
+        :param input_values: The dictionary of input values that will be modified.
+        """
+        for name, properties in self.input.items():
+            if name not in input_values and 'default_value' in properties:
+                input_values[name] = properties['default_value']
+
+    def validate_input_values(self, input_values: Dict):
+        """
+        Validate given *input_values* against the operation's input properties.
+
+        :param input_values: The dictionary of input values.
+        :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
+        """
+        inputs = self.input
+        # Ensure required input values have values (even None is a value).
+        for name, properties in inputs.items():
+            required = 'position' in properties
+            if required and (name not in input_values):
+                raise ValueError("input '%s' for operation '%s' required" %
+                                 (name, self.qualified_name))
+        # Ensure all input values are valid w.r.t. input properties
+        for name, value in input_values.items():
+            if name not in inputs:
+                raise ValueError("'%s' is not an input of operation '%s'" % (name, self.qualified_name))
+            input_properties = inputs[name]
+            if value is None:
+                default_is_none = input_properties.get('default_value', 1) is None
+                value_set = input_properties.get('value_set', None)
+                value_set_has_none = value_set and (None in value_set)
+                nullable = input_properties.get('nullable', False)
+                if not (default_is_none or value_set_has_none or nullable):
+                    raise ValueError(
+                        "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
+                continue
+            data_type = input_properties.get('data_type', None)
+            # TODO (forman, 20160907): perform more elaborated input type checking here
+            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+            if data_type and not (isinstance(value, data_type) or is_float_type):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be of type %s, but got %s" % (
+                        name, self.qualified_name, data_type, type(value)))
+            value_set = input_properties.get('value_set', None)
+            if value_set and (value not in value_set):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be one of %s" % (
+                        name, self.qualified_name, value_set))
+            value_range = input_properties.get('value_range', None)
+            if value_range and (value is None or not (value_range[0] <= value <= value_range[1])):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be in range %s" % (
+                        name, self.qualified_name, value_range))
+
+    def validate_output_values(self, output_values: Dict):
+        """
+        Validate given *output_values* against the operation's output properties.
+
+        :param output_values: The dictionary of output values.
+        :raise ValueError: If *output_values* are invalid w.r.t. to the operation's output properties.
+        """
+        outputs = self.output
+        for name, value in output_values.items():
+            if name not in outputs:
+                raise ValueError("'%s' is not an output of operation '%s'" % (name, self.qualified_name))
+            output_properties = outputs[name]
+            if value is not None:
+                data_type = output_properties.get('data_type', None)
+                # TODO (forman, 20160907): perform more elaborated output type checking here
+                if data_type and not isinstance(value, data_type):
+                    raise ValueError(
+                        "output '%s' for operation '%s' must be of type %s" % (
+                            name, self.qualified_name, data_type))
+
 
 class OpRegistration:
     """
@@ -356,15 +432,10 @@ class OpRegistration:
         """
 
         # set default_value where input values are missing
-        for name, properties in self.op_meta_info.input.items():
-            if name not in input_values and 'default_value' in properties:
-                input_values[name] = properties['default_value']
-            if name not in input_values and 'position' in properties:
-                raise ValueError("input '%s' for operation '%s' required" %
-                                 (name, self.op_meta_info.qualified_name))
+        self.op_meta_info.set_default_input_values(input_values)
 
         # validate the input_values using this operation's meta-info
-        self.validate_input_values(input_values)
+        self.op_meta_info.validate_input_values(input_values)
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument
@@ -387,7 +458,7 @@ class OpRegistration:
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
-            self.validate_output_values(return_value)
+            self.op_meta_info.validate_output_values(return_value)
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
@@ -395,53 +466,8 @@ class OpRegistration:
                 properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
                 return_value = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
-            self.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+            self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
         return return_value
-
-    def validate_input_values(self, input_values: Dict):
-        inputs = self.op_meta_info.input
-        for name, value in input_values.items():
-            if name not in inputs:
-                raise ValueError("'%s' is not an input of operation '%s'" % (name, self.op_meta_info.qualified_name))
-            input_properties = inputs[name]
-            if value is None:
-                default_is_none = input_properties.get('default_value', 1) is None
-                value_set = input_properties.get('value_set', None)
-                value_set_has_none = value_set and (None in value_set)
-                nullable = input_properties.get('nullable', False)
-                if not (default_is_none or value_set_has_none or nullable):
-                    raise ValueError(
-                        "input '%s' for operation '%s' is not nullable" % (name, self.op_meta_info.qualified_name))
-                continue
-            data_type = input_properties.get('data_type', None)
-            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-            if data_type and not (isinstance(value, data_type) or is_float_type):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be of type %s, but got %s" % (
-                        name, self.op_meta_info.qualified_name, data_type, type(value)))
-            value_set = input_properties.get('value_set', None)
-            if value_set and (value not in value_set):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be one of %s" % (
-                        name, self.op_meta_info.qualified_name, value_set))
-            value_range = input_properties.get('value_range', None)
-            if value_range and (value is None or not (value_range[0] <= value <= value_range[1])):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be in range %s" % (
-                        name, self.op_meta_info.qualified_name, value_range))
-
-    def validate_output_values(self, output_values: Dict):
-        outputs = self.op_meta_info.output
-        for name, value in output_values.items():
-            if name not in outputs:
-                raise ValueError("'%s' is not an output of operation '%s'" % (name, self.op_meta_info.qualified_name))
-            output_properties = outputs[name]
-            if value is not None:
-                data_type = output_properties.get('data_type', None)
-                if data_type and not isinstance(value, data_type):
-                    raise ValueError(
-                        "output '%s' for operation '%s' must be of type %s" % (
-                            name, self.op_meta_info.qualified_name, data_type))
 
 
 class OpRegistry:
