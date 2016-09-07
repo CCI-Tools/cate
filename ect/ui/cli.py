@@ -88,6 +88,8 @@ from ect.version import __version__
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
 
+_WORKSPACE_MAGIC_DIR_NAME = '.ect-workspace'
+
 _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
 _LICENSE = """
@@ -418,6 +420,53 @@ class RunCommand(Command):
         return self.STATUS_OK
 
 
+class WorkspaceCommand(SubCommandCommand):
+    """
+    The ``ws`` command implements various operations w.r.t. *workspaces*.
+    """
+
+    CMD_NAME = 'ws'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Manage workspaces.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        init_parser = subparsers.add_parser('init', help='Initialise workspace in current directory.')
+        init_parser.set_defaults(sub_command_function=cls._execute_init)
+
+    @classmethod
+    def _execute_init(cls, command_args):
+        import os
+
+        if os.path.isdir(_WORKSPACE_MAGIC_DIR_NAME):
+            return 1, "error: command '%s': current directory is already a workspace" % cls.CMD_NAME
+
+        try:
+            os.mkdir(_WORKSPACE_MAGIC_DIR_NAME)
+        except (FileExistsError, NotImplementedError, IOError, OSError) as e:
+            return 1, "error: command '%s': failed to initialise workspace: %s" % (cls.CMD_NAME, str(e))
+
+        from ect.core.workflow import Workflow
+        from ect.core.op import OpMetaInfo
+        workflow = Workflow(OpMetaInfo('workspace_workflow',
+                                       has_monitor=True,
+                                       header_dict=dict(description='A workflow used to record operations '
+                                                                    'performed in an ECT workspace. '
+                                                                    'By design, workspace '
+                                                                    'workflows have no inputs '
+                                                                    'and every step is an output.')))
+        try:
+            workflow.store(os.path.join(_WORKSPACE_MAGIC_DIR_NAME, 'workflow.json'))
+            print("Workspace initialised")
+        except (IOError, OSError) as e:
+            return 1, "error: command '%s': failed to initialise workspace: %s" % (cls.CMD_NAME, str(e))
+
+        return cls.STATUS_OK
+
+
 class OperationCommand(SubCommandCommand):
     """
     The ``op`` command implements various operations w.r.t. *operations*.
@@ -699,6 +748,7 @@ class DocsCommand(Command):
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
     RunCommand,
+    WorkspaceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,

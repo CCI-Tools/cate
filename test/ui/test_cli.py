@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import unittest
 from time import sleep
@@ -51,6 +52,34 @@ class CliTest(unittest.TestCase):
         self.assertEqual(cli._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
         self.assertEqual(cli._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
+
+
+class CliWorkspaceCommandTest(unittest.TestCase):
+    def test_command_ws_init(self):
+        _WORKSPACE_MAGIC_DIR_NAME = '.ect-workspace'
+
+        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
+            shutil.rmtree(_WORKSPACE_MAGIC_DIR_NAME, ignore_errors=True)
+        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
+            self.fail("Can't remove dir %s" % _WORKSPACE_MAGIC_DIR_NAME)
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['ws', 'init'])
+            self.assertEqual(status, 0)
+        self.assertIn('Workspace initialised', stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), '')
+
+        self.assertTrue(os.path.isdir(_WORKSPACE_MAGIC_DIR_NAME))
+        self.assertTrue(os.path.isfile(_WORKSPACE_MAGIC_DIR_NAME + '/workflow.json'))
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['ws', 'init'])
+            self.assertEqual(status, 1)
+        self.assertIn('current directory is already a workspace', stderr.getvalue())
+        self.assertEqual(stdout.getvalue(), '')
+
+        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
+            shutil.rmtree(_WORKSPACE_MAGIC_DIR_NAME, ignore_errors=True)
 
 
 class CliOperationCommandTest(unittest.TestCase):
