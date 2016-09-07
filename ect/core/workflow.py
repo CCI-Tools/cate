@@ -326,13 +326,26 @@ class Workflow(Node):
         """
         import json
         if isinstance(file_path_or_fp, str):
-            file_path = file_path_or_fp
-            with open(file_path) as fp:
+            with open(file_path_or_fp) as fp:
                 json_dict = json.load(fp)
         else:
-            fp = file_path_or_fp
-            json_dict = json.load(fp)
+            json_dict = json.load(file_path_or_fp)
         return Workflow.from_json_dict(json_dict, registry=registry)
+
+    def store(self, file_path_or_fp: Union[str, IOBase]):
+        """
+        Store a workflow to a file or file pointer. The format is "Workflow JSON".
+
+        :param file_path_or_fp: file path or file pointer
+        """
+        import json
+
+        json_dict = self.to_json_dict()
+        if isinstance(file_path_or_fp, str):
+            with open(file_path_or_fp, 'w') as fp:
+                json.dump(json_dict, fp)
+        else:
+            json.dump(json_dict, file_path_or_fp)
 
     @classmethod
     def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY):
@@ -392,7 +405,7 @@ class Workflow(Node):
         input_json_dict = OrderedDict()
         for node_input in self._input[:]:
             node_input_json_dict = node_input.to_json_dict()
-            if node_input.name in self.op_meta_info.output:
+            if node_input.name in self.op_meta_info.input:
                 node_input_json_dict.update(self.op_meta_info.input[node_input.name])
             input_json_dict[node_input.name] = node_input_json_dict
 
@@ -410,11 +423,13 @@ class Workflow(Node):
             steps_json_list.append(step.to_json_dict())
 
         # convert 'data_type' Python types entries to JSON-strings
+        header_json_dict = self.op_meta_info.header
         input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         workflow_json_dict = OrderedDict()
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
+        workflow_json_dict['header'] = header_json_dict
         workflow_json_dict['input'] = input_json_dict
         workflow_json_dict['output'] = output_json_dict
         workflow_json_dict['steps'] = steps_json_list
