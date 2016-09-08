@@ -17,6 +17,7 @@ setup(
     entry_points={
         'console_scripts': [
             'ect = ect.ui.cli:main',
+            'ect-webapi = ect.ui.webapi:main',
         ],
         'ect_plugins': [
             'ect_ops = ect.ops:ect_init',
@@ -24,7 +25,8 @@ setup(
         ],
     },
     install_requires=['xarray >= 0.8',
-                      'netcdf4 >= 1.2.4',
+                      # 'netcdf4 >= 1.2.4',
+                      'netcdf4 >= 1.2',
                       'dask >= 0.8',
                       'numba >= 0.26',
                       'numpy >= 1.7',
