@@ -31,7 +31,9 @@ If a file path is given, the plot is saved.
 Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
 
 """
-
+import matplotlib
+matplotlib.use('agg')
+# https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
