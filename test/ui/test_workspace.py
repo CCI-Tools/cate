@@ -1,23 +1,27 @@
+import json
 from unittest import TestCase
 
+from ect.core.op import OpMetaInfo
+from ect.core.workflow import Workflow
 from ect.ui.workspace import Workspace
-import json
 
-class WorkflowTest(TestCase):
 
+class WorkspaceTest(TestCase):
     def test_example(self):
         expected_json_text = """{
-            "qualified_name": "workspace-wf",
-            "header": {},
+            "qualified_name": "workspace_workflow",
+            "header": {
+                "description": "Test!"
+            },
             "input": {},
             "output": {
                 "p": {
-                    "source": "p.return",
-                    "data_type": "xarray.core.dataset.Dataset"
+                    "data_type": "xarray.core.dataset.Dataset",
+                    "source": "p.return"
                 },
                 "ts": {
-                    "source": "ts.return",
                     "data_type": "xarray.core.dataset.Dataset",
+                    "source": "ts.return",
                     "description": "A timeseries dataset."
                 }
             },
@@ -63,10 +67,10 @@ class WorkflowTest(TestCase):
 
         expected_json_dict = json.loads(expected_json_text)
 
-        ws = Workspace('/path')
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.add_resource('p', 'ect.ops.io.read_netcdf', file='2010_precipitation.nc')
+        ws.add_resource('p', 'ect.ops.io.read_netcdf', ["file=2010_precipitation.nc"])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.add_resource('ts', 'ect.ops.timeseries.timeseries', ds='p', lat=53, lon=10)
-        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        ws.add_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
+        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)

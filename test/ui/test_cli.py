@@ -247,7 +247,7 @@ class CliRunCommandTest(unittest.TestCase):
     def test_command_run_noargs(self):
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['run'])
-            self.assertEqual(status, 2)
+            self.assertEqual(status, 1, msg=stderr.getvalue())
         self.assertEqual(stdout.getvalue(), '')
         self.assertEqual(stderr.getvalue(), "ect: error: command 'run' requires OP argument\n")
 
@@ -298,9 +298,9 @@ class CliRunCommandTest(unittest.TestCase):
             # Run with invalid keyword
             with fetch_std_streams() as (stdout, stderr):
                 status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
-                self.assertEqual(status, 2)
+                self.assertEqual(status, 1, msg=stderr.getvalue())
             self.assertEqual(stdout.getvalue(), '')
-            self.assertEqual(stderr.getvalue(), "ect: error: command 'run': keyword 'l*t' is not a valid identifier\n")
+            self.assertEqual(stderr.getvalue(), "ect: error: command 'run': 'l*t' is not a valid input name\n")
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)

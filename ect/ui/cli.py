@@ -78,16 +78,16 @@ import os.path
 import sys
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
+from ect.core.op import parse_op_args
 from ect.ops.io import load_dataset
 from ect.version import __version__
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
-
 
 _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
@@ -110,16 +110,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """ % __version__
 
 
-def _parse_load_arg(load_arg):
+def _parse_load_arg(load_arg: str) -> Tuple[str, str, str]:
     """
     Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
 
     :param load_arg: The DS string argument
     :return: The tuple DS_NAME,DS_ID,DATE1,DATE2
     """
-    ds_name_and_ds_id = load_arg.split('=', maxsplit=2)
+    ds_name_and_ds_id = load_arg.split('=', maxsplit=1)
     ds_name, ds_id = ds_name_and_ds_id if len(ds_name_and_ds_id) == 2 else (None, load_arg)
-    ds_id_and_date_range = ds_id.rsplit(',', maxsplit=3)
+    ds_id_and_date_range = ds_id.rsplit(',', maxsplit=2)
     if len(ds_id_and_date_range) == 3:
         ds_id, date1, date2 = ds_id_and_date_range
     elif len(ds_id_and_date_range) == 2:
@@ -129,7 +129,7 @@ def _parse_load_arg(load_arg):
     return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else None, date2 if date2 else None
 
 
-def _parse_read_arg(read_arg):
+def _parse_read_arg(read_arg: str) -> Tuple[str, str]:
     """
     Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and return tuple INP_NAME,PATH,FORMAT.
 
@@ -146,9 +146,9 @@ def _parse_write_arg(write_arg):
     :param write_arg: The FILE string argument
     :return: The tuple OUT_NAME,PATH,FORMAT
     """
-    name_and_path = write_arg.split('=', maxsplit=2)
+    name_and_path = write_arg.split('=', maxsplit=1)
     name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
-    path_and_format = path.rsplit(',', maxsplit=2)
+    path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
     return name if name else None, path if path else None, format_name.upper() if format_name else None
 
@@ -288,7 +288,7 @@ class RunCommand(Command):
     def execute(self, command_args):
         op_name = command_args.op_name
         if not op_name:
-            return 2, "error: command '%s' requires OP argument" % self.CMD_NAME
+            return 1, "error: command '%s' requires OP argument" % self.CMD_NAME
         is_workflow = op_name.endswith('.json') and os.path.isfile(op_name)
 
         namespace = dict()
@@ -314,43 +314,10 @@ class RunCommand(Command):
                 from ect.core.objectio import read_object
                 namespace[inp_name], _ = read_object(inp_path, format_name=inp_format)
 
-        op_args = []
-        op_kwargs = OrderedDict()
-        for arg in command_args.op_args:
-            kwarg = arg.split('=', maxsplit=1)
-            kw = None
-            if len(kwarg) == 2:
-                kw, arg = kwarg
-                if not kw.isidentifier():
-                    return 2, "error: command '%s': keyword '%s' is not a valid identifier" % (self.CMD_NAME, kw)
-            try:
-                # try converting arg into a Python object
-                arg = eval(arg)
-            except (SyntaxError, NameError):
-                # Try converting arg to dataset (xarray.Dataset) or dataset variable (xarray.DataArray)
-                ds_name_and_var_name = arg.rsplit('.', maxsplit=2)
-                if len(ds_name_and_var_name) == 2:
-                    ds_name, var_name = ds_name_and_var_name
-                else:
-                    ds_name, var_name = ds_name_and_var_name[0], None
-                if ds_name in namespace:
-                    # arg is a dataset (xarray.Dataset)
-                    arg = namespace[ds_name]
-                if var_name:
-                    # arg is a dataset variable (xarray.DataArray)
-                    try:
-                        arg = arg[var_name]
-                    except (KeyError, TypeError):
-                        try:
-                            arg = getattr(arg, var_name)
-                        except AttributeError:
-                            return 2, "error: command '%s': invalid variable reference \"%s.%s\"" % (
-                                self.CMD_NAME, ds_name, var_name)
-                            # If arg couldn't be converted to dataset or variable, we stay with default type (str)
-            if not kw:
-                op_args.append(arg)
-            else:
-                op_kwargs[kw] = arg
+        try:
+            op_args, op_kwargs = parse_op_args(command_args.op_args, namespace)
+        except ValueError as e:
+            return 1, "error: command '%s': %s" % (RunCommand.CMD_NAME, e)
 
         if is_workflow:
             if op_args:
@@ -435,18 +402,102 @@ class WorkspaceCommand(SubCommandCommand):
     def configure_parser_and_subparsers(cls, parser, subparsers):
         init_parser = subparsers.add_parser('init', help='Initialize workspace.')
         init_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                 help="Base directory for the new workspace. Default DIR is current working directory.")
+                                 help='Base directory for the new workspace. '
+                                      'Default DIR is current working directory.')
+        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
+                                 help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
+
+        status_parser = subparsers.add_parser('status', help='Print workspace information.')
+        status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                   help='Base directory for the new workspace. '
+                                        'Default DIR is current working directory.')
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
 
     @classmethod
     def _execute_init(cls, command_args):
-        from .workspace import FileSystemWorkspaceManager, WorkspaceError
-        workspace_manager = FileSystemWorkspaceManager()
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
         try:
-            workspace_manager.init_workspace(base_dir=command_args.base_dir)
+            workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
             print('Workspace initialized.')
         except WorkspaceError as e:
             return 1, "error: command '%s': failed to initialize workspace: %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_status(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+
+        workflow = workspace.workflow
+        if len(workflow.steps) > 0:
+            print('Workspace steps:')
+            for step in workflow.steps:
+                print('  %s' % str(step))
+        else:
+            print('Empty workspace.')
+
+        return cls.STATUS_OK
+
+
+class ResourceCommand(SubCommandCommand):
+    """
+    The ``ws`` command implements various operations w.r.t. *workspaces*.
+    """
+
+    CMD_NAME = 'res'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Manage workspace resources.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        set_parser = subparsers.add_parser('set', help='Set a resource.')
+        set_parser.add_argument('res_name', metavar='NAME',
+                                help="Resource name.")
+        set_parser.add_argument('op_name', metavar='OP',
+                                help="Operation name.")
+        set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+                                help="Operation arguments.")
+        set_parser.set_defaults(sub_command_function=cls._execute_set)
+
+        del_parser = subparsers.add_parser('del', help='Delete a resource.')
+        del_parser.add_argument('name', metavar='DIR',
+                                help="Resource name.")
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
+    @classmethod
+    def _execute_set(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace()
+            workspace.add_resource(command_args.res_name, command_args.op_name, command_args.op_args)
+            workspace.store()
+            print("Resource '%s' set." % command_args.res_name)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_del(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace()
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+        #
+        # workspace.remove_resource(command_args.res_name, )
+        print("Resource '%s' deleted." % command_args.res_name)
         return cls.STATUS_OK
 
 
@@ -732,6 +783,7 @@ class DocsCommand(Command):
 COMMAND_REGISTRY = [
     RunCommand,
     WorkspaceCommand,
+    ResourceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,
