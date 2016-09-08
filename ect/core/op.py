@@ -83,7 +83,7 @@ Components
 
 from collections import OrderedDict
 from inspect import isclass
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 from .monitor import Monitor
 from .util import object_to_qualified_name, qualified_name_to_object
@@ -722,3 +722,58 @@ def _update_properties(old_properties: dict, new_properties: dict):
     for name, value in new_properties.items():
         if value is not None and (name not in old_properties or old_properties[name] is None):
             old_properties[name] = value
+
+
+def parse_op_args(raw_args: List[str], namespace: dict = None,
+                  ignore_eval_errors: bool=True) -> Tuple[List, OrderedDict]:
+    """
+    Convert a raw argument list *raw_args* into a (args, kwargs) tuple whose elements are converted Python objects.
+    All elements of the raw argument list *raw_args* are expected to be textual values of either the form
+    "value" (positional argument) or "name=value" (keyword argument).
+
+    Each text value is converted into a Python object using the Python interpreter's ``eval`` function and using the
+    provided *namespace* as local execution environment. If ``eval`` fails, *value* will be left unchanged if
+    *ignore_eval_errors* is ``True``, which means *value* remains a textual value (Python type ``str``). Otherwise
+    a ``ValueError`` is thrown.
+
+    :param raw_args: raw argument list of string elements
+    :param namespace: the namespace to be used when converting the raw text values into Python objects.
+    :param ignore_eval_errors: if ``True``, ``eval`` failures will be ignored
+    :return: a pair comprising the list of positional arguments and a dictionary holding the keyword arguments
+    :raise ValueError: if the parsing fails
+    """
+    op_args = []
+    op_kwargs = OrderedDict()
+    for raw_arg in raw_args:
+        name_and_value = raw_arg.split('=', maxsplit=1)
+        if len(name_and_value) == 2:
+            name, raw_value = name_and_value
+            if not name:
+                raise ValueError("missing input name")
+            if not name.isidentifier():
+                raise ValueError("'%s' is not a valid input name" % name)
+        else:
+            name = None
+            raw_value = raw_arg
+
+        # noinspection PyBroadException
+        try:
+            # try converting arg into a Python object using the given namespace
+            value = eval(raw_value, None, namespace)
+        except Exception as e:
+            # import sys
+            # print('Failed to convert "%s": %s' % (raw_value, e), flush=True, file=sys.stderr)
+            if ignore_eval_errors:
+                value = raw_value
+            else:
+                import sys
+                _, _, traceback = sys.exc_info()
+                raise ValueError('failed to evaluate expression "%s"' % raw_value).with_traceback(traceback)
+        if not name:
+            op_args.append(value)
+        else:
+            op_kwargs[name] = value
+
+    return op_args, op_kwargs
+
+

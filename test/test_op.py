@@ -3,7 +3,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.monitor import Monitor
-from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
+from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
 from ect.core.util import object_to_qualified_name
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
@@ -231,7 +231,7 @@ class OpTest(TestCase):
         op_reg = self.registry.get_op(object_to_qualified_name(f_op_inp_ret))
         self.assertIs(op_reg.operation, f_op_inp_ret)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(position=0,data_type=float, value_range=[0., 1.])
+        expected_inputs['a'] = dict(position=0, data_type=float, value_range=[0., 1.])
         expected_inputs['b'] = dict(position=1)
         expected_inputs['c'] = dict(position=2)
         expected_inputs['u'] = dict(default_value=3)
@@ -473,6 +473,44 @@ class OpTest(TestCase):
                              dict(description='Hi, I am C_op_inp_out!'),
                              expected_inputs,
                              expected_outputs)
+
+
+class ParseOpArgsTest(TestCase):
+    def test_no_namespace(self):
+        self.assertEqual(parse_op_args(['']), ([''], OrderedDict()))
+        self.assertEqual(parse_op_args(['a=b']), ([], OrderedDict(a='b')))
+        self.assertEqual(parse_op_args(['a=2']), ([], OrderedDict(a=2)))
+        self.assertEqual(parse_op_args(['a="c"']), ([], OrderedDict(a='c')))
+        self.assertEqual(parse_op_args(['a=True']), ([], OrderedDict(a=True)))
+        self.assertEqual(parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']),
+                         ([], OrderedDict([('z', 4.6), ('y', 1), ('x', (2 + 6j))])))
+
+    def test_with_namespace(self):
+
+        class Dataset:
+            pass
+
+        ds = Dataset()
+        ds.sst = 237.8
+
+        import math as m
+        namespace = dict(ds=ds, m=m)
+
+        self.assertEqual(parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
+                         ([ds, m.pi], OrderedDict([('b', 238.0), ('u', m.cos(m.pi))])))
+
+    def test_errors(self):
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(['=9'])
+        self.assertEqual(str(cm.exception), "missing input name")
+
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(['8=9'])
+        self.assertEqual(str(cm.exception), "'8' is not a valid input name")
+
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(["fp=open('info.txt')"], ignore_eval_errors=False)
+        self.assertEqual(str(cm.exception), 'failed to evaluate expression "open(\'info.txt\')"')
 
 
 class DefaultOpRegistryTest(TestCase):
