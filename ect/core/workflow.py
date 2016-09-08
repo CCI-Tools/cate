@@ -99,7 +99,7 @@ from typing import Sequence, Optional, Union, List, Dict
 
 from .monitor import Monitor
 from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
-from .util import Namespace
+from .util import Namespace, UNDEFINED
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
@@ -190,10 +190,18 @@ class Node(metaclass=ABCMeta):
         :param input_values: The input values.
         :return: The output values.
         """
-        for name, value in input_values.items():
-            if name in self.input:
-                self.input[name].value = value
+
+        # set default_value where input values are missing
+        self.op_meta_info.set_default_input_values(input_values)
+
+        # validate the input_values using this workflows's meta-info
+        self.op_meta_info.validate_input_values(input_values)
+
+        for node_input in self.input[:]:
+            node_input.value = input_values[node_input.name]
+
         self.invoke(monitor=monitor)
+
         if self.op_meta_info.has_named_outputs:
             return {output.name: output.value for output in self.output[:]}
         else:
@@ -318,13 +326,27 @@ class Workflow(Node):
         """
         import json
         if isinstance(file_path_or_fp, str):
-            file_path = file_path_or_fp
-            with open(file_path) as fp:
+            with open(file_path_or_fp) as fp:
                 json_dict = json.load(fp)
         else:
-            fp = file_path_or_fp
-            json_dict = json.load(fp)
+            json_dict = json.load(file_path_or_fp)
         return Workflow.from_json_dict(json_dict, registry=registry)
+
+    def store(self, file_path_or_fp: Union[str, IOBase]):
+        """
+        Store a workflow to a file or file pointer. The format is "Workflow JSON".
+
+        :param file_path_or_fp: file path or file pointer
+        """
+        import json
+
+        json_dict = self.to_json_dict()
+        dump_kwargs = dict(indent='  ')
+        if isinstance(file_path_or_fp, str):
+            with open(file_path_or_fp, 'w') as fp:
+                json.dump(json_dict, fp, **dump_kwargs)
+        else:
+            json.dump(json_dict, file_path_or_fp, **dump_kwargs)
 
     @classmethod
     def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY):
@@ -384,7 +406,7 @@ class Workflow(Node):
         input_json_dict = OrderedDict()
         for node_input in self._input[:]:
             node_input_json_dict = node_input.to_json_dict()
-            if node_input.name in self.op_meta_info.output:
+            if node_input.name in self.op_meta_info.input:
                 node_input_json_dict.update(self.op_meta_info.input[node_input.name])
             input_json_dict[node_input.name] = node_input_json_dict
 
@@ -402,11 +424,13 @@ class Workflow(Node):
             steps_json_list.append(step.to_json_dict())
 
         # convert 'data_type' Python types entries to JSON-strings
+        header_json_dict = self.op_meta_info.header
         input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         workflow_json_dict = OrderedDict()
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
+        workflow_json_dict['header'] = header_json_dict
         workflow_json_dict['input'] = input_json_dict
         workflow_json_dict['output'] = output_json_dict
         workflow_json_dict['steps'] = steps_json_list
@@ -610,7 +634,8 @@ class OpStep(Step):
         """
         input_values = OrderedDict()
         for node_input in self.input[:]:
-            input_values[node_input.name] = node_input.value
+            if node_input.has_value:
+                input_values[node_input.name] = node_input.value
 
         return_value = self._op_registration(monitor=monitor, **input_values)
 
@@ -631,7 +656,9 @@ class OpStep(Step):
         :param input_values: The input value(s).
         :return: The output value(s).
         """
-        return self._op_registration(monitor=monitor, **input_values)
+        if self.op_meta_info.has_monitor:
+            input_values[OpMetaInfo.MONITOR_INPUT_NAME] = monitor
+        return self._op_registration(**input_values)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -854,7 +881,7 @@ class NodePort:
         self._name = name
         self._source_ref = None
         self._source = None
-        self._value = None
+        self._value = UNDEFINED
 
     @property
     def node(self) -> Node:
@@ -869,9 +896,20 @@ class NodePort:
         return self._name
 
     @property
+    def has_value(self):
+        if self._source:
+            return self._source.has_value
+        elif self._value is UNDEFINED:
+            return False
+        else:
+            return True
+
+    @property
     def value(self):
         if self._source:
             return self._source.value
+        elif self._value is UNDEFINED:
+            return None
         else:
             return self._value
 
@@ -891,7 +929,7 @@ class NodePort:
             raise ValueError("cannot connect '%s' with itself" % self)
         self._source = new_source
         self._source_ref = (new_source.node_id, new_source.name) if new_source else None
-        self._value = None
+        self._value = UNDEFINED
 
     def resolve_source_ref(self):
         """
@@ -1009,7 +1047,7 @@ class NodePort:
         json_dict = dict()
         if self._source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self._value is not None:
+        elif self._value is not UNDEFINED:
             json_dict['value'] = self._value
         return json_dict
 

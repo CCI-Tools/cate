@@ -6,29 +6,28 @@ from typing import Any
 import xarray as xr
 from ect.core.io import open_dataset
 from ect.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
-from ect.core.op import op_input, op_return, op
+from ect.core.op import op_input, op
 
 
 @op(tags='io')
-@op_input('data_source', required=True)
-@op_input('start_date', required=True)
-@op_input('end_date', required=True)
+@op_input('data_source')
+@op_input('start_date')
+@op_input('end_date')
 def load_dataset(data_source: str, start_date: str, end_date: str) -> xr.Dataset:
     return open_dataset(data_source, (start_date, end_date))
 
 
 @op(tags=['io'])
-@op_input('dataset', required=True)
-@op_input('file', required=True)
+@op_input('dataset')
+@op_input('file')
 def store_dataset(dataset: xr.Dataset, file: str):
     dataset.to_netcdf(file)
 
 
 @op(tags='io')
-@op_input('file', required=True, data_type=str)
-@op_input('encoding', data_type=str)
-@op_return(data_type=str)
-def read_text(file, encoding=None):
+@op_input('file')
+@op_input('encoding')
+def read_text(file: str, encoding: str = None) -> str:
     if isinstance(file, str):
         with open(file, 'r', encoding=encoding) as fp:
             return fp.read()
@@ -37,10 +36,10 @@ def read_text(file, encoding=None):
 
 
 @op(tags='io')
-@op_input('obj', required=True, data_type=Any)
-@op_input('file', required=True, data_type=str)
-@op_input('encoding', data_type=str)
-def write_text(obj, file, encoding=None):
+@op_input('obj')
+@op_input('file')
+@op_input('encoding')
+def write_text(obj: Any, file: str, encoding: str = None):
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
             fp.write(str(obj))
@@ -49,10 +48,9 @@ def write_text(obj, file, encoding=None):
 
 
 @op(tags='io')
-@op_input('file', required=True, data_type=str)
-@op_input('encoding', data_type=str)
-@op_return(data_type=Any)
-def read_json(file, encoding=None):
+@op_input('file')
+@op_input('encoding')
+def read_json(file: str, encoding: str = None) -> Any:
     if isinstance(file, str):
         with open(file, 'r', encoding=encoding) as fp:
             return json.load(fp)
@@ -61,12 +59,12 @@ def read_json(file, encoding=None):
 
 
 @op(tags='io')
-@op_input('obj', required=True, data_type=Any)
-@op_input('file', required=True, data_type=str)
-@op_input('encoding', data_type=str)
-@op_input('indent', data_type=str)
-@op_input('separators', data_type=str)
-def write_json(obj, file, encoding=None, indent=None, separators=None):
+@op_input('obj')
+@op_input('file')
+@op_input('encoding')
+@op_input('indent')
+@op_input('separators')
+def write_json(obj: Any, file: str, encoding: str = None, indent: str = None, separators: str = None):
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
             json.dump(obj, fp, indent=indent, separators=separators)
@@ -75,30 +73,30 @@ def write_json(obj, file, encoding=None, indent=None, separators=None):
 
 
 @op(tags='io')
-@op_input('file', required=True, data_type=str)
-@op_input('drop_variables', data_type=str)
-@op_input('decode_cf', data_type=bool)
-@op_input('decode_times', data_type=bool)
-@op_input('engine', data_type=str)
-@op_return(data_type=xr.Dataset)
-def read_netcdf(file, drop_variables=None, decode_cf=True, decode_times=True, engine=None):
+@op_input('file')
+@op_input('drop_variables')
+@op_input('decode_cf')
+@op_input('decode_times')
+@op_input('engine')
+def read_netcdf(file, drop_variables: str = None, decode_cf: bool = True, decode_times: bool = True,
+                engine: str = None) -> xr.Dataset:
     return xr.open_dataset(file, drop_variables=drop_variables,
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
 
 
 @op(tags='io')
-@op_input('obj', required=True, data_type=xr.Dataset)
-@op_input('file', required=True, data_type=str)
-@op_input('engine', data_type=str)
-def write_netcdf3(obj, file, engine=None):
+@op_input('obj')
+@op_input('file')
+@op_input('engine')
+def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF3_64BIT', engine=engine)
 
 
 @op(tags='io')
-@op_input('obj', required=True, data_type=xr.Dataset)
-@op_input('file', required=True, data_type=str)
-@op_input('engine', data_type=str)
-def write_netcdf4(obj, file, engine=None):
+@op_input('obj')
+@op_input('file')
+@op_input('engine')
+def write_netcdf4(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF4', engine=engine)
 
 

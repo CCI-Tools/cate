@@ -3,7 +3,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from ect.core.monitor import Monitor
-from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
+from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
 from ect.core.util import object_to_qualified_name
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
@@ -42,8 +42,8 @@ class OpMetaInfoTest(TestCase):
         self.assertIn('c', op_meta_info.input)
         self.assertIn('d', op_meta_info.input)
         self.assertIn(RETURN, op_meta_info.output)
-        self.assertEqual(op_meta_info.input['a'], dict(data_type=str))
-        self.assertEqual(op_meta_info.input['b'], dict(data_type=int))
+        self.assertEqual(op_meta_info.input['a'], dict(data_type=str, position=0))
+        self.assertEqual(op_meta_info.input['b'], dict(data_type=int, position=1))
         self.assertEqual(op_meta_info.input['c'], dict(data_type=float, default_value=1))
         self.assertEqual(op_meta_info.input['d'], dict(default_value='A'))
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
@@ -62,7 +62,7 @@ class OpMetaInfoTest(TestCase):
         self.assertIn('x', op_meta_info.input)
         self.assertNotIn(MONITOR, op_meta_info.input)
         self.assertIn(RETURN, op_meta_info.output)
-        self.assertEqual(op_meta_info.input['x'], dict(data_type=float))
+        self.assertEqual(op_meta_info.input['x'], dict(data_type=float, position=0))
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
         self.assertEqual(op_meta_info.has_monitor, True)
         self.assertEqual(op_meta_info.has_named_outputs, False)
@@ -167,9 +167,9 @@ class OpTest(TestCase):
         self.assertIs(op_reg, added_op_reg)
         self.assertIs(op_reg.operation, f)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(data_type=float)
-        expected_inputs['b'] = dict()
-        expected_inputs['c'] = dict()
+        expected_inputs['a'] = dict(data_type=float, position=0)
+        expected_inputs['b'] = dict(position=1)
+        expected_inputs['c'] = dict(position=2)
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A')
         expected_inputs['w'] = dict(default_value=4.9)
@@ -202,9 +202,9 @@ class OpTest(TestCase):
         op_reg = self.registry.get_op(object_to_qualified_name(f_op))
         self.assertIs(op_reg.operation, f_op)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(data_type=float)
-        expected_inputs['b'] = dict()
-        expected_inputs['c'] = dict()
+        expected_inputs['a'] = dict(position=0, data_type=float)
+        expected_inputs['b'] = dict(position=1)
+        expected_inputs['c'] = dict(position=2)
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A')
         expected_inputs['w'] = dict(default_value=4.9)
@@ -231,9 +231,9 @@ class OpTest(TestCase):
         op_reg = self.registry.get_op(object_to_qualified_name(f_op_inp_ret))
         self.assertIs(op_reg.operation, f_op_inp_ret)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(data_type=float, value_range=[0., 1.])
-        expected_inputs['b'] = dict()
-        expected_inputs['c'] = dict()
+        expected_inputs['a'] = dict(position=0, data_type=float, value_range=[0., 1.])
+        expected_inputs['b'] = dict(position=1)
+        expected_inputs['c'] = dict(position=2)
         expected_inputs['u'] = dict(default_value=3)
         expected_inputs['v'] = dict(default_value='A', value_set=['A', 'B', 'C'])
         expected_inputs['w'] = dict(default_value=4.9)
@@ -311,21 +311,27 @@ class OpTest(TestCase):
 
     def test_function_validation(self):
         @op_input('x', registry=self.registry, data_type=float, value_range=[0.1, 0.9], default_value=0.5)
-        @op_input('y', registry=self.registry, required=True)
+        @op_input('y', registry=self.registry)
         @op_input('a', registry=self.registry, data_type=int, value_set=[1, 4, 5])
         @op_return(registry=self.registry, data_type=float)
         def f(x, y: float, a=4):
             return a * x + y if a != 5 else 'foo'
+
+        self.assertEqual(f(y=1, x=8), 33)
+        self.assertEqual(f(**dict(a=5, x=8, y=1)), 'foo')
 
         op_reg = self.registry.get_op(f)
 
         self.assertEqual(op_reg.op_meta_info.input['x'].get('data_type', None), float)
         self.assertEqual(op_reg.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
         self.assertEqual(op_reg.op_meta_info.input['x'].get('default_value', None), 0.5)
+        self.assertEqual(op_reg.op_meta_info.input['x'].get('position', None), 0)
         self.assertEqual(op_reg.op_meta_info.input['y'].get('data_type', None), float)
+        self.assertEqual(op_reg.op_meta_info.input['y'].get('position', None), 1)
         self.assertEqual(op_reg.op_meta_info.input['a'].get('data_type', None), int)
         self.assertEqual(op_reg.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
         self.assertEqual(op_reg.op_meta_info.input['a'].get('default_value', None), 4)
+        self.assertEqual(op_reg.op_meta_info.input['a'].get('position', None), None)
         self.assertEqual(op_reg.op_meta_info.output[RETURN].get('data_type', None), float)
 
         with self.assertRaises(ValueError) as cm:
@@ -457,8 +463,8 @@ class OpTest(TestCase):
         op_reg = self.registry.get_op(object_to_qualified_name(C_op_inp_out))
         self.assertIs(op_reg.operation, C_op_inp_out)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(data_type=float, default_value=0.5, value_range=[0., 1.])
-        expected_inputs['b'] = dict(data_type=str, default_value='A', value_set=['A', 'B', 'C'])
+        expected_inputs['a'] = dict(position=0, data_type=float, default_value=0.5, value_range=[0., 1.])
+        expected_inputs['b'] = dict(position=1, data_type=str, default_value='A', value_set=['A', 'B', 'C'])
         expected_outputs = OrderedDict()
         expected_outputs['y'] = dict(data_type=list)
         expected_outputs['x'] = dict(data_type=float)
@@ -467,6 +473,44 @@ class OpTest(TestCase):
                              dict(description='Hi, I am C_op_inp_out!'),
                              expected_inputs,
                              expected_outputs)
+
+
+class ParseOpArgsTest(TestCase):
+    def test_no_namespace(self):
+        self.assertEqual(parse_op_args(['']), ([''], OrderedDict()))
+        self.assertEqual(parse_op_args(['a=b']), ([], OrderedDict(a='b')))
+        self.assertEqual(parse_op_args(['a=2']), ([], OrderedDict(a=2)))
+        self.assertEqual(parse_op_args(['a="c"']), ([], OrderedDict(a='c')))
+        self.assertEqual(parse_op_args(['a=True']), ([], OrderedDict(a=True)))
+        self.assertEqual(parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']),
+                         ([], OrderedDict([('z', 4.6), ('y', 1), ('x', (2 + 6j))])))
+
+    def test_with_namespace(self):
+
+        class Dataset:
+            pass
+
+        ds = Dataset()
+        ds.sst = 237.8
+
+        import math as m
+        namespace = dict(ds=ds, m=m)
+
+        self.assertEqual(parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
+                         ([ds, m.pi], OrderedDict([('b', 238.0), ('u', m.cos(m.pi))])))
+
+    def test_errors(self):
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(['=9'])
+        self.assertEqual(str(cm.exception), "missing input name")
+
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(['8=9'])
+        self.assertEqual(str(cm.exception), "'8' is not a valid input name")
+
+        with self.assertRaises(ValueError) as cm:
+            parse_op_args(["fp=open('info.txt')"], ignore_eval_errors=False)
+        self.assertEqual(str(cm.exception), 'failed to evaluate expression "open(\'info.txt\')"')
 
 
 class DefaultOpRegistryTest(TestCase):

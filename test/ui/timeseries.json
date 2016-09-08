@@ -16,6 +16,7 @@
         },
         "method": {
             "data_type": "str",
+            "default_value": "NEAREST",
             "value_set": ["NEAREST", "BILINEAR", "BICUBIC"],
             "description": "Interpolation method"
         }
