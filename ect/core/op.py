@@ -83,7 +83,7 @@ Components
 
 from collections import OrderedDict
 from inspect import isclass
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 from .monitor import Monitor
 from .util import object_to_qualified_name, qualified_name_to_object
@@ -295,9 +295,11 @@ class OpMetaInfo:
             arg_names = arg_names[1:]
             arg_count -= 1
         # Reserve input slots for input names, but 'monitor'
+        arg_pos = 0
         for arg_name in arg_names:
             if cls.MONITOR_INPUT_NAME != arg_name:
-                input_dict[arg_name] = dict()
+                input_dict[arg_name] = dict(position=arg_pos)
+                arg_pos += 1
             else:
                 has_monitor = True
         # Set 'default_value' for input names, but 'monitor'
@@ -308,8 +310,87 @@ class OpMetaInfo:
             for i in range(num_default_values):
                 arg_name = arg_names[i - num_default_values]
                 if cls.MONITOR_INPUT_NAME != arg_name:
-                    input_dict[arg_name]['default_value'] = default_values[i]
+                    default_value = default_values[i]
+                    input_dict[arg_name]['default_value'] = default_value
+                    if 'position' in input_dict[arg_name]:
+                        del input_dict[arg_name]['position']
         return input_dict, has_monitor
+
+    def set_default_input_values(self, input_values: Dict):
+        """
+        If any missing input value in *input_values*, set value of "default_value" property, if it exists.
+
+        :param input_values: The dictionary of input values that will be modified.
+        """
+        for name, properties in self.input.items():
+            if name not in input_values and 'default_value' in properties:
+                input_values[name] = properties['default_value']
+
+    def validate_input_values(self, input_values: Dict):
+        """
+        Validate given *input_values* against the operation's input properties.
+
+        :param input_values: The dictionary of input values.
+        :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
+        """
+        inputs = self.input
+        # Ensure required input values have values (even None is a value).
+        for name, properties in inputs.items():
+            required = 'position' in properties
+            if required and (name not in input_values):
+                raise ValueError("input '%s' for operation '%s' required" %
+                                 (name, self.qualified_name))
+        # Ensure all input values are valid w.r.t. input properties
+        for name, value in input_values.items():
+            if name not in inputs:
+                raise ValueError("'%s' is not an input of operation '%s'" % (name, self.qualified_name))
+            input_properties = inputs[name]
+            if value is None:
+                default_is_none = input_properties.get('default_value', 1) is None
+                value_set = input_properties.get('value_set', None)
+                value_set_has_none = value_set and (None in value_set)
+                nullable = input_properties.get('nullable', False)
+                if not (default_is_none or value_set_has_none or nullable):
+                    raise ValueError(
+                        "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
+                continue
+            data_type = input_properties.get('data_type', None)
+            # TODO (forman, 20160907): perform more elaborated input type checking here
+            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+            if data_type and not (isinstance(value, data_type) or is_float_type):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be of type %s, but got %s" % (
+                        name, self.qualified_name, data_type, type(value)))
+            value_set = input_properties.get('value_set', None)
+            if value_set and (value not in value_set):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be one of %s" % (
+                        name, self.qualified_name, value_set))
+            value_range = input_properties.get('value_range', None)
+            if value_range and (value is None or not (value_range[0] <= value <= value_range[1])):
+                raise ValueError(
+                    "input '%s' for operation '%s' must be in range %s" % (
+                        name, self.qualified_name, value_range))
+
+    def validate_output_values(self, output_values: Dict):
+        """
+        Validate given *output_values* against the operation's output properties.
+
+        :param output_values: The dictionary of output values.
+        :raise ValueError: If *output_values* are invalid w.r.t. to the operation's output properties.
+        """
+        outputs = self.output
+        for name, value in output_values.items():
+            if name not in outputs:
+                raise ValueError("'%s' is not an output of operation '%s'" % (name, self.qualified_name))
+            output_properties = outputs[name]
+            if value is not None:
+                data_type = output_properties.get('data_type', None)
+                # TODO (forman, 20160907): perform more elaborated output type checking here
+                if data_type and not isinstance(value, data_type):
+                    raise ValueError(
+                        "output '%s' for operation '%s' must be of type %s" % (
+                            name, self.qualified_name, data_type))
 
 
 class OpRegistration:
@@ -351,12 +432,10 @@ class OpRegistration:
         """
 
         # set default_value where input values are missing
-        for name, properties in self.op_meta_info.input.items():
-            if name not in input_values:
-                input_values[name] = properties.get('default_value', None)
+        self.op_meta_info.set_default_input_values(input_values)
 
         # validate the input_values using this operation's meta-info
-        self.validate_input_values(input_values)
+        self.op_meta_info.validate_input_values(input_values)
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument
@@ -379,7 +458,7 @@ class OpRegistration:
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
-            self.validate_output_values(return_value)
+            self.op_meta_info.validate_output_values(return_value)
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
@@ -387,49 +466,8 @@ class OpRegistration:
                 properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
                 return_value = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
-            self.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+            self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
         return return_value
-
-    def validate_input_values(self, input_values: Dict):
-        inputs = self.op_meta_info.input
-        for name, value in input_values.items():
-            if name not in inputs:
-                raise ValueError("'%s' is not an input of operation '%s'" % (name, self.op_meta_info.qualified_name))
-            input_properties = inputs[name]
-            if value is None:
-                if input_properties.get('required', False):
-                    raise ValueError(
-                        "input '%s' for operation '%s' required" % (name, self.op_meta_info.qualified_name))
-            else:
-                data_type = input_properties.get('data_type', None)
-                is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-                if data_type and not (isinstance(value, data_type) or is_float_type):
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be of type %s, but got %s" % (
-                            name, self.op_meta_info.qualified_name, data_type, type(value)))
-                value_set = input_properties.get('value_set', None)
-                if value_set and value not in value_set:
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be one of %s" % (
-                            name, self.op_meta_info.qualified_name, value_set))
-                value_range = input_properties.get('value_range', None)
-                if value_range and not (value_range[0] <= value <= value_range[1]):
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be in range %s" % (
-                            name, self.op_meta_info.qualified_name, value_range))
-
-    def validate_output_values(self, output_values: Dict):
-        outputs = self.op_meta_info.output
-        for name, value in output_values.items():
-            if name not in outputs:
-                raise ValueError("'%s' is not an output of operation '%s'" % (name, self.op_meta_info.qualified_name))
-            output_properties = outputs[name]
-            if value is not None:
-                data_type = output_properties.get('data_type', None)
-                if data_type and not isinstance(value, data_type):
-                    raise ValueError(
-                        "output '%s' for operation '%s' must be of type %s" % (
-                            name, self.op_meta_info.qualified_name, data_type))
 
 
 class OpRegistry:
@@ -518,6 +556,9 @@ def op(registry=OP_REGISTRY, **properties):
     Any other keywords arguments in *header* are added to the operation's meta-information header.
     Classes annotated by this decorator must have callable instances.
 
+    When a function is registered, an introspection is performed. During this process, initial operation
+    the meta-information header property *description* is derived from the function's docstring.
+
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     :param registry: The operation registry.
     """
@@ -534,7 +575,7 @@ def op(registry=OP_REGISTRY, **properties):
 
 def op_input(input_name: str,
              default_value=None,
-             required=None,
+             position=None,
              data_type=None,
              value_set=None,
              value_range=None,
@@ -544,10 +585,27 @@ def op_input(input_name: str,
     ``op_input`` is a decorator function that provides meta-information for an operation input identified by
     *input_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
     operation registry or the one given by *registry*, if any.
-    Any other keywords arguments in *properties* are added to the input's meta-information.
+
+    When a function is registered, an introspection is performed. During this process, initial operation
+    meta-information input properties are derived for each positional and keyword argument named *input_name*:
+
+    ---------------- ------------------------------------------------------------------------------
+    Derived property Source
+    ---------------- ------------------------------------------------------------------------------
+    *position*       The position of a positional argument, e.g. ``2`` for input ``z`` in
+                     ``def f(x, y, z, c=2)``.
+    *default_value*  The value of a keyword argument, e.g. ``52.3`` for input ``latitude``
+                     from argument definition ``latitude:float=52.3``
+    *data_type*      The type annotation type, e.g. ``float`` for input ``latitude``
+                     from argument definition  ``latitude:float``
+    ---------------- ------------------------------------------------------------------------------
+
+    The derived properties listed above plus any of *value_set*, *value_range*, and any key-value pairs in *properties*
+    are added to the input's meta-information.
+    A key-value pair in *properties* will always overwrite the derived properties listed above.
 
     :param input_name: The name of an input.
-    :param required: If ``True``, a value must be provided, otherwise *default_value* is used.
+    :param position: The position of a positional input (not supported yet).
     :param default_value: A default value.
     :param data_type: The data type of the input values.
     :param value_set: A sequence of the valid values. Note that all values in this sequence
@@ -565,7 +623,7 @@ def op_input(input_name: str,
         input_properties = input_namespace[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
-                              required=required,
+                              position=position,
                               value_set=value_set,
                               value_range=value_range, **properties)
         _update_properties(input_properties, new_properties)
@@ -582,7 +640,20 @@ def op_output(output_name: str,
     ``op_output`` is a decorator function that provides meta-information for an operation output identified by
     *output_name*. If the decorated function or class is not registered as an operation yet, it is added to the default
     operation registry or the one given by *registry*, if any.
-    Any other keywords arguments in *properties* are added to the output's meta-information.
+
+    If your function does not return multiple named outputs, use the :py:func:`op_return` decorator function.
+    Note that::
+
+        @op_return(...)
+        def my_func(...):
+            ...
+
+    if equivalent to::
+
+        @op_output('return', ...)
+        def my_func(...):
+            ...
+
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
@@ -617,6 +688,26 @@ def op_return(data_type=None,
     it is added to the default operation registry or the one given by *registry*, if any.
     Any other keywords arguments in *properties* are added to the output's meta-information.
 
+    When a function is registered, an introspection is performed. During this process, initial operation
+    meta-information output properties are derived from the function's return type annotation, that is
+    *data_type* will be e.g. ``float`` if a function is annotated as ``def f(x, y) -> float: ...``.
+
+    The derived *data_type* property and any key-value pairs in *properties* are added to the output's meta-information.
+    A key-value pair in *properties* will always overwrite a derived *data_type*.
+
+    If your function returns multiple named outputs, use the :py:func:`op_output` decorator function.
+    Note that::
+
+        @op_return(...)
+        def my_func(...):
+            ...
+
+    if equivalent to::
+
+        @op_output('return', ...)
+        def my_func(...):
+            ...
+
     :param data_type: The data type of the return value.
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
     :param registry: The operation registry.
@@ -631,3 +722,58 @@ def _update_properties(old_properties: dict, new_properties: dict):
     for name, value in new_properties.items():
         if value is not None and (name not in old_properties or old_properties[name] is None):
             old_properties[name] = value
+
+
+def parse_op_args(raw_args: List[str], namespace: dict = None,
+                  ignore_eval_errors: bool=True) -> Tuple[List, OrderedDict]:
+    """
+    Convert a raw argument list *raw_args* into a (args, kwargs) tuple whose elements are converted Python objects.
+    All elements of the raw argument list *raw_args* are expected to be textual values of either the form
+    "value" (positional argument) or "name=value" (keyword argument).
+
+    Each text value is converted into a Python object using the Python interpreter's ``eval`` function and using the
+    provided *namespace* as local execution environment. If ``eval`` fails, *value* will be left unchanged if
+    *ignore_eval_errors* is ``True``, which means *value* remains a textual value (Python type ``str``). Otherwise
+    a ``ValueError`` is thrown.
+
+    :param raw_args: raw argument list of string elements
+    :param namespace: the namespace to be used when converting the raw text values into Python objects.
+    :param ignore_eval_errors: if ``True``, ``eval`` failures will be ignored
+    :return: a pair comprising the list of positional arguments and a dictionary holding the keyword arguments
+    :raise ValueError: if the parsing fails
+    """
+    op_args = []
+    op_kwargs = OrderedDict()
+    for raw_arg in raw_args:
+        name_and_value = raw_arg.split('=', maxsplit=1)
+        if len(name_and_value) == 2:
+            name, raw_value = name_and_value
+            if not name:
+                raise ValueError("missing input name")
+            if not name.isidentifier():
+                raise ValueError("'%s' is not a valid input name" % name)
+        else:
+            name = None
+            raw_value = raw_arg
+
+        # noinspection PyBroadException
+        try:
+            # try converting arg into a Python object using the given namespace
+            value = eval(raw_value, None, namespace)
+        except Exception as e:
+            # import sys
+            # print('Failed to convert "%s": %s' % (raw_value, e), flush=True, file=sys.stderr)
+            if ignore_eval_errors:
+                value = raw_value
+            else:
+                import sys
+                _, _, traceback = sys.exc_info()
+                raise ValueError('failed to evaluate expression "%s"' % raw_value).with_traceback(traceback)
+        if not name:
+            op_args.append(value)
+        else:
+            op_kwargs[name] = value
+
+    return op_args, op_kwargs
+
+

@@ -1,0 +1,37 @@
+@startuml
+
+interface WorkspaceManager {
+    init_workspace()
+}
+
+class DirectWorkspaceManager implements WorkspaceManager {
+    init_workspace()
+}
+
+class CachedWorkspaceManager implements WorkspaceManager {
+    init_workspace()
+}
+
+class WebServiceWorkspaceManager implements WorkspaceManager {
+    init_workspace()
+}
+
+class WebService {
+    init_workspace()
+}
+
+class Workspace {
+}
+
+
+
+DirectWorkspaceManager ..--> Workspace: <uses>
+CachedWorkspaceManager o--> "1" DirectWorkspaceManager: <delegate to>
+CachedWorkspaceManager o--> "0..N" Workspace: cache
+WebServiceWorkspaceManager o--> "1" WebService
+WebService o--> "1" CachedWorkspaceManager
+Workspace o--> "1" ect.core.workflow.Workflow
+
+ect.core.workflow.Workflow o--> "0..N" ect.core.workflow.OpStep
+
+@enduml

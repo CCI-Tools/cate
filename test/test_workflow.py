@@ -185,6 +185,7 @@ class WorkflowTest(TestCase):
         expected_json_text = """
         {
             "qualified_name": "my_workflow",
+            "header": {},
             "input": {
                 "p": {}
             },

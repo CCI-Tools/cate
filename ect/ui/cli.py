@@ -76,12 +76,13 @@ Components
 import argparse
 import os.path
 import sys
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
+from ect.core.op import parse_op_args
 from ect.ops.io import load_dataset
 from ect.version import __version__
 
@@ -109,16 +110,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """ % __version__
 
 
-def _parse_load_arg(load_arg):
+def _parse_load_arg(load_arg: str) -> Tuple[str, str, str]:
     """
     Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
 
     :param load_arg: The DS string argument
     :return: The tuple DS_NAME,DS_ID,DATE1,DATE2
     """
-    ds_name_and_ds_id = load_arg.split('=', maxsplit=2)
+    ds_name_and_ds_id = load_arg.split('=', maxsplit=1)
     ds_name, ds_id = ds_name_and_ds_id if len(ds_name_and_ds_id) == 2 else (None, load_arg)
-    ds_id_and_date_range = ds_id.rsplit(',', maxsplit=3)
+    ds_id_and_date_range = ds_id.rsplit(',', maxsplit=2)
     if len(ds_id_and_date_range) == 3:
         ds_id, date1, date2 = ds_id_and_date_range
     elif len(ds_id_and_date_range) == 2:
@@ -128,7 +129,7 @@ def _parse_load_arg(load_arg):
     return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else None, date2 if date2 else None
 
 
-def _parse_read_arg(read_arg):
+def _parse_read_arg(read_arg: str) -> Tuple[str, str]:
     """
     Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and return tuple INP_NAME,PATH,FORMAT.
 
@@ -145,9 +146,9 @@ def _parse_write_arg(write_arg):
     :param write_arg: The FILE string argument
     :return: The tuple OUT_NAME,PATH,FORMAT
     """
-    name_and_path = write_arg.split('=', maxsplit=2)
+    name_and_path = write_arg.split('=', maxsplit=1)
     name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
-    path_and_format = path.rsplit(',', maxsplit=2)
+    path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
     return name if name else None, path if path else None, format_name.upper() if format_name else None
 
@@ -201,6 +202,43 @@ class Command(metaclass=ABCMeta):
         """
 
 
+class SubCommandCommand(Command, metaclass=ABCMeta):
+    @classmethod
+    def configure_parser(cls, parser):
+        parser.set_defaults(parser=parser)
+        subparsers = parser.add_subparsers(metavar='COMMAND',
+                                           help='One of the following commands. '
+                                                'Type "COMMAND -h" for help.')
+        cls.configure_parser_and_subparsers(parser, subparsers)
+
+    @classmethod
+    @abstractmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        """
+        Overrides must, e.g.::
+            list_parser.subparsers.add_parser('list', ...)
+            ...
+            list_parser.set_defaults(sub_command_function=cls._execute_list)
+
+        :param parser:
+        :param subparsers:
+        :return:
+        """
+        pass
+
+    def execute(self, command_args):
+        try:
+            sub_command_function = command_args.sub_command_function
+        except AttributeError:
+            try:
+                parser = command_args.parser
+            except AttributeError:
+                raise RuntimeError('neither command_args.sub_command_function nor command_args.parser defined')
+            parser.print_help()
+            return Command.STATUS_OK
+        return sub_command_function(command_args)
+
+
 class RunCommand(Command):
     """
     The ``run`` command is used to invoke registered operations and JSON workflows.
@@ -250,7 +288,7 @@ class RunCommand(Command):
     def execute(self, command_args):
         op_name = command_args.op_name
         if not op_name:
-            return 2, "error: command '%s' requires OP argument" % self.CMD_NAME
+            return 1, "error: command '%s' requires OP argument" % self.CMD_NAME
         is_workflow = op_name.endswith('.json') and os.path.isfile(op_name)
 
         namespace = dict()
@@ -276,43 +314,10 @@ class RunCommand(Command):
                 from ect.core.objectio import read_object
                 namespace[inp_name], _ = read_object(inp_path, format_name=inp_format)
 
-        op_args = []
-        op_kwargs = OrderedDict()
-        for arg in command_args.op_args:
-            kwarg = arg.split('=', maxsplit=1)
-            kw = None
-            if len(kwarg) == 2:
-                kw, arg = kwarg
-                if not kw.isidentifier():
-                    return 2, "error: command '%s': keyword '%s' is not a valid identifier" % (self.CMD_NAME, kw)
-            try:
-                # try converting arg into a Python object
-                arg = eval(arg)
-            except (SyntaxError, NameError):
-                # Try converting arg to dataset (xarray.Dataset) or dataset variable (xarray.DataArray)
-                ds_name_and_var_name = arg.rsplit('.', maxsplit=2)
-                if len(ds_name_and_var_name) == 2:
-                    ds_name, var_name = ds_name_and_var_name
-                else:
-                    ds_name, var_name = ds_name_and_var_name[0], None
-                if ds_name in namespace:
-                    # arg is a dataset (xarray.Dataset)
-                    arg = namespace[ds_name]
-                if var_name:
-                    # arg is a dataset variable (xarray.DataArray)
-                    try:
-                        arg = arg[var_name]
-                    except (KeyError, TypeError):
-                        try:
-                            arg = getattr(arg, var_name)
-                        except AttributeError:
-                            return 2, "error: command '%s': invalid variable reference \"%s.%s\"" % (
-                                self.CMD_NAME, ds_name, var_name)
-                            # If arg couldn't be converted to dataset or variable, we stay with default type (str)
-            if not kw:
-                op_args.append(arg)
-            else:
-                op_kwargs[kw] = arg
+        try:
+            op_args, op_kwargs = parse_op_args(command_args.op_args, namespace)
+        except ValueError as e:
+            return 1, "error: command '%s': %s" % (RunCommand.CMD_NAME, e)
 
         if is_workflow:
             if op_args:
@@ -355,7 +360,7 @@ class RunCommand(Command):
         if op.op_meta_info.has_named_outputs:
             if write_args:
                 for out_name, out_path, out_format in write_args:
-                    out_value = return_value[out_name].value
+                    out_value = return_value[out_name]
                     writer = find_writer(out_value, out_path, format_name=out_format)
                     if writer:
                         print("Writing output '%s' to %s using %s format..." % (out_name, out_path, writer.format_name))
@@ -381,7 +386,122 @@ class RunCommand(Command):
         return self.STATUS_OK
 
 
-class OperationCommand(Command):
+class WorkspaceCommand(SubCommandCommand):
+    """
+    The ``ws`` command implements various operations w.r.t. *workspaces*.
+    """
+
+    CMD_NAME = 'ws'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Manage workspaces.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        init_parser = subparsers.add_parser('init', help='Initialize workspace.')
+        init_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                 help='Base directory for the new workspace. '
+                                      'Default DIR is current working directory.')
+        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
+                                 help='Workspace description.')
+        init_parser.set_defaults(sub_command_function=cls._execute_init)
+
+        status_parser = subparsers.add_parser('status', help='Print workspace information.')
+        status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                   help='Base directory for the new workspace. '
+                                        'Default DIR is current working directory.')
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
+    @classmethod
+    def _execute_init(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
+            print('Workspace initialized.')
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to initialize workspace: %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_status(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+
+        workflow = workspace.workflow
+        if len(workflow.steps) > 0:
+            print('Workspace steps:')
+            for step in workflow.steps:
+                print('  %s' % str(step))
+        else:
+            print('Empty workspace.')
+
+        return cls.STATUS_OK
+
+
+class ResourceCommand(SubCommandCommand):
+    """
+    The ``ws`` command implements various operations w.r.t. *workspaces*.
+    """
+
+    CMD_NAME = 'res'
+
+    @classmethod
+    def name_and_parser_kwargs(cls):
+        help_line = 'Manage workspace resources.'
+        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        set_parser = subparsers.add_parser('set', help='Set a resource.')
+        set_parser.add_argument('res_name', metavar='NAME',
+                                help="Resource name.")
+        set_parser.add_argument('op_name', metavar='OP',
+                                help="Operation name.")
+        set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+                                help="Operation arguments.")
+        set_parser.set_defaults(sub_command_function=cls._execute_set)
+
+        del_parser = subparsers.add_parser('del', help='Delete a resource.')
+        del_parser.add_argument('name', metavar='DIR',
+                                help="Resource name.")
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
+    @classmethod
+    def _execute_set(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace()
+            workspace.add_resource(command_args.res_name, command_args.op_name, command_args.op_args)
+            workspace.store()
+            print("Resource '%s' set." % command_args.res_name)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_del(cls, command_args):
+        from .workspace import CachedWorkspaceManager, WorkspaceError
+        workspace_manager = CachedWorkspaceManager()
+        try:
+            workspace = workspace_manager.get_workspace()
+        except WorkspaceError as e:
+            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+        #
+        # workspace.remove_resource(command_args.res_name, )
+        print("Resource '%s' deleted." % command_args.res_name)
+        return cls.STATUS_OK
+
+
+class OperationCommand(SubCommandCommand):
     """
     The ``op`` command implements various operations w.r.t. *operations*.
     """
@@ -394,14 +514,8 @@ class OperationCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        op_parser = parser.add_subparsers(dest='op_command',
-                                          metavar='COMMAND',
-                                          help='One of the following commands. '
-                                               'Type "COMMAND -h" to get command-specific help.')
-        parser.set_defaults(op_parser=parser)
-
-        list_parser = op_parser.add_parser('list', help='List operations.')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List operations.')
         list_parser.add_argument('--name', '-n', metavar='NAME',
                                  help="A wildcard pattern to filter operation names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
@@ -410,15 +524,15 @@ class OperationCommand(Command):
                                  help="A wildcard pattern to filter operation tags. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(op_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        info_parser = op_parser.add_parser('info', help='Show usage information about an operation.')
+        info_parser = subparsers.add_parser('info', help='Show usage information about an operation.')
         info_parser.add_argument('op_name', metavar='OP',
                                  help="Fully qualified operation name.")
-        info_parser.set_defaults(op_command=cls.execute_info)
+        info_parser.set_defaults(sub_command_function=cls._execute_info)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.op import OP_REGISTRY
         op_registrations = OP_REGISTRY.op_registrations
 
@@ -443,7 +557,7 @@ class OperationCommand(Command):
         list_items('operation', 'operations', op_names, name_pattern)
 
     @classmethod
-    def execute_info(cls, command_args):
+    def _execute_info(cls, command_args):
         if not command_args.op_name:
             return 2, "error: command 'op info': missing OP argument"
         from ect.core.op import OP_REGISTRY
@@ -456,15 +570,8 @@ class OperationCommand(Command):
         else:
             return 2, "error: command 'op info': unknown operation '%s'" % command_args.op_name
 
-    def execute(self, command_args):
-        if hasattr(command_args, 'op_command') and command_args.op_command:
-            return command_args.op_command(command_args)
-        else:
-            command_args.op_parser.print_help()
-            return 0, None
 
-
-class DataSourceCommand(Command):
+class DataSourceCommand(SubCommandCommand):
     """
     The ``ds`` command implements various operations w.r.t. data sources.
     """
@@ -477,15 +584,8 @@ class DataSourceCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        ds_parser = parser.add_subparsers(
-            dest='ds_command',
-            metavar='COMMAND',
-            help='One of the following commands. Type "COMMAND -h" to get command-specific help.'
-        )
-        parser.set_defaults(ds_parser=parser)
-
-        list_parser = ds_parser.add_parser('list', help='List all available data sources')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List all available data sources')
         list_parser.add_argument('--id', '-i', metavar='ID_PATTERN',
                                  help="A wildcard pattern to filter data source IDs. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
@@ -494,24 +594,24 @@ class DataSourceCommand(Command):
                                  help="A wildcard pattern to filter variable names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(ds_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        sync_parser = ds_parser.add_parser('sync',
-                                           help='Synchronise a remote data source with its local version.')
+        sync_parser = subparsers.add_parser('sync',
+                                            help='Synchronise a remote data source with its local version.')
         sync_parser.add_argument('ds_id', metavar='DS_ID',
                                  help='Data source ID. Type "ect ds list" to show all possible IDs.')
         sync_parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
                                  help='Limit to date/time period. Format of PERIOD is DATE[,DATE] '
                                       'where DATE is YYYY[-MM[-DD]]')
-        sync_parser.set_defaults(ds_command=cls.execute_sync)
+        sync_parser.set_defaults(sub_command_function=cls._execute_sync)
 
-        info_parser = ds_parser.add_parser('info', help='Display information about a data source.')
+        info_parser = subparsers.add_parser('info', help='Display information about a data source.')
         info_parser.add_argument('ds_id', metavar='DS_ID',
                                  help='Data source ID. Type "ect ds list" to show all possible IDs.')
-        info_parser.set_defaults(ds_command=cls.execute_info)
+        info_parser.set_defaults(sub_command_function=cls._execute_info)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -528,7 +628,7 @@ class DataSourceCommand(Command):
                    [data_source.name for data_source in data_store.query()], id_pattern)
 
     @classmethod
-    def execute_info(cls, command_args):
+    def _execute_info(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -542,7 +642,7 @@ class DataSourceCommand(Command):
                 print(data_source.info_string)
 
     @classmethod
-    def execute_sync(cls, command_args):
+    def _execute_sync(cls, command_args):
         from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
@@ -557,13 +657,6 @@ class DataSourceCommand(Command):
         else:
             time_range = (None, None)
         data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
-
-    def execute(self, command_args):
-        if hasattr(command_args, 'ds_command') and command_args.ds_command:
-            return command_args.ds_command(command_args)
-        else:
-            command_args.ds_parser.print_help()
-            return 0, None
 
     @staticmethod
     def parse_time_period(period):
@@ -607,7 +700,7 @@ class DataSourceCommand(Command):
         return date1, date2
 
 
-class PluginCommand(Command):
+class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
     """
@@ -620,34 +713,22 @@ class PluginCommand(Command):
         return cls.CMD_NAME, dict(help=help_line, description=help_line)
 
     @classmethod
-    def configure_parser(cls, parser):
-        pi_parser = parser.add_subparsers(dest='pi_command',
-                                          metavar='COMMAND',
-                                          help='One of the following commands. '
-                                               'Type "COMMAND -h" to get command-specific help.')
-        parser.set_defaults(op_parser=parser)
-
-        list_parser = pi_parser.add_parser('list', help='List plugins')
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List plugins')
         list_parser.add_argument('--name', '-n', metavar='NAME_PATTERN',
                                  help="A wildcard pattern to filter plugin names. "
                                       "'*' matches zero or many characters, '?' matches a single character. "
                                       "The comparison is case insensitive.")
-        list_parser.set_defaults(op_command=cls.execute_list)
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
     @classmethod
-    def execute_list(cls, command_args):
+    def _execute_list(cls, command_args):
         from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
         list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), name_pattern)
 
-    def execute(self, command_args):
-        if hasattr(command_args, 'op_command') and command_args.op_command:
-            return command_args.op_command(command_args)
-        else:
-            command_args.op_parser.print_help()
-            return 0, None
 
 def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
     if pattern:
@@ -701,6 +782,8 @@ class DocsCommand(Command):
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
     RunCommand,
+    WorkspaceCommand,
+    ResourceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,
