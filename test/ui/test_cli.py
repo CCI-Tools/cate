@@ -54,32 +54,61 @@ class CliTest(unittest.TestCase):
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
-class CliWorkspaceCommandTest(unittest.TestCase):
-    def test_command_ws_init(self):
-        _WORKSPACE_MAGIC_DIR_NAME = '.ect-workspace'
+from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
 
-        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
-            shutil.rmtree(_WORKSPACE_MAGIC_DIR_NAME, ignore_errors=True)
-        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
-            self.fail("Can't remove dir %s" % _WORKSPACE_MAGIC_DIR_NAME)
+
+class CliWorkspaceCommandTest(unittest.TestCase):
+    def _rmtree(self, dir_path, ignore_errors=True):
+        if os.path.exists(dir_path):
+            shutil.rmtree(dir_path, ignore_errors=ignore_errors)
+        if ignore_errors and os.path.isdir(dir_path):
+            self.fail("Can't remove dir %s" % dir_path)
+
+    def assert_workspace_base_dir(self, base_dir):
+        self.assertTrue(os.path.isdir(base_dir))
+        self.assertTrue(os.path.isdir(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)))
+        self.assertTrue(os.path.isfile(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME, 'workflow.json')))
+
+    def test_command_ws_init_no_arg(self):
+
+        self._rmtree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ws', 'init'])
-            self.assertEqual(status, 0)
-        self.assertIn('Workspace initialised', stdout.getvalue())
+            self.assertEqual(status, 0, msg=stderr.getvalue())
+        self.assertIn('Workspace initialized', stdout.getvalue())
         self.assertEqual(stderr.getvalue(), '')
 
-        self.assertTrue(os.path.isdir(_WORKSPACE_MAGIC_DIR_NAME))
-        self.assertTrue(os.path.isfile(_WORKSPACE_MAGIC_DIR_NAME + '/workflow.json'))
+        self.assert_workspace_base_dir('.')
 
         with fetch_std_streams() as (stdout, stderr):
             status = cli.main(args=['ws', 'init'])
-            self.assertEqual(status, 1)
-        self.assertIn('current directory is already a workspace', stderr.getvalue())
+            self.assertEqual(status, 1, msg=stderr.getvalue())
+        self.assertIn('workspace exists: ', stderr.getvalue())
         self.assertEqual(stdout.getvalue(), '')
 
-        if os.path.exists(_WORKSPACE_MAGIC_DIR_NAME):
-            shutil.rmtree(_WORKSPACE_MAGIC_DIR_NAME, ignore_errors=True)
+        self._rmtree(WORKSPACE_DATA_DIR_NAME)
+
+    def test_command_ws_init_with_arg(self):
+        base_dir = '_bibo_workspace'
+
+        self._rmtree(base_dir, ignore_errors=False)
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['ws', 'init', base_dir])
+            self.assertEqual(status, 0, msg=stderr.getvalue())
+        self.assertIn('Workspace initialized', stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), '')
+
+        self.assert_workspace_base_dir(base_dir)
+
+        with fetch_std_streams() as (stdout, stderr):
+            status = cli.main(args=['ws', 'init', base_dir])
+            self.assertEqual(status, 1, msg=stderr.getvalue())
+        self.assertIn('workspace exists: ', stderr.getvalue())
+        self.assertEqual(stdout.getvalue(), '')
+
+        self._rmtree(base_dir)
 
 
 class CliOperationCommandTest(unittest.TestCase):
