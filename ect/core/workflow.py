@@ -341,11 +341,12 @@ class Workflow(Node):
         import json
 
         json_dict = self.to_json_dict()
+        dump_kwargs = dict(indent='  ')
         if isinstance(file_path_or_fp, str):
             with open(file_path_or_fp, 'w') as fp:
-                json.dump(json_dict, fp)
+                json.dump(json_dict, fp, **dump_kwargs)
         else:
-            json.dump(json_dict, file_path_or_fp)
+            json.dump(json_dict, file_path_or_fp, **dump_kwargs)
 
     @classmethod
     def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY):

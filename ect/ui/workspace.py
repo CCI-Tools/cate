@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from ect.core.workflow import Workflow, OpStep, NodePort
 
 
@@ -33,12 +31,3 @@ class Workspace(object):
         self._workflow.output[name] = output_port
 
 
-class WorkflowTest(TestCase):
-    def test_example(self):
-        import json
-        ws = Workspace('/path')
-        print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.add_resource('p', 'ect.ops.io.read_netcdf', file='2010_precipitation.nc')
-        print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.add_resource('ts', 'ect.ops.timeseries.timeseries', ds='p', lat=53, lon=10)
-        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
