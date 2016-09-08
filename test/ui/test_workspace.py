@@ -7,57 +7,57 @@ class WorkflowTest(TestCase):
 
     def test_example(self):
         expected_json_text = """{
-          "qualified_name": "workspace-wf",
-          "header": {},
-          "input": {},
-          "output": {
-            "p": {
-              "source": "p.return",
-              "data_type": "xarray.core.dataset.Dataset"
+            "qualified_name": "workspace-wf",
+            "header": {},
+            "input": {},
+            "output": {
+                "p": {
+                    "source": "p.return",
+                    "data_type": "xarray.core.dataset.Dataset"
+                },
+                "ts": {
+                    "source": "ts.return",
+                    "data_type": "xarray.core.dataset.Dataset",
+                    "description": "A timeseries dataset."
+                }
             },
-            "ts": {
-              "source": "ts.return",
-              "data_type": "xarray.core.dataset.Dataset",
-              "description": "A timeseries dataset."
-            }
-          },
-          "steps": [
-            {
-              "id": "p",
-              "op": "ect.ops.io.read_netcdf",
-              "input": {
-                "file": {
-                  "value": "2010_precipitation.nc"
+            "steps": [
+                {
+                    "id": "p",
+                    "op": "ect.ops.io.read_netcdf",
+                    "input": {
+                        "file": {
+                            "value": "2010_precipitation.nc"
+                        },
+                        "drop_variables": {},
+                        "decode_cf": {},
+                        "decode_times": {},
+                        "engine": {}
+                    },
+                    "output": {
+                        "return": {}
+                    }
                 },
-                "drop_variables": {},
-                "decode_cf": {},
-                "decode_times": {},
-                "engine": {}
-              },
-              "output": {
-                "return": {}
-              }
-            },
-            {
-              "id": "ts",
-              "op": "ect.ops.timeseries.timeseries",
-              "input": {
-                "ds": {
-                  "source": "p.return"
-                },
-                "lat": {
-                  "value": 53
-                },
-                "lon": {
-                  "value": 10
-                },
-                "method": {}
-              },
-              "output": {
-                "return": {}
-              }
-            }
-          ]
+                {
+                    "id": "ts",
+                    "op": "ect.ops.timeseries.timeseries",
+                    "input": {
+                        "ds": {
+                            "source": "p.return"
+                        },
+                        "lat": {
+                            "value": 53
+                        },
+                        "lon": {
+                            "value": 10
+                        },
+                        "method": {}
+                    },
+                    "output": {
+                        "return": {}
+                    }
+                }
+            ]
         }
         """
 
