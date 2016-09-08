@@ -3,6 +3,7 @@ Tests for plotting operations
 """
 
 import os
+import unittest
 from unittest import TestCase
 
 import numpy as np
@@ -11,6 +12,7 @@ from ect.ops import plot
 
 
 class TestPlot(TestCase):
+    @unittest.skip(reason="skipped unless you want to debug plot generation")
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
