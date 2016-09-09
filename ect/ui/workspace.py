@@ -1,6 +1,8 @@
+import json
 import os
 import sys
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from typing import List
 
 from ect.core.op import OpMetaInfo, parse_op_args
@@ -9,6 +11,7 @@ from ect.core.workflow import Workflow, OpStep, NodePort
 
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
+
 
 # TODO (forman, 20160908): implement file lock for workspaces in access
 
@@ -76,7 +79,6 @@ class Workspace:
             workflow = Workflow(OpMetaInfo('workspace_workflow',
                                            has_monitor=True,
                                            header_dict=dict(description=description or '')))
-            workflow_file = cls.workflow_file(base_dir)
             workflow.store(workflow_file)
             return Workspace(base_dir, workflow)
         except (IOError, OSError, FileExistsError) as e:
@@ -94,6 +96,17 @@ class Workspace:
     def store(self):
         workflow_file = self.workflow_file(self.base_dir)
         self.workflow.store(workflow_file)
+
+    @classmethod
+    def from_json_dict(cls, json_dict):
+        base_dir = json_dict.get('base_dir', None)
+        workflow_json = json_dict.get('workflow', None)
+        workflow = Workflow.from_json_dict(workflow_json)
+        return Workspace(base_dir, workflow)
+
+    def to_json_dict(self):
+        return OrderedDict([('base_dir', self.base_dir),
+                            ('workflow', self.workflow.to_json_dict())])
 
     def add_resource(self, res_name: str, op_name: str, op_args: List[str]):
         assert res_name
@@ -155,9 +168,8 @@ class Workspace:
 
 
 class WorkspaceManager(metaclass=ABCMeta):
-
     @abstractmethod
-    def init_workspace(self, base_dir: str):
+    def init_workspace(self, base_dir: str, description: str = None):
         pass
 
     @abstractmethod
@@ -192,3 +204,55 @@ class CachedWorkspaceManager(WorkspaceManager):
         workspace = Workspace.load(base_dir)
         self._workspace_cache[base_dir] = workspace
         return workspace
+
+
+import urllib.parse
+import urllib.request
+
+
+def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = None):
+    path = path_pattern
+    if path_args:
+        quoted_pattern_args = dict(path_args)
+        for name, value in path_args.items():
+            quoted_pattern_args[name] = urllib.parse.quote(str(value)) if value is not None else ''
+        path = path_pattern.format(**quoted_pattern_args)
+    query_string = ''
+    if query_args:
+        query_string = '?' + urllib.parse.urlencode(query_args)
+    return path + query_string
+
+
+from tornado.httpclient import AsyncHTTPClient
+from tornado.gen import with_timeout
+
+
+class WebAPIWorkspaceManager(WorkspaceManager):
+    def __init__(self, port=8888, address='localhost', http_client=None):
+        self.base_url = 'http://%s:%s' % (address, port)
+        self.http_client = http_client or AsyncHTTPClient()
+
+    def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
+        return self.base_url + encode_path(path_pattern, path_args=path_args, query_args=query_args)
+
+    def _fetch_json(self, url, error_type):
+        future = self.http_client.fetch(url)
+        future = with_timeout(10, future)
+        response = future.result()
+        json_text = response.body
+        #with urllib.request.urlopen(url) as response:
+        #    json_text = response.read()
+        json_dict = json.loads(json_text.decode('utf-8'))
+        if 'error' in json_dict:
+            raise error_type(json_dict.get('message', json_dict['error']))
+        return json_dict
+
+    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+        url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
+        json_dict = self._fetch_json(url, WorkspaceError)
+        return Workspace.from_json_dict(json_dict)
+
+    def get_workspace(self, base_dir: str) -> Workspace:
+        url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
+        json_dict = self._fetch_json(url, WorkspaceError)
+        return Workspace.from_json_dict(json_dict)

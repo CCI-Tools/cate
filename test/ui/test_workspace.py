@@ -1,9 +1,30 @@
 import json
+import os
+import shutil
 from unittest import TestCase
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
+from ect.ui.workspace import WebAPIWorkspaceManager
 from ect.ui.workspace import Workspace
+from tornado.testing import AsyncHTTPTestCase
+from ect.ui import webapi
+
+
+class WebAPIWorkspaceManagerTest(AsyncHTTPTestCase):
+    def get_app(self):
+        return webapi.get_application()
+
+    def test_init_workspace(self):
+        base_dir = 'TESTOMAT'
+        if os.path.exists(base_dir):
+            shutil.rmtree(base_dir)
+
+        workspace_manager = WebAPIWorkspaceManager(port=self.get_http_port(), http_client=self.http_client)
+        workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+
+        shutil.rmtree(base_dir)
 
 
 class WorkspaceTest(TestCase):
