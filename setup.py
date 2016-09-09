@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 packages = find_packages(exclude=["test", "test.*"])
 
 # Same effect as "from ect import __version__", but avoids importing ect:
+__version__ = None
 with open('ect/version.py') as f:
     exec(f.read())
 
@@ -28,6 +29,7 @@ setup(
                       # 'netcdf4 >= 1.2.4',
                       'netcdf4 >= 1.2',
                       'dask >= 0.8',
+                      'tornado >= 4.4',
                       'numba >= 0.26',
                       'numpy >= 1.7',
                       'scipy >= 0.17',
