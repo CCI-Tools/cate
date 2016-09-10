@@ -2,7 +2,7 @@ import argparse
 import sys
 from datetime import date
 
-from ect.ui.workspace import CachedWorkspaceManager
+from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application
@@ -32,20 +32,8 @@ class WorkspaceGetHandler(RequestHandler):
         self.write(workspace.to_json_dict())
 
 
-class GetHandler(RequestHandler):
-    def get(self, id2=None, id1=None):
-        response = {'id1': int(id1),
-                    'id2': int(id2),
-                    'timestamp': date.today().isoformat()}
-        print('application.workspace_manager =', self.application.workspace_manager)
-        print('arguments =', self.request.arguments)
-        print('query_arguments =', self.request.query_arguments)
-        self.write(response)
-
-
 class VersionHandler(RequestHandler):
     def get(self):
-        print('application.workspace_manager =', self.application.workspace_manager)
         response = {'name': CLI_NAME,
                     'version': __version__,
                     'timestamp': date.today().isoformat()}
@@ -56,7 +44,7 @@ class ExitHandler(RequestHandler):
     def get(self):
         self.write('Bye!')
         IOLoop.instance().stop()
-
+        # IOLoop.instance().add_callback(IOLoop.instance().stop)
 
 
 
@@ -102,10 +90,9 @@ def get_application():
         (url_pattern('/'), VersionHandler),
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
-        (url_pattern('/get/{{id1}}/{{id2}}'), GetHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
-    application.workspace_manager = CachedWorkspaceManager()
+    application.workspace_manager = FSWorkspaceManager()
     return application
 
 
@@ -114,6 +101,8 @@ def start_service(port=None, address=None):
     port = port or DEFAULT_PORT
     print('starting ECT WebAPI on %s:%s' % (address or DEFAULT_ADDRESS, port))
     application.listen(port, address=address or '')
+    io_loop = IOLoop()
+    io_loop.make_current()
     IOLoop.instance().start()
 
 
