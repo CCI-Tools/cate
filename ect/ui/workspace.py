@@ -177,7 +177,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
 
-class CachedWorkspaceManager(WorkspaceManager):
+class FSWorkspaceManager(WorkspaceManager):
     def __init__(self):
         self._workspace_cache = dict()
 
@@ -223,25 +223,18 @@ def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = No
     return path + query_string
 
 
-from tornado.httpclient import AsyncHTTPClient
-from tornado.gen import with_timeout
-
 
 class WebAPIWorkspaceManager(WorkspaceManager):
-    def __init__(self, port=8888, address='localhost', http_client=None):
+    def __init__(self, port=8888, address='localhost', timeout=120):
         self.base_url = 'http://%s:%s' % (address, port)
-        self.http_client = http_client or AsyncHTTPClient()
+        self.timeout = timeout
 
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
         return self.base_url + encode_path(path_pattern, path_args=path_args, query_args=query_args)
 
     def _fetch_json(self, url, error_type):
-        future = self.http_client.fetch(url)
-        future = with_timeout(10, future)
-        response = future.result()
-        json_text = response.body
-        #with urllib.request.urlopen(url) as response:
-        #    json_text = response.read()
+        with urllib.request.urlopen(url, timeout=self.timeout) as response:
+            json_text = response.read()
         json_dict = json.loads(json_text.decode('utf-8'))
         if 'error' in json_dict:
             raise error_type(json_dict.get('message', json_dict['error']))

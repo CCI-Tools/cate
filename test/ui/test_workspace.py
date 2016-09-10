@@ -1,33 +1,84 @@
 import json
 import os
 import shutil
-from unittest import TestCase
+import subprocess
+import sys
+import unittest
+import urllib.request
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WebAPIWorkspaceManager
-from ect.ui.workspace import Workspace
-from tornado.testing import AsyncHTTPTestCase
-from ect.ui import webapi
+from ect.ui.workspace import WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
 
-class WebAPIWorkspaceManagerTest(AsyncHTTPTestCase):
-    def get_app(self):
-        return webapi.get_application()
+# noinspection PyUnresolvedReferences
+class WorkspaceManagerTestMixin:
+    def new_workspace_manager(self):
+        raise NotImplementedError
 
-    def test_init_workspace(self):
-        base_dir = 'TESTOMAT'
+    def new_base_dir(self, base_dir):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
+        return base_dir
 
-        workspace_manager = WebAPIWorkspaceManager(port=self.get_http_port(), http_client=self.http_client)
-        workspace_manager.init_workspace(base_dir=base_dir)
-        self.assertTrue(os.path.exists(base_dir))
-
+    def del_base_dir(self, base_dir):
         shutil.rmtree(base_dir)
 
+    def test_init_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT1')
 
-class WorkspaceTest(TestCase):
+        workspace_manager = self.new_workspace_manager()
+        workspace = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_get_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT2')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+
+        self.assertEqual(workspace1.base_dir, workspace2.base_dir)
+        self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
+
+        self.del_base_dir(base_dir)
+
+
+class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+    def new_workspace_manager(self):
+        return FSWorkspaceManager()
+
+
+class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+    PORT = 8782
+
+    def setUp(self):
+        self.popen = subprocess.Popen([sys.executable, '-m', 'ect.ui.webapi', 'start', '-p', str(self.PORT)],
+                                      shell=True)
+        while True:
+            try:
+                urllib.request.urlopen('http://localhost:%s/' % self.PORT, timeout=1)
+                break
+            except:
+                pass
+        # print('WebAPI up')
+
+    def tearDown(self):
+        exit_code = subprocess.call([sys.executable, '-m', 'ect.ui.webapi', 'stop', '-p', str(self.PORT)], shell=True)
+        if exit_code:
+            self.popen.kill()
+        # print('WebAPI down')
+
+    def new_workspace_manager(self):
+        return WebAPIWorkspaceManager(port=self.PORT, timeout=10)
+
+
+class WorkspaceTest(unittest.TestCase):
     def test_example(self):
         expected_json_text = """{
             "qualified_name": "workspace_workflow",
