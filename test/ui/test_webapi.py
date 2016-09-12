@@ -2,14 +2,16 @@ import json
 import os
 import re
 import shutil
-from unittest import TestCase
+import unittest
 
 from ect.ui import webapi
 from ect.ui.workspace import encode_path
 from tornado.testing import AsyncHTTPTestCase
 
 
-# see http://www.tornadoweb.org/en/stable/testing.html
+# For usage of the tornado.testing.AsyncHTTPTestCase see http://www.tornadoweb.org/en/stable/testing.html
+
+@unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPITest(AsyncHTTPTestCase):
     def get_app(self):
         return webapi.get_application()
@@ -60,7 +62,7 @@ class WebAPITest(AsyncHTTPTestCase):
             shutil.rmtree(base_dir)
 
 
-class UrlPatternTest(TestCase):
+class UrlPatternTest(unittest.TestCase):
     def test_url_pattern_works(self):
         re_pattern = webapi.url_pattern('/open/{{id1}}ws/{{id2}}wf')
         matcher = re.fullmatch(re_pattern, '/open/34ws/a66wf')
