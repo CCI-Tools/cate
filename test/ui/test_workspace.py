@@ -54,6 +54,7 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         return FSWorkspaceManager()
 
 
+@unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     PORT = 8782
 
@@ -66,13 +67,13 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
                 break
             except:
                 pass
-        # print('WebAPI up')
+                # print('WebAPI up')
 
     def tearDown(self):
         exit_code = subprocess.call([sys.executable, '-m', 'ect.ui.webapi', 'stop', '-p', str(self.PORT)], shell=True)
         if exit_code:
             self.popen.kill()
-        # print('WebAPI down')
+            # print('WebAPI down')
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(port=self.PORT, timeout=10)
