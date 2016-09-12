@@ -29,7 +29,8 @@ install:
 script:
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - export NUMBA_DISABLE_JIT=1
-  - export ECT_DISABLE_WEB_TESTS=1
+  # Uncomment following line if web testing on travis breaks our build
+  # - export ECT_DISABLE_WEB_TESTS=1
   - py.test -v --cov=ect test
 
 after_success:
