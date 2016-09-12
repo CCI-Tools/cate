@@ -5,10 +5,11 @@ import subprocess
 import sys
 import unittest
 import urllib.request
+from collections import OrderedDict
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
+from ect.ui.workspace import WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_path
 
 
 # noinspection PyUnresolvedReferences
@@ -59,21 +60,21 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     PORT = 8782
 
     def setUp(self):
-        self.popen = subprocess.Popen([sys.executable, '-m', 'ect.ui.webapi', 'start', '-p', str(self.PORT)],
-                                      shell=True)
+        self.webapi = subprocess.Popen([sys.executable, '-m', 'ect.ui.webapi', 'start', '-p', str(self.PORT)],
+                                       shell=True)
+
+        webapi_url = 'http://127.0.0.1:%s/' % self.PORT
         while True:
             try:
-                urllib.request.urlopen('http://localhost:%s/' % self.PORT, timeout=1)
+                urllib.request.urlopen(webapi_url, timeout=1)
                 break
             except:
                 pass
-                # print('WebAPI up')
 
     def tearDown(self):
         exit_code = subprocess.call([sys.executable, '-m', 'ect.ui.webapi', 'stop', '-p', str(self.PORT)], shell=True)
         if exit_code:
-            self.popen.kill()
-            # print('WebAPI down')
+            self.webapi.kill()
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(port=self.PORT, timeout=10)
@@ -147,3 +148,22 @@ class WorkspaceTest(unittest.TestCase):
         ws.add_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
         print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
+
+
+class EncodePathTest(unittest.TestCase):
+    def test_encode_path(self):
+        self.assertEqual(encode_path('/ws/init',
+                                     query_args=OrderedDict(base_path='/home/norman/workpaces',
+                                                            description='Hi there!')),
+                         '/ws/init?base_path=%2Fhome%2Fnorman%2Fworkpaces&description=Hi+there%21')
+        self.assertEqual(encode_path('/ws/init',
+                                     query_args=OrderedDict(base_path='C:\\Users\\Norman\\workpaces',
+                                                            description='Hi there!')),
+                         '/ws/init?base_path=C%3A%5CUsers%5CNorman%5Cworkpaces&description=Hi+there%21')
+
+        self.assertEqual(encode_path('/ws/get/{base_path}',
+                                     path_args=OrderedDict(base_path='/home/norman/workpaces')),
+                         '/ws/get/%2Fhome%2Fnorman%2Fworkpaces')
+        self.assertEqual(encode_path('/ws/get/{base_path}',
+                                     path_args=OrderedDict(base_path='C:\\Users\\Norman\\workpaces')),
+                         '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
