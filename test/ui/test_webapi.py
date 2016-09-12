@@ -22,7 +22,7 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertIn('version', json_dict)
 
     def test_ws_init(self):
-        base_dir = os.path.abspath('TEST_WS')
+        base_dir = os.path.abspath('TEST_WS_1')
 
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
@@ -38,7 +38,7 @@ class WebAPITest(AsyncHTTPTestCase):
             shutil.rmtree(base_dir)
 
     def test_ws_get(self):
-        base_dir = os.path.abspath('TEST_WS')
+        base_dir = os.path.abspath('TEST_WS_2')
 
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
