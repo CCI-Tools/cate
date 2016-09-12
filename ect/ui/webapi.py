@@ -1,5 +1,6 @@
 import argparse
 import sys
+import urllib.request
 from datetime import date
 
 from ect.ui.workspace import FSWorkspaceManager
@@ -9,7 +10,7 @@ from tornado.web import RequestHandler, Application
 
 CLI_NAME = 'ect-webapi'
 
-DEFAULT_ADDRESS = 'localhost'
+DEFAULT_ADDRESS = '127.0.0.1'
 DEFAULT_PORT = 8888
 
 
@@ -45,7 +46,6 @@ class ExitHandler(RequestHandler):
         self.write('Bye!')
         IOLoop.instance().stop()
         # IOLoop.instance().add_callback(IOLoop.instance().stop)
-
 
 
 def url_pattern(pattern: str):
@@ -99,7 +99,8 @@ def get_application():
 def start_service(port=None, address=None):
     application = get_application()
     port = port or DEFAULT_PORT
-    print('starting ECT WebAPI on %s:%s' % (address or DEFAULT_ADDRESS, port))
+    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
+    print('starting ECT WebAPI on %s' % address_and_port)
     application.listen(port, address=address or '')
     io_loop = IOLoop()
     io_loop.make_current()
@@ -109,9 +110,9 @@ def start_service(port=None, address=None):
 def stop_service(port=None, address=None):
     port = port or DEFAULT_PORT
     address = address or DEFAULT_ADDRESS
-    print('stopping ECT WebAPI on %s:%s' % (address, port))
-    import urllib.request
-    urllib.request.urlopen('http://%s:%s/exit' % (address, port))
+    address_and_port = '%s:%s' % (address, port)
+    print('stopping ECT WebAPI on %s' % address_and_port)
+    urllib.request.urlopen('http://%s/exit' % address_and_port)
 
 
 def main(args=None):
