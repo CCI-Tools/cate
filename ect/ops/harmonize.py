@@ -10,7 +10,7 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input
 
 @op_input('datasets', description='A list of datasets to harmonize')
 def harmonize(datasets:list):

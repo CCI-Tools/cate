@@ -14,12 +14,12 @@ import os
 import numpy as np
 from mpl_toolkits import basemap
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input, op_return
 
 @op_input('slave', description='xr.Dataset that will be resampled on the masters grid')
 @op_input('master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
-@op_output('return', description='The resampled slave dataset')
+@op_return(description='The resampled slave dataset')
 def coregister(master:xr.Dataset, slave:xr.Dataset, method:str):
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the

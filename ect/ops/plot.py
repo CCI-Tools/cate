@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input
 
 
 @op_input('ds', description="A dataset from which to create the plot", required=True)

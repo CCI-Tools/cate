@@ -10,7 +10,7 @@ Components
 import math
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input
 
 
 @op_input('ds_y', description="The 'dependent' Time series dataset")

@@ -9,12 +9,12 @@ Components
 """
 
 import xarray as xr
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input, op_return
 
 @op_input('ds', description='A dataset to subset')
 @op_input('lat', description='[lat_min, lat_max] to select')
 @op_input('lon', description='[lon_min, lon_max] to select')
-@op_output('return', description='The subset dataset')
+@op_return(description='The subset dataset')
 def subset_spatial(ds:xr.Dataset, lat:list, lon:list):
     """
     Do a spatial subset of the dataset
@@ -32,7 +32,7 @@ def subset_spatial(ds:xr.Dataset, lat:list, lon:list):
 
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_min, time_max] to select')
-@op_output('return', description='The subset dataset')
+@op_return(description='The subset dataset')
 def subset_temporal(ds:xr.Dataset, time:list):
     """
     Do a temporal subset of the dataset
@@ -48,7 +48,7 @@ def subset_temporal(ds:xr.Dataset, time:list):
 
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_index_min, time_index_max] to select')
-@op_output('return', description='The subset dataset')
+@op_return(description='The subset dataset')
 def subset_temporal_index(ds:xr.Dataset, time:list):
     """
     Do a temporal indices based subset
