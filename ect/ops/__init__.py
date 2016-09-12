@@ -27,7 +27,7 @@ Components
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .timeseries import timeseries, timeseries_mean
 from .harmonize import harmonize
-from .filter import filter_dataset
+from .select import select_variables
 #from .coregistration import coregister
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .correlation import pearson_correlation
@@ -41,7 +41,7 @@ __all__ = [
     'downsample_2d',
     'upsample_2d',
     'harmonize',
-    'filter_dataset',
+    'select_variables',
 #    'coregister',
     'subset_spatial',
     'subset_temporal',
