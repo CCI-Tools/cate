@@ -5,8 +5,8 @@ import subprocess
 import sys
 import unittest
 import urllib.request
+import time
 from collections import OrderedDict
-
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
 from ect.ui.workspace import WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_path
@@ -57,27 +57,35 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-    PORT = 8782
+    PORT = 17830
 
     def setUp(self):
-        self.webapi = subprocess.Popen([sys.executable, '-m', 'ect.ui.webapi', 'start', '-p', str(self.PORT)],
+        self.webapi = subprocess.Popen('"%s" -m ect.ui.webapi -p %d start' % (sys.executable, self.PORT),
                                        shell=True)
 
         webapi_url = 'http://127.0.0.1:%s/' % self.PORT
         while True:
+            return_code = self.webapi.poll()
+            if return_code is not None:
+                if return_code:
+                    self.fail("failed to start WebAPI")
+                else:
+                    break
             try:
-                urllib.request.urlopen(webapi_url, timeout=1)
+                time.sleep(0.1)
+                urllib.request.urlopen(webapi_url, timeout=2)
                 break
-            except:
+            except Exception as e:
+                # print(str(e))
                 pass
 
     def tearDown(self):
-        exit_code = subprocess.call([sys.executable, '-m', 'ect.ui.webapi', 'stop', '-p', str(self.PORT)], shell=True)
+        exit_code = subprocess.call('"%s" -m ect.ui.webapi -p %d stop' % (sys.executable, self.PORT), shell=True)
         if exit_code:
             self.webapi.kill()
 
     def new_workspace_manager(self):
-        return WebAPIWorkspaceManager(port=self.PORT, timeout=10)
+        return WebAPIWorkspaceManager(port=self.PORT, timeout=2)
 
 
 class WorkspaceTest(unittest.TestCase):
@@ -153,17 +161,17 @@ class WorkspaceTest(unittest.TestCase):
 class EncodePathTest(unittest.TestCase):
     def test_encode_path(self):
         self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict(base_path='/home/norman/workpaces',
-                                                            description='Hi there!')),
+                                     query_args=OrderedDict([('base_path', '/home/norman/workpaces'),
+                                                             ('description', 'Hi there!')])),
                          '/ws/init?base_path=%2Fhome%2Fnorman%2Fworkpaces&description=Hi+there%21')
         self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict(base_path='C:\\Users\\Norman\\workpaces',
-                                                            description='Hi there!')),
+                                     query_args=OrderedDict([('base_path', 'C:\\Users\\Norman\\workpaces'),
+                                                             ('description', 'Hi there!')])),
                          '/ws/init?base_path=C%3A%5CUsers%5CNorman%5Cworkpaces&description=Hi+there%21')
 
         self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=OrderedDict(base_path='/home/norman/workpaces')),
+                                     path_args=dict(base_path='/home/norman/workpaces')),
                          '/ws/get/%2Fhome%2Fnorman%2Fworkpaces')
         self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=OrderedDict(base_path='C:\\Users\\Norman\\workpaces')),
+                                     path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
                          '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
