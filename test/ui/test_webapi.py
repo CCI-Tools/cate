@@ -3,9 +3,11 @@ import os
 import re
 import shutil
 import unittest
+import urllib.parse
 
 from ect.ui import webapi
 from ect.ui.workspace import encode_path
+from tornado.httpclient import HTTPRequest
 from tornado.testing import AsyncHTTPTestCase
 
 
@@ -61,6 +63,35 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
+    def test_ws_add_resource(self):
+        base_dir = os.path.abspath('TEST_WS_3')
+
+        if os.path.exists(base_dir):
+            shutil.rmtree(base_dir)
+
+        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_3'),
+                                                                      description='Wow!')))
+        self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertIn('base_dir', json_dict)
+        self.assertIn('workflow', json_dict)
+
+        res_name = 'SST'
+
+        op_args = ['file=SST.nc']
+        data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
+        body = urllib.parse.urlencode(data)
+        url = encode_path('/ws/{base_dir}/res/{res_name}/set', path_args=dict(base_dir=os.path.abspath(base_dir),
+                                                                              res_name=res_name))
+        response = self.fetch(url, method='POST', body=body)
+
+        self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(json_dict, dict(status='ok'))
+
+        if os.path.exists(base_dir):
+            shutil.rmtree(base_dir)
+
 
 class UrlPatternTest(unittest.TestCase):
     def test_url_pattern_works(self):
@@ -73,6 +104,12 @@ class UrlPatternTest(unittest.TestCase):
         matcher = re.fullmatch(re_pattern, '/open/ws34/wfa66')
         self.assertIsNotNone(matcher)
         self.assertEqual(matcher.groupdict(), {'id1': '34', 'id2': 'a66'})
+
+        x = 'C%3A%5CUsers%5CNorman%5CIdeaProjects%5Cccitools%5Cect-core%5Ctest%5Cui%5CTEST_WS_3'
+        re_pattern = webapi.url_pattern('/ws/{{base_dir}}/res/{{res_name}}/add')
+        matcher = re.fullmatch(re_pattern, '/ws/%s/res/SST/add' % x)
+        self.assertIsNotNone(matcher)
+        self.assertEqual(matcher.groupdict(), {'base_dir': x, 'res_name': 'SST'})
 
     def test_url_pattern_ok(self):
         self.assertEqual(webapi.url_pattern('/version'),

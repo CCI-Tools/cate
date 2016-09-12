@@ -77,13 +77,13 @@ import argparse
 import os.path
 import sys
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
 from ect.core.op import parse_op_args
 from ect.ops.io import load_dataset
+from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
 #: Name of the ECT CLI executable (= ``ect``).
@@ -108,6 +108,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """ % __version__
+
+
+def _new_workspace_manager() -> WorkspaceManager:
+    return FSWorkspaceManager()
 
 
 def _parse_load_arg(load_arg: str) -> Tuple[str, str, str]:
@@ -416,8 +420,7 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_init(cls, command_args):
-        from .workspace import FSWorkspaceManager, WorkspaceError
-        workspace_manager = FSWorkspaceManager()
+        workspace_manager = _new_workspace_manager()
         try:
             workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
             print('Workspace initialized.')
@@ -427,8 +430,7 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_status(cls, command_args):
-        from .workspace import FSWorkspaceManager, WorkspaceError
-        workspace_manager = FSWorkspaceManager()
+        workspace_manager = _new_workspace_manager()
         try:
             workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
         except WorkspaceError as e:
@@ -475,12 +477,10 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_set(cls, command_args):
-        from .workspace import FSWorkspaceManager, WorkspaceError
-        workspace_manager = FSWorkspaceManager()
+        workspace_manager = _new_workspace_manager()
         try:
-            workspace = workspace_manager.get_workspace()
-            workspace.add_resource(command_args.res_name, command_args.op_name, command_args.op_args)
-            workspace.store()
+            workspace_manager.set_workspace_resource('', command_args.res_name,
+                                                     command_args.op_name, command_args.op_args)
             print("Resource '%s' set." % command_args.res_name)
         except WorkspaceError as e:
             return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
@@ -489,15 +489,12 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_del(cls, command_args):
-        from .workspace import FSWorkspaceManager, WorkspaceError
-        workspace_manager = FSWorkspaceManager()
+        workspace_manager = _new_workspace_manager()
         try:
-            workspace = workspace_manager.get_workspace()
+            # workspace.remove_resource(command_args.res_name, )
+            print("Resource '%s' deleted." % command_args.res_name)
         except WorkspaceError as e:
             return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
-        #
-        # workspace.remove_resource(command_args.res_name, )
-        print("Resource '%s' deleted." % command_args.res_name)
         return cls.STATUS_OK
 
 

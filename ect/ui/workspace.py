@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+import urllib.parse
+import urllib.request
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
@@ -108,7 +110,7 @@ class Workspace:
         return OrderedDict([('base_dir', self.base_dir),
                             ('workflow', self.workflow.to_json_dict())])
 
-    def add_resource(self, res_name: str, op_name: str, op_args: List[str]):
+    def set_resource(self, res_name: str, op_name: str, op_args: List[str]):
         assert res_name
         assert op_name
         assert op_args
@@ -176,38 +178,43 @@ class WorkspaceManager(metaclass=ABCMeta):
     def get_workspace(self, base_dir: str):
         pass
 
+    @abstractmethod
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+        pass
+
 
 class FSWorkspaceManager(WorkspaceManager):
     def __init__(self):
         self._workspace_cache = dict()
 
     @classmethod
-    def abs_dir(cls, dir_path):
-        if not dir_path:
-            dir_path = os.curdir
-        return os.path.abspath(dir_path)
+    def _abs_dir(cls, dir_path):
+        return os.path.abspath(dir_path or os.curdir)
 
-    def init_workspace(self, base_dir: str = None, description: str = None) -> Workspace:
-        base_dir = self.abs_dir(base_dir)
-        workspace = self._workspace_cache.get(base_dir, None)
+    def _get_cached_workspace(self, base_dir):
+        base_dir = self._abs_dir(base_dir)
+        return base_dir, self._workspace_cache.get(base_dir, None)
+
+    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+        base_dir, workspace = self._get_cached_workspace(base_dir)
         if workspace:
             raise WorkspaceError('workspace exists: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         self._workspace_cache[base_dir] = workspace
         return workspace
 
-    def get_workspace(self, base_dir: str = None) -> Workspace:
-        base_dir = self.abs_dir(base_dir)
-        workspace = self._workspace_cache.get(base_dir, None)
+    def get_workspace(self, base_dir: str) -> Workspace:
+        base_dir, workspace = self._get_cached_workspace(base_dir)
         if workspace:
             return workspace
         workspace = Workspace.load(base_dir)
         self._workspace_cache[base_dir] = workspace
         return workspace
 
-
-import urllib.parse
-import urllib.request
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+        workspace = self.get_workspace(base_dir)
+        workspace.set_resource(res_name, op_name, op_args)
+        workspace.store()
 
 
 def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = None):
@@ -231,8 +238,8 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
         return self.base_url + encode_path(path_pattern, path_args=path_args, query_args=query_args)
 
-    def _fetch_json(self, url, error_type):
-        with urllib.request.urlopen(url, timeout=self.timeout) as response:
+    def _fetch_json(self, url, data=None, error_type=WorkspaceError):
+        with urllib.request.urlopen(url, data=data, timeout=self.timeout) as response:
             json_text = response.read()
         json_dict = json.loads(json_text.decode('utf-8'))
         if 'error' in json_dict:
@@ -241,10 +248,16 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
         url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
-        json_dict = self._fetch_json(url, WorkspaceError)
+        json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
 
     def get_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
-        json_dict = self._fetch_json(url, WorkspaceError)
+        json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
+
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+        url = self._url('/ws/{base_dir}/res/{res_name}/set',
+                        path_args=dict(base_dir=base_dir, res_name=res_name))
+        data = urllib.parse.urlencode(dict(op_name=op_name, op_args=json.dumps(op_args)))
+        self._fetch_json(url, data=data.encode())
