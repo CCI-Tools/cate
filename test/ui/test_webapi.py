@@ -27,7 +27,7 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS'),
+        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_1'),
                                                                       description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
@@ -43,7 +43,7 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS'),
+        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_2'),
                                                                       description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
