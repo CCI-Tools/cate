@@ -12,7 +12,7 @@ import xarray as xr
 
 from ect.core.op import op_input
 
-@op_input('datasets', description='A list of datasets to harmonize')
+@op_input('ds_list', description='A list of datasets to harmonize')
 def harmonize(datasets:list):
     """
     Harmonize the given datasets in place. E.g. change dimension names
@@ -20,7 +20,7 @@ def harmonize(datasets:list):
 
     :param datasets: A list of datasets to harmonize
     """
-    for dataset in datasets:
+    for dataset in ds_list:
         _harmonize_dataset(dataset)
 
 

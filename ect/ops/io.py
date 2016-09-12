@@ -18,10 +18,10 @@ def load_dataset(data_source: str, start_date: str, end_date: str) -> xr.Dataset
 
 
 @op(tags=['io'])
-@op_input('dataset')
+@op_input('ds')
 @op_input('file')
-def store_dataset(dataset: xr.Dataset, file: str):
-    dataset.to_netcdf(file)
+def store_dataset(ds: xr.Dataset, file: str):
+    ds.to_netcdf(file)
 
 
 @op(tags='io')
