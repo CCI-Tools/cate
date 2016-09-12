@@ -223,7 +223,6 @@ def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = No
     return path + query_string
 
 
-
 class WebAPIWorkspaceManager(WorkspaceManager):
     def __init__(self, port=8888, address='localhost', timeout=120):
         self.base_url = 'http://%s:%s' % (address, port)
