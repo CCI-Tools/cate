@@ -10,9 +10,10 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input, op_return
+from ect.core.op import op_input, op_return, op
 
 
+@op(tags=['timeseries', 'temporal', 'point'])
 @op_input('ds')
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
@@ -34,6 +35,7 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
     return ds.sel(method=method, **indexers)
 
 
+@op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
 @op_input('ds', description='A dataset from which to extract time series')
 @op_return(description='A timeseries dataset')
 def timeseries_mean(ds: xr.Dataset):

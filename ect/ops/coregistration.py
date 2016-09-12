@@ -14,8 +14,9 @@ import os
 import numpy as np
 from mpl_toolkits import basemap
 
-from ect.core.op import op_input, op_return
+from ect.core.op import op_input, op_return, op
 
+@op(tags=['geom', 'coregistration'])
 @op_input('ds_slave', description='xr.Dataset that will be resampled on the masters grid')
 @op_input('ds_master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')

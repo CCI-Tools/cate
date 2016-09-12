@@ -12,6 +12,7 @@ import xarray as xr
 
 from ect.core.op import op, op_input, op_return
 
+@op(tags=['select'])
 @op_input('ds', description='Input dataset')
 @op_input('variable_names', description='List of regex patterns that identify the variables to keep')
 @op_input('regex', description='If True, variable names are expected to contain regex_ patterns')

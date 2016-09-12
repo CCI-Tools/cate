@@ -9,8 +9,9 @@ Components
 """
 
 import xarray as xr
-from ect.core.op import op_input, op_return
+from ect.core.op import op_input, op_return, op
 
+@op(tags=['geom', 'subset', 'spatial'])
 @op_input('ds', description='A dataset to subset')
 @op_input('lat', description='[lat_min, lat_max] to select')
 @op_input('lon', description='[lon_min, lon_max] to select')
@@ -30,6 +31,7 @@ def subset_spatial(ds:xr.Dataset, lat:list, lon:list):
     return ds.sel(**indexers)
 
 
+@op(tags=['subset', 'temporal'])
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_min, time_max] to select')
 @op_return(description='The subset dataset')
@@ -46,6 +48,7 @@ def subset_temporal(ds:xr.Dataset, time:list):
     return ds.sel(**indexers)
 
 
+@op(tags=['subset', 'temporal'])
 @op_input('ds', description='A dataset to subset')
 @op_input('time', description='[time_index_min, time_index_max] to select')
 @op_return(description='The subset dataset')
