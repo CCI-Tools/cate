@@ -416,8 +416,8 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_init(cls, command_args):
-        from .workspace import CachedWorkspaceManager, WorkspaceError
-        workspace_manager = CachedWorkspaceManager()
+        from .workspace import FSWorkspaceManager, WorkspaceError
+        workspace_manager = FSWorkspaceManager()
         try:
             workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
             print('Workspace initialized.')
@@ -427,8 +427,8 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_status(cls, command_args):
-        from .workspace import CachedWorkspaceManager, WorkspaceError
-        workspace_manager = CachedWorkspaceManager()
+        from .workspace import FSWorkspaceManager, WorkspaceError
+        workspace_manager = FSWorkspaceManager()
         try:
             workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
         except WorkspaceError as e:
@@ -475,8 +475,8 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_set(cls, command_args):
-        from .workspace import CachedWorkspaceManager, WorkspaceError
-        workspace_manager = CachedWorkspaceManager()
+        from .workspace import FSWorkspaceManager, WorkspaceError
+        workspace_manager = FSWorkspaceManager()
         try:
             workspace = workspace_manager.get_workspace()
             workspace.add_resource(command_args.res_name, command_args.op_name, command_args.op_args)
@@ -489,8 +489,8 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_del(cls, command_args):
-        from .workspace import CachedWorkspaceManager, WorkspaceError
-        workspace_manager = CachedWorkspaceManager()
+        from .workspace import FSWorkspaceManager, WorkspaceError
+        workspace_manager = FSWorkspaceManager()
         try:
             workspace = workspace_manager.get_workspace()
         except WorkspaceError as e:
