@@ -1,0 +1,77 @@
+@startuml
+
+title ECT Frontend/Backend communication using the "React" state transition model
+
+actor User
+
+box "Frontend" #eeeeee
+    participant FrontendView
+    participant FrontendController
+    participant FrontendListener
+    participant FrontendStore
+end box
+
+box "Backend" #LightGray
+    participant BackendController
+    participant BackendStore
+end box
+
+
+User -> FrontendView: * click! *
+activate FrontendView #DarkSalmon
+
+FrontendView -> FrontendController: dispatch(action)
+activate FrontendController #DarkSalmon
+deactivate FrontendView #DarkSalmon
+
+FrontendController -> BackendController: dispatch(action)
+
+activate BackendController #DarkSalmon
+
+deactivate FrontendController
+
+
+BackendController -> BackendStore: dispatch(action)
+activate BackendStore #DarkSalmon
+deactivate BackendStore
+
+BackendController -> BackendController: store_action(action)
+activate BackendController #LightSalmon
+deactivate BackendController
+
+deactivate BackendController
+
+activate FrontendController #DarkSalmon
+
+FrontendController -> BackendController: get_new_actions(timestamp): timestamp, actions
+note left
+	Getting new actions
+	is done asynchronously
+	from a background thread
+	that polls e.g. all 50ms
+end note
+
+activate BackendController #DarkSalmon
+deactivate BackendController
+
+
+FrontendController -> FrontendController: for all actions
+activate FrontendController #LightSalmon
+
+FrontendController -> FrontendStore: dispatch(action)
+activate FrontendStore #DarkSalmon
+
+deactivate FrontendController
+deactivate FrontendController
+
+FrontendStore -> FrontendListener: notify(new_state)
+activate FrontendListener #DarkSalmon
+
+FrontendListener -> FrontendView: render()
+activate FrontendView #DarkSalmon
+
+deactivate FrontendView
+deactivate FrontendListener
+deactivate FrontendStore
+
+@enduml
