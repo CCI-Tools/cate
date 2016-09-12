@@ -215,7 +215,7 @@ def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = No
     if path_args:
         quoted_pattern_args = dict(path_args)
         for name, value in path_args.items():
-            quoted_pattern_args[name] = urllib.parse.quote(str(value)) if value is not None else ''
+            quoted_pattern_args[name] = urllib.parse.quote_plus(str(value)) if value is not None else ''
         path = path_pattern.format(**quoted_pattern_args)
     query_string = ''
     if query_args:
@@ -224,7 +224,7 @@ def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = No
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
-    def __init__(self, port=8888, address='localhost', timeout=120):
+    def __init__(self, port=8888, address='127.0.0.1', timeout=120):
         self.base_url = 'http://%s:%s' % (address, port)
         self.timeout = timeout
 
