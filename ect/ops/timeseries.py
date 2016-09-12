@@ -34,7 +34,7 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
     return ds.sel(method=method, **indexers)
 
 
-@op_input('ds', description='A dataset from which to extract time series', required=True)
+@op_input('ds', description='A dataset from which to extract time series')
 @op_return(description='A timeseries dataset')
 def timeseries_mean(ds: xr.Dataset):
     """

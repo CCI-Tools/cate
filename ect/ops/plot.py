@@ -41,7 +41,7 @@ import xarray as xr
 from ect.core.op import op_input
 
 
-@op_input('ds', description="A dataset from which to create the plot", required=True)
+@op_input('ds', description="A dataset from which to create the plot")
 @op_input('variable', description="The geophysical quantity (dataset variable) to plot")
 @op_input('time', description="Point in time to plot")
 @op_input('extents', description="[lat,lat,lon,lon] extents to plot")
