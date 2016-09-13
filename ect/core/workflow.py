@@ -258,16 +258,28 @@ class Node(metaclass=ABCMeta):
     def _body_string(self) -> str:
         return None
 
+    @classmethod
+    def _format_port_assignments(cls, namespace: Namespace):
+        port_assignments = []
+        for port in namespace[:]:
+            if port.source:
+                port_assignments.append('%s=%s' % (port.name, str(port.source)))
+            elif port.has_value:
+                port_assignments.append('%s=%s' % (port.name, repr(port.value)))
+            else:
+                port_assignments.append('%s' % port.name)
+        return ', '.join(port_assignments)
+
     def __str__(self):
         """String representation."""
         op_meta_info = self.op_meta_info
-        input_names = ','.join([name for name in op_meta_info.input.keys()])
         body_string = self._body_string() or op_meta_info.qualified_name
-        output_str = ''
+        input_assignments = self._format_port_assignments(self.input)
+        output_assignments = ''
         if op_meta_info.has_named_outputs:
-            output_names = ','.join([name for name in op_meta_info.output.keys()])
-            output_str = ' -> (%s)' % output_names
-        return '%s = %s(%s)%s (%s)' % (self.id, body_string, input_names, output_str, type(self).__name__)
+            output_assignments = self._format_port_assignments(self.output)
+            output_assignments = ' -> (%s)' % output_assignments
+        return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
     @abstractmethod
     def __repr__(self):
@@ -467,11 +479,6 @@ class Workflow(Node):
         workflow_json_dict['steps'] = steps_json_list
 
         return workflow_json_dict
-
-    def __str__(self):
-        base_str = super(Workflow, self).__str__()
-        # return '%s:\n%s' % (base_str, ''.join(['  %s\n' % step for step in self._steps.values()]))
-        return base_str
 
     def __repr__(self):
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
@@ -1090,7 +1097,10 @@ class NodePort:
         return json_dict
 
     def __str__(self):
-        return "%s.%s" % (self._node.id, self._name)
+        if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:
+            return self._node.id
+        else:
+            return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):
         return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))

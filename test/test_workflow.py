@@ -66,7 +66,7 @@ class WorkflowTest(TestCase):
         self.assertIs(workflow.output.q.source, step3.output.w)
         self.assertIsNone(workflow.output.q.value)
 
-        self.assertEqual(str(workflow), 'myWorkflow = myWorkflow(p) -> (q) (Workflow)')
+        self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p) -> (q=op3.w) [Workflow]')
         self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
 
     def test_invoke(self):
@@ -265,7 +265,8 @@ class ExprStepTest(TestCase):
         self.assertEqual(node.id, 'bibo_8')
         self.assertEqual(node.expression, self.expression)
         self.assertEqual(str(node),
-                         node.id + ' = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"(a,b,c) -> (x,y) (ExprStep)')
+                         node.id + ' = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"(a, b, c) '
+                                   '-> (x, y) [ExprStep]')
         self.assertEqual(repr(node), "ExprNode('%s', node_id='bibo_8')" % self.expression)
 
         node = ExprStep(self.expression)
@@ -370,7 +371,7 @@ class WorkflowStepTest(TestCase):
         step = WorkflowStep(workflow, resource, node_id='jojo_87')
         self.assertEqual(step.id, 'jojo_87')
         self.assertEqual(step.resource, resource)
-        self.assertEqual(str(step), 'jojo_87 = cool_workflow(p) -> (q) (WorkflowStep)')
+        self.assertEqual(str(step), 'jojo_87 = cool_workflow(p) -> (q) [WorkflowStep]')
         self.assertEqual(repr(step), "WorkflowStep(Workflow('cool_workflow'), '%s', node_id='jojo_87')" % resource)
 
         self.assertIsNotNone(step.workflow)
@@ -468,7 +469,7 @@ class OpStepTest(TestCase):
         self.assertIs(step.output.w.node, step)
         self.assertEqual(step.output.w.name, 'w')
 
-        self.assertEqual(str(step), step.id + ' = test.test_workflow.Op3(u,v) -> (w) (OpStep)')
+        self.assertEqual(str(step), step.id + ' = test.test_workflow.Op3(u, v) -> (w) [OpStep]')
         self.assertEqual(repr(step), "OpStep(test.test_workflow.Op3, node_id='%s')" % step.id)
 
     def test_init_operation_and_name_are_equivalent(self):
@@ -678,7 +679,7 @@ class NoOpStepTest(TestCase):
         self.assertTrue(hasattr(step.output, 'd'))
         self.assertIs(step.output.d.node, step)
 
-        self.assertEqual(str(step), step.id + ' = noop(a,b) -> (c,d) (NoOpStep)')
+        self.assertEqual(str(step), step.id + ' = noop(a, b) -> (c, d) [NoOpStep]')
         self.assertEqual(repr(step), "NoOpStep(node_id='%s')" % step.id)
 
     def test_invoke(self):
@@ -751,7 +752,7 @@ class SubProcessStepTest(TestCase):
         self.assertTrue(hasattr(step.output, 'return'))
         self.assertIs(step.output['return'].node, step)
 
-        self.assertEqual(str(step), step.id + ' = "cd {{dir}}"(dir) (SubProcessStep)')
+        self.assertEqual(str(step), step.id + ' = "cd {{dir}}"(dir) [SubProcessStep]')
         self.assertEqual(repr(step), "SubProcessStep(['cd', '{{dir}}'], node_id='%s')" % step.id)
 
     def test_invoke(self):

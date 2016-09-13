@@ -26,7 +26,7 @@ class CliTestCase(unittest.TestCase):
                                  'status = %s\n'
                                  'stdout = [%s]\n'
                                  'stderr = [%s]' % (args, actual_status, stdout.getvalue(), stderr.getvalue()))
-
+        print(stdout.getvalue())
         if isinstance(expected_stdout, str):
             self.assertEqual(expected_stdout, stdout.getvalue())
         elif expected_stdout:
@@ -133,7 +133,6 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
 
         self.remove_file(output_file)
 
-
     def test_command_res_load_read_op(self):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
@@ -144,10 +143,11 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=13.2', 'lon=52.9'],
                          expected_stdout=["Resource 'ts' set."])
         self.assert_main(['ws', 'status'],
-                         expected_stdout='Workspace steps:\n'
-                                         '  ds1 = ect.ops.io.load_dataset(ds_id,start_date,end_date) (OpStep)\n'
-                                         '  ds2 = ect.ops.io.read_object(file,format) (OpStep)\n'
-                                         '  ts = ect.ops.timeseries.timeseries(ds,lat,lon,method) (OpStep)\n')
+                         expected_stdout=
+                         'Workspace steps:\n'
+                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', start_date=2010, end_date=None) [OpStep]\n'
+                         '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n'
+                         '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]\n')
 
 
 class CliOperationCommandTest(CliTestCase):
