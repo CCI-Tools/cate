@@ -10,18 +10,37 @@ from ect.core.op import op_input, op
 
 
 @op(tags='io')
-@op_input('data_source')
+@op_input('ds_id')
 @op_input('start_date')
 @op_input('end_date')
-def load_dataset(data_source: str, start_date: str, end_date: str) -> xr.Dataset:
-    return open_dataset(data_source, (start_date, end_date))
+def load_dataset(ds_id: str, start_date: str, end_date: str) -> xr.Dataset:
+    return open_dataset(ds_id, (start_date, end_date))
 
 
 @op(tags=['io'])
-@op_input('dataset')
+@op_input('ds')
 @op_input('file')
-def store_dataset(dataset: xr.Dataset, file: str):
-    dataset.to_netcdf(file)
+def store_dataset(ds: xr.Dataset, file: str):
+    ds.to_netcdf(file)
+
+
+@op(tags='io')
+@op_input('obj')
+@op_input('file')
+@op_input('format')
+def read_object(file: str, format: str = None) -> Any:
+    import ect.core.objectio
+    obj, _ = ect.core.objectio.read_object(file, format_name=format)
+    return obj
+
+
+@op(tags='io')
+@op_input('obj')
+@op_input('file')
+@op_input('format')
+def write_object(obj, file: str, format: str = None):
+    import ect.core.objectio
+    ect.core.objectio.write_object(obj, file, format_name=format)
 
 
 @op(tags='io')
