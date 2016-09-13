@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Description
 ===========
@@ -24,15 +45,14 @@ Components
 ==========
 """
 
-from .resampling import resample_2d, downsample_2d, upsample_2d
-from .timeseries import timeseries, timeseries_mean
-from .harmonize import harmonize
-from .filter import filter_dataset
-#from .coregistration import coregister
-from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .correlation import pearson_correlation
-from .plot import plot_map
+from .filter import filter_dataset
+from .harmonize import harmonize
 from .io import load_dataset, store_dataset
+from .plot import plot_map
+from .resampling import resample_2d, downsample_2d, upsample_2d
+from .subset import subset_spatial, subset_temporal, subset_temporal_index
+from .timeseries import timeseries, timeseries_mean
 
 __all__ = [
     'timeseries',
@@ -42,7 +62,7 @@ __all__ = [
     'upsample_2d',
     'harmonize',
     'filter_dataset',
-#    'coregister',
+    #    'coregister',
     'subset_spatial',
     'subset_temporal',
     'subset_temporal_index',

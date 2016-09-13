@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Description
 ===========
@@ -234,9 +255,31 @@ class Node(metaclass=ABCMeta):
             return self._input[name]
         return None
 
+    def _body_string(self) -> str:
+        return None
+
+    @classmethod
+    def _format_port_assignments(cls, namespace: Namespace):
+        port_assignments = []
+        for port in namespace[:]:
+            if port.source:
+                port_assignments.append('%s=%s' % (port.name, str(port.source)))
+            elif port.has_value:
+                port_assignments.append('%s=%s' % (port.name, repr(port.value)))
+            else:
+                port_assignments.append('%s' % port.name)
+        return ', '.join(port_assignments)
+
     def __str__(self):
         """String representation."""
-        return self.id
+        op_meta_info = self.op_meta_info
+        body_string = self._body_string() or op_meta_info.qualified_name
+        input_assignments = self._format_port_assignments(self.input)
+        output_assignments = ''
+        if op_meta_info.has_named_outputs:
+            output_assignments = self._format_port_assignments(self.output)
+            output_assignments = ' -> (%s)' % output_assignments
+        return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
     @abstractmethod
     def __repr__(self):
@@ -437,9 +480,6 @@ class Workflow(Node):
 
         return workflow_json_dict
 
-    def __str__(self):
-        return self.id
-
     def __repr__(self):
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
 
@@ -525,10 +565,6 @@ class Step(Node):
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
         """Enhance the given JSON-compatible *node_dict* by step specific elements."""
-
-    def __str__(self):
-        """String representation."""
-        return self.id
 
 
 class WorkflowStep(Step):
@@ -729,6 +765,9 @@ class ExprStep(Step):
     def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['expression'] = self.expression
 
+    def _body_string(self):
+        return '"%s"' % self.expression
+
     def __repr__(self):
         return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
 
@@ -774,6 +813,9 @@ class NoOpStep(Step):
 
     def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['no_op'] = True
+
+    def _body_string(self):
+        return 'noop'
 
     def __repr__(self):
         return "NoOpStep(node_id='%s')" % self.id
@@ -865,6 +907,9 @@ class SubProcessStep(Step):
         node_dict['sub_process_arguments'] = self._sub_process_arguments
         node_dict['working_directory'] = self._working_directory
         node_dict['environment_variables'] = self._environment_variables
+
+    def _body_string(self):
+        return '"%s"' % ' '.join(self.sub_process_arguments)
 
     def __repr__(self):
         return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
@@ -1052,7 +1097,10 @@ class NodePort:
         return json_dict
 
     def __str__(self):
-        return "%s.%s" % (self._node.id, self._name)
+        if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:
+            return self._node.id
+        else:
+            return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):
         return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))
