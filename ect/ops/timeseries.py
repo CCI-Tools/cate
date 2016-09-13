@@ -27,8 +27,12 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
     :param lat: The latitude in the range of -90 to 90 degrees.
     :param lon: The longitude in the range of -180 to 180 degrees.
     :param method: One of ``nearest``, ``ffill``, ``bfill``.
-    :return:
+    :return: A timeseries dataset
     """
+    if len(ds.dims) != 3 or not ('time' in ds.dims):
+        raise ValueError('The timeseries operation is implemented only for\
+                a three dimensional dataset with a time dimension.')
+
     lat_dim = _get_lat_dim_name(ds)
     lon_dim = _get_lon_dim_name(ds)
     indexers = {lat_dim: lat, lon_dim: lon}
@@ -45,11 +49,14 @@ def timeseries_mean(ds: xr.Dataset):
     :param ds: The dataset of type :py:class:`Dataset`
     :return: Time series dataset
     """
+    if len(ds.dims) != 3 or not ('time' in ds.dims):
+        raise ValueError('The timeseries operation is implemented only for\
+                a three dimensional dataset with a time dimension.')
+
     # Expecting a harmonized dataset
     reduce_along = {'dim': ['lat', 'lon']}
     retset = ds.mean(**reduce_along)
     return retset
-
 
 def _get_lon_dim_name(ds: xr.Dataset) -> str:
     return _get_dim_name(ds, ['lon', 'longitude', 'long'])
