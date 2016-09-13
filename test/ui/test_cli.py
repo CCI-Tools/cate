@@ -1,4 +1,5 @@
 import os
+import os.path
 import shutil
 import sys
 import unittest
@@ -6,6 +7,7 @@ from time import sleep
 from typing import Union, List
 
 from ect.core.monitor import Monitor
+from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams
 from ect.ui import cli
 from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
@@ -81,7 +83,6 @@ class CliTest(CliTestCase):
 
 
 class CliWorkspaceCommandTest(CliTestCase):
-
     def assert_workspace_base_dir(self, base_dir):
         self.assertTrue(os.path.isdir(base_dir))
         self.assertTrue(os.path.isdir(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)))
@@ -104,7 +105,6 @@ class CliWorkspaceCommandTest(CliTestCase):
 
 
 class CliWorkspaceResourceCommandTest(CliTestCase):
-
     def setUp(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
 
@@ -222,8 +222,6 @@ class CliRunCommandTest(CliTestCase):
                          expected_stderr="ect: error: command 'run' requires OP argument\n")
 
     def test_command_run_with_op(self):
-        from ect.core.op import OP_REGISTRY as OP_REGISTRY
-
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
         try:
@@ -265,8 +263,6 @@ class CliRunCommandTest(CliTestCase):
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
     def test_command_run_with_workflow(self):
-        from ect.core.op import OP_REGISTRY as OP_REGISTRY
-        import os.path
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 

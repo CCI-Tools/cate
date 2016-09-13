@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
 
+from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace
 from ect.core.workflow import Workflow, OpStep, NodePort
@@ -115,7 +116,6 @@ class Workspace:
         assert op_name
         assert op_args
 
-        from ect.core.op import OP_REGISTRY
         op = OP_REGISTRY.get_op(op_name)
         if not op:
             raise WorkspaceError("unknown operation '%s'" % op_name)

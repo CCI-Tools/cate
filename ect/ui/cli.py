@@ -81,7 +81,9 @@ from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
+from ect.core.op import OP_REGISTRY
 from ect.core.op import parse_op_args
+from ect.core.workflow import Workflow
 from ect.ops.io import load_dataset
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WorkspaceError
 from ect.version import __version__
@@ -346,10 +348,8 @@ class RunCommand(Command):
             if op_args:
                 return 1, "error: command '%s': can't run workflow with arguments %s, please provide keywords only" % \
                        (RunCommand.CMD_NAME, op_args)
-            from ect.core.workflow import Workflow
             op = Workflow.load(command_args.op_name)
         else:
-            from ect.core.op import OP_REGISTRY as OP_REGISTRY
             op = OP_REGISTRY.get_op(command_args.op_name)
             if op is None:
                 return 1, "error: command '%s': unknown operation '%s'" % (RunCommand.CMD_NAME, op_name)
@@ -466,7 +466,7 @@ class WorkspaceCommand(SubCommandCommand):
         return cls.STATUS_OK
 
 
-class ResourceCommand(SubCommandCommand):
+class WorkspaceResourceCommand(SubCommandCommand):
     """
     The ``ws`` command implements various operations w.r.t. *workspaces*.
     """
@@ -604,7 +604,6 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
-        from ect.core.op import OP_REGISTRY
         op_registrations = OP_REGISTRY.op_registrations
 
         def _op_has_tag(op_registration, tag_value):
@@ -631,7 +630,6 @@ class OperationCommand(SubCommandCommand):
     def _execute_info(cls, command_args):
         if not command_args.op_name:
             return 2, "error: command 'op info': missing OP argument"
-        from ect.core.op import OP_REGISTRY
         op_registration = OP_REGISTRY.get_op(command_args.op_name)
         if op_registration:
             op_meta_info = op_registration.op_meta_info
@@ -835,7 +833,7 @@ class DocsCommand(Command):
 COMMAND_REGISTRY = [
     RunCommand,
     WorkspaceCommand,
-    ResourceCommand,
+    WorkspaceResourceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,
