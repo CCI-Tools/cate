@@ -335,7 +335,7 @@ class CliPluginCommandTest(CliTestCase):
 
 class CliLicenseCommandTest(CliTestCase):
     def test_command_license(self):
-        self.assert_main(['lic'], expected_stdout=['GNU General Public License'])
+        self.assert_main(['lic'], expected_stdout=['MIT License'])
 
 
 def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
