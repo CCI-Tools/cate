@@ -39,6 +39,12 @@ class CliTestCase(unittest.TestCase):
             for item in expected_stderr:
                 self.assertIn(item, stderr.getvalue())
 
+    def remove_file(self, file_path, ignore_errors=True):
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        if ignore_errors and os.path.isfile(file_path):
+            self.fail("Can't remove file %s" % file_path)
+
     def remove_tree(self, dir_path, ignore_errors=True):
         if os.path.exists(dir_path):
             shutil.rmtree(dir_path, ignore_errors=ignore_errors)
@@ -111,19 +117,36 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
     def tearDown(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
-    def test_command_res(self):
+    def test_command_res_read_op_write(self):
+        input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+        output_file = '_timeseries_.nc'
+
+        self.assert_main(['ws', 'init'],
+                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['res', 'read', 'ds', input_file],
+                         expected_stdout=["Resource 'ds' set."])
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
+                         expected_stdout=["Resource 'ts' set."])
+        self.assert_main(['res', 'write', 'ts', output_file],
+                         expected_stdout=["Executing workflow 'workspace_workflow'",
+                                          "Resource 'ts' written to %s" % output_file])
+
+        self.remove_file(output_file)
+
+
+    def test_command_res_load_read_op(self):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'load', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
                          expected_stdout=["Resource 'ds1' set."])
-        self.assert_main(['res', 'read', 'ds2', 'precipitation.nc'],
+        self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
                          expected_stdout=["Resource 'ds2' set."])
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=13.2', 'lon=52.9'],
                          expected_stdout=["Resource 'ts' set."])
         self.assert_main(['ws', 'status'],
                          expected_stdout='Workspace steps:\n'
                                          '  ds1 = ect.ops.io.load_dataset(ds_id,start_date,end_date) (OpStep)\n'
-                                         '  ds2 = ect.ops.io.read_object(file,format,obj) (OpStep)\n'
+                                         '  ds2 = ect.ops.io.read_object(file,format) (OpStep)\n'
                                          '  ts = ect.ops.timeseries.timeseries(ds,lat,lon,method) (OpStep)\n')
 
 

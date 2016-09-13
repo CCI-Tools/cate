@@ -481,7 +481,7 @@ class WorkspaceResourceCommand(SubCommandCommand):
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
 
-        load_parser = subparsers.add_parser('load', aliases=['ld'],
+        load_parser = subparsers.add_parser('load',
                                             help='Load dataset from a data source and set a resource.')
         load_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
@@ -493,21 +493,36 @@ class WorkspaceResourceCommand(SubCommandCommand):
                                  help='End date. Use format YYYY[-MM[-DD]].')
         load_parser.set_defaults(sub_command_function=cls._execute_load)
 
-        read_parser = subparsers.add_parser('read', aliases=['rd'],
+        read_parser = subparsers.add_parser('read',
                                             help='Read an object from a file and set a resource.')
         read_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
         read_parser.add_argument('file_path', metavar='FILE',
-                                 help='File path representing the object.')
+                                 help='File path.')
         read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
                                  help='File format. Type')
         # TODO (forman, 20160913): support reader-specific arguments
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
-        #                                'Type "ect res read -h" to list specific reader arguments')
+        #                                'Type "ect res read -h" to list format-specific read arguments')
         read_parser.set_defaults(sub_command_function=cls._execute_read)
 
-        set_parser = subparsers.add_parser('set', help='Create a workflow operation and set a resource.')
+        read_parser = subparsers.add_parser('write',
+                                            help='Write a resource to a file.')
+        read_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of the new target resource.')
+        read_parser.add_argument('file_path', metavar='FILE',
+                                 help='File path.')
+        read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+                                 help='File format. Type')
+        # TODO (forman, 20160913): support writer-specific arguments
+        # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+        #                           help='Specific reader arguments. '
+        #                                'Type "ect res write -h" to list format-specific write arguments')
+        read_parser.set_defaults(sub_command_function=cls._execute_write)
+
+        set_parser = subparsers.add_parser('set',
+                                           help='Create a workflow operation and set a resource.')
         set_parser.add_argument('res_name', metavar='NAME',
                                 help='Name of the new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
@@ -545,6 +560,33 @@ class WorkspaceResourceCommand(SubCommandCommand):
                 op_args.append('format=%s' % command_args.format_name)
             workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.read_object', op_args)
             print("Resource '%s' set." % command_args.res_name)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_write(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        try:
+            res_name = command_args.res_name
+            file_path = command_args.file_path
+            format_name = command_args.format_name
+            # TBD: shall we add a new step to the workflow or just execute the workflow,
+            # then write the desired resource?
+            workspace = workspace_manager.get_workspace('')
+            monitor = ConsoleMonitor(stay_in_line=True, progress_bar_size=80)
+            try:
+                result = workspace.workflow(monitor=monitor)
+                if res_name in result:
+                    obj = result[res_name]
+                else:
+                    obj = result
+                from ect.ops.io import write_object
+                print("Writing resource '%s' to %s..." % (res_name, file_path))
+                write_object(obj, file_path, format=format_name)
+                print("Resource '%s' written to %s" % (res_name, file_path))
+            except Exception as e:
+                return 2, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
         except WorkspaceError as e:
             return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
         return cls.STATUS_OK
