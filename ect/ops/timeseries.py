@@ -50,11 +50,11 @@ def timeseries_mean(ds: xr.Dataset):
 
 
 def _get_lon_dim_name(ds: xr.Dataset) -> str:
-    return _get_dim_name(ds, ['lon', 'longitude', 'long'])
+    return _get_dim_name(ds, ['lon', 'longitude', 'long', 'x'])
 
 
 def _get_lat_dim_name(ds: xr.Dataset) -> str:
-    return _get_dim_name(ds, ['lat', 'latitude'])
+    return _get_dim_name(ds, ['lat', 'latitude', 'y'])
 
 
 def _get_dim_name(ds: xr.Dataset, possible_names) -> str:
