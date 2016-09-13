@@ -29,15 +29,15 @@ Components
 ==========
 """
 import math
-import xarray as xr
 
-from ect.core.op import op_input, op_output
+import xarray as xr
+from ect.core.op import op_input
 
 
 @op_input('ds_y', description="The 'dependent' Time series dataset")
 @op_input('ds_x', description="The 'variable' Time series dataset")
 @op_input('path', description="File path where to save the correlation parameters")
-def pearson_correlation(ds_y:xr.Dataset, ds_x:xr.Dataset, path:str=None):
+def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, path: str = None):
     """
     Do product moment Pearson's correlation analysis.
     This assumes that the input datasets are 'timeseries' datasets,
@@ -71,13 +71,13 @@ def pearson_correlation(ds_y:xr.Dataset, ds_x:xr.Dataset, path:str=None):
     b = 0.
     c = 0.
 
-    for i in range(0,len(array_y.data)):
-        a = a+((array_x[i]-x_mean)*(array_y[i]-y_mean))
-        b = b+(array_x[i]-pow(x_mean, 2))
-        c = c+(array_y[i]-pow(y_mean, 2))
+    for i in range(0, len(array_y.data)):
+        a = a + ((array_x[i] - x_mean) * (array_y[i] - y_mean))
+        b = b + (array_x[i] - pow(x_mean, 2))
+        c = c + (array_y[i] - pow(y_mean, 2))
 
-    corr_coef = a/(math.sqrt(b*c))
-    test = corr_coef*math.sqrt((len(array_y.data)-2)/(1-pow(corr_coef, 2)))
+    corr_coef = a / (math.sqrt(b * c))
+    test = corr_coef * math.sqrt((len(array_y.data) - 2) / (1 - pow(corr_coef, 2)))
 
     # Save the result if file path is given
     if path:
@@ -85,4 +85,4 @@ def pearson_correlation(ds_y:xr.Dataset, ds_x:xr.Dataset, path:str=None):
             print("Correlation coefficient: {}".format(corr_coef.values), file=text_file)
             print("Test value: {}".format(test.values), file=text_file)
 
-    return {'correlation_coefficient':corr_coef, 'test_value':test}
+    return {'correlation_coefficient': corr_coef, 'test_value': test}

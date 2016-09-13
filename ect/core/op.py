@@ -746,7 +746,7 @@ def _update_properties(old_properties: dict, new_properties: dict):
 
 
 def parse_op_args(raw_args: List[str], namespace: dict = None,
-                  ignore_eval_errors: bool=True) -> Tuple[List, OrderedDict]:
+                  ignore_eval_errors: bool = True) -> Tuple[List, OrderedDict]:
     """
     Convert a raw argument list *raw_args* into a (args, kwargs) tuple whose elements are converted Python objects.
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
@@ -796,5 +796,3 @@ def parse_op_args(raw_args: List[str], namespace: dict = None,
             op_kwargs[name] = value
 
     return op_args, op_kwargs
-
-

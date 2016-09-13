@@ -23,12 +23,11 @@
 ESA CCI Toolbox API.
 """
 
-from .version import __version__
-
-from .core.io import open_dataset, query_data_sources
+from .core.cdm import Schema
 from .core.io import DataStore, DataSource
 from .core.io import FileSetDataStore, FileSetDataSource, FileSetInfo
-from .core.cdm import Schema
+from .core.io import open_dataset, query_data_sources
+from .core.monitor import Monitor, ConsoleMonitor
 from .core.op import op, op_input, op_output, op_return, OpMetaInfo, OpRegistration
 from .core.workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
-from .core.monitor import Monitor, ConsoleMonitor
+from .version import __version__

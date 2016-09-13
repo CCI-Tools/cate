@@ -31,10 +31,11 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input
+
 
 @op_input('datasets', description='A list of datasets to harmonize')
-def harmonize(datasets:list):
+def harmonize(datasets: list):
     """
     Harmonize the given datasets in place. E.g. change dimension names
     if they differ from expected values.
@@ -45,7 +46,7 @@ def harmonize(datasets:list):
         _harmonize_dataset(dataset)
 
 
-def _harmonize_dataset(ds:xr.Dataset):
+def _harmonize_dataset(ds: xr.Dataset):
     """
     Harmonize a single dataset
 
@@ -62,6 +63,7 @@ def _harmonize_dataset(ds:xr.Dataset):
         name_dict[lon_name] = 'lon'
 
     ds.rename(name_dict, inplace=True)
+
 
 def _get_lon_dim_name(xarray: xr.Dataset) -> str:
     return _get_dim_name(xarray, ['lon', 'longitude', 'long'])

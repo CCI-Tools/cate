@@ -44,7 +44,6 @@ from io import StringIO
 
 
 class _Undefined:
-
     def __str__(self):
         return "UNDEFINED"
 

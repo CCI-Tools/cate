@@ -31,14 +31,15 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op, op_input, op_output
+from ect.core.op import op_input, op_output
+
 
 @op_input('variable_names', description='List of regex patterns that identify the variables to keep')
 @op_input('regex', description='If True, variable names are expected to contain regex_ patterns')
 @op_input('copy', decription='If True, the returned dataset will likely contain data copies of the original data')
 @op_output('return', description='A filtered dataset')
-def filter_dataset(dataset: xr.Dataset, variable_names: tuple = None, regex = False, copy: bool = False) -> xr.Dataset:
-# TODO (mz, 201607211): parameter 'copy' is not implemented
+def filter_dataset(dataset: xr.Dataset, variable_names: tuple = None, regex=False, copy: bool = False) -> xr.Dataset:
+    # TODO (mz, 201607211): parameter 'copy' is not implemented
     """
     Filter the dataset, by leaving only desired variables.
 

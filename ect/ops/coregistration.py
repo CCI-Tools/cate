@@ -30,18 +30,17 @@ Components
 """
 # TODO (Gailis, 20160623, Migrate this to using routines that handle downsampling better (resampling.py))
 
-import xarray as xr
-import os
 import numpy as np
+import xarray as xr
+from ect.core.op import op_input, op_output
 from mpl_toolkits import basemap
 
-from ect.core.op import op_input, op_output
 
 @op_input('slave', description='xr.Dataset that will be resampled on the masters grid')
 @op_input('master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
 @op_output('return', description='The resampled slave dataset')
-def coregister(master:xr.Dataset, slave:xr.Dataset, method:str):
+def coregister(master: xr.Dataset, slave: xr.Dataset, method: str):
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master.
@@ -51,7 +50,7 @@ def coregister(master:xr.Dataset, slave:xr.Dataset, method:str):
     :param method: Interpolation method to use. 'nearest','bilinear','cubic' 
     :return: The slave dataset resampled on the master's grid
     """
-    methods = {'nearest':0, 'bilinear':1, 'cubic':3}
+    methods = {'nearest': 0, 'bilinear': 1, 'cubic': 3}
     return (_resample_dataset(master, slave, methods[method]))
 
 
@@ -81,15 +80,16 @@ def _resample_array(array, lon, lat, order=1):
     :return: None, changes 'array' in place.
     """
     grid_lon, grid_lat = np.meshgrid(lon.data, lat.data)
-    kwargs = {'grid_lon':grid_lon, 'grid_lat':grid_lat}
+    kwargs = {'grid_lon': grid_lon, 'grid_lat': grid_lat}
     temp_array = array.groupby('time').apply(_resample_slice, **kwargs)
     chunks = list(temp_array.shape[1:])
-    chunks.insert(0,1)
+    chunks.insert(0, 1)
     return xr.DataArray(temp_array.values,
-                        name = array.name,
-                        dims = array.dims,
-                        coords = {'time':array.time, 'lat':lat, 'lon':lon},
-                        attrs = array.attrs).chunk(chunks=chunks)
+                        name=array.name,
+                        dims=array.dims,
+                        coords={'time': array.time, 'lat': lat, 'lon': lon},
+                        attrs=array.attrs).chunk(chunks=chunks)
+
 
 def _resample_dataset(master, slave, order=1):
     """
@@ -116,8 +116,6 @@ def _resample_dataset(master, slave, order=1):
     lon = master['lon']
     lat = master['lat']
 
-    kwargs = {'lon':lon, 'lat':lat, 'order':order}
+    kwargs = {'lon': lon, 'lat': lat, 'order': order}
     retset = slave.apply(_resample_array, **kwargs)
     return retset
-
-

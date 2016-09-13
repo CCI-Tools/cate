@@ -410,7 +410,7 @@ class Graph(Node):
         box_height += vg
         return Box(width=box_width, height=box_height)
 
-    def _set_layer_index_of_connected_nodes(self, node:Node, layer_index:int, parents: List[Node]):
+    def _set_layer_index_of_connected_nodes(self, node: Node, layer_index: int, parents: List[Node]):
         if layer_index > node.layer_index:
             node.layer_index = layer_index
         # For all inputs of this node

@@ -107,7 +107,6 @@ Components
 ==========
 """
 
-from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
 
@@ -164,8 +163,8 @@ class Schema:
         self.lat_name = lat_name
         self.time_name = time_name
         self.dimensions = list(dimensions) if dimensions else []
-        self.variables =  list(variables) if variables else []
-        self.attributes =  list(attributes) if attributes else []
+        self.variables = list(variables) if variables else []
+        self.attributes = list(attributes) if attributes else []
 
     def dimension(self, index_or_name):
         try:

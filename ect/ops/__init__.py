@@ -45,15 +45,14 @@ Components
 ==========
 """
 
-from .resampling import resample_2d, downsample_2d, upsample_2d
-from .timeseries import timeseries, timeseries_mean
-from .harmonize import harmonize
-from .filter import filter_dataset
-#from .coregistration import coregister
-from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .correlation import pearson_correlation
-from .plot import plot_map
+from .filter import filter_dataset
+from .harmonize import harmonize
 from .io import load_dataset, store_dataset
+from .plot import plot_map
+from .resampling import resample_2d, downsample_2d, upsample_2d
+from .subset import subset_spatial, subset_temporal, subset_temporal_index
+from .timeseries import timeseries, timeseries_mean
 
 __all__ = [
     'timeseries',
@@ -63,7 +62,7 @@ __all__ = [
     'upsample_2d',
     'harmonize',
     'filter_dataset',
-#    'coregister',
+    #    'coregister',
     'subset_spatial',
     'subset_temporal',
     'subset_temporal_index',

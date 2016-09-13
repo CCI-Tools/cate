@@ -85,13 +85,10 @@ from collections import OrderedDict
 from datetime import datetime, date, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
-import xarray as xr
 
+import xarray as xr
 from ect.core.cdm import Schema
-from ect.core.io_xarray import open_xarray_dataset
 from ect.core.monitor import Monitor, ConsoleMonitor
-
-import xarray as xr
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]

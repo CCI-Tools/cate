@@ -53,13 +53,14 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif,
 
 """
 import matplotlib
+
 matplotlib.use('agg')
 # https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
 
-from ect.core.op import op_input, op_output
+from ect.core.op import op_input
 
 
 @op_input('ds', description="A dataset from which to create the plot", required=True)
@@ -67,7 +68,7 @@ from ect.core.op import op_input, op_output
 @op_input('time', description="Point in time to plot")
 @op_input('extents', description="[lat,lat,lon,lon] extents to plot")
 @op_input('path', description="Full path where to save the plot")
-def plot_map(ds:xr.Dataset, variable:str=None, time=None, extents:list=None, path:str=None):
+def plot_map(ds: xr.Dataset, variable: str = None, time=None, extents: list = None, path: str = None):
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently supported')
 
@@ -80,7 +81,7 @@ def plot_map(ds:xr.Dataset, variable:str=None, time=None, extents:list=None, pat
         time = 0
 
     array_slice = ds[variable].isel(time=time)
-    fig = plt.figure(figsize=(16,8))
+    fig = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
     if extents:
         ax.set_extent(extents, ccrs.PlateCarree())
