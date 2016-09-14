@@ -208,7 +208,7 @@ def _get_op_io_info_str(inputs_or_outputs: dict, title_singluar: str, title_plur
         op_info_str += '%s:' % (title_singluar if len(inputs_or_outputs) == 1 else title_plural)
         for name, properties in inputs_or_outputs.items():
             op_info_str += '\n'
-            op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', 'object')))
+            op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', object)))
             description = properties.get('description', None)
             if description:
                 op_info_str += '\n'
