@@ -102,8 +102,7 @@ from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
-from ect.core.op import OP_REGISTRY
-from ect.core.op import parse_op_args
+from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.workflow import Workflow
 from ect.ops.io import load_dataset
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WorkspaceError
@@ -196,6 +195,68 @@ def _list_items(category_singular_name: str, category_plural_name: str, names, p
     for item in names:
         no += 1
         print('%4d: %s' % (no, item))
+
+
+def _get_op_data_type_str(data_type: str):
+    return data_type.__name__ if isinstance(data_type, type) else repr(data_type)
+
+
+def _get_op_io_info_str(inputs_or_outputs: dict, title_singluar: str, title_plural: str, title_none: str) -> str:
+    op_info_str = ''
+    op_info_str += '\n'
+    if inputs_or_outputs:
+        op_info_str += '%s:' % (title_singluar if len(inputs_or_outputs) == 1 else title_plural)
+        for name, properties in inputs_or_outputs.items():
+            op_info_str += '\n'
+            op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', 'object')))
+            description = properties.get('description', None)
+            if description:
+                op_info_str += '\n'
+                op_info_str += '      ' + description
+            keys = sorted(properties.keys())
+            for key in keys:
+                if key not in ['data_type', 'description', 'position']:
+                    op_info_str += '\n'
+                    op_info_str += '      ' + key.replace('_', ' ') + ': ' + str(properties[key])
+    else:
+        op_info_str += title_none
+    op_info_str += '\n'
+    return op_info_str
+
+
+def _get_op_info_str(op_meta_info: OpMetaInfo):
+    """
+    Generate an info string for the *op_meta_info*.
+    :param op_meta_info: operation meta information (from e.g. workflow or operation)
+    :return: an information string
+    """
+    op_info_str = ''
+
+    title = 'Operation %s' % op_meta_info.qualified_name
+
+    op_info_str += '\n'
+    op_info_str += title
+    op_info_str += '\n'
+    op_info_str += len(title) * '='
+    op_info_str += '\n'
+
+    description = op_meta_info.header.get('description', None)
+    if description:
+        op_info_str += '\n'
+        op_info_str += str(description)
+        op_info_str += '\n'
+
+    version = op_meta_info.header.get('version', None)
+    if version:
+        op_info_str += '\n'
+        op_info_str += 'Version: '
+        op_info_str += str(version)
+        op_info_str += '\n'
+
+    op_info_str += _get_op_io_info_str(op_meta_info.input, 'Input', 'Inputs', 'Operation does not have any inputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.output, 'Output', 'Outputs', 'Operation does not have any outputs.')
+
+    return op_info_str
 
 
 class Command(metaclass=ABCMeta):
@@ -694,10 +755,7 @@ class OperationCommand(SubCommandCommand):
             return 2, "error: command 'op info': missing OP argument"
         op_registration = OP_REGISTRY.get_op(command_args.op_name)
         if op_registration:
-            op_meta_info = op_registration.op_meta_info
-            print('op: %s' % op_meta_info.qualified_name)
-            if 'description' in op_meta_info.header:
-                print(op_meta_info.header['description'])
+            print(_get_op_info_str(op_registration.op_meta_info))
         else:
             return 2, "error: command 'op info': unknown operation '%s'" % command_args.op_name
 
