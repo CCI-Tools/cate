@@ -131,7 +131,7 @@ class WorkspaceTest(unittest.TestCase):
                 "ts": {
                     "data_type": "xarray.core.dataset.Dataset",
                     "source": "ts.return",
-                    "description": "A timeseries dataset."
+                    "description": "A timeseries dataset"
                 }
             },
             "steps": [
@@ -181,7 +181,7 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=2010_precipitation.nc"])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
-        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
 
