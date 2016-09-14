@@ -72,7 +72,7 @@
     },
     {
       "id": "filter1",
-      "op": "ect.ops.filter.filter_dataset",
+      "op": "ect.ops.select.select_variables",
       "input": {
         "dataset": "open_ds1",
         "variable_names": "filter_list1"
@@ -80,7 +80,7 @@
     },
     {
       "id": "filter2",
-      "op": "ect.ops.filter.filter_dataset",
+      "op": "ect.ops.select.select_variables",
       "input": {
         "dataset": "open_ds2",
         "variable_names": "filter_list2"

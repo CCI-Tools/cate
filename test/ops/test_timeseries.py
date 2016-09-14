@@ -42,6 +42,20 @@ class TimeSeriesTest(TestCase):
             'time': ['2000-01-01','2000-02-01','2000-03-01','2000-04-01','2000-05-01','2000-06-01']})
         self.assertDatasetEqual(expected, actual)
 
+    def test_incompatible_ds(self):
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'slime'], np.ones([180,360,6])),
+            'second': (['lat', 'lon', 'slime'], np.ones([180,360,6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'slime': ['2000-01-01','2000-02-01','2000-03-01','2000-04-01','2000-05-01','2000-06-01']})
+
+        with self.assertRaises(ValueError):
+            ts = timeseries(dataset, lat=33, lon=22)
+
+        with self.assertRaises(ValueError):
+            ts = timeseries_mean(dataset)
+
     def assertDatasetEqual(self, expected, actual):
         # this method is functionally equivalent to `assert expected == actual`, but it
         # checks each aspect of equality separately for easier debugging

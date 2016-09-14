@@ -31,18 +31,18 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input
+from ect.core.op import op_input, op
 
-
-@op_input('datasets', description='A list of datasets to harmonize')
-def harmonize(datasets: list):
+@op(tags=['harmonization', 'inplace'])
+@op_input('ds_list', description='A list of datasets to harmonize')
+def harmonize(ds_list:list):
     """
     Harmonize the given datasets in place. E.g. change dimension names
     if they differ from expected values.
 
     :param datasets: A list of datasets to harmonize
     """
-    for dataset in datasets:
+    for dataset in ds_list:
         _harmonize_dataset(dataset)
 
 

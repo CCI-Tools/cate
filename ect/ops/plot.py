@@ -60,15 +60,46 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
 
-from ect.core.op import op_input
+from ect.core.op import op_input, op
 
 
-@op_input('ds', description="A dataset from which to create the plot", required=True)
+@op(tags=['graphical', 'plot', 'map'])
+@op_input('ds', description="A dataset from which to create the plot")
 @op_input('variable', description="The geophysical quantity (dataset variable) to plot")
 @op_input('time', description="Point in time to plot")
-@op_input('extents', description="[lat,lat,lon,lon] extents to plot")
+@op_input('lat_min', description="Minimum latitude extent to plot")
+@op_input('lat_max', description="Maximum latitude extent to plot")
+@op_input('lon_min', description="Minimum longitude extent to plot")
+@op_input('lon_max', description="Maximum longitude extent to plot")
 @op_input('path', description="Full path where to save the plot")
-def plot_map(ds: xr.Dataset, variable: str = None, time=None, extents: list = None, path: str = None):
+def plot_map(ds:xr.Dataset, 
+        variable:str=None, 
+        time=None, 
+        lat_min:float=None,
+        lat_max:float=None,
+        lon_min:float=None,
+        lon_max:float=None,
+        path:str=None):
+    """
+    Plot the given variable from the given dataset on a map with coastal lines.
+    In case no variable name is given, the first encountered variable in the dataset
+    is plotted. In case no time index is given, the first time slice is taken. It is
+    also possible to set extents of the plot. If no extents are given, a global plot
+    is created.
+
+    The plot can either be shown using pyplot functionality, or saved, if a path is given.
+    The following file formats for saving the plot are supported:
+    eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+
+    :param ds: xr.Dataset to plot
+    :param variable: variable name in the dataset to plot
+    :param time: time slice index to plot
+    :param lat_min: minimum latitude extent to plot
+    :param lat_max: maximum latitude extent to plot
+    :param lon_min: minimum longitude extent to plot
+    :param lon_max: maximum longitude extent to plot
+    :param path: path where to save the plot
+    """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently supported')
 
@@ -80,16 +111,57 @@ def plot_map(ds: xr.Dataset, variable: str = None, time=None, extents: list = No
     if not time:
         time = 0
 
+    # Sanity check
+    if not lat_min:
+        lat_min = -90.0
+
+    if not lat_max:
+        lat_max = 90.0
+
+    if not lon_min:
+        lon_min = -180.0
+
+    if not lon_max:
+        lon_max = 180.0
+
+    if not _extents_sane(lat_min, lat_max, lon_min, lon_max):
+        raise ValueError('Provided plot extents do not form a valid bounding box\
+                within [-90.0,90.0,-180.0,180.0]')
+
+    extents = [lon_min, lon_max, lat_min, lat_max]
+
     array_slice = ds[variable].isel(time=time)
     fig = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
-    if extents:
-        ax.set_extent(extents, ccrs.PlateCarree())
-    else:
-        ax.set_global()
+    ax.set_extent(extents, ccrs.PlateCarree())
 
     ax.coastlines()
     array_slice.plot.contourf(ax=ax, transform=ccrs.PlateCarree())
 
     if path:
         fig.savefig(path)
+
+def _extents_sane(lat_min:float, lat_max:float, lon_min:float, lon_max:float):
+    """ 
+    Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
+    are sane.
+    """
+    if lat_min >= lat_max:
+        return False
+
+    if lon_min >= lon_max:
+        return False
+
+    if lat_min < -90.0:
+        return False
+
+    if lat_max > 90.0:
+        return False
+
+    if lon_min < -180.0:
+        return False
+
+    if lon_max > 180.0:
+        return False
+
+    return True

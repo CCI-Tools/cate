@@ -16,7 +16,7 @@ class TestSubset(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([180,360,6])),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
-        actual = subset.subset_spatial(dataset, [-10,10], [-20,20])
+        actual = subset.subset_spatial(dataset, -10, 10, -20, 20)
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([20,40,6])),
             'second': (['lat', 'lon', 'time'], np.ones([20,40,6])),
@@ -32,7 +32,7 @@ class TestSubset(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': ['2000-01-01','2000-02-01','2000-03-01','2000-04-01','2000-05-01','2000-06-01']})
-        actual = subset.subset_temporal(dataset, ['2000-01-10','2000-04-01'])
+        actual = subset.subset_temporal(dataset, '2000-01-10', '2000-04-01')
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180,360,3])),
             'second': (['lat', 'lon', 'time'], np.ones([180,360,3])),
@@ -49,7 +49,7 @@ class TestSubset(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': ['2000-01-01','2000-02-01','2000-03-01','2000-04-01','2000-05-01','2000-06-01']})
-        actual = subset.subset_temporal_index(dataset, [2,4])
+        actual = subset.subset_temporal_index(dataset, 2, 4)
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180,360,3])),
             'second': (['lat', 'lon', 'time'], np.ones([180,360,3])),
