@@ -1,7 +1,27 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import json
 import os.path
 from abc import ABCMeta
-from typing import Any
 
 import xarray as xr
 from ect.core.io import open_dataset
@@ -10,11 +30,11 @@ from ect.core.op import op_input, op
 
 
 @op(tags=['io'])
-@op_input('data_source')
+@op_input('ds_id')
 @op_input('start_date')
 @op_input('end_date')
-def load_dataset(data_source: str, start_date: str, end_date: str) -> xr.Dataset:
-    return open_dataset(data_source, (start_date, end_date))
+def load_dataset(ds_id: str, start_date: str, end_date: str) -> xr.Dataset:
+    return open_dataset(ds_id, (start_date, end_date))
 
 
 @op(tags=['io'])
@@ -22,6 +42,26 @@ def load_dataset(data_source: str, start_date: str, end_date: str) -> xr.Dataset
 @op_input('file')
 def store_dataset(ds: xr.Dataset, file: str):
     ds.to_netcdf(file)
+
+
+# noinspection PyShadowingBuiltins
+@op(tags='io')
+@op_input('file')
+@op_input('format')
+def read_object(file: str, format: str = None) -> object:
+    import ect.core.objectio
+    obj, _ = ect.core.objectio.read_object(file, format_name=format)
+    return obj
+
+
+# noinspection PyShadowingBuiltins
+@op(tags='io')
+@op_input('obj')
+@op_input('file')
+@op_input('format')
+def write_object(obj, file: str, format: str = None):
+    import ect.core.objectio
+    ect.core.objectio.write_object(obj, file, format_name=format)
 
 
 @op(tags=['io'])
@@ -32,6 +72,7 @@ def read_text(file: str, encoding: str = None) -> str:
         with open(file, 'r', encoding=encoding) as fp:
             return fp.read()
     else:
+        # noinspection PyUnresolvedReferences
         return file.read()
 
 
@@ -39,18 +80,19 @@ def read_text(file: str, encoding: str = None) -> str:
 @op_input('obj')
 @op_input('file')
 @op_input('encoding')
-def write_text(obj: Any, file: str, encoding: str = None):
+def write_text(obj: object, file: str, encoding: str = None):
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
             fp.write(str(obj))
     else:
+        # noinspection PyUnresolvedReferences
         return file.write(str(obj))
 
 
 @op(tags=['io'])
 @op_input('file')
 @op_input('encoding')
-def read_json(file: str, encoding: str = None) -> Any:
+def read_json(file: str, encoding: str = None) -> object:
     if isinstance(file, str):
         with open(file, 'r', encoding=encoding) as fp:
             return json.load(fp)
@@ -64,7 +106,7 @@ def read_json(file: str, encoding: str = None) -> Any:
 @op_input('encoding')
 @op_input('indent')
 @op_input('separators')
-def write_json(obj: Any, file: str, encoding: str = None, indent: str = None, separators: str = None):
+def write_json(obj: object, file: str, encoding: str = None, indent: str = None, separators: str = None):
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
             json.dump(obj, fp, indent=indent, separators=separators)
@@ -78,7 +120,7 @@ def write_json(obj: Any, file: str, encoding: str = None, indent: str = None, se
 @op_input('decode_cf')
 @op_input('decode_times')
 @op_input('engine')
-def read_netcdf(file, drop_variables: str = None, decode_cf: bool = True, decode_times: bool = True,
+def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, decode_times: bool = True,
                 engine: str = None) -> xr.Dataset:
     return xr.open_dataset(file, drop_variables=drop_variables,
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
@@ -100,6 +142,7 @@ def write_netcdf4(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF4', engine=engine)
 
 
+# noinspection PyAbstractClass
 class TextObjectIO(ObjectIO):
     @property
     def description(self):
@@ -129,6 +172,7 @@ class TextObjectIO(ObjectIO):
         return 1000 if isinstance(obj, str) else 1
 
 
+# noinspection PyAbstractClass
 class JsonObjectIO(ObjectIO):
     @property
     def description(self):
@@ -167,6 +211,7 @@ class NetCDFObjectIO(ObjectIO, metaclass=ABCMeta):
         return '.nc'
 
     def read_fitness(self, file):
+        # noinspection PyBroadException
         try:
             dataset = self.read(file)
             dataset.close()
@@ -180,6 +225,7 @@ class NetCDFObjectIO(ObjectIO, metaclass=ABCMeta):
             else 0
 
 
+# noinspection PyAbstractClass
 class NetCDF3ObjectIO(NetCDFObjectIO):
     @property
     def description(self):
@@ -198,6 +244,7 @@ class NetCDF3ObjectIO(NetCDFObjectIO):
         return write_netcdf3
 
 
+# noinspection PyAbstractClass
 class NetCDF4ObjectIO(NetCDFObjectIO):
     @property
     def description(self):

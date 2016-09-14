@@ -1,37 +1,71 @@
 import os
+import os.path
 import shutil
 import sys
 import unittest
 from time import sleep
+from typing import Union, List
 
 from ect.core.monitor import Monitor
+from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams
 from ect.ui import cli
+from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
 
 
-class CliTest(unittest.TestCase):
+class CliTestCase(unittest.TestCase):
+    def assert_main(self,
+                    args: Union[None, List[str]],
+                    expected_status: int = 0,
+                    expected_stdout: Union[None, str, List[str]] = None,
+                    expected_stderr: Union[None, str, List[str]] = '') -> None:
+        with fetch_std_streams() as (stdout, stderr):
+            actual_status = cli.main(args=args)
+            self.assertEqual(actual_status, expected_status,
+                             msg='args = %s\n'
+                                 'status = %s\n'
+                                 'stdout = [%s]\n'
+                                 'stderr = [%s]' % (args, actual_status, stdout.getvalue(), stderr.getvalue()))
+        print(stdout.getvalue())
+        if isinstance(expected_stdout, str):
+            self.assertEqual(expected_stdout, stdout.getvalue())
+        elif expected_stdout:
+            for item in expected_stdout:
+                self.assertIn(item, stdout.getvalue())
+
+        if isinstance(expected_stderr, str):
+            self.assertEqual(expected_stderr, stderr.getvalue())
+        elif expected_stderr:
+            for item in expected_stderr:
+                self.assertIn(item, stderr.getvalue())
+
+    def remove_file(self, file_path, ignore_errors=True):
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        if ignore_errors and os.path.isfile(file_path):
+            self.fail("Can't remove file %s" % file_path)
+
+    def remove_tree(self, dir_path, ignore_errors=True):
+        if os.path.exists(dir_path):
+            shutil.rmtree(dir_path, ignore_errors=ignore_errors)
+        if ignore_errors and os.path.isdir(dir_path):
+            self.fail("Can't remove dir %s" % dir_path)
+
+
+class CliTest(CliTestCase):
     def test_noargs(self):
         sys.argv = []
-        with fetch_std_streams():
-            status = cli.main()
-            self.assertEqual(status, 0)
+        self.assert_main(None)
 
     def test_invalid_command(self):
-        with fetch_std_streams():
-            status = cli.main(['pipo'])
-            self.assertEqual(status, 2)
+        self.assert_main(['pipo'], expected_status=2, expected_stderr=None)
 
     def test_option_version(self):
-        with fetch_std_streams():
-            status = cli.main(args=['--version'])
-            self.assertEqual(status, 0)
+        self.assert_main(['--version'])
 
     def test_option_help(self):
-        with fetch_std_streams():
-            status = cli.main(args=['--h'])
-            self.assertEqual(status, 0)
-            status = cli.main(args=['--help'])
-            self.assertEqual(status, 0)
+        self.assert_main(['-h'])
+        self.assert_main(['--help'])
 
     def test_parse_load_arg(self):
         self.assertEqual(cli._parse_load_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
@@ -54,141 +88,106 @@ class CliTest(unittest.TestCase):
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
-from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
-
-
-class CliWorkspaceCommandTest(unittest.TestCase):
-    def _rmtree(self, dir_path, ignore_errors=True):
-        if os.path.exists(dir_path):
-            shutil.rmtree(dir_path, ignore_errors=ignore_errors)
-        if ignore_errors and os.path.isdir(dir_path):
-            self.fail("Can't remove dir %s" % dir_path)
-
+class CliWorkspaceCommandTest(CliTestCase):
     def assert_workspace_base_dir(self, base_dir):
         self.assertTrue(os.path.isdir(base_dir))
         self.assertTrue(os.path.isdir(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)))
         self.assertTrue(os.path.isfile(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME, 'workflow.json')))
 
-    def test_command_ws_init_no_arg(self):
-
-        self._rmtree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ws', 'init'])
-            self.assertEqual(status, 0, msg=stderr.getvalue())
-        self.assertIn('Workspace initialized', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        self.assert_workspace_base_dir('.')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ws', 'init'])
-            self.assertEqual(status, 1, msg=stderr.getvalue())
-        self.assertIn('workspace exists: ', stderr.getvalue())
-        self.assertEqual(stdout.getvalue(), '')
-
-        self._rmtree(WORKSPACE_DATA_DIR_NAME)
-
     def test_command_ws_init_with_arg(self):
         base_dir = '_bibo_workspace'
-
-        self._rmtree(base_dir, ignore_errors=False)
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ws', 'init', base_dir])
-            self.assertEqual(status, 0, msg=stderr.getvalue())
-        self.assertIn('Workspace initialized', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
+        self.remove_tree(base_dir, ignore_errors=False)
+        self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
+        self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
+        self.remove_tree(base_dir)
 
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ws', 'init', base_dir])
-            self.assertEqual(status, 1, msg=stderr.getvalue())
-        self.assertIn('workspace exists: ', stderr.getvalue())
-        self.assertEqual(stdout.getvalue(), '')
+    def test_command_ws_init_no_arg(self):
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
+        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
+        self.assert_workspace_base_dir('.')
+        self.assert_main(['ws', 'init'], expected_stderr=['workspace exists: '], expected_status=1)
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
-        self._rmtree(base_dir)
+
+class CliWorkspaceResourceCommandTest(CliTestCase):
+    def setUp(self):
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
+
+    def tearDown(self):
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+
+    def test_command_res_read_op_write(self):
+        input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+        output_file = '_timeseries_.nc'
+
+        self.assert_main(['ws', 'init'],
+                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['res', 'read', 'ds', input_file],
+                         expected_stdout=["Resource 'ds' set."])
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
+                         expected_stdout=["Resource 'ts' set."])
+        self.assert_main(['res', 'write', 'ts', output_file],
+                         expected_stdout=["Executing workflow 'workspace_workflow'",
+                                          "Resource 'ts' written to %s" % output_file])
+
+        self.remove_file(output_file)
+
+    def test_command_res_load_read_op(self):
+        self.assert_main(['ws', 'init'],
+                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['res', 'load', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
+                         expected_stdout=["Resource 'ds1' set."])
+        self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
+                         expected_stdout=["Resource 'ds2' set."])
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=13.2', 'lon=52.9'],
+                         expected_stdout=["Resource 'ts' set."])
+        self.assert_main(['ws', 'status'],
+                         expected_stdout=
+                         'Workspace steps:\n'
+                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', start_date=2010, end_date=None) [OpStep]\n'
+                         '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n'
+                         '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]\n')
 
 
-class CliOperationCommandTest(unittest.TestCase):
+class CliOperationCommandTest(CliTestCase):
     def test_command_op_info(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'info', 'ect.ops.timeseries.timeseries'])
-            self.assertEqual(status, 0)
-        self.assertIn('Extract time-series', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'info', 'foobarbaz'])
-            self.assertEqual(status, 2)
-        self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(), "ect: error: command 'op info': unknown operation 'foobarbaz'\n")
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'info'])
-            self.assertEqual(status, 2)
-        self.assertEqual(stdout.getvalue(), '')
-        self.assertIn("usage: ect op info [-h] OP\n", stderr.getvalue())
+        self.assert_main(['op', 'info', 'ect.ops.timeseries.timeseries'],
+                         expected_stdout=['Extract time-series'])
+        self.assert_main(['op', 'info', 'foobarbaz'],
+                         expected_status=2,
+                         expected_stdout='',
+                         expected_stderr="ect: error: command 'op info': unknown operation 'foobarbaz'\n")
+        self.assert_main(['op', 'info'],
+                         expected_status=2,
+                         expected_stdout='',
+                         expected_stderr=["usage: ect op info [-h] OP\n"])
 
     def test_command_op_list(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list'])
-            self.assertEqual(status, 0)
-        self.assertIn('operations found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list', '-n', '*data*'])
-            self.assertEqual(status, 0)
-        self.assertIn('operations found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list', '-n', 'nevermatch'])
-            self.assertEqual(status, 0)
-        self.assertIn('No operations found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['op', 'list', '--tag', 'io'])
-            self.assertEqual(status, 0)
-        self.assertIn('9 operations found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
+        self.assert_main(['op', 'list'], expected_stdout=['operations found'])
+        self.assert_main(['op', 'list', '-n', '*data*'], expected_stdout=['operations found'])
+        self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
+        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['11 operations found'])
 
 
-class CliDataSourceCommandTest(unittest.TestCase):
+class CliDataSourceCommandTest(CliTestCase):
     def test_command_ds_info(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
-            self.assertEqual(status, 0)
-        self.assertIn('Base directory', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
+        self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
+                         expected_stdout=['Base directory'])
 
     def test_command_ds_list(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'list'])
-            self.assertEqual(status, 0)
-        self.assertIn('98 data sources found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
-
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds', 'list', '--id', 'CLOUD*'])
-            self.assertEqual(status, 0)
-        self.assertIn('19 data sources found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
+        self.assert_main(['ds', 'list'],
+                         expected_stdout=['98 data sources found'])
+        self.assert_main(['ds', 'list', '--id', 'CLOUD*'],
+                         expected_stdout=['19 data sources found'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync(self):
-        with fetch_std_streams():
-            status = cli.main(args=['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
-            self.assertEqual(status, 0)
+        self.assert_main(['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
-        with fetch_std_streams():
-            status = cli.main(args=['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--time', '2010-12'])
-            self.assertEqual(status, 0)
+        self.assert_main(['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--time', '2010-12'])
 
     def test_command_ds_parse_time_period(self):
         from ect.ui.cli import DataSourceCommand
@@ -217,81 +216,62 @@ class CliDataSourceCommandTest(unittest.TestCase):
         self.assertEqual(DataSourceCommand.parse_time_period('20L0-1-3-83,2010-01'), None)
 
     def test_command_run_no_args(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['ds'])
-            self.assertEqual(status, 0)
-        self.assertEqual(stderr.getvalue(), '')
-        self.assertEqual(stdout.getvalue(),
-                         "usage: ect ds [-h] COMMAND ...\n"
-                         "\n"
-                         "Manage data sources.\n"
-                         "\n"
-                         "positional arguments:\n"
-                         "  COMMAND     One of the following commands. Type \"COMMAND -h\" for help.\n"
-                         "    list      List all available data sources\n"
-                         "    sync      Synchronise a remote data source with its local version.\n"
-                         "    info      Display information about a data source.\n"
-                         "\n"
-                         "optional arguments:\n"
-                         "  -h, --help  show this help message and exit\n")
+        self.assert_main(['ds'],
+                         expected_stdout="usage: ect ds [-h] COMMAND ...\n"
+                                         "\n"
+                                         "Manage data sources.\n"
+                                         "\n"
+                                         "positional arguments:\n"
+                                         "  COMMAND     One of the following commands. Type \"COMMAND -h\" for help.\n"
+                                         "    list      List all available data sources\n"
+                                         "    sync      Synchronise a remote data source with its local version.\n"
+                                         "    info      Display information about a data source.\n"
+                                         "\n"
+                                         "optional arguments:\n"
+                                         "  -h, --help  show this help message and exit\n")
 
 
-class CliRunCommandTest(unittest.TestCase):
+class CliRunCommandTest(CliTestCase):
     def test_command_run_with_unknown_op(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['run', 'pipapo', 'lat=13.2', 'lon=52.9'])
-            self.assertEqual(status, 1)
-        self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(), "ect: error: command 'run': unknown operation 'pipapo'\n")
+        self.assert_main(['run', 'pipapo', 'lat=13.2', 'lon=52.9'],
+                         expected_status=1,
+                         expected_stdout='',
+                         expected_stderr="ect: error: command 'run': unknown operation 'pipapo'\n")
 
     def test_command_run_noargs(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['run'])
-            self.assertEqual(status, 1, msg=stderr.getvalue())
-        self.assertEqual(stdout.getvalue(), '')
-        self.assertEqual(stderr.getvalue(), "ect: error: command 'run' requires OP argument\n")
+        self.assert_main(['run'],
+                         expected_status=1,
+                         expected_stdout='',
+                         expected_stderr="ect: error: command 'run' requires OP argument\n")
 
     def test_command_run_with_op(self):
-        from ect.core.op import OP_REGISTRY as OP_REGISTRY
-
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
         try:
             # Run without --monitor and --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
-            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9 method=nearest',
+                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
-            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
-            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9 method=nearest',
+                                              'Extracting timeseries data: started',
+                                              'Extracting timeseries data:  33%',
+                                              'Extracting timeseries data: done',
+                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(
-                    args=['run', '--monitor', '--write', 'timeseries_data.txt', op_reg.op_meta_info.qualified_name,
-                          'lat=13.2',
-                          'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9 method=nearest', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
-            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
-            self.assertIn('Writing output to timeseries_data.txt using TEXT format...', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', '--monitor', '--write', 'timeseries_data.txt',
+                              op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9 method=nearest',
+                                              'Extracting timeseries data: started',
+                                              'Extracting timeseries data:  33%',
+                                              'Extracting timeseries data: done',
+                                              'Writing output to timeseries_data.txt using TEXT format...'])
             self.assertTrue(os.path.isfile('timeseries_data.txt'))
             os.remove('timeseries_data.txt')
 
@@ -306,8 +286,6 @@ class CliRunCommandTest(unittest.TestCase):
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
     def test_command_run_with_workflow(self):
-        from ect.core.op import OP_REGISTRY as OP_REGISTRY
-        import os.path
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
@@ -316,38 +294,29 @@ class CliRunCommandTest(unittest.TestCase):
 
         try:
             # Run without --monitor and --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', workflow_file, 'lat=13.2', 'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
-            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', workflow_file, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9',
+                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
-            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
-            self.assertIn('Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9',
+                                              'Extracting timeseries data: started',
+                                              'Extracting timeseries data:  33%',
+                                              'Extracting timeseries data: done',
+                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(
-                    args=['run', '--monitor', '--write', 'timeseries_data.json', workflow_file, 'lat=13.2', 'lon=52.9'])
-                self.assertEqual(status, 0)
-            self.assertIn("Running '", stdout.getvalue())
-            self.assertIn('lat=13.2 lon=52.9', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: started', stdout.getvalue())
-            self.assertIn('Extracting timeseries data:  33%', stdout.getvalue())
-            self.assertIn('Extracting timeseries data: done', stdout.getvalue())
-            self.assertIn('Writing output to timeseries_data.json using JSON format...', stdout.getvalue())
-            self.assertEqual(stderr.getvalue(), '')
+            self.assert_main(['run', '--monitor', '--write', 'timeseries_data.json',
+                              workflow_file, 'lat=13.2', 'lon=52.9'],
+                             expected_stdout=["Running '",
+                                              'lat=13.2 lon=52.9',
+                                              'Extracting timeseries data: started',
+                                              'Extracting timeseries data:  33%',
+                                              'Extracting timeseries data: done',
+                                              'Writing output to timeseries_data.json using JSON format...'])
             self.assertTrue(os.path.isfile('timeseries_data.json'))
             os.remove('timeseries_data.json')
 
@@ -355,31 +324,18 @@ class CliRunCommandTest(unittest.TestCase):
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
     def test_command_run_help(self):
-        with fetch_std_streams():
-            status = cli.main(args=['run', '-h'])
-            self.assertEqual(status, 0)
-
-        with fetch_std_streams():
-            status = cli.main(args=['run', '--help'])
-            self.assertEqual(status, 0)
+        self.assert_main(['run', '-h'])
+        self.assert_main(['run', '--help'])
 
 
-class CliPluginCommandTest(unittest.TestCase):
+class CliPluginCommandTest(CliTestCase):
     def test_command_list(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['pi', 'list'])
-            self.assertEqual(status, 0)
-        self.assertIn('plugins found', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
+        self.assert_main(['pi', 'list'], expected_stdout=['plugins found'])
 
 
-class CliLicenseCommandTest(unittest.TestCase):
+class CliLicenseCommandTest(CliTestCase):
     def test_command_license(self):
-        with fetch_std_streams() as (stdout, stderr):
-            status = cli.main(args=['lic'])
-            self.assertEqual(status, 0)
-        self.assertIn('GNU General Public License', stdout.getvalue())
-        self.assertEqual(stderr.getvalue(), '')
+        self.assert_main(['lic'], expected_stdout=['MIT License'])
 
 
 def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:

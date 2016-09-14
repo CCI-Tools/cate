@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Description
 ===========
@@ -32,6 +53,7 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif,
 
 """
 import matplotlib
+
 matplotlib.use('agg')
 # https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
 import matplotlib.pyplot as plt
@@ -89,14 +111,7 @@ def plot_map(ds:xr.Dataset,
     if not time:
         time = 0
 
-    # TODO Myself for tomorrow, I should set min/max lat/lon extents manually
-    # if there are none, and then do the check if these seem to be sane. E.g.,
-    # min smaller than max, both lat and lon within some bounds.
-    # Then this sanity check has to be tested for in the test.
-    # And the test has to be made faster.
-    #
-    # And, where plotting is currently used in Jupyter and json, how this method
-    # is called should be changed.
+    # Sanity check
     if not lat_min:
         lat_min = -90.0
 
@@ -116,7 +131,7 @@ def plot_map(ds:xr.Dataset,
     extents = [lon_min, lon_max, lat_min, lat_max]
 
     array_slice = ds[variable].isel(time=time)
-    fig = plt.figure(figsize=(16,8))
+    fig = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent(extents, ccrs.PlateCarree())
 

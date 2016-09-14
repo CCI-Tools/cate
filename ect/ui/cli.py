@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Description
 ===========
@@ -81,7 +102,9 @@ from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import find_writer
+from ect.core.op import OP_REGISTRY
 from ect.core.op import parse_op_args
+from ect.core.workflow import Workflow
 from ect.ops.io import load_dataset
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WorkspaceError
 from ect.version import __version__
@@ -93,20 +116,19 @@ _DOCS_URL = 'http://ect-core.readthedocs.io/en/latest/'
 
 _LICENSE = """
 ECT, the ESA CCI Toolbox, version %s
-Copyright 2016 ECT Development team and contributors
+Copyright (c) 2016 by ECT Development team and contributors
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+it under the terms of the MIT License (MIT) as published by
+the Open Source Initiative.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+MIT License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the MIT License along with this
+program. If not, see https://opensource.org/licenses/MIT.
 """ % __version__
 
 
@@ -155,6 +177,25 @@ def _parse_write_arg(write_arg):
     path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
     return name if name else None, path if path else None, format_name.upper() if format_name else None
+
+
+def _list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
+    if pattern:
+        # see https://docs.python.org/3.5/library/fnmatch.html
+        import fnmatch
+        pattern = pattern.lower()
+        names = [name for name in names if fnmatch.fnmatch(name.lower(), pattern)]
+    item_count = len(names)
+    if item_count == 1:
+        print('One %s found' % category_singular_name)
+    elif item_count > 1:
+        print('%d %s found' % (item_count, category_plural_name))
+    else:
+        print('No %s found' % category_plural_name)
+    no = 0
+    for item in names:
+        no += 1
+        print('%4d: %s' % (no, item))
 
 
 class Command(metaclass=ABCMeta):
@@ -327,10 +368,8 @@ class RunCommand(Command):
             if op_args:
                 return 1, "error: command '%s': can't run workflow with arguments %s, please provide keywords only" % \
                        (RunCommand.CMD_NAME, op_args)
-            from ect.core.workflow import Workflow
             op = Workflow.load(command_args.op_name)
         else:
-            from ect.core.op import OP_REGISTRY as OP_REGISTRY
             op = OP_REGISTRY.get_op(command_args.op_name)
             if op is None:
                 return 1, "error: command '%s': unknown operation '%s'" % (RunCommand.CMD_NAME, op_name)
@@ -425,7 +464,7 @@ class WorkspaceCommand(SubCommandCommand):
             workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
             print('Workspace initialized.')
         except WorkspaceError as e:
-            return 1, "error: command '%s': failed to initialize workspace: %s" % (cls.CMD_NAME, str(e))
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
         return cls.STATUS_OK
 
     @classmethod
@@ -434,7 +473,7 @@ class WorkspaceCommand(SubCommandCommand):
         try:
             workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
         except WorkspaceError as e:
-            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
 
         workflow = workspace.workflow
         if len(workflow.steps) > 0:
@@ -447,7 +486,7 @@ class WorkspaceCommand(SubCommandCommand):
         return cls.STATUS_OK
 
 
-class ResourceCommand(SubCommandCommand):
+class WorkspaceResourceCommand(SubCommandCommand):
     """
     The ``ws`` command implements various operations w.r.t. *workspaces*.
     """
@@ -461,19 +500,116 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
-        set_parser = subparsers.add_parser('set', help='Set a resource.')
+
+        load_parser = subparsers.add_parser('load',
+                                            help='Load dataset from a data source and set a resource.')
+        load_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of the new target resource.')
+        load_parser.add_argument('ds_id', metavar='DS',
+                                 help='Data source ID. Type "ect ds list" to list valid data source IDs.')
+        load_parser.add_argument('start_date', metavar='START', nargs='?',
+                                 help='Start date. Use format YYYY[-MM[-DD]].')
+        load_parser.add_argument('end_date', metavar='END', nargs='?',
+                                 help='End date. Use format YYYY[-MM[-DD]].')
+        load_parser.set_defaults(sub_command_function=cls._execute_load)
+
+        read_parser = subparsers.add_parser('read',
+                                            help='Read an object from a file and set a resource.')
+        read_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of the new target resource.')
+        read_parser.add_argument('file_path', metavar='FILE',
+                                 help='File path.')
+        read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+                                 help='File format. Type')
+        # TODO (forman, 20160913): support reader-specific arguments
+        # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+        #                           help='Specific reader arguments. '
+        #                                'Type "ect res read -h" to list format-specific read arguments')
+        read_parser.set_defaults(sub_command_function=cls._execute_read)
+
+        read_parser = subparsers.add_parser('write',
+                                            help='Write a resource to a file.')
+        read_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of the new target resource.')
+        read_parser.add_argument('file_path', metavar='FILE',
+                                 help='File path.')
+        read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+                                 help='File format. Type')
+        # TODO (forman, 20160913): support writer-specific arguments
+        # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+        #                           help='Specific reader arguments. '
+        #                                'Type "ect res write -h" to list format-specific write arguments')
+        read_parser.set_defaults(sub_command_function=cls._execute_write)
+
+        set_parser = subparsers.add_parser('set',
+                                           help='Create a workflow operation and set a resource.')
         set_parser.add_argument('res_name', metavar='NAME',
-                                help="Resource name.")
+                                help='Name of the new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
-                                help="Operation name.")
+                                help='Operation name.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                                help="Operation arguments.")
+                                help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
         del_parser = subparsers.add_parser('del', help='Delete a resource.')
         del_parser.add_argument('name', metavar='DIR',
-                                help="Resource name.")
+                                help='Resource name.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
+
+    @classmethod
+    def _execute_load(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        try:
+            op_args = ['ds_id=%s' % command_args.ds_id]
+            if command_args.start_date:
+                op_args.append('start_date=%s' % command_args.start_date)
+            if command_args.end_date:
+                op_args.append('end_date=%s' % command_args.end_date)
+            workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.load_dataset', op_args)
+            print("Resource '%s' set." % command_args.res_name)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_read(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        try:
+            op_args = ['file=%s' % command_args.file_path]
+            if command_args.format_name:
+                op_args.append('format=%s' % command_args.format_name)
+            workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.read_object', op_args)
+            print("Resource '%s' set." % command_args.res_name)
+        except WorkspaceError as e:
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
+
+    @classmethod
+    def _execute_write(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        try:
+            res_name = command_args.res_name
+            file_path = command_args.file_path
+            format_name = command_args.format_name
+            # TBD: shall we add a new step to the workflow or just execute the workflow,
+            # then write the desired resource?
+            workspace = workspace_manager.get_workspace('')
+            monitor = ConsoleMonitor(stay_in_line=True, progress_bar_size=80)
+            try:
+                result = workspace.workflow(monitor=monitor)
+                if res_name in result:
+                    obj = result[res_name]
+                else:
+                    obj = result
+                from ect.ops.io import write_object
+                print("Writing resource '%s' to %s..." % (res_name, file_path))
+                write_object(obj, file_path, format=format_name)
+                print("Resource '%s' written to %s" % (res_name, file_path))
+            except Exception as e:
+                return 2, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
+        except WorkspaceError as e:
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
+        return cls.STATUS_OK
 
     @classmethod
     def _execute_set(cls, command_args):
@@ -483,7 +619,7 @@ class ResourceCommand(SubCommandCommand):
                                                      command_args.op_name, command_args.op_args)
             print("Resource '%s' set." % command_args.res_name)
         except WorkspaceError as e:
-            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
 
         return cls.STATUS_OK
 
@@ -494,7 +630,7 @@ class ResourceCommand(SubCommandCommand):
             # workspace.remove_resource(command_args.res_name, )
             print("Resource '%s' deleted." % command_args.res_name)
         except WorkspaceError as e:
-            return 1, "error: command '%s': failed to load workspace: %s" % (cls.CMD_NAME, str(e))
+            return 1, "error: command '%s': %s" % (cls.CMD_NAME, str(e))
         return cls.STATUS_OK
 
 
@@ -530,7 +666,6 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
-        from ect.core.op import OP_REGISTRY
         op_registrations = OP_REGISTRY.op_registrations
 
         def _op_has_tag(op_registration, tag_value):
@@ -551,13 +686,12 @@ class OperationCommand(SubCommandCommand):
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
-        list_items('operation', 'operations', op_names, name_pattern)
+        _list_items('operation', 'operations', op_names, name_pattern)
 
     @classmethod
     def _execute_info(cls, command_args):
         if not command_args.op_name:
             return 2, "error: command 'op info': missing OP argument"
-        from ect.core.op import OP_REGISTRY
         op_registration = OP_REGISTRY.get_op(command_args.op_name)
         if op_registration:
             op_meta_info = op_registration.op_meta_info
@@ -621,8 +755,8 @@ class DataSourceCommand(SubCommandCommand):
             # TODO (marcoz, 20160905): option --var not implemented yet
             return 2, "error: command 'ds list': option --var not implemented yet"
             # var_pattern = command_args.var
-        list_items('data source', 'data sources',
-                   [data_source.name for data_source in data_store.query()], id_pattern)
+        _list_items('data source', 'data sources',
+                    [data_source.name for data_source in data_store.query()], id_pattern)
 
     @classmethod
     def _execute_info(cls, command_args):
@@ -724,26 +858,7 @@ class PluginCommand(SubCommandCommand):
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
-        list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), name_pattern)
-
-
-def list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
-    if pattern:
-        # see https://docs.python.org/3.5/library/fnmatch.html
-        import fnmatch
-        pattern = pattern.lower()
-        names = [name for name in names if fnmatch.fnmatch(name.lower(), pattern)]
-    item_count = len(names)
-    if item_count == 1:
-        print('One %s found' % category_singular_name)
-    elif item_count > 1:
-        print('%d %s found' % (item_count, category_plural_name))
-    else:
-        print('No %s found' % category_plural_name)
-    no = 0
-    for item in names:
-        no += 1
-        print('%4d: %s' % (no, item))
+        _list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), name_pattern)
 
 
 class LicenseCommand(Command):
@@ -780,7 +895,7 @@ class DocsCommand(Command):
 COMMAND_REGISTRY = [
     RunCommand,
     WorkspaceCommand,
-    ResourceCommand,
+    WorkspaceResourceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,

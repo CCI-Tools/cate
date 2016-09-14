@@ -487,7 +487,7 @@ with the same entry point::
        name="ect-core",
        version=__version__,
        description='ESA CCI Toolbox Core',
-       license='GPL 3',
+       license='MIT',
        author='ESA CCI Toolbox Development Team',
        packages=['ect'],
        entry_points={

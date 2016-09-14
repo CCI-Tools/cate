@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2016 by the ECT Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Description
 ===========
@@ -725,7 +746,7 @@ def _update_properties(old_properties: dict, new_properties: dict):
 
 
 def parse_op_args(raw_args: List[str], namespace: dict = None,
-                  ignore_eval_errors: bool=True) -> Tuple[List, OrderedDict]:
+                  ignore_eval_errors: bool = True) -> Tuple[List, OrderedDict]:
     """
     Convert a raw argument list *raw_args* into a (args, kwargs) tuple whose elements are converted Python objects.
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
@@ -775,5 +796,3 @@ def parse_op_args(raw_args: List[str], namespace: dict = None,
             op_kwargs[name] = value
 
     return op_args, op_kwargs
-
-
