@@ -30,10 +30,11 @@ Components
 """
 import math
 
+from ect.core.op import op_input, op
 import xarray as xr
-from ect.core.op import op_input
 
 
+@op(tags=['correlation'])
 @op_input('ds_y', description="The 'dependent' Time series dataset")
 @op_input('ds_x', description="The 'variable' Time series dataset")
 @op_input('path', description="File path where to save the correlation parameters")
