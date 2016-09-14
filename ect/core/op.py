@@ -102,6 +102,7 @@ Components
 ==========
 """
 
+import re
 from collections import OrderedDict
 from inspect import isclass
 from typing import Dict, Tuple, List
@@ -109,6 +110,8 @@ from typing import Dict, Tuple, List
 from .monitor import Monitor
 from .util import object_to_qualified_name, qualified_name_to_object
 
+_SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
+_SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
 
 class OpMetaInfo:
     """
@@ -263,12 +266,6 @@ class OpMetaInfo:
 
         op_qualified_name = object_to_qualified_name(operation, fail=True)
 
-        header = dict()
-        # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
-        if hasattr(operation, '__doc__'):
-            # documentation string
-            header['description'] = operation.__doc__
-
         input_dict, has_monitor = OrderedDict(), False
         if hasattr(operation, '__code__'):
             input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
@@ -279,6 +276,8 @@ class OpMetaInfo:
             else:
                 raise ValueError('operations of type class must define a __call__(self, ...) method')
 
+        return_name = OpMetaInfo.RETURN_OUTPUT_NAME
+
         output_dict = OrderedDict()
         if hasattr(operation, '__annotations__'):
             # mapping of parameters names to annotations; 'return' key is reserved for return annotations.
@@ -286,12 +285,28 @@ class OpMetaInfo:
             for annotated_name, annotated_type in annotations.items():
                 if annotated_name == 'return':
                     # op_meta_info.output can't be present so far -> assign new dict
-                    output_dict[OpMetaInfo.RETURN_OUTPUT_NAME] = dict(data_type=annotated_type)
+                    output_dict[return_name] = dict(data_type=annotated_type)
                 elif annotated_name != cls.MONITOR_INPUT_NAME:
                     # input_dict[annotated_name] should be present through _introspect_inputs_from_callable() call
                     input_dict[annotated_name]['data_type'] = annotated_type
         if len(output_dict) == 0:
-            output_dict[OpMetaInfo.RETURN_OUTPUT_NAME] = dict()
+            output_dict[return_name] = dict()
+
+        header = dict()
+        # Introspect the operation instance (see https://docs.python.org/3.5/library/inspect.html)
+        if hasattr(operation, '__doc__'):
+            # documentation string
+            docstring = operation.__doc__
+            if docstring:
+                description, param_descriptions, return_description = cls._parse_docstring(docstring)
+                if description:
+                    header['description'] = description
+                if param_descriptions:
+                    for param_name, param_description in param_descriptions.items():
+                        if param_name in input_dict:
+                            input_dict[param_name]['description'] = param_descriptions[param_name]
+                if return_description and return_name in output_dict:
+                    output_dict[return_name]['description'] = return_description
 
         return OpMetaInfo(op_qualified_name,
                           header_dict=header,
@@ -412,6 +427,74 @@ class OpMetaInfo:
                     raise ValueError(
                         "output '%s' for operation '%s' must be of type %s" % (
                             name, self.qualified_name, data_type))
+
+    @classmethod
+    def _parse_docstring(cls, docstring):
+        lines = docstring.split('\n')
+        description_lines = []
+        directive_lines = []
+        in_description = False
+        in_directive = False
+        param_descriptions = OrderedDict()
+        return_descriptions = OrderedDict()
+        for line in lines:
+            line = line.strip()
+            if line.startswith(':'):
+                if in_description:
+                    in_description = False
+                elif in_directive:
+                    cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+                directive_lines = [line]
+                in_directive = True
+            elif line:
+                if in_description:
+                    description_lines.append(line)
+                elif in_directive:
+                    directive_lines.append(line)
+                else:
+                    description_lines = [line]
+                    in_description = True
+            else:
+                if in_description:
+                    description_lines.append('')
+                elif in_directive:
+                    cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+                    directive_lines = []
+                    in_directive = False
+
+        if in_directive:
+            cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+
+        return ('\n'.join(description_lines).strip(' \n\t') if description_lines else None,
+                param_descriptions,
+                return_descriptions.get('return', None))
+
+    @classmethod
+    def _process_sphinx_directive_lines(cls,
+                                        directive_lines: List[str],
+                                        param_descriptions: Dict[str, str],
+                                        return_description: Dict[str, str]) -> None:
+        # print("consume", annotation_lines)
+        text = ' '.join(directive_lines).strip()
+        matcher = _SPHINX_PARAM_DIRECTIVE_PATTERN.match(text)
+        if matcher:
+            name = matcher.group('name')
+            text = cls._strip_sphinx_directive_text(matcher.group('desc'))
+            param_descriptions[name] = text
+            return
+
+        matcher = _SPHINX_RETURN_DIRECTIVE_PATTERN.match(text)
+        if matcher:
+            text = cls._strip_sphinx_directive_text(matcher.group('desc'))
+            return_description['return'] = text
+
+    @classmethod
+    def _strip_sphinx_directive_text(cls, description: str) -> str:
+        return description.strip().replace('``', '"') \
+            .replace(':py:class:', '') \
+            .replace(':py:func:', '') \
+            .replace(':py:attr:', '') \
+            .replace('`', '')
 
 
 class OpRegistration:

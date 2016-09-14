@@ -30,7 +30,18 @@ class OpMetaInfoTest(TestCase):
 
     def test_introspect_operation(self):
         def f(a: str, b: int, c: float = 1, d='A') -> float:
-            """The doc."""
+            """
+            The doc.
+
+            :param a: the a str
+            :param b: the
+              b int
+            :param c: the c float
+            :param d:
+                         the d 'A'
+
+            :return: a float
+            """
 
         op_meta_info = OpMetaInfo.introspect_operation(f)
         self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(f))
@@ -42,11 +53,11 @@ class OpMetaInfoTest(TestCase):
         self.assertIn('c', op_meta_info.input)
         self.assertIn('d', op_meta_info.input)
         self.assertIn(RETURN, op_meta_info.output)
-        self.assertEqual(op_meta_info.input['a'], dict(data_type=str, position=0))
-        self.assertEqual(op_meta_info.input['b'], dict(data_type=int, position=1))
-        self.assertEqual(op_meta_info.input['c'], dict(data_type=float, default_value=1))
-        self.assertEqual(op_meta_info.input['d'], dict(default_value='A'))
-        self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
+        self.assertEqual(op_meta_info.input['a'], dict(data_type=str, position=0, description='the a str'))
+        self.assertEqual(op_meta_info.input['b'], dict(data_type=int, position=1, description='the b int'))
+        self.assertEqual(op_meta_info.input['c'], dict(data_type=float, default_value=1, description='the c float'))
+        self.assertEqual(op_meta_info.input['d'], dict(default_value='A', description="the d 'A'"))
+        self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float, description='a float'))
         self.assertEqual(op_meta_info.has_monitor, False)
         self.assertEqual(op_meta_info.has_named_outputs, False)
 
