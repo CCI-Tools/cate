@@ -31,7 +31,6 @@ needs_sphinx = '1.3'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -39,6 +38,9 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+
+    'sphinx.ext.autodoc',
+    'sphinx_autodoc_annotation',
 
     # 'sphinxcontrib.plantuml',
     'numpydoc',
