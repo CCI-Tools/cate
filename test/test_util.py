@@ -2,8 +2,9 @@ from collections import OrderedDict
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
-from ect.core.util import UNDEFINED
 from ect.core.util import Namespace
+from ect.core.util import UNDEFINED
+from ect.core.util import encode_url_path
 from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
 
@@ -139,3 +140,20 @@ class UtilTest(TestCase):
             qualified_name_to_object('numpi.ndarray')
         with self.assertRaisesRegex(AttributeError, "module 'builtins' has no attribute 'flaot'"):
             qualified_name_to_object('flaot')
+
+    def test_encode_path(self):
+        self.assertEqual(encode_url_path('/ws/init',
+                                         query_args=OrderedDict([('base_path', '/home/norman/workpaces'),
+                                                                 ('description', 'Hi there!')])),
+                         '/ws/init?base_path=%2Fhome%2Fnorman%2Fworkpaces&description=Hi+there%21')
+        self.assertEqual(encode_url_path('/ws/init',
+                                         query_args=OrderedDict([('base_path', 'C:\\Users\\Norman\\workpaces'),
+                                                                 ('description', 'Hi there!')])),
+                         '/ws/init?base_path=C%3A%5CUsers%5CNorman%5Cworkpaces&description=Hi+there%21')
+
+        self.assertEqual(encode_url_path('/ws/get/{base_path}',
+                                         path_args=dict(base_path='/home/norman/workpaces')),
+                         '/ws/get/%2Fhome%2Fnorman%2Fworkpaces')
+        self.assertEqual(encode_url_path('/ws/get/{base_path}',
+                                         path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
+                         '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
