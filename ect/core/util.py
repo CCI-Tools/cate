@@ -382,7 +382,7 @@ def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict 
     return path + query_string
 
 
-def to_datetime(datetime_or_str: Union[datetime, date, str, None], default) -> date:
+def to_datetime(datetime_or_str: Union[datetime, date, str, None], default=None) -> datetime:
     if datetime_or_str is None:
         return default
     elif isinstance(datetime_or_str, str):
@@ -392,7 +392,9 @@ def to_datetime(datetime_or_str: Union[datetime, date, str, None], default) -> d
             return datetime.strptime(datetime_or_str, "%Y-%m-%d %H:%M:%S")
         except ValueError:
             return datetime.strptime(datetime_or_str, "%Y-%m-%d")
-    elif isinstance(datetime_or_str, date):
+    elif isinstance(datetime_or_str, datetime):
         return datetime_or_str
+    elif isinstance(datetime_or_str, date):
+        return datetime(datetime_or_str.year, datetime_or_str.month, datetime_or_str.day, 12)
     else:
         raise TypeError('datetime_or_str argument must be a string or instance of datetime.date')

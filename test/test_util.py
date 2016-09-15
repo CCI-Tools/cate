@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, date
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
@@ -175,6 +175,10 @@ class UtilTest(TestCase):
         d1 = to_datetime(datetime(2001, 1, 1), None)
         self.assertIsInstance(d1, datetime)
         self.assertEqual(datetime(2001, 1, 1), d1)
+
+        d1 = to_datetime(date(2012, 4, 20), default=None)
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2012, 4, 20, 12), d1)
 
         d1 = to_datetime(None, datetime(2001, 1, 1))
         self.assertIsInstance(d1, datetime)
