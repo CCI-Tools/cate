@@ -212,7 +212,7 @@ Teleconnection Explorer
 :Problem Definition: As part of a project on climatic teleconnection, a student investigates how El Niño-Southern
     Oscillation (ENSO) relates to monsoon rainfall. A result could be a plot showing the sliding correlation between
     Indian Summer Monsoon Rainfall (ISMR) and Niño3.4 SST anomalies `[RD-4]`_. A more sophisticated version of this
-    task would be to calculate the Multivariate ENSO Index (MEI, `[RD-5]`_, `[RD-6])`_. Additionally, also the comparison
+    task would be to calculate the Multivariate ENSO Index (MEI, `[RD-5]`_, `[RD-6]`_). Additionally, also the comparison
     of the ENSO index with other CCI datasets (e.g. Cloud, Fire) would be interesting.
 
 :Required Toolbox Features:
