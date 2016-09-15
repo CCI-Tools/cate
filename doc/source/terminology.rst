@@ -11,7 +11,7 @@ In order to avoid confusion and ambiguity, a common terminology was agreed on as
 
 .. list-table:: Toolbox Terminology
    :name: terminologytab
-   :widths: 5 10 15
+   :widths: 5 25
    :header-rows: 1
    
    * - Term
