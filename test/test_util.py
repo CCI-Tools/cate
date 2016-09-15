@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from datetime import datetime
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
@@ -7,6 +8,7 @@ from ect.core.util import UNDEFINED
 from ect.core.util import encode_url_path
 from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
+from ect.core.util import to_datetime
 
 
 class UndefinedTest(TestCase):
@@ -16,6 +18,7 @@ class UndefinedTest(TestCase):
         self.assertEqual(repr(UNDEFINED), 'UNDEFINED')
 
 
+# noinspection PyUnusedLocal
 class NamespaceTest(TestCase):
     def test_empty(self):
         namespace = Namespace()
@@ -102,8 +105,10 @@ class NamespaceTest(TestCase):
         self.assertEqual(dict(namespace), {'a': 10, 'b': 20, 'c': 30})
 
 
+# noinspection PyUnresolvedReferences
 class UtilTest(TestCase):
     def test_extension_property(self):
+        # noinspection PyMethodMayBeStatic
         class Api:
             def m1(self, x):
                 return 2 * x
@@ -112,8 +117,8 @@ class UtilTest(TestCase):
         class MyApiExt:
             """My API class extension"""
 
-            def __init__(self, api):
-                self.api = api
+            def __init__(self, api0):
+                self.api = api0
 
             def m2(self, x):
                 return self.api.m1(x) + 2
@@ -157,3 +162,26 @@ class UtilTest(TestCase):
         self.assertEqual(encode_url_path('/ws/get/{base_path}',
                                          path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
                          '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
+
+    def test_as_datetime(self):
+        d1 = to_datetime('2001-01-01', None)
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2001, 1, 1), d1)
+
+        d1 = to_datetime('2001-01-01 2:3:5', None)
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2001, 1, 1, 2, 3, 5), d1)
+
+        d1 = to_datetime(datetime(2001, 1, 1), None)
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2001, 1, 1), d1)
+
+        d1 = to_datetime(None, datetime(2001, 1, 1))
+        self.assertIsInstance(d1, datetime)
+        self.assertEqual(datetime(2001, 1, 1), d1)
+
+        with self.assertRaises(TypeError):
+            # noinspection PyTypeChecker
+            to_datetime(1, None)
+        with self.assertRaises(ValueError):
+            to_datetime("42", None)

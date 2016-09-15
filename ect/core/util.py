@@ -41,7 +41,9 @@ import sys
 import urllib.parse
 from collections import OrderedDict
 from contextlib import contextmanager
+from datetime import datetime, date
 from io import StringIO
+from typing import Union
 
 
 class _Undefined:
@@ -378,3 +380,19 @@ def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict 
     if query_args:
         query_string = '?' + urllib.parse.urlencode(query_args)
     return path + query_string
+
+
+def to_datetime(datetime_or_str: Union[datetime, date, str, None], default) -> date:
+    if datetime_or_str is None:
+        return default
+    elif isinstance(datetime_or_str, str):
+        if datetime_or_str == '':
+            return default
+        try:
+            return datetime.strptime(datetime_or_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return datetime.strptime(datetime_or_str, "%Y-%m-%d")
+    elif isinstance(datetime_or_str, date):
+        return datetime_or_str
+    else:
+        raise TypeError('datetime_or_str argument must be a string or instance of datetime.date')
