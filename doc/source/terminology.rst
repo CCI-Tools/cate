@@ -9,7 +9,7 @@ Terminology
 
 In order to avoid confusion and ambiguity, a common terminology was agreed on as listed in :numref:`terminologytab`. It is partially based on `[RD-9]`_ and `[RD-10]`_ and is to be used in all parts of the CCI Toolbox project from the user-sided activities to the software development. The concept regarding the naming of data is also illustrated in :numref:`terminology`.
 
-.. list-table:: Toolbox Terminology
+.. list-table:: CCI Toolbox Terminology
    :name: terminologytab
    :widths: 5 25
    :header-rows: 1
@@ -37,5 +37,5 @@ In order to avoid confusion and ambiguity, a common terminology was agreed on as
    :scale: 60 %
    :align: center
 
-   CCI Toolbox Terminology
+   Illustration of the CCI Toolbox Terminology
         
