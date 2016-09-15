@@ -846,7 +846,7 @@ class DataSourceCommand(SubCommandCommand):
                 return 2, "invalid PERIOD: " + command_args.time[0]
         else:
             time_range = (None, None)
-        data_source.sync(time_range=time_range, monitor=ConsoleMonitor())
+        data_source.sync(time_range=time_range, monitor=ConsoleMonitor(stay_in_line=True, progress_bar_size=80))
 
     @staticmethod
     def parse_time_period(period):
