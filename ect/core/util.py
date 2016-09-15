@@ -38,6 +38,7 @@ Components
 ==========
 """
 import sys
+import urllib.parse
 from collections import OrderedDict
 from contextlib import contextmanager
 from io import StringIO
@@ -352,3 +353,28 @@ def fetch_std_streams():
 
         sys.stdout = old_stdout
         sys.stderr = old_stderr
+
+
+def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
+    """
+    Return an URL path with an optional query string which is composed of a *path_pattern* that may contain
+    placeholders of the form ``{name}`` which will be replaced by URL-encoded versions of the
+    corresponding values in *path_args*, i.e. ``urllib.parse.quote_plus(path_args[name])``.
+    An optional query string is composed of the URL-encoded key-value pairs given in *query_args*, i.e.
+    ``urllib.parse.urlencode(query_args)``.
+
+    :param path_pattern: The path pattern which may include any number of placeholders of the form ``{name}``
+    :param path_args: The values for the placeholders in *path_pattern*
+    :param query_args: The query arguments
+    :return: an URL-encoded path
+    """
+    path = path_pattern
+    if path_args:
+        quoted_pattern_args = dict(path_args)
+        for name, value in path_args.items():
+            quoted_pattern_args[name] = urllib.parse.quote_plus(str(value)) if value is not None else ''
+        path = path_pattern.format(**quoted_pattern_args)
+    query_string = ''
+    if query_args:
+        query_string = '?' + urllib.parse.urlencode(query_args)
+    return path + query_string

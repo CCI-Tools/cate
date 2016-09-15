@@ -30,7 +30,7 @@ from typing import List
 
 from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
-from ect.core.util import Namespace
+from ect.core.util import Namespace, encode_url_path
 from ect.core.workflow import Workflow, OpStep, NodePort
 
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
@@ -238,17 +238,6 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.store()
 
 
-def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = None):
-    path = path_pattern
-    if path_args:
-        quoted_pattern_args = dict(path_args)
-        for name, value in path_args.items():
-            quoted_pattern_args[name] = urllib.parse.quote_plus(str(value)) if value is not None else ''
-        path = path_pattern.format(**quoted_pattern_args)
-    query_string = ''
-    if query_args:
-        query_string = '?' + urllib.parse.urlencode(query_args)
-    return path + query_string
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -257,7 +246,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self.timeout = timeout
 
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
-        return self.base_url + encode_path(path_pattern, path_args=path_args, query_args=query_args)
+        return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
     def _fetch_json(self, url, data=None, error_type=WorkspaceError):
         with urllib.request.urlopen(url, data=data, timeout=self.timeout) as response:

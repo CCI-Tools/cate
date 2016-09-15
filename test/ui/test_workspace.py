@@ -9,7 +9,7 @@ import time
 from collections import OrderedDict
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_path
+from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_url_path
 
 
 # noinspection PyUnresolvedReferences
@@ -185,20 +185,3 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
 
-class EncodePathTest(unittest.TestCase):
-    def test_encode_path(self):
-        self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict([('base_path', '/home/norman/workpaces'),
-                                                             ('description', 'Hi there!')])),
-                         '/ws/init?base_path=%2Fhome%2Fnorman%2Fworkpaces&description=Hi+there%21')
-        self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict([('base_path', 'C:\\Users\\Norman\\workpaces'),
-                                                             ('description', 'Hi there!')])),
-                         '/ws/init?base_path=C%3A%5CUsers%5CNorman%5Cworkpaces&description=Hi+there%21')
-
-        self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=dict(base_path='/home/norman/workpaces')),
-                         '/ws/get/%2Fhome%2Fnorman%2Fworkpaces')
-        self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
-                         '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
