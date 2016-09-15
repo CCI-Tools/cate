@@ -6,15 +6,16 @@ import unittest
 from ect.ds.esa_cci_odp import EsaCciOdpDataStore, _find_datetime_format
 
 
-@unittest.skip(reason='Because it writes a lot of files')
-# @unittest.skipUnless(condition=os.environ.get('ECT_ODP_TEST', None), reason="skipped unless you set ECT_ODP_TEST=1")
+# @unittest.skip(reason='Because it writes a lot of files')
+@unittest.skipUnless(condition=os.environ.get('ECT_ODP_TEST', None), reason="skipped unless ECT_ODP_TEST=1")
 class EsaCciOdpDataStoreIndexCacheTest(unittest.TestCase):
     def test_index_cache(self):
         self.data_store = EsaCciOdpDataStore(index_cache_used=True, index_cache_expiration_days=1.0e-6)
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
         for data_source in data_sources:
-            data_source.sync()
+            data_source.update_file_list()
+            #data_source.sync()
 
 
 def _create_test_data_store():

@@ -49,6 +49,7 @@ from typing import Sequence, Tuple
 import xarray as xr
 from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, TimeRange
 from ect.core.monitor import Monitor
+from ect.core.util import to_datetime
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
@@ -173,7 +174,7 @@ def _load_or_fetch_json(fetch_json_function,
 def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
     file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
                                             dict(type='File',
-                                                 fields='url,title',
+                                                 fields='url,title,size',
                                                  dataset_id=dataset_query_id,
                                                  replica='false',
                                                  latest='true',
@@ -191,6 +192,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
             url, mime_type, service_type = url_rec.split('|')
             if mime_type == 'application/netcdf' and service_type == 'HTTPServer':
                 filename = doc.get('title', None)
+                file_size = doc.get('size', -1)
                 if not filename:
                     filename = os.path.basename(urllib.parse.urlparse(url)[2])
                 if filename in file_list:
@@ -206,7 +208,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
                     start_time = datetime.strptime(filename[p1:p2], time_format)
                     # Convert back to text, so we can JSON-encode it
                     start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
-                file_list.append([filename, start_time, end_time, url])
+                file_list.append([filename, start_time, end_time, file_size, url])
                 break
 
     def pick_start_time(file_info_rec):
@@ -337,16 +339,56 @@ class EsaCciOdpDataSource(DataSource):
                     return url
         return None
 
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL):
+    def update_file_list(self) -> None:
+        self._file_list = None
         self._init_file_list()
 
-        import urllib.request
-        urllib.request.urlretrieve()
-        return None
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> None:
+        requested_start_date, requested_end_date = to_datetime(time_range[0]), to_datetime(time_range[1])
 
-    def open_dataset(self, time_range: TimeRange = None) -> xr.Dataset:
         self._init_file_list()
-        return None
+        if requested_start_date or requested_end_date:
+            selected_file_list = []
+            for file_rec in self._file_list:
+                start_time = file_rec[1]
+                ok = False
+                if start_time:
+                    if requested_start_date and requested_end_date:
+                        ok = requested_start_date <= start_time <= requested_end_date
+                    elif requested_start_date:
+                        ok = requested_start_date <= start_time
+                    elif requested_end_date:
+                        ok = start_time <= requested_end_date
+                if ok:
+                    selected_file_list.append(file_rec)
+        else:
+            selected_file_list = self._file_list
+
+        if not selected_file_list:
+            print('No files found')
+
+        with monitor.starting('Sync ' + self.name, len(selected_file_list)):
+            dataset_dir = os.path.join(_DATA_ROOT, self._master_id)
+            for filename, _, _, file_size, url in selected_file_list:
+                dataset_file = os.path.join(dataset_dir, filename)
+                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+                # ... outdated or incomplete or corrupted.
+                # JSON also includes "checksum" and "checksum_type" fields.
+                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                    sub_monitor = monitor.child(1.0)
+
+                    def reporthook(block_number, read_size, total_file_size):
+                        #print(block_number, read_size, total_file_size)
+                        sub_monitor.progress(work=read_size)
+
+                    with sub_monitor.starting(filename, file_size):
+                        urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+                else:
+                    monitor.progress(work=1.0)
+
+    def open_dataset(self, time_range: TimeRange = (None, None)) -> xr.Dataset:
+        self._init_file_list()
+        raise NotImplementedError
 
     def _init_file_list(self) -> str:
         if self._file_list:
