@@ -254,28 +254,6 @@ class FileSetDataSourceTest(TestCase):
         with self.assertRaises(ValueError):
             self.ds0.resolve_paths(time_range=('2001-01-03', None))
 
-    def test_as_datetime(self):
-        d1 = io._as_datetime('2001-01-01', None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
-
-        d1 = io._as_datetime('2001-01-01 2:3:5', None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1, 2, 3, 5), d1)
-
-        d1 = io._as_datetime(datetime(2001, 1, 1), None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
-
-        d1 = io._as_datetime(None, datetime(2001, 1, 1))
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
-
-        with self.assertRaises(TypeError):
-            io._as_datetime(1, None)
-        with self.assertRaises(ValueError):
-            io._as_datetime("42", None)
-
 
 class DataStoreRegistryTest(TestCase):
     def setUp(self):

@@ -89,6 +89,7 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 import xarray as xr
 from ect.core.cdm import Schema
 from ect.core.monitor import Monitor, ConsoleMonitor
+from ect.core.util import to_datetime
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
@@ -382,8 +383,8 @@ class FileSetDataSource(DataSource):
                In this case the *end_time* is used.
         """
 
-        date1 = _as_datetime(time_range[0], self._fileset_info.start_time if self._fileset_info else None)
-        date2 = _as_datetime(time_range[1], self._fileset_info.end_time if self._fileset_info else None)
+        date1 = to_datetime(time_range[0], self._fileset_info.start_time if self._fileset_info else None)
+        date2 = to_datetime(time_range[1], self._fileset_info.end_time if self._fileset_info else None)
 
         if date1 is None:
             raise ValueError("illegal time_range: can't determine start of interval")
@@ -603,9 +604,9 @@ class FileSetInfo:
                  end_time: Union[str, datetime],
                  num_files: int,
                  size_in_mb: int):
-        self._info_update_time = _as_datetime(info_update_time, None)
-        self._start_time = _as_datetime(start_time, None)
-        self._end_time = _as_datetime(end_time, None)
+        self._info_update_time = to_datetime(info_update_time, None)
+        self._start_time = to_datetime(start_time, None)
+        self._end_time = to_datetime(end_time, None)
         self._num_files = num_files
         self._size_in_mb = size_in_mb
 
@@ -741,16 +742,3 @@ class FileSetDataStore(DataStore):
             self._root_dir, '\n'.join(rows))
 
 
-def _as_datetime(dt: Time, default) -> datetime:
-    if dt is None:
-        return default
-    if isinstance(dt, str):
-        if dt == '':
-            return default
-        try:
-            return datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return datetime.strptime(dt, "%Y-%m-%d")
-    if isinstance(dt, datetime) or isinstance(dt, date):
-        return dt
-    raise TypeError()
