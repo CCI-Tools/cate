@@ -3,6 +3,7 @@ import os.path
 import shutil
 import sys
 import unittest
+from datetime import datetime
 from time import sleep
 from typing import Union, List
 
@@ -145,7 +146,8 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          'Workspace steps:\n'
-                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', start_date=2010, end_date=None) [OpStep]\n'
+                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
+                         'start_date=2010, end_date=None) [OpStep]\n'
                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n'
                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]\n')
 
@@ -191,22 +193,28 @@ class CliDataSourceCommandTest(CliTestCase):
 
     def test_command_ds_parse_time_period(self):
         from ect.ui.cli import DataSourceCommand
-        from datetime import date
 
-        self.assertEqual(DataSourceCommand.parse_time_period('2010'), (date(2010, 1, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02'), (date(2010, 2, 1), date(2010, 2, 28)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12'), (date(2010, 12, 1), date(2010, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04'), (date(2010, 2, 4), date(2010, 2, 4)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31'), (date(2010, 12, 31), date(2010, 12, 31)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010'), (datetime(2010, 1, 1),
+                                                                       datetime(2010, 12, 31, 23, 59, 59)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02'), (datetime(2010, 2, 1),
+                                                                          datetime(2010, 2, 28, 23, 59, 59)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12'),
+                         (datetime(2010, 12, 1), datetime(2010, 12, 31, 23, 59, 59)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04'),
+                         (datetime(2010, 2, 4), datetime(2010, 2, 4, 23, 59, 59)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31'),
+                         (datetime(2010, 12, 31), datetime(2010, 12, 31, 23, 59, 59)))
 
-        self.assertEqual(DataSourceCommand.parse_time_period('2010,2014'), (date(2010, 1, 1), date(2014, 12, 31)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02,2010-09'), (date(2010, 2, 1), date(2010, 9, 30)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010,2014'),
+                         (datetime(2010, 1, 1), datetime(2014, 12, 31, 23, 59, 59)))
+        self.assertEqual(DataSourceCommand.parse_time_period('2010-02,2010-09'),
+                         (datetime(2010, 2, 1), datetime(2010, 9, 30, 23, 59, 59)))
         self.assertEqual(DataSourceCommand.parse_time_period('2010-12,2011-12'),
-                         (date(2010, 12, 1), date(2011, 12, 31)))
+                         (datetime(2010, 12, 1), datetime(2011, 12, 31, 23, 59, 59)))
         self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04,2019-02-04'),
-                         (date(2010, 2, 4), date(2019, 2, 4)))
+                         (datetime(2010, 2, 4), datetime(2019, 2, 4, 23, 59, 59)))
         self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01-06'),
-                         (date(2010, 12, 31), date(2010, 1, 6)))
+                         (datetime(2010, 12, 31), datetime(2010, 1, 6, 23, 59, 59)))
 
         # errors
         self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01'), None)

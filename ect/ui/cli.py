@@ -98,6 +98,7 @@ import argparse
 import os.path
 import sys
 from abc import ABCMeta, abstractmethod
+from datetime import date, datetime, timedelta
 from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
@@ -849,7 +850,6 @@ class DataSourceCommand(SubCommandCommand):
 
     @staticmethod
     def parse_time_period(period):
-        from datetime import date, timedelta
         period_parts = period.split(',')
         num_period_parts = len(period_parts)
         if num_period_parts < 1 or num_period_parts > 2:
@@ -869,23 +869,23 @@ class DataSourceCommand(SubCommandCommand):
             for i in range(num_date_parts):
                 date1_args[i] = int(date1_parts[i])
                 date2_args[i] = int(date2_parts[i])
-            date1 = date(*date1_args)
-            date2 = date(*date2_args)
+            date1 = datetime(*date1_args)
+            date2 = datetime(*date2_args)
         except ValueError:
             return None
 
         if num_date_parts == 1:
-            date2 = date(date2.year + 1, 1, 1)
+            date2 = datetime(date2.year + 1, 1, 1)
         elif num_date_parts == 2:
             year = date2.year
             month = date2.month + 1
             if month == 13:
                 year += 1
                 month = 1
-            date2 = date(year, month, 1)
+            date2 = datetime(year, month, 1)
         else:
-            date2 = date(date2.year, date2.month, date2.day) + timedelta(days=1)
-        date2 += timedelta(microseconds=-1)
+            date2 = datetime(date2.year, date2.month, date2.day) + timedelta(days=1)
+        date2 += timedelta(seconds=-1)
         return date1, date2
 
 
