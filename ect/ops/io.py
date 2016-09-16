@@ -33,7 +33,7 @@ from ect.core.op import op_input, op
 @op_input('ds_id')
 @op_input('start_date')
 @op_input('end_date')
-def load_dataset(ds_id: str, start_date: str, end_date: str) -> xr.Dataset:
+def load_dataset(ds_id: str, start_date: str = None, end_date: str = None) -> xr.Dataset:
     return open_dataset(ds_id, (start_date, end_date))
 
 
