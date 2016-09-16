@@ -4,6 +4,8 @@ from unittest import TestCase
 
 import xarray as xr
 import ect.core.io as io
+from ect import Monitor
+
 
 class SimpleDataStore(io.DataStore):
     def __init__(self, data_sources: Sequence[io.DataSource]):
@@ -33,7 +35,7 @@ class SimpleDataSource(io.DataSource):
     def name(self) -> str:
         return self._name
 
-    def open_dataset(self, time_range=None):
+    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL):
         return None
 
     def __repr__(self):
@@ -48,7 +50,7 @@ class InMemoryDataSource(SimpleDataSource):
         super(InMemoryDataSource, self).__init__("in_memory")
         self._data = data
 
-    def open_dataset(self, time_range=None) -> xr.Dataset:
+    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
         return xr.Dataset({'a':self._data})
 
     def __repr__(self):

@@ -98,7 +98,7 @@ import argparse
 import os.path
 import sys
 from abc import ABCMeta, abstractmethod
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Tuple, Optional
 
 from ect.core.monitor import ConsoleMonitor, Monitor
@@ -852,7 +852,14 @@ class DataSourceCommand(SubCommandCommand):
                 return 2, "invalid PERIOD: " + command_args.time[0]
         else:
             time_range = (None, None)
-        data_source.sync(time_range=time_range, monitor=ConsoleMonitor(stay_in_line=True, progress_bar_size=80))
+        try:
+            num_sync, num_total = data_source.sync(time_range=time_range,
+                                                   monitor=ConsoleMonitor(stay_in_line=True, progress_bar_size=30))
+            print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
+        except InterruptedError as e:
+            pass
+        except Exception as e:
+            return 2, "error: %s" % str(e)
 
     @staticmethod
     def parse_time_period(period):
