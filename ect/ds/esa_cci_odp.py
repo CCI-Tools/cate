@@ -47,7 +47,7 @@ from datetime import datetime
 from typing import Sequence, Tuple
 
 import xarray as xr
-from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, TimeRange
+from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, TimeRange, open_xarray_dataset
 from ect.core.monitor import Monitor
 from ect.core.util import to_datetime
 
@@ -360,9 +360,52 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._init_file_list()
 
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> None:
-        requested_start_date, requested_end_date = to_datetime(time_range[0]), to_datetime(time_range[1])
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+        selected_file_list = self._find_files(time_range)
+        if not selected_file_list:
+            return 0, 0
 
+        dataset_dir = self.local_dataset_dir()
+
+        # Find outdated files
+        outdated_file_list = []
+        for file_rec in selected_file_list:
+            filename, _, _, file_size, url = file_rec
+            dataset_file = os.path.join(dataset_dir, filename)
+            # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+            # ... outdated or incomplete or corrupted.
+            # JSON also includes "checksum" and "checksum_type" fields.
+            if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                outdated_file_list.append(file_rec)
+
+        if not outdated_file_list:
+            # No sync needed
+            return 0, len(selected_file_list)
+
+        with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+            dataset_dir = self.local_dataset_dir()
+            for filename, _, _, file_size, url in outdated_file_list:
+                if monitor.is_cancelled():
+                    raise InterruptedError
+                dataset_file = os.path.join(dataset_dir, filename)
+                sub_monitor = monitor.child(1.0)
+
+                # noinspection PyUnusedLocal
+                def reporthook(block_number, read_size, total_file_size):
+                    if monitor.is_cancelled():
+                        raise InterruptedError
+                    sub_monitor.progress(work=read_size)
+
+                with sub_monitor.starting('', file_size):
+                    urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+
+        return len(outdated_file_list), len(selected_file_list)
+
+    def local_dataset_dir(self):
+        return os.path.join(_DATA_ROOT, self._master_id)
+
+    def _find_files(self, time_range):
+        requested_start_date, requested_end_date = to_datetime(time_range[0]), to_datetime(time_range[1])
         self._init_file_list()
         if requested_start_date or requested_end_date:
             selected_file_list = []
@@ -380,42 +423,35 @@ class EsaCciOdpDataSource(DataSource):
                     selected_file_list.append(file_rec)
         else:
             selected_file_list = self._file_list
+        return selected_file_list
 
+    def open_dataset(self, time_range: TimeRange = (None, None), sync: bool = False,
+                     monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+        selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            print('No files found')
+            return None
 
-        with monitor.starting('Sync ' + self.name, len(selected_file_list)):
-            dataset_dir = os.path.join(_DATA_ROOT, self._master_id)
-            for filename, _, _, file_size, url in selected_file_list:
-                dataset_file = os.path.join(dataset_dir, filename)
-                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-                # ... outdated or incomplete or corrupted.
-                # JSON also includes "checksum" and "checksum_type" fields.
-                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                    sub_monitor = monitor.child(1.0)
+        if sync:
+            self.sync(time_range, monitor=monitor)
 
-                    def reporthook(block_number, read_size, total_file_size):
-                        #print(block_number, read_size, total_file_size)
-                        sub_monitor.progress(work=read_size)
+        dataset_dir = self.local_dataset_dir()
+        files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
+        for file in files:
+            if not os.path.exists(file):
+                raise IOError('Missing local files, consider synchronizing the dataset first.')
 
-                    with sub_monitor.starting(filename, file_size):
-                        urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
-                else:
-                    monitor.progress(work=1.0)
-
-    def open_dataset(self, time_range: TimeRange = (None, None)) -> xr.Dataset:
-        self._init_file_list()
-        raise NotImplementedError
+        # TODO (Gailis, 20160729): The preprocess way still does not work for me
+        # return open_xarray_dataset(files)
+        return open_xarray_dataset(files, preprocess=False)
 
     def _init_file_list(self) -> str:
         if self._file_list:
             return
 
-        dataset_dir = os.path.join(_DATA_ROOT, self._master_id)
         file_list = _load_or_fetch_json(_fetch_file_list_json,
                                         fetch_json_args=[self._master_id, self._dataset_id],
                                         cache_used=self._data_store.index_cache_used,
-                                        cache_dir=dataset_dir,
+                                        cache_dir=self.local_dataset_dir(),
                                         cache_json_filename='file-list.json',
                                         cache_timestamp_filename='file-list-timestamp.txt',
                                         cache_expiration_days=self._data_store.index_cache_expiration_days)

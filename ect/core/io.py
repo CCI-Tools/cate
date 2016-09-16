@@ -90,6 +90,7 @@ import xarray as xr
 from ect.core.cdm import Schema
 from ect.core.monitor import Monitor, ConsoleMonitor
 from ect.core.util import to_datetime
+from .io_xarray import open_xarray_dataset
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
@@ -115,29 +116,32 @@ class DataSource(metaclass=ABCMeta):
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
 
-    @abstractmethod
-    def open_dataset(self, time_range=None) -> xr.Dataset:
-        """
-        Open a dataset with the given constraints.
-
-        :param time_range: a tuple of datetime or str, optional. To limits the dataset in time.
-        :return: A xarray dataset or a Shapfile TBD.
-        """
-
     def matches_filter(self, name=None) -> bool:
         """Test if this data source matches the given *constraints*."""
         if name and name != self.name:
             return False
         return True
 
+    @abstractmethod
+    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+        """
+        Open a dataset with the given constraints. If *sync* is True, :py:meth:`sync` is called first.
+
+        :param time_range: A tuple of datetime or str, optional. To limits the dataset in time.
+        :param sync: Whether to synchronize the dataset.
+        :param monitor: A progress monitor which is used only if *sync* is enabled.
+        :return: A dataset or ``None`` if no data is available in *time_range*.
+        """
+
     # noinspection PyMethodMayBeStatic
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL):
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
         """
         Synchronize remote data with locally stored data.
         The default implementation does nothing.
 
         :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
         :param monitor: a progress monitor.
+        :return: a tuple (synchronized number of selected files, total number of selected files)
         """
         pass
 
@@ -292,6 +296,9 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> xr.Dat
     return data_source.open_dataset(time_range)
 
 
+# TODO (forman, 20160916): rename and move away FileSetDataStore, FileSetDataSource & co., they are special!
+
+
 class FileSetDataSource(DataSource):
     """A class representing the a specific file set with the meta information belonging to it.
 
@@ -336,16 +343,15 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range=None) -> xr.Dataset:
+    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
-        # TODO (mzuehlke, 20160603): differentiate between xarray and shapefile
+        # TODO (Gailis, 20160729): The preprocess way still does not work for me
         # return open_xarray_dataset(existing_paths)
-        # TODO (Gailis, 20160729): The normal way still does not work for me.
-        return xr.open_mfdataset(existing_paths, concat_dim='time')
+        return open_xarray_dataset(existing_paths, preprocess=False)
 
     def to_json_dict(self):
         """
@@ -417,14 +423,19 @@ class FileSetDataSource(DataSource):
         resolved_path = resolved_path.replace('{DD}', '%02d' % date.day)
         return self._base_dir + '/' + resolved_path
 
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL):
+    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
         """
         Synchronize remote data with locally stored data.
 
         :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
         :param monitor: a progress monitor.
+        :return: a tuple (synchronized number of selected files, total number of selected files)
         """
         assert self._file_set_data_store.remote_url
+
+        expected_remote_files = self._get_expected_remote_files(time_range)
+        if len(expected_remote_files) == 0:
+            return 0, 0
 
         url = urllib.parse.urlparse(self._file_set_data_store.remote_url)
         if url.scheme != 'ftp':
@@ -432,7 +443,6 @@ class FileSetDataSource(DataSource):
         ftp_host_name = url.hostname
         ftp_base_dir = url.path
 
-        expected_remote_files = self._get_expected_remote_files(time_range)
         with monitor.starting('Synchronising %s' % self._name, len(expected_remote_files)):
             try:
                 with ftplib.FTP(ftp_host_name) as ftp:
@@ -441,6 +451,8 @@ class FileSetDataSource(DataSource):
             except ftplib.Error as ftp_err:
                 if not monitor.is_cancelled():
                     print('FTP error: %s' % ftp_err)
+
+        return len(expected_remote_files), len(expected_remote_files)
 
     def _sync_files(self, ftp, ftp_base_dir, expected_remote_files, monitor: Monitor):
         for expected_dir_path, expected_filename_dict in expected_remote_files.items():

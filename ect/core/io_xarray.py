@@ -41,7 +41,7 @@ import pandas as pd
 import xarray as xr
 
 
-def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
+def open_xarray_dataset(paths, preprocess=True, chunks=None, **kwargs) -> xr.Dataset:
     """
     Adapted version of the xarray 'open_mfdataset' function.
     """
@@ -49,6 +49,9 @@ def open_xarray_dataset(paths, chunks=None, **kwargs) -> xr.Dataset:
         paths = sorted(glob(paths))
     if not paths:
         raise IOError('no files to open')
+
+    if not preprocess:
+        return xr.open_mfdataset(paths, concat_dim='time')
 
     # open all datasets
     lock = xr.backends.api._default_lock(paths[0], None)
