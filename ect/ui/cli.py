@@ -285,15 +285,20 @@ class Command(metaclass=ABCMeta):
     """
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def name(cls):
         """
-        Return a tuple (*command_name*, *parser_kwargs*) where *command_name* is a unique command name
-        and *parser_kwargs* are the keyword arguments passed to a ``argparse.ArgumentParser(**parser_kwargs)`` call.
+        :return: A unique command name
+        """
 
-        For the possible keywords in *parser_kwargs*,
+    @classmethod
+    def parser_kwargs(cls):
+        """
+        Return parser keyword arguments dictionary passed to a ``argparse.ArgumentParser(**parser_kwargs)`` call.
+
+        For the possible keywords in the returned dictionary,
         refer to https://docs.python.org/3.5/library/argparse.html#argparse.ArgumentParser.
 
-        :return: A tuple (*command_name*, *parser_kwargs*).
+        :return: A keyword arguments dictionary.
         """
 
     @classmethod
@@ -367,13 +372,15 @@ class RunCommand(Command):
     The ``run`` command is used to invoke registered operations and JSON workflows.
     """
 
-    CMD_NAME = 'run'
+    @classmethod
+    def name(cls):
+        return 'run'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def parser_kwargs(cls):
         help_line = 'Run an operation or Workflow file.'
-        return cls.CMD_NAME, dict(help=help_line,
-                                  description='%s Type "ect op list" to list all available operations.' % help_line)
+        return dict(help=help_line,
+                    description='%s Type "ect op list" to list all available operations.' % help_line)
 
     @classmethod
     def configure_parser(cls, parser):
@@ -501,12 +508,14 @@ class WorkspaceCommand(SubCommandCommand):
     The ``ws`` command implements various operations w.r.t. *workspaces*.
     """
 
-    CMD_NAME = 'ws'
+    @classmethod
+    def name(cls):
+        return 'ws'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def parser_kwargs(cls):
         help_line = 'Manage workspaces.'
-        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -541,7 +550,7 @@ class WorkspaceCommand(SubCommandCommand):
             for step in workflow.steps:
                 print('  %s' % str(step))
         else:
-            print('Workspace is empty.')
+            print('Workspace has no resources.')
 
 
 class WorkspaceResourceCommand(SubCommandCommand):
@@ -549,12 +558,14 @@ class WorkspaceResourceCommand(SubCommandCommand):
     The ``ws`` command implements various operations w.r.t. *workspaces*.
     """
 
-    CMD_NAME = 'res'
+    @classmethod
+    def name(cls):
+        return 'res'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def parser_kwargs(cls):
         help_line = 'Manage workspace resources.'
-        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -670,12 +681,14 @@ class OperationCommand(SubCommandCommand):
     The ``op`` command implements various operations w.r.t. *operations*.
     """
 
-    CMD_NAME = 'op'
+    @classmethod
+    def name(cls):
+        return 'op'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def parser_kwargs(cls):
         help_line = 'Explore data operations.'
-        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -735,12 +748,14 @@ class DataSourceCommand(SubCommandCommand):
     The ``ds`` command implements various operations w.r.t. data sources.
     """
 
-    CMD_NAME = 'ds'
+    @classmethod
+    def name(cls):
+        return 'ds'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def parser_kwargs(cls):
         help_line = 'Manage data sources.'
-        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -876,9 +891,13 @@ class PluginCommand(SubCommandCommand):
     CMD_NAME = 'pi'
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def name(cls):
+        return 'pi'
+
+    @classmethod
+    def parser_kwargs(cls):
         help_line = 'Manage installed plugins.'
-        return cls.CMD_NAME, dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -904,9 +923,13 @@ class LicenseCommand(Command):
     """
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def name(cls):
+        return 'lic'
+
+    @classmethod
+    def parser_kwargs(cls):
         help_line = 'Print copyright and license information.'
-        return 'lic', dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
         print(_LICENSE)
@@ -918,9 +941,13 @@ class DocsCommand(Command):
     """
 
     @classmethod
-    def name_and_parser_kwargs(cls):
+    def name(cls):
+        return 'doc'
+
+    @classmethod
+    def parser_kwargs(cls):
         help_line = 'Display documentation in a browser window.'
-        return 'doc', dict(help=help_line, description=help_line)
+        return dict(help=help_line, description=help_line)
 
     def execute(self, command_args):
         import webbrowser
@@ -986,7 +1013,8 @@ def main(args=None):
                                             'Type "COMMAND -h" to get command-specific help.')
 
     for command_class in COMMAND_REGISTRY:
-        command_name, command_parser_kwargs = command_class.name_and_parser_kwargs()
+        command_name = command_class.name()
+        command_parser_kwargs = command_class.parser_kwargs()
         command_parser = subparsers.add_parser(command_name, **command_parser_kwargs)
         command_class.configure_parser(command_parser)
         command_parser.set_defaults(command_class=command_class)
