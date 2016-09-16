@@ -42,11 +42,12 @@ Components
 ==========
 """
 
+
 def ect_init():
     """
     Plugin initializer.
     Sets the default data store.
     """
-    from .esa_cci_ftp import set_default_data_store
-    # from .esa_cci_odp import set_default_data_store
+    # from .esa_cci_ftp import set_default_data_store
+    from .esa_cci_odp import set_default_data_store
     set_default_data_store()
