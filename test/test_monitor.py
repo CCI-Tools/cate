@@ -44,7 +44,7 @@ class ConsoleMonitorTest(TestCase):
         self.assertEqual(stderr.getvalue(), '')
         self.assertTrue(True)
 
-    def test_label_req(self):
+    def test_label_required(self):
         monitor = ConsoleMonitor()
         with fetch_std_streams():
             with self.assertRaises(ValueError):
@@ -168,12 +168,15 @@ class ChildMonitorTest(TestCase):
         self.assertTrue(cm.is_cancelled())
         self.assertTrue(m.is_cancelled())
 
-    def test_label_req(self):
+    def test_no_label(self):
         m = RecordingMonitor()
+        m.start('xxx', 20)
         sm = m.child(10)
-        with self.assertRaises(ValueError):
-            # "ValueError: label must be given"
-            sm.start('', total_work=10)
+        sm.start('', total_work=5)
+        sm.done()
+        sm.start(None, total_work=5)
+        sm.done()
+        m.done()
 
 
 class RecordingMonitor(Monitor):
