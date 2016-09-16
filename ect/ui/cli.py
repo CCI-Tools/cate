@@ -997,11 +997,12 @@ def main(args=None):
 
         if args_obj.command_name and args_obj.command_class:
             command_name = args_obj.command_name
+            # noinspection PyBroadException
             try:
                 args_obj.command_class().execute(args_obj)
             except Exception as e:
                 if args_obj.traceback:
-                    traceback.print_tb(e)
+                    traceback.print_exc()
                 status, message = 1, str(e)
         else:
             parser.print_help()
