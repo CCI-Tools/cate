@@ -82,7 +82,7 @@ import os
 import urllib.parse
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
@@ -141,10 +141,23 @@ class DataSource(metaclass=ABCMeta):
         """
         pass
 
+    # TODO (forman, 20160916): (also) return JSON-dict so we can use the data source meta-data more flexible
     @property
     def info_string(self):
-        """Return some textual information about this data source. Useful for CLI / REPL applications."""
-        return self.name
+        """
+        Return some textual information about this data source.
+        Useful for CLI / REPL applications.
+        """
+        return 'No data source meta-data available.'
+
+    # TODO (forman, 20160916): (also) return JSON-dict so we can use the variables meta-data more flexible
+    @property
+    def variables_info_string(self):
+        """
+        Return some textual information about the variables contained in this data source.
+        Useful for CLI / REPL applications.
+        """
+        return 'Not variables meta-data available.'
 
     def __str__(self):
         return self.info_string
@@ -740,5 +753,3 @@ class FileSetDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, ds._repr_html_()))
         return '<p>Contents of FileSetFileStore for root <code>%s<code></p><table>%s</table>' % (
             self._root_dir, '\n'.join(rows))
-
-

@@ -327,6 +327,23 @@ class EsaCciOdpDataSource(DataSource):
 
         return '\n'.join(info_lines)
 
+    @property
+    def variables_info_string(self):
+        names = self._json_dict.get('variable', [])
+        default_list = len(names) * [None]
+        units = self._json_dict.get('variable_units', default_list)
+        long_names = self._json_dict.get('variable_long_name', default_list)
+        cf_standard_names = self._json_dict.get('cf_standard_name', default_list)
+
+        info_lines = []
+        for name, unit, long_name, cf_standard_name in zip(names, units, long_names, cf_standard_names):
+            info_lines.append('%s (%s):' % (name, unit))
+            info_lines.append('  Long name:        %s' % long_name)
+            info_lines.append('  CF standard name: %s' % cf_standard_name)
+            info_lines.append('')
+
+        return '\n'.join(info_lines)
+
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
 
