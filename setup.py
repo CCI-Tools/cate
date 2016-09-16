@@ -55,6 +55,7 @@ setup(
                       'numba >= 0.26',
                       'numpy >= 1.7',
                       'scipy >= 0.17',
+                      'pandas >= 0.18',
                       'matplotlib >= 1.5',
                       ],
 )

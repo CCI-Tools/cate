@@ -818,6 +818,7 @@ class DataSourceCommand(SubCommandCommand):
             # var_pattern = command_args.var
         _list_items('data source', 'data sources',
                     [data_source.name for data_source in data_store.query()], id_pattern)
+        return cls.STATUS_OK
 
     @classmethod
     def _execute_info(cls, command_args):
@@ -828,14 +829,16 @@ class DataSourceCommand(SubCommandCommand):
 
         data_sources = data_store.query(name=command_args.ds_id)
         if not data_sources or len(data_sources) == 0:
-            print("Unknown data source '%s'" % command_args.ds_id)
-        else:
-            for data_source in data_sources:
+            return 2, "error: command 'ds info': unknown data source '%s'" % command_args.ds_id
+
+        for data_source in data_sources:
+            print()
+            print(data_source.info_string)
+            if command_args.var:
                 print()
-                print(data_source.info_string)
-                if command_args.var:
-                    print()
-                    print(data_source.variables_info_string)
+                print(data_source.variables_info_string)
+
+        return cls.STATUS_OK
 
     @classmethod
     def _execute_sync(cls, command_args):
@@ -860,6 +863,8 @@ class DataSourceCommand(SubCommandCommand):
             pass
         except Exception as e:
             return 2, "error: %s" % str(e)
+
+        return cls.STATUS_OK
 
     @staticmethod
     def parse_time_period(period):

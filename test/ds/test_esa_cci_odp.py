@@ -3,7 +3,7 @@ import os
 import os.path
 import unittest
 
-from ect.ds.esa_cci_odp import EsaCciOdpDataStore, _find_datetime_format
+from ect.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
 
 
 @unittest.skip(reason='Because it writes a lot of files')
@@ -22,6 +22,7 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), 'esgf-index-cache.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+    # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
     return EsaCciOdpDataStore(index_cache_json_dict=json_dict)
 
 
@@ -74,9 +75,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
                       self.data_source.variables_info_string)
 
-
     def assert_tf(self, filename: str, expected_time_format: str):
-        time_format, p1, p2 = _find_datetime_format(filename)
+        time_format, p1, p2 = find_datetime_format(filename)
         self.assertEqual(time_format, expected_time_format)
 
     def test_time_filename_patterns(self):

@@ -1,3 +1,4 @@
+import json
 import os
 import os.path
 import shutil
@@ -7,14 +8,28 @@ from datetime import datetime
 from time import sleep
 from typing import Union, List
 
+from ect.core.io import DATA_STORE_REGISTRY
 from ect.core.monitor import Monitor
 from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams
+from ect.ds.esa_cci_odp import EsaCciOdpDataStore
 from ect.ui import cli
 from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
 
 
+def _create_test_data_store():
+    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
+        json_text = fp.read()
+    json_dict = json.loads(json_text)
+    # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
+    return EsaCciOdpDataStore(index_cache_json_dict=json_dict)
+
+
 class CliTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        DATA_STORE_REGISTRY.add_data_store("default", _create_test_data_store())
+
     def assert_main(self,
                     args: Union[None, List[str]],
                     expected_status: int = 0,
@@ -174,22 +189,32 @@ class CliOperationCommandTest(CliTestCase):
 
 class CliDataSourceCommandTest(CliTestCase):
     def test_command_ds_info(self):
+        self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
+                         expected_status=0,
+                         expected_stdout=['Data source "esacci.OZONE.mon.L3.',
+                                          'cci_project:            OZONE'])
+        self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--var'],
+                         expected_status=0,
+                         expected_stdout=['Data source "esacci.OZONE.mon.L3.',
+                                          'cci_project:            OZONE',
+                                          'air_pressure (hPa):'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
-                         expected_stdout=['Base directory'])
+                         expected_status=2,
+                         expected_stderr=["unknown data source 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
 
     def test_command_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['98 data sources found'])
-        self.assert_main(['ds', 'list', '--id', 'CLOUD*'],
-                         expected_stdout=['19 data sources found'])
+                         expected_stdout=['61 data sources found'])
+        self.assert_main(['ds', 'list', '--id', '*CLOUD*'],
+                         expected_stdout=['14 data sources found'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync(self):
-        self.assert_main(['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'])
+        self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
-        self.assert_main(['ds', 'sync', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '--time', '2010-12'])
+        self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
 
     def test_command_ds_parse_time_period(self):
         from ect.ui.cli import DataSourceCommand

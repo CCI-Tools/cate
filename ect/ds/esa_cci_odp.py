@@ -75,7 +75,7 @@ def set_default_data_store():
     DATA_STORE_REGISTRY.add_data_store('default', EsaCciOdpDataStore())
 
 
-def _find_datetime_format(filename: str) -> Tuple[str, int, int]:
+def find_datetime_format(filename: str) -> Tuple[str, int, int]:
     for regex, time_format in _RE_TO_DATETIME_FORMATS:
         searcher = regex.search(filename)
         if searcher:
@@ -198,7 +198,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
                 if filename in file_list:
                     raise ValueError('filename %s already seen in dataset %s' % (filename, dataset_id))
                 if not time_info:
-                    time_info = _find_datetime_format(filename)
+                    time_info = find_datetime_format(filename)
                 # Start time will be extracted from filename using time_info
                 start_time = None
                 # We also reserve an end_time field, just in case.

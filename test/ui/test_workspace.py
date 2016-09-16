@@ -3,13 +3,13 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import unittest
 import urllib.request
-import time
-from collections import OrderedDict
+
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_url_path
+from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
 
 # noinspection PyUnresolvedReferences
@@ -62,7 +62,6 @@ class WorkspaceManagerTestMixin:
         sst_step = workspace2.workflow.find_node('SST')
         self.assertIsNotNone(sst_step)
 
-
         self.del_base_dir(base_dir)
 
 
@@ -73,7 +72,6 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-
     @classmethod
     def _find_free_port(cls):
         import socket
@@ -183,5 +181,3 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
         print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
-
-
