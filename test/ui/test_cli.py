@@ -140,12 +140,12 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'read', 'ds', input_file],
-                         expected_stdout=["Resource 'ds' set."])
+                         expected_stdout=['Resource "ds" set.'])
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
-                         expected_stdout=["Resource 'ts' set."])
+                         expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=["Executing workflow 'workspace_workflow'",
-                                          "Resource 'ts' written to %s" % output_file])
+                                          'Resource "ts" written to %s' % output_file])
 
         self.remove_file(output_file)
 
@@ -153,18 +153,17 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'load', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
-                         expected_stdout=["Resource 'ds1' set."])
+                         expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
-                         expected_stdout=["Resource 'ds2' set."])
+                         expected_stdout=['Resource "ds2" set.'])
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=13.2', 'lon=52.9'],
-                         expected_stdout=["Resource 'ts' set."])
+                         expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
-                         'Workspace steps:\n'
-                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                         'start_date=2010, end_date=None) [OpStep]\n'
-                         '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n'
-                         '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]\n')
+                         ['Workspace resources:',
+                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', start_date=2010, end_date=None) [OpStep]',
+                         '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
+                         '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 
 
 class CliOperationCommandTest(CliTestCase):
@@ -172,17 +171,17 @@ class CliOperationCommandTest(CliTestCase):
         self.assert_main(['op', 'info', 'ect.ops.timeseries.timeseries'],
                          expected_stdout=['Extract time-series'])
         self.assert_main(['op', 'info', 'foobarbaz'],
-                         expected_status=2,
+                         expected_status=1,
                          expected_stdout='',
-                         expected_stderr="ect: error: command 'op info': unknown operation 'foobarbaz'\n")
+                         expected_stderr=['ect op: error: unknown operation "foobarbaz"'])
         self.assert_main(['op', 'info'],
                          expected_status=2,
                          expected_stdout='',
-                         expected_stderr=["usage: ect op info [-h] OP\n"])
+                         expected_stderr=["ect op info: error: the following arguments are required: OP"])
 
     def test_command_op_list(self):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
-        self.assert_main(['op', 'list', '-n', '*data*'], expected_stdout=['operations found'])
+        self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
         self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['11 operations found'])
 
@@ -199,13 +198,13 @@ class CliDataSourceCommandTest(CliTestCase):
                                           'cci_project:            OZONE',
                                           'air_pressure (hPa):'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
-                         expected_status=2,
-                         expected_stderr=["unknown data source 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
+                         expected_status=1,
+                         expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
 
     def test_command_ds_list(self):
         self.assert_main(['ds', 'list'],
                          expected_stdout=['61 data sources found'])
-        self.assert_main(['ds', 'list', '--id', '*CLOUD*'],
+        self.assert_main(['ds', 'list', '--name', 'CLOUD'],
                          expected_stdout=['14 data sources found'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
@@ -269,13 +268,13 @@ class CliRunCommandTest(CliTestCase):
         self.assert_main(['run', 'pipapo', 'lat=13.2', 'lon=52.9'],
                          expected_status=1,
                          expected_stdout='',
-                         expected_stderr="ect: error: command 'run': unknown operation 'pipapo'\n")
+                         expected_stderr='ect run: error: unknown operation "pipapo"\n')
 
     def test_command_run_noargs(self):
         self.assert_main(['run'],
-                         expected_status=1,
+                         expected_status=2,
                          expected_stdout='',
-                         expected_stderr="ect: error: command 'run' requires OP argument\n")
+                         expected_stderr=["ect run: error: the following arguments are required: OP, ..."])
 
     def test_command_run_with_op(self):
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
@@ -283,15 +282,11 @@ class CliRunCommandTest(CliTestCase):
         try:
             # Run without --monitor and --write
             self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9 method=nearest',
-                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9 method=nearest',
-                                              'Extracting timeseries data: started',
+                             expected_stdout=['Extracting timeseries data: started',
                                               'Extracting timeseries data:  33%',
                                               'Extracting timeseries data: done',
                                               'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
@@ -299,9 +294,7 @@ class CliRunCommandTest(CliTestCase):
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.txt',
                               op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9 method=nearest',
-                                              'Extracting timeseries data: started',
+                             expected_stdout=['Extracting timeseries data: started',
                                               'Extracting timeseries data:  33%',
                                               'Extracting timeseries data: done',
                                               'Writing output to timeseries_data.txt using TEXT format...'])
@@ -309,11 +302,10 @@ class CliRunCommandTest(CliTestCase):
             os.remove('timeseries_data.txt')
 
             # Run with invalid keyword
-            with fetch_std_streams() as (stdout, stderr):
-                status = cli.main(args=['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'])
-                self.assertEqual(status, 1, msg=stderr.getvalue())
-            self.assertEqual(stdout.getvalue(), '')
-            self.assertEqual(stderr.getvalue(), "ect: error: command 'run': 'l*t' is not a valid input name\n")
+            self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'],
+                             expected_status=1,
+                             expected_stderr=["ect run: error: 'l*t' is not a valid input name"],
+                             expected_stdout='')
 
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
@@ -328,15 +320,11 @@ class CliRunCommandTest(CliTestCase):
         try:
             # Run without --monitor and --write
             self.assert_main(['run', workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9',
-                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9',
-                                              'Extracting timeseries data: started',
+                             expected_stdout=['Extracting timeseries data: started',
                                               'Extracting timeseries data:  33%',
                                               'Extracting timeseries data: done',
                                               'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
@@ -344,9 +332,7 @@ class CliRunCommandTest(CliTestCase):
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.json',
                               workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=["Running '",
-                                              'lat=13.2 lon=52.9',
-                                              'Extracting timeseries data: started',
+                             expected_stdout=['Extracting timeseries data: started',
                                               'Extracting timeseries data:  33%',
                                               'Extracting timeseries data: done',
                                               'Writing output to timeseries_data.json using JSON format...'])
