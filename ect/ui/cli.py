@@ -798,6 +798,8 @@ class DataSourceCommand(SubCommandCommand):
         info_parser = subparsers.add_parser('info', help='Display information about a data source.')
         info_parser.add_argument('ds_id', metavar='DS_ID',
                                  help='Data source ID. Type "ect ds list" to show all possible IDs.')
+        info_parser.add_argument('--var', '-v', action='store_true',
+                                 help="Also display information about contained dataset variables.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
     @classmethod
@@ -826,10 +828,14 @@ class DataSourceCommand(SubCommandCommand):
 
         data_sources = data_store.query(name=command_args.ds_id)
         if not data_sources or len(data_sources) == 0:
-            print("Unknown 1 data source '%s'" % command_args.ds_id)
+            print("Unknown data source '%s'" % command_args.ds_id)
         else:
             for data_source in data_sources:
+                print()
                 print(data_source.info_string)
+                if command_args.var:
+                    print()
+                    print(data_source.variables_info_string)
 
     @classmethod
     def _execute_sync(cls, command_args):
