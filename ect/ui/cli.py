@@ -104,7 +104,7 @@ from typing import Tuple, Optional
 
 from ect.core.io import DATA_STORE_REGISTRY
 from ect.core.monitor import ConsoleMonitor, Monitor
-from ect.core.objectio import find_writer
+from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.workflow import Workflow
 from ect.ops.io import load_dataset
@@ -132,6 +132,9 @@ MIT License for more details.
 You should have received a copy of the MIT License along with this
 program. If not, see https://opensource.org/licenses/MIT.
 """ % __version__
+
+WRITE_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('w')
+READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
 
 def _new_workspace_manager() -> WorkspaceManager:
@@ -386,7 +389,7 @@ class RunCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('--monitor', '-m', action='store_true',
                             help='Display progress information during execution.')
-        parser.add_argument('--load', '-l', action='append', metavar='DS', dest='load_args',
+        parser.add_argument('--load', '-l', action='append', metavar='DS_EXPR', dest='load_args',
                             help='Load dataset from data source DS_EXPR.\n'
                                  'The DS_EXPR syntax is NAME=DS[,DATE1[,DATE2]]. '
                                  'DS must be a valid data source name. Type "ect ds list" to show '
@@ -396,25 +399,32 @@ class RunCommand(Command):
                                  'as an OP argument. To pass a variable use syntax NAME.VAR_NAME.')
         parser.add_argument('--read', '-r', action='append', metavar='FILE_EXPR', dest='read_args',
                             help='Read object from FILE_EXPR.\n'
-                                 'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. '
+                                 'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. Possible value for FORMAT {formats}. '
                                  'If FORMAT is not provided, file format is derived from the PATH\'s '
-                                 'filename extensions or file content. NAME '
-                                 'may be passed as an OP argument that receives a dataset, dataset '
+                                 'filename extensions or file content. '
+                                 'NAME may be passed as an OP argument that receives a dataset, dataset '
                                  'variable or any other data type. To pass a variable of a dataset use '
-                                 'syntax NAME.VAR_NAME')
+                                 'syntax NAME.VAR_NAME'
+                                 ''.format(formats=', '.join(READ_FORMAT_NAMES)))
         parser.add_argument('--write', '-w', action='append', metavar='FILE_EXPR', dest='write_args',
                             help='Write result to FILE_EXPR. '
-                                 'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. '
+                                 'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. Possible value for FORMAT {formats}. '
                                  'If FORMAT is not provided, file format is derived from the object '
                                  'type and the PATH\'s filename extensions. If OP returns multiple '
                                  'named output values, NAME is used to identify them. Multiple -w '
                                  'options may be used in this case. Type "ect write list" to show'
-                                 'list of allowed format names.')
+                                 'list of allowed format names.'
+                                 ''.format(formats=', '.join(WRITE_FORMAT_NAMES)))
         parser.add_argument('op_name', metavar='OP',
                             help='Fully qualified operation name or Workflow file. '
-                                 'Type "ect op list" to list available operators')
+                                 'Type "ect op list" to list available operators.')
         parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                            help="Operation arguments. Use '-h' to print operation details.")
+                            help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
+                                 'depends on the expected data type of an OP input. It can be a True, False, '
+                                 'a string, a numeric constant, one of the names specified by the --load and --read '
+                                 'options, or a Python expression. Type "ect op info OP" to print information '
+                                 'about the supported OP input names to be used as KEY and their data types to be '
+                                 'used as VALUE.')
 
     def execute(self, command_args):
 
@@ -589,7 +599,9 @@ class WorkspaceResourceCommand(SubCommandCommand):
         read_parser.add_argument('file_path', metavar='FILE',
                                  help='File path.')
         read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
-                                 help='File format. Type')
+                                 choices=READ_FORMAT_NAMES,
+                                 help='File format. Possible FORMAT values are {format}.'
+                                      ''.format(format=', '.join(READ_FORMAT_NAMES)))
         # TODO (forman, 20160913): support reader-specific arguments
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
@@ -603,7 +615,9 @@ class WorkspaceResourceCommand(SubCommandCommand):
         read_parser.add_argument('file_path', metavar='FILE',
                                  help='File path.')
         read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
-                                 help='File format. Type')
+                                 choices=WRITE_FORMAT_NAMES,
+                                 help='File format. Possible FORMAT values are {format}.'
+                                      ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
         # TODO (forman, 20160913): support writer-specific arguments
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
