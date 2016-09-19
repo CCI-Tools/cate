@@ -177,14 +177,27 @@ class DataSource(metaclass=ABCMeta):
 class DataStore(metaclass=ABCMeta):
     """Represents a data store of data sources."""
 
-    # TODO (mzuehlke, forman, 20160603): define constraints --> have a look at Iris Constraint class
+    # Check Iris "Constraint" class to implement user-friendly, efficient filters (mzuehlke, forman, 20160603)
+
     @abstractmethod
-    def query(self, name=None) -> Sequence[DataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NULL) -> Sequence[DataSource]:
         """
         Retrieve data sources in this data store using the given constraints.
 
         :param name: Name of the data source.
+        :param monitor:  A progress monitor.
         :return: Sequence of data sources.
+        """
+
+    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NULL):
+        """
+        Update this data store's indices to speed up queries and to fetch meta-information about its
+        contained data sources.
+
+        The default implementation is a no-op.
+
+        :param update_file_lists: To also update the a data source's contained file lists (if any)
+        :param monitor:  A progress monitor.
         """
 
     @abstractmethod

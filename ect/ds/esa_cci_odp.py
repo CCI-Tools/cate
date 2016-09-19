@@ -244,7 +244,18 @@ class EsaCciOdpDataStore(DataStore):
     def index_cache_expiration_days(self):
         return self._index_cache_expiration_days
 
-    def query(self, name: str = None) -> Sequence['DataSource']:
+    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NULL):
+        with monitor.starting('Updating indices', 100):
+            self._init_data_sources()
+            monitor.progress(work=10 if update_file_lists else 100)
+            if update_file_lists:
+                child_monitor = monitor.child(work=90)
+                with child_monitor.starting('Updating file lists', len(self._data_sources)):
+                    for data_source in self._data_sources:
+                        data_source.update_file_list()
+                        child_monitor.progress(work=1)
+
+    def query(self, name: str = None, monitor: Monitor = Monitor.NULL) -> Sequence['DataSource']:
         self._init_data_sources()
         if not name:
             return list(self._data_sources)
@@ -288,7 +299,7 @@ class EsaCciOdpDataSource(DataSource):
         self._json_dict = json_dict
         self._schema = schema
         self._file_list = None
-        self._temporal_coverage = (None, None)
+        self._temporal_coverage = None
 
     @property
     def name(self) -> str:
@@ -466,7 +477,6 @@ class EsaCciOdpDataSource(DataSource):
         if self._file_list:
             return
 
-
         file_list = _load_or_fetch_json(_fetch_file_list_json,
                                         fetch_json_args=[self._master_id, self._dataset_id],
                                         cache_used=self._data_store.index_cache_used,
@@ -484,16 +494,19 @@ class EsaCciOdpDataSource(DataSource):
         else:
             time_delta = timedelta(days=0)
 
-        start_date = datetime(3000, 1, 1)
-        end_date = datetime(1000, 1, 1)
+        data_source_start_date = datetime(3000, 1, 1)
+        data_source_end_date = datetime(1000, 1, 1)
+        # Convert file_start_date from string to datetime object
+        # Compute file_end_date from 'time_frequency' field
+        # Compute the data source's temporal coverage
         for file_rec in file_list:
-            # Convert start_time string to datetime object
-            file_rec[1] = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
-            if file_rec[2] is None:
-                file_rec[2] = file_rec[1] + time_delta
-            start_date = min(start_date, file_rec[1])
-            end_date = max(end_date, file_rec[2])
-        self._temporal_coverage = start_date, end_date
+            file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+            file_end_date = file_start_date + time_delta
+            data_source_start_date = min(data_source_start_date, file_rec[1])
+            data_source_end_date = max(data_source_end_date, file_rec[2])
+            file_rec[1] = file_start_date
+            file_rec[2] = file_end_date
+        self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
 
     def __str__(self):
