@@ -12,10 +12,9 @@ The Python core of the ESA CCI Toolbox (ECT).
 ## Contents
 
 * ``setup.py`` -- main build script to be run with Python 3.5
-* ``ect/`` -- ECT main package and production code
-* ``notebooks/`` -- various IPython notebooks demonstrating the ECT API
-* ``test/`` -- ECT test package and test code
-* ``doc/`` -- documentation in RST format
+* ``ect/`` -- main package and production code
+* ``test/`` -- test package and test code
+* ``doc/`` -- documentation in Sphinx/RST format
 
 ## Installation
 
@@ -30,19 +29,21 @@ ECT can be run from sources directly, once the following module requirements are
 
 * ``xarray``
 * ``dask``
+* ``netcdf4``
 * ``numpy``
 * ``scipy``
 * ``matplotlib``
 * ``numba``
-* ``netcdf4``
+* ``cartopy``
 
 The most up-to-date list of module requirements is found in the project's ``setup.py`` file. Do not install now, please read further first.
 
-### Installation into a Conda environment (recommended)
+It is recommended to install ECT into an isolated Python 3 environment, because this approach avoids clashes 
+with existing versions of ECT's 3rd-party module requirements. We recommend using Conda 
+([Miniconda](http://conda.pydata.org/miniconda.html) or [Anaconda](https://www.continuum.io/downloads)) 
+which will usually also avoid platform-specific issues caused by module native binaries.
 
-It is recommended to install ECT into an isolated Conda ([Miniconda](http://conda.pydata.org/miniconda.html) or 
-[Anaconda](https://www.continuum.io/downloads)) environment, because this approach avoidsclashes with existing versions of 
-ECT's 3rd-party module requirements and also usually avoids platform-specific issues caused by module native binaries.
+### Installation into a new Conda environment 
 
 Using Conda, you can create a isolated environment for ECT like so
 
@@ -52,13 +53,15 @@ Then you activate the new environment ``ect``:
      
     $ source activate ect
     
-Windows users can omit the ``source`` command and just type ``activate ect``.
+Windows users can omit the ``source`` command and just type 
 
-You can now safely install ECT into the new, isolated ``ect`` conda environment.    
+    $ activate ect
+
+You can now safely install ECT into the new, isolated ``ect`` Conda environment.    
     
     $ python setup.py install
     
-### Installation into an existing Python 3 environment (not recommended) 
+### Installation into an existing Python 3 environment 
 
 To install ECT into an existing Python 3.5+ environment just for the current user, use
 
@@ -71,7 +74,9 @@ To install ECT for development and for the current user, use
 Unfortunately, the installation fails on many platforms. In most cases the failure will be caused by the 
 ``h5py`` module dependency, which expects pre-installed HDF-5 C-libraries to be present on your computer. 
 
-On Windows, you may get around this by pre-installing the ECT dependencies (which you'll find in ``setup.py``) on your own, for example by using Christoph Gohlke's [Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
+On Windows, you may get around this by pre-installing the ECT dependencies (which you'll find in ``setup.py``) 
+on your own, for example by using Christoph Gohlke's 
+[Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
 
 ## Getting started
 
