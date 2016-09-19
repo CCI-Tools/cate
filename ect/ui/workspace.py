@@ -238,8 +238,6 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.store()
 
 
-
-
 class WebAPIWorkspaceManager(WorkspaceManager):
     def __init__(self, port=8888, address='127.0.0.1', timeout=120):
         self.base_url = 'http://%s:%s' % (address, port)
