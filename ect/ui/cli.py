@@ -99,7 +99,6 @@ import os.path
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
-from datetime import datetime, timedelta
 from typing import Tuple, Optional
 
 from ect.core.io import DATA_STORE_REGISTRY, open_dataset
@@ -107,6 +106,7 @@ from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object, write_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
+from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager
 from ect.version import __version__
@@ -802,16 +802,18 @@ class DataSourceCommand(SubCommandCommand):
         sync_parser = subparsers.add_parser('sync',
                                             help='Synchronise a remote data source with its local version.')
         sync_parser.add_argument('ds_name', metavar='DS',
-                                 help='A data source with name DS. '
+                                 help='A data source name. '
                                       'Type "ect ds list" to show all possible data source names.')
-        sync_parser.add_argument('--time', '-t', nargs=1, metavar='PERIOD',
-                                 help='Limit to date/time period. Format of PERIOD is DATE[,DATE] '
-                                      'where DATE is YYYY[-MM[-DD]]')
+        sync_parser.add_argument('start_date', metavar='START', nargs='?',
+                                 help='Start date with format YYYY[-MM[-DD]].')
+        sync_parser.add_argument('end_date', metavar='END', nargs='?',
+                                 help='End date with format YYYY[-MM[-DD]]. '
+                                      'END date must be greater than START date.')
         sync_parser.set_defaults(sub_command_function=cls._execute_sync)
 
         info_parser = subparsers.add_parser('info', help='Display information about a data source.')
         info_parser.add_argument('ds_name', metavar='DS',
-                                 help='A data source with name DS. '
+                                 help='A data source name. '
                                       'Type "ect ds list" to show all possible data source names.')
         info_parser.add_argument('--var', '-v', action='store_true',
                                  help="Also display information about contained dataset variables.")
@@ -844,6 +846,9 @@ class DataSourceCommand(SubCommandCommand):
             print(data_source.info_string)
             if command_args.var:
                 print()
+                print('Variables')
+                print('---------')
+                print()
                 print(data_source.variables_info_string)
 
     @classmethod
@@ -858,56 +863,17 @@ class DataSourceCommand(SubCommandCommand):
             raise CommandError('data source "%s" not found' % ds_name)
 
         data_source = data_sources[0]
-        if command_args.time:
-            time_range = cls.parse_time_period(command_args.time[0])
-            if not time_range:
-                raise CommandError('invalid PERIOD "%s"' % command_args.time[0])
+        if command_args.start_date:
+            try:
+                time_range = to_datetime_range(command_args.start_date, command_args.end_date)
+            except ValueError:
+                raise CommandError('invalid START and/or END date')
         else:
-            time_range = (None, None)
+            time_range = None
 
         num_sync, num_total = data_source.sync(time_range=time_range,
                                                monitor=cls.new_monitor())
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
-
-    @staticmethod
-    def parse_time_period(period):
-        period_parts = period.split(',')
-        num_period_parts = len(period_parts)
-        if num_period_parts < 1 or num_period_parts > 2:
-            return None
-        if num_period_parts == 1:
-            period_parts = period_parts[0], period_parts[0]
-        date1_parts = period_parts[0].split('-')
-        date2_parts = period_parts[1].split('-')
-        num_date_parts = len(date1_parts)
-        if num_date_parts < 1 or num_date_parts > 3:
-            return None
-        if num_date_parts != len(date2_parts):
-            return None
-        date1_args = [0, 1, 1]
-        date2_args = [0, 1, 1]
-        try:
-            for i in range(num_date_parts):
-                date1_args[i] = int(date1_parts[i])
-                date2_args[i] = int(date2_parts[i])
-            date1 = datetime(*date1_args)
-            date2 = datetime(*date2_args)
-        except ValueError:
-            return None
-
-        if num_date_parts == 1:
-            date2 = datetime(date2.year + 1, 1, 1)
-        elif num_date_parts == 2:
-            year = date2.year
-            month = date2.month + 1
-            if month == 13:
-                year += 1
-                month = 1
-            date2 = datetime(year, month, 1)
-        else:
-            date2 = datetime(date2.year, date2.month, date2.day) + timedelta(days=1)
-        date2 += timedelta(seconds=-1)
-        return date1, date2
 
 
 class PluginCommand(SubCommandCommand):

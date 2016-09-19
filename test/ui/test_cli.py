@@ -216,38 +216,6 @@ class CliDataSourceCommandTest(CliTestCase):
     def test_command_ds_sync_with_period(self):
         self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
 
-    def test_command_ds_parse_time_period(self):
-        from ect.ui.cli import DataSourceCommand
-
-        self.assertEqual(DataSourceCommand.parse_time_period('2010'), (datetime(2010, 1, 1),
-                                                                       datetime(2010, 12, 31, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02'), (datetime(2010, 2, 1),
-                                                                          datetime(2010, 2, 28, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12'),
-                         (datetime(2010, 12, 1), datetime(2010, 12, 31, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04'),
-                         (datetime(2010, 2, 4), datetime(2010, 2, 4, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31'),
-                         (datetime(2010, 12, 31), datetime(2010, 12, 31, 23, 59, 59)))
-
-        self.assertEqual(DataSourceCommand.parse_time_period('2010,2014'),
-                         (datetime(2010, 1, 1), datetime(2014, 12, 31, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02,2010-09'),
-                         (datetime(2010, 2, 1), datetime(2010, 9, 30, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12,2011-12'),
-                         (datetime(2010, 12, 1), datetime(2011, 12, 31, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-02-04,2019-02-04'),
-                         (datetime(2010, 2, 4), datetime(2019, 2, 4, 23, 59, 59)))
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01-06'),
-                         (datetime(2010, 12, 31), datetime(2010, 1, 6, 23, 59, 59)))
-
-        # errors
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-12-31,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_time_period('2010,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-01,2010-76'), None)
-        self.assertEqual(DataSourceCommand.parse_time_period('2010-1-3-83,2010-01'), None)
-        self.assertEqual(DataSourceCommand.parse_time_period('20L0-1-3-83,2010-01'), None)
-
     def test_command_run_no_args(self):
         self.assert_main(['ds'],
                          expected_stdout="usage: ect ds [-h] COMMAND ...\n"
