@@ -12,7 +12,8 @@ from ect.ops import plot
 
 
 class TestPlot(TestCase):
-#    @unittest.skip(reason="skipped unless you want to debug plot generation")
+    @unittest.skipUnless(condition=os.environ.get('ECT_TEST_PLOT', None),
+                         reason="skipped unless ECT_TEST_PLOT=1")
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
@@ -32,13 +33,13 @@ class TestPlot(TestCase):
         self.assertFalse(os.path.isfile('remove_me.pgm'))
 
         # Test if extents can be used
-        plot.plot_map(dataset, 
-                variable='second', 
-                lat_min=-20.0,
-                lat_max=60.0,
-                lon_min=-40.0,
-                lon_max=50.0,
-                path='remove_me.pdf')
+        plot.plot_map(dataset,
+                      variable='second',
+                      lat_min=-20.0,
+                      lat_max=60.0,
+                      lon_min=-40.0,
+                      lon_max=50.0,
+                      path='remove_me.pdf')
         self.assertTrue(os.path.isfile('remove_me.pdf'))
         os.remove('remove_me.pdf')
 

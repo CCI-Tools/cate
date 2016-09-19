@@ -31,6 +31,7 @@ script:
   - export NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
   # - export ECT_DISABLE_WEB_TESTS=1
+  - export ECT_TEST_PLOT=1
   - py.test -v --cov=ect test
 
 after_success:
