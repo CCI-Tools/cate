@@ -287,18 +287,12 @@ class CliRunCommandTest(CliTestCase):
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Extracting timeseries data: started',
-                                              'Extracting timeseries data:  33%',
-                                              'Extracting timeseries data: done',
-                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.txt',
                               op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Extracting timeseries data: started',
-                                              'Extracting timeseries data:  33%',
-                                              'Extracting timeseries data: done',
-                                              'Writing output to timeseries_data.txt using TEXT format...'])
+                             expected_stdout=['Writing output to timeseries_data.txt using TEXT format...'])
             self.assertTrue(os.path.isfile('timeseries_data.txt'))
             os.remove('timeseries_data.txt')
 
@@ -325,18 +319,12 @@ class CliRunCommandTest(CliTestCase):
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Extracting timeseries data: started',
-                                              'Extracting timeseries data:  33%',
-                                              'Extracting timeseries data: done',
-                                              'Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.json',
                               workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Extracting timeseries data: started',
-                                              'Extracting timeseries data:  33%',
-                                              'Extracting timeseries data: done',
-                                              'Writing output to timeseries_data.json using JSON format...'])
+                             expected_stdout=['Writing output to timeseries_data.json using JSON format...'])
             self.assertTrue(os.path.isfile('timeseries_data.json'))
             os.remove('timeseries_data.json')
 

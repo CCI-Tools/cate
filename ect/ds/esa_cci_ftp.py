@@ -180,8 +180,8 @@ class FileSetDataSource(DataSource):
                In this case the *end_time* is used.
         """
 
-        date1 = to_datetime(time_range[0], self._fileset_info.start_time if self._fileset_info else None)
-        date2 = to_datetime(time_range[1], self._fileset_info.end_time if self._fileset_info else None)
+        date1 = to_datetime(time_range[0], default=self._fileset_info.start_time if self._fileset_info else None)
+        date2 = to_datetime(time_range[1], default=self._fileset_info.end_time if self._fileset_info else None)
 
         if date1 is None:
             raise ValueError("illegal time_range: can't determine start of interval")
@@ -404,9 +404,9 @@ class FileSetInfo:
                  end_time: Union[str, datetime],
                  num_files: int,
                  size_in_mb: int):
-        self._info_update_time = to_datetime(info_update_time, None)
-        self._start_time = to_datetime(start_time, None)
-        self._end_time = to_datetime(end_time, None)
+        self._info_update_time = to_datetime(info_update_time, default=None)
+        self._start_time = to_datetime(start_time, default=None)
+        self._end_time = to_datetime(end_time, default=None)
         self._num_files = num_files
         self._size_in_mb = size_in_mb
 
