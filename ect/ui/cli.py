@@ -754,7 +754,7 @@ class OperationCommand(SubCommandCommand):
 
         op_names = op_registrations.keys()
         if command_args.tag:
-            op_names = [name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag)]
+            op_names = sorted([name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
@@ -826,7 +826,7 @@ class DataSourceCommand(SubCommandCommand):
         ds_name = command_args.name
 
         _list_items('data source', 'data sources',
-                    [data_source.name for data_source in data_store.query()], ds_name)
+                    sorted([data_source.name for data_source in data_store.query()]), ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):
@@ -940,7 +940,7 @@ class PluginCommand(SubCommandCommand):
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
-        _list_items('plugin', 'plugins', PLUGIN_REGISTRY.keys(), name_pattern)
+        _list_items('plugin', 'plugins', sorted(PLUGIN_REGISTRY.keys()), name_pattern)
 
 
 class LicenseCommand(Command):
