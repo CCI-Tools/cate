@@ -77,7 +77,7 @@ Components
 ==========
 """
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
+from datetime import datetime, date
 from glob import glob
 from typing import Sequence
 from typing import Union, List, Tuple
@@ -126,23 +126,28 @@ class DataSource(metaclass=ABCMeta):
         return True
 
     @abstractmethod
-    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+    def open_dataset(self,
+                     start_date: Union[None, str, date] = None,
+                     end_date: Union[None, str, date] = None) -> xr.Dataset:
         """
         Open a dataset with the given constraints. If *sync* is True, :py:meth:`sync` is called first.
 
-        :param time_range: A tuple of datetime or str, optional. To limits the dataset in time.
-        :param sync: Whether to synchronize the dataset.
-        :param monitor: A progress monitor which is used only if *sync* is enabled.
+        :param start_date: Optional start date of the requested dataset
+        :param end_date: Optional end date of the requested dataset
         :return: A dataset or ``None`` if no data is available in *time_range*.
         """
 
     # noinspection PyMethodMayBeStatic
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+    def sync(self,
+             start_date: Union[None, str, date] = None,
+             end_date: Union[None, str, date] = None,
+             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
         """
         Synchronize remote data with locally stored data.
         The default implementation does nothing.
 
-        :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
+        :param start_date: Optional start date of the requested dataset
+        :param end_date: Optional end date of the requested dataset
         :param monitor: a progress monitor.
         :return: a tuple (synchronized number of selected files, total number of selected files)
         """
@@ -279,24 +284,20 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
     return results
 
 
-def open_dataset(data_source: Union[DataSource, str], time_range=None) -> xr.Dataset:
-    """Load and decode a dataset.
+def open_dataset(data_source: Union[DataSource, str],
+                 start_date: Union[None, str, date] = None,
+                 end_date: Union[None, str, date] = None,
+                 sync: bool = False,
+                 monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+    """
+    Open a dataset from a data source.
 
-    Parameters
-    ----------
-    data_source : str or DataSource
-       Strings are interpreted as the identifier of an ECV dataset.
-    time_range : a tuple of datetime or str, optional
-       The *time_range*, if given, limits the dataset in time.
-
-    Returns
-    -------
-    dataset : xarry.Dataset
-       The newly created dataset  or a Shapfile TBD..
-
-    See Also
-    --------
-    query_data_sources
+    :param data_source: Strings are interpreted as the identifier of an ECV dataset.
+    :param start_date: Optional start date of the requested dataset
+    :param end_date: Optional end date of the requested dataset
+    :param sync: Whether to synchronize local and remote data files before opening the dataset
+    :param monitor: a progress monitor, used only if *snyc* is ``True``
+    :return: An new dataset instance
     """
     if data_source is None:
         raise ValueError('No data_source given')
@@ -309,7 +310,11 @@ def open_dataset(data_source: Union[DataSource, str], time_range=None) -> xr.Dat
         elif len(data_sources) > 1:
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
-    return data_source.open_dataset(time_range)
+
+    if sync:
+        data_source.sync(start_date, end_date, monitor=monitor)
+
+    return data_source.open_dataset(start_date, end_date)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember

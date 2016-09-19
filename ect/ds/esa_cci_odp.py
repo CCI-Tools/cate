@@ -43,11 +43,11 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta
-from typing import Sequence, Tuple
+from datetime import datetime, timedelta, date
+from typing import Sequence, Tuple, Union
 
 import xarray as xr
-from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, TimeRange, open_xarray_dataset
+from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from ect.core.monitor import Monitor
 from ect.core.util import to_datetime
 
@@ -319,6 +319,15 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def info_string(self):
+        self._init_file_list()
+        # noinspection PyBroadException
+        try:
+            # Try updating file list, so we have temporal coverage info...
+            self._init_file_list()
+        except Exception:
+            # ...but this isn't required to return a useful info string.
+            pass
+
         info_field_names = sorted(["realization",
                                    "project",
                                    "number_of_aggregations",
@@ -389,8 +398,11 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._init_file_list()
 
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
-        selected_file_list = self._find_files(time_range)
+    def sync(self,
+             start_date: Union[None, str, date] = None,
+             end_date: Union[None, str, date] = None,
+             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+        selected_file_list = self._find_files(start_date, end_date)
         if not selected_file_list:
             return 0, 0
 
@@ -433,8 +445,8 @@ class EsaCciOdpDataSource(DataSource):
     def local_dataset_dir(self):
         return os.path.join(_DATA_ROOT, self._master_id)
 
-    def _find_files(self, time_range):
-        requested_start_date, requested_end_date = to_datetime(time_range[0]), to_datetime(time_range[1])
+    def _find_files(self, start_date, end_date):
+        requested_start_date, requested_end_date = to_datetime(start_date), to_datetime(end_date)
         self._init_file_list()
         if requested_start_date or requested_end_date:
             selected_file_list = []
@@ -454,14 +466,12 @@ class EsaCciOdpDataSource(DataSource):
             selected_file_list = self._file_list
         return selected_file_list
 
-    def open_dataset(self, time_range: TimeRange = (None, None), sync: bool = False,
-                     monitor: Monitor = Monitor.NULL) -> xr.Dataset:
-        selected_file_list = self._find_files(time_range)
+    def open_dataset(self,
+                     start_date: Union[None, str, date] = None,
+                     end_date: Union[None, str, date] = None) -> xr.Dataset:
+        selected_file_list = self._find_files(start_date, end_date)
         if not selected_file_list:
             return None
-
-        if sync:
-            self.sync(time_range, monitor=monitor)
 
         dataset_dir = self.local_dataset_dir()
         files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
@@ -502,8 +512,8 @@ class EsaCciOdpDataSource(DataSource):
         for file_rec in file_list:
             file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
             file_end_date = file_start_date + time_delta
-            data_source_start_date = min(data_source_start_date, file_rec[1])
-            data_source_end_date = max(data_source_end_date, file_rec[2])
+            data_source_start_date = min(data_source_start_date, file_start_date)
+            data_source_end_date = max(data_source_end_date, file_end_date)
             file_rec[1] = file_start_date
             file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date

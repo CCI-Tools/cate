@@ -83,16 +83,16 @@ class CliTest(CliTestCase):
         self.assert_main(['-h'])
         self.assert_main(['--help'])
 
-    def test_parse_load_arg(self):
-        self.assertEqual(cli._parse_load_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+    def test_parse_open_arg(self):
+        self.assertEqual(cli._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
                          ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
-        self.assertEqual(cli._parse_load_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1,2011'),
+        self.assertEqual(cli._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1,2011'),
                          ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', '2011', None))
-        self.assertEqual(cli._parse_load_arg('SST_LT_ATSR_L3U_V01.0_ATSR1,,2012'),
+        self.assertEqual(cli._parse_open_arg('SST_LT_ATSR_L3U_V01.0_ATSR1,,2012'),
                          (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, '2012'))
-        self.assertEqual(cli._parse_load_arg('=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+        self.assertEqual(cli._parse_open_arg('=SST_LT_ATSR_L3U_V01.0_ATSR1'),
                          (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
-        self.assertEqual(cli._parse_load_arg('sst2011='),
+        self.assertEqual(cli._parse_open_arg('sst2011='),
                          ('sst2011', None, None, None))
 
     def test_parse_write_arg(self):
@@ -152,7 +152,7 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
     def test_command_res_load_read_op(self):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
-        self.assert_main(['res', 'load', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
+        self.assert_main(['res', 'open', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
                          expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
                          expected_stdout=['Resource "ds2" set.'])
@@ -161,7 +161,8 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                         '  ds1 = ect.ops.io.load_dataset(ds_id=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', start_date=2010, end_date=None) [OpStep]',
+                         '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
+                         'start_date=2010, end_date=None, sync=None) [OpStep]',
                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 

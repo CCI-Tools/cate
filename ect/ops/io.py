@@ -24,24 +24,42 @@ import os.path
 from abc import ABCMeta
 
 import xarray as xr
-from ect.core.io import open_dataset
+from ect.core.monitor import Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from ect.core.op import op_input, op
 
 
 @op(tags=['io'])
-@op_input('ds_id')
+@op_input('ds_name')
 @op_input('start_date')
 @op_input('end_date')
-def load_dataset(ds_id: str, start_date: str = None, end_date: str = None) -> xr.Dataset:
-    return open_dataset(ds_id, (start_date, end_date))
+@op_input('sync')
+def open_dataset(ds_name: str,
+                 start_date: str = None,
+                 end_date: str = None,
+                 sync: bool = False,
+                 monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+    """
+    Open a dataset from a data source identified by *ds_name*.
+
+    :param ds_name: The name of data source.
+    :param start_date: Optional start date of the requested dataset.
+    :param end_date: Optional end date of the requested dataset.
+    :param sync: Whether to synchronize local and remote data files before opening the dataset.
+    :param monitor: a progress monitor, used only if *snyc* is ``True``.
+    :return: An new dataset instance.
+    """
+    import ect.core.io
+    return ect.core.io.open_dataset(ds_name, start_date=start_date, end_date=end_date, sync=sync, monitor=monitor)
 
 
+# noinspection PyShadowingBuiltins
 @op(tags=['io'])
 @op_input('ds')
 @op_input('file')
-def store_dataset(ds: xr.Dataset, file: str):
-    ds.to_netcdf(file)
+@op_input('format')
+def save_dataset(ds: xr.Dataset, file: str, format: str = None):
+    ds.to_netcdf(file, format=format)
 
 
 # noinspection PyShadowingBuiltins

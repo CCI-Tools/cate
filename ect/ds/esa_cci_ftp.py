@@ -45,7 +45,7 @@ import os.path
 import pkgutil
 import urllib.parse
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
@@ -119,8 +119,10 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
-        paths = self.resolve_paths(time_range)
+    def open_dataset(self,
+                     start_date: Union[None, str, date] = None,
+                     end_date: Union[None, str, date] = None) -> xr.Dataset:
+        paths = self.resolve_paths((start_date, end_date))
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
@@ -192,24 +194,21 @@ class FileSetDataSource(DataSource):
 
         return [self._resolve_base_path(date1 + timedelta(days=i)) for i in range((date2 - date1).days + 1)]
 
-    def _resolve_base_path(self, date: datetime):
+    def _resolve_base_path(self, the_date: datetime):
         resolved_path = self._file_pattern
-        resolved_path = resolved_path.replace('{YYYY}', '%04d' % date.year)
-        resolved_path = resolved_path.replace('{MM}', '%02d' % date.month)
-        resolved_path = resolved_path.replace('{DD}', '%02d' % date.day)
+        resolved_path = resolved_path.replace('{YYYY}', '%04d' % the_date.year)
+        resolved_path = resolved_path.replace('{MM}', '%02d' % the_date.month)
+        resolved_path = resolved_path.replace('{DD}', '%02d' % the_date.day)
         return self._base_dir + '/' + resolved_path
 
-    def sync(self, time_range: TimeRange = (None, None), monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
-        """
-        Synchronize remote data with locally stored data.
+    def sync(self,
+             start_date: Union[None, str, date] = None,
+             end_date: Union[None, str, date] = None,
+             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
 
-        :param time_range: a tuple of two datetime objects or datetime strings of the form ``YYYY-MM-DD``
-        :param monitor: a progress monitor.
-        :return: a tuple (synchronized number of selected files, total number of selected files)
-        """
         assert self._file_set_data_store.remote_url
 
-        expected_remote_files = self._get_expected_remote_files(time_range)
+        expected_remote_files = self._get_expected_remote_files((start_date, end_date))
         if len(expected_remote_files) == 0:
             return 0, 0
 

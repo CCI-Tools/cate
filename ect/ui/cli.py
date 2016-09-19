@@ -107,7 +107,7 @@ from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ops.io import load_dataset
+from ect.ops.io import open_dataset
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager
 from ect.version import __version__
 
@@ -141,7 +141,7 @@ def _new_workspace_manager() -> WorkspaceManager:
     return FSWorkspaceManager()
 
 
-def _parse_load_arg(load_arg: str) -> Tuple[str, str, str]:
+def _parse_open_arg(load_arg: str) -> Tuple[str, str, str]:
     """
     Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
 
@@ -330,6 +330,10 @@ class Command(metaclass=ABCMeta):
                  where *message* may be ``None``.
         """
 
+    @classmethod
+    def new_monitor(cls) -> Monitor:
+        return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
+
 
 class SubCommandCommand(Command, metaclass=ABCMeta):
     @classmethod
@@ -389,12 +393,12 @@ class RunCommand(Command):
     def configure_parser(cls, parser):
         parser.add_argument('--monitor', '-m', action='store_true',
                             help='Display progress information during execution.')
-        parser.add_argument('--load', '-l', action='append', metavar='DS_EXPR', dest='load_args',
-                            help='Load dataset from data source DS_EXPR.\n'
-                                 'The DS_EXPR syntax is NAME=DS[,DATE1[,DATE2]]. '
+        parser.add_argument('--open', '-o', action='append', metavar='DS_EXPR', dest='open_args',
+                            help='Open a dataset from DS_EXPR.\n'
+                                 'The DS_EXPR syntax is NAME=DS[,START[,END]]. '
                                  'DS must be a valid data source name. Type "ect ds list" to show '
-                                 'all known data source names. DATE1 and DATE2 may be used to create '
-                                 'data subsets. The dataset loaded will be assigned to the arbitrary '
+                                 'all known data source names. START and END are dates and may be used to create '
+                                 'temporal data subsets. The dataset loaded will be assigned to the arbitrary '
                                  'name NAME which is used to pass the datasets or its variables'
                                  'as an OP argument. To pass a variable use syntax NAME.VAR_NAME.')
         parser.add_argument('--read', '-r', action='append', metavar='FILE_EXPR', dest='read_args',
@@ -421,7 +425,7 @@ class RunCommand(Command):
         parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
                             help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
                                  'depends on the expected data type of an OP input. It can be a True, False, '
-                                 'a string, a numeric constant, one of the names specified by the --load and --read '
+                                 'a string, a numeric constant, one of the names specified by the --open and --read '
                                  'options, or a Python expression. Type "ect op info OP" to print information '
                                  'about the supported OP input names to be used as KEY and their data types to be '
                                  'used as VALUE.')
@@ -433,14 +437,22 @@ class RunCommand(Command):
 
         namespace = dict()
 
-        if command_args.load_args:
-            load_args = list(map(_parse_load_arg, command_args.load_args))
-            for ds_name, ds_id, date1, date2 in load_args:
+        if command_args.open_args:
+            open_args = list(map(_parse_open_arg, command_args.open_args))
+            for ds_name, ds_id, start_date, end_date in open_args:
                 if not ds_name:
-                    raise CommandError("missing NAME in --load option")
+                    raise CommandError("missing NAME in --open option")
                 if ds_name in namespace:
-                    raise CommandError("ambiguous NAME in --load option")
-                namespace[ds_name] = load_dataset(ds_id, date1, date2)
+                    raise CommandError("ambiguous NAME in --open option")
+                if command_args.monitor:
+                    monitor = self.new_monitor()
+                else:
+                    monitor = Monitor.NULL
+                namespace[ds_name] = open_dataset(ds_id,
+                                                  start_date=start_date,
+                                                  end_date=end_date,
+                                                  sync=True,
+                                                  monitor=monitor)
 
         if command_args.read_args:
             read_args = list(map(_parse_read_arg, command_args.read_args))
@@ -481,7 +493,7 @@ class RunCommand(Command):
                     raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
 
         if command_args.monitor:
-            monitor = ConsoleMonitor()
+            monitor = self.new_monitor()
         else:
             monitor = Monitor.NULL
 
@@ -580,17 +592,17 @@ class WorkspaceResourceCommand(SubCommandCommand):
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
 
-        load_parser = subparsers.add_parser('load',
-                                            help='Load dataset from a data source and set a resource.')
-        load_parser.add_argument('res_name', metavar='NAME',
+        open_parser = subparsers.add_parser('open',
+                                            help='Open a dataset from a data source and set a resource.')
+        open_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
-        load_parser.add_argument('ds_name', metavar='DS',
+        open_parser.add_argument('ds_name', metavar='DS',
                                  help='A data source named DS. Type "ect ds list" to list valid data source names.')
-        load_parser.add_argument('start_date', metavar='START', nargs='?',
+        open_parser.add_argument('start_date', metavar='START', nargs='?',
                                  help='Start date. Use format YYYY[-MM[-DD]].')
-        load_parser.add_argument('end_date', metavar='END', nargs='?',
+        open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format YYYY[-MM[-DD]].')
-        load_parser.set_defaults(sub_command_function=cls._execute_load)
+        open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
                                             help='Read an object from a file and set a resource.')
@@ -641,15 +653,15 @@ class WorkspaceResourceCommand(SubCommandCommand):
         # del_parser.set_defaults(sub_command_function=cls._execute_del)
 
     @classmethod
-    def _execute_load(cls, command_args):
+    def _execute_open(cls, command_args):
         workspace_manager = _new_workspace_manager()
         ds_name = command_args.ds_name
-        op_args = ['ds_id=%s' % ds_name]
+        op_args = ['ds_name=%s' % ds_name]
         if command_args.start_date:
             op_args.append('start_date=%s' % command_args.start_date)
         if command_args.end_date:
             op_args.append('end_date=%s' % command_args.end_date)
-        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.load_dataset', op_args)
+        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -670,7 +682,7 @@ class WorkspaceResourceCommand(SubCommandCommand):
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
         workspace = workspace_manager.get_workspace('')
-        monitor = ConsoleMonitor(stay_in_line=True, progress_bar_size=80)
+        monitor = WorkspaceResourceCommand.new_monitor()
         result = workspace.workflow(monitor=monitor)
         if res_name in result:
             obj = result[res_name]
@@ -853,7 +865,7 @@ class DataSourceCommand(SubCommandCommand):
             time_range = (None, None)
 
         num_sync, num_total = data_source.sync(time_range=time_range,
-                                               monitor=ConsoleMonitor(stay_in_line=True, progress_bar_size=30))
+                                               monitor=cls.new_monitor())
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
 
     @staticmethod
