@@ -43,7 +43,7 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Sequence, Tuple
 
 import xarray as xr
@@ -63,6 +63,15 @@ _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(8 * '\\d'), '%Y%m%d'),
                                       (re.compile(6 * '\\d'), '%Y%m'),
                                       (re.compile(4 * '\\d'), '%Y')]
+
+# days = 0, seconds = 0, microseconds = 0, milliseconds = 0, minutes = 0, hours = 0, weeks = 0
+_TIME_FREQUENCY_TO_TIME_DELTA = dict([
+    ('second', timedelta(seconds=1)),
+    ('day', timedelta(days=1)),
+    ('8-days', timedelta(days=8)),
+    ('mon', timedelta(weeks=4)),
+    ('yr', timedelta(days=365)),
+])
 
 
 def set_default_data_store():
@@ -172,13 +181,12 @@ def _load_or_fetch_json(fetch_json_function,
 
 
 def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
-    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
-                                            dict(type='File',
-                                                 fields='url,title,size',
-                                                 dataset_id=dataset_query_id,
-                                                 replica='false',
-                                                 latest='true',
-                                                 project='esacci'))
+    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL, dict(type='File',
+                                                                 fields='url,title,size',
+                                                                 dataset_id=dataset_query_id,
+                                                                 replica='false',
+                                                                 latest='true',
+                                                                 project='esacci'))
 
     if not isinstance(file_index_json_dict, dict):
         return None
@@ -280,6 +288,7 @@ class EsaCciOdpDataSource(DataSource):
         self._json_dict = json_dict
         self._schema = schema
         self._file_list = None
+        self._temporal_coverage = (None, None)
 
     @property
     def name(self) -> str:
@@ -288,6 +297,10 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
+
+    @property
+    def temporal_coverage(self):
+        return self._temporal_coverage
 
     @property
     def schema(self) -> Schema:
@@ -324,6 +337,11 @@ class EsaCciOdpDataSource(DataSource):
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
             info_lines.append('%s:%s %s' % (name, (max_len - len(name)) * ' ', value))
+
+        if self._temporal_coverage:
+            start, end = self._temporal_coverage
+            info_lines.append('')
+            info_lines.append('Temporal coverage: %s to %s' % (start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 
@@ -448,6 +466,7 @@ class EsaCciOdpDataSource(DataSource):
         if self._file_list:
             return
 
+
         file_list = _load_or_fetch_json(_fetch_file_list_json,
                                         fetch_json_args=[self._master_id, self._dataset_id],
                                         cache_used=self._data_store.index_cache_used,
@@ -455,9 +474,26 @@ class EsaCciOdpDataSource(DataSource):
                                         cache_json_filename='file-list.json',
                                         cache_timestamp_filename='file-list-timestamp.txt',
                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
+
+        time_frequency = self._json_dict.get('time_frequency', None)
+        if time_frequency and isinstance(time_frequency, list):
+            time_frequency = time_frequency[0]
+
+        if time_frequency:
+            time_delta = _TIME_FREQUENCY_TO_TIME_DELTA.get(time_frequency, timedelta(days=0))
+        else:
+            time_delta = timedelta(days=0)
+
+        start_date = datetime(3000, 1, 1)
+        end_date = datetime(1000, 1, 1)
         for file_rec in file_list:
             # Convert start_time string to datetime object
             file_rec[1] = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+            if file_rec[2] is None:
+                file_rec[2] = file_rec[1] + time_delta
+            start_date = min(start_date, file_rec[1])
+            end_date = max(end_date, file_rec[2])
+        self._temporal_coverage = start_date, end_date
         self._file_list = file_list
 
     def __str__(self):

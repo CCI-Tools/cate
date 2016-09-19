@@ -102,9 +102,17 @@ class DataSource(metaclass=ABCMeta):
         """Human-readable data source name."""
 
     @property
-    @abstractmethod
     def schema(self) -> Schema:
-        """The data :py:class:`Schema` for any dataset provided by this data source."""
+        """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
+        return None
+
+    @property
+    def temporal_coverage(self):
+        """
+        The temporal coverage as tuple (*start*, *end*) where *start* and *and* are ``datetime`` instances.
+        Return ``None`` if the temporal coverage is unknown.
+        """
+        return None
 
     @property
     @abstractmethod

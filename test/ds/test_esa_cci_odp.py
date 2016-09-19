@@ -69,11 +69,14 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_source.info_string)
 
     def test_variables_info_string(self):
-        print(self.data_source.variables_info_string)
+        # print(self.data_source.variables_info_string)
         self.assertIn('kd_490 (m-1):\n',
                       self.data_source.variables_info_string)
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
                       self.data_source.variables_info_string)
+
+    def test_temporal_coverage(self):
+        self.assertEqual(self.data_source.temporal_coverage, (None, None))
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)
