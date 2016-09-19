@@ -102,14 +102,18 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from typing import Tuple, Optional
 
-from ect.core.io import DATA_STORE_REGISTRY
+from ect.core.io import DATA_STORE_REGISTRY, open_dataset
 from ect.core.monitor import ConsoleMonitor, Monitor
-from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer
+from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object, write_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
+from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.workflow import Workflow
-from ect.ops.io import open_dataset
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager
 from ect.version import __version__
+
+# Explicitly load ECT-internal plugins.
+__import__('ect.ds')
+__import__('ect.ops')
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
@@ -439,30 +443,29 @@ class RunCommand(Command):
 
         if command_args.open_args:
             open_args = list(map(_parse_open_arg, command_args.open_args))
-            for ds_name, ds_id, start_date, end_date in open_args:
-                if not ds_name:
+            for res_name, ds_name, start_date, end_date in open_args:
+                if not res_name:
                     raise CommandError("missing NAME in --open option")
-                if ds_name in namespace:
+                if res_name in namespace:
                     raise CommandError("ambiguous NAME in --open option")
                 if command_args.monitor:
                     monitor = self.new_monitor()
                 else:
                     monitor = Monitor.NULL
-                namespace[ds_name] = open_dataset(ds_id,
-                                                  start_date=start_date,
-                                                  end_date=end_date,
-                                                  sync=True,
-                                                  monitor=monitor)
+                namespace[res_name] = open_dataset(ds_name,
+                                                   start_date=start_date,
+                                                   end_date=end_date,
+                                                   sync=True,
+                                                   monitor=monitor)
 
         if command_args.read_args:
             read_args = list(map(_parse_read_arg, command_args.read_args))
-            for inp_name, inp_path, inp_format in read_args:
-                if not inp_name:
-                    raise CommandError('missing NAME "%s" in --read option' % inp_name)
-                if inp_name in namespace:
-                    raise CommandError('ambiguous NAME "%s" in --read option' % inp_name)
-                from ect.core.objectio import read_object
-                namespace[inp_name], _ = read_object(inp_path, format_name=inp_format)
+            for res_name, file, format_name in read_args:
+                if not res_name:
+                    raise CommandError('missing NAME "%s" in --read option' % res_name)
+                if res_name in namespace:
+                    raise CommandError('ambiguous NAME "%s" in --read option' % res_name)
+                namespace[res_name], _ = read_object(file, format_name=format_name)
 
         op_args, op_kwargs = parse_op_args(command_args.op_args, namespace)
 
@@ -480,7 +483,7 @@ class RunCommand(Command):
         if command_args.write_args:
             write_args = list(map(_parse_write_arg, command_args.write_args))
             if op.op_meta_info.has_named_outputs:
-                for out_name, out_path, out_format in write_args:
+                for out_name, file, format_name in write_args:
                     if not out_name:
                         raise CommandError("all --write options must have a NAME")
                     if out_name not in op.op_meta_info.output:
@@ -488,7 +491,7 @@ class RunCommand(Command):
             else:
                 if len(write_args) > 1:
                     raise CommandError("multiple --write options given for singular result")
-                out_name, out_path, out_format = write_args[0]
+                out_name, file, format_name = write_args[0]
                 if out_name and out_name != 'return':
                     raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
 
@@ -501,12 +504,12 @@ class RunCommand(Command):
         return_value = op(monitor=monitor, **op_kwargs)
         if op.op_meta_info.has_named_outputs:
             if write_args:
-                for out_name, out_path, out_format in write_args:
+                for out_name, file, format_name in write_args:
                     out_value = return_value[out_name]
-                    writer = find_writer(out_value, out_path, format_name=out_format)
+                    writer = find_writer(out_value, file, format_name=format_name)
                     if writer:
-                        print('Writing output "%s" to %s using %s format...' % (out_name, out_path, writer.format_name))
-                        writer.write(out_value, out_path)
+                        print('Writing output "%s" to %s using %s format...' % (out_name, file, writer.format_name))
+                        writer.write(out_value, file)
                     else:
                         raise CommandError('unknown format for --write output "%s"' % out_name)
             else:
@@ -514,11 +517,11 @@ class RunCommand(Command):
                     print('Output "%s": %s' % (output.name, output.value))
         else:
             if write_args:
-                _, out_path, out_format = write_args[0]
-                writer = find_writer(return_value, out_path, format_name=out_format)
+                _, file, format_name = write_args[0]
+                writer = find_writer(return_value, file, format_name=format_name)
                 if writer:
-                    print("Writing output to %s using %s format..." % (out_path, writer.format_name))
-                    writer.write(return_value, out_path)
+                    print("Writing output to %s using %s format..." % (file, writer.format_name))
+                    writer.write(return_value, file)
                 else:
                     raise CommandError("unknown format for --write option")
             else:
@@ -620,21 +623,21 @@ class WorkspaceResourceCommand(SubCommandCommand):
         #                                'Type "ect res read -h" to list format-specific read arguments')
         read_parser.set_defaults(sub_command_function=cls._execute_read)
 
-        read_parser = subparsers.add_parser('write',
-                                            help='Write a resource to a file.')
-        read_parser.add_argument('res_name', metavar='NAME',
-                                 help='Name of the new target resource.')
-        read_parser.add_argument('file_path', metavar='FILE',
-                                 help='File path.')
-        read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
-                                 choices=WRITE_FORMAT_NAMES,
-                                 help='File format. Possible FORMAT values are {format}.'
-                                      ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
+        write_parser = subparsers.add_parser('write',
+                                             help='Write a resource to a file.')
+        write_parser.add_argument('res_name', metavar='NAME',
+                                  help='Name of the new target resource.')
+        write_parser.add_argument('file_path', metavar='FILE',
+                                  help='File path.')
+        write_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+                                  choices=WRITE_FORMAT_NAMES,
+                                  help='File format. Possible FORMAT values are {format}.'
+                                       ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
         # TODO (forman, 20160913): support writer-specific arguments
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
         #                                'Type "ect res write -h" to list format-specific write arguments')
-        read_parser.set_defaults(sub_command_function=cls._execute_write)
+        write_parser.set_defaults(sub_command_function=cls._execute_write)
 
         set_parser = subparsers.add_parser('set',
                                            help='Create a workflow operation and set a resource.')
@@ -688,9 +691,8 @@ class WorkspaceResourceCommand(SubCommandCommand):
             obj = result[res_name]
         else:
             obj = result
-        from ect.ops.io import write_object
         print('Writing resource "%s" to %s...' % (res_name, file_path))
-        write_object(obj, file_path, format=format_name)
+        write_object(obj, file_path, format_name=format_name)
         print('Resource "%s" written to %s' % (res_name, file_path))
 
     @classmethod
@@ -817,7 +819,6 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
-        from ect.core.io import DATA_STORE_REGISTRY
         data_store = DATA_STORE_REGISTRY.get_data_store('default')
         if data_store is None:
             raise RuntimeError('internal error: no default data store found')
@@ -936,7 +937,6 @@ class PluginCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
-        from ect.core.plugin import PLUGIN_REGISTRY as PLUGIN_REGISTRY
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
