@@ -119,10 +119,8 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self,
-                     start_date: Union[None, str, date] = None,
-                     end_date: Union[None, str, date] = None) -> xr.Dataset:
-        paths = self.resolve_paths((start_date, end_date))
+    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+        paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
@@ -202,13 +200,12 @@ class FileSetDataSource(DataSource):
         return self._base_dir + '/' + resolved_path
 
     def sync(self,
-             start_date: Union[None, str, date] = None,
-             end_date: Union[None, str, date] = None,
+             time_range: Tuple[datetime, datetime] = None,
              monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
 
         assert self._file_set_data_store.remote_url
 
-        expected_remote_files = self._get_expected_remote_files((start_date, end_date))
+        expected_remote_files = self._get_expected_remote_files(time_range)
         if len(expected_remote_files) == 0:
             return 0, 0
 

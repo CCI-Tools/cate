@@ -86,9 +86,7 @@ import pandas as pd
 import xarray as xr
 from ect.core.cdm import Schema
 from ect.core.monitor import Monitor
-
-Time = Union[str, datetime]
-TimeRange = Tuple[Time, Time]
+from ect.core.util import to_datetime_range
 
 
 class DataSource(metaclass=ABCMeta):
@@ -126,30 +124,27 @@ class DataSource(metaclass=ABCMeta):
         return True
 
     @abstractmethod
-    def open_dataset(self,
-                     start_date: Union[None, str, date] = None,
-                     end_date: Union[None, str, date] = None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
         """
-        Open a dataset with the given constraints. If *sync* is True, :py:meth:`sync` is called first.
+        Open a dataset for the given *time_range*.
 
-        :param start_date: Optional start date of the requested dataset
-        :param end_date: Optional end date of the requested dataset
-        :return: A dataset or ``None`` if no data is available in *time_range*.
+        :param time_range: An optional tuple comprising a start and end date, which must be
+               ``datetime.datetime`` objects.
+        :return: A dataset instance or ``None`` if no data is available in *time_range*.
         """
 
     # noinspection PyMethodMayBeStatic
     def sync(self,
-             start_date: Union[None, str, date] = None,
-             end_date: Union[None, str, date] = None,
+             time_range: Tuple[datetime, datetime] = None,
              monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
         """
         Synchronize remote data with locally stored data.
         The default implementation does nothing.
 
-        :param start_date: Optional start date of the requested dataset
-        :param end_date: Optional end date of the requested dataset
+        :param time_range: An optional tuple comprising a start and end date, which must be
+               ``datetime.datetime`` objects.
         :param monitor: a progress monitor.
-        :return: a tuple (synchronized number of selected files, total number of selected files)
+        :return: a tuple: (synchronized number of selected files, total number of selected files)
         """
         pass
 
@@ -311,10 +306,12 @@ def open_dataset(data_source: Union[DataSource, str],
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
 
-    if sync:
-        data_source.sync(start_date, end_date, monitor=monitor)
+    time_range = to_datetime_range(start_date, end_date)
 
-    return data_source.open_dataset(start_date, end_date)
+    if sync:
+        data_source.sync(time_range, monitor=monitor)
+
+    return data_source.open_dataset(time_range)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember

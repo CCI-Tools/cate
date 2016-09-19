@@ -8,7 +8,7 @@ from ect.core.util import UNDEFINED
 from ect.core.util import encode_url_path
 from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
-from ect.core.util import to_datetime
+from ect.core.util import to_datetime, to_datetime_range
 
 
 class UndefinedTest(TestCase):
@@ -163,29 +163,76 @@ class UtilTest(TestCase):
                                          path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
                          '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
 
-    def test_as_datetime(self):
-        d1 = to_datetime('2001-01-01', None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
+    def test_to_datetime(self):
+        dt = to_datetime('1998-11-20 10:14:08', default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(1998, 11, 20, 10, 14, 8), dt)
 
-        d1 = to_datetime('2001-01-01 2:3:5', None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1, 2, 3, 5), d1)
+        dt = to_datetime('2001-01-01', default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2001, 1, 1), dt)
 
-        d1 = to_datetime(datetime(2001, 1, 1), None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
+        dt = to_datetime('2002-03', default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2002, 3, 1), dt)
 
-        d1 = to_datetime(date(2012, 4, 20), default=None)
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2012, 4, 20, 12), d1)
+        dt = to_datetime('2003', default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2003, 1, 1), dt)
 
-        d1 = to_datetime(None, datetime(2001, 1, 1))
-        self.assertIsInstance(d1, datetime)
-        self.assertEqual(datetime(2001, 1, 1), d1)
+        dt = to_datetime('1998-11-20 10:14:08', upper_bound=True, default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(1998, 11, 20, 10, 14, 8), dt)
+
+        dt = to_datetime('2001-01-01', upper_bound=True, default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2001, 1, 1, 23, 59, 59), dt)
+
+        dt = to_datetime('2002-03', upper_bound=True, default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2002, 3, 28, 23, 59, 59), dt)
+
+        dt = to_datetime('2003', upper_bound=True, default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2003, 12, 31, 23, 59, 59), dt)
+
+        dt = to_datetime('2001-01-01 2:3:5', default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2001, 1, 1, 2, 3, 5), dt)
+
+        dt = to_datetime(datetime(2001, 1, 1), default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2001, 1, 1), dt)
+
+        dt = to_datetime(date(2012, 4, 20), default=None)
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2012, 4, 20, 12), dt)
+
+        dt = to_datetime(None, default=datetime(2001, 1, 1))
+        self.assertIsInstance(dt, datetime)
+        self.assertEqual(datetime(2001, 1, 1), dt)
 
         with self.assertRaises(TypeError):
             # noinspection PyTypeChecker
-            to_datetime(1, None)
+            to_datetime(1, default=None)
         with self.assertRaises(ValueError):
-            to_datetime("42", None)
+            to_datetime("42", default=None)
+
+    def test_to_datetime_range(self):
+        dtr = to_datetime_range(None, '')
+        self.assertIsNone(dtr)
+
+        dtr = to_datetime_range('2008', None)
+        self.assertEqual(dtr[0], datetime(2008, 1, 1))
+        self.assertEqual(dtr[1], datetime(2008, 12, 30, 23, 59, 59))
+
+        dtr = to_datetime_range('2008-08', None)
+        self.assertEqual(dtr[0], datetime(2008, 8, 1))
+        self.assertEqual(dtr[1], datetime(2008, 8, 28, 23, 59, 59))
+
+        dtr = to_datetime_range('2008-10-10', None)
+        self.assertEqual(dtr[0], datetime(2008, 10, 10, 0, 0))
+        self.assertEqual(dtr[1], datetime(2008, 10, 10, 23, 59, 59))
+
+        with self.assertRaises(ValueError):
+            to_datetime_range("211", "2012")

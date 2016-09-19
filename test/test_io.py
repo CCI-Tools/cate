@@ -35,7 +35,7 @@ class SimpleDataSource(io.DataSource):
     def name(self) -> str:
         return self._name
 
-    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL):
+    def open_dataset(self, time_range=None):
         return None
 
     def __repr__(self):
@@ -50,7 +50,7 @@ class InMemoryDataSource(SimpleDataSource):
         super(InMemoryDataSource, self).__init__("in_memory")
         self._data = data
 
-    def open_dataset(self, time_range=None, sync: bool = False, monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+    def open_dataset(self, time_range=None) -> xr.Dataset:
         return xr.Dataset({'a':self._data})
 
     def __repr__(self):

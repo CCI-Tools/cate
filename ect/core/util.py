@@ -41,9 +41,9 @@ import sys
 import urllib.parse
 from collections import OrderedDict
 from contextlib import contextmanager
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union
+from typing import Union, Tuple
 
 
 class _Undefined:
@@ -382,16 +382,36 @@ def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict 
     return path + query_string
 
 
-def to_datetime(datetime_or_str: Union[datetime, date, str, None], default=None) -> datetime:
-    if datetime_or_str is None:
+def to_datetime_range(start_datetime_or_str: Union[datetime, date, str, None],
+                      end_datetime_or_str: Union[datetime, date, str, None],
+                      default=None) -> Tuple[datetime, datetime]:
+    if not start_datetime_or_str and not end_datetime_or_str:
+        return default
+    if not end_datetime_or_str:
+        if not start_datetime_or_str:
+            raise ValueError('start_datetime_or_str argument must be given')
+        end_datetime_or_str = start_datetime_or_str
+    start_datetime = to_datetime(start_datetime_or_str, upper_bound=False)
+    end_datetime = to_datetime(end_datetime_or_str, upper_bound=True)
+    return start_datetime, end_datetime
+
+
+def to_datetime(datetime_or_str: Union[datetime, date, str, None], upper_bound=False, default=None) -> datetime:
+    if datetime_or_str is None or datetime_or_str == '':
         return default
     elif isinstance(datetime_or_str, str):
-        if datetime_or_str == '':
-            return default
-        try:
-            return datetime.strptime(datetime_or_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return datetime.strptime(datetime_or_str, "%Y-%m-%d")
+        format_to_timedelta = [("%Y-%m-%d %H:%M:%S", timedelta()),
+                               ("%Y-%m-%d", timedelta(hours=24, seconds=-1)),
+                               ("%Y-%m", timedelta(weeks=4, seconds=-1)),
+                               ("%Y", timedelta(days=365, seconds=-1)),
+                               ]
+        for f, td in format_to_timedelta:
+            try:
+                dt = datetime.strptime(datetime_or_str, f)
+                return dt + td if upper_bound else dt
+            except ValueError:
+                pass
+        raise ValueError('Invalid date/time value: "%s"' % datetime_or_str)
     elif isinstance(datetime_or_str, datetime):
         return datetime_or_str
     elif isinstance(datetime_or_str, date):

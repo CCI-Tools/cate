@@ -399,10 +399,9 @@ class EsaCciOdpDataSource(DataSource):
         self._init_file_list()
 
     def sync(self,
-             start_date: Union[None, str, date] = None,
-             end_date: Union[None, str, date] = None,
+             time_range: Tuple[datetime, datetime] = None,
              monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
-        selected_file_list = self._find_files(start_date, end_date)
+        selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return 0, 0
 
@@ -445,8 +444,8 @@ class EsaCciOdpDataSource(DataSource):
     def local_dataset_dir(self):
         return os.path.join(_DATA_ROOT, self._master_id)
 
-    def _find_files(self, start_date, end_date):
-        requested_start_date, requested_end_date = to_datetime(start_date), to_datetime(end_date)
+    def _find_files(self, time_range):
+        requested_start_date, requested_end_date = time_range
         self._init_file_list()
         if requested_start_date or requested_end_date:
             selected_file_list = []
@@ -466,10 +465,8 @@ class EsaCciOdpDataSource(DataSource):
             selected_file_list = self._file_list
         return selected_file_list
 
-    def open_dataset(self,
-                     start_date: Union[None, str, date] = None,
-                     end_date: Union[None, str, date] = None) -> xr.Dataset:
-        selected_file_list = self._find_files(start_date, end_date)
+    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+        selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return None
 
