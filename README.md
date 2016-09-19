@@ -43,11 +43,13 @@ with existing versions of ECT's 3rd-party module requirements. We recommend usin
 ([Miniconda](http://conda.pydata.org/miniconda.html) or [Anaconda](https://www.continuum.io/downloads)) 
 which will usually also avoid platform-specific issues caused by module native binaries.
 
+Note, after installing Miniconda or Anaconda on Unix and Mac OS you'll need to close and re-open your terminal window for the changes to take effect.
+
 ### Installation into a new Conda environment 
 
 Using Conda, you can create a isolated environment for ECT like so
 
-    $ conda env create -f environment.yml
+    $ conda create -n ect pytest pytest-cov
     
 Then you activate the new environment ``ect``:
      
@@ -57,7 +59,14 @@ Windows users can omit the ``source`` command and just type
 
     $ activate ect
 
-You can now safely install ECT into the new, isolated ``ect`` Conda environment.    
+Now we add all required packages to the activated ``ect`` Conda environment:
+
+    $ conda install xarray dask numpy scipy matplotlib numba netcdf4
+    $ conda install -c IOOS cartopy
+
+As ``cartopy`` is not available on Anaconda default channels we get it from the channel ``IOOS``. 
+
+You can now safely install ECT into the ``ect`` environment.
     
     $ python setup.py install
     
