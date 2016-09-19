@@ -61,14 +61,14 @@ Windows users can omit the ``source`` command and just type
 
 Now we add all required packages to the activated ``ect`` Conda environment:
 
-    $ conda install xarray dask numpy scipy matplotlib numba netcdf4
-    $ conda install -c IOOS cartopy
+    (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4
+    (ect) $ conda install -c IOOS cartopy
 
 As ``cartopy`` is not available on Anaconda default channels we get it from the channel ``IOOS``. 
 
 You can now safely install ECT into the ``ect`` environment.
     
-    $ python setup.py install
+    (ect) $ python setup.py install
     
 ### Installation into an existing Python 3 environment 
 
