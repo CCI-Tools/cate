@@ -51,8 +51,8 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
     :return: A timeseries dataset
     """
     if len(ds.dims) != 3 or not ('time' in ds.dims):
-        raise ValueError('The timeseries operation is implemented only for\
-                a three dimensional dataset with a time dimension.')
+        raise ValueError('The timeseries operation is implemented only for '
+                         'a three dimensional dataset with a time dimension.')
 
     lat_dim = _get_lat_dim_name(ds)
     lon_dim = _get_lon_dim_name(ds)
@@ -71,13 +71,14 @@ def timeseries_mean(ds: xr.Dataset):
     :return: Time series dataset
     """
     if len(ds.dims) != 3 or not ('time' in ds.dims):
-        raise ValueError('The timeseries operation is implemented only for\
-                a three dimensional dataset with a time dimension.')
+        raise ValueError('The timeseries operation is implemented only for '
+                         'a three dimensional dataset with a time dimension.')
 
     # Expecting a harmonized dataset
     reduce_along = {'dim': ['lat', 'lon']}
     retset = ds.mean(**reduce_along)
     return retset
+
 
 def _get_lon_dim_name(ds: xr.Dataset) -> str:
     return _get_dim_name(ds, ['lon', 'longitude', 'long', 'x'])
