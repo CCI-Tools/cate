@@ -283,6 +283,7 @@ class ConsoleMonitor(Monitor):
         if percentage is not None:
             percentage_str = '%3d%%' % percentage
             if self._progress_bar_size:
+                # TODO (forman, 20160919): use shutil.get_terminal_size() to compute progress_bar_size
                 done_count = int(self._progress_bar_size * percentage / 100 + 0.5)
                 remaining_count = self._progress_bar_size - done_count
                 progress_bar_str = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)
