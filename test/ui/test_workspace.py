@@ -179,5 +179,10 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=2010_precipitation.nc"])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
-        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
+
+        with self.assertRaises(ValueError) as e:
+            ws.set_resource('ts2', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=0", "lon=iih!"], validate_args=True)
+        self.assertEqual(str(e.exception), "input 'lon' for operation 'ect.ops.timeseries.timeseries' "
+                                           "must be of type 'float', but got type 'str'")

@@ -362,11 +362,14 @@ class OpMetaInfo:
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
-    def validate_input_values(self, input_values: Dict):
+    def validate_input_values(self, input_values: Dict, except_types: set = None):
         """
         Validate given *input_values* against the operation's input properties.
 
         :param input_values: The dictionary of input values.
+        :param except_types: A set of types or ``None``. If an input value's type is in this set,
+               it will not be validated against the various input properties,
+               such as ``data_type``, ``nullable``, ``value_set``, ``value_range``.
         :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
         """
         inputs = self.input
@@ -380,6 +383,8 @@ class OpMetaInfo:
         for name, value in input_values.items():
             if name not in inputs:
                 raise ValueError("'%s' is not an input of operation '%s'" % (name, self.qualified_name))
+            if except_types and type(value) in except_types:
+                continue
             input_properties = inputs[name]
             if value is None:
                 default_is_none = input_properties.get('default_value', 1) is None
@@ -395,8 +400,8 @@ class OpMetaInfo:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if data_type and not (isinstance(value, data_type) or is_float_type):
                 raise ValueError(
-                    "input '%s' for operation '%s' must be of type %s, but got %s" % (
-                        name, self.qualified_name, data_type, type(value)))
+                    "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
+                        name, self.qualified_name, data_type.__name__, type(value).__name__))
             value_set = input_properties.get('value_set', None)
             if value_set and (value not in value_set):
                 raise ValueError(

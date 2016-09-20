@@ -165,7 +165,7 @@ class WorkspaceResourceCommandTest(CliTestCase):
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
                           '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=15.5', 'lon=50.1'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=-10.4', 'lon=176'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
@@ -173,7 +173,12 @@ class WorkspaceResourceCommandTest(CliTestCase):
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
                           'start_date=\'2010\', end_date=None, sync=None) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=15.5, lon=50.1, method=None) [OpStep]'])
+                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=-10.4, lon=176, method=None) [OpStep]'])
+
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat="XYZ"', 'lon=50.1'],
+                         expected_status=1,
+                         expected_stderr=["ect res: error: input 'lat' for operation 'ect.ops.timeseries.timeseries' "
+                                          "must be of type 'float', but got type 'str'"])
 
 
 class OperationCommandTest(CliTestCase):

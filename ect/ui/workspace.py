@@ -132,7 +132,7 @@ class Workspace:
         return OrderedDict([('base_dir', self.base_dir),
                             ('workflow', self.workflow.to_json_dict())])
 
-    def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False):
+    def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False, validate_args=False):
         assert res_name
         assert op_name
         assert op_args
@@ -163,10 +163,10 @@ class Workspace:
         if op_args:
             raise WorkspaceError("positional arguments are not yet supported")
 
-        # if validate_args:
-        #     # validate the op_kwargs using the new operation's meta-info
-        #     namespace_types = set(type(value) for value in namespace.values())
-        #     op_step.op_meta_info.validate_input_values(op_kwargs, type_exceptions=namespace_types)
+        if validate_args:
+            # validate the op_kwargs using the new operation's meta-info
+            namespace_types = set(type(value) for value in namespace.values())
+            op_step.op_meta_info.validate_input_values(op_kwargs, except_types=namespace_types)
 
         return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -248,7 +248,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
         workspace = self.get_workspace(base_dir)
-        workspace.set_resource(res_name, op_name, op_args, can_exist=True)
+        workspace.set_resource(res_name, op_name, op_args, can_exist=True, validate_args=True)
         workspace.store()
 
 
