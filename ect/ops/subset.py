@@ -38,7 +38,7 @@ from ect.core.op import op_input, op_return, op
 @op_input('lat_min', description='Minimum latitude value to select')
 @op_input('lat_max', description='Maximum latitude value to select')
 @op_input('lon_min', description='Minimum longitude value to select')
-@op_input('lon_max', description='Maximuum longitude value to select')
+@op_input('lon_max', description='Maximum longitude value to select')
 @op_return(description='The subset dataset')
 def subset_spatial(ds: xr.Dataset,
                    lat_min: float,
