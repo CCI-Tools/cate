@@ -103,13 +103,13 @@ class CliTest(CliTestCase):
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
-class CliWorkspaceCommandTest(CliTestCase):
+class WorkspaceCommandTest(CliTestCase):
     def assert_workspace_base_dir(self, base_dir):
         self.assertTrue(os.path.isdir(base_dir))
         self.assertTrue(os.path.isdir(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)))
         self.assertTrue(os.path.isfile(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME, 'workflow.json')))
 
-    def test_command_ws_init_with_arg(self):
+    def test_ws_init_arg(self):
         base_dir = '_bibo_workspace'
         self.remove_tree(base_dir, ignore_errors=False)
         self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
@@ -117,7 +117,7 @@ class CliWorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
         self.remove_tree(base_dir)
 
-    def test_command_ws_init_no_arg(self):
+    def test_ws_init(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
@@ -125,14 +125,14 @@ class CliWorkspaceCommandTest(CliTestCase):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
 
-class CliWorkspaceResourceCommandTest(CliTestCase):
+class WorkspaceResourceCommandTest(CliTestCase):
     def setUp(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
 
     def tearDown(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
-    def test_command_res_read_op_write(self):
+    def test_res_read_set_write(self):
         input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
         output_file = '_timeseries_.nc'
 
@@ -148,7 +148,7 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
 
         self.remove_file(output_file)
 
-    def test_command_res_load_read_op(self):
+    def test_res_open_read_set_set(self):
         self.assert_main(['ws', 'init'],
                          expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'open', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
@@ -165,9 +165,19 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
                           '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=15.5', 'lon=50.1'],
+                         expected_stdout=['Resource "ts" set.'])
+        self.assert_main(['ws', 'status'],
+                         expected_stdout=
+                         ['Workspace resources:',
+                          '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
+                          'start_date=\'2010\', end_date=None, sync=None) [OpStep]',
+                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
+                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=15.5, lon=50.1, method=None) [OpStep]'])
 
-class CliOperationCommandTest(CliTestCase):
-    def test_command_op_info(self):
+
+class OperationCommandTest(CliTestCase):
+    def test_op_info(self):
         self.assert_main(['op', 'info', 'ect.ops.timeseries.timeseries'],
                          expected_stdout=['Extract time-series'])
         self.assert_main(['op', 'info', 'foobarbaz'],
@@ -179,15 +189,15 @@ class CliOperationCommandTest(CliTestCase):
                          expected_stdout='',
                          expected_stderr=["ect op info: error: the following arguments are required: OP"])
 
-    def test_command_op_list(self):
+    def test_op_list(self):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
         self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['13 operations found'])
 
 
-class CliDataSourceCommandTest(CliTestCase):
-    def test_command_ds_info(self):
+class DataSourceCommandTest(CliTestCase):
+    def test_ds_info(self):
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
                          expected_status=0,
                          expected_stdout=['Data source "esacci.OZONE.mon.L3.',
@@ -201,22 +211,22 @@ class CliDataSourceCommandTest(CliTestCase):
                          expected_status=1,
                          expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
 
-    def test_command_ds_list(self):
+    def test_ds_list(self):
         self.assert_main(['ds', 'list'],
                          expected_stdout=['61 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'CLOUD'],
                          expected_stdout=['14 data sources found'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
-    def test_command_ds_sync(self):
+    def test_ds_sync(self):
         self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
-    def test_command_ds_sync_with_period(self):
+    def test_ds_sync_with_period(self):
         self.assert_main(
             ['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
 
-    def test_command_run_no_args(self):
+    def test_ds(self):
         self.assert_main(['ds'],
                          expected_stdout="usage: ect ds [-h] COMMAND ...\n"
                                          "\n"
@@ -233,19 +243,19 @@ class CliDataSourceCommandTest(CliTestCase):
 
 
 class CliRunCommandTest(CliTestCase):
-    def test_command_run_with_unknown_op(self):
-        self.assert_main(['run', 'pipapo', 'lat=13.2', 'lon=52.9'],
-                         expected_status=1,
-                         expected_stdout='',
-                         expected_stderr='ect run: error: unknown operation "pipapo"\n')
-
-    def test_command_run_noargs(self):
+    def test_run(self):
         self.assert_main(['run'],
                          expected_status=2,
                          expected_stdout='',
                          expected_stderr=["ect run: error: the following arguments are required: OP, ..."])
 
-    def test_command_run_with_op(self):
+    def test_run_foobar(self):
+        self.assert_main(['run', 'foobar', 'lat=13.2', 'lon=52.9'],
+                         expected_status=1,
+                         expected_stdout='',
+                         expected_stderr='ect run: error: unknown operation "foobar"\n')
+
+    def test_run_op(self):
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
         try:
@@ -273,7 +283,7 @@ class CliRunCommandTest(CliTestCase):
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
-    def test_command_run_with_workflow(self):
+    def test_run_workflow(self):
 
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
 
@@ -299,18 +309,18 @@ class CliRunCommandTest(CliTestCase):
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
-    def test_command_run_help(self):
+    def test_run_help(self):
         self.assert_main(['run', '-h'])
         self.assert_main(['run', '--help'])
 
 
-class CliPluginCommandTest(CliTestCase):
-    def test_command_list(self):
+class PluginCommandTest(CliTestCase):
+    def test_pi_list(self):
         self.assert_main(['pi', 'list'], expected_stdout=['plugins found'])
 
 
-class CliLicenseCommandTest(CliTestCase):
-    def test_command_license(self):
+class LicenseCommandTest(CliTestCase):
+    def test_lic(self):
         self.assert_main(['lic'], expected_stdout=['MIT License'])
 
 

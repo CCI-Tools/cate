@@ -49,6 +49,27 @@ class WorkflowTest(TestCase):
         workflow.output.q.source = step3.output.w
         return step1, step2, step3, workflow
 
+    def test_add_step(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        self.assertEqual(workflow.steps, [step1, step2, step3])
+        old_step = workflow.add_step(step2, can_exist=True)
+        self.assertIs(old_step, step2)
+        self.assertEqual(workflow.steps, [step1, step2, step3])
+        with self.assertRaises(ValueError) as e:
+            workflow.add_step(step2, can_exist=False)
+
+    def test_remove_step(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        self.assertEqual(workflow.steps, [step1, step2, step3])
+        old_step = workflow.remove_step(step3, must_exist=False)
+        self.assertIs(old_step, step3)
+        self.assertEqual(workflow.steps, [step1, step2])
+        old_step = workflow.remove_step(step3, must_exist=False)
+        self.assertIs(old_step, None)
+        self.assertEqual(workflow.steps, [step1, step2])
+        with self.assertRaises(ValueError) as e:
+            workflow.remove_step(step3, must_exist=True)
+
     def test_init(self):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
 

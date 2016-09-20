@@ -325,23 +325,35 @@ class Workflow(Node):
                 return other_node
         return None
 
-    def add_steps(self, *steps: Sequence['Step']):
+    def add_steps(self, *steps: Sequence['Step'], can_exist=False) -> None:
         for step in steps:
-            self._steps[step.id] = step
-            step._parent_node = self
+            self.add_step(step, can_exist=can_exist)
 
-    def remove_step(self, step: 'Step'):
-        if step.id in self._steps:
-            self._steps.remove(step.id)
-            step._parent_node = None
+    def add_step(self, step: 'Step', can_exist=False) -> 'Step':
+        if not can_exist and step.id in self._steps:
+            raise ValueError("step '%s' already exists" % step.id)
+        old_step = self._steps.get(step.id, None)
+        self._steps[step.id] = step
+        step._parent_node = self
+        return old_step
 
-    def resolve_source_refs(self):
+    def remove_step(self, step: Union[str, 'Step'], must_exist=False) -> 'Step':
+        step_id = step if isinstance(step, str) else step.id
+        if step_id not in self._steps:
+            if must_exist:
+                raise ValueError("step '%s' not found" % step_id)
+            return None
+        old_step = self._steps.pop(step_id)
+        step._parent_node = None
+        return old_step
+
+    def resolve_source_refs(self) -> None:
         """Resolve unresolved source references in inputs and outputs."""
         super(Workflow, self).resolve_source_refs()
         for node in self._steps.values():
             node.resolve_source_refs()
 
-    def invoke(self, monitor=Monitor.NULL):
+    def invoke(self, monitor=Monitor.NULL) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
         The node invocation order is determined by the input requirements of individual nodes.
@@ -375,7 +387,7 @@ class Workflow(Node):
             json_dict = json.load(file_path_or_fp)
         return Workflow.from_json_dict(json_dict, registry=registry)
 
-    def store(self, file_path_or_fp: Union[str, IOBase]):
+    def store(self, file_path_or_fp: Union[str, IOBase]) -> None:
         """
         Store a workflow to a file or file pointer. The format is "Workflow JSON".
 
@@ -392,7 +404,7 @@ class Workflow(Node):
             json.dump(json_dict, file_path_or_fp, **dump_kwargs)
 
     @classmethod
-    def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY):
+    def from_json_dict(cls, workflow_json_dict, registry=OP_REGISTRY) -> 'Workflow':
         # Developer note: keep variable naming consistent with Workflow.to_json_dict() method
 
         qualified_name = workflow_json_dict.get('qualified_name', None)
@@ -437,7 +449,7 @@ class Workflow(Node):
         workflow.resolve_source_refs()
         return workflow
 
-    def to_json_dict(self):
+    def to_json_dict(self) -> dict:
         """
         Return a JSON-serializable dictionary representation of this object.
 
@@ -480,10 +492,10 @@ class Workflow(Node):
 
         return workflow_json_dict
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
 
-    def _repr_svg_(self):
+    def _repr_svg_(self) -> str:
         """
         Get a SVG-representation for IPython notebooks.
 
