@@ -4,7 +4,6 @@ import os.path
 import shutil
 import sys
 import unittest
-from datetime import datetime
 from time import sleep
 from typing import Union, List
 
@@ -161,10 +160,10 @@ class CliWorkspaceResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                         '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                         'start_date=2010, end_date=None, sync=None) [OpStep]',
-                         '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                         '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
+                          '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
+                          'start_date=\'2010\', end_date=None, sync=None) [OpStep]',
+                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
+                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 
 
 class CliOperationCommandTest(CliTestCase):
@@ -214,7 +213,8 @@ class CliDataSourceCommandTest(CliTestCase):
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_command_ds_sync_with_period(self):
-        self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
+        self.assert_main(
+            ['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
 
     def test_command_run_no_args(self):
         self.assert_main(['ds'],

@@ -145,6 +145,10 @@ def _new_workspace_manager() -> WorkspaceManager:
     return FSWorkspaceManager()
 
 
+def _to_str_const(s: str) -> str:
+    return "'%s'" % s.replace('\\', '\\\\').replace("'", "\\'")
+
+
 def _parse_open_arg(load_arg: str) -> Tuple[str, str, str]:
     """
     Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
@@ -659,20 +663,20 @@ class WorkspaceResourceCommand(SubCommandCommand):
     def _execute_open(cls, command_args):
         workspace_manager = _new_workspace_manager()
         ds_name = command_args.ds_name
-        op_args = ['ds_name=%s' % ds_name]
+        op_args = ['ds_name=%s' % _to_str_const(ds_name)]
         if command_args.start_date:
-            op_args.append('start_date=%s' % command_args.start_date)
+            op_args.append('start_date=%s' % _to_str_const(command_args.start_date))
         if command_args.end_date:
-            op_args.append('end_date=%s' % command_args.end_date)
+            op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
     def _execute_read(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        op_args = ['file=%s' % command_args.file_path]
+        op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
-            op_args.append('format=%s' % command_args.format_name)
+            op_args.append('format=%s' % _to_str_const(command_args.format_name))
         workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.read_object', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
@@ -685,7 +689,7 @@ class WorkspaceResourceCommand(SubCommandCommand):
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
         workspace = workspace_manager.get_workspace('')
-        monitor = WorkspaceResourceCommand.new_monitor()
+        monitor = cls.new_monitor()
         result = workspace.workflow(monitor=monitor)
         if res_name in result:
             obj = result[res_name]
