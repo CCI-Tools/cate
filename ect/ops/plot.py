@@ -112,16 +112,16 @@ def plot_map(ds: xr.Dataset,
         time = 0
 
     # Sanity check
-    if not lat_min:
+    if lat_min is None:
         lat_min = -90.0
 
-    if not lat_max:
+    if lat_max is None:
         lat_max = 90.0
 
-    if not lon_min:
+    if lon_min is None:
         lon_min = -180.0
 
-    if not lon_max:
+    if lon_max is None:
         lon_max = 180.0
 
     if not _extents_sane(lat_min, lat_max, lon_min, lon_max):
