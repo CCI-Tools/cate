@@ -740,21 +740,19 @@ class OperationCommand(SubCommandCommand):
     def _execute_list(cls, command_args):
         op_registrations = OP_REGISTRY.op_registrations
 
-        def _op_has_tag(op_registration, tag_value):
-            op_meta_info_header = op_registration.op_meta_info.header
-            if 'tags' in op_meta_info_header:
-                import fnmatch
-                tag_value_lower = tag_value.lower()
-                tags_data = op_meta_info_header['tags']
-                if isinstance(tags_data, list):
-                    return any(fnmatch.fnmatch(single_tag.lower(), tag_value_lower) for single_tag in tags_data)
-                elif isinstance(tags_data, str):
-                    return fnmatch.fnmatch(tags_data.lower(), tag_value_lower)
+        def _op_has_tag(op_registration, tag_part):
+            tags = op_registration.op_meta_info.header.get('tags', None)
+            if tags:
+                tag_part = tag_part.lower()
+                if isinstance(tags, list):
+                    return any(tag_part in tag.lower() for tag in tags)
+                elif isinstance(tags, str):
+                    return tag_part in tags.lower()
             return False
 
         op_names = op_registrations.keys()
         if command_args.tag:
-            op_names = sorted([name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag)])
+            op_names = sorted(name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag))
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
@@ -828,7 +826,7 @@ class DataSourceCommand(SubCommandCommand):
         ds_name = command_args.name
 
         _list_items('data source', 'data sources',
-                    sorted([data_source.name for data_source in data_store.query()]), ds_name)
+                    sorted(data_source.name for data_source in data_store.query()), ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):

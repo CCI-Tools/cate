@@ -184,7 +184,7 @@ class CliOperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
-        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['11 operations found'])
+        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['13 operations found'])
 
 
 class CliDataSourceCommandTest(CliTestCase):
