@@ -11,10 +11,10 @@ The Python core of the ESA CCI Toolbox (ECT).
 
 ## Contents
 
-* ``setup.py`` -- main build script to be run with Python 3.5
-* ``ect/`` -- main package and production code
-* ``test/`` -- test package and test code
-* ``doc/`` -- documentation in Sphinx/RST format
+* `setup.py` - main build script to be run with Python 3.5
+* `ect/` - main package and production code
+* `test/` - test package and test code
+* `doc/` - documentation in Sphinx/RST format
 
 ## Installation
 
@@ -27,16 +27,16 @@ Check out latest ECT code
 
 ECT can be run from sources directly, once the following module requirements are resolved:
 
-* ``xarray``
-* ``dask``
-* ``netcdf4``
-* ``numpy``
-* ``scipy``
-* ``matplotlib``
-* ``numba``
-* ``cartopy``
+* `xarray`
+* `dask`
+* `netcdf4`
+* `numpy`
+* `scipy`
+* `matplotlib`
+* `numba`
+* `cartopy`
 
-The most up-to-date list of module requirements is found in the project's ``setup.py`` file. Do not install now, please read further first.
+The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
 
 It is recommended to install ECT into an isolated Python 3 environment, because this approach avoids clashes 
 with existing versions of ECT's 3rd-party module requirements. We recommend using Conda 
@@ -51,22 +51,24 @@ Using Conda, you can create a isolated environment for ECT like so
 
     $ conda create -n ect pytest pytest-cov
     
-Then you activate the new environment ``ect``:
+Then you activate the new environment `ect`:
      
     $ source activate ect
     
-Windows users can omit the ``source`` command and just type 
+Windows users can omit the `source` command and just type 
 
     $ activate ect
 
-Now we add all required packages to the activated ``ect`` Conda environment:
+Now we add all required packages to the activated `ect` Conda environment:
 
     (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4
-    (ect) $ conda install -c IOOS cartopy
+    (ect) $ conda install -c conda-forge cartopy
+    (ect) $ conda install -c conda-forge basemap
 
-As ``cartopy`` is not available on Anaconda default channels we get it from the channel ``IOOS``. 
+Some packages are not available on Anaconda default channels and we have to find them on
+another channel (option `-c CHANNEL`). Above we use channel `conda-forge`. 
 
-You can now safely install ECT into the ``ect`` environment.
+You can now safely install ECT into the `ect` environment.
     
     (ect) $ python setup.py install
     
@@ -81,9 +83,9 @@ To install ECT for development and for the current user, use
     $ python3 setup.py develop --user
 
 Unfortunately, the installation fails on many platforms. In most cases the failure will be caused by the 
-``h5py`` module dependency, which expects pre-installed HDF-5 C-libraries to be present on your computer. 
+`h5py` module dependency, which expects pre-installed HDF-5 C-libraries to be present on your computer. 
 
-On Windows, you may get around this by pre-installing the ECT dependencies (which you'll find in ``setup.py``) 
+On Windows, you may get around this by pre-installing the ECT dependencies (which you'll find in `setup.py`) 
 on your own, for example by using Christoph Gohlke's 
 [Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
 
@@ -101,7 +103,7 @@ To use them interactively, you'll need to install Jupyter and run its Notebook a
     $ conda install jupyter
     $ jupyter notebook
 
-Open the ``notebooks`` folder and select a use case.
+Open the `notebooks` folder and select a use case.
 
 
 ## Development
@@ -112,14 +114,14 @@ Contributors are asked to read and adhere to our [Developer Guide](https://githu
 
 ### Unit-testing
 
-For unit testing we use ``pytest`` and its coverage plugin ``pytest-cov``.
+For unit testing we use `pytest` and its coverage plugin `pytest-cov`.
 
 To run the unit-tests with coverage, type
 
     $ export NUMBA_DISABLE_JIT=1
     $ py.test --cov=ect test
     
-We need to set environment variable ``NUMBA_DISABLE_JIT`` to disable JIT compilation by ``numba``, so that 
+We need to set environment variable `NUMBA_DISABLE_JIT` to disable JIT compilation by `numba`, so that 
 coverage reaches the actual Python code. We use Numba's JIT compilation to speed up numeric Python 
 number crunching code.
 
