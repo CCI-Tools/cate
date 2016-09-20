@@ -582,7 +582,7 @@ class WorkspaceCommand(SubCommandCommand):
             print('Workspace has no resources.')
 
 
-class WorkspaceResourceCommand(SubCommandCommand):
+class ResourceCommand(SubCommandCommand):
     """
     The ``ws`` command implements various operations w.r.t. *workspaces*.
     """
@@ -630,7 +630,7 @@ class WorkspaceResourceCommand(SubCommandCommand):
         write_parser = subparsers.add_parser('write',
                                              help='Write a resource to a file.')
         write_parser.add_argument('res_name', metavar='NAME',
-                                  help='Name of the new target resource.')
+                                  help='Name of an existing resource.')
         write_parser.add_argument('file_path', metavar='FILE',
                                   help='File path.')
         write_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
@@ -958,7 +958,7 @@ class DocsCommand(Command):
 COMMAND_REGISTRY = [
     RunCommand,
     WorkspaceCommand,
-    WorkspaceResourceCommand,
+    ResourceCommand,
     DataSourceCommand,
     OperationCommand,
     PluginCommand,

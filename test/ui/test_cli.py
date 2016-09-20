@@ -78,6 +78,9 @@ class CliTest(CliTestCase):
     def test_option_version(self):
         self.assert_main(['--version'])
 
+    def test_option_traceback(self):
+        self.assert_main(['--traceback'])
+
     def test_option_help(self):
         self.assert_main(['-h'])
         self.assert_main(['--help'])
@@ -125,7 +128,7 @@ class WorkspaceCommandTest(CliTestCase):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
 
-class WorkspaceResourceCommandTest(CliTestCase):
+class ResourceCommandTest(CliTestCase):
     def setUp(self):
         self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
 
@@ -247,7 +250,7 @@ class DataSourceCommandTest(CliTestCase):
                                          "  -h, --help  show this help message and exit\n")
 
 
-class CliRunCommandTest(CliTestCase):
+class RunCommandTest(CliTestCase):
     def test_run(self):
         self.assert_main(['run'],
                          expected_status=2,
