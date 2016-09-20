@@ -840,19 +840,23 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no default data store found')
 
         ds_name = command_args.ds_name
-        data_sources = data_store.query(name=ds_name)
+        data_sources = [data_source for data_source in data_store.query(name=ds_name) if data_source.name == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
-        for data_source in data_sources:
+        data_source = data_sources[0]
+        title = 'Data source %s' % data_source.name
+        print()
+        print(title)
+        print('=' * len(title))
+        print()
+        print(data_source.info_string)
+        if command_args.var:
             print()
-            print(data_source.info_string)
-            if command_args.var:
-                print()
-                print('Variables')
-                print('---------')
-                print()
-                print(data_source.variables_info_string)
+            print('Variables')
+            print('---------')
+            print()
+            print(data_source.variables_info_string)
 
     @classmethod
     def _execute_sync(cls, command_args):

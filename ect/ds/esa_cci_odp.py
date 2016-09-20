@@ -347,10 +347,7 @@ class EsaCciOdpDataSource(DataSource):
         for name in info_field_names:
             max_len = max(max_len, len(name))
 
-        title = 'Data source %s' % self.name
-        info_lines = [title,
-                      '=' * len(title),
-                      '']
+        info_lines = []
         for name in info_field_names:
             value = self._json_dict[name]
             # Many values in the index JSON are one-element lists: not very helpful for human readers

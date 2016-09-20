@@ -63,8 +63,6 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_info_string(self):
         # print(self.data_source.info_string)
-        self.assertIn('esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2',
-                      self.data_source.info_string)
         self.assertIn('product_string:         MERGED\n',
                       self.data_source.info_string)
 
