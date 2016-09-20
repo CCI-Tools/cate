@@ -161,7 +161,7 @@ class WorkspaceResourceCommandTest(CliTestCase):
                          expected_stdout=
                          ['Workspace resources:',
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                          'start_date=\'2010\', end_date=None, sync=None) [OpStep]',
+                          'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
                           '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
 
@@ -171,7 +171,7 @@ class WorkspaceResourceCommandTest(CliTestCase):
                          expected_stdout=
                          ['Workspace resources:',
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                          'start_date=\'2010\', end_date=None, sync=None) [OpStep]',
+                          'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
                           '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=-10.4, lon=176, method=None) [OpStep]'])
 
@@ -198,7 +198,7 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
-        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['13 operations found'])
+        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['14 operations found'])
 
 
 class DataSourceCommandTest(CliTestCase):
