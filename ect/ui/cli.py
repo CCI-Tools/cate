@@ -668,6 +668,7 @@ class WorkspaceResourceCommand(SubCommandCommand):
             op_args.append('start_date=%s' % _to_str_const(command_args.start_date))
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
+        op_args.append('sync=True')
         workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
