@@ -32,16 +32,16 @@ Components
 
 import numpy as np
 import xarray as xr
+from ect.core.op import op_input, op_return, op
 from mpl_toolkits import basemap
 
-from ect.core.op import op_input, op_return, op
 
-@op(tags=['geom', 'coregistration'])
+@op(tags=['geometric', 'coregistration'])
 @op_input('ds_slave', description='xr.Dataset that will be resampled on the masters grid')
 @op_input('ds_master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
 @op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
 @op_return(description='The resampled slave dataset')
-def coregister(ds_master:xr.Dataset, ds_slave:xr.Dataset, method:str):
+def coregister(ds_master: xr.Dataset, ds_slave: xr.Dataset, method: str = 'nearest') -> xr.Dataset:
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master.
@@ -51,7 +51,7 @@ def coregister(ds_master:xr.Dataset, ds_slave:xr.Dataset, method:str):
     :param method: Interpolation method to use. 'nearest','bilinear','cubic' 
     :return: The slave dataset resampled on the master's grid
     """
-    methods = {'nearest':0, 'bilinear':1, 'cubic':3}
+    methods = {'nearest': 0, 'bilinear': 1, 'cubic': 3}
     return (_resample_dataset(ds_master, ds_slave, methods[method]))
 
 
@@ -117,6 +117,6 @@ def _resample_dataset(ds_master, ds_slave, order=1):
     lon = ds_master['lon']
     lat = ds_master['lat']
 
-    kwargs = {'lon':lon, 'lat':lat, 'order':order}
+    kwargs = {'lon': lon, 'lat': lat, 'order': order}
     retset = ds_slave.apply(_resample_array, **kwargs)
     return retset
