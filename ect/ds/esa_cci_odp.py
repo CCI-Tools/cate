@@ -347,7 +347,7 @@ class EsaCciOdpDataSource(DataSource):
         for name in info_field_names:
             max_len = max(max_len, len(name))
 
-        title = 'Data source "%s"' % self.name
+        title = 'Data source %s' % self.name
         info_lines = [title,
                       '=' * len(title),
                       '']

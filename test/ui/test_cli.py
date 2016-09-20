@@ -205,11 +205,11 @@ class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
                          expected_status=0,
-                         expected_stdout=['Data source "esacci.OZONE.mon.L3.',
+                         expected_stdout=['Data source esacci.OZONE.mon.L3.',
                                           'cci_project:            OZONE'])
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--var'],
                          expected_status=0,
-                         expected_stdout=['Data source "esacci.OZONE.mon.L3.',
+                         expected_stdout=['Data source esacci.OZONE.mon.L3.',
                                           'cci_project:            OZONE',
                                           'air_pressure (hPa):'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
