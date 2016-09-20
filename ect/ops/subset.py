@@ -44,7 +44,7 @@ def subset_spatial(ds: xr.Dataset,
                    lat_min: float,
                    lat_max: float,
                    lon_min: float,
-                   lon_max: float):
+                   lon_max: float) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -66,7 +66,7 @@ def subset_spatial(ds: xr.Dataset,
 @op_input('time_min', description='Minimum time to select')
 @op_input('time_max', description='Maximum time to select')
 @op_return(description='The subset dataset')
-def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str):
+def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
     """
     Do a temporal subset of the dataset
 
@@ -85,7 +85,7 @@ def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str):
 @op_input('time_ind_min', description='Minimum time index to select')
 @op_input('time_ind_max', description='Maximum time index to select')
 @op_return(description='The subset dataset')
-def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int):
+def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int) -> xr.Dataset:
     """
     Do a temporal indices based subset
 
