@@ -72,14 +72,14 @@ from ect.core.op import op_input, op
 @op_input('lon_min', description="Minimum longitude extent to plot")
 @op_input('lon_max', description="Maximum longitude extent to plot")
 @op_input('path', description="Full path where to save the plot")
-def plot_map(ds:xr.Dataset, 
-        variable:str=None, 
-        time=None, 
-        lat_min:float=None,
-        lat_max:float=None,
-        lon_min:float=None,
-        lon_max:float=None,
-        path:str=None):
+def plot_map(ds: xr.Dataset,
+             variable: str = None,
+             time=None,
+             lat_min: float = None,
+             lat_max: float = None,
+             lon_min: float = None,
+             lon_max: float = None,
+             path: str = None):
     """
     Plot the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the dataset
@@ -141,7 +141,8 @@ def plot_map(ds:xr.Dataset,
     if path:
         fig.savefig(path)
 
-def _extents_sane(lat_min:float, lat_max:float, lon_min:float, lon_max:float):
+
+def _extents_sane(lat_min: float, lat_max: float, lon_min: float, lon_max: float):
     """ 
     Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
     are sane.
