@@ -490,6 +490,8 @@ class ParseOpArgsTest(TestCase):
     def test_no_namespace(self):
         self.assertEqual(parse_op_args(['']), ([''], OrderedDict()))
         self.assertEqual(parse_op_args(['a=b']), ([], OrderedDict(a='b')))
+        self.assertEqual(parse_op_args(['a="b"']), ([], OrderedDict(a='b')))
+        self.assertEqual(parse_op_args(['a="C:\\\\Users"']), ([], OrderedDict(a='C:\\Users')))
         self.assertEqual(parse_op_args(['a=2']), ([], OrderedDict(a=2)))
         self.assertEqual(parse_op_args(['a="c"']), ([], OrderedDict(a='c')))
         self.assertEqual(parse_op_args(['a=True']), ([], OrderedDict(a=True)))
