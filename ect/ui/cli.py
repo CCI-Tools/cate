@@ -103,7 +103,7 @@ from typing import Tuple, Optional
 
 from ect.core.io import DATA_STORE_REGISTRY, open_dataset
 from ect.core.monitor import ConsoleMonitor, Monitor
-from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object, write_object
+from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
@@ -687,18 +687,22 @@ class ResourceCommand(SubCommandCommand):
         res_name = command_args.res_name
         file_path = command_args.file_path
         format_name = command_args.format_name
+        workspace_manager.write_workspace_resource('', res_name, file_path,
+                                                   format_name=format_name,
+                                                   monitor=cls.new_monitor())
+
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
-        workspace = workspace_manager.get_workspace('')
-        monitor = cls.new_monitor()
-        result = workspace.workflow(monitor=monitor)
-        if res_name in result:
-            obj = result[res_name]
-        else:
-            obj = result
-        print('Writing resource "%s" to %s...' % (res_name, file_path))
-        write_object(obj, file_path, format_name=format_name)
-        print('Resource "%s" written to %s' % (res_name, file_path))
+        # workspace = workspace_manager.get_workspace('')
+        # monitor = cls.new_monitor()
+        # result = workspace.workflow(monitor=monitor)
+        # if res_name in result:
+        #     obj = result[res_name]
+        # else:
+        #     obj = result
+        # print('Writing resource "%s" to %s...' % (res_name, file_path))
+        # write_object(obj, file_path, format_name=format_name)
+        # print('Resource "%s" written to %s' % (res_name, file_path))
 
     @classmethod
     def _execute_set(cls, command_args):

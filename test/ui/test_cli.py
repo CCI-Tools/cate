@@ -146,8 +146,7 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
-                         expected_stdout=["Executing workflow 'workspace_workflow'",
-                                          'Resource "ts" written to %s' % output_file])
+                         expected_stdout=['Writing resource "ts"'])
 
         self.remove_file(output_file)
 
