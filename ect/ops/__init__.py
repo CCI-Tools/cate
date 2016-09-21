@@ -45,10 +45,11 @@ Components
 ==========
 """
 
+from .select import select_variables
+from .coregistration import coregister
 from .correlation import pearson_correlation
-from .filter import filter_dataset
 from .harmonize import harmonize
-from .io import load_dataset, store_dataset
+from .io import open_dataset, save_dataset
 from .plot import plot_map
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
@@ -61,15 +62,15 @@ __all__ = [
     'downsample_2d',
     'upsample_2d',
     'harmonize',
-    'filter_dataset',
-    #    'coregister',
+    'select_variables',
+    'coregister',
     'subset_spatial',
     'subset_temporal',
     'subset_temporal_index',
     'person_correlation',
     'plot_map'
-    'load_dataset',
-    'store_dataset'
+    'open_dataset',
+    'save_dataset'
 ]
 
 

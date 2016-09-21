@@ -105,7 +105,7 @@ class Monitor(metaclass=ABCMeta):
         """
         Call to signal that a task has started.
 
-        Note that *label* and *total_work* are not passed ``__init__``, because they are usually not known at
+        Note that *label* and *total_work* are not passed to ``__init__``, because they are usually not known at
         constructions time. It is the responsibility of the task to derive the appropriate values for these.
 
 
@@ -201,8 +201,6 @@ class ChildMonitor(Monitor):
         self._label = None
 
     def start(self, label: str, total_work: float = None):
-        if not label:
-            raise ValueError('label must be given')
         self._label = label
         self._total_work = total_work
         parent_work = 0.0 if total_work is not None else None
@@ -210,7 +208,7 @@ class ChildMonitor(Monitor):
 
     def progress(self, work: float = None, msg: str = None):
         parent_work = self._partial_work * (work / self._total_work) if work is not None else None
-        parent_msg = '%s: %s' % (self._label, msg) if msg is not None else None
+        parent_msg = '%s: %s' % (self._label, msg) if self._label and msg else None
         self._parent_monitor.progress(work=parent_work, msg=parent_msg)
 
     def done(self):
@@ -285,6 +283,7 @@ class ConsoleMonitor(Monitor):
         if percentage is not None:
             percentage_str = '%3d%%' % percentage
             if self._progress_bar_size:
+                # TODO (forman, 20160919): use shutil.get_terminal_size() to compute progress_bar_size
                 done_count = int(self._progress_bar_size * percentage / 100 + 0.5)
                 remaining_count = self._progress_bar_size - done_count
                 progress_bar_str = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)

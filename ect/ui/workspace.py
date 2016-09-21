@@ -30,7 +30,7 @@ from typing import List
 
 from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
-from ect.core.util import Namespace
+from ect.core.util import Namespace, encode_url_path
 from ect.core.workflow import Workflow, OpStep, NodePort
 
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
@@ -132,7 +132,7 @@ class Workspace:
         return OrderedDict([('base_dir', self.base_dir),
                             ('workflow', self.workflow.to_json_dict())])
 
-    def set_resource(self, res_name: str, op_name: str, op_args: List[str]):
+    def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False, validate_args=False):
         assert res_name
         assert op_name
         assert op_args
@@ -150,7 +150,8 @@ class Workspace:
             output_namespace = step.output
             namespace[step.id] = output_namespace
 
-        if res_name in namespace:
+        does_exist = res_name in namespace
+        if not can_exist and does_exist:
             raise WorkspaceError("resource '%s' already exists" % res_name)
 
         raw_op_args = op_args
@@ -161,6 +162,11 @@ class Workspace:
 
         if op_args:
             raise WorkspaceError("positional arguments are not yet supported")
+
+        if validate_args:
+            # validate the op_kwargs using the new operation's meta-info
+            namespace_types = set(type(value) for value in namespace.values())
+            op_step.op_meta_info.validate_input_values(op_kwargs, except_types=namespace_types)
 
         return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -180,14 +186,22 @@ class Workspace:
             else:
                 input_port.value = input_value
 
-        self._workflow.add_steps(op_step)
+        workflow = self._workflow
+        # noinspection PyUnusedLocal
+        old_step = workflow.add_step(op_step, can_exist=True)
+        if does_exist:
+            # If the step already existed before, we must resolve source references again
+            workflow.resolve_source_refs()
+            # TODO (forman, 20160908): Delete all workspace outputs that have old_step outputs as source
+
         if op_step.op_meta_info.has_named_outputs:
-            # TODO (forman, 20160908): Support named operation outputs. Must create multiple workflow outputs here.
+            # TODO (forman, 20160908): Support op_step's named outputs: create multiple workspace outputs
             raise WorkspaceError("operation '%s' has named outputs which are not (yet) supported" % op_name)
-        self._workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-        output_port = NodePort(self._workflow, res_name)
-        output_port.source = op_step.output[return_output_name]
-        self._workflow.output[res_name] = output_port
+        else:
+            workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
+            output_port = NodePort(workflow, res_name)
+            output_port.source = op_step.output[return_output_name]
+            workflow.output[res_name] = output_port
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -234,21 +248,8 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
         workspace = self.get_workspace(base_dir)
-        workspace.set_resource(res_name, op_name, op_args)
+        workspace.set_resource(res_name, op_name, op_args, can_exist=True, validate_args=True)
         workspace.store()
-
-
-def encode_path(path_pattern: str, path_args: dict = None, query_args: dict = None):
-    path = path_pattern
-    if path_args:
-        quoted_pattern_args = dict(path_args)
-        for name, value in path_args.items():
-            quoted_pattern_args[name] = urllib.parse.quote_plus(str(value)) if value is not None else ''
-        path = path_pattern.format(**quoted_pattern_args)
-    query_string = ''
-    if query_args:
-        query_string = '?' + urllib.parse.urlencode(query_args)
-    return path + query_string
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -257,7 +258,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self.timeout = timeout
 
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
-        return self.base_url + encode_path(path_pattern, path_args=path_args, query_args=query_args)
+        return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
     def _fetch_json(self, url, data=None, error_type=WorkspaceError):
         with urllib.request.urlopen(url, data=data, timeout=self.timeout) as response:

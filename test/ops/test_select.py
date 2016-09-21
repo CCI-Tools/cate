@@ -1,30 +1,30 @@
 from unittest import TestCase
 import xarray as xr
 
-from ect.ops.filter import filter_dataset
+from ect.ops.select import select_variables
 
 
-class TestFilter(TestCase):
-    def test_filter(self):
+class TestSelect(TestCase):
+    def test_select(self):
         dataset = xr.Dataset({'abc': ('x', [1, 2, 3]),
                                'bde': ('x', [4, 5, 6])})
 
-        actual = filter_dataset(dataset)
+        actual = select_variables(dataset)
         self.assertDatasetEqual(dataset, actual)
 
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         expected = expected.drop('abc')
-        actual = filter_dataset(dataset, variable_names=['xyz'])
+        actual = select_variables(dataset, variable_names=['xyz'])
         self.assertDatasetEqual(expected, actual)
 
-        actual = filter_dataset(dataset, variable_names=['abc'])
+        actual = select_variables(dataset, variable_names=['abc'])
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         self.assertDatasetEqual(expected, actual)
 
-        actual = filter_dataset(dataset, variable_names=['.*b.*'], regex=True)
+        actual = select_variables(dataset, variable_names=['.*b.*'], regex=True)
         self.assertDatasetEqual(dataset, actual)
 
-        actual = filter_dataset(dataset, variable_names=['.*c.*'], regex=True)
+        actual = select_variables(dataset, variable_names=['.*c.*'], regex=True)
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         self.assertDatasetEqual(expected, actual)
 

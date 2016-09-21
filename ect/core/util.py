@@ -38,9 +38,12 @@ Components
 ==========
 """
 import sys
+import urllib.parse
 from collections import OrderedDict
 from contextlib import contextmanager
+from datetime import datetime, date, timedelta
 from io import StringIO
+from typing import Union, Tuple
 
 
 class _Undefined:
@@ -352,3 +355,66 @@ def fetch_std_streams():
 
         sys.stdout = old_stdout
         sys.stderr = old_stderr
+
+
+def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
+    """
+    Return an URL path with an optional query string which is composed of a *path_pattern* that may contain
+    placeholders of the form ``{name}`` which will be replaced by URL-encoded versions of the
+    corresponding values in *path_args*, i.e. ``urllib.parse.quote_plus(path_args[name])``.
+    An optional query string is composed of the URL-encoded key-value pairs given in *query_args*, i.e.
+    ``urllib.parse.urlencode(query_args)``.
+
+    :param path_pattern: The path pattern which may include any number of placeholders of the form ``{name}``
+    :param path_args: The values for the placeholders in *path_pattern*
+    :param query_args: The query arguments
+    :return: an URL-encoded path
+    """
+    path = path_pattern
+    if path_args:
+        quoted_pattern_args = dict(path_args)
+        for name, value in path_args.items():
+            quoted_pattern_args[name] = urllib.parse.quote_plus(str(value)) if value is not None else ''
+        path = path_pattern.format(**quoted_pattern_args)
+    query_string = ''
+    if query_args:
+        query_string = '?' + urllib.parse.urlencode(query_args)
+    return path + query_string
+
+
+def to_datetime_range(start_datetime_or_str: Union[datetime, date, str, None],
+                      end_datetime_or_str: Union[datetime, date, str, None],
+                      default=None) -> Tuple[datetime, datetime]:
+    if not start_datetime_or_str and not end_datetime_or_str:
+        return default
+    if not end_datetime_or_str:
+        if not start_datetime_or_str:
+            raise ValueError('start_datetime_or_str argument must be given')
+        end_datetime_or_str = start_datetime_or_str
+    start_datetime = to_datetime(start_datetime_or_str, upper_bound=False)
+    end_datetime = to_datetime(end_datetime_or_str, upper_bound=True)
+    return start_datetime, end_datetime
+
+
+def to_datetime(datetime_or_str: Union[datetime, date, str, None], upper_bound=False, default=None) -> datetime:
+    if datetime_or_str is None or datetime_or_str == '':
+        return default
+    elif isinstance(datetime_or_str, str):
+        format_to_timedelta = [("%Y-%m-%d %H:%M:%S", timedelta()),
+                               ("%Y-%m-%d", timedelta(hours=24, seconds=-1)),
+                               ("%Y-%m", timedelta(weeks=4, seconds=-1)),
+                               ("%Y", timedelta(days=365, seconds=-1)),
+                               ]
+        for f, td in format_to_timedelta:
+            try:
+                dt = datetime.strptime(datetime_or_str, f)
+                return dt + td if upper_bound else dt
+            except ValueError:
+                pass
+        raise ValueError('Invalid date/time value: "%s"' % datetime_or_str)
+    elif isinstance(datetime_or_str, datetime):
+        return datetime_or_str
+    elif isinstance(datetime_or_str, date):
+        return datetime(datetime_or_str.year, datetime_or_str.month, datetime_or_str.day, 12)
+    else:
+        raise TypeError('datetime_or_str argument must be a string or instance of datetime.date')

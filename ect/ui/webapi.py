@@ -31,6 +31,10 @@ from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
+# Explicitly load ECT-internal plugins.
+__import__('ect.ds')
+__import__('ect.ops')
+
 CLI_NAME = 'ect-webapi'
 
 DEFAULT_ADDRESS = '127.0.0.1'

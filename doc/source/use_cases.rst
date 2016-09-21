@@ -1,3 +1,14 @@
+.. _[RD-1]:	http://www.wcrp-climate.org/index.php/about-implementation/119-implementation-gc. 
+.. _[RD-2]:	https://www.ipcc.ch/pdf/assessment-report/ar5/wg1/WG1AR5_SPM_FINAL.pdf
+.. _[RD-3]:	https://www.theguardian.com/environment/2012/mar/28/us-heatwave-likely-global-warming
+.. _[RD-4]:	http://onlinelibrary.wiley.com/doi/10.1029/2001GL013294/abstract
+.. _[RD-5]:	http://www.esrl.noaa.gov/psd/enso/mei/WT1.pdf
+.. _[RD-6]:	http://onlinelibrary.wiley.com/doi/10.1002/j.1477-8696.1998.tb06408.x/abstract
+.. _[RD-7]:	http://www.r-project.org/
+.. _[RD-8]:	https://www.python.org/
+.. _[RD-9]: http://www.wmo.int/pages/prog/sat/documents/ARCH_strategy-climate-architecture-space.pdf
+.. _[RD-10]: http://ceos.org/document_management/Working_Groups/WGClimate/Meetings/WGClimate-6/WGClimate_ECV-Inventory-Questionnaire-Guide_v2-2_Feb2016.pdf 
+
 .. _Intergovernmental Panel on Climate Change: http://www.ipcc.ch/
 .. _CCI Climate Modelling User Group: http://www.esa-cmug-cci.org/
 .. _WCRP Grand Science Challenges: http://www.wcrp-climate.org/grand-challenges
@@ -59,7 +70,7 @@ IPCC Support
     * International climate research community
     * International bodies
 
-:Problem Definition: In its Summary for Policy Makers, the fifth IPCC Assessment Report [RD-2] shows
+:Problem Definition: In its Summary for Policy Makers, the fifth IPCC Assessment Report `[RD-2]`_ shows
     four ECVs of the marine environment as indicators of a changing climate. This figure depicting the “(a)
     extent of Northern Hemisphere March-April (spring) average snow cover; (b) extent of Arctic July-August-September
     (summer) average sea ice; (c) change in global mean upper ocean (0–700 m) heat content aligned to 2006−2010,
@@ -200,8 +211,8 @@ Teleconnection Explorer
 
 :Problem Definition: As part of a project on climatic teleconnection, a student investigates how El Niño-Southern
     Oscillation (ENSO) relates to monsoon rainfall. A result could be a plot showing the sliding correlation between
-    Indian Summer Monsoon Rainfall (ISMR) and Niño3.4 SST anomalies [RD-4]. A more sophisticated version of this
-    task would be to calculate the Multivariate ENSO Index (MEI, [RD-5],[RD-6]). Additionally, also the comparison
+    Indian Summer Monsoon Rainfall (ISMR) and Niño3.4 SST anomalies `[RD-4]`_. A more sophisticated version of this
+    task would be to calculate the Multivariate ENSO Index (MEI, `[RD-5]`_, `[RD-6]`_). Additionally, also the comparison
     of the ENSO index with other CCI datasets (e.g. Cloud, Fire) would be interesting.
 
 :Required Toolbox Features:
@@ -330,7 +341,7 @@ Scientific Investigation of NAO Signature
     * Access to and ingestion of external data (NAO time series)
     * Geometric adjustments
     * Spatial and temporal subsetting
-    * Use of externally developed plug-in to apply R [RD-7]: removal of seasonal cycles, lag-correlation analysis
+    * Use of externally developed plug-in to apply R `[RD-7]`_: removal of seasonal cycles, lag-correlation analysis
       between each ECV and the NAO index
     * Generation of time-series plot for each ECV
     * Export statistics output to local disk
@@ -621,7 +632,7 @@ Investigation of Relationships between Ice Sheet ECV Parameters
 
 .. _uc_22:
 
-Anaylsis of Equatorial Aerosol and Cloud Features using Hovmöller Diagrams
+Analysis of Equatorial Aerosol and Cloud Features using Hovmöller Diagrams
 ==========================================================================
 
 

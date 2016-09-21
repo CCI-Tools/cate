@@ -3,13 +3,13 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import unittest
 import urllib.request
-import time
-from collections import OrderedDict
+
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace, encode_path
+from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
 
 # noinspection PyUnresolvedReferences
@@ -62,7 +62,6 @@ class WorkspaceManagerTestMixin:
         sst_step = workspace2.workflow.find_node('SST')
         self.assertIsNotNone(sst_step)
 
-
         self.del_base_dir(base_dir)
 
 
@@ -73,7 +72,6 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-
     @classmethod
     def _find_free_port(cls):
         import socket
@@ -131,7 +129,7 @@ class WorkspaceTest(unittest.TestCase):
                 "ts": {
                     "data_type": "xarray.core.dataset.Dataset",
                     "source": "ts.return",
-                    "description": "A timeseries dataset."
+                    "description": "A timeseries dataset"
                 }
             },
             "steps": [
@@ -184,21 +182,7 @@ class WorkspaceTest(unittest.TestCase):
         # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
-
-class EncodePathTest(unittest.TestCase):
-    def test_encode_path(self):
-        self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict([('base_path', '/home/norman/workpaces'),
-                                                             ('description', 'Hi there!')])),
-                         '/ws/init?base_path=%2Fhome%2Fnorman%2Fworkpaces&description=Hi+there%21')
-        self.assertEqual(encode_path('/ws/init',
-                                     query_args=OrderedDict([('base_path', 'C:\\Users\\Norman\\workpaces'),
-                                                             ('description', 'Hi there!')])),
-                         '/ws/init?base_path=C%3A%5CUsers%5CNorman%5Cworkpaces&description=Hi+there%21')
-
-        self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=dict(base_path='/home/norman/workpaces')),
-                         '/ws/get/%2Fhome%2Fnorman%2Fworkpaces')
-        self.assertEqual(encode_path('/ws/get/{base_path}',
-                                     path_args=dict(base_path='C:\\Users\\Norman\\workpaces')),
-                         '/ws/get/C%3A%5CUsers%5CNorman%5Cworkpaces')
+        with self.assertRaises(ValueError) as e:
+            ws.set_resource('ts2', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=0", "lon=iih!"], validate_args=True)
+        self.assertEqual(str(e.exception), "input 'lon' for operation 'ect.ops.timeseries.timeseries' "
+                                           "must be of type 'float', but got type 'str'")

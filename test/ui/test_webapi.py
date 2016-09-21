@@ -5,9 +5,8 @@ import shutil
 import unittest
 import urllib.parse
 
+from ect.core.util import encode_url_path
 from ect.ui import webapi
-from ect.ui.workspace import encode_path
-from tornado.httpclient import HTTPRequest
 from tornado.testing import AsyncHTTPTestCase
 
 
@@ -31,8 +30,8 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_1'),
-                                                                      description='Wow!')))
+        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_1'),
+                                                                          description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('base_dir', json_dict)
@@ -47,14 +46,14 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_2'),
-                                                                      description='Wow!')))
+        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_2'),
+                                                                          description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('base_dir', json_dict)
         self.assertIn('workflow', json_dict)
 
-        response = self.fetch(encode_path('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir)))
+        response = self.fetch(encode_url_path('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir)))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('base_dir', json_dict)
@@ -69,8 +68,8 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_3'),
-                                                                      description='Wow!')))
+        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_3'),
+                                                                          description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('base_dir', json_dict)
@@ -81,8 +80,8 @@ class WebAPITest(AsyncHTTPTestCase):
         op_args = ['file=SST.nc']
         data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
-        url = encode_path('/ws/{base_dir}/res/{res_name}/set', path_args=dict(base_dir=os.path.abspath(base_dir),
-                                                                              res_name=res_name))
+        url = encode_url_path('/ws/{base_dir}/res/{res_name}/set', path_args=dict(base_dir=os.path.abspath(base_dir),
+                                                                                  res_name=res_name))
         response = self.fetch(url, method='POST', body=body)
 
         self.assertEqual(response.code, 200)
