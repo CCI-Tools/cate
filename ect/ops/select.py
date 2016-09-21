@@ -30,47 +30,39 @@ Components
 """
 
 import xarray as xr
+import re
 
 from ect.core.op import op, op_input, op_return
 
 
 @op(tags=['select', 'subset'])
-@op_input('ds', description='Input dataset')
-@op_input('variable_names', description='List of regex patterns that identify the variables to keep')
-@op_input('regex', description='If True, variable names are expected to contain regex_ patterns')
-@op_input('copy', decription='If True, the returned dataset will likely contain data copies of the original data')
-@op_return(description='A dataset that contains the selected variables.')
-def select_variables(ds: xr.Dataset, variable_names: tuple = None, regex=False, copy: bool = False) -> xr.Dataset:
-    # TODO (mz, 201607211): parameter 'copy' is not implemented
+@op_input('ds')
+@op_input('variable_names')
+@op_return()
+def select_variables(ds: xr.Dataset, variable_names: str = None) -> xr.Dataset:
     """
-    Filter the dataset, by leaving only desired variables.
-
-    Whether the ``select`` method returns a view or a copy of the underlying data depends on the concrete format and
-    nature of the data.
+    Filter the dataset, by leaving only the desired variables. If the removal of variables
+    renders some dimensions redundant, these will be removed from the resulting dataset
+    as well. Otherwise the dataset meta information is preserved.
 
     .. _regex: https://docs.python.org/3.5/library/re.html
+    .. regexr.com
 
     :param ds: The dataset.
-    :param variable_names: List of regex patterns that identify the variables to keep.
-    :param regex: If ``True``, *variable_names* is expected to contain regex_ patterns.
-    :param copy: If ``True``, the returned dataset will likely contain data copies of the original dataset
-    :return: a new, filtered dataset of type :py:class:`xr.Dataset`
+    :param variable_names: A regex pattern that identifies the variables to keep.
+    For example, to simply select two variables to keep use regex OR operator
+    'variable_name|variable_name2'
+    :return: A filtered dataset with preserved meta information and dropped
+    redundant dimensions.
     """
     if not variable_names:
         return ds
 
     dropped_var_names = list(ds.data_vars.keys())
 
-    if not regex:
-        for var_name in variable_names:
-            if var_name in dropped_var_names:
-                dropped_var_names.remove(var_name)
-    else:
-        import re
-        for var_name_pattern in variable_names:
-            prog = re.compile(var_name_pattern)
-            for dropped_var_name in list(dropped_var_names):
-                if prog.match(dropped_var_name):
-                    dropped_var_names.remove(dropped_var_name)
+    prog = re.compile(variable_names)
+    for dropped_var_name in list(dropped_var_names):
+        if prog.match(dropped_var_name):
+            dropped_var_names.remove(dropped_var_name)
 
     return ds.drop(dropped_var_names)
