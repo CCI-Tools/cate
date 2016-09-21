@@ -8,6 +8,7 @@ import unittest
 import urllib.request
 
 from ect.core.op import OpMetaInfo
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 from ect.core.workflow import Workflow
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
@@ -72,40 +73,15 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-    @classmethod
-    def _find_free_port(cls):
-        import socket
-        s = socket.socket()
-        # Bind to a free port provided by the host.
-        s.bind(('', 0))
-        free_port = s.getsockname()[1]
-        s.close()
-        # Return the port number assigned.
-        return free_port
 
     def setUp(self):
-        self.port = self._find_free_port()
-        self.webapi = subprocess.Popen('"%s" -m ect.ui.webapi -p %d start' % (sys.executable, self.port),
-                                       shell=True)
-
-        webapi_url = 'http://127.0.0.1:%s/' % self.port
-        while True:
-            return_code = self.webapi.poll()
-            if return_code is not None:
-                if return_code:
-                    self.fail("failed to start WebAPI")
-                else:
-                    break
-            try:
-                time.sleep(0.1)
-                urllib.request.urlopen(webapi_url, timeout=2)
-                break
-            except Exception as e:
-                # print(str(e))
-                pass
+        self.port = find_free_port()
+        exit_code = start_service_subprocess(port=self.port, caller='pytest')
+        if exit_code:
+            self.fail("failed to start WebAPI")
 
     def tearDown(self):
-        exit_code = subprocess.call('"%s" -m ect.ui.webapi -p %d stop' % (sys.executable, self.port), shell=True)
+        exit_code = stop_service_subprocess(port=self.port, caller='pytest')
         if exit_code:
             self.webapi.kill()
 

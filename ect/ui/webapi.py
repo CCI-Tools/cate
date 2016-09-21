@@ -21,9 +21,13 @@
 
 import argparse
 import json
+import os.path
+import socket
+import subprocess
 import sys
+import time
 import urllib.request
-from datetime import date
+from datetime import date, datetime
 
 from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
@@ -40,6 +44,8 @@ CLI_NAME = 'ect-webapi'
 DEFAULT_ADDRESS = '127.0.0.1'
 DEFAULT_PORT = 8888
 
+WEBAPI_JSON_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
+
 
 # All JSON responses should have same structure, namely a dictionary as follows:
 #
@@ -48,6 +54,249 @@ DEFAULT_PORT = 8888
 #    "error": optional error-details,
 #    "content": optional content, if status "ok"
 # }
+
+def get_application():
+    application = Application([
+        (url_pattern('/'), VersionHandler),
+        (url_pattern('/ws/init'), WorkspaceInitHandler),
+        (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), ResourceSetHandler),
+        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/write'), ResourceWriteHandler),
+        (url_pattern('/exit'), ExitHandler)
+    ])
+    application.workspace_manager = FSWorkspaceManager()
+    return application
+
+
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(prog=CLI_NAME,
+                                     description='ESA CCI Toolbox WebAPI tool, version %s' % __version__)
+    parser.add_argument('--version', '-V', action='version', version='%s %s' % (CLI_NAME, __version__))
+    parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
+                        help='run WebAPI service on port number PORT')
+    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
+                        help='run WebAPI service using address ADDRESS', default='')
+    parser.add_argument('--caller', '-c', dest='caller', default=CLI_NAME,
+                        help='name of the calling application')
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="if given, service information will be written to (start) or read from (stop) FILE")
+    parser.add_argument('command', choices=['start', 'stop'],
+                        help='start or stop the service')
+    args_obj = parser.parse_args(args)
+
+    kwargs = dict(port=args_obj.port,
+                  address=args_obj.address,
+                  caller=args_obj.caller,
+                  service_info_file=args_obj.file)
+
+    if args_obj.command == 'start':
+        start_service(**kwargs)
+    else:
+        stop_service(**kwargs)
+
+
+def start_service_subprocess(port: int = None,
+                             address: str = None,
+                             caller: str = None,
+                             service_info_file: str = None,
+                             timeout: float = 10.0) -> int:
+    port = port or find_free_port()
+    command = _get_command_base(port, address, caller, service_info_file) + ' start'
+    webapi = subprocess.Popen(command, shell=True)
+    webapi_url = 'http://%s:%s/' % (address or DEFAULT_ADDRESS, port)
+    t0 = time.clock()
+    while True:
+        return_code = webapi.poll()
+        if return_code is not None:
+            # Process terminated, we can return now, as there will be no running service
+            if return_code:
+                return return_code
+            return -9998
+        # noinspection PyBroadException
+        try:
+            urllib.request.urlopen(webapi_url, timeout=2)
+            return 0
+        except Exception as e:
+            # print(str(e))
+            pass
+        time.sleep(0.1)
+        t1 = time.clock()
+        if t1 - t0 > timeout:
+            return -9999
+
+
+def stop_service_subprocess(port: int = None,
+                            address: str = None,
+                            caller: str = None,
+                            service_info_file: str = None,
+                            timeout: float = 10.0) -> int:
+    command = _get_command_base(port, address, caller, service_info_file) + ' stop'
+    return subprocess.call(command, shell=True, timeout=timeout)
+
+
+def _get_command_base(port, address, caller, service_info_file):
+    command = '"%s" -m ect.ui.webapi'
+    if port:
+        command += ' -p %d' % port
+    if address:
+        command += ' -a "%s"' % address
+    if caller:
+        command += ' -c "%s"' % caller
+    if service_info_file:
+        command += ' -f "%s"' % service_info_file
+    return command
+
+
+def start_service(port: int = None, address: str = None, caller: str = None, service_info_file: str = None) -> dict:
+    """
+    Start a WebAPI service.
+
+    :param caller: the name of the calling application (informal)
+    :param port: the port number
+    :param address: the address
+    :param service_info_file: If not ``None``, a service information JSON file will be written to *service_info_file*.
+    :return: service information dictionary
+    """
+    enable_pretty_logging()
+    application = get_application()
+    application.service_info_file = service_info_file
+    port = port or find_free_port()
+    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
+    print('starting ECT WebAPI on %s' % address_and_port)
+    application.listen(port, address=address or '')
+    io_loop = IOLoop()
+    io_loop.make_current()
+    service_info = dict(port=port,
+                        address=address,
+                        caller=caller,
+                        started=datetime.now().isoformat(sep=' '))
+    if service_info_file:
+        _write_service_info(service_info, service_info_file)
+    IOLoop.instance().start()
+    return service_info
+
+
+def stop_service(port=None, address=None, caller: str = None, service_info_file: str = None) -> dict:
+    """
+    Stop a WebAPI service.
+
+    :param port:
+    :param address:
+    :param caller:
+    :param service_info_file:
+    :return: service information dictionary
+    """
+    service_info = {}
+    if service_info_file:
+        service_info = get_service_info()
+        service_info = service_info or {}
+
+    port = port or service_info.get('port', None)
+    address = address or service_info.get('address', None)
+    caller = caller or service_info.get('caller', None)
+
+    if not port:
+        raise ValueError('cannot stop WebAPI service for unknown port number (caller: %s)' % caller)
+
+    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
+    print('stopping ECT WebAPI on %s' % address_and_port)
+    urllib.request.urlopen('http://%s/exit' % address_and_port)
+
+    return dict(port=port, address=address, caller=caller, started=service_info.get('started', None))
+
+
+def find_free_port():
+    s = socket.socket()
+    # Bind to a free port provided by the host.
+    s.bind(('', 0))
+    free_port = s.getsockname()[1]
+    s.close()
+    # Return the port number assigned.
+    return free_port
+
+
+def get_service_info() -> dict:
+    """
+    Get a dictionary with WebAPI service information:::
+
+        {
+            "port": service-port-number (int)
+            "address": service-address (str)
+            "caller": caller-name (str)
+            "started": service-start-time (str)
+        }
+
+    :return: dictionary with WebAPI service information or ``None`` if it does not exist
+    :raise OSError, IOError: if information file exists, but could not be loaded
+    """
+    return read_service_info(WEBAPI_JSON_FILE)
+
+
+def read_service_info(service_info_file: str) -> dict:
+    """
+    Get a dictionary with WebAPI service information:::
+
+        {
+            "port": service-port-number (int)
+            "address": service-address (str)
+            "caller": caller-name (str)
+            "started": service-start-time (str)
+        }
+
+    :return: dictionary with WebAPI service information or ``None`` if it does not exist
+    :raise OSError, IOError: if information file exists, but could not be loaded
+    """
+    if os.path.isfile(service_info_file):
+        with open(service_info_file) as fp:
+            return json.load(fp=fp) or {}
+    return None
+
+
+def _write_service_info(service_info: dict, service_info_file: str) -> None:
+    os.makedirs(os.path.dirname(service_info_file), exist_ok=True)
+    with open(service_info_file, 'w') as fp:
+        json.dump(service_info, fp, indent='  ')
+
+
+def url_pattern(pattern: str):
+    """
+    Convert a string *pattern* where any occurrences of ``{{NAME}}`` are replaced by an equivalent
+    regex expression which will assign matching character groups to NAME. Characters match until
+    one of the RFC 2396 reserved characters is found or the end of the *pattern* is reached.
+
+    RFC 2396 Uniform Resource Identifiers (URI): Generic Syntax lists
+    the following reserved characters::
+
+        reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" | "$" | ","
+
+    :param pattern: URL pattern
+    :return: equivalent regex pattern
+    :raise ValueError: if *pattern* is invalid
+    """
+    name_pattern = '(?P<%s>[^\;\/\?\:\@\&\=\+\$\,]+)'
+    reg_expr = ''
+    pos = 0
+    while True:
+        pos1 = pattern.find('{{', pos)
+        if pos1 >= 0:
+            pos2 = pattern.find('}}', pos1 + 2)
+            if pos2 > pos1:
+                name = pattern[pos1 + 2:pos2]
+                if not name.isidentifier():
+                    raise ValueError('name in {{name}} must be a valid identifier, but got "%s"' % name)
+                reg_expr += pattern[pos:pos1] + (name_pattern % name)
+                pos = pos2 + 2
+            else:
+                raise ValueError('no matching "}}" after "{{" in "%s"' % pattern)
+
+        else:
+            reg_expr += pattern[pos:]
+            break
+    return reg_expr
+
 
 def _status_ok(content: object = None):
     return dict(status='ok', content=content)
@@ -125,96 +374,9 @@ class ExitHandler(RequestHandler):
         IOLoop.instance().stop()
         # IOLoop.instance().add_callback(IOLoop.instance().stop)
 
-
-def url_pattern(pattern: str):
-    """
-    Convert a string *pattern* where any occurrences of ``{{NAME}}`` are replaced by an equivalent
-    regex expression which will assign matching character groups to NAME. Characters match until
-    one of the RFC 2396 reserved characters is found or the end of the *pattern* is reached.
-
-    RFC 2396 Uniform Resource Identifiers (URI): Generic Syntax lists
-    the following reserved characters::
-
-        reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" | "$" | ","
-
-    :param pattern: URL pattern
-    :return: equivalent regex pattern
-    :raise ValueError: if *pattern* is invalid
-    """
-    name_pattern = '(?P<%s>[^\;\/\?\:\@\&\=\+\$\,]+)'
-    reg_expr = ''
-    pos = 0
-    while True:
-        pos1 = pattern.find('{{', pos)
-        if pos1 >= 0:
-            pos2 = pattern.find('}}', pos1 + 2)
-            if pos2 > pos1:
-                name = pattern[pos1 + 2:pos2]
-                if not name.isidentifier():
-                    raise ValueError('name in {{name}} must be a valid identifier, but got "%s"' % name)
-                reg_expr += pattern[pos:pos1] + (name_pattern % name)
-                pos = pos2 + 2
-            else:
-                raise ValueError('no matching "}}" after "{{" in "%s"' % pattern)
-
-        else:
-            reg_expr += pattern[pos:]
-            break
-    return reg_expr
-
-
-def get_application():
-    application = Application([
-        (url_pattern('/'), VersionHandler),
-        (url_pattern('/ws/init'), WorkspaceInitHandler),
-        (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
-        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), ResourceSetHandler),
-        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/write'), ResourceWriteHandler),
-        (url_pattern('/exit'), ExitHandler)
-    ])
-    application.workspace_manager = FSWorkspaceManager()
-    return application
-
-
-def start_service(port=None, address=None):
-    enable_pretty_logging()
-
-    application = get_application()
-    port = port or DEFAULT_PORT
-    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
-    print('starting ECT WebAPI on %s' % address_and_port)
-    application.listen(port, address=address or '')
-    io_loop = IOLoop()
-    io_loop.make_current()
-    IOLoop.instance().start()
-
-
-def stop_service(port=None, address=None):
-    port = port or DEFAULT_PORT
-    address = address or DEFAULT_ADDRESS
-    address_and_port = '%s:%s' % (address, port)
-    print('stopping ECT WebAPI on %s' % address_and_port)
-    urllib.request.urlopen('http://%s/exit' % address_and_port)
-
-
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
-
-    parser = argparse.ArgumentParser(prog=CLI_NAME,
-                                     description='ESA CCI Toolbox Web API, version %s' % __version__)
-    parser.add_argument('command', choices=['start', 'stop'], help='start or stop the service')
-    parser.add_argument('--version', '-V', action='version', version='%s %s' % (CLI_NAME, __version__))
-    parser.add_argument('--port', '-p', dest='port', metavar='PORT',
-                        help='run service on port number PORT', default=DEFAULT_PORT)
-    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
-                        help='run service using address ADDRESS', default='')
-    args_obj = parser.parse_args(args)
-
-    if args_obj.command == 'start':
-        start_service(port=args_obj.port, address=args_obj.address)
-    else:
-        stop_service(port=args_obj.port, address=args_obj.address)
+        service_info_file = self.application.service_info_file
+        if service_info_file and os.path.exists(service_info_file):
+            os.remove(WEBAPI_JSON_FILE)
 
 
 if __name__ == "__main__":

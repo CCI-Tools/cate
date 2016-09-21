@@ -108,7 +108,8 @@ from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager
+from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager
+from ect.ui.webapi import start_service, stop_service, get_service_info
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -142,6 +143,20 @@ READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
 
 def _new_workspace_manager() -> WorkspaceManager:
+    # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
+    # 2. is there a file '.ect/webapi.txt' which would contain the WebAPI's port number
+    # 3. if we can derive a port number:
+    #    3.a. port in use, WebAPI available
+    #    3.b. port in use, not a WebAPI --> find new port number, start WebAPI at new port number
+    #    3.c. port unused --> start WebAPI at port
+    # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
+
+    service_info = get_service_info()
+    if service_info:
+        port = service_info.get('port', None)
+        manager = WebAPIWorkspaceManager(port=port, timeout=5)
+        if manager.is_running(timeout=2):
+            return manager
     return FSWorkspaceManager()
 
 
@@ -213,11 +228,11 @@ def _get_op_data_type_str(data_type: str):
     return data_type.__name__ if isinstance(data_type, type) else repr(data_type)
 
 
-def _get_op_io_info_str(inputs_or_outputs: dict, title_singluar: str, title_plural: str, title_none: str) -> str:
+def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plural: str, title_none: str) -> str:
     op_info_str = ''
     op_info_str += '\n'
     if inputs_or_outputs:
-        op_info_str += '%s:' % (title_singluar if len(inputs_or_outputs) == 1 else title_plural)
+        op_info_str += '%s:' % (title_singular if len(inputs_or_outputs) == 1 else title_plural)
         for name, properties in inputs_or_outputs.items():
             op_info_str += '\n'
             op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', object)))
