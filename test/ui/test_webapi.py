@@ -17,67 +17,35 @@ class WebAPITest(AsyncHTTPTestCase):
     def get_app(self):
         return webapi.get_application()
 
-    def test_homepage(self):
+    def test_base_url(self):
         response = self.fetch('/')
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('name', json_dict)
-        self.assertIn('version', json_dict)
+        self.assertIn('status', json_dict)
+        self.assertIn('content', json_dict)
+        self.assertIn('name', json_dict['content'])
+        self.assertIn('version', json_dict['content'])
 
-    def test_ws_init(self):
-        base_dir = os.path.abspath('TEST_WS_1')
+    def test_workspace_session(self):
+        base_dir = os.path.abspath('TEST_WORKSPACE')
 
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_1'),
-                                                                          description='Wow!')))
+        response = self.fetch(encode_url_path('/ws/init',
+                                              query_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'),
+                                                              description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('base_dir', json_dict)
-        self.assertIn('workflow', json_dict)
+        self.assertIn('status', json_dict)
+        self.assertIn('content', json_dict)
+        self.assertIn('base_dir', json_dict['content'])
+        self.assertIn('workflow', json_dict['content'])
 
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
+        res_name = 'ds'
 
-    def test_ws_get(self):
-        base_dir = os.path.abspath('TEST_WS_2')
-
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
-
-        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_2'),
-                                                                          description='Wow!')))
-        self.assertEqual(response.code, 200)
-        json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('base_dir', json_dict)
-        self.assertIn('workflow', json_dict)
-
-        response = self.fetch(encode_url_path('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir)))
-        self.assertEqual(response.code, 200)
-        json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('base_dir', json_dict)
-        self.assertIn('workflow', json_dict)
-
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
-
-    def test_ws_add_resource(self):
-        base_dir = os.path.abspath('TEST_WS_3')
-
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
-
-        response = self.fetch(encode_url_path('/ws/init', query_args=dict(base_dir=os.path.abspath('TEST_WS_3'),
-                                                                          description='Wow!')))
-        self.assertEqual(response.code, 200)
-        json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('base_dir', json_dict)
-        self.assertIn('workflow', json_dict)
-
-        res_name = 'SST'
-
-        op_args = ['file=SST.nc']
+        file_path = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+        op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
         data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
         url = encode_url_path('/ws/{base_dir}/res/{res_name}/set', path_args=dict(base_dir=os.path.abspath(base_dir),
@@ -86,7 +54,20 @@ class WebAPITest(AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertEqual(json_dict, dict(status='ok'))
+        self.assertEqual(json_dict, dict(status='ok', content=None))
+
+        file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
+        data = dict(file_path=file_path)
+        body = urllib.parse.urlencode(data)
+        url = encode_url_path('/ws/{base_dir}/res/{res_name}/write', path_args=dict(base_dir=os.path.abspath(base_dir),
+                                                                                    res_name=res_name))
+        response = self.fetch(url, method='POST', body=body)
+
+        self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertEqual(json_dict, dict(status='ok', content=None))
+
+        self.assertTrue(os.path.isfile(file_path))
 
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)

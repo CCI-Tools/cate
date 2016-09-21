@@ -41,6 +41,24 @@ DEFAULT_ADDRESS = '127.0.0.1'
 DEFAULT_PORT = 8888
 
 
+# All JSON responses should have same structure, namely a dictionary as follows:
+#
+# {
+#    "status": "ok" | "error",
+#    "error": optional error-details,
+#    "content": optional content, if status "ok"
+# }
+
+def _status_ok(content: object = None):
+    return dict(status='ok', content=content)
+
+
+def _status_error(exception: Exception = None, type_name: str = None, message: str = None):
+    type_name = type_name or (type(exception).__name__ if exception else 'unknown')
+    message = message or (str(exception) if exception else None)
+    return dict(status='error', error=dict(type=type_name, message=message))
+
+
 # noinspection PyAbstractClass
 class WorkspaceInitHandler(RequestHandler):
     def get(self):
@@ -49,9 +67,9 @@ class WorkspaceInitHandler(RequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.init_workspace(base_dir, description=description)
-            self.write(workspace.to_json_dict())
+            self.write(_status_ok(workspace.to_json_dict()))
         except Exception as e:
-            self.write(dict(status='error', error=type(e), message=str(e)))
+            self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
@@ -60,13 +78,13 @@ class WorkspaceGetHandler(RequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.get_workspace(base_dir)
-            self.write(workspace.to_json_dict())
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
-            self.write(dict(status='error', error=type(e), message=str(e)))
+            self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class WorkspaceResourceSetHandler(RequestHandler):
+class ResourceSetHandler(RequestHandler):
     def post(self, base_dir, res_name):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
@@ -74,24 +92,36 @@ class WorkspaceResourceSetHandler(RequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
-            self.write(dict(status='ok'))
+            self.write(_status_ok())
         except Exception as e:
-            self.write(dict(status='error', error=type(e), message=str(e)))
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class ResourceWriteHandler(RequestHandler):
+    def post(self, base_dir, res_name):
+        file_path = self.get_body_argument('file_path')
+        format_name = self.get_body_argument('format_name', default=None)
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
 class VersionHandler(RequestHandler):
     def get(self):
-        response = {'name': CLI_NAME,
-                    'version': __version__,
-                    'timestamp': date.today().isoformat()}
-        self.write(response)
+        self.write(_status_ok(content={'name': CLI_NAME,
+                                       'version': __version__,
+                                       'timestamp': date.today().isoformat()}))
 
 
 # noinspection PyAbstractClass
 class ExitHandler(RequestHandler):
     def get(self):
-        self.write(dict(status='ok', message='Bye!'))
+        self.write(_status_ok(content='Bye!'))
         IOLoop.instance().stop()
         # IOLoop.instance().add_callback(IOLoop.instance().stop)
 
@@ -138,7 +168,8 @@ def get_application():
         (url_pattern('/'), VersionHandler),
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
-        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), WorkspaceResourceSetHandler),
+        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), ResourceSetHandler),
+        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/write'), ResourceWriteHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()

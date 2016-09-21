@@ -28,6 +28,8 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List
 
+from ect.core.monitor import Monitor
+from ect.core.objectio import write_object
 from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace, encode_url_path
@@ -206,15 +208,21 @@ class Workspace:
 
 class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
-    def init_workspace(self, base_dir: str, description: str = None):
+    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
         pass
 
     @abstractmethod
-    def get_workspace(self, base_dir: str):
+    def get_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
+        pass
+
+    @abstractmethod
+    def write_workspace_resource(self, base_dir: str, res_name: str,
+                                 file_path: str, format_name: str = None,
+                                 monitor: Monitor = Monitor.NULL) -> None:
         pass
 
 
@@ -246,10 +254,25 @@ class FSWorkspaceManager(WorkspaceManager):
         self._workspace_cache[base_dir] = workspace
         return workspace
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, can_exist=True, validate_args=True)
         workspace.store()
+
+    def write_workspace_resource(self, base_dir: str, res_name: str,
+                                 file_path: str, format_name: str = None,
+                                 monitor: Monitor = Monitor.NULL) -> None:
+        # TBD: shall we add a new step to the workflow or just execute the workflow,
+        # then write the desired resource?
+        workspace = self.get_workspace(base_dir)
+        with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
+            result = workspace.workflow(monitor=monitor.child(9))
+            if res_name in result:
+                obj = result[res_name]
+            else:
+                obj = result
+            write_object(obj, file_path, format_name=format_name)
+            monitor.progress(work=1, msg='Writing file %s' % file_path)
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -257,29 +280,45 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self.base_url = 'http://%s:%s' % (address, port)
         self.timeout = timeout
 
-    def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None):
+    def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
         return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
     def _fetch_json(self, url, data=None, error_type=WorkspaceError):
         with urllib.request.urlopen(url, data=data, timeout=self.timeout) as response:
             json_text = response.read()
-        json_dict = json.loads(json_text.decode('utf-8'))
-        if 'error' in json_dict:
-            raise error_type(json_dict.get('message', json_dict['error']))
-        return json_dict
+        json_response = json.loads(json_text.decode('utf-8'))
+        status = json_response.get('status', None)
+        if status == 'error':
+            error_details = json_response.get('error')
+            message = error_details.get('message', None) if error_details else None
+            type_name = error_details.get('type', None)if error_details else None
+            raise error_type(message or type_name)
+        return json_response.get('content', None)
 
     def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
         url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
+        # GET url
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
 
     def get_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
+        # GET url
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]):
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         url = self._url('/ws/{base_dir}/res/{res_name}/set',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
         data = urllib.parse.urlencode(dict(op_name=op_name, op_args=json.dumps(op_args)))
+        # POST url
+        self._fetch_json(url, data=data.encode())
+
+    def write_workspace_resource(self, base_dir: str, res_name: str,
+                                 file_path: str, format_name: str = None,
+                                 monitor: Monitor = Monitor.NULL) -> None:
+        url = self._url('/ws/{base_dir}/res/{res_name}/write',
+                        path_args=dict(base_dir=base_dir, res_name=res_name))
+        data = urllib.parse.urlencode(dict(file_path=file_path, format_name=format_name))
+        # POST url
         self._fetch_json(url, data=data.encode())
