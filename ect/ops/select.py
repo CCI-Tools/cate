@@ -41,19 +41,20 @@ from ect.core.op import op, op_input, op_return
 @op_return()
 def select_variables(ds: xr.Dataset, variable_names: str = None) -> xr.Dataset:
     """
-    Filter the dataset, by leaving only the desired variables. If the removal of variables
-    renders some dimensions redundant, these will be removed from the resulting dataset
-    as well. Otherwise the dataset meta information is preserved.
+    Filter the dataset, by leaving only the desired variables. The original dataset
+    information, including original coordinates, is preserved.
+
+    If the selected variable has meta-variables associated with it, these will
+    be preserved in the database as well.
 
     .. _regex: https://docs.python.org/3.5/library/re.html
     .. regexr.com
 
     :param ds: The dataset.
     :param variable_names: A regex pattern that identifies the variables to keep.
-    For example, to simply select two variables to keep use regex OR operator
+    For example, to simply select two variables to keep, use regex OR operator
     'variable_name|variable_name2'
-    :return: A filtered dataset with preserved meta information and dropped
-    redundant dimensions.
+    :return: A filtered dataset
     """
     if not variable_names:
         return ds
