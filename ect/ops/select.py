@@ -53,7 +53,9 @@ def select_variables(ds: xr.Dataset, variable_names: str = None) -> xr.Dataset:
     :param ds: The dataset.
     :param variable_names: A regex pattern that identifies the variables to keep.
     For example, to simply select two variables to keep, use regex OR operator
-    'variable_name|variable_name2'
+    'variable_name|variable_name2'. Selection 'variable_name' will select the given
+    variable, along with any auxiliary variables 'variable_name_xxxx'. To select a single
+    variable explicitly one can use 'variable_name\Z'.
     :return: A filtered dataset
     """
     if not variable_names:
