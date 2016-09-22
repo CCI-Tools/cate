@@ -46,7 +46,7 @@ def open_dataset(ds_name: str,
     :param start_date: Optional start date of the requested dataset.
     :param end_date: Optional end date of the requested dataset.
     :param sync: Whether to synchronize local and remote data files before opening the dataset.
-    :param monitor: a progress monitor, used only if *snyc* is ``True``.
+    :param monitor: a progress monitor, used only if *sync* is ``True``.
     :return: An new dataset instance.
     """
     import ect.core.io

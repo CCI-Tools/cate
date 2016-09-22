@@ -268,11 +268,11 @@ class RunCommandTest(CliTestCase):
         try:
             # Run without --monitor and --write
             self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.txt',
@@ -300,11 +300,11 @@ class RunCommandTest(CliTestCase):
         try:
             # Run without --monitor and --write
             self.assert_main(['run', workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
             self.assert_main(['run', '--monitor', workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Output: [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
+                             expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.json',

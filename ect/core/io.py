@@ -164,7 +164,7 @@ class DataSource(metaclass=ABCMeta):
         Return some textual information about the variables contained in this data source.
         Useful for CLI / REPL applications.
         """
-        return 'Not variables meta-data available.'
+        return 'No variables meta-data available.'
 
     def __str__(self):
         return self.info_string

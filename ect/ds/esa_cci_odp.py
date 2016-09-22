@@ -263,7 +263,16 @@ class EsaCciOdpDataStore(DataStore):
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
-        return ""
+        rows = []
+        row_count = 0
+        for data_source in self._data_sources:
+            row_count += 1
+            # noinspection PyProtectedMember
+            rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
+        return '<p>Contents of FileSetFileStore</p><table>%s</table>' % ('\n'.join(rows))
+
+    def __repr__(self) -> str:
+        return "EsaCciOdpDataStore"
 
     def _init_data_sources(self) -> str:
         if self._data_sources:
@@ -514,7 +523,10 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = file_list
 
     def __str__(self):
-        return self.name
+        return self.info_string
 
     def _repr_html_(self):
-        return self.info_string
+        return self.name
+
+    def __repr__(self):
+        return self.name
