@@ -25,8 +25,9 @@ import os.path
 import socket
 import subprocess
 import sys
+import time
 import urllib.request
-from datetime import date
+from datetime import date, datetime
 
 from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
@@ -57,6 +58,7 @@ def get_application():
         (url_pattern('/'), VersionHandler),
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), ResourceSetHandler),
         (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/write'), ResourceWriteHandler),
         (url_pattern('/exit'), ExitHandler)
@@ -116,8 +118,7 @@ def start_service_subprocess(port: int = None,
         try:
             urllib.request.urlopen(webapi_url, timeout=2)
             return 0
-        except Exception as e:
-            # print(str(e))
+        except Exception:
             pass
         time.sleep(0.1)
         t1 = time.clock()
@@ -295,6 +296,17 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 
 
 # noinspection PyAbstractClass
+class WorkspaceGetHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.get_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
 class WorkspaceInitHandler(RequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
@@ -308,12 +320,12 @@ class WorkspaceInitHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceGetHandler(RequestHandler):
+class WorkspaceDeleteHandler(RequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.get_workspace(base_dir)
-            self.write(_status_ok(content=workspace.to_json_dict()))
+            workspace_manager.delete_workspace(base_dir)
+            self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
 
