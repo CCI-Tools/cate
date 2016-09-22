@@ -44,8 +44,6 @@ CLI_NAME = 'ect-webapi'
 DEFAULT_ADDRESS = '127.0.0.1'
 DEFAULT_PORT = 8888
 
-WEBAPI_JSON_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
-
 
 # All JSON responses should have same structure, namely a dictionary as follows:
 #
@@ -191,7 +189,7 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     """
     service_info = {}
     if service_info_file:
-        service_info = get_service_info()
+        service_info = read_service_info(service_info_file)
         service_info = service_info or {}
 
     port = port or service_info.get('port', None)
@@ -218,23 +216,6 @@ def find_free_port():
     return free_port
 
 
-def get_service_info() -> dict:
-    """
-    Get a dictionary with WebAPI service information:::
-
-        {
-            "port": service-port-number (int)
-            "address": service-address (str)
-            "caller": caller-name (str)
-            "started": service-start-time (str)
-        }
-
-    :return: dictionary with WebAPI service information or ``None`` if it does not exist
-    :raise OSError, IOError: if information file exists, but could not be loaded
-    """
-    return read_service_info(WEBAPI_JSON_FILE)
-
-
 def read_service_info(service_info_file: str) -> dict:
     """
     Get a dictionary with WebAPI service information:::
@@ -249,6 +230,8 @@ def read_service_info(service_info_file: str) -> dict:
     :return: dictionary with WebAPI service information or ``None`` if it does not exist
     :raise OSError, IOError: if information file exists, but could not be loaded
     """
+    if not service_info_file:
+        raise ValueError('service_info_file argument must be given')
     if os.path.isfile(service_info_file):
         with open(service_info_file) as fp:
             return json.load(fp=fp) or {}
@@ -256,6 +239,10 @@ def read_service_info(service_info_file: str) -> dict:
 
 
 def _write_service_info(service_info: dict, service_info_file: str) -> None:
+    if not service_info:
+        raise ValueError('service_info argument must be given')
+    if not service_info_file:
+        raise ValueError('service_info_file argument must be given')
     os.makedirs(os.path.dirname(service_info_file), exist_ok=True)
     with open(service_info_file, 'w') as fp:
         json.dump(service_info, fp, indent='  ')
@@ -376,7 +363,7 @@ class ExitHandler(RequestHandler):
 
         service_info_file = self.application.service_info_file
         if service_info_file and os.path.exists(service_info_file):
-            os.remove(WEBAPI_JSON_FILE)
+            os.remove(service_info_file)
 
 
 if __name__ == "__main__":

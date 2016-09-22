@@ -1,15 +1,11 @@
 import json
 import os
 import shutil
-import subprocess
-import sys
-import time
 import unittest
-import urllib.request
 
 from ect.core.op import OpMetaInfo
-from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 from ect.core.workflow import Workflow
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
 
@@ -73,7 +69,6 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-
     def setUp(self):
         self.port = find_free_port()
         exit_code = start_service_subprocess(port=self.port, caller='pytest')
@@ -83,10 +78,10 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def tearDown(self):
         exit_code = stop_service_subprocess(port=self.port, caller='pytest')
         if exit_code:
-            self.webapi.kill()
+            self.fail("failed to stop WebAPI")
 
     def new_workspace_manager(self):
-        return WebAPIWorkspaceManager(port=self.port, timeout=2)
+        return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
 
 
 class WorkspaceTest(unittest.TestCase):

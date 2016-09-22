@@ -276,14 +276,18 @@ class FSWorkspaceManager(WorkspaceManager):
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
-    def __init__(self, port=8888, address='127.0.0.1', timeout=120):
+    def __init__(self, service_info: dict, timeout=120):
+        address = service_info.get('address', None) or '127.0.0.1'
+        port = service_info.get('port', None)
+        if not port:
+            raise ValueError('missing "port" number in service_info argument')
         self.base_url = 'http://%s:%s' % (address, port)
         self.timeout = timeout
 
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
         return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
-    def _fetch_json(self, url, data=None, error_type=WorkspaceError, timeout: float=None):
+    def _fetch_json(self, url, data=None, error_type=WorkspaceError, timeout: float = None):
         with urllib.request.urlopen(url, data=data, timeout=timeout or self.timeout) as response:
             json_text = response.read()
         json_response = json.loads(json_text.decode('utf-8'))
@@ -291,11 +295,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         if status == 'error':
             error_details = json_response.get('error')
             message = error_details.get('message', None) if error_details else None
-            type_name = error_details.get('type', None)if error_details else None
+            type_name = error_details.get('type', None) if error_details else None
             raise error_type(message or type_name)
         return json_response.get('content', None)
 
-    def is_running(self, timeout: float=None) -> bool:
+    def is_running(self, timeout: float = None) -> bool:
         # noinspection PyBroadException
         try:
             self._fetch_json('/', timeout=timeout)

@@ -96,9 +96,9 @@ Components
 
 import argparse
 import os.path
+import pprint
 import sys
 import traceback
-import pprint
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
@@ -109,8 +109,8 @@ from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
 from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager
-from ect.ui.webapi import start_service, stop_service, get_service_info
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -142,6 +142,8 @@ program. If not, see https://opensource.org/licenses/MIT.
 WRITE_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('w')
 READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
+WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
+
 
 def _new_workspace_manager() -> WorkspaceManager:
     # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
@@ -152,12 +154,13 @@ def _new_workspace_manager() -> WorkspaceManager:
     #    3.c. port unused --> start WebAPI at port
     # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
 
-    service_info = get_service_info()
+    service_info = read_service_info(WEBAPI_INFO_FILE)
     if service_info:
-        port = service_info.get('port', None)
-        manager = WebAPIWorkspaceManager(port=port, timeout=5)
+        manager = WebAPIWorkspaceManager(service_info, timeout=5)
         if manager.is_running(timeout=2):
+            print('Using WebAPIWorkspaceManager')
             return manager
+    print('Using FSWorkspaceManager')
     return FSWorkspaceManager()
 
 
@@ -905,6 +908,56 @@ class DataSourceCommand(SubCommandCommand):
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
 
 
+class WebAPICommand(SubCommandCommand):
+    """
+    The ``webapi`` command implements various operations w.r.t. WebAPI service.
+    """
+
+    @classmethod
+    def name(cls):
+        return 'webapi'
+
+    @classmethod
+    def parser_kwargs(cls):
+        help_line = "Manage ECT's WebAPI service."
+        return dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        start_parser = subparsers.add_parser('start', help='start WebAPI service')
+        start_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
+                                  help="Port number. If omitted, a free port will be randomly chosen.")
+        start_parser.set_defaults(sub_command_function=cls._execute_start)
+
+        stop_parser = subparsers.add_parser('stop', help='stop WebAPI service')
+        stop_parser.set_defaults(sub_command_function=cls._execute_stop)
+
+        status_parser = subparsers.add_parser('status', help='print WebAPI service status')
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
+    @classmethod
+    def _execute_start(cls, command_args):
+        ret_code = start_service_subprocess(port=command_args.port, service_info_file=WEBAPI_INFO_FILE)
+        if ret_code:
+            print('Failed to start WebAPI service.')
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_stop(cls, command_args):
+        ret_code = stop_service_subprocess(service_info_file=WEBAPI_INFO_FILE)
+        if ret_code:
+            print('Failed to stop WebAPI service.')
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_status(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if service_info:
+            pprint.pprint(service_info)
+        else:
+            print('No status information for WebAPI service available.')
+
+
 class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
@@ -983,6 +1036,7 @@ COMMAND_REGISTRY = [
     ResourceCommand,
     DataSourceCommand,
     OperationCommand,
+    WebAPICommand,
     PluginCommand,
     LicenseCommand,
     DocsCommand,
