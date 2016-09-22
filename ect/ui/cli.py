@@ -656,9 +656,25 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
+        # TODO (forman, 20160922): implement "ect res plot"
+        # plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
+        # plot_parser.set_defaults(sub_command_function=cls._execute_plot)
+
+        # TODO (forman, 20160922): implement "ect res print"
+        # print_parser = subparsers.add_parser('print', help='Print a resource value.')
+        # print_parser.set_defaults(sub_command_function=cls._execute_print)
+
+        # TODO (forman, 20160922): implement "ect res rename"
+        # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
+        # rename_parser.add_argument('res_name_old', metavar='OLD_NAME',
+        #                            help='Old resource name.')
+        # rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
+        #                            help='New resource name.')
+        # rename_parser.set_defaults(sub_command_function=cls._execute_rename)
+
         # TODO (forman, 20160916): implement "ect res del"
         # del_parser = subparsers.add_parser('del', help='Delete a resource.')
-        # del_parser.add_argument('name', metavar='DIR',
+        # del_parser.add_argument('res_name', metavar='DIR',
         #                         help='Resource name.')
         # del_parser.set_defaults(sub_command_function=cls._execute_del)
 
