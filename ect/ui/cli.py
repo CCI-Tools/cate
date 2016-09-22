@@ -98,6 +98,7 @@ import argparse
 import os.path
 import sys
 import traceback
+import pprint
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
@@ -517,8 +518,7 @@ class RunCommand(Command):
                     else:
                         raise CommandError('unknown format for --write output "%s"' % out_name)
             else:
-                for output in return_value:
-                    print('Output "%s": %s' % (output.name, output.value))
+                pprint.pprint(return_value)
         else:
             if write_args:
                 _, file, format_name = write_args[0]
@@ -529,7 +529,10 @@ class RunCommand(Command):
                 else:
                     raise CommandError("unknown format for --write option")
             else:
-                print('Output: %s' % return_value)
+                return_type = op.op_meta_info.output['return'].get('data_type', object)
+                is_void = return_type is None or issubclass(return_type, type(None))
+                if not is_void:
+                    pprint.pprint(return_value)
 
 
 class WorkspaceCommand(SubCommandCommand):
