@@ -132,7 +132,7 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
         self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
-        self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a valid workspace: '], expected_status=1)
+        self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a workspace: '], expected_status=1)
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
 

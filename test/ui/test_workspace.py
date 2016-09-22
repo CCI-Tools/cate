@@ -88,14 +88,10 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def setUp(self):
         self.port = find_free_port()
-        exit_code = start_service_subprocess(port=self.port, caller='pytest')
-        if exit_code:
-            self.fail("failed to start WebAPI")
+        start_service_subprocess(port=self.port, caller='pytest')
 
     def tearDown(self):
-        exit_code = stop_service_subprocess(port=self.port, caller='pytest')
-        if exit_code:
-            self.fail("failed to stop WebAPI")
+        stop_service_subprocess(port=self.port, caller='pytest')
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)

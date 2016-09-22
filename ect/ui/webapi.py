@@ -41,8 +41,24 @@ __import__('ect.ops')
 
 CLI_NAME = 'ect-webapi'
 
-DEFAULT_ADDRESS = '127.0.0.1'
-DEFAULT_PORT = 8888
+LOCALHOST = '127.0.0.1'
+
+
+class WebAPIServiceError(Exception):
+    def __init__(self, cause, *args, **kwargs):
+        if isinstance(cause, Exception):
+            super(WebAPIServiceError, self).__init__(str(cause), *args, **kwargs)
+            _, _, traceback = sys.exc_info()
+            self.with_traceback(traceback)
+        elif isinstance(cause, str):
+            super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
+        else:
+            super(WebAPIServiceError, self).__init__(*args, **kwargs)
+        self._cause = cause
+
+    @property
+    def cause(self):
+        return self._cause
 
 
 # All JSON responses should have same structure, namely a dictionary as follows:
@@ -101,41 +117,42 @@ def start_service_subprocess(port: int = None,
                              address: str = None,
                              caller: str = None,
                              service_info_file: str = None,
-                             timeout: float = 10.0) -> int:
+                             timeout: float = 10.0) -> None:
     port = port or find_free_port()
-    command = _get_command_base(port, address, caller, service_info_file) + ' start'
+    command = _join_command('start', port, address, caller, service_info_file)
     webapi = subprocess.Popen(command, shell=True)
-    webapi_url = 'http://%s:%s/' % (address or DEFAULT_ADDRESS, port)
+    webapi_url = 'http://%s:%s/' % (address or LOCALHOST, port)
     t0 = time.clock()
     while True:
-        return_code = webapi.poll()
-        if return_code is not None:
+        exit_code = webapi.poll()
+        if exit_code is not None:
             # Process terminated, we can return now, as there will be no running service
-            if return_code:
-                return return_code
-            return -9998
+            raise WebAPIServiceError('WebAPI service terminated with exit code %d' % exit_code)
         # noinspection PyBroadException
         try:
             urllib.request.urlopen(webapi_url, timeout=2)
-            return 0
+            # Success!
+            return
         except Exception:
             pass
         time.sleep(0.1)
         t1 = time.clock()
         if t1 - t0 > timeout:
-            return -9999
+            raise TimeoutError('WebAPI service timeout, exceeded %d sec' % timeout)
 
 
 def stop_service_subprocess(port: int = None,
                             address: str = None,
                             caller: str = None,
                             service_info_file: str = None,
-                            timeout: float = 10.0) -> int:
-    command = _get_command_base(port, address, caller, service_info_file) + ' stop'
-    return subprocess.call(command, shell=True, timeout=timeout)
+                            timeout: float = 10.0) -> None:
+    command = _join_command('stop', port, address, caller, service_info_file)
+    exit_code = subprocess.call(command, shell=True, timeout=timeout)
+    if exit_code != 0:
+        raise WebAPIServiceError('WebAPI service terminated with exit code %d' % exit_code)
 
 
-def _get_command_base(port, address, caller, service_info_file):
+def _join_command(sub_command, port, address, caller, service_info_file):
     command = '"%s" -m ect.ui.webapi' % sys.executable
     if port:
         command += ' -p %d' % port
@@ -145,7 +162,7 @@ def _get_command_base(port, address, caller, service_info_file):
         command += ' -c "%s"' % caller
     if service_info_file:
         command += ' -f "%s"' % service_info_file
-    return command
+    return command + ' ' + sub_command
 
 
 def start_service(port: int = None, address: str = None, caller: str = None, service_info_file: str = None) -> dict:
@@ -164,7 +181,7 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     application = get_application()
     application.service_info_file = service_info_file
     port = port or find_free_port()
-    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
+    address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('starting ECT WebAPI on %s' % address_and_port)
     application.listen(port, address=address or '')
     io_loop = IOLoop()
@@ -201,7 +218,7 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     if not port:
         raise ValueError('cannot stop WebAPI service for unknown port number (caller: %s)' % caller)
 
-    address_and_port = '%s:%s' % (address or DEFAULT_ADDRESS, port)
+    address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('stopping ECT WebAPI on %s' % address_and_port)
     urllib.request.urlopen('http://%s/exit' % address_and_port)
 

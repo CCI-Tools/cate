@@ -110,7 +110,7 @@ from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
-from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager
+from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -145,22 +145,30 @@ READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
 
 
-def _new_workspace_manager() -> WorkspaceManager:
+def _new_workspace_manager(require_webapi: bool = False) -> WorkspaceManager:
     # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
-    # 2. is there a file '.ect/webapi.txt' which would contain the WebAPI's port number
     # 3. if we can derive a port number:
     #    3.a. port in use, WebAPI available
     #    3.b. port in use, not a WebAPI --> find new port number, start WebAPI at new port number
     #    3.c. port unused --> start WebAPI at port
     # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
 
+    # Read any existing '.ect/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
+    if not service_info and require_webapi:
+        # If there is no '.ect/webapi.json' but we need a WebAPI, start service
+        start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+        # Read new '.ect/webapi.json'
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+
     if service_info:
-        manager = WebAPIWorkspaceManager(service_info, timeout=5)
-        if manager.is_running(timeout=2):
-            # print('Using WebAPIWorkspaceManager')
-            return manager
-    # print('Using FSWorkspaceManager')
+        print('Using WebAPIWorkspaceManager')
+        return WebAPIWorkspaceManager(service_info, timeout=5)
+
+    if require_webapi:
+        raise WorkspaceError('command requires ECT WebAPI service, which could not be found')
+
+    print('Using FSWorkspaceManager')
     return FSWorkspaceManager()
 
 
@@ -749,19 +757,6 @@ class ResourceCommand(SubCommandCommand):
                                                    format_name=format_name,
                                                    monitor=cls.new_monitor())
 
-        # TBD: shall we add a new step to the workflow or just execute the workflow,
-        # then write the desired resource?
-        # workspace = workspace_manager.get_workspace('')
-        # monitor = cls.new_monitor()
-        # result = workspace.workflow(monitor=monitor)
-        # if res_name in result:
-        #     obj = result[res_name]
-        # else:
-        #     obj = result
-        # print('Writing resource "%s" to %s...' % (res_name, file_path))
-        # write_object(obj, file_path, format_name=format_name)
-        # print('Resource "%s" written to %s' % (res_name, file_path))
-
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
@@ -976,16 +971,12 @@ class WebAPICommand(SubCommandCommand):
 
     @classmethod
     def _execute_start(cls, command_args):
-        ret_code = start_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
-        if ret_code:
-            print('Failed to start WebAPI service.')
+        start_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     # noinspection PyUnusedLocal
     @classmethod
     def _execute_stop(cls, command_args):
-        ret_code = stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
-        if ret_code:
-            print('Failed to stop WebAPI service.')
+        stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     # noinspection PyUnusedLocal
     @classmethod
