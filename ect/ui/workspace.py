@@ -239,7 +239,14 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
+    def set_workspace_resource(self, base_dir: str, res_name: str,
+                               op_name: str, op_args: List[str]) -> None:
+        pass
+
+    @abstractmethod
+    def write_workspace_resource(self, base_dir: str, res_name: str,
+                                 file_path: str, format_name: str = None,
+                                 monitor: Monitor = Monitor.NULL) -> None:
         pass
 
 
@@ -265,7 +272,8 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
         base_dir = self.resolve_path(base_dir)
-        if os.path.isdir(Workspace.get_workspace_dir(base_dir)):
+        workspace_dir = Workspace.get_workspace_dir(base_dir)
+        if os.path.isdir(workspace_dir):
             raise WorkspaceError('workspace exists: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         assert base_dir not in self._workspace_cache
@@ -274,11 +282,15 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def delete_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
-        workspace = self.get_workspace(base_dir)
-        workspace.delete()
-        assert base_dir in self._workspace_cache
-        del self._workspace_cache[base_dir]
-
+        workspace_dir = Workspace.get_workspace_dir(base_dir)
+        if not os.path.isdir(workspace_dir):
+            raise WorkspaceError('not a workspace: %s' % base_dir)
+        try:
+            shutil.rmtree(workspace_dir)
+        except (IOError, OSError) as e:
+            raise WorkspaceError(e)
+        if base_dir in self._workspace_cache:
+            del self._workspace_cache[base_dir]
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         workspace = self.get_workspace(base_dir)
@@ -350,17 +362,15 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self._fetch_json(url)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
-        url = self._url('/ws/{base_dir}/res/{res_name}/set',
+        url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
         data = urllib.parse.urlencode(dict(op_name=op_name, op_args=json.dumps(op_args)))
-        # POST url
         self._fetch_json(url, data=data.encode())
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NULL) -> None:
-        url = self._url('/ws/{base_dir}/res/{res_name}/write',
+        url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
         data = urllib.parse.urlencode(dict(file_path=file_path, format_name=format_name))
-        # POST url
         self._fetch_json(url, data=data.encode())

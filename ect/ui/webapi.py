@@ -59,8 +59,8 @@ def get_application():
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
-        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), ResourceSetHandler),
-        (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/write'), ResourceWriteHandler),
+        (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
+        (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()

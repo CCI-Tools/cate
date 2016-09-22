@@ -48,7 +48,7 @@ class WebAPITest(AsyncHTTPTestCase):
         op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
         data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
-        url = encode_url_path('/ws/{base_dir}/res/{res_name}/set', path_args=dict(base_dir=os.path.abspath(base_dir),
+        url = encode_url_path('/ws/res/set/{base_dir}/{res_name}', path_args=dict(base_dir=os.path.abspath(base_dir),
                                                                                   res_name=res_name))
         response = self.fetch(url, method='POST', body=body)
 
@@ -59,7 +59,7 @@ class WebAPITest(AsyncHTTPTestCase):
         file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
         data = dict(file_path=file_path)
         body = urllib.parse.urlencode(data)
-        url = encode_url_path('/ws/{base_dir}/res/{res_name}/write', path_args=dict(base_dir=os.path.abspath(base_dir),
+        url = encode_url_path('/ws/res/write/{base_dir}/{res_name}', path_args=dict(base_dir=os.path.abspath(base_dir),
                                                                                     res_name=res_name))
         response = self.fetch(url, method='POST', body=body)
 
