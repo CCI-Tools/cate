@@ -96,20 +96,21 @@ Components
 
 import argparse
 import os.path
+import pprint
 import sys
 import traceback
-import pprint
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
 from ect.core.io import DATA_STORE_REGISTRY, open_dataset
 from ect.core.monitor import ConsoleMonitor, Monitor
-from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object, write_object
+from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
-from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
+from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -141,8 +142,33 @@ program. If not, see https://opensource.org/licenses/MIT.
 WRITE_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('w')
 READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
+WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
 
-def _new_workspace_manager() -> WorkspaceManager:
+
+def _new_workspace_manager(require_webapi: bool = False) -> WorkspaceManager:
+    # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
+    # 3. if we can derive a port number:
+    #    3.a. port in use, WebAPI available
+    #    3.b. port in use, not a WebAPI --> find new port number, start WebAPI at new port number
+    #    3.c. port unused --> start WebAPI at port
+    # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
+
+    # Read any existing '.ect/webapi.json'
+    service_info = read_service_info(WEBAPI_INFO_FILE)
+    if not service_info and require_webapi:
+        # If there is no '.ect/webapi.json' but we need a WebAPI, start service
+        start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+        # Read new '.ect/webapi.json'
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+
+    if service_info:
+        print('Using WebAPIWorkspaceManager')
+        return WebAPIWorkspaceManager(service_info, timeout=5)
+
+    if require_webapi:
+        raise WorkspaceError('command requires ECT WebAPI service, which could not be found')
+
+    print('Using FSWorkspaceManager')
     return FSWorkspaceManager()
 
 
@@ -214,11 +240,11 @@ def _get_op_data_type_str(data_type: str):
     return data_type.__name__ if isinstance(data_type, type) else repr(data_type)
 
 
-def _get_op_io_info_str(inputs_or_outputs: dict, title_singluar: str, title_plural: str, title_none: str) -> str:
+def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plural: str, title_none: str) -> str:
     op_info_str = ''
     op_info_str += '\n'
     if inputs_or_outputs:
-        op_info_str += '%s:' % (title_singluar if len(inputs_or_outputs) == 1 else title_plural)
+        op_info_str += '%s:' % (title_singular if len(inputs_or_outputs) == 1 else title_plural)
         for name, properties in inputs_or_outputs.items():
             op_info_str += '\n'
             op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', object)))
@@ -559,6 +585,14 @@ class WorkspaceCommand(SubCommandCommand):
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
+        del_parser = subparsers.add_parser('del', help='Delete workspace.')
+        del_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                help='Base directory of the workspace to be deleted. '
+                                     'Default DIR is current working directory.')
+        del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                help='Do not ask for confirmation.')
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
         status_parser = subparsers.add_parser('status', help='Print workspace information.')
         status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
                                    help='Base directory for the new workspace. '
@@ -570,6 +604,19 @@ class WorkspaceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
         print('Workspace initialized.')
+
+    @classmethod
+    def _execute_del(cls, command_args):
+        base_dir = command_args.base_dir
+        if command_args.yes:
+            answer = 'y'
+        else:
+            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            answer = input(prompt)
+        if not answer or answer.lower() == 'y':
+            workspace_manager = _new_workspace_manager()
+            workspace_manager.delete_workspace(base_dir=base_dir)
+            print('Workspace deleted.')
 
     @classmethod
     def _execute_status(cls, command_args):
@@ -656,9 +703,25 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
+        # TODO (forman, 20160922): implement "ect res plot"
+        # plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
+        # plot_parser.set_defaults(sub_command_function=cls._execute_plot)
+
+        # TODO (forman, 20160922): implement "ect res print"
+        # print_parser = subparsers.add_parser('print', help='Print a resource value.')
+        # print_parser.set_defaults(sub_command_function=cls._execute_print)
+
+        # TODO (forman, 20160922): implement "ect res rename"
+        # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
+        # rename_parser.add_argument('res_name_old', metavar='OLD_NAME',
+        #                            help='Old resource name.')
+        # rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
+        #                            help='New resource name.')
+        # rename_parser.set_defaults(sub_command_function=cls._execute_rename)
+
         # TODO (forman, 20160916): implement "ect res del"
         # del_parser = subparsers.add_parser('del', help='Delete a resource.')
-        # del_parser.add_argument('name', metavar='DIR',
+        # del_parser.add_argument('res_name', metavar='DIR',
         #                         help='Resource name.')
         # del_parser.set_defaults(sub_command_function=cls._execute_del)
 
@@ -690,18 +753,9 @@ class ResourceCommand(SubCommandCommand):
         res_name = command_args.res_name
         file_path = command_args.file_path
         format_name = command_args.format_name
-        # TBD: shall we add a new step to the workflow or just execute the workflow,
-        # then write the desired resource?
-        workspace = workspace_manager.get_workspace('')
-        monitor = cls.new_monitor()
-        result = workspace.workflow(monitor=monitor)
-        if res_name in result:
-            obj = result[res_name]
-        else:
-            obj = result
-        print('Writing resource "%s" to %s...' % (res_name, file_path))
-        write_object(obj, file_path, format_name=format_name)
-        print('Resource "%s" written to %s' % (res_name, file_path))
+        workspace_manager.write_workspace_resource('', res_name, file_path,
+                                                   format_name=format_name,
+                                                   monitor=cls.new_monitor())
 
     @classmethod
     def _execute_set(cls, command_args):
@@ -886,6 +940,54 @@ class DataSourceCommand(SubCommandCommand):
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
 
 
+class WebAPICommand(SubCommandCommand):
+    """
+    The ``webapi`` command implements various operations w.r.t. WebAPI service.
+    """
+
+    @classmethod
+    def name(cls):
+        return 'webapi'
+
+    @classmethod
+    def parser_kwargs(cls):
+        help_line = "Manage ECT's WebAPI service."
+        return dict(help=help_line, description=help_line)
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        start_parser = subparsers.add_parser('start', help='start WebAPI service')
+        start_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
+                                  help="Port number. If omitted, a free port number will be selected.")
+        start_parser.set_defaults(sub_command_function=cls._execute_start)
+
+        stop_parser = subparsers.add_parser('stop', help='stop WebAPI service')
+        stop_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
+                                 help="Port number. If omitted, port number will be identified.")
+        stop_parser.set_defaults(sub_command_function=cls._execute_stop)
+
+        status_parser = subparsers.add_parser('status', help='print WebAPI service status')
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
+    @classmethod
+    def _execute_start(cls, command_args):
+        start_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_stop(cls, command_args):
+        stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_status(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if service_info:
+            pprint.pprint(service_info)
+        else:
+            print('No status information for WebAPI service available.')
+
+
 class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
@@ -964,6 +1066,7 @@ COMMAND_REGISTRY = [
     ResourceCommand,
     DataSourceCommand,
     OperationCommand,
+    WebAPICommand,
     PluginCommand,
     LicenseCommand,
     DocsCommand,

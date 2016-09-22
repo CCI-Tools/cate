@@ -127,6 +127,14 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'], expected_stderr=['workspace exists: '], expected_status=1)
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
+    def test_ws_del(self):
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
+        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
+        self.assert_workspace_base_dir('.')
+        self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a workspace: '], expected_status=1)
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+
 
 class ResourceCommandTest(CliTestCase):
     def setUp(self):
@@ -146,8 +154,7 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
-                         expected_stdout=["Executing workflow 'workspace_workflow'",
-                                          'Resource "ts" written to %s' % output_file])
+                         expected_stdout=['Writing resource "ts"'])
 
         self.remove_file(output_file)
 

@@ -451,7 +451,7 @@ class EsaCciOdpDataSource(DataSource):
         return os.path.join(_DATA_ROOT, self._master_id)
 
     def _find_files(self, time_range):
-        requested_start_date, requested_end_date = time_range
+        requested_start_date, requested_end_date = time_range if time_range else (None, None)
         self._init_file_list()
         if requested_start_date or requested_end_date:
             selected_file_list = []

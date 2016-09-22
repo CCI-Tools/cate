@@ -1,36 +1,30 @@
 @startuml
 
-interface WorkspaceManager {
+interface ect.ui.workspace.WorkspaceManager {
     init_workspace()
+    set_workspace_resource()
+    write_workspace_resource()
 }
 
-class DirectWorkspaceManager implements WorkspaceManager {
-    init_workspace()
+class ect.ui.workspace.FSWorkspaceManager implements ect.ui.workspace.WorkspaceManager {
 }
 
-class CachedWorkspaceManager implements WorkspaceManager {
-    init_workspace()
+class ect.ui.workspace.WebAPIWorkspaceManager implements ect.ui.workspace.WorkspaceManager {
 }
 
-class WebServiceWorkspaceManager implements WorkspaceManager {
-    init_workspace()
+interface ect.ui.webapi.WebService {
 }
 
-class WebService {
-    init_workspace()
-}
-
-class Workspace {
+class ect.ui.workspace.Workspace {
 }
 
 
 
-DirectWorkspaceManager ..--> Workspace: <uses>
-CachedWorkspaceManager o--> "1" DirectWorkspaceManager: <delegate to>
-CachedWorkspaceManager o--> "0..N" Workspace: cache
-WebServiceWorkspaceManager o--> "1" WebService
-WebService o--> "1" CachedWorkspaceManager
-Workspace o--> "1" ect.core.workflow.Workflow
+ect.ui.workspace.WebAPIWorkspaceManager ..> ect.ui.webapi.WebService: <communicate>
+ect.ui.workspace.FSWorkspaceManager ..--> ect.ui.workspace.Workspace: <uses>
+ect.ui.workspace.FSWorkspaceManager o--> "0..N" ect.ui.workspace.Workspace: workspace_cache
+ect.ui.webapi.WebService o--> "1" ect.ui.workspace.FSWorkspaceManager
+ect.ui.workspace.Workspace --> "1" ect.core.workflow.Workflow
 
 ect.core.workflow.Workflow o--> "0..N" ect.core.workflow.OpStep
 

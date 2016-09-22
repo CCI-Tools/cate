@@ -1,14 +1,11 @@
 import json
 import os
 import shutil
-import subprocess
-import sys
-import time
 import unittest
-import urllib.request
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
 
 
@@ -25,18 +22,8 @@ class WorkspaceManagerTestMixin:
     def del_base_dir(self, base_dir):
         shutil.rmtree(base_dir)
 
-    def test_init_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT1')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.init_workspace(base_dir=base_dir)
-        self.assertTrue(os.path.exists(base_dir))
-        self.assertIsNotNone(workspace)
-
-        self.del_base_dir(base_dir)
-
     def test_get_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT2')
+        base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.init_workspace(base_dir=base_dir)
@@ -47,8 +34,35 @@ class WorkspaceManagerTestMixin:
 
         self.del_base_dir(base_dir)
 
-    def test_add_workspace_resource(self):
-        base_dir = self.new_base_dir('TESTOMAT3')
+    def test_init_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_delete_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+
+        workspace = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertTrue(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertIsNotNone(workspace)
+
+        workspace_manager.delete_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertFalse(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_set_workspace_resource(self):
+        base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.init_workspace(base_dir=base_dir)
@@ -72,45 +86,15 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
 @unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-    @classmethod
-    def _find_free_port(cls):
-        import socket
-        s = socket.socket()
-        # Bind to a free port provided by the host.
-        s.bind(('', 0))
-        free_port = s.getsockname()[1]
-        s.close()
-        # Return the port number assigned.
-        return free_port
-
     def setUp(self):
-        self.port = self._find_free_port()
-        self.webapi = subprocess.Popen('"%s" -m ect.ui.webapi -p %d start' % (sys.executable, self.port),
-                                       shell=True)
-
-        webapi_url = 'http://127.0.0.1:%s/' % self.port
-        while True:
-            return_code = self.webapi.poll()
-            if return_code is not None:
-                if return_code:
-                    self.fail("failed to start WebAPI")
-                else:
-                    break
-            try:
-                time.sleep(0.1)
-                urllib.request.urlopen(webapi_url, timeout=2)
-                break
-            except Exception as e:
-                # print(str(e))
-                pass
+        self.port = find_free_port()
+        start_service_subprocess(port=self.port, caller='pytest')
 
     def tearDown(self):
-        exit_code = subprocess.call('"%s" -m ect.ui.webapi -p %d stop' % (sys.executable, self.port), shell=True)
-        if exit_code:
-            self.webapi.kill()
+        stop_service_subprocess(port=self.port, caller='pytest')
 
     def new_workspace_manager(self):
-        return WebAPIWorkspaceManager(port=self.port, timeout=2)
+        return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
 
 
 class WorkspaceTest(unittest.TestCase):
