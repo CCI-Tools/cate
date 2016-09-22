@@ -577,6 +577,14 @@ class WorkspaceCommand(SubCommandCommand):
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
+        del_parser = subparsers.add_parser('del', help='Delete workspace.')
+        del_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                help='Base directory of the workspace to be deleted. '
+                                     'Default DIR is current working directory.')
+        del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                help='Do not ask for confirmation.')
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
         status_parser = subparsers.add_parser('status', help='Print workspace information.')
         status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
                                    help='Base directory for the new workspace. '
@@ -588,6 +596,20 @@ class WorkspaceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
         print('Workspace initialized.')
+
+    @classmethod
+    def _execute_del(cls, command_args):
+        base_dir = command_args.base_dir
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.get_workspace(base_dir=base_dir)
+        if command_args.yes:
+            answer = 'y'
+        else:
+            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            answer = input(prompt)
+        if not answer or answer.lower() == 'y':
+            workspace_manager.delete_workspace(base_dir=base_dir)
+            print('Workspace deleted.')
 
     @classmethod
     def _execute_status(cls, command_args):
@@ -674,9 +696,25 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
+        # TODO (forman, 20160922): implement "ect res plot"
+        # plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
+        # plot_parser.set_defaults(sub_command_function=cls._execute_plot)
+
+        # TODO (forman, 20160922): implement "ect res print"
+        # print_parser = subparsers.add_parser('print', help='Print a resource value.')
+        # print_parser.set_defaults(sub_command_function=cls._execute_print)
+
+        # TODO (forman, 20160922): implement "ect res rename"
+        # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
+        # rename_parser.add_argument('res_name_old', metavar='OLD_NAME',
+        #                            help='Old resource name.')
+        # rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
+        #                            help='New resource name.')
+        # rename_parser.set_defaults(sub_command_function=cls._execute_rename)
+
         # TODO (forman, 20160916): implement "ect res del"
         # del_parser = subparsers.add_parser('del', help='Delete a resource.')
-        # del_parser.add_argument('name', metavar='DIR',
+        # del_parser.add_argument('res_name', metavar='DIR',
         #                         help='Resource name.')
         # del_parser.set_defaults(sub_command_function=cls._execute_del)
 

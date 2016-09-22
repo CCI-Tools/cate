@@ -22,18 +22,8 @@ class WorkspaceManagerTestMixin:
     def del_base_dir(self, base_dir):
         shutil.rmtree(base_dir)
 
-    def test_init_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT1')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.init_workspace(base_dir=base_dir)
-        self.assertTrue(os.path.exists(base_dir))
-        self.assertIsNotNone(workspace)
-
-        self.del_base_dir(base_dir)
-
     def test_get_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT2')
+        base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.init_workspace(base_dir=base_dir)
@@ -44,8 +34,35 @@ class WorkspaceManagerTestMixin:
 
         self.del_base_dir(base_dir)
 
-    def test_add_workspace_resource(self):
-        base_dir = self.new_base_dir('TESTOMAT3')
+    def test_init_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_delete_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+
+        workspace = workspace_manager.init_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertTrue(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertIsNotNone(workspace)
+
+        workspace_manager.delete_workspace(base_dir=base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertFalse(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_set_workspace_resource(self):
+        base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.init_workspace(base_dir=base_dir)

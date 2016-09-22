@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # The MIT License (MIT)
 # Copyright (c) 2016 by the ECT Development Team and contributors
 #

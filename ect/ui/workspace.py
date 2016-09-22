@@ -21,6 +21,7 @@
 
 import json
 import os
+import shutil
 import sys
 import urllib.parse
 import urllib.request
@@ -81,13 +82,21 @@ class Workspace:
         """The Workspace's workflow."""
         return self._workflow
 
+    @property
+    def workspace_dir(self) -> str:
+        return self.get_workspace_dir(self.base_dir)
+
+    @property
+    def workflow_file(self) -> str:
+        return self.get_workflow_file(self.base_dir)
+
     @classmethod
-    def workspace_dir(cls, base_dir) -> str:
+    def get_workspace_dir(cls, base_dir) -> str:
         return os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)
 
     @classmethod
-    def workflow_file(cls, base_dir) -> str:
-        return os.path.join(cls.workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
+    def get_workflow_file(cls, base_dir) -> str:
+        return os.path.join(cls.get_workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':
@@ -95,8 +104,8 @@ class Workspace:
             if not os.path.isdir(base_dir):
                 os.mkdir(base_dir)
 
-            workspace_dir = cls.workspace_dir(base_dir)
-            workflow_file = cls.workflow_file(base_dir)
+            workspace_dir = cls.get_workspace_dir(base_dir)
+            workflow_file = cls.get_workflow_file(base_dir)
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             elif os.path.isfile(workflow_file):
@@ -112,16 +121,26 @@ class Workspace:
 
     @classmethod
     def load(cls, base_dir: str) -> 'Workspace':
+        if not os.path.isdir(cls.get_workspace_dir(base_dir)):
+            raise WindowsError('not a valid workspace: %s' % base_dir)
         try:
-            workflow_file = cls.workflow_file(base_dir)
+            workflow_file = cls.get_workflow_file(base_dir)
             workflow = Workflow.load(workflow_file)
             return Workspace(base_dir, workflow)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
     def store(self):
-        workflow_file = self.workflow_file(self.base_dir)
-        self.workflow.store(workflow_file)
+        try:
+            self.workflow.store(self.workflow_file)
+        except (IOError, OSError) as e:
+            raise WorkspaceError(e)
+
+    def delete(self):
+        try:
+            shutil.rmtree(self.workspace_dir)
+        except (IOError, OSError) as e:
+            raise WorkspaceError(e)
 
     @classmethod
     def from_json_dict(cls, json_dict):
@@ -208,51 +227,58 @@ class Workspace:
 
 class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
+    def get_workspace(self, base_dir: str) -> Workspace:
+        pass
+
+    @abstractmethod
     def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
         pass
 
     @abstractmethod
-    def get_workspace(self, base_dir: str) -> Workspace:
+    def delete_workspace(self, base_dir: str) -> None:
         pass
 
     @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         pass
 
-    @abstractmethod
-    def write_workspace_resource(self, base_dir: str, res_name: str,
-                                 file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NULL) -> None:
-        pass
-
 
 class FSWorkspaceManager(WorkspaceManager):
-    def __init__(self):
+    def __init__(self, resolve_dir: str = None):
         self._workspace_cache = dict()
+        self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
-    @classmethod
-    def _abs_dir(cls, dir_path):
-        return os.path.abspath(dir_path or os.curdir)
-
-    def _get_cached_workspace(self, base_dir):
-        base_dir = self._abs_dir(base_dir)
-        return base_dir, self._workspace_cache.get(base_dir, None)
-
-    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
-        base_dir, workspace = self._get_cached_workspace(base_dir)
-        if workspace:
-            raise WorkspaceError('workspace exists: %s' % base_dir)
-        workspace = Workspace.create(base_dir, description=description)
-        self._workspace_cache[base_dir] = workspace
-        return workspace
+    def resolve_path(self, dir_path):
+        if dir_path and os.path.isabs(dir_path):
+            return os.path.normpath(dir_path)
+        return os.path.abspath(os.path.join(self._resolve_dir, dir_path or ''))
 
     def get_workspace(self, base_dir: str) -> Workspace:
-        base_dir, workspace = self._get_cached_workspace(base_dir)
+        base_dir = self.resolve_path(base_dir)
+        workspace = self._workspace_cache.get(base_dir, None)
         if workspace:
             return workspace
         workspace = Workspace.load(base_dir)
+        assert base_dir not in self._workspace_cache
         self._workspace_cache[base_dir] = workspace
         return workspace
+
+    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+        base_dir = self.resolve_path(base_dir)
+        if os.path.isdir(Workspace.get_workspace_dir(base_dir)):
+            raise WorkspaceError('workspace exists: %s' % base_dir)
+        workspace = Workspace.create(base_dir, description=description)
+        assert base_dir not in self._workspace_cache
+        self._workspace_cache[base_dir] = workspace
+        return workspace
+
+    def delete_workspace(self, base_dir: str) -> None:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self.get_workspace(base_dir)
+        workspace.delete()
+        assert base_dir in self._workspace_cache
+        del self._workspace_cache[base_dir]
+
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         workspace = self.get_workspace(base_dir)
@@ -309,17 +335,19 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         except:
             return False
 
-    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
-        url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
-        # GET url
+    def get_workspace(self, base_dir: str) -> Workspace:
+        url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
 
-    def get_workspace(self, base_dir: str) -> Workspace:
-        url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
-        # GET url
+    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+        url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
+
+    def delete_workspace(self, base_dir: str) -> None:
+        url = self._url('/ws/del/{base_dir}', path_args=dict(base_dir=base_dir))
+        self._fetch_json(url)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         url = self._url('/ws/{base_dir}/res/{res_name}/set',

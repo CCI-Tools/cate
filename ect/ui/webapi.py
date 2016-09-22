@@ -25,9 +25,8 @@ import os.path
 import socket
 import subprocess
 import sys
-import time
 import urllib.request
-from datetime import date, datetime
+from datetime import date
 
 from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
