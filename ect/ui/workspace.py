@@ -249,6 +249,12 @@ class WorkspaceManager(metaclass=ABCMeta):
                                  monitor: Monitor = Monitor.NULL) -> None:
         pass
 
+    @abstractmethod
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        pass
+
 
 class FSWorkspaceManager(WorkspaceManager):
     def __init__(self, resolve_dir: str = None):
@@ -312,6 +318,44 @@ class FSWorkspaceManager(WorkspaceManager):
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
 
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        # TBD: shall we add a new step to the workflow or just execute the workflow,
+        # then write the desired resource?
+        workspace = self.get_workspace(base_dir)
+        result = workspace.workflow(monitor=monitor)
+        if res_name in result:
+            obj = result[res_name]
+        else:
+            obj = result
+        import xarray as xr
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        if isinstance(obj, xr.Dataset):
+            ds = obj
+            if var_name:
+                variables = [ds.data_vars[var_name]]
+            else:
+                variables = ds.data_vars.values()
+            for var in variables:
+                if hasattr(var, 'plot'):
+                    print('Plotting ', var)
+                    var.plot()
+            plt.show()
+        elif isinstance(obj, xr.DataArray):
+            var = obj
+            if hasattr(var, 'plot'):
+                print('Plotting ', var)
+                var.plot()
+                plt.show()
+        elif isinstance(obj, np.ndarray):
+            plt.plot(obj)
+            plt.show()
+        else:
+            raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
+
 
 class WebAPIWorkspaceManager(WorkspaceManager):
     def __init__(self, service_info: dict, timeout=120):
@@ -373,4 +417,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
         data = urllib.parse.urlencode(dict(file_path=file_path, format_name=format_name))
+        self._fetch_json(url, data=data.encode())
+
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        url = self._url('/ws/res/plot/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name))
+        data = urllib.parse.urlencode(dict(var_name=var_name, file_path=file_path))
         self._fetch_json(url, data=data.encode())

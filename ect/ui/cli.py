@@ -704,8 +704,14 @@ class ResourceCommand(SubCommandCommand):
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
         # TODO (forman, 20160922): implement "ect res plot"
-        # plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
-        # plot_parser.set_defaults(sub_command_function=cls._execute_plot)
+        plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
+        plot_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of an existing resource.')
+        plot_parser.add_argument('--var', '-v', dest='var_name', metavar='VAR', nargs='?',
+                                 help='Name of the variable to plot.')
+        plot_parser.add_argument('--out', '-o', dest='file_path', metavar='FILE', nargs='?',
+                                 help='Output file to write the plot figure to.')
+        plot_parser.set_defaults(sub_command_function=cls._execute_plot)
 
         # TODO (forman, 20160922): implement "ect res print"
         # print_parser = subparsers.add_parser('print', help='Print a resource value.')
@@ -756,6 +762,17 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager.write_workspace_resource('', res_name, file_path,
                                                    format_name=format_name,
                                                    monitor=cls.new_monitor())
+
+    @classmethod
+    def _execute_plot(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        res_name = command_args.res_name
+        var_name = command_args.var_name
+        file_path = command_args.file_path
+        workspace_manager.plot_workspace_resource('', res_name,
+                                                  var_name=var_name,
+                                                  file_path=file_path,
+                                                  monitor=cls.new_monitor())
 
     @classmethod
     def _execute_set(cls, command_args):
