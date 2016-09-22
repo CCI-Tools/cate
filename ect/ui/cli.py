@@ -964,10 +964,12 @@ class WebAPICommand(SubCommandCommand):
     def configure_parser_and_subparsers(cls, parser, subparsers):
         start_parser = subparsers.add_parser('start', help='start WebAPI service')
         start_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
-                                  help="Port number. If omitted, a free port will be randomly chosen.")
+                                  help="Port number. If omitted, a free port number will be selected.")
         start_parser.set_defaults(sub_command_function=cls._execute_start)
 
         stop_parser = subparsers.add_parser('stop', help='stop WebAPI service')
+        stop_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
+                                 help="Port number. If omitted, port number will be identified.")
         stop_parser.set_defaults(sub_command_function=cls._execute_stop)
 
         status_parser = subparsers.add_parser('status', help='print WebAPI service status')
@@ -975,14 +977,14 @@ class WebAPICommand(SubCommandCommand):
 
     @classmethod
     def _execute_start(cls, command_args):
-        ret_code = start_service_subprocess(port=command_args.port, service_info_file=WEBAPI_INFO_FILE)
+        ret_code = start_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         if ret_code:
             print('Failed to start WebAPI service.')
 
     # noinspection PyUnusedLocal
     @classmethod
     def _execute_stop(cls, command_args):
-        ret_code = stop_service_subprocess(service_info_file=WEBAPI_INFO_FILE)
+        ret_code = stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         if ret_code:
             print('Failed to stop WebAPI service.')
 
