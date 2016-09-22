@@ -138,7 +138,7 @@ def stop_service_subprocess(port: int = None,
 
 
 def _get_command_base(port, address, caller, service_info_file):
-    command = '"%s" -m ect.ui.webapi'
+    command = '"%s" -m ect.ui.webapi' % sys.executable
     if port:
         command += ' -p %d' % port
     if address:
