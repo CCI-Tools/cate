@@ -79,7 +79,7 @@ def plot_map(ds: xr.Dataset,
              lat_max: float = None,
              lon_min: float = None,
              lon_max: float = None,
-             path: str = None):
+             path: str = None) -> None:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the dataset
