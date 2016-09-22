@@ -42,6 +42,17 @@ DEFAULT_PORT = 8888
 
 
 # noinspection PyAbstractClass
+class WorkspaceGetHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.get_workspace(base_dir)
+            self.write(workspace.to_json_dict())
+        except Exception as e:
+            self.write(dict(status='error', error=type(e), message=str(e)))
+
+
+# noinspection PyAbstractClass
 class WorkspaceInitHandler(RequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
@@ -55,12 +66,12 @@ class WorkspaceInitHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceGetHandler(RequestHandler):
+class WorkspaceDeleteHandler(RequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.get_workspace(base_dir)
-            self.write(workspace.to_json_dict())
+            workspace_manager.delete_workspace(base_dir)
+            self.write(dict(status='ok'))
         except Exception as e:
             self.write(dict(status='error', error=type(e), message=str(e)))
 
@@ -138,6 +149,7 @@ def get_application():
         (url_pattern('/'), VersionHandler),
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/{{base_dir}}/res/{{res_name}}/set'), WorkspaceResourceSetHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
