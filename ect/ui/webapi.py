@@ -152,12 +152,14 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     """
     Start a WebAPI service.
 
-    :param caller: the name of the calling application (informal)
     :param port: the port number
     :param address: the address
+    :param caller: the name of the calling application (informal)
     :param service_info_file: If not ``None``, a service information JSON file will be written to *service_info_file*.
     :return: service information dictionary
     """
+    if service_info_file and os.path.exists(service_info_file):
+        raise ValueError('service info file exists: %s' % service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
