@@ -158,9 +158,9 @@ def _new_workspace_manager() -> WorkspaceManager:
     if service_info:
         manager = WebAPIWorkspaceManager(service_info, timeout=5)
         if manager.is_running(timeout=2):
-            print('Using WebAPIWorkspaceManager')
+            # print('Using WebAPIWorkspaceManager')
             return manager
-    print('Using FSWorkspaceManager')
+    # print('Using FSWorkspaceManager')
     return FSWorkspaceManager()
 
 
@@ -600,14 +600,13 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_del(cls, command_args):
         base_dir = command_args.base_dir
-        workspace_manager = _new_workspace_manager()
-        workspace_manager.get_workspace(base_dir=base_dir)
         if command_args.yes:
             answer = 'y'
         else:
             prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
+            workspace_manager = _new_workspace_manager()
             workspace_manager.delete_workspace(base_dir=base_dir)
             print('Workspace deleted.')
 
