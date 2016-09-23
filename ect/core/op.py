@@ -113,6 +113,7 @@ from .util import object_to_qualified_name, qualified_name_to_object
 _SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
 _SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
 
+
 class OpMetaInfo:
     """
     Meta-information about an operation:
@@ -203,6 +204,10 @@ class OpMetaInfo:
                  to output values.
         """
         return not (len(self._output) == 1 and self.RETURN_OUTPUT_NAME in self._output)
+
+    @property
+    def can_cache(self) -> bool:
+        return not self._header.get('no_cache', False)
 
     def to_json_dict(self):
         """
@@ -515,14 +520,14 @@ class OpRegistration:
         self._operation = operation
 
     @property
-    def op_meta_info(self):
+    def op_meta_info(self) -> OpMetaInfo:
         """
         :return: Meta-information about the operation, see :py:class:`ect.core.op.OpMetaInfo`.
         """
         return self._op_meta_info
 
     @property
-    def operation(self):
+    def operation(self) -> object:
         """
         :return: The actual operation object which may be a class or any callable.
         """

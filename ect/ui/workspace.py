@@ -71,6 +71,10 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
+        self._resource_values = dict()
+
+    def __del__(self):
+        self.close()
 
     @property
     def base_dir(self) -> str:
@@ -140,11 +144,51 @@ class Workspace:
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
+    def close(self):
+        resource_cache = self._resource_values
+        self._resource_values = dict()
+        for value in resource_cache.values():
+            Workspace.close_resource_value(value)
+
     def delete(self):
         try:
             shutil.rmtree(self.workspace_dir)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
+        self.close()
+
+    def execute_workflow(self, res_name, monitor):
+        result = self.workflow(monitor=monitor)
+        if res_name in result:
+            obj = result[res_name]
+        else:
+            obj = result
+        return obj
+
+    def get_resource_value(self, resource_name: str, default: object = None) -> object:
+        return self._resource_values.get(resource_name, default=default)
+
+    def add_resource_value(self, resource_name: str, value: object) -> None:
+        old_value = self.get_resource_value(resource_name, default=None)
+        if value is old_value:
+            return
+        self._resource_values[resource_name] = value
+        self.close_resource_value(old_value)
+
+    def remove_resource_value(self, resource_name: str) -> None:
+        value = self._resource_values.pop(resource_name, None)
+        self.close_resource_value(value)
+
+    @classmethod
+    def close_resource_value(cls, value: object) -> None:
+        if value is None:
+            return
+        # noinspection PyBroadException
+        try:
+            # noinspection PyUnresolvedReferences
+            value.close()
+        except:
+            pass
 
     @classmethod
     def from_json_dict(cls, json_dict):
@@ -166,10 +210,13 @@ class Workspace:
         if not op:
             raise WorkspaceError("unknown operation '%s'" % op_name)
 
-        op_step = OpStep(op, res_name)
+        op_step = OpStep(op, node_id=res_name)
 
         workflow = self.workflow
 
+        # This namespace will allow us to wire the new resource with existing workflow steps
+        # We only add step outputs, so we cannot reference another step's input neither.
+        # Note that workspace workflows never have any inputs to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
             output_namespace = step.output
@@ -179,8 +226,13 @@ class Workspace:
         if not can_exist and does_exist:
             raise WorkspaceError("resource '%s' already exists" % res_name)
 
+        if does_exist:
+            # Prevent resource from self-referencing
+            namespace.pop(res_name, None)
+
         raw_op_args = op_args
         try:
+            # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
             op_args, op_kwargs = parse_op_args(raw_op_args, namespace=namespace)
         except ValueError as e:
             raise WorkspaceError(e)
@@ -195,20 +247,21 @@ class Workspace:
 
         return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
+        # Wire new op_step with outputs from existing steps
         for input_name, input_value in op_kwargs.items():
             if input_name not in op_step.input:
                 raise WorkspaceError("'%s' is not an input of operation '%s'" % (input_name, op_name))
             input_port = op_step.input[input_name]
             if isinstance(input_value, NodePort):
-                output_port = input_value
-                input_port.source = output_port
+                # input_value is an output NodePort of another step
+                input_port.source = input_value
             elif isinstance(input_value, Namespace):
-                output_namespace = input_value
-                if return_output_name not in output_namespace:
+                # input_value is output_namespace of another step
+                if return_output_name not in input_value:
                     raise WorkspaceError("illegal value for input '%s'" % input_name)
-                output_port = output_namespace[return_output_name]
-                input_port.source = output_port
+                input_port.source = input_value['return']
             else:
+                # Neither a Namespace nor a NodePort, it must be a constant value
                 input_port.value = input_value
 
         workflow = self._workflow
@@ -217,16 +270,28 @@ class Workspace:
         if does_exist:
             # If the step already existed before, we must resolve source references again
             workflow.resolve_source_refs()
-            # TODO (forman, 20160908): Delete all workspace outputs that have old_step outputs as source
+            for workflow_output_port in workflow.output[:]:
+                if workflow_output_port.source.node is old_step:
+                    # We set old outputs to None, as we don't want to change output order and don't want to delete old
+                    # output ports. However, we should better do this one day.
+                    workflow_output_port.value = None
+
+        # Remove any cached resource value
+        self.remove_resource_value(res_name)
 
         if op_step.op_meta_info.has_named_outputs:
-            # TODO (forman, 20160908): Support op_step's named outputs: create multiple workspace outputs
-            raise WorkspaceError("operation '%s' has named outputs which are not (yet) supported" % op_name)
+            for step_output_port in op_step.output[:]:
+                workflow_output_port_name = res_name + '$' + step_output_port.name
+                workflow.op_meta_info.output[workflow_output_port_name] = \
+                    op_step.op_meta_info.output[step_output_port.name]
+                workflow_output_port = NodePort(workflow, workflow_output_port_name)
+                workflow_output_port.source = step_output_port
+                workflow.output[workflow_output_port.name] = workflow_output_port
         else:
             workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-            output_port = NodePort(workflow, res_name)
-            output_port.source = op_step.output[return_output_name]
-            workflow.output[res_name] = output_port
+            workflow_output_port = NodePort(workflow, res_name)
+            workflow_output_port.source = op_step.output[return_output_name]
+            workflow.output[workflow_output_port.name] = workflow_output_port
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -313,7 +378,6 @@ class FSWorkspaceManager(WorkspaceManager):
         self._workspace_cache[base_dir] = workspace
         workspace.store()
 
-
     def delete_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
@@ -338,11 +402,7 @@ class FSWorkspaceManager(WorkspaceManager):
         # then write the desired resource?
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
-            result = workspace.workflow(monitor=monitor.child(9))
-            if res_name in result:
-                obj = result[res_name]
-            else:
-                obj = result
+            obj = workspace.execute_workflow(res_name, monitor.child(9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
 
@@ -352,11 +412,7 @@ class FSWorkspaceManager(WorkspaceManager):
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
         workspace = self.get_workspace(base_dir)
-        result = workspace.workflow(monitor=monitor)
-        if res_name in result:
-            obj = result[res_name]
-        else:
-            obj = result
+        obj = workspace.execute_workflow(res_name, monitor)
         import xarray as xr
         import numpy as np
         import matplotlib.pyplot as plt

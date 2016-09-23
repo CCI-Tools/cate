@@ -68,7 +68,7 @@ import xarray as xr
 from ect.core.op import op_input, op
 
 
-@op(tags=['graphical', 'plot', 'map'])
+@op(tags=['graphical', 'plot', 'map'], no_cache=True)
 @op_input('ds', description="A dataset from which to create the plot")
 @op_input('variable', description="The geophysical quantity (dataset variable) to plot")
 @op_input('time', description="Point in time to plot")

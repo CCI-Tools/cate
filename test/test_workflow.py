@@ -55,7 +55,7 @@ class WorkflowTest(TestCase):
         old_step = workflow.add_step(step2, can_exist=True)
         self.assertIs(old_step, step2)
         self.assertEqual(workflow.steps, [step1, step2, step3])
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             workflow.add_step(step2, can_exist=False)
 
     def test_remove_step(self):
@@ -67,7 +67,7 @@ class WorkflowTest(TestCase):
         old_step = workflow.remove_step(step3, must_exist=False)
         self.assertIs(old_step, None)
         self.assertEqual(workflow.steps, [step1, step2])
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             workflow.remove_step(step3, must_exist=True)
 
     def test_init(self):
@@ -94,16 +94,28 @@ class WorkflowTest(TestCase):
         _, _, _, workflow = self.create_example_3_steps_workflow()
 
         workflow.input.p.value = 3
-        return_value = workflow.invoke()
+        workflow.invoke()
         output_value = workflow.output.q.value
-        self.assertEqual(return_value, None)
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
+
+    def test_invoke_with_cache(self):
+        _, _, _, workflow = self.create_example_3_steps_workflow()
+
+        value_cache = dict()
+        workflow.input.p.value = 3
+        workflow.invoke(value_cache=value_cache)
+        output_value = workflow.output.q.value
+        self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
+        self.assertEqual(value_cache, dict(op1={'y': 4}, op2={'b': 8}, op3={'w': 32}))
 
     def test_call(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
 
-        output_value = workflow(p=3)
-        self.assertEqual(output_value, dict(q=2 * (3 + 1) + 3 * (2 * (3 + 1))))
+        output_value_1 = workflow(p=3)
+        self.assertEqual(output_value_1, dict(q=2 * (3 + 1) + 3 * (2 * (3 + 1))))
+
+        output_value_2 = workflow.call(input_values=dict(p=3))
+        self.assertEqual(output_value_1, output_value_2)
 
     def test_from_json_dict(self):
         workflow_json_text = """
@@ -361,10 +373,9 @@ class ExprStepTest(TestCase):
         step.input.a.value = a
         step.input.b.value = b
         step.input.c.value = c
-        return_value = step.invoke()
+        step.invoke()
         output_value_x = step.output.x.value
         output_value_y = step.output.y.value
-        self.assertEqual(return_value, None)
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
@@ -377,10 +388,9 @@ class ExprStepTest(TestCase):
         workflow.input.a.value = a
         workflow.input.b.value = b
         workflow.input.c.value = c
-        return_value = workflow.invoke()
+        workflow.invoke()
         output_value_x = workflow.output.x.value
         output_value_y = workflow.output.y.value
-        self.assertEqual(return_value, None)
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
@@ -643,8 +653,6 @@ class OpStepTest(TestCase):
         self.assertIn('u', step3.input)
         self.assertIn('v', step3.input)
         self.assertIn('w', step3.output)
-        u_source = step3.input.u.source
-        v_source = step3.input.v.source
         self.assertEqual(step3.input.u._source_ref, ('stat_op', 'stats'))
         self.assertEqual(step3.input.u.source, None)
         self.assertEqual(step3.input.v._source_ref, (None, 'latitude'))

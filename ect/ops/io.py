@@ -54,7 +54,7 @@ def open_dataset(ds_name: str,
 
 
 # noinspection PyShadowingBuiltins
-@op(tags=['io'])
+@op(tags=['io'], no_cache=True)
 @op_input('ds')
 @op_input('file')
 @op_input('format')
@@ -73,7 +73,7 @@ def read_object(file: str, format: str = None) -> object:
 
 
 # noinspection PyShadowingBuiltins
-@op(tags='io')
+@op(tags='io', no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('format')
@@ -94,7 +94,7 @@ def read_text(file: str, encoding: str = None) -> str:
         return file.read()
 
 
-@op(tags=['io'])
+@op(tags=['io'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('encoding')
@@ -118,7 +118,7 @@ def read_json(file: str, encoding: str = None) -> object:
         return json.load(file)
 
 
-@op(tags=['io'])
+@op(tags=['io'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('encoding')
@@ -144,7 +144,7 @@ def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, d
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
 
 
-@op(tags=['io'])
+@op(tags=['io'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('engine')
@@ -152,7 +152,7 @@ def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF3_64BIT', engine=engine)
 
 
-@op(tags=['io'])
+@op(tags=['io'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('engine')
