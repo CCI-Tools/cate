@@ -32,7 +32,7 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_url_path('/ws/init',
+        response = self.fetch(encode_url_path('/ws/new',
                                               query_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'),
                                                               description='Wow!')))
         self.assertEqual(response.code, 200)

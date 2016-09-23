@@ -72,8 +72,11 @@ class WebAPIServiceError(Exception):
 def get_application():
     application = Application([
         (url_pattern('/'), VersionHandler),
-        (url_pattern('/ws/init'), WorkspaceInitHandler),
+        (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
+        (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
+        (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
@@ -320,22 +323,56 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 class WorkspaceGetHandler(RequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
+        open_it = self.get_query_argument('open', default=False)
         try:
-            workspace = workspace_manager.get_workspace(base_dir)
+            workspace = workspace_manager.get_workspace(base_dir, open=open_it)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class WorkspaceInitHandler(RequestHandler):
+class WorkspaceNewHandler(RequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
         description = self.get_query_argument('description', default=None)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.init_workspace(base_dir, description=description)
+            workspace = workspace_manager.new_workspace(base_dir, description=description)
             self.write(_status_ok(workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceOpenHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.open_workspace(base_dir)
+            self.write(_status_ok(workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceCloseHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.close_workspace(base_dir)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceCloseAllHandler(RequestHandler):
+    def get(self):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.close_all_workspaces()
+            self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
 

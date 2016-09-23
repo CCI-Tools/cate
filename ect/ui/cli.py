@@ -577,41 +577,63 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
+        base_dir_args = dict(metavar='DIR', nargs='?',
+                             help='The workspace\'s base directory. '
+                                  'If not given, current working directory is used.')
+
         init_parser = subparsers.add_parser('init', help='Initialize workspace.')
-        init_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                 help='Base directory for the new workspace. '
-                                      'Default DIR is current working directory.')
+        init_parser.add_argument('base_dir', **base_dir_args)
         init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
+        open_parser = subparsers.add_parser('open', help='Open workspace.')
+        open_parser.add_argument('base_dir', **base_dir_args)
+        open_parser.set_defaults(sub_command_function=cls._execute_open)
+
+        close_parser = subparsers.add_parser('close', help='Close workspace.')
+        close_parser.add_argument('base_dir', **base_dir_args)
+        close_parser.add_argument('--all', '-a', dest='close_all', action='store_true',
+                                  help='Close all workspaces. Ignores DIR option.')
+        close_parser.set_defaults(sub_command_function=cls._execute_close)
+
+        status_parser = subparsers.add_parser('status', help='Print workspace information.')
+        status_parser.add_argument('base_dir', **base_dir_args)
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
-        del_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                help='Base directory of the workspace to be deleted. '
-                                     'Default DIR is current working directory.')
+        del_parser.add_argument('base_dir', **base_dir_args)
         del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
         clean_parser = subparsers.add_parser('clean', help='Clean workspace (removes all resources).')
-        clean_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                help='Base directory of the workspace to be cleaned. '
-                                     'Default DIR is current working directory.')
+        clean_parser.add_argument('base_dir', **base_dir_args)
         clean_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
-                                help='Do not ask for confirmation.')
+                                  help='Do not ask for confirmation.')
         clean_parser.set_defaults(sub_command_function=cls._execute_clean)
-
-        status_parser = subparsers.add_parser('status', help='Print workspace information.')
-        status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                   help='Base directory for the new workspace. '
-                                        'Default DIR is current working directory.')
-        status_parser.set_defaults(sub_command_function=cls._execute_status)
 
     @classmethod
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
+        workspace_manager.new_workspace(base_dir=command_args.base_dir, description=command_args.description)
         print('Workspace initialized.')
+
+    @classmethod
+    def _execute_open(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.open_workspace(base_dir=command_args.base_dir)
+        print('Workspace opened.')
+
+    @classmethod
+    def _execute_close(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        if command_args.close_all:
+            workspace_manager.close_all_workspaces(base_dir=command_args.base_dir)
+            print('All workspaces closed.')
+        else:
+            workspace_manager.close_workspace(base_dir=command_args.base_dir)
+            print('Workspace closed.')
 
     @classmethod
     def _execute_del(cls, command_args):
