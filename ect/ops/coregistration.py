@@ -94,7 +94,7 @@ def coregister(ds_master: xr.Dataset,
 
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
-    return (_resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds))
+    return (_resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds]))
 
 def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
     """
