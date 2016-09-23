@@ -25,63 +25,131 @@ Description
 
 Operations for coregistration of datasets
 
-Components
+Operations
 ==========
+
+coregister - coregister two datasets that are defined on global, pixel-registered grids that are
+equidistant in lat/lon coordinates.
+
 """
 # TODO (Gailis, 20160623, Migrate this to using routines that handle downsampling better (resampling.py))
 
 import numpy as np
 import xarray as xr
 from ect.core.op import op_input, op_return, op
-from mpl_toolkits import basemap
+from ect.ops import resampling
+from typing import Tuple
 
 
-@op(tags=['geometric', 'coregistration'])
-@op_input('ds_slave', description='xr.Dataset that will be resampled on the masters grid')
-@op_input('ds_master', description='xr.Dataset whose lat/lon coordinates are used as the resampling grid')
-@op_input('method', value_set=['nearest', 'bilinear', 'cubic'], description='Interpolation method to use.')
-@op_return(description='The resampled slave dataset')
-def coregister(ds_master: xr.Dataset, ds_slave: xr.Dataset, method: str = 'nearest') -> xr.Dataset:
+@op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'])
+@op_input('method_us', value_set=['nearest', 'linear'])
+@op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
+def coregister(ds_master: xr.Dataset, 
+        ds_slave: xr.Dataset, 
+        method_us: str = 'linear',
+        method_ds: str = 'mean') -> xr.Dataset:
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
-    grid of the master.
+    grid of the master. If downsampling has to be performed, this is achieved using
+    interpolation, if upsampling has to be performed, the pixels of the slave dataset
+    are aggregated to form a coarser grid.
 
-    :param ds_master: The master dataset of type :py:class:`xr.Dataset`
-    :param ds_slave: The slave dataset of type :py:class:`xr.Dataset`
-    :param method: Interpolation method to use. 'nearest','bilinear','cubic' 
-    :return: The slave dataset resampled on the master's grid
+    This operation works on datasets whose spatial dimensions are defined on global,
+    pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
+    define the middle of a pixel.
+
+    This operation will resample all variables in a dataset, as the lat/lon grid is 
+    defined per dataset.
+
+    For an overview of downsampling/upsampling methods used in this operation, please
+    see https://github.com/CAB-LAB/gridtools
+
+    Whether upsampling or downsampling has to be performed is determined automatically
+    based on the relationship of the grids of the provided datasets.
+
+    :param ds_master: The dataset whose grid is used for resampling
+    :param ds_slave: The dataset that will be resampled
+    :param method_us: Interpolation method to use for upsampling. Possible values are 
+    'nearest' or 'bilinear'. The default value is 'linear'.
+    :param method_ds: Interpolation method to use for downsampling. Possible values
+    are 'first', 'last', 'mean', 'mode', 'var', 'std'. The default value is 'mean'.
+    :return: The slave dataset resampled on the grid of the master
     """
-    methods = {'nearest': 0, 'bilinear': 1, 'cubic': 3}
-    return (_resample_dataset(ds_master, ds_slave, methods[method]))
+    # Check if the grid is global, equidistant and pixel-registered
+    # The datasets are expected to be harmonized
+    lat_bounds = [-90.0, 90.0]
+    lon_bounds = [-180.0, 180.0]
+    lats = [ds_master['lat'].values, ds_slave['lat'].values]
+    lons = [ds_master['lon'].values, ds_slave['lon'].values]
+    
+    for lat in lats:
+        if not _is_equidistant(lat, lat_bounds):
+            raise ValueError('The provided dataset does not seem to be \
+                    global, equidistant and pixel-registered.')
+    
+    for lon in lons:
+        if not _is_equidistant(lon, lon_bounds):
+            raise ValueError('The provided dataset does not seem to be \
+                    global, equidistant and pixel-registered.')
+
+    methods_us = {'nearest': 10, 'linear': 11}
+    methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
+    return (_resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds))
+
+def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
+    """
+    Check if the given 1D array is equidistant within the given bounds. E.g. the
+    distance between the lower boundary and the first element of the array should 
+    be equal to the distance between every element and it's neighbours, as well as
+    between the last element of the array and the upper boundary.
+
+    :param array: The array that should be equidistant
+    :param bounds: The bounds within the array should be equidistant.
+    """
+    step = bounds[0] - array[0]
+    for i in xrange(0, len(array)):
+        if i == len(array)-1:
+            curr_step = array[i] - bounds[1]
+        else:
+            curr_step = array[i] - array[i+1]
+
+        if curr_step != step:
+            return False
+
+    return True
 
 
-def _resample_slice(slice_, grid_lon, grid_lat, order=1):
+def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int) -> xr.DataArray:
     """
     Resample a single time slice of a larger xr.DataArray
 
-    :param slice: xr.DataArray single slice
-    :param grid_lon: meshgrid of longitudes for the new grid
-    :param grid_lat: meshgrid of latitudes for the new grid
-    :param order: Interpolation method 0 - nearest neighbour, 1 - bilinear (default), 3 - cubic spline
-    :return: xr.DataArray, resampled slice
+    :param arr_slice: xr.DataArray single slice
+    :param w: The desired new width (amount of longitudes)
+    :param h: The desired new height (amount of latitudes)
+    :param ds_method: Downsampling method, see resampling.py
+    :param us_method: Upsampling method, see resampling.py
+    :return: resampled slice
     """
-    result = basemap.interp(slice_.values, slice_['lon'].data, slice_['lat'].data, grid_lon, grid_lat)
+    result = resampling.resample_2d(arr_slice.values, w, h, ds_method, us_method)
     return xr.DataArray(result)
 
 
-def _resample_array(array, lon, lat, order=1):
+def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, method_us: int, method_ds: int) -> xr.DataArray:
     """
-    Resample the given xr.DataArray to a new grid defined by grid_lat and grid_lon
+    Resample the given xr.DataArray to a new grid defined by lat and lon
 
     :param array: xr.DataArray with lat,lon and time coordinates
     :param lat: 'lat' xr.DataArray attribute for the new grid
     :param lon: 'lon' xr.DataArray attribute for the new grid
-    :param order: 0 for nearest-neighbor interpolation, 1 for bilinear interpolation,
-    3 for cubic spline (default 1). order=3 requires scipy.ndimage.
-    :return: None, changes 'array' in place.
+    :param method_us: Interpolation method to use for upsampling, see resampling.py
+    :param method_ds: Interpolation method to use for downsampling, see resampling.py
+    :return: The resampled array
     """
-    grid_lon, grid_lat = np.meshgrid(lon.data, lat.data)
-    kwargs = {'grid_lon': grid_lon, 'grid_lat': grid_lat}
+    # Determine width and height of the resampled array
+    width = lon.values.size
+    height = lat.values.size
+
+    kwargs = {'w': width, 'h': height, 'ds_method': method_ds, 'us_method': method_us}
     temp_array = array.groupby('time').apply(_resample_slice, **kwargs)
     chunks = list(temp_array.shape[1:])
     chunks.insert(0, 1)
@@ -92,20 +160,20 @@ def _resample_array(array, lon, lat, order=1):
                         attrs=array.attrs).chunk(chunks=chunks)
 
 
-def _resample_dataset(ds_master, ds_slave, order=1):
+def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int) -> xr.Dataset:
     """
     Resample slave onto the grid of the master.
     This does spatial resampling the whole dataset, e.g., all
-    variables in the slave dataset that have (time, lat, lon) dimensions.
-    This method works only if both datasets have (time, lat, lon) dimensions. Due to
-    limitations in basemap interp.
+    variables in the slave dataset.
+    This method works only if both datasets have (time, lat, lon) dimensions. 
 
     Note that dataset attributes are not propagated due to currently undecided CDM attributes' set.
 
     :param ds_master: xr.Dataset whose lat/lon coordinates are used as the resampling grid
     :param ds_slave: xr.Dataset that will be resampled on the masters' grid
-    :param order: Interpolation method to use. 0 - nearest neighbour, 1 - bilinear, 3 - cubic spline
-    :return: xr.Dataset The resampled slave
+    :param method_us: Interpolation method for upsampling, see resampling.py
+    :param method_ds: Interpolation method for downsampling, see resampling.py
+    :return: xr.Dataset The resampled slave dataset
     """
     master_keys = ds_master.dims.keys()
     slave_keys = ds_master.dims.keys()
@@ -117,6 +185,6 @@ def _resample_dataset(ds_master, ds_slave, order=1):
     lon = ds_master['lon']
     lat = ds_master['lat']
 
-    kwargs = {'lon': lon, 'lat': lat, 'order': order}
+    kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds}
     retset = ds_slave.apply(_resample_array, **kwargs)
     return retset
