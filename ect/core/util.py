@@ -418,3 +418,35 @@ def to_datetime(datetime_or_str: Union[datetime, date, str, None], upper_bound=F
         return datetime(datetime_or_str.year, datetime_or_str.month, datetime_or_str.day, 12)
     else:
         raise TypeError('datetime_or_str argument must be a string or instance of datetime.date')
+
+
+def to_list(value,
+            dtype: type = str,
+            name: str = None,
+            nullable: bool = True,
+            csv: bool = True,
+            strip: bool = True):
+    """
+    Convert *value* into a list of items of type *dtype*.
+
+    :param value: Some value that may be a sequence or a scalar
+    :param dtype: The desired target type
+    :param name: An (argument) name used for ``ValueError`` messages
+    :param nullable: Whether *value* can be None.
+    :param csv: Whether to split *value* if it is a string containing commas.
+    :param strip: Whether to strip CSV string values, used only if *csv* is True.
+    :return: A list with elements of type *dtype* or None if *value* is None and *nullable* is True
+    """
+    if value is None:
+        if not nullable:
+            raise ValueError('%s argument must not be None' % (name or 'some'))
+        return value
+    if csv and isinstance(value, str):
+        items = value.split(',')
+        return [dtype(item.strip() if strip else item) for item in items]
+    if isinstance(value, dtype):
+        return [value]
+    try:
+        return [dtype(item) for item in value]
+    except:
+        return [dtype(value)]
