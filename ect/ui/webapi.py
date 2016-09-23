@@ -75,6 +75,7 @@ def get_application():
         (url_pattern('/ws/init'), WorkspaceInitHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
+        (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/exit'), ExitHandler)
@@ -344,6 +345,17 @@ class WorkspaceDeleteHandler(RequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.delete_workspace(base_dir)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceCleanHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.clean_workspace(base_dir)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))

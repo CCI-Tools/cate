@@ -593,6 +593,14 @@ class WorkspaceCommand(SubCommandCommand):
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
+        clean_parser = subparsers.add_parser('clean', help='Clean workspace (removes all resources).')
+        clean_parser.add_argument('base_dir', metavar='DIR', nargs='?',
+                                help='Base directory of the workspace to be cleaned. '
+                                     'Default DIR is current working directory.')
+        clean_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                help='Do not ask for confirmation.')
+        clean_parser.set_defaults(sub_command_function=cls._execute_clean)
+
         status_parser = subparsers.add_parser('status', help='Print workspace information.')
         status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
                                    help='Base directory for the new workspace. '
@@ -617,6 +625,19 @@ class WorkspaceCommand(SubCommandCommand):
             workspace_manager = _new_workspace_manager()
             workspace_manager.delete_workspace(base_dir=base_dir)
             print('Workspace deleted.')
+
+    @classmethod
+    def _execute_clean(cls, command_args):
+        base_dir = command_args.base_dir
+        if command_args.yes:
+            answer = 'y'
+        else:
+            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            answer = input(prompt)
+        if not answer or answer.lower() == 'y':
+            workspace_manager = _new_workspace_manager()
+            workspace_manager.clean_workspace(base_dir=base_dir)
+            print('Workspace cleaned.')
 
     @classmethod
     def _execute_status(cls, command_args):

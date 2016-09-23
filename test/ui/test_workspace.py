@@ -79,6 +79,32 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
 
+    def test_clean_workspace(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.init_workspace(base_dir=base_dir, description='test clean workspace')
+        self.assertTrue(os.path.exists(base_dir))
+        workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
+                                                 op_name='ect.ops.io.read_netcdf', op_args=['file=SST.nc'])
+        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
+
+        self.assertEqual(workspace2.base_dir, workspace1.base_dir)
+        self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
+        sst_step = workspace2.workflow.find_node('SST')
+        self.assertIsNotNone(sst_step)
+
+        workspace_manager.clean_workspace(base_dir=base_dir)
+        workspace3 = workspace_manager.get_workspace(base_dir=base_dir)
+        steps = workspace3.workflow.steps
+        # Test that all steps & resources are removed
+        self.assertEqual(steps, [])
+        # Test that header info is kept
+        self.assertEqual(workspace3.workflow.op_meta_info.header.get('description', None), 'test clean workspace')
+
+        self.del_base_dir(base_dir)
+
+
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def new_workspace_manager(self):
         return FSWorkspaceManager()
