@@ -8,13 +8,16 @@ NAN = np.nan
 
 
 class Downsample2dTest(unittest.TestCase):
-    def _test_downsample_2d(self, src, out_w, out_h, method, fill_value, desired):
+    def _test_downsample_2d(self, src, out_w, out_h, method, fill_value, desired, **kwargs):
         if not isinstance(src, (np.ndarray, np.generic)):
             src = np.array(src)
         if not isinstance(desired, (np.ndarray, np.generic)):
             desired = np.array(desired)
 
-        actual = rs.downsample_2d(src, out_w, out_h, method=method, fill_value=fill_value)
+        actual = rs.downsample_2d(src, out_w, out_h,
+                                   method=method,
+                                   fill_value=fill_value,
+                                   mode_rank=kwargs.get('mode_rank', 1))
         np.testing.assert_almost_equal(actual=desired, desired=actual)
 
         if isinstance(src, np.ma.MaskedArray):
@@ -76,7 +79,7 @@ class Downsample2dTest(unittest.TestCase):
                                   [1, 1, 1]],
                                  2, 2, rs.DS_MODE, 0,
                                  [[2, 1],
-                                  [1, 2]])
+                                  [1, 1]])
 
         self._test_downsample_2d([[3, 5, 2, 1],
                                   [3, 5, 4, 3],
@@ -85,6 +88,14 @@ class Downsample2dTest(unittest.TestCase):
                                  2, 2, rs.DS_MODE, 0,
                                  [[3, 2],
                                   [1, 4]])
+
+        self._test_downsample_2d([[3, 5, 2, 1],
+                                  [3, 5, 4, 3],
+                                  [1, 1, 3, 4],
+                                  [4, 1, 4, 4]],
+                                 2, 2, rs.DS_MODE, 0,
+                                 [[5, 1],
+                                  [4, 3]], mode_rank=2)
 
     def test_aggregation_mode_masked(self):
 
@@ -134,3 +145,39 @@ class Downsample2dTest(unittest.TestCase):
                                  2, 2, rs.DS_LAST, -1,
                                  [[1.5, 1.0],
                                   [2.1, 4.2]])
+
+    def test_aggregation_var(self):
+        # Please note, the expected values below are not verified!
+        self._test_downsample_2d([[0.6, 0.2, 3.4],
+                                  [1.4, NAN, 1.0],
+                                  [4.0, 2.8, 3.0]],
+                                 2, 2, rs.DS_VAR, -1.,
+                                 [[0.19, 2.04],
+                                  [1.1475, 0.7075]])
+
+        # Please note, the expected values below are not verified!
+        self._test_downsample_2d([[0.9, 0.5, 3.0, 4.0],
+                                  [1.1, 1.5, 1.0, NAN],
+                                  [NAN, 2.1, 3.0, 5.0],
+                                  [NAN, NAN, 4.2, NAN]],
+                                 2, 2, rs.DS_VAR, -1,
+                                 [[0.13, 1.5555556],
+                                  [0., 0.6755556]])
+
+    def test_aggregation_std(self):
+        # Please note, the expected values below are not verified!
+        self._test_downsample_2d([[0.6, 0.2, 3.4],
+                                  [1.4, NAN, 1.0],
+                                  [4.0, 2.8, 3.0]],
+                                 2, 2, rs.DS_STD, -1.,
+                                 [[0.43588989, 1.42828569],
+                                  [1.07121426, 0.84113019]])
+
+        # Please note, the expected values below are not verified!
+        self._test_downsample_2d([[0.9, 0.5, 3.0, 4.0],
+                                  [1.1, 1.5, 1.0, NAN],
+                                  [NAN, 2.1, 3.0, 5.0],
+                                  [NAN, NAN, 4.2, NAN]],
+                                 2, 2, rs.DS_STD, -1,
+                                 [[0.36055513, 1.24721913],
+                                  [0., 0.82192187]])

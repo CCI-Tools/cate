@@ -28,6 +28,8 @@ Provides various resampling methods including up- and downsampling.
 Components
 ==========
 """
+# http://stackoverflow.com/questions/7075082/what-is-future-in-python-used-for-and-how-when-to-use-it-and-how-it-works
+from __future__ import division
 
 import numpy as np
 from numba import jit
@@ -43,12 +45,21 @@ DS_FIRST = 50
 DS_LAST = 51
 # DS_MIN = 52
 # DS_MAX = 53
-#: Aggregation method for downsampling: Compute average of all valid source grid cells, weight by contribution area.
+#: Aggregation method for downsampling: Compute average of all valid source grid cells,
+#: with weights given by contribution area.
 DS_MEAN = 54
 # DS_MEDIAN = 55
 #: Aggregation method for downsampling: Compute most frequently seen valid source grid cell,
-#: with frequency given by contribution area.
+#: with frequency given by contribution area. Note that this mode can use an additional keyword argument
+#: *mode_rank* which can be used to generate the n-th mode. See :py:function:`downsample_2d`.
 DS_MODE = 56
+#: Aggregation method for downsampling: Compute the biased weighted estimator of variance
+#: (see https://en.wikipedia.org/wiki/Mean_square_weighted_deviation), with weights given by contribution area.
+DS_VAR = 57
+#: Aggregation method for downsampling: Compute the corresponding standard deviation to the biased weighted estimator
+#: of variance
+#: (see https://en.wikipedia.org/wiki/Mean_square_weighted_deviation), with weights given by contribution area.
+DS_STD = 58
 
 #: Constant indicating an empty 2-D mask
 _NOMASK2D = np.ma.getmaskarray(np.ma.array([[0]], mask=[[0]]))
@@ -56,7 +67,7 @@ _NOMASK2D = np.ma.getmaskarray(np.ma.array([[0]], mask=[[0]]))
 _EPS = 1e-10
 
 
-def resample_2d(src, w, h, ds_method=DS_MEAN, us_method=US_LINEAR, fill_value=None, out=None):
+def resample_2d(src, w, h, ds_method=DS_MEAN, us_method=US_LINEAR, fill_value=None, mode_rank=1, out=None):
     """
     Resample a 2-D grid to a new resolution.
 
@@ -73,6 +84,9 @@ def resample_2d(src, w, h, ds_method=DS_MEAN, us_method=US_LINEAR, fill_value=No
         If ``None``, it is taken from **src** if it is a masked array,
         otherwise from *out* if it is a masked array,
         otherwise numpy's default value is used.
+    :param mode_rank: *scalar*, optional
+        The rank of the frequency determined by the *ds_method* ``DS_MODE``. One (the default) means
+        most frequent value, zwo means second most frequent value, and so forth.
     :param out: 2-D *ndarray*, optional
         Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
         shape as the expected output.
@@ -83,7 +97,8 @@ def resample_2d(src, w, h, ds_method=DS_MEAN, us_method=US_LINEAR, fill_value=No
         return src
     mask, use_mask = _get_mask(src)
     fill_value = _get_fill_value(fill_value, src, out)
-    return _mask_or_not(_resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, out), src, fill_value)
+    return _mask_or_not(_resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, mode_rank, out),
+                        src, fill_value)
 
 
 def upsample_2d(src, w, h, method=US_LINEAR, fill_value=None, out=None):
@@ -114,7 +129,7 @@ def upsample_2d(src, w, h, method=US_LINEAR, fill_value=None, out=None):
     return _mask_or_not(_upsample_2d(src, mask, use_mask, method, fill_value, out), src, fill_value)
 
 
-def downsample_2d(src, w, h, method=DS_MEAN, fill_value=None, out=None):
+def downsample_2d(src, w, h, method=DS_MEAN, fill_value=None, mode_rank=1, out=None):
     """
     Downsample a 2-D grid to a lower resolution by aggregating original grid cells.
 
@@ -129,17 +144,22 @@ def downsample_2d(src, w, h, method=DS_MEAN, fill_value=None, out=None):
         If ``None``, it is taken from **src** if it is a masked array,
         otherwise from *out* if it is a masked array,
         otherwise numpy's default value is used.
+    :param mode_rank: *scalar*, optional
+        The rank of the frequency determined by the *method* ``DS_MODE``. One (the default) means
+        most frequent value, zwo means second most frequent value, and so forth.
     :param out: 2-D *ndarray*, optional
         Alternate output array in which to place the result. The default is *None*; if provided, it must have the same
         shape as the expected output.
     :return: A downsampled version of the *src* array.
     """
+    if method == DS_MODE and mode_rank < 1:
+        raise ValueError('mode_rank must be >= 1')
     out = _get_out(out, src, (h, w))
     if out is None:
         return src
     mask, use_mask = _get_mask(src)
     fill_value = _get_fill_value(fill_value, src, out)
-    return _mask_or_not(_downsample_2d(src, mask, use_mask, method, fill_value, out), src, fill_value)
+    return _mask_or_not(_downsample_2d(src, mask, use_mask, method, fill_value, mode_rank, out), src, fill_value)
 
 
 def _get_out(out, src, shape):
@@ -190,30 +210,30 @@ def _get_fill_value(fill_value, src, out):
 # Key-value args are not allowed.
 #
 @jit(nopython=True)
-def _resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, out):
+def _resample_2d(src, mask, use_mask, ds_method, us_method, fill_value, mode_rank, out):
     src_w = src.shape[-1]
     src_h = src.shape[-2]
     out_w = out.shape[-1]
     out_h = out.shape[-2]
 
     if out_w < src_w and out_h < src_h:
-        return _downsample_2d(src, mask, use_mask, ds_method, fill_value, out)
+        return _downsample_2d(src, mask, use_mask, ds_method, fill_value, mode_rank, out)
     elif out_w < src_w:
         if out_h > src_h:
             temp = np.zeros((src_h, out_w), dtype=src.dtype)
-            temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, temp)
-            # TODO (forman, 20160617): write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
+            temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, mode_rank, temp)
+            # todo - write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
             return _upsample_2d(temp, mask, use_mask, us_method, fill_value, out)
         else:
-            return _downsample_2d(src, mask, use_mask, ds_method, fill_value, out)
+            return _downsample_2d(src, mask, use_mask, ds_method, fill_value, mode_rank, out)
     elif out_h < src_h:
         if out_w > src_w:
             temp = np.zeros((out_h, src_w), dtype=src.dtype)
-            temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, temp)
-            # TODO (forman, 20160617): write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
+            temp = _downsample_2d(src, mask, use_mask, ds_method, fill_value, mode_rank, temp)
+            # todo - write test & fix: must use mask=np.ma.getmaskarray(temp) here if use_mask==True
             return _upsample_2d(temp, mask, use_mask, us_method, fill_value, out)
         else:
-            return _downsample_2d(src, mask, use_mask, ds_method, fill_value, out)
+            return _downsample_2d(src, mask, use_mask, ds_method, fill_value, mode_rank, out)
     elif out_w > src_w or out_h > src_h:
         return _upsample_2d(src, mask, use_mask, us_method, fill_value, out)
     return src
@@ -317,7 +337,7 @@ def _upsample_2d(src, mask, use_mask, method, fill_value, out):
 # Key-value args are not allowed.
 #
 @jit(nopython=True)
-def _downsample_2d(src, mask, use_mask, method, fill_value, out):
+def _downsample_2d(src, mask, use_mask, method, fill_value, mode_rank, out):
     src_w = src.shape[-1]
     src_h = src.shape[-2]
     out_w = out.shape[-1]
@@ -388,7 +408,6 @@ def _downsample_2d(src, mask, use_mask, method, fill_value, out):
                     if src_x1 > src_x0:
                         src_x1 -= 1
                 value_count = 0
-                found = False
                 for src_y in range(src_y0, src_y1 + 1):
                     wy = wy0 if (src_y == src_y0) else wy1 if (src_y == src_y1) else 1.0
                     for src_x in range(src_x0, src_x1 + 1):
@@ -396,21 +415,36 @@ def _downsample_2d(src, mask, use_mask, method, fill_value, out):
                         v = src[src_y, src_x]
                         if np.isfinite(v) and not (use_mask and mask[src_y, src_x]):
                             w = wx * wy
+                            found = False
                             for i in range(value_count):
                                 if v == values[i]:
                                     frequencies[i] += w
                                     found = True
+                                    break
                             if not found:
                                 values[value_count] = v
                                 frequencies[value_count] = w
                                 value_count += 1
                 w_max = -1.
                 value = fill_value
-                for i in range(value_count):
-                    w = frequencies[i]
-                    if w > w_max:
-                        w_max = w
-                        value = values[i]
+                if mode_rank == 1:
+                    for i in range(value_count):
+                        w = frequencies[i]
+                        if w > w_max:
+                            w_max = w
+                            value = values[i]
+                elif mode_rank <= max_value_count:
+                    max_frequencies = np.full(mode_rank, -1.0, dtype=np.float64)
+                    indices = np.zeros(mode_rank, dtype=np.int64)
+                    for i in range(value_count):
+                        w = frequencies[i]
+                        for j in range(mode_rank):
+                            if w > max_frequencies[j]:
+                                max_frequencies[j] = w
+                                indices[j] = i
+                                break
+                    value = values[indices[mode_rank - 1]]
+
                 out[out_y, out_x] = value
 
     elif method == DS_MEAN:
@@ -452,7 +486,51 @@ def _downsample_2d(src, mask, use_mask, method, fill_value, out):
                 else:
                     out[out_y, out_x] = v_sum / w_sum
 
+    elif method == DS_VAR or method == DS_STD:
+        for out_y in range(out_h):
+            src_yf0 = scale_y * out_y
+            src_yf1 = src_yf0 + scale_y
+            src_y0 = int(src_yf0)
+            src_y1 = int(src_yf1)
+            wy0 = 1.0 - (src_yf0 - src_y0)
+            wy1 = src_yf1 - src_y1
+            if wy1 < _EPS:
+                wy1 = 1.0
+                if src_y1 > src_y0:
+                    src_y1 -= 1
+            for out_x in range(out_w):
+                src_xf0 = scale_x * out_x
+                src_xf1 = src_xf0 + scale_x
+                src_x0 = int(src_xf0)
+                src_x1 = int(src_xf1)
+                wx0 = 1.0 - (src_xf0 - src_x0)
+                wx1 = src_xf1 - src_x1
+                if wx1 < _EPS:
+                    wx1 = 1.0
+                    if src_x1 > src_x0:
+                        src_x1 -= 1
+                v_sum = 0.0
+                w_sum = 0.0
+                wv_sum = 0.0
+                wvv_sum = 0.0
+                for src_y in range(src_y0, src_y1 + 1):
+                    wy = wy0 if (src_y == src_y0) else wy1 if (src_y == src_y1) else 1.0
+                    for src_x in range(src_x0, src_x1 + 1):
+                        wx = wx0 if (src_x == src_x0) else wx1 if (src_x == src_x1) else 1.0
+                        v = src[src_y, src_x]
+                        if np.isfinite(v) and not (use_mask and mask[src_y, src_x]):
+                            w = wx * wy
+                            v_sum += v
+                            w_sum += w
+                            wv_sum += w * v
+                            wvv_sum += w * v * v
+                if w_sum < _EPS:
+                    out[out_y, out_x] = fill_value
+                else:
+                    out[out_y, out_x] = (wvv_sum * w_sum - wv_sum * wv_sum) / w_sum / w_sum
+        if method == DS_STD:
+            out = np.sqrt(out)
     else:
-        raise ValueError('invalid upsampling method')
+        raise ValueError('invalid downsampling method')
 
     return out
