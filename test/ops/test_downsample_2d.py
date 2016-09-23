@@ -93,7 +93,7 @@ class Downsample2dTest(unittest.TestCase):
                                   [3, 5, 4, 3],
                                   [1, 1, 3, 4],
                                   [4, 1, 4, 4]],
-                                 2, 2, gtr.DS_MODE, 0,
+                                 2, 2, rs.DS_MODE, 0,
                                  [[5, 1],
                                   [4, 3]], mode_rank=2)
 
