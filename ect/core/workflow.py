@@ -642,9 +642,13 @@ class WorkflowStep(Step):
         :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
-        # Invoke underlying workflow. Don't use the value_cache, because the underlying workflow
-        # uses it's own step IDs which may overlap with the IDs used in the calling workspace.
-        self._workflow.invoke(value_cache=None, monitor=monitor)
+
+        if value_cache is not None and hasattr(value_cache, 'child'):
+            value_cache = value_cache.child(self.id)
+
+        # Invoke underlying workflow.
+        self._workflow.invoke(value_cache=value_cache, monitor=monitor)
+
         # transfer workflow output values into this node's output values
         for workflow_output in self._workflow.output[:]:
             assert workflow_output.name in self.output
@@ -1194,3 +1198,29 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
     source_node = source_port.node
     source_gnode = graph_nodes[source_node.id]
     source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))
+
+
+class ValueCache(dict):
+
+    def __init__(self):
+        super(ValueCache, self).__init__()
+
+    def __del__(self):
+        self._close_values()
+
+    def child(self, key:str) -> 'ValueCache':
+        child_key = key + '.__child__'
+        if child_key not in self:
+            self[child_key] = ValueCache()
+        return self[child_key]
+
+    def close(self):
+        self._close_values()
+
+    def _close_values(self):
+        for value in self.values():
+            if hasattr(value, 'close'):
+                try:
+                    value.close()
+                except:
+                    pass
