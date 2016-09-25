@@ -187,7 +187,7 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     :return: service information dictionary
     """
     if service_info_file and os.path.exists(service_info_file):
-        raise ValueError('service info file exists: %s' % service_info_file)
+        raise WebAPIServiceError('service info file exists: %s' % service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
@@ -201,7 +201,8 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     service_info = dict(port=port,
                         address=address,
                         caller=caller,
-                        started=datetime.now().isoformat(sep=' '))
+                        started=datetime.now().isoformat(sep=' '),
+                        process_id=os.getpid())
     if service_info_file:
         _write_service_info(service_info, service_info_file)
     IOLoop.instance().start()
@@ -221,6 +222,8 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     service_info = {}
     if service_info_file:
         service_info = read_service_info(service_info_file)
+        if service_info is None and port is None:
+            raise RuntimeWarning('WebAPI service not running')
         service_info = service_info or {}
 
     port = port or service_info.get('port', None)
@@ -228,7 +231,7 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     caller = caller or service_info.get('caller', None)
 
     if not port:
-        raise ValueError('cannot stop WebAPI service for unknown port number (caller: %s)' % caller)
+        raise WebAPIServiceError('cannot stop WebAPI service on unknown port (caller: %s)' % caller)
 
     address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('stopping ECT WebAPI on %s' % address_and_port)

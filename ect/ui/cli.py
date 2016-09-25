@@ -112,6 +112,10 @@ from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
+import os
+import signal
+
+
 
 # Explicitly load ECT-internal plugins.
 __import__('ect.ds')
@@ -1071,6 +1075,9 @@ class WebAPICommand(SubCommandCommand):
                                  help="Port number. If omitted, port number will be identified.")
         stop_parser.set_defaults(sub_command_function=cls._execute_stop)
 
+        kill_parser = subparsers.add_parser('kill', help='kill process which runs the WebAPI service')
+        kill_parser.set_defaults(sub_command_function=cls._execute_kill)
+
         status_parser = subparsers.add_parser('status', help='display status of WebAPI service')
         status_parser.set_defaults(sub_command_function=cls._execute_status)
 
@@ -1082,6 +1089,21 @@ class WebAPICommand(SubCommandCommand):
     @classmethod
     def _execute_stop(cls, command_args):
         stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_kill(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if service_info:
+            pid = service_info.get('process_id')
+            if pid:
+                os.kill(pid, signal.SIGTERM)
+                os.remove(WEBAPI_INFO_FILE)
+            else:
+                raise RuntimeError("Missing 'process_id' in status information for WebAPI service.")
+        else:
+            print('No status information for WebAPI service available.')
+
 
     # noinspection PyUnusedLocal
     @classmethod
