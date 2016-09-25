@@ -278,6 +278,7 @@ class Workspace:
 
         # Remove any cached resource value
         self.remove_resource_value(res_name)
+        # TODO (forman, 20160924): Must also remove all cached resources values that depend on old_step, if any
 
         if op_step.op_meta_info.has_named_outputs:
             for step_output_port in op_step.output[:]:
