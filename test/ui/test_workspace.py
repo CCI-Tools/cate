@@ -2,6 +2,8 @@ import json
 import os
 import shutil
 import unittest
+import sys
+import time
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
@@ -78,7 +80,6 @@ class WorkspaceManagerTestMixin:
 
         self.del_base_dir(base_dir)
 
-
     def test_clean_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
@@ -118,6 +119,10 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def tearDown(self):
         stop_service_subprocess(port=self.port, caller='pytest')
+        if sys.platform == 'win32':
+            # This helps getting around silly error raised inside Popen._internal_poll():
+            # OSError: [WinError 6] Das Handle ist ungültig
+            time.sleep(0.25)
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
