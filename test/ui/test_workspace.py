@@ -122,7 +122,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         if sys.platform == 'win32':
             # This helps getting around silly error raised inside Popen._internal_poll():
             # OSError: [WinError 6] Das Handle ist ungültig
-            time.sleep(0.25)
+            time.sleep(0.5)
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
