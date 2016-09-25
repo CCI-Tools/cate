@@ -139,6 +139,11 @@ class Workspace:
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
+    def close(self):
+        if self._is_closed:
+            return
+        self._resource_cache.close()
+
     def save(self):
         self._assert_open()
         try:
@@ -168,11 +173,6 @@ class Workspace:
         return OrderedDict([('base_dir', self.base_dir),
                             ('workflow', self.workflow.to_json_dict())])
 
-    def close(self):
-        if self._is_closed:
-            return
-        self._resource_cache.close()
-
     def delete(self):
         self.close()
         try:
@@ -188,17 +188,6 @@ class Workspace:
         else:
             obj = result
         return obj
-
-    @classmethod
-    def close_resource_value(cls, value: object) -> None:
-        if value is None:
-            return
-        # noinspection PyBroadException
-        try:
-            # noinspection PyUnresolvedReferences
-            value.close()
-        except:
-            pass
 
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False, validate_args=False):
         assert res_name
@@ -362,7 +351,7 @@ class FSWorkspaceManager(WorkspaceManager):
         self._open_workspaces = dict()
         self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
-    def has_open_workpaces(self) -> bool:
+    def has_open_workspaces(self) -> bool:
         return len(self._open_workspaces) > 0
 
     def resolve_path(self, dir_path):
@@ -404,7 +393,7 @@ class FSWorkspaceManager(WorkspaceManager):
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.pop(base_dir, None)
         if workspace is not None:
-            if save:
+            if save and workspace.is_modified:
                 workspace.save()
             workspace.close()
 
