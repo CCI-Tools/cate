@@ -34,7 +34,7 @@ from ect.core.objectio import write_object
 from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace, encode_url_path
-from ect.core.workflow import Workflow, OpStep, NodePort
+from ect.core.workflow import Workflow, OpStep, NodePort, ValueCache
 
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
@@ -71,7 +71,8 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
-        self._resource_values = dict()
+        self._resource_value_cache = ValueCache()
+        self._is_closed = False
 
     def __del__(self):
         self.close()
@@ -84,6 +85,7 @@ class Workspace:
     @property
     def workflow(self) -> Workflow:
         """The Workspace's workflow."""
+        self._assert_open()
         return self._workflow
 
     @property
@@ -139,45 +141,48 @@ class Workspace:
             raise WorkspaceError(e)
 
     def store(self):
+        self._assert_open()
         try:
             self.workflow.store(self.workflow_file)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
+    @classmethod
+    def from_json_dict(cls, json_dict):
+        base_dir = json_dict.get('base_dir', None)
+        workflow_json = json_dict.get('workflow', None)
+        workflow = Workflow.from_json_dict(workflow_json)
+        return Workspace(base_dir, workflow)
+
+    def to_json_dict(self):
+        self._assert_open()
+        return OrderedDict([('base_dir', self.base_dir),
+                            ('workflow', self.workflow.to_json_dict())])
+
+    @property
+    def is_closed(self) -> bool:
+        return self._is_closed
+
     def close(self):
-        resource_cache = self._resource_values
-        self._resource_values = dict()
-        for value in resource_cache.values():
-            Workspace.close_resource_value(value)
+        if self._is_closed:
+            return
+        self._resource_value_cache.close()
 
     def delete(self):
+        self.close()
         try:
             shutil.rmtree(self.workspace_dir)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
-        self.close()
 
     def execute_workflow(self, res_name, monitor):
+        self._assert_open()
         result = self.workflow(monitor=monitor)
         if res_name in result:
             obj = result[res_name]
         else:
             obj = result
         return obj
-
-    def get_resource_value(self, resource_name: str, default: object = None) -> object:
-        return self._resource_values.get(resource_name, default=default)
-
-    def add_resource_value(self, resource_name: str, value: object) -> None:
-        old_value = self.get_resource_value(resource_name, default=None)
-        if value is old_value:
-            return
-        self._resource_values[resource_name] = value
-        self.close_resource_value(old_value)
-
-    def remove_resource_value(self, resource_name: str) -> None:
-        value = self._resource_values.pop(resource_name, None)
-        self.close_resource_value(value)
 
     @classmethod
     def close_resource_value(cls, value: object) -> None:
@@ -189,17 +194,6 @@ class Workspace:
             value.close()
         except:
             pass
-
-    @classmethod
-    def from_json_dict(cls, json_dict):
-        base_dir = json_dict.get('base_dir', None)
-        workflow_json = json_dict.get('workflow', None)
-        workflow = Workflow.from_json_dict(workflow_json)
-        return Workspace(base_dir, workflow)
-
-    def to_json_dict(self):
-        return OrderedDict([('base_dir', self.base_dir),
-                            ('workflow', self.workflow.to_json_dict())])
 
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False, validate_args=False):
         assert res_name
@@ -276,8 +270,9 @@ class Workspace:
                     # output ports. However, we should better do this one day.
                     workflow_output_port.value = None
 
-        # Remove any cached resource value
-        self.remove_resource_value(res_name)
+        # Remove cached resource value, if any
+        if res_name in self._resource_value_cache:
+            del self._resource_value_cache[res_name]
         # TODO (forman, 20160924): Must also remove all cached resources values that depend on old_step, if any
 
         if op_step.op_meta_info.has_named_outputs:
@@ -293,6 +288,11 @@ class Workspace:
             workflow_output_port = NodePort(workflow, res_name)
             workflow_output_port.source = op_step.output[return_output_name]
             workflow.output[workflow_output_port.name] = workflow_output_port
+
+
+    def _assert_open(self):
+        if self._is_closed:
+            raise WorkspaceError('already closed: ' + self._base_dir)
 
 
 class WorkspaceManager(metaclass=ABCMeta):
