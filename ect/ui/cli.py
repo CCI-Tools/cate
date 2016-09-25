@@ -1052,11 +1052,11 @@ class WebAPICommand(SubCommandCommand):
 
     @classmethod
     def name(cls):
-        return 'webapi'
+        return 'wa'
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = "Manage ECT's WebAPI service."
+        help_line = "Manage ECT's WebAPI service. (Rarely used!)"
         return dict(help=help_line, description=help_line)
 
     @classmethod
@@ -1071,7 +1071,7 @@ class WebAPICommand(SubCommandCommand):
                                  help="Port number. If omitted, port number will be identified.")
         stop_parser.set_defaults(sub_command_function=cls._execute_stop)
 
-        status_parser = subparsers.add_parser('status', help='print WebAPI service status')
+        status_parser = subparsers.add_parser('status', help='display status of WebAPI service')
         status_parser.set_defaults(sub_command_function=cls._execute_status)
 
     @classmethod
