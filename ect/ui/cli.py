@@ -571,7 +571,7 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
-        base_dir_args = dict(metavar='DIR', nargs='?',
+        base_dir_args = dict(metavar='DIR', nargs='?', default='.',
                              help='The workspace\'s base directory. '
                                   'If not given, current working directory is used.')
 
@@ -595,7 +595,7 @@ class WorkspaceCommand(SubCommandCommand):
         close_parser.add_argument('base_dir', **base_dir_args)
         close_parser.add_argument('--all', '-a', dest='close_all', action='store_true',
                                   help='Close all workspaces. Ignores DIR option.')
-        close_parser.add_argument('-s', '--save', dest='save', action='store_true', default=False,
+        close_parser.add_argument('--save', '-s', dest='save', action='store_true',
                                   help='Save modified workspace before closing.')
         close_parser.set_defaults(sub_command_function=cls._execute_close)
 
@@ -652,7 +652,7 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_close(cls, command_args):
         workspace_manager = _new_workspace_manager()
         if command_args.close_all:
-            workspace_manager.close_all_workspaces(base_dir=command_args.base_dir, save=command_args.save)
+            workspace_manager.close_all_workspaces(save=command_args.save)
             print('All workspaces closed.')
         else:
             workspace_manager.close_workspace(base_dir=command_args.base_dir, save=command_args.save)
@@ -829,7 +829,7 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
-        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
+        workspace_manager.set_workspace_resource('.', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -838,7 +838,7 @@ class ResourceCommand(SubCommandCommand):
         op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
             op_args.append('format=%s' % _to_str_const(command_args.format_name))
-        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.read_object', op_args)
+        workspace_manager.set_workspace_resource('.', command_args.res_name, 'ect.ops.io.read_object', op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -847,7 +847,7 @@ class ResourceCommand(SubCommandCommand):
         res_name = command_args.res_name
         file_path = command_args.file_path
         format_name = command_args.format_name
-        workspace_manager.write_workspace_resource('', res_name, file_path,
+        workspace_manager.write_workspace_resource('.', res_name, file_path,
                                                    format_name=format_name,
                                                    monitor=cls.new_monitor())
 
@@ -857,7 +857,7 @@ class ResourceCommand(SubCommandCommand):
         res_name = command_args.res_name
         var_name = command_args.var_name
         file_path = command_args.file_path
-        workspace_manager.plot_workspace_resource('', res_name,
+        workspace_manager.plot_workspace_resource('.', res_name,
                                                   var_name=var_name,
                                                   file_path=file_path,
                                                   monitor=cls.new_monitor())
@@ -865,7 +865,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.set_workspace_resource('',
+        workspace_manager.set_workspace_resource('.',
                                                  command_args.res_name,
                                                  command_args.op_name, command_args.op_args)
         print('Resource "%s" set.' % command_args.res_name)
