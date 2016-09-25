@@ -110,7 +110,7 @@ from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
-from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
+from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -145,31 +145,25 @@ READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
 
 
-def _new_workspace_manager(require_webapi: bool = False) -> WorkspaceManager:
-    # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
-    # 3. if we can derive a port number:
-    #    3.a. port in use, WebAPI available
-    #    3.b. port in use, not a WebAPI --> find new port number, start WebAPI at new port number
-    #    3.c. port unused --> start WebAPI at port
-    # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
-
+def _default_workspace_manager_factory() -> WorkspaceManager:
     # Read any existing '.ect/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
-    if not service_info and require_webapi:
+    if not service_info:
         # If there is no '.ect/webapi.json' but we need a WebAPI, start service
         start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         # Read new '.ect/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
+        if not service_info:
+            raise WorkspaceError('ECT WebAPI service could not be started')
 
-    if service_info:
-        print('Using WebAPIWorkspaceManager')
-        return WebAPIWorkspaceManager(service_info, timeout=5)
+    return WebAPIWorkspaceManager(service_info, timeout=5)
 
-    if require_webapi:
-        raise WorkspaceError('command requires ECT WebAPI service, which could not be found')
 
-    print('Using FSWorkspaceManager')
-    return FSWorkspaceManager()
+WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory
+
+
+def _new_workspace_manager() -> WorkspaceManager:
+    return WORKSPACE_MANAGER_FACTORY()
 
 
 def _to_str_const(s: str) -> str:
@@ -587,6 +581,12 @@ class WorkspaceCommand(SubCommandCommand):
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
+        init_parser = subparsers.add_parser('new', help='Create new in-memory workspace.')
+        init_parser.add_argument('base_dir', **base_dir_args)
+        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
+                                 help='Workspace description.')
+        init_parser.set_defaults(sub_command_function=cls._execute_new)
+
         open_parser = subparsers.add_parser('open', help='Open workspace.')
         open_parser.add_argument('base_dir', **base_dir_args)
         open_parser.set_defaults(sub_command_function=cls._execute_open)
@@ -595,7 +595,15 @@ class WorkspaceCommand(SubCommandCommand):
         close_parser.add_argument('base_dir', **base_dir_args)
         close_parser.add_argument('--all', '-a', dest='close_all', action='store_true',
                                   help='Close all workspaces. Ignores DIR option.')
+        close_parser.add_argument('-s', '--save', dest='save', action='store_true', default=False,
+                                  help='Save modified workspace before closing.')
         close_parser.set_defaults(sub_command_function=cls._execute_close)
+
+        save_parser = subparsers.add_parser('save', help='Save workspace.')
+        save_parser.add_argument('base_dir', **base_dir_args)
+        save_parser.add_argument('--all', '-a', dest='save_all', action='store_true',
+                                 help='Save all workspaces. Ignores DIR option.')
+        save_parser.set_defaults(sub_command_function=cls._execute_save)
 
         status_parser = subparsers.add_parser('status', help='Print workspace information.')
         status_parser.add_argument('base_dir', **base_dir_args)
@@ -613,11 +621,26 @@ class WorkspaceCommand(SubCommandCommand):
                                   help='Do not ask for confirmation.')
         clean_parser.set_defaults(sub_command_function=cls._execute_clean)
 
+        exit_parser = subparsers.add_parser('exit', help='Exit interactive mode. Closes all open workspaces.')
+        exit_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                 help='Do not ask for confirmation.')
+        exit_parser.add_argument('-s', '--save', dest='save', action='store_true', default=False,
+                                 help='Save any modified workspaces before closing.')
+        exit_parser.set_defaults(sub_command_function=cls._execute_exit)
+
     @classmethod
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.new_workspace(base_dir=command_args.base_dir, description=command_args.description)
+        workspace_manager.new_workspace(base_dir=command_args.base_dir,
+                                        save=True, description=command_args.description)
         print('Workspace initialized.')
+
+    @classmethod
+    def _execute_new(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.new_workspace(base_dir=command_args.base_dir,
+                                        save=False, description=command_args.description)
+        print('Workspace created.')
 
     @classmethod
     def _execute_open(cls, command_args):
@@ -629,11 +652,21 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_close(cls, command_args):
         workspace_manager = _new_workspace_manager()
         if command_args.close_all:
-            workspace_manager.close_all_workspaces(base_dir=command_args.base_dir)
+            workspace_manager.close_all_workspaces(base_dir=command_args.base_dir, save=command_args.save)
             print('All workspaces closed.')
         else:
-            workspace_manager.close_workspace(base_dir=command_args.base_dir)
+            workspace_manager.close_workspace(base_dir=command_args.base_dir, save=command_args.save)
             print('Workspace closed.')
+
+    @classmethod
+    def _execute_save(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        if command_args.save_all:
+            workspace_manager.save_all_workspaces(base_dir=command_args.base_dir)
+            print('All workspaces saved.')
+        else:
+            workspace_manager.save_workspace(base_dir=command_args.base_dir)
+            print('Workspace saved.')
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -664,7 +697,7 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
+        workspace = workspace_manager.get_workspace(command_args.base_dir, open=False)
         workflow = workspace.workflow
         print('Workspace base directory is %s' % workspace.base_dir)
         if len(workflow.steps) > 0:
@@ -673,6 +706,18 @@ class WorkspaceCommand(SubCommandCommand):
                 print('  %s' % str(step))
         else:
             print('Workspace has no resources.')
+
+    @classmethod
+    def _execute_exit(cls, command_args):
+        base_dir = command_args.base_dir
+        if command_args.yes:
+            answer = 'y'
+        else:
+            answer = input('Do you really want to exit interactive mode ([y]/n)? ')
+        if not answer or answer.lower() == 'y':
+            workspace_manager = _new_workspace_manager()
+            workspace_manager.close_all_workspaces(base_dir=base_dir, save=command_args.save_all)
+            stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
 
 class ResourceCommand(SubCommandCommand):

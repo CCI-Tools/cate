@@ -28,6 +28,7 @@ import sys
 import time
 import urllib.request
 from datetime import date, datetime
+from threading import Timer
 
 from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
@@ -77,6 +78,8 @@ def get_application():
         (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
         (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
         (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
+        (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
+        (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
@@ -85,6 +88,9 @@ def get_application():
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
+    application.auto_exit_enabled = False
+    application.auto_exit_timer = None
+    application.service_info_file = None
     return application
 
 
@@ -185,6 +191,7 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
+    application.auto_exit_enabled = caller == 'ect'
     port = port or find_free_port()
     address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('starting ECT WebAPI on %s' % address_and_port)
@@ -272,6 +279,34 @@ def _write_service_info(service_info: dict, service_info_file: str) -> None:
         json.dump(service_info, fp, indent='  ')
 
 
+def _exit(application):
+    service_info_file = application.service_info_file
+    if service_info_file and os.path.isfile(service_info_file):
+        try:
+            os.remove(service_info_file)
+        except:
+            pass
+    IOLoop.instance().stop()
+
+
+def _auto_exit(application):
+    IOLoop.instance().add_callback(_exit, application)
+
+
+def _on_workspace_closed(application):
+    if not application.auto_close_enabled:
+        return
+    workspace_manager = application.workspace_manager
+    if workspace_manager.has_open_workspaces():
+        if application.auto_exit_timer:
+            try:
+                application.auto_exit_timer.cancel()
+            except:
+                pass
+        application.auto_exit_timer = Timer(3.0, _auto_exit, application)
+        application.auto_exit_timer.start()
+
+
 def url_pattern(pattern: str):
     """
     Convert a string *pattern* where any occurrences of ``{{NAME}}`` are replaced by an equivalent
@@ -335,10 +370,11 @@ class WorkspaceGetHandler(RequestHandler):
 class WorkspaceNewHandler(RequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
+        save = self.get_query_argument('save', default=False)
         description = self.get_query_argument('description', default=None)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.new_workspace(base_dir, description=description)
+            workspace = workspace_manager.new_workspace(base_dir, save=save, description=description)
             self.write(_status_ok(workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -358,9 +394,11 @@ class WorkspaceOpenHandler(RequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseHandler(RequestHandler):
     def get(self, base_dir):
+        save = self.get_query_argument('save', default=False)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_workspace(base_dir)
+            workspace_manager.close_workspace(base_dir, save)
+            _on_workspace_closed(self.application)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -369,9 +407,33 @@ class WorkspaceCloseHandler(RequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseAllHandler(RequestHandler):
     def get(self):
+        save = self.get_query_argument('save', default=False)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_all_workspaces()
+            workspace_manager.close_all_workspaces(save)
+            _on_workspace_closed(self.application)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveHandler(RequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveAllHandler(RequestHandler):
+    def get(self):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.save_all_workspaces()
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -451,12 +513,7 @@ class VersionHandler(RequestHandler):
 class ExitHandler(RequestHandler):
     def get(self):
         self.write(_status_ok(content='Bye!'))
-        IOLoop.instance().stop()
-        # IOLoop.instance().add_callback(IOLoop.instance().stop)
-
-        service_info_file = self.application.service_info_file
-        if service_info_file and os.path.exists(service_info_file):
-            os.remove(service_info_file)
+        IOLoop.instance().add_callback(_exit, self.application)
 
 
 if __name__ == "__main__":

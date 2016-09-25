@@ -28,7 +28,7 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir)
+        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
 
         self.assertEqual(workspace1.base_dir, workspace2.base_dir)
@@ -40,7 +40,7 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.new_workspace(base_dir=base_dir)
+        workspace = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
         self.assertIsNotNone(workspace)
 
@@ -51,7 +51,7 @@ class WorkspaceManagerTestMixin:
 
         workspace_manager = self.new_workspace_manager()
 
-        workspace = workspace_manager.new_workspace(base_dir=base_dir)
+        workspace = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
         self.assertTrue(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
         self.assertIsNotNone(workspace)
@@ -67,7 +67,7 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir)
+        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
                                                  op_name='ect.ops.io.read_netcdf', op_args=['file=SST.nc'])
@@ -84,7 +84,7 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, description='test clean workspace')
+        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True, description='test clean workspace')
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
                                                  op_name='ect.ops.io.read_netcdf', op_args=['file=SST.nc'])
