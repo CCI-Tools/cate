@@ -294,7 +294,7 @@ def _auto_exit(application):
 
 
 def _on_workspace_closed(application):
-    if not application.auto_close_enabled:
+    if not application.auto_exit_enabled:
         return
     workspace_manager = application.workspace_manager
     if workspace_manager.has_open_workspaces():
@@ -358,7 +358,7 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 class WorkspaceGetHandler(RequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
-        open_it = self.get_query_argument('open', default=False)
+        open_it = self.get_query_argument('open', default='False').lower() == 'true'
         try:
             workspace = workspace_manager.get_workspace(base_dir, open=open_it)
             self.write(_status_ok(content=workspace.to_json_dict()))
@@ -370,8 +370,8 @@ class WorkspaceGetHandler(RequestHandler):
 class WorkspaceNewHandler(RequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        save = self.get_query_argument('save', default=False)
-        description = self.get_query_argument('description', default=None)
+        save = self.get_query_argument('save', default='False').lower() == 'true'
+        description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.new_workspace(base_dir, save=save, description=description)
@@ -394,7 +394,7 @@ class WorkspaceOpenHandler(RequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseHandler(RequestHandler):
     def get(self, base_dir):
-        save = self.get_query_argument('save', default=False)
+        save = self.get_query_argument('save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.close_workspace(base_dir, save)
@@ -407,7 +407,7 @@ class WorkspaceCloseHandler(RequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseAllHandler(RequestHandler):
     def get(self):
-        save = self.get_query_argument('save', default=False)
+        save = self.get_query_argument('save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.close_all_workspaces(save)
