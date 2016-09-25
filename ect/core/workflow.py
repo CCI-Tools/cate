@@ -278,14 +278,16 @@ class Node(metaclass=ABCMeta):
     def _body_string(self) -> str:
         return None
 
-    @classmethod
-    def _format_port_assignments(cls, namespace: Namespace):
+    def _format_port_assignments(self, namespace: Namespace, is_input: bool):
         port_assignments = []
         for port in namespace[:]:
             if port.source:
                 port_assignments.append('%s=%s' % (port.name, str(port.source)))
             elif port.has_value:
                 port_assignments.append('%s=%s' % (port.name, repr(port.value)))
+            elif is_input:
+                default_value = self.op_meta_info.input[port.name].get('default_value', None)
+                port_assignments.append('%s=%s' % (port.name, repr(default_value)))
             else:
                 port_assignments.append('%s' % port.name)
         return ', '.join(port_assignments)
@@ -294,10 +296,10 @@ class Node(metaclass=ABCMeta):
         """String representation."""
         op_meta_info = self.op_meta_info
         body_string = self._body_string() or op_meta_info.qualified_name
-        input_assignments = self._format_port_assignments(self.input)
+        input_assignments = self._format_port_assignments(self.input, True)
         output_assignments = ''
         if op_meta_info.has_named_outputs:
-            output_assignments = self._format_port_assignments(self.output)
+            output_assignments = self._format_port_assignments(self.output, False)
             output_assignments = ' -> (%s)' % output_assignments
         return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
