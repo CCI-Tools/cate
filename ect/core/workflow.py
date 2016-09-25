@@ -1200,7 +1200,19 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
     source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))
 
 
+def _close_value(value):
+    if hasattr(value, 'close'):
+        try:
+            value.close()
+        except:
+            pass
+
+
 class ValueCache(dict):
+    """
+    A dictionary that can be closed. If closed, all values that have a ``close`` attribute are closed as well.
+    Values are also closed, if they are removed.
+    """
 
     def __init__(self):
         super(ValueCache, self).__init__()
@@ -1208,7 +1220,19 @@ class ValueCache(dict):
     def __del__(self):
         self._close_values()
 
-    def child(self, key:str) -> 'ValueCache':
+    def __setitem__(self, key, value):
+        old_value = self.get(key)
+        super(ValueCache, self).__setitem__(key, value)
+        if old_value is not value:
+            _close_value(old_value)
+
+    def __delitem__(self, key):
+        old_value = self.get(key)
+        super(ValueCache, self).__delitem__(key)
+        if old_value is not None:
+            _close_value(old_value)
+
+    def child(self, key: str) -> 'ValueCache':
         child_key = key + '.__child__'
         if child_key not in self:
             self[child_key] = ValueCache()
@@ -1218,9 +1242,7 @@ class ValueCache(dict):
         self._close_values()
 
     def _close_values(self):
-        for value in self.values():
-            if hasattr(value, 'close'):
-                try:
-                    value.close()
-                except:
-                    pass
+        values = list(self.values())
+        self.clear()
+        for value in values:
+            _close_value(value)
