@@ -11,8 +11,8 @@ import xarray as xr
 from ect.ops import plot
 
 
-@unittest.skipUnless(condition=os.environ.get('ECT_TEST_PLOT', None),
-                     reason="skipped unless ECT_TEST_PLOT=1")
+@unittest.skipIf(condition=os.environ.get('ECT_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if ECT_DISABLE_PLOT_TESTS=1")
 class TestPlot(TestCase):
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
