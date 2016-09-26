@@ -833,7 +833,10 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
-        workspace_manager.set_workspace_resource('.', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
+        workspace_manager.set_workspace_resource('.',
+                                                 command_args.res_name,
+                                                 'ect.ops.io.open_dataset',
+                                                 op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -842,37 +845,40 @@ class ResourceCommand(SubCommandCommand):
         op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
             op_args.append('format=%s' % _to_str_const(command_args.format_name))
-        workspace_manager.set_workspace_resource('.', command_args.res_name, 'ect.ops.io.read_object', op_args)
+        workspace_manager.set_workspace_resource('.',
+                                                 command_args.res_name,
+                                                 'ect.ops.io.read_object',
+                                                 op_args)
         print('Resource "%s" set.' % command_args.res_name)
-
-    @classmethod
-    def _execute_write(cls, command_args):
-        workspace_manager = _new_workspace_manager()
-        res_name = command_args.res_name
-        file_path = command_args.file_path
-        format_name = command_args.format_name
-        workspace_manager.write_workspace_resource('.', res_name, file_path,
-                                                   format_name=format_name,
-                                                   monitor=cls.new_monitor())
-
-    @classmethod
-    def _execute_plot(cls, command_args):
-        workspace_manager = _new_workspace_manager()
-        res_name = command_args.res_name
-        var_name = command_args.var_name
-        file_path = command_args.file_path
-        workspace_manager.plot_workspace_resource('.', res_name,
-                                                  var_name=var_name,
-                                                  file_path=file_path,
-                                                  monitor=cls.new_monitor())
 
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.set_workspace_resource('.',
                                                  command_args.res_name,
-                                                 command_args.op_name, command_args.op_args)
+                                                 command_args.op_name,
+                                                 command_args.op_args)
         print('Resource "%s" set.' % command_args.res_name)
+
+    @classmethod
+    def _execute_write(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.write_workspace_resource('.',
+                                                   command_args.res_name,
+                                                   command_args.file_path,
+                                                   format_name=command_args.format_name,
+                                                   monitor=cls.new_monitor())
+        print('Resource "%s" written.' % command_args.res_name)
+
+    @classmethod
+    def _execute_plot(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.plot_workspace_resource('.',
+                                                  command_args.res_name,
+                                                  var_name=command_args.var_name,
+                                                  file_path=command_args.file_path,
+                                                  monitor=cls.new_monitor())
+
 
 
 class OperationCommand(SubCommandCommand):
