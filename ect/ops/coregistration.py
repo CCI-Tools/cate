@@ -82,15 +82,17 @@ def coregister(ds_master: xr.Dataset,
     lats = [ds_master['lat'].values, ds_slave['lat'].values]
     lons = [ds_master['lon'].values, ds_slave['lon'].values]
     
+    # The raised error does not say which dataset it was that failed the check, because
+    # the datasets don't have identifiers apart from contained variables.
     for lat in lats:
         if not _is_equidistant(lat, lat_bounds):
             raise ValueError('The provided dataset does not seem to be \
-                    global, equidistant and pixel-registered.')
+global, equidistant and pixel-registered.')
     
     for lon in lons:
         if not _is_equidistant(lon, lon_bounds):
             raise ValueError('The provided dataset does not seem to be \
-                    global, equidistant and pixel-registered.')
+global, equidistant and pixel-registered.')
 
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
@@ -106,10 +108,12 @@ def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
     :param array: The array that should be equidistant
     :param bounds: The bounds within the array should be equidistant.
     """
-    step = bounds[0] - array[0]
-    for i in xrange(0, len(array)):
+    # There should be half a pixel difference between the lower boundary and the pixel
+    # center.
+    step = (bounds[0] - array[0]) * 2
+    for i in range(0, len(array)):
         if i == len(array)-1:
-            curr_step = array[i] - bounds[1]
+            curr_step = (array[i] - bounds[1]) * 2
         else:
             curr_step = array[i] - array[i+1]
 
