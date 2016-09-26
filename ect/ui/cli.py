@@ -1238,7 +1238,7 @@ def main(args=None):
     parser = NoExitArgumentParser(prog=CLI_NAME,
                                   description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
-    parser.add_argument('--traceback', action='store_true', help='On error, print (Python) stack traceback')
+    parser.add_argument('--traceback', action='store_true', help='show (Python) stack traceback for the last error')
     subparsers = parser.add_subparsers(dest='command_name',
                                        metavar='COMMAND',
                                        help='One of the following commands. '
