@@ -350,8 +350,8 @@ class FSWorkspaceManager(WorkspaceManager):
         self._open_workspaces = dict()
         self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
-    def has_open_workspaces(self) -> bool:
-        return len(self._open_workspaces) > 0
+    def num_open_workspaces(self) -> int:
+        return len(self._open_workspaces)
 
     def resolve_path(self, dir_path):
         if dir_path and os.path.isabs(dir_path):

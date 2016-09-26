@@ -296,6 +296,10 @@ def _get_op_info_str(op_meta_info: OpMetaInfo):
     return op_info_str
 
 
+def _base_dir(base_dir: str = None):
+    return os.path.abspath(base_dir or os.curdir)
+
+
 class CommandError(Exception):
     def __init__(self, cause, *args, **kwargs):
         if isinstance(cause, Exception):
@@ -635,21 +639,21 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.new_workspace(base_dir=command_args.base_dir,
+        workspace_manager.new_workspace(_base_dir(command_args.base_dir),
                                         save=True, description=command_args.description)
         print('Workspace initialized.')
 
     @classmethod
     def _execute_new(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.new_workspace(base_dir=command_args.base_dir,
+        workspace_manager.new_workspace(_base_dir(command_args.base_dir),
                                         save=False, description=command_args.description)
         print('Workspace created.')
 
     @classmethod
     def _execute_open(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.open_workspace(base_dir=command_args.base_dir)
+        workspace_manager.open_workspace(_base_dir(command_args.base_dir))
         print('Workspace opened.')
 
     @classmethod
@@ -659,49 +663,47 @@ class WorkspaceCommand(SubCommandCommand):
             workspace_manager.close_all_workspaces(save=command_args.save)
             print('All workspaces closed.')
         else:
-            workspace_manager.close_workspace(base_dir=command_args.base_dir, save=command_args.save)
+            workspace_manager.close_workspace(_base_dir(command_args.base_dir), save=command_args.save)
             print('Workspace closed.')
 
     @classmethod
     def _execute_save(cls, command_args):
         workspace_manager = _new_workspace_manager()
         if command_args.save_all:
-            workspace_manager.save_all_workspaces(base_dir=command_args.base_dir)
+            workspace_manager.save_all_workspaces()
             print('All workspaces saved.')
         else:
-            workspace_manager.save_workspace(base_dir=command_args.base_dir)
+            workspace_manager.save_workspace(_base_dir(command_args.base_dir))
             print('Workspace saved.')
 
     @classmethod
     def _execute_del(cls, command_args):
-        base_dir = command_args.base_dir
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.delete_workspace(base_dir=base_dir)
+            workspace_manager.delete_workspace(_base_dir(command_args.base_dir))
             print('Workspace deleted.')
 
     @classmethod
     def _execute_clean(cls, command_args):
-        base_dir = command_args.base_dir
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.clean_workspace(base_dir=base_dir)
+            workspace_manager.clean_workspace(_base_dir(command_args.base_dir))
             print('Workspace cleaned.')
 
     @classmethod
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace = workspace_manager.get_workspace(command_args.base_dir, open=False)
+        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), open=False)
         workflow = workspace.workflow
         print('Workspace base directory is %s' % workspace.base_dir)
         if len(workflow.steps) > 0:
@@ -713,15 +715,15 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_exit(cls, command_args):
-        base_dir = command_args.base_dir
         if command_args.yes:
             answer = 'y'
         else:
             answer = input('Do you really want to exit interactive mode ([y]/n)? ')
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.close_all_workspaces(base_dir=base_dir, save=command_args.save_all)
+            workspace_manager.close_all_workspaces(save=command_args.save_all)
             stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
 
 
 class ResourceCommand(SubCommandCommand):
@@ -833,7 +835,7 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
-        workspace_manager.set_workspace_resource('.',
+        workspace_manager.set_workspace_resource(_base_dir(),
                                                  command_args.res_name,
                                                  'ect.ops.io.open_dataset',
                                                  op_args)
@@ -845,7 +847,7 @@ class ResourceCommand(SubCommandCommand):
         op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
             op_args.append('format=%s' % _to_str_const(command_args.format_name))
-        workspace_manager.set_workspace_resource('.',
+        workspace_manager.set_workspace_resource(_base_dir(),
                                                  command_args.res_name,
                                                  'ect.ops.io.read_object',
                                                  op_args)
@@ -854,7 +856,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.set_workspace_resource('.',
+        workspace_manager.set_workspace_resource(_base_dir(),
                                                  command_args.res_name,
                                                  command_args.op_name,
                                                  command_args.op_args)
@@ -863,7 +865,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_write(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.write_workspace_resource('.',
+        workspace_manager.write_workspace_resource(_base_dir(),
                                                    command_args.res_name,
                                                    command_args.file_path,
                                                    format_name=command_args.format_name,
@@ -873,7 +875,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_plot(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.plot_workspace_resource('.',
+        workspace_manager.plot_workspace_resource(_base_dir(),
                                                   command_args.res_name,
                                                   var_name=command_args.var_name,
                                                   file_path=command_args.file_path,

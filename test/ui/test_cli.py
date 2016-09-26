@@ -15,8 +15,6 @@ from ect.ds.esa_cci_odp import EsaCciOdpDataStore
 from ect.ui import cli
 from ect.ui.workspace import FSWorkspaceManager
 
-WORKSPACES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '_workspaces_'))
-
 
 def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
@@ -110,26 +108,21 @@ class CliTest(CliTestCase):
 
 class WorkspaceCommandTest(CliTestCase):
     def setUp(self):
-        self.remove_tree(WORKSPACES_DIR, ignore_errors=False)
-        os.makedirs(WORKSPACES_DIR)
+        self.remove_tree('.ect-workspace', ignore_errors=False)
 
-        # NOTE: We use A NEW workspace manager instance for each cli.main() call to simulate a stateful-service
-        # self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
-        # cli.WORKSPACE_MANAGER_FACTORY = lambda: FSWorkspaceManager(resolve_dir=WORKSPACES_DIR)
-
+        # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager(resolve_dir=WORKSPACES_DIR)
+        self.workspace_manager = FSWorkspaceManager()
         cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
         cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
-        self.remove_tree(WORKSPACES_DIR)
+        self.remove_tree('.ect-workspace', ignore_errors=False)
 
     def assert_workspace_base_dir(self, base_dir):
-        ws_dir = os.path.abspath(os.path.join(WORKSPACES_DIR, base_dir))
-        self.assertTrue(os.path.isdir(ws_dir))
-        self.assertTrue(os.path.isdir(os.path.join(ws_dir, '.ect-workspace')))
-        self.assertTrue(os.path.isfile(os.path.join(ws_dir, '.ect-workspace', 'workflow.json')))
+        self.assertTrue(os.path.isdir(base_dir))
+        self.assertTrue(os.path.isdir(os.path.join(base_dir, '.ect-workspace')))
+        self.assertTrue(os.path.isfile(os.path.join(base_dir, '.ect-workspace', 'workflow.json')))
 
     def test_ws_init_arg(self):
         base_dir = 'my_workspace'
@@ -137,39 +130,39 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_workspace_base_dir(base_dir)
         self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
         self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
+        self.remove_tree('my_workspace')
 
     def test_ws_init(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
-        self.assert_main(['ws', 'init'], expected_stderr=['workspace exists: '], expected_status=1)
-        self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'init'],
+                         expected_stderr=['workspace exists: '],
+                         expected_status=1)
 
     def test_ws_del(self):
-        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
-        self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a workspace: '], expected_status=1)
+        base_dir = 'my_workspace'
+        self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'del', '-y', base_dir],
+                         expected_stderr=['ect ws: error: not a workspace: '],
+                         expected_status=1)
+        self.remove_tree('my_workspace')
 
     def test_ws_clean(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'read', 'ds', 'test.nc'], expected_stdout=['Resource "ds" set.'])
         self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
-        self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
 
 
 class ResourceCommandTest(CliTestCase):
     def setUp(self):
-        self.remove_tree(WORKSPACES_DIR, ignore_errors=False)
-        os.makedirs(WORKSPACES_DIR)
-
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager(resolve_dir=WORKSPACES_DIR)
+        self.workspace_manager = FSWorkspaceManager()
         cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
         cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
-        self.workspace_manager = None
-        self.remove_tree(WORKSPACES_DIR)
 
     def test_res_read_set_write(self):
         input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')

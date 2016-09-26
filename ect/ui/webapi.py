@@ -45,6 +45,9 @@ CLI_NAME = 'ect-webapi'
 
 LOCALHOST = '127.0.0.1'
 
+ON_INACTIVITY_AUTO_EXIT_AFTER = 15.0 * 60.0  # 15 minutes
+ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
+
 
 class WebAPIServiceError(Exception):
     def __init__(self, cause, *args, **kwargs):
@@ -92,6 +95,7 @@ def get_application():
     application.auto_exit_enabled = False
     application.auto_exit_timer = None
     application.service_info_file = None
+    application.time_of_last_activity = time.clock()
     return application
 
 
@@ -206,6 +210,9 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
                         process_id=os.getpid())
     if service_info_file:
         _write_service_info(service_info, service_info_file)
+    # IOLoop.call_later(delay, callback, *args, **kwargs)
+    if application.auto_exit_enabled:
+        _install_next_inactivity_check(application)
     IOLoop.instance().start()
     return service_info
 
@@ -283,9 +290,10 @@ def _write_service_info(service_info: dict, service_info_file: str) -> None:
         json.dump(service_info, fp, indent='  ')
 
 
-def _exit(application):
+def _exit(application: Application):
     service_info_file = application.service_info_file
     if service_info_file and os.path.isfile(service_info_file):
+        # noinspection PyBroadException
         try:
             os.remove(service_info_file)
         except:
@@ -293,22 +301,43 @@ def _exit(application):
     IOLoop.instance().stop()
 
 
-def _auto_exit(application):
+def _install_next_inactivity_check(application):
+    IOLoop.instance().call_later(ON_INACTIVITY_AUTO_EXIT_AFTER, _check_inactivity, application)
+
+
+def _check_inactivity(application: Application):
+    inactivity_time = time.clock() - application.time_of_last_activity
+    if inactivity_time > ON_INACTIVITY_AUTO_EXIT_AFTER:
+        print('stopping WebAPI service after %.1f seconds of inactivity' % inactivity_time)
+        _auto_exit(application)
+    else:
+        _install_next_inactivity_check(application)
+
+
+def _auto_exit(application: Application):
     IOLoop.instance().add_callback(_exit, application)
 
 
-def _on_workspace_closed(application):
+def _on_workspace_closed(application: Application):
     if not application.auto_exit_enabled:
         return
     workspace_manager = application.workspace_manager
-    if workspace_manager.has_open_workspaces():
-        if application.auto_exit_timer:
-            try:
-                application.auto_exit_timer.cancel()
-            except:
-                pass
-        application.auto_exit_timer = Timer(3.0, _auto_exit, application)
+    num_open_workspaces = workspace_manager.num_open_workspaces()
+    _check_auto_exit(application, num_open_workspaces == 0, ON_ALL_CLOSED_AUTO_EXIT_AFTER)
+
+
+def _check_auto_exit(application: Application, condition: bool, interval: float):
+    if application.auto_exit_timer is not None:
+        # noinspection PyBroadException
+        try:
+            application.auto_exit_timer.cancel()
+        except:
+            pass
+    if condition:
+        application.auto_exit_timer = Timer(interval, _auto_exit, [application])
         application.auto_exit_timer.start()
+    else:
+        application.auto_exit_timer = None
 
 
 def url_pattern(pattern: str):
@@ -372,7 +401,13 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 
 
 # noinspection PyAbstractClass
-class WorkspaceGetHandler(RequestHandler):
+class BaseRequestHandler(RequestHandler):
+    def on_finish(self):
+        self.application.time_of_last_activity = time.clock()
+
+
+# noinspection PyAbstractClass
+class WorkspaceGetHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         open_it = self.get_query_argument('open', default='False').lower() == 'true'
@@ -384,7 +419,7 @@ class WorkspaceGetHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceNewHandler(RequestHandler):
+class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
         save = self.get_query_argument('save', default='False').lower() == 'true'
@@ -398,7 +433,7 @@ class WorkspaceNewHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceOpenHandler(RequestHandler):
+class WorkspaceOpenHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -409,7 +444,7 @@ class WorkspaceOpenHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceCloseHandler(RequestHandler):
+class WorkspaceCloseHandler(BaseRequestHandler):
     def get(self, base_dir):
         save = self.get_query_argument('save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
@@ -422,7 +457,7 @@ class WorkspaceCloseHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceCloseAllHandler(RequestHandler):
+class WorkspaceCloseAllHandler(BaseRequestHandler):
     def get(self):
         save = self.get_query_argument('save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
@@ -435,7 +470,7 @@ class WorkspaceCloseAllHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceSaveHandler(RequestHandler):
+class WorkspaceSaveHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -446,7 +481,7 @@ class WorkspaceSaveHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceSaveAllHandler(RequestHandler):
+class WorkspaceSaveAllHandler(BaseRequestHandler):
     def get(self):
         workspace_manager = self.application.workspace_manager
         try:
@@ -457,7 +492,7 @@ class WorkspaceSaveAllHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceDeleteHandler(RequestHandler):
+class WorkspaceDeleteHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -468,7 +503,7 @@ class WorkspaceDeleteHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceCleanHandler(RequestHandler):
+class WorkspaceCleanHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -479,7 +514,7 @@ class WorkspaceCleanHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResourceSetHandler(RequestHandler):
+class ResourceSetHandler(BaseRequestHandler):
     def post(self, base_dir, res_name):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
@@ -493,7 +528,7 @@ class ResourceSetHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResourceWriteHandler(RequestHandler):
+class ResourceWriteHandler(BaseRequestHandler):
     def get(self, base_dir, res_name):
         file_path = self.get_query_argument('file_path')
         format_name = self.get_query_argument('format_name', default=None)
@@ -506,7 +541,7 @@ class ResourceWriteHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResourcePlotHandler(RequestHandler):
+class ResourcePlotHandler(BaseRequestHandler):
     def get(self, base_dir, res_name):
         var_name = self.get_query_argument('var_name', default=None)
         file_path = self.get_query_argument('file_path', default=None)
@@ -519,7 +554,7 @@ class ResourcePlotHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class VersionHandler(RequestHandler):
+class VersionHandler(BaseRequestHandler):
     def get(self):
         self.write(_status_ok(content={'name': CLI_NAME,
                                        'version': __version__,
