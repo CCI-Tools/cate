@@ -59,12 +59,11 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertEqual(json_dict, dict(status='ok', content=None))
 
         file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
-        data = dict(file_path=file_path)
-        body = urllib.parse.urlencode(data)
         url = encode_url_path('/ws/res/write/{base_dir}/{res_name}',
                               path_args=dict(base_dir=os.path.abspath(base_dir),
-                                             res_name=res_name))
-        response = self.fetch(url, method='POST', body=body)
+                                             res_name=res_name),
+                              query_args=dict(file_path=file_path))
+        response = self.fetch(url, method='GET')
 
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
