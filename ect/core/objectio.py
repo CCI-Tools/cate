@@ -159,7 +159,7 @@ class ObjectIORegistry:
                 object_io_fitnesses[object_io] = fitness
 
         best_object_io = None
-        max_fitness = 0
+        max_fitness = -1
         for object_io, fitness in object_io_fitnesses.items():
             if fitness > max_fitness:
                 best_object_io = object_io

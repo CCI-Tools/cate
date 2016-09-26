@@ -47,6 +47,11 @@ class WriterRegistryTest(TestCase):
         self.assertIsNone(reader)
 
     def test_find_writer(self):
+        writer = OBJECT_IO_REGISTRY.find_writer(filename_ext='.nc')
+        self.assertIsNotNone(writer)
+        self.assertIn(writer.format_name, {'NETCDF3', 'NETCDF4'})
+        self.assertEquals(writer.filename_ext, '.nc')
+
         writer = OBJECT_IO_REGISTRY.find_writer(obj=xr.Dataset(), format_name='NETCDF4')
         self.assertIsNotNone(writer)
         self.assertTrue(writer.format_name == 'NETCDF4')

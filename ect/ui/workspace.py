@@ -126,7 +126,7 @@ class Workspace:
     @classmethod
     def load(cls, base_dir: str) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_dir(base_dir)):
-            raise WindowsError('not a valid workspace: %s' % base_dir)
+            raise WorkspaceError('not a valid workspace: %s' % base_dir)
         try:
             workflow_file = cls.get_workflow_file(base_dir)
             workflow = Workflow.load(workflow_file)
