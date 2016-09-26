@@ -494,9 +494,9 @@ class ResourceSetHandler(RequestHandler):
 
 # noinspection PyAbstractClass
 class ResourceWriteHandler(RequestHandler):
-    def post(self, base_dir, res_name):
-        file_path = self.get_body_argument('file_path')
-        format_name = self.get_body_argument('format_name', default=None)
+    def get(self, base_dir, res_name):
+        file_path = self.get_query_argument('file_path')
+        format_name = self.get_query_argument('format_name', default=None)
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
@@ -507,9 +507,9 @@ class ResourceWriteHandler(RequestHandler):
 
 # noinspection PyAbstractClass
 class ResourcePlotHandler(RequestHandler):
-    def post(self, base_dir, res_name):
-        var_name = self.get_body_argument('var_name')
-        file_path = self.get_body_argument('file_path')
+    def get(self, base_dir, res_name):
+        var_name = self.get_query_argument('var_name', default=None)
+        file_path = self.get_query_argument('file_path', default=None)
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)

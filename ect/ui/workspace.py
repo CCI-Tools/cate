@@ -528,6 +528,13 @@ class WebAPIWorkspaceManager(WorkspaceManager):
             raise error_type(message)
         return json_response.get('content')
 
+    def _query(self, **kwargs: dict):
+        return {key:value for key, value in kwargs.items() if value is not None}
+
+    def _post_data(self, **kwargs: dict):
+        data = urllib.parse.urlencode(self._query(**kwargs))
+        return data.encode() if data else None
+
     @classmethod
     def get_traceback_header(cls) -> str:
         traceback_title = 'ECT WebAPI service traceback'
@@ -568,12 +575,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def close_workspace(self, base_dir: str, save: bool) -> None:
         url = self._url('/ws/close/{base_dir}',
                         path_args=dict(base_dir=base_dir),
-                        query_args=dict(save=save))
+                        query_args=self._query(save=save))
         self._fetch_json(url)
 
     def close_all_workspaces(self, save: bool) -> None:
         url = self._url('/ws/close_all',
-                        query_args=dict(save=save))
+                        query_args=self._query(save=save))
         self._fetch_json(url)
 
     def save_workspace(self, base_dir: str) -> None:
@@ -591,27 +598,27 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self._fetch_json(url)
 
     def clean_workspace(self, base_dir: str) -> None:
-        url = self._url('/ws/clean/{base_dir}', path_args=dict(base_dir=base_dir))
+        url = self._url('/ws/clean/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
         self._fetch_json(url)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
-        data = urllib.parse.urlencode(dict(op_name=op_name, op_args=json.dumps(op_args)))
-        self._fetch_json(url, data=data.encode())
+        self._fetch_json(url, data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NULL) -> None:
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
-                        path_args=dict(base_dir=base_dir, res_name=res_name))
-        data = urllib.parse.urlencode(dict(file_path=file_path, format_name=format_name))
-        self._fetch_json(url, data=data.encode())
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(file_path=file_path, format_name=format_name))
+        self._fetch_json(url)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NULL) -> None:
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
-                        path_args=dict(base_dir=base_dir, res_name=res_name))
-        data = urllib.parse.urlencode(dict(var_name=var_name, file_path=file_path))
-        self._fetch_json(url, data=data.encode())
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(var_name=var_name, file_path=file_path))
+        self._fetch_json(url)
