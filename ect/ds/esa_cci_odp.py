@@ -277,7 +277,8 @@ class EsaCciOdpDataStore(DataStore):
     def _init_data_sources(self) -> str:
         if self._data_sources:
             return
-        self._load_index()
+        if self._index_json_dict is None:
+            self._load_index()
         docs = self._index_json_dict.get('response', {}).get('docs', [])
         self._data_sources = []
         for doc in docs:

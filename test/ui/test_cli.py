@@ -135,6 +135,14 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a workspace: '], expected_status=1)
         self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
+    def test_ws_clean(self):
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
+        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
+        self.assert_workspace_base_dir('.')
+        self.assert_main(['res', 'read', 'ds', 'test.nc'], expected_stdout=['Resource "ds" set.'])
+        self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
+        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+
 
 class ResourceCommandTest(CliTestCase):
     def setUp(self):

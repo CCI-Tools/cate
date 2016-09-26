@@ -9,6 +9,10 @@ from ect.core.util import encode_url_path
 from ect.core.util import extend
 from ect.core.util import object_to_qualified_name, qualified_name_to_object
 from ect.core.util import to_datetime, to_datetime_range
+from ect.core.util import to_list
+
+
+
 
 
 class UndefinedTest(TestCase):
@@ -236,3 +240,23 @@ class UtilTest(TestCase):
 
         with self.assertRaises(ValueError):
             to_datetime_range("211", "2012")
+
+
+class ToListTest(TestCase):
+    def test_none_and_empty(self):
+        self.assertEqual(to_list(None), None)
+        self.assertEqual(to_list([]), [])
+
+    def test_str(self):
+        self.assertEqual(to_list('a'), ['a'])
+        self.assertEqual(to_list('a, b, c'), ['a', 'b', 'c'])
+        self.assertEqual(to_list(['a', 'b', 'c']), ['a', 'b', 'c'])
+        self.assertEqual(to_list(('a', 'b', 'c')), ['a', 'b', 'c'])
+        self.assertEqual(to_list([1, 2, 3]), ['1', '2', '3'])
+
+    def test_int(self):
+        self.assertEqual(to_list(1, dtype=int), [1])
+        self.assertEqual(to_list('1, 2, 3', dtype=int), [1, 2, 3])
+        self.assertEqual(to_list([1, 2, 3], dtype=int), [1, 2, 3])
+        self.assertEqual(to_list((1, 2, 3), dtype=int), [1, 2, 3])
+        self.assertEqual(to_list(['1', '2', '3'], dtype=int), [1, 2, 3])

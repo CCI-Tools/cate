@@ -99,6 +99,12 @@ class Workspace:
         return os.path.join(cls.get_workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
+    def new_workflow(cls, header_dict: dict = None) -> Workflow:
+        return Workflow(OpMetaInfo('workspace_workflow',
+                                   has_monitor=True,
+                                   header_dict=header_dict or {}))
+
+    @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':
         try:
             if not os.path.isdir(base_dir):
@@ -111,9 +117,7 @@ class Workspace:
             elif os.path.isfile(workflow_file):
                 raise WorkspaceError('workspace exists: %s' % base_dir)
 
-            workflow = Workflow(OpMetaInfo('workspace_workflow',
-                                           has_monitor=True,
-                                           header_dict=dict(description=description or '')))
+            workflow = Workspace.new_workflow(dict(description=description or ''))
             workflow.store(workflow_file)
             return Workspace(base_dir, workflow)
         except (IOError, OSError, FileExistsError) as e:
@@ -239,6 +243,10 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def clean_workspace(self, base_dir: str) -> None:
+        pass
+
+    @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str]) -> None:
         pass
@@ -279,6 +287,26 @@ class FSWorkspaceManager(WorkspaceManager):
         assert base_dir not in self._workspace_cache
         self._workspace_cache[base_dir] = workspace
         return workspace
+
+    def clean_workspace(self, base_dir: str) -> None:
+        base_dir = self.resolve_path(base_dir)
+        # noinspection PyBroadException
+        try:
+            workspace = Workspace.load(base_dir)
+        except:
+            workspace = None
+        workflow_file = Workspace.get_workflow_file(base_dir)
+        if os.path.isfile(workflow_file):
+            try:
+                os.remove(workflow_file)
+            except (IOError, OSError) as e:
+                raise WorkspaceError(e)
+        # Create new workflow but keep old header info
+        workflow = Workspace.new_workflow(header_dict=workspace.workflow.op_meta_info.header if workspace else None)
+        workspace = Workspace(base_dir, workflow)
+        self._workspace_cache[base_dir] = workspace
+        workspace.store()
+
 
     def delete_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
@@ -359,6 +387,10 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def delete_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/del/{base_dir}', path_args=dict(base_dir=base_dir))
+        self._fetch_json(url)
+
+    def clean_workspace(self, base_dir: str) -> None:
+        url = self._url('/ws/clean/{base_dir}', path_args=dict(base_dir=base_dir))
         self._fetch_json(url)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
