@@ -1103,7 +1103,10 @@ class WebAPICommand(SubCommandCommand):
         if service_info:
             pid = service_info.get('process_id')
             if pid:
-                os.kill(pid, signal.SIGTERM)
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
                 os.remove(WEBAPI_INFO_FILE)
             else:
                 raise RuntimeError("Missing 'process_id' in status information for WebAPI service.")
