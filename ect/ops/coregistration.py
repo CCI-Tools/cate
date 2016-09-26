@@ -182,10 +182,6 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     master_keys = ds_master.dims.keys()
     slave_keys = ds_master.dims.keys()
 
-    # It is expected that slave and master have the same dimensions
-    if master_keys != slave_keys:
-        return ds_slave
-
     lon = ds_master['lon']
     lat = ds_master['lat']
 
