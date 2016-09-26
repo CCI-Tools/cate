@@ -395,9 +395,6 @@ class FSWorkspaceManager(WorkspaceManager):
             if save and workspace.is_modified:
                 workspace.save()
             workspace.close()
-            print('AAAAAAHH! ', len(self._open_workspaces))
-        else:
-            print('GRRRRRR!')
 
     def close_all_workspaces(self, save: bool) -> None:
         workspaces = self._open_workspaces.values()
