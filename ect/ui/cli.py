@@ -1261,9 +1261,16 @@ def main(args=None):
             try:
                 args_obj.command_class().execute(args_obj)
             except Exception as e:
-                if args_obj.traceback:
+                show_traceback = args_obj.traceback
+                if show_traceback:
                     traceback.print_exc()
                 status, message = 1, str(e)
+                if message and not show_traceback:
+                    # Crop any traceback_header from message
+                    traceback_header = WebAPIWorkspaceManager.get_traceback_header()
+                    traceback_pos = message.find(traceback_header)
+                    if traceback_pos >= 0:
+                        message = message[0: traceback_pos]
         else:
             parser.print_help()
 

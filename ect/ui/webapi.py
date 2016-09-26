@@ -26,6 +26,7 @@ import socket
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 from datetime import date, datetime
 from threading import Timer
@@ -352,9 +353,22 @@ def _status_ok(content: object = None):
 
 
 def _status_error(exception: Exception = None, type_name: str = None, message: str = None):
-    type_name = type_name or (type(exception).__name__ if exception else 'unknown')
-    message = message or (str(exception) if exception else None)
-    return dict(status='error', error=dict(type=type_name, message=message))
+    trace_back = None
+    if exception is not None:
+        trace_back = traceback.format_exc()
+        type_name = type_name or type(exception).__name__
+        message = message or str(exception)
+    error_details = {}
+    if trace_back is not None:
+        error_details['traceback'] = trace_back
+    if type_name:
+        error_details['type'] = type_name
+    if message:
+        error_details['message'] = message
+    response = dict(status='error', error=dict(type=type_name, message=message))
+    if exception is not None:
+        response['traceback'] = traceback.format_exc()
+    return dict(status='error', error=error_details) if error_details else dict(status='error')
 
 
 # noinspection PyAbstractClass

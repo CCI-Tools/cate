@@ -291,7 +291,6 @@ class Workspace:
 
 
 class WorkspaceManager(metaclass=ABCMeta):
-
     @abstractmethod
     def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         pass
@@ -517,13 +516,23 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         with urllib.request.urlopen(url, data=data, timeout=timeout or self.timeout) as response:
             json_text = response.read()
         json_response = json.loads(json_text.decode('utf-8'))
-        status = json_response.get('status', None)
+        status = json_response.get('status')
         if status == 'error':
             error_details = json_response.get('error')
-            message = error_details.get('message', None) if error_details else None
-            type_name = error_details.get('type', None) if error_details else None
-            raise error_type(message or type_name)
-        return json_response.get('content', None)
+            message = error_details.get('message') if error_details else None
+            type_name = error_details.get('type') if error_details else None
+            trace_back = error_details.get('traceback') if error_details else None
+            message = message or type_name or ''
+            if trace_back:
+                message += self.get_traceback_header() + trace_back
+            raise error_type(message)
+        return json_response.get('content')
+
+    @classmethod
+    def get_traceback_header(cls) -> str:
+        traceback_title = 'ECT WebAPI service traceback'
+        traceback_line = len(traceback_title) * '='
+        return '\n' + traceback_line + '\n' + traceback_title + '\n' + traceback_line + '\n'
 
     def is_running(self, timeout: float = None) -> bool:
         # noinspection PyBroadException
