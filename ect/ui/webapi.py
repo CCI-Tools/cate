@@ -22,6 +22,7 @@
 import argparse
 import json
 import os.path
+import signal
 import socket
 import subprocess
 import sys
@@ -46,7 +47,9 @@ CLI_NAME = 'ect-webapi'
 
 LOCALHOST = '127.0.0.1'
 
+# {{ect-config}}
 ON_INACTIVITY_AUTO_EXIT_AFTER = 15.0 * 60.0  # 15 minutes
+# {{ect-config}}
 ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
 
 
@@ -127,7 +130,7 @@ def main(args=None):
     if args_obj.command == 'start':
         start_service(**kwargs)
     else:
-        stop_service(**kwargs)
+        stop_service(kill_after=10.0, timeout=10.0, **kwargs)
 
 
 def start_service_subprocess(port: int = None,
@@ -204,13 +207,11 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
             port = service_info.get('port')
             address = service_info.get('address') or LOCALHOST
             if is_service_running(port, address):
-                print('WebAPI service already running on %s%s, reusing it' % (address, port))
+                print('WebAPI service already running on %s:%s, reusing it' % (address, port))
                 return service_info
             else:
-                pid = service_info.get('process_id')
-                # TODO (forman, 20160927): os.kill(pid, SIGTERM)
-                raise WebAPIServiceError('WebAPI service info file exists: %s, '
-                                         'service might hang, consider killing process %d' % (service_info_file, pid))
+                # Try shutting down the service, even violently
+                stop_service(service_info_file, kill_after=5.0, timeout=5.0)
         else:
             # print('warning: service info file exists: %s, removing it' % service_info_file)
             # os.remove(service_info_file)
@@ -220,7 +221,7 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     application.service_info_file = service_info_file
     application.auto_exit_enabled = caller == 'ect'
     port = port or find_free_port()
-    print('starting ECT WebAPI on %s%s' % (address or LOCALHOST, port))
+    print('starting ECT WebAPI on %s:%s' % (address or LOCALHOST, port))
     application.listen(port, address=address or '')
     io_loop = IOLoop()
     io_loop.make_current()
@@ -238,7 +239,12 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     return service_info
 
 
-def stop_service(port=None, address=None, caller: str = None, service_info_file: str = None) -> dict:
+def stop_service(port=None,
+                 address=None,
+                 caller: str = None,
+                 service_info_file: str = None,
+                 kill_after: float = None,
+                 timeout: float = 10.0) -> dict:
     """
     Stop a WebAPI service.
 
@@ -246,6 +252,8 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     :param address:
     :param caller:
     :param service_info_file:
+    :param kill_after: if not ``None``, the number of seconds to wait after a hanging service process will be killed
+    :param timeout:
     :return: service information dictionary
     """
     service_info = {}
@@ -258,13 +266,35 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     port = port or service_info.get('port')
     address = address or service_info.get('address')
     caller = caller or service_info.get('caller')
+    pid = service_info.get('process_id')
 
     if not port:
         raise WebAPIServiceError('cannot stop WebAPI service on unknown port (caller: %s)' % caller)
 
     address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('stopping ECT WebAPI on %s' % address_and_port)
-    urllib.request.urlopen('http://%s/exit' % address_and_port)
+
+    # noinspection PyBroadException
+    try:
+        with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout) as response:
+            response.read()
+    except:
+        # Either process does not exist, or timeout, or some other error
+        pass
+
+    # Note: is_service_running() should be replaced by is_process_active(pid)
+    if kill_after and pid and is_service_running(port, address):
+        # If we have a PID and the service runs
+        time.sleep(kill_after)
+        # Note: is_service_running() should be replaced by is_process_active(pid)
+        if is_service_running(port, address):
+            # noinspection PyBroadException
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except:
+                pass
+            if os.path.isfile(service_info_file):
+                os.remove(service_info_file)
 
     return dict(port=port, address=address, caller=caller, started=service_info.get('started', None))
 
