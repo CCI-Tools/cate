@@ -30,42 +30,38 @@ Components
 """
 
 import xarray as xr
-import re
+from typing import Union, List
+import fnmatch
 
-from ect.core.op import op, op_input, op_return
+from ect.core.op import op
+from ect.core.util import to_list
 
 
-@op(tags=['select', 'subset'])
-@op_input('ds')
-@op_input('variable_names')
-@op_return()
-def select_variables(ds: xr.Dataset, variable_names: str = None) -> xr.Dataset:
+@op(tags=['select', 'subset', 'filter', 'var'])
+# TODO (Gailis, 27.09.16) See issues #45 and #46
+#def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
+def select_var(ds: xr.Dataset, var = None) -> xr.Dataset:
     """
-    Filter the dataset, by leaving only the desired variables. The original dataset
+    Filter the dataset, by leaving only the desired variables in it. The original dataset
     information, including original coordinates, is preserved.
 
-    If the selected variable has meta-variables associated with it, these will
-    be preserved in the database as well.
-
-    .. _regex: https://docs.python.org/3.5/library/re.html
-    .. regexr.com
-
-    :param ds: The dataset.
-    :param variable_names: A regex pattern that identifies the variables to keep.
-    For example, to simply select two variables to keep, use regex OR operator
-    'variable_name|variable_name2'. Selection 'variable_name' will select the given
-    variable, along with any auxiliary variables 'variable_name_xxxx'. To select a single
-    variable explicitly one can use 'variable_name\Z'.
+    :param ds: The dataset from which to perform selection.
+    :param var: One or more variable names to select and preserve in the dataset.
+    All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2'].
+    One can also use wildcards when doing the selection. E.g., choosing 'var_name*' for selection
+    will select all variables that start with 'var_name'. This can be used to select variables
+    along with their auxiliary variables, to select all uncertainty variables, and so on.
     :return: A filtered dataset
     """
-    if not variable_names:
+    if not var:
         return ds
 
+    var_names = to_list(var, name='var')
     dropped_var_names = list(ds.data_vars.keys())
 
-    prog = re.compile(variable_names)
-    for dropped_var_name in list(dropped_var_names):
-        if prog.match(dropped_var_name):
-            dropped_var_names.remove(dropped_var_name)
+    for pattern in var_names:
+        keep = fnmatch.filter(dropped_var_names, pattern)
+        for name in keep:
+            dropped_var_names.remove(name)
 
     return ds.drop(dropped_var_names)

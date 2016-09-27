@@ -45,7 +45,7 @@ Components
 ==========
 """
 
-from .select import select_variables
+from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation
 from .harmonize import harmonize
@@ -62,7 +62,7 @@ __all__ = [
     'downsample_2d',
     'upsample_2d',
     'harmonize',
-    'select_variables',
+    'select_var',
     'coregister',
     'subset_spatial',
     'subset_temporal',
