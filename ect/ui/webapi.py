@@ -184,8 +184,13 @@ def _join_command(sub_command, port, address, caller, service_info_file):
 
 def start_service(port: int = None, address: str = None, caller: str = None, service_info_file: str = None) -> dict:
     """
-    Start a WebAPI service. The *service_info_file*, if given, represents the service in the filesystem, similar to
+    Start a WebAPI service.
+
+    The *service_info_file*, if given, represents the service in the filesystem, similar to
     the ``/var/run/`` directory on Linux systems.
+
+    If the service file exist and its information is compatible with the requested *port*, *address*, *caller*, then
+    this function simply returns without taking any other actions.
 
     :param port: the port number
     :param address: the address
@@ -201,7 +206,15 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
             if is_service_running(port, address):
                 print('WebAPI service already running on %s%s, reusing it' % (address, port))
                 return service_info
-        raise WebAPIServiceError('service info file exists: %s' % service_info_file)
+            else:
+                pid = service_info.get('process_id')
+                # TODO (forman, 20160927): os.kill(pid, SIGTERM)
+                raise WebAPIServiceError('WebAPI service info file exists: %s, '
+                                         'service might hang, consider killing process %d' % (service_info_file, pid))
+        else:
+            # print('warning: service info file exists: %s, removing it' % service_info_file)
+            # os.remove(service_info_file)
+            raise WebAPIServiceError('WebAPI service info file exists: %s' % service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
