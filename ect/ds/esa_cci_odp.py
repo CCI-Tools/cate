@@ -43,13 +43,12 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, date
-from typing import Sequence, Tuple, Union
+from datetime import datetime, timedelta
+from typing import Sequence, Tuple
 
 import xarray as xr
 from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from ect.core.monitor import Monitor
-from ect.core.util import to_datetime
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
@@ -81,7 +80,7 @@ def set_default_data_store():
     All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json`` contained in this package.
     This JSON file has been generated from a scan of the entire FTP tree.
     """
-    DATA_STORE_REGISTRY.add_data_store('default', EsaCciOdpDataStore())
+    DATA_STORE_REGISTRY.add_data_store(EsaCciOdpDataStore())
 
 
 def find_datetime_format(filename: str) -> Tuple[str, int, int]:
@@ -227,10 +226,11 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
 
 class EsaCciOdpDataStore(DataStore):
     def __init__(self,
+                 name: str = 'esa_cci_odp',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None):
-        super(EsaCciOdpDataStore, self).__init__()
+        super().__init__(name)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._index_json_dict = index_cache_json_dict

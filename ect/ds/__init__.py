@@ -51,3 +51,6 @@ def ect_init():
     # from .esa_cci_ftp import set_default_data_store
     from .esa_cci_odp import set_default_data_store
     set_default_data_store()
+
+    from .local import add_to_data_store
+    add_to_data_store()

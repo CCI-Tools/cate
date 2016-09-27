@@ -21,13 +21,22 @@ def _create_test_data_store():
         json_text = fp.read()
     json_dict = json.loads(json_text)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore(index_cache_json_dict=json_dict)
+    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
 
 
 class CliTestCase(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
-        DATA_STORE_REGISTRY.add_data_store("default", _create_test_data_store())
+        cls._orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
+        DATA_STORE_REGISTRY._data_stores.clear()
+        DATA_STORE_REGISTRY.add_data_store(_create_test_data_store())
+
+    @classmethod
+    def tearDownClass(cls):
+        DATA_STORE_REGISTRY._data_stores.clear()
+        for data_store in cls._orig_stores:
+            DATA_STORE_REGISTRY.add_data_store(data_store)
 
     def assert_main(self,
                     args: Union[None, List[str]],
@@ -277,6 +286,7 @@ class DataSourceCommandTest(CliTestCase):
                                          "    list      List all available data sources\n"
                                          "    sync      Synchronise a remote data source with its local version.\n"
                                          "    info      Display information about a data source.\n"
+                                         "    def       Define a data source using a local file pattern.\n"
                                          "\n"
                                          "optional arguments:\n"
                                          "  -h, --help  show this help message and exit\n")

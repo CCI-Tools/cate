@@ -179,6 +179,16 @@ class DataStore(metaclass=ABCMeta):
 
     # Check Iris "Constraint" class to implement user-friendly, efficient filters (mzuehlke, forman, 20160603)
 
+    def __init__(self, name: str):
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        """
+        Return he name of this data store.
+        """
+        return self._name
+
     @abstractmethod
     def query(self, name=None, monitor: Monitor = Monitor.NULL) -> Sequence[DataSource]:
         """
@@ -219,8 +229,8 @@ class DataStoreRegistry:
     def get_data_stores(self) -> Sequence[DataStore]:
         return self._data_stores.values()
 
-    def add_data_store(self, name: str, data_store: DataStore):
-        self._data_stores[name] = data_store
+    def add_data_store(self, data_store: DataStore):
+        self._data_stores[data_store.name] = data_store
 
     def remove_data_store(self, name: str):
         del self._data_stores[name]

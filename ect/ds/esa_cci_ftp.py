@@ -45,7 +45,7 @@ import os.path
 import pkgutil
 import urllib.parse
 from collections import OrderedDict
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from io import StringIO, IOBase
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
@@ -71,8 +71,8 @@ def set_default_data_store():
     """
     ect_data_root_dir = os.environ.get('ECT_DATA_ROOT', _DATA_ROOT)
     json_data = pkgutil.get_data('ect.ds', 'esa_cci_ftp.json')
-    data_store = FileSetDataStore.from_json(ect_data_root_dir, json_data.decode('utf-8'))
-    DATA_STORE_REGISTRY.add_data_store('default', data_store)
+    data_store = FileSetDataStore.from_json('esa_cci_ftp', ect_data_root_dir, json_data.decode('utf-8'))
+    DATA_STORE_REGISTRY.add_data_store(data_store)
 
 
 class FileSetDataSource(DataSource):
@@ -470,7 +470,8 @@ class FileSetDataStore(DataStore):
     :param remote_url: Optional URL of the data store's remote service.
     """
 
-    def __init__(self, root_dir: str, remote_url: str = None):
+    def __init__(self, name: str, root_dir: str, remote_url: str = None):
+        super().__init__(name)
         self._root_dir = root_dir
         self._remote_url = remote_url
         self._data_sources = []
@@ -521,8 +522,8 @@ class FileSetDataStore(DataStore):
         self._data_sources.extend(data_sources)
 
     @classmethod
-    def from_json(cls, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetDataStore':
-        data_store = FileSetDataStore(root_dir)
+    def from_json(cls, name: str, root_dir: str, json_fp_or_str: Union[str, IOBase]) -> 'FileSetDataStore':
+        data_store = FileSetDataStore(name, root_dir)
         data_store.load_from_json(json_fp_or_str)
         return data_store
 

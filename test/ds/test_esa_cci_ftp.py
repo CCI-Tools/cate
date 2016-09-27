@@ -12,7 +12,7 @@ from ect.ds.esa_cci_ftp import FileSetDataStore, set_default_data_store
 class EsaCciFtpTest(TestCase):
     def test_set_default_data_store(self):
         set_default_data_store()
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
+        data_store = DATA_STORE_REGISTRY.get_data_store('esa_cci_ftp')
         self.assertIsInstance(data_store, FileSetDataStore)
         self.assertEqual(data_store.root_dir,
                          os.path.expanduser(os.path.join('~', '.ect', 'data_stores', 'esa_cci_ftp')))
@@ -39,9 +39,10 @@ class FileSetDataSourceTest(TestCase):
      ]}'''
 
     def setUp(self):
-        data_store = FileSetDataStore.from_json('TEST_ROOT_DIR', FileSetDataSourceTest.JSON)
+        data_store = FileSetDataStore.from_json('test', 'TEST_ROOT_DIR', FileSetDataSourceTest.JSON)
         self.assertIsNotNone(data_store)
         self.assertEqual(2, len(data_store._data_sources))
+        self.assertEqual('test', data_store.name)
         self.ds0 = data_store._data_sources[0]
         self.ds1 = data_store._data_sources[1]
 
@@ -120,9 +121,9 @@ class FileSetDataSourceTest(TestCase):
 
 class DataStoreRegistryTest(TestCase):
     def setUp(self):
-        self.c1 = FileSetDataStore('root')
-        self.c2 = FileSetDataStore('root')
-        self.c3 = FileSetDataStore('root')
+        self.c1 = FileSetDataStore('c1', 'root')
+        self.c2 = FileSetDataStore('c2', 'root')
+        self.c3 = FileSetDataStore('c3', 'root')
 
     def test_init(self):
         data_store_registry = io.DataStoreRegistry()
@@ -130,17 +131,17 @@ class DataStoreRegistryTest(TestCase):
 
     def test_add(self):
         data_store_registry = io.DataStoreRegistry()
-        data_store_registry.add_data_store('c1', self.c1)
+        data_store_registry.add_data_store(self.c1)
         self.assertEqual(1, len(data_store_registry))
-        data_store_registry.add_data_store('c2', self.c2)
+        data_store_registry.add_data_store(self.c2)
         self.assertEqual(2, len(data_store_registry))
-        data_store_registry.add_data_store('c2', self.c3)
+        data_store_registry.add_data_store(self.c2)
         self.assertEqual(2, len(data_store_registry))
 
     def test_remove(self):
         data_store_registry = io.DataStoreRegistry()
-        data_store_registry.add_data_store('c1', self.c1)
-        data_store_registry.add_data_store('c2', self.c2)
+        data_store_registry.add_data_store(self.c1)
+        data_store_registry.add_data_store(self.c2)
         self.assertEqual(2, len(data_store_registry))
         data_store_registry.remove_data_store('c1')
         self.assertEqual(1, len(data_store_registry))
@@ -150,8 +151,8 @@ class DataStoreRegistryTest(TestCase):
 
     def test_get_data_store(self):
         data_store_registry = io.DataStoreRegistry()
-        data_store_registry.add_data_store('c1', self.c1)
-        data_store_registry.add_data_store('c2', self.c2)
+        data_store_registry.add_data_store(self.c1)
+        data_store_registry.add_data_store(self.c2)
         self.assertEqual(2, len(data_store_registry))
 
         rc2 = data_store_registry.get_data_store('c2')
@@ -164,8 +165,8 @@ class DataStoreRegistryTest(TestCase):
 
     def test_get_data_stores(self):
         data_store_registry = io.DataStoreRegistry()
-        data_store_registry.add_data_store('c1', self.c1)
-        data_store_registry.add_data_store('c2', self.c2)
+        data_store_registry.add_data_store(self.c1)
+        data_store_registry.add_data_store(self.c2)
         self.assertEqual(2, len(data_store_registry))
 
         data_stores = data_store_registry.get_data_stores()
@@ -176,7 +177,7 @@ class DataStoreRegistryTest(TestCase):
 class FileSetDataStoreTest(TestCase):
     def test_it(self):
         root_dir = 'ROOT'
-        data_store = FileSetDataStore.from_json(root_dir, FileSetDataSourceTest.JSON)
+        data_store = FileSetDataStore.from_json('test', root_dir, FileSetDataSourceTest.JSON)
         self.assertIsNotNone(data_store)
         self.assertEqual('ROOT', data_store.root_dir)
         query_results = data_store.query()

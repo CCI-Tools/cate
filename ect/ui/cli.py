@@ -104,7 +104,7 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
-from ect.core.io import DATA_STORE_REGISTRY, open_dataset
+from ect.core.io import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
@@ -992,25 +992,22 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display information about contained dataset variables.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
+        def_parser = subparsers.add_parser('def', help='Define a data source using a local file pattern.')
+        def_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        def_parser.add_argument('file_pattern', metavar='PATTERN', help='A file glob that includes all files '
+                                                                        'belonging to this data source.')
+        def_parser.set_defaults(sub_command_function=cls._execute_def)
+
     @classmethod
     def _execute_list(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.name
-
-        _list_items('data source', 'data sources',
-                    sorted(data_source.name for data_source in data_store.query()), ds_name)
+        ds_names = sorted(data_source.name for data_source in query_data_sources())
+        _list_items('data source', 'data sources', ds_names, ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in data_store.query(name=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in query_data_sources(name=ds_name) if data_source.name == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -1030,12 +1027,8 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_sync(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.ds_name
-        data_sources = data_store.query(name=ds_name)
+        data_sources = query_data_sources(name=ds_name)
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -1051,6 +1044,17 @@ class DataSourceCommand(SubCommandCommand):
         num_sync, num_total = data_source.sync(time_range=time_range,
                                                monitor=cls.new_monitor())
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
+
+    @classmethod
+    def _execute_def(cls, command_args):
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if local_store is None:
+            raise RuntimeError('internal error: no local data store found')
+
+        ds_name = command_args.ds_name
+        file_pattern = command_args.file_pattern
+        name = local_store.add_pattern(ds_name, file_pattern)
+        print("Added local data source with name: '%s'" % name)
 
 
 class WebAPICommand(SubCommandCommand):
