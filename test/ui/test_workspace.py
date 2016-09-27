@@ -17,6 +17,7 @@ class WorkspaceManagerTestMixin:
         raise NotImplementedError
 
     def new_base_dir(self, base_dir):
+        base_dir = os.path.abspath(base_dir)
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
         return base_dir
