@@ -60,7 +60,12 @@ def subset_spatial(ds: xr.Dataset,
 #def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
 def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
     """
-    Do a temporal subset of the dataset
+    Do a temporal subset of the dataset. When using this operation on the
+    command line, it is neccessary to enclose the times in quotes, or in
+    escaped quotes when on Linux.
+
+    Windows time_min='YYYY-MM-DD'
+    Linux(bash) time_min=\\'YYYY-MM-DD\\'
 
     :param ds: Dataset to subset
     :param time_min: Minimum time 'YYYY-MM-DD'
