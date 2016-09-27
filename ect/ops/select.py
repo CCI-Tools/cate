@@ -38,7 +38,9 @@ from ect.core.util import to_list
 
 
 @op(tags=['select', 'subset', 'filter', 'var'])
-def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
+# TODO (Gailis, 27.09.16) See issues #45 and #46
+#def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
+def select_var(ds: xr.Dataset, var = None) -> xr.Dataset:
     """
     Filter the dataset, by leaving only the desired variables in it. The original dataset
     information, including original coordinates, is preserved.
