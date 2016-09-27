@@ -33,6 +33,7 @@ import xarray as xr
 
 from ect.core.op import op_input, op
 from ect.core.util import to_list
+import fnmatch
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
@@ -66,10 +67,13 @@ def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: str, method: str 
 
     var_names = to_list(var, name='var')
     retset = xr.Dataset()
+    keys = list(ds.data_vars.keys())
 
-    for name in var_names:
-        indexers = {'lat': lat, 'lon': lon}
-        retset[str(name+'_ts_{}_{}'.format(lat, lon))] = ds[name].sel(method=method, **indexers)
+    for pattern in var_names:
+        names = fnmatch.filter(keys, pattern)
+        for name in names:
+            indexers = {'lat': lat, 'lon': lon}
+            retset[str(name+'_ts_{}_{}'.format(lat, lon))] = ds[name].sel(method=method, **indexers)
 
     return retset
 
@@ -97,10 +101,13 @@ def tseries_mean(ds: xr.Dataset, var: str) -> xr.Dataset:
     # This is a shallow copy
     retset = ds.copy()
     var_names = to_list(var, name='var')
+    keys = list(ds.data_vars.keys())
 
-    for name in var_names:
-        dims = list(ds[name].dims)
-        dims.remove('time')
-        retset[name+'_ts_mean'] = ds[name].mean(dim = dims)
+    for pattern in var_names:
+        names = fnmatch.filter(keys, pattern)
+        for name in names:
+            dims = list(ds[name].dims)
+            dims.remove('time')
+            retset[name+'_ts_mean'] = ds[name].mean(dim = dims)
 
     return retset
