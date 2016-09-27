@@ -18,7 +18,7 @@ class TestCorrelation(TestCase):
         dataset2 = xr.Dataset({
             'first': ('time', np.linspace(5,0,6))})
 
-        correlation = pearson_correlation(dataset, dataset2, path='remove_me.txt')
+        correlation = pearson_correlation(dataset, dataset2, 'first', 'first', file='remove_me.txt')
         self.assertTrue(os.path.isfile('remove_me.txt'))
         os.remove('remove_me.txt')
         
@@ -36,6 +36,6 @@ class TestCorrelation(TestCase):
             dataset2 = xr.Dataset({
                 'first': ('time', np.linspace(5,0,6))})
 
-            correlation = pearson_correlation(dataset, dataset2, path='remove_me.txt')
+            correlation = pearson_correlation(dataset, dataset2, file='remove_me.txt')
 
         self.assertFalse(os.path.isfile('remove_me.txt'))
