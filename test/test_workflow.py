@@ -707,6 +707,36 @@ class OpStepTest(TestCase):
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
 
+        # Invoke OpStep, and assert that output values are NOT serialized to JSON
+        step3.input.u.value = 2.8
+        step3.input.v.value = 1.2
+        step3.invoke()
+        step3_dict = step3.to_json_dict()
+
+        expected_json_text = """
+        {
+            "id": "op3",
+            "op": "test.test_workflow.Op3",
+            "input": {
+                "v": {"value": 1.2},
+                "u": {"value": 2.8}
+            },
+            "output": {
+                "w": {}
+            }
+        }
+        """
+
+        actual_json_text = json.dumps(step3_dict)
+
+        expected_json_obj = json.loads(expected_json_text)
+        actual_json_obj = json.loads(actual_json_text)
+
+        self.assertEqual(actual_json_obj, expected_json_obj,
+                         msg='\n%sexpected:\n%s\n%s\nbut got:\n%s\n' %
+                             (120 * '-', expected_json_text,
+                              120 * '-', actual_json_text))
+
 
 class NoOpStepTest(TestCase):
     def test_init(self):

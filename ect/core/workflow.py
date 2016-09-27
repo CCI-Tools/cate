@@ -1150,7 +1150,10 @@ class NodePort:
         if self._source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
         elif self._value is not UNDEFINED:
-            json_dict['value'] = self._value
+            # TODO (forman, 20160927): do not serialize output values, they may not be JSON-serializable (hack!)
+            write_value = self._name not in self._node.op_meta_info.output
+            if write_value:
+                json_dict['value'] = self._value
         return json_dict
 
     def __str__(self):
