@@ -50,16 +50,17 @@ def coregister(ds_master: xr.Dataset,
         method_ds: str = 'mean') -> xr.Dataset:
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
-    grid of the master. If downsampling has to be performed, this is achieved using
-    interpolation, if upsampling has to be performed, the pixels of the slave dataset
+    grid of the master. If upsampling has to be performed, this is achieved using
+    interpolation, if downsampling has to be performed, the pixels of the slave dataset
     are aggregated to form a coarser grid.
 
     This operation works on datasets whose spatial dimensions are defined on global,
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
-    define the middle of a pixel.
+    define the middle of a pixel and pixels have the same size across the dataset.
 
     This operation will resample all variables in a dataset, as the lat/lon grid is 
-    defined per dataset.
+    defined per dataset. It works only if all variables in the dataset have (time/lat/lon)
+    dimensions.
 
     For an overview of downsampling/upsampling methods used in this operation, please
     see https://github.com/CAB-LAB/gridtools
@@ -69,10 +70,8 @@ def coregister(ds_master: xr.Dataset,
 
     :param ds_master: The dataset whose grid is used for resampling
     :param ds_slave: The dataset that will be resampled
-    :param method_us: Interpolation method to use for upsampling. Possible values are 
-    'nearest' or 'bilinear'. The default value is 'linear'.
-    :param method_ds: Interpolation method to use for downsampling. Possible values
-    are 'first', 'last', 'mean', 'mode', 'var', 'std'. The default value is 'mean'.
+    :param method_us: Interpolation method to use for upsampling.
+    :param method_ds: Interpolation method to use for downsampling.
     :return: The slave dataset resampled on the grid of the master
     """
     # Check if the grid is global, equidistant and pixel-registered
