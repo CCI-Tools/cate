@@ -34,6 +34,7 @@ from threading import Timer
 from typing import Optional
 
 from ect.ui.workspace import FSWorkspaceManager
+from ect.core.util import cwd
 from ect.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
@@ -498,7 +499,6 @@ class WorkspaceGetHandler(BaseRequestHandler):
 class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        os.chdir(base_dir)
         save = self.get_query_argument('save', default='False').lower() == 'true'
         description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
@@ -512,7 +512,6 @@ class WorkspaceNewHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceOpenHandler(BaseRequestHandler):
     def get(self, base_dir):
-        os.chdir(base_dir)
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.open_workspace(base_dir)
@@ -594,13 +593,13 @@ class WorkspaceCleanHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class ResourceSetHandler(BaseRequestHandler):
     def post(self, base_dir, res_name):
-        os.chdir(base_dir)
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
         op_args = json.loads(op_args) if op_args else None
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
+            with cwd(base_dir):
+                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -609,12 +608,12 @@ class ResourceSetHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class ResourceWriteHandler(BaseRequestHandler):
     def get(self, base_dir, res_name):
-        os.chdir(base_dir)
         file_path = self.get_query_argument('file_path')
         format_name = self.get_query_argument('format_name', default=None)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
+            with cwd(base_dir):
+                workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -623,12 +622,12 @@ class ResourceWriteHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class ResourcePlotHandler(BaseRequestHandler):
     def get(self, base_dir, res_name):
-        os.chdir(base_dir)
         var_name = self.get_query_argument('var_name', default=None)
         file_path = self.get_query_argument('file_path', default=None)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
+            with cwd(base_dir):
+                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
