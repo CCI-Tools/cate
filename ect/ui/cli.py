@@ -95,8 +95,10 @@ Components
 """
 
 import argparse
+import os
 import os.path
 import pprint
+import signal
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
@@ -112,10 +114,6 @@ from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
-import os
-import signal
-
-
 
 # Explicitly load ECT-internal plugins.
 __import__('ect.ds')
@@ -725,7 +723,6 @@ class WorkspaceCommand(SubCommandCommand):
             stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
 
-
 class ResourceCommand(SubCommandCommand):
     """
     The ``ws`` command implements various operations w.r.t. *workspaces*.
@@ -880,7 +877,6 @@ class ResourceCommand(SubCommandCommand):
                                                   var_name=command_args.var_name,
                                                   file_path=command_args.file_path,
                                                   monitor=cls.new_monitor())
-
 
 
 class OperationCommand(SubCommandCommand):
@@ -1114,7 +1110,6 @@ class WebAPICommand(SubCommandCommand):
                 raise RuntimeError("Missing 'process_id' in status information for WebAPI service.")
         else:
             print('No status information for WebAPI service available.')
-
 
     # noinspection PyUnusedLocal
     @classmethod
