@@ -30,6 +30,7 @@ import traceback
 import urllib.request
 from datetime import date, datetime
 from threading import Timer
+from typing import Optional
 
 from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
@@ -183,7 +184,8 @@ def _join_command(sub_command, port, address, caller, service_info_file):
 
 def start_service(port: int = None, address: str = None, caller: str = None, service_info_file: str = None) -> dict:
     """
-    Start a WebAPI service.
+    Start a WebAPI service. The *service_info_file*, if given, represents the service in the filesystem, similar to
+    the ``/var/run/`` directory on Linux systems.
 
     :param port: the port number
     :param address: the address
@@ -191,15 +193,21 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     :param service_info_file: If not ``None``, a service information JSON file will be written to *service_info_file*.
     :return: service information dictionary
     """
-    if service_info_file and os.path.exists(service_info_file):
+    if service_info_file and os.path.isfile(service_info_file):
+        service_info = read_service_info(service_info_file)
+        if is_service_compatible(port, address, caller, service_info):
+            port = service_info.get('port')
+            address = service_info.get('address') or LOCALHOST
+            if is_service_running(port, address):
+                print('WebAPI service already running on %s%s, reusing it' % (address, port))
+                return service_info
         raise WebAPIServiceError('service info file exists: %s' % service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
     application.auto_exit_enabled = caller == 'ect'
     port = port or find_free_port()
-    address_and_port = '%s:%s' % (address or LOCALHOST, port)
-    print('starting ECT WebAPI on %s' % address_and_port)
+    print('starting ECT WebAPI on %s%s' % (address or LOCALHOST, port))
     application.listen(port, address=address or '')
     io_loop = IOLoop()
     io_loop.make_current()
@@ -234,9 +242,9 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
             raise RuntimeWarning('WebAPI service not running')
         service_info = service_info or {}
 
-    port = port or service_info.get('port', None)
-    address = address or service_info.get('address', None)
-    caller = caller or service_info.get('caller', None)
+    port = port or service_info.get('port')
+    address = address or service_info.get('address')
+    caller = caller or service_info.get('caller')
 
     if not port:
         raise WebAPIServiceError('cannot stop WebAPI service on unknown port (caller: %s)' % caller)
@@ -246,6 +254,29 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     urllib.request.urlopen('http://%s/exit' % address_and_port)
 
     return dict(port=port, address=address, caller=caller, started=service_info.get('started', None))
+
+
+def is_service_compatible(port: Optional[int], address: Optional[str], caller: Optional[str],
+                          service_info: dict) -> bool:
+    if not port and not service_info.get('port'):
+        # This means we have a service_info without port, should actually never happen,
+        # but who knows, service_info_file may have been modified.
+        return False
+    port_ok = port == service_info.get('port') if port and port > 0 else True
+    address_ok = address == service_info.get('address') if address else True
+    caller_ok = caller == service_info.get('caller') if caller else True
+    return port_ok and address_ok and caller_ok
+
+
+def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
+    url = 'http://%s:%s/' % (address or '127.0.0.1', port)
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            json_text = response.read()
+    except:
+        return False
+    json_response = json.loads(json_text.decode('utf-8'))
+    return json_response.get('status') == 'ok'
 
 
 def find_free_port():

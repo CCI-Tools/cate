@@ -75,6 +75,32 @@ class WebAPITest(AsyncHTTPTestCase):
             shutil.rmtree(base_dir)
 
 
+class IsServiceCompatibleTest(unittest.TestCase):
+    def test_is_service_compatible_true(self):
+        self.assertTrue(webapi.is_service_compatible(None, None, None,
+                                                     service_info=dict(port=8675, address=None, caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address=None, caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address='bibo', caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address='bibo', caller='ect-gui')))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address=None, caller='ect-gui')))
+        self.assertTrue(webapi.is_service_compatible(8675, None, 'ect',
+                                                     service_info=dict(port=8675, address=None, caller='ect')))
+
+    def test_is_service_compatible_false(self):
+        self.assertFalse(webapi.is_service_compatible(None, None, None,
+                                                      service_info=dict(port=None, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, None,
+                                                      service_info=dict(port=None, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, None,
+                                                      service_info=dict(port=7685, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, 'ect',
+                                                      service_info=dict(port=7684, address=None, caller='ect-gui')))
+
+
 class UrlPatternTest(unittest.TestCase):
     def test_url_pattern_works(self):
         re_pattern = webapi.url_pattern('/open/{{id1}}ws/{{id2}}wf')
