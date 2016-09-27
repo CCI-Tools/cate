@@ -59,7 +59,7 @@ def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: str, method: str 
     :param method: Interpolation method to use.
     :return: A timeseries dataset
     """
-    # We cab't add these point time-series to the original dataset, because each of the
+    # We can't add these point time-series to the original dataset, because each of the
     # point timeseries variables have dimensions lat/lon of size one that conflict with
     # the original lat/lon definition.
     if not var:
