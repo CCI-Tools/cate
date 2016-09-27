@@ -36,11 +36,15 @@ from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace, encode_url_path
 from ect.core.workflow import Workflow, OpStep, NodePort, ValueCache
 
+
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
+# {{ect-config}}
+# allow one hour timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
+PLOT_TIMEOUT = 60. * 60.
 
-# TODO (forman, 20160908): implement file lock for workspaces in access
+# TODO (forman, 20160908): implement file lock for opened workspaces
 
 
 class WorkspaceError(Exception):
@@ -621,4 +625,4 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(var_name=var_name, file_path=file_path))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=PLOT_TIMEOUT)
