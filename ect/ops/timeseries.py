@@ -31,16 +31,15 @@ Components
 
 import xarray as xr
 
-from ect.core.op import op_input, op_return, op
+from ect.core.op import op_input, op
+from ect.core.util import to_list
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
-@op_input('ds')
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
-@op_return(description='A timeseries dataset.')
-def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') -> xr.Dataset:
+def tseries_point(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') -> xr.Dataset:
     """
     Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method*.
 
@@ -54,40 +53,36 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
         raise ValueError('The timeseries operation is implemented only for '
                          'a three dimensional dataset with a time dimension.')
 
-    lat_dim = _get_lat_dim_name(ds)
-    lon_dim = _get_lon_dim_name(ds)
-    indexers = {lat_dim: lat, lon_dim: lon}
+    indexers = {'lat': lat, 'lon': lon}
     return ds.sel(method=method, **indexers)
 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
-def timeseries_mean(ds: xr.Dataset):
+# TODO (Gailis, 27.09.16) See issues #45 and #46
+#def timeseries_mean(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
+def tseries_mean(ds: xr.Dataset, var: str = None) -> xr.Dataset:
     """
-    Extract spatial mean timeseries from the given dataset
+    Extract spatial mean timeseries of the provided variables, return the
+    dataset that in addition to all the information in the given dataset
+    contains also timeseries data for the provided variables, following
+    naming convention 'var_name1_ts_mean'
+
+    If a data variable with more dimensions than time/lat/lon is provided,
+    the data will be reduced by taking the mean of all data values at a single
+    time position resulting in one dimensional timeseries data variable.
 
     :param ds: The dataset from which to perform timeseries extraction.
-    :return: Time series dataset
+    :return: Dataset with timeseries variables
     """
-    if len(ds.dims) != 3 or not ('time' in ds.dims):
-        raise ValueError('The timeseries operation is implemented only for '
-                         'a three dimensional dataset with a time dimension.')
+    if not var:
+        return ds
 
-    # Expecting a harmonized dataset
-    reduce_along = {'dim': ['lat', 'lon']}
-    retset = ds.mean(**reduce_along)
+    retset = ds
+    var_names = to_list(var, name='var')
+
+    for name in var_names:
+        dims = list(ds[name].dims)
+        dims.remove('time')
+        retset[name+'_ts_mean'] = ds[name].mean(dim = dims)
+
     return retset
-
-
-def _get_lon_dim_name(ds: xr.Dataset) -> str:
-    return _get_dim_name(ds, ['lon', 'longitude', 'long', 'x'])
-
-
-def _get_lat_dim_name(ds: xr.Dataset) -> str:
-    return _get_dim_name(ds, ['lat', 'latitude', 'y'])
-
-
-def _get_dim_name(ds: xr.Dataset, possible_names) -> str:
-    for name in possible_names:
-        if name in ds.dims:
-            return name
-    return None
