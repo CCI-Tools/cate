@@ -30,16 +30,11 @@ Components
 """
 
 import xarray as xr
-from ect.core.op import op_input, op_return, op
+from ect.core.op import op
+from datetime import datetime
 
 
-@op(tags=['geometric', 'subset', 'spatial'])
-@op_input('ds', description='A dataset to subset')
-@op_input('lat_min', description='Minimum latitude value to select')
-@op_input('lat_max', description='Maximum latitude value to select')
-@op_input('lon_min', description='Minimum longitude value to select')
-@op_input('lon_max', description='Maximum longitude value to select')
-@op_return(description='The subset dataset')
+@op(tags=['geometric', 'subset', 'spatial', 'geom'])
 def subset_spatial(ds: xr.Dataset,
                    lat_min: float,
                    lat_max: float,
@@ -62,17 +57,14 @@ def subset_spatial(ds: xr.Dataset,
 
 
 @op(tags=['subset', 'temporal'])
-@op_input('ds', description='A dataset to subset')
-@op_input('time_min', description='Minimum time to select')
-@op_input('time_max', description='Maximum time to select')
-@op_return(description='The subset dataset')
+#def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
 def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
     """
     Do a temporal subset of the dataset
 
     :param ds: Dataset to subset
-    :param time_min: Minimum time
-    :param time_max: Maximum time
+    :param time_min: Minimum time 'YYYY-MM-DD'
+    :param time_max: Maximum time 'YYYY-MM-DD'
     :return: Subset dataset
     """
     time_slice = slice(time_min, time_max)
@@ -81,10 +73,6 @@ def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
 
 
 @op(tags=['subset', 'temporal'])
-@op_input('ds', description='A dataset to subset')
-@op_input('time_ind_min', description='Minimum time index to select')
-@op_input('time_ind_max', description='Maximum time index to select')
-@op_return(description='The subset dataset')
 def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int) -> xr.Dataset:
     """
     Do a temporal indices based subset

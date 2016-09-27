@@ -38,16 +38,16 @@ from ect.core.op import op_input, op_return, op
 @op_input('ds')
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
-@op_input('method', value_set=['nearest', 'ffill', 'bfill', None])
+@op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 @op_return(description='A timeseries dataset.')
 def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') -> xr.Dataset:
     """
     Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method*.
 
-    :param ds: The dataset of type :py:class:`xarray.Dataset`.
-    :param lat: The latitude in the range of -90 to 90 degrees.
-    :param lon: The longitude in the range of -180 to 180 degrees.
-    :param method: One of ``nearest``, ``ffill``, ``bfill``.
+    :param ds: The dataset from which to perform timeseries extraction.
+    :param lat: Latitude of the point to extract.
+    :param lon: Longitude of the point to extract.
+    :param method: Interpolation method to use.
     :return: A timeseries dataset
     """
     if len(ds.dims) != 3 or not ('time' in ds.dims):
@@ -61,13 +61,11 @@ def timeseries(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') 
 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
-@op_input('ds', description='A dataset from which to extract time series')
-@op_return(description='A timeseries dataset')
 def timeseries_mean(ds: xr.Dataset):
     """
     Extract spatial mean timeseries from the given dataset
 
-    :param ds: The dataset of type :py:class:`Dataset`
+    :param ds: The dataset from which to perform timeseries extraction.
     :return: Time series dataset
     """
     if len(ds.dims) != 3 or not ('time' in ds.dims):
