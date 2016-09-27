@@ -39,9 +39,18 @@ from ect.core.util import to_list
 @op_input('lat', value_range=[-90, 90])
 @op_input('lon', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
-def tseries_point(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest') -> xr.Dataset:
+# TODO (Gailis, 27.09.16) See issues #45 and #46
+#def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: Union[str, List[str], None], method: str = 'nearest') -> xr.Dataset:
+def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: str, method: str = 'nearest') -> xr.Dataset:
     """
-    Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method*.
+    Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method* for each
+    *var* given in a comma separated list of variables.
+
+    The operation returns a new timeseries dataset, that contains the point timeseries for all required
+    variables with original variable meta-information preserved.
+
+    If a variable has more than three dimensions, the resulting timeseries variable will preserve all
+    other dimensions except for lat/lon.
 
     :param ds: The dataset from which to perform timeseries extraction.
     :param lat: Latitude of the point to extract.
@@ -49,18 +58,26 @@ def tseries_point(ds: xr.Dataset, lat: float, lon: float, method: str = 'nearest
     :param method: Interpolation method to use.
     :return: A timeseries dataset
     """
-    if len(ds.dims) != 3 or not ('time' in ds.dims):
-        raise ValueError('The timeseries operation is implemented only for '
-                         'a three dimensional dataset with a time dimension.')
+    # We cab't add these point time-series to the original dataset, because each of the
+    # point timeseries variables have dimensions lat/lon of size one that conflict with
+    # the original lat/lon definition.
+    if not var:
+        return ds
 
-    indexers = {'lat': lat, 'lon': lon}
-    return ds.sel(method=method, **indexers)
+    var_names = to_list(var, name='var')
+    retset = xr.Dataset()
+
+    for name in var_names:
+        indexers = {'lat': lat, 'lon': lon}
+        retset[str(name+'_ts_{}_{}'.format(lat, lon))] = ds[name].sel(method=method, **indexers)
+
+    return retset
 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
 # TODO (Gailis, 27.09.16) See issues #45 and #46
 #def timeseries_mean(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
-def tseries_mean(ds: xr.Dataset, var: str = None) -> xr.Dataset:
+def tseries_mean(ds: xr.Dataset, var: str) -> xr.Dataset:
     """
     Extract spatial mean timeseries of the provided variables, return the
     dataset that in addition to all the information in the given dataset
@@ -77,7 +94,8 @@ def tseries_mean(ds: xr.Dataset, var: str = None) -> xr.Dataset:
     if not var:
         return ds
 
-    retset = ds
+    # This is a shallow copy
+    retset = ds.copy()
     var_names = to_list(var, name='var')
 
     for name in var_names:
