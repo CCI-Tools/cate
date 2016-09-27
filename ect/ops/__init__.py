@@ -53,11 +53,11 @@ from .io import open_dataset, save_dataset
 from .plot import plot_map
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
-from .timeseries import timeseries, timeseries_mean
+from .timeseries import tseries_point, tseries_mean
 
 __all__ = [
-    'timeseries',
-    'timeseries_mean'
+    'tseries_point',
+    'tseries_mean'
     'resample_2d',
     'downsample_2d',
     'upsample_2d',
