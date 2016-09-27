@@ -37,6 +37,8 @@ The module's unit-tests are located in
 Components
 ==========
 """
+import os
+import os.path
 import sys
 import urllib.parse
 from collections import OrderedDict
@@ -450,3 +452,29 @@ def to_list(value,
         return [dtype(item) for item in value]
     except:
         return [dtype(value)]
+
+
+@contextmanager
+def cwd(path: str):
+    """
+    A context manager which can be used to temporarily change the current working directory to *path*.
+
+    Usage:::
+
+        print(os.getcwd())
+        with cwd('./test'):
+            print(os.getcwd())
+        print(os.getcwd())
+
+    :return: yields the new working directory (absolute *path* passed in)
+    """
+    if path is None:
+        raise ValueError('path argument must be given')
+
+    old_dir = os.getcwd()
+
+    try:
+        os.chdir(path)
+        yield os.getcwd()
+    finally:
+        os.chdir(old_dir)

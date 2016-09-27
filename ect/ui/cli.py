@@ -95,14 +95,16 @@ Components
 """
 
 import argparse
+import os
 import os.path
 import pprint
+import signal
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
-from ect.core.io import DATA_STORE_REGISTRY, open_dataset
+from ect.core.io import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
@@ -110,7 +112,7 @@ from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
-from ect.ui.workspace import WorkspaceManager, FSWorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
+from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -145,31 +147,25 @@ READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
 
 
-def _new_workspace_manager(require_webapi: bool = False) -> WorkspaceManager:
-    # 1. for a current workspace, is there a file "webapi.txt" which would contain the WebAPI's port number
-    # 3. if we can derive a port number:
-    #    3.a. port in use, WebAPI available
-    #    3.b. port in use, not a WebAPI --> find new port number, start WebAPI at new port number
-    #    3.c. port unused --> start WebAPI at port
-    # 4. if we can't derive a port number, start a WebAPI at default port number, goto 3.
-
+def _default_workspace_manager_factory() -> WorkspaceManager:
     # Read any existing '.ect/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
-    if not service_info and require_webapi:
+    if not service_info:
         # If there is no '.ect/webapi.json' but we need a WebAPI, start service
         start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         # Read new '.ect/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
+        if not service_info:
+            raise WorkspaceError('ECT WebAPI service could not be started')
 
-    if service_info:
-        print('Using WebAPIWorkspaceManager')
-        return WebAPIWorkspaceManager(service_info, timeout=5)
+    return WebAPIWorkspaceManager(service_info, timeout=5)
 
-    if require_webapi:
-        raise WorkspaceError('command requires ECT WebAPI service, which could not be found')
 
-    print('Using FSWorkspaceManager')
-    return FSWorkspaceManager()
+WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory
+
+
+def _new_workspace_manager() -> WorkspaceManager:
+    return WORKSPACE_MANAGER_FACTORY()
 
 
 def _to_str_const(s: str) -> str:
@@ -296,6 +292,10 @@ def _get_op_info_str(op_meta_info: OpMetaInfo):
     op_info_str += _get_op_io_info_str(op_meta_info.output, 'Output', 'Outputs', 'Operation does not have any outputs.')
 
     return op_info_str
+
+
+def _base_dir(base_dir: str = None):
+    return os.path.abspath(base_dir or os.curdir)
 
 
 class CommandError(Exception):
@@ -577,72 +577,131 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
+        base_dir_args = dict(metavar='DIR', nargs='?', default='.',
+                             help='The workspace\'s base directory. '
+                                  'If not given, current working directory is used.')
+
         init_parser = subparsers.add_parser('init', help='Initialize workspace.')
-        init_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                 help='Base directory for the new workspace. '
-                                      'Default DIR is current working directory.')
+        init_parser.add_argument('base_dir', **base_dir_args)
         init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
+        init_parser = subparsers.add_parser('new', help='Create new in-memory workspace.')
+        init_parser.add_argument('base_dir', **base_dir_args)
+        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
+                                 help='Workspace description.')
+        init_parser.set_defaults(sub_command_function=cls._execute_new)
+
+        open_parser = subparsers.add_parser('open', help='Open workspace.')
+        open_parser.add_argument('base_dir', **base_dir_args)
+        open_parser.set_defaults(sub_command_function=cls._execute_open)
+
+        close_parser = subparsers.add_parser('close', help='Close workspace.')
+        close_parser.add_argument('base_dir', **base_dir_args)
+        close_parser.add_argument('--all', '-a', dest='close_all', action='store_true',
+                                  help='Close all workspaces. Ignores DIR option.')
+        close_parser.add_argument('--save', '-s', dest='save', action='store_true',
+                                  help='Save modified workspace before closing.')
+        close_parser.set_defaults(sub_command_function=cls._execute_close)
+
+        save_parser = subparsers.add_parser('save', help='Save workspace.')
+        save_parser.add_argument('base_dir', **base_dir_args)
+        save_parser.add_argument('--all', '-a', dest='save_all', action='store_true',
+                                 help='Save all workspaces. Ignores DIR option.')
+        save_parser.set_defaults(sub_command_function=cls._execute_save)
+
+        status_parser = subparsers.add_parser('status', help='Print workspace information.')
+        status_parser.add_argument('base_dir', **base_dir_args)
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
-        del_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                help='Base directory of the workspace to be deleted. '
-                                     'Default DIR is current working directory.')
+        del_parser.add_argument('base_dir', **base_dir_args)
         del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
         clean_parser = subparsers.add_parser('clean', help='Clean workspace (removes all resources).')
-        clean_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                help='Base directory of the workspace to be cleaned. '
-                                     'Default DIR is current working directory.')
+        clean_parser.add_argument('base_dir', **base_dir_args)
         clean_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
-                                help='Do not ask for confirmation.')
+                                  help='Do not ask for confirmation.')
         clean_parser.set_defaults(sub_command_function=cls._execute_clean)
 
-        status_parser = subparsers.add_parser('status', help='Print workspace information.')
-        status_parser.add_argument('base_dir', metavar='DIR', nargs='?',
-                                   help='Base directory for the new workspace. '
-                                        'Default DIR is current working directory.')
-        status_parser.set_defaults(sub_command_function=cls._execute_status)
+        exit_parser = subparsers.add_parser('exit', help='Exit interactive mode. Closes all open workspaces.')
+        exit_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                 help='Do not ask for confirmation.')
+        exit_parser.add_argument('-s', '--save', dest='save', action='store_true', default=False,
+                                 help='Save any modified workspaces before closing.')
+        exit_parser.set_defaults(sub_command_function=cls._execute_exit)
 
     @classmethod
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.init_workspace(base_dir=command_args.base_dir, description=command_args.description)
+        workspace_manager.new_workspace(_base_dir(command_args.base_dir),
+                                        save=True, description=command_args.description)
         print('Workspace initialized.')
 
     @classmethod
+    def _execute_new(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.new_workspace(_base_dir(command_args.base_dir),
+                                        save=False, description=command_args.description)
+        print('Workspace created.')
+
+    @classmethod
+    def _execute_open(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.open_workspace(_base_dir(command_args.base_dir))
+        print('Workspace opened.')
+
+    @classmethod
+    def _execute_close(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        if command_args.close_all:
+            workspace_manager.close_all_workspaces(save=command_args.save)
+            print('All workspaces closed.')
+        else:
+            workspace_manager.close_workspace(_base_dir(command_args.base_dir), save=command_args.save)
+            print('Workspace closed.')
+
+    @classmethod
+    def _execute_save(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        if command_args.save_all:
+            workspace_manager.save_all_workspaces()
+            print('All workspaces saved.')
+        else:
+            workspace_manager.save_workspace(_base_dir(command_args.base_dir))
+            print('Workspace saved.')
+
+    @classmethod
     def _execute_del(cls, command_args):
-        base_dir = command_args.base_dir
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.delete_workspace(base_dir=base_dir)
+            workspace_manager.delete_workspace(_base_dir(command_args.base_dir))
             print('Workspace deleted.')
 
     @classmethod
     def _execute_clean(cls, command_args):
-        base_dir = command_args.base_dir
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (base_dir or '.')
+            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.clean_workspace(base_dir=base_dir)
+            workspace_manager.clean_workspace(_base_dir(command_args.base_dir))
             print('Workspace cleaned.')
 
     @classmethod
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace = workspace_manager.get_workspace(base_dir=command_args.base_dir)
+        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), open=False)
         workflow = workspace.workflow
         print('Workspace base directory is %s' % workspace.base_dir)
         if len(workflow.steps) > 0:
@@ -651,6 +710,17 @@ class WorkspaceCommand(SubCommandCommand):
                 print('  %s' % str(step))
         else:
             print('Workspace has no resources.')
+
+    @classmethod
+    def _execute_exit(cls, command_args):
+        if command_args.yes:
+            answer = 'y'
+        else:
+            answer = input('Do you really want to exit interactive mode ([y]/n)? ')
+        if not answer or answer.lower() == 'y':
+            workspace_manager = _new_workspace_manager()
+            workspace_manager.close_all_workspaces(save=command_args.save_all)
+            stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
 
 class ResourceCommand(SubCommandCommand):
@@ -725,8 +795,14 @@ class ResourceCommand(SubCommandCommand):
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
         # TODO (forman, 20160922): implement "ect res plot"
-        # plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
-        # plot_parser.set_defaults(sub_command_function=cls._execute_plot)
+        plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
+        plot_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of an existing resource.')
+        plot_parser.add_argument('--var', '-v', dest='var_name', metavar='VAR', nargs='?',
+                                 help='Name of the variable to plot.')
+        plot_parser.add_argument('--out', '-o', dest='file_path', metavar='FILE', nargs='?',
+                                 help='Output file to write the plot figure to.')
+        plot_parser.set_defaults(sub_command_function=cls._execute_plot)
 
         # TODO (forman, 20160922): implement "ect res print"
         # print_parser = subparsers.add_parser('print', help='Print a resource value.')
@@ -756,7 +832,10 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
-        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.open_dataset', op_args)
+        workspace_manager.set_workspace_resource(_base_dir(),
+                                                 command_args.res_name,
+                                                 'ect.ops.io.open_dataset',
+                                                 op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -765,26 +844,39 @@ class ResourceCommand(SubCommandCommand):
         op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
             op_args.append('format=%s' % _to_str_const(command_args.format_name))
-        workspace_manager.set_workspace_resource('', command_args.res_name, 'ect.ops.io.read_object', op_args)
+        workspace_manager.set_workspace_resource(_base_dir(),
+                                                 command_args.res_name,
+                                                 'ect.ops.io.read_object',
+                                                 op_args)
+        print('Resource "%s" set.' % command_args.res_name)
+
+    @classmethod
+    def _execute_set(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.set_workspace_resource(_base_dir(),
+                                                 command_args.res_name,
+                                                 command_args.op_name,
+                                                 command_args.op_args)
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
     def _execute_write(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        res_name = command_args.res_name
-        file_path = command_args.file_path
-        format_name = command_args.format_name
-        workspace_manager.write_workspace_resource('', res_name, file_path,
-                                                   format_name=format_name,
+        workspace_manager.write_workspace_resource(_base_dir(),
+                                                   command_args.res_name,
+                                                   command_args.file_path,
+                                                   format_name=command_args.format_name,
                                                    monitor=cls.new_monitor())
+        print('Resource "%s" written.' % command_args.res_name)
 
     @classmethod
-    def _execute_set(cls, command_args):
+    def _execute_plot(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.set_workspace_resource('',
-                                                 command_args.res_name,
-                                                 command_args.op_name, command_args.op_args)
-        print('Resource "%s" set.' % command_args.res_name)
+        workspace_manager.plot_workspace_resource(_base_dir(),
+                                                  command_args.res_name,
+                                                  var_name=command_args.var_name,
+                                                  file_path=command_args.file_path,
+                                                  monitor=cls.new_monitor())
 
 
 class OperationCommand(SubCommandCommand):
@@ -900,25 +992,22 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display information about contained dataset variables.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
+        def_parser = subparsers.add_parser('def', help='Define a data source using a local file pattern.')
+        def_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        def_parser.add_argument('file_pattern', metavar='PATTERN', help='A file glob that includes all files '
+                                                                        'belonging to this data source.')
+        def_parser.set_defaults(sub_command_function=cls._execute_def)
+
     @classmethod
     def _execute_list(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.name
-
-        _list_items('data source', 'data sources',
-                    sorted(data_source.name for data_source in data_store.query()), ds_name)
+        ds_names = sorted(data_source.name for data_source in query_data_sources())
+        _list_items('data source', 'data sources', ds_names, ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in data_store.query(name=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in query_data_sources(name=ds_name) if data_source.name == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -938,12 +1027,8 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_sync(cls, command_args):
-        data_store = DATA_STORE_REGISTRY.get_data_store('default')
-        if data_store is None:
-            raise RuntimeError('internal error: no default data store found')
-
         ds_name = command_args.ds_name
-        data_sources = data_store.query(name=ds_name)
+        data_sources = query_data_sources(name=ds_name)
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -960,6 +1045,17 @@ class DataSourceCommand(SubCommandCommand):
                                                monitor=cls.new_monitor())
         print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
 
+    @classmethod
+    def _execute_def(cls, command_args):
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if local_store is None:
+            raise RuntimeError('internal error: no local data store found')
+
+        ds_name = command_args.ds_name
+        file_pattern = command_args.file_pattern
+        name = local_store.add_pattern(ds_name, file_pattern)
+        print("Added local data source with name: '%s'" % name)
+
 
 class WebAPICommand(SubCommandCommand):
     """
@@ -968,11 +1064,11 @@ class WebAPICommand(SubCommandCommand):
 
     @classmethod
     def name(cls):
-        return 'webapi'
+        return 'wa'
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = "Manage ECT's WebAPI service."
+        help_line = "Manage ECT's WebAPI service. (Rarely used!)"
         return dict(help=help_line, description=help_line)
 
     @classmethod
@@ -987,7 +1083,10 @@ class WebAPICommand(SubCommandCommand):
                                  help="Port number. If omitted, port number will be identified.")
         stop_parser.set_defaults(sub_command_function=cls._execute_stop)
 
-        status_parser = subparsers.add_parser('status', help='print WebAPI service status')
+        kill_parser = subparsers.add_parser('kill', help='kill process which runs the WebAPI service')
+        kill_parser.set_defaults(sub_command_function=cls._execute_kill)
+
+        status_parser = subparsers.add_parser('status', help='display status of WebAPI service')
         status_parser.set_defaults(sub_command_function=cls._execute_status)
 
     @classmethod
@@ -998,6 +1097,23 @@ class WebAPICommand(SubCommandCommand):
     @classmethod
     def _execute_stop(cls, command_args):
         stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_kill(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if service_info:
+            pid = service_info.get('process_id')
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                os.remove(WEBAPI_INFO_FILE)
+            else:
+                raise RuntimeError("Missing 'process_id' in status information for WebAPI service.")
+        else:
+            print('No status information for WebAPI service available.')
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -1132,7 +1248,7 @@ def main(args=None):
     parser = NoExitArgumentParser(prog=CLI_NAME,
                                   description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
-    parser.add_argument('--traceback', action='store_true', help='On error, print (Python) stack traceback')
+    parser.add_argument('--traceback', action='store_true', help='show (Python) stack traceback for the last error')
     subparsers = parser.add_subparsers(dest='command_name',
                                        metavar='COMMAND',
                                        help='One of the following commands. '
@@ -1155,9 +1271,16 @@ def main(args=None):
             try:
                 args_obj.command_class().execute(args_obj)
             except Exception as e:
-                if args_obj.traceback:
+                show_traceback = args_obj.traceback
+                if show_traceback:
                     traceback.print_exc()
                 status, message = 1, str(e)
+                if message and not show_traceback:
+                    # Crop any traceback_header from message
+                    traceback_header = WebAPIWorkspaceManager.get_traceback_header()
+                    traceback_pos = message.find(traceback_header)
+                    if traceback_pos >= 0:
+                        message = message[0: traceback_pos]
         else:
             parser.print_help()
 

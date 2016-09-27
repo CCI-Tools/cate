@@ -52,9 +52,14 @@ If a file path is given, the plot is saved.
 Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
 
 """
-import matplotlib
 
-matplotlib.use('agg')
+# import matplotlib
+#
+# TODO (forman, 20160922): verify if matplotlib.use('agg') is really required
+# I've uncommented following line in order to show interactive plots.
+# Check: http://matplotlib.org/faq/usage_faq.html#what-is-a-backend
+# matplotlib.use('agg')
+
 # https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
@@ -63,7 +68,7 @@ import xarray as xr
 from ect.core.op import op_input, op
 
 
-@op(tags=['graphical', 'plot', 'map'])
+@op(tags=['graphical', 'plot', 'map'], no_cache=True)
 @op_input('ds', description="A dataset from which to create the plot")
 @op_input('variable', description="The geophysical quantity (dataset variable) to plot")
 @op_input('time', description="Point in time to plot")

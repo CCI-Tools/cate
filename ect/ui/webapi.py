@@ -22,14 +22,19 @@
 import argparse
 import json
 import os.path
+import signal
 import socket
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 from datetime import date, datetime
+from threading import Timer
+from typing import Optional
 
 from ect.ui.workspace import FSWorkspaceManager
+from ect.core.util import cwd
 from ect.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
@@ -42,6 +47,13 @@ __import__('ect.ops')
 CLI_NAME = 'ect-webapi'
 
 LOCALHOST = '127.0.0.1'
+
+# {{ect-config}}
+# By default, WebAPI service will auto-exit after 15 minutes of inactivity (if caller='ect', the CLI)
+ON_INACTIVITY_AUTO_EXIT_AFTER = 15.0 * 60.0
+# {{ect-config}}
+# By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed (if caller='ect', the CLI)
+ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
 
 
 class WebAPIServiceError(Exception):
@@ -72,15 +84,25 @@ class WebAPIServiceError(Exception):
 def get_application():
     application = Application([
         (url_pattern('/'), VersionHandler),
-        (url_pattern('/ws/init'), WorkspaceInitHandler),
+        (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
+        (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
+        (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
+        (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
+        (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
+        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
+    application.auto_exit_enabled = False
+    application.auto_exit_timer = None
+    application.service_info_file = None
+    application.time_of_last_activity = time.clock()
     return application
 
 
@@ -111,7 +133,7 @@ def main(args=None):
     if args_obj.command == 'start':
         start_service(**kwargs)
     else:
-        stop_service(**kwargs)
+        stop_service(kill_after=10.0, timeout=10.0, **kwargs)
 
 
 def start_service_subprocess(port: int = None,
@@ -170,34 +192,62 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
     """
     Start a WebAPI service.
 
+    The *service_info_file*, if given, represents the service in the filesystem, similar to
+    the ``/var/run/`` directory on Linux systems.
+
+    If the service file exist and its information is compatible with the requested *port*, *address*, *caller*, then
+    this function simply returns without taking any other actions.
+
     :param port: the port number
     :param address: the address
     :param caller: the name of the calling application (informal)
     :param service_info_file: If not ``None``, a service information JSON file will be written to *service_info_file*.
     :return: service information dictionary
     """
-    if service_info_file and os.path.exists(service_info_file):
-        raise ValueError('service info file exists: %s' % service_info_file)
+    if service_info_file and os.path.isfile(service_info_file):
+        service_info = read_service_info(service_info_file)
+        if is_service_compatible(port, address, caller, service_info):
+            port = service_info.get('port')
+            address = service_info.get('address') or LOCALHOST
+            if is_service_running(port, address):
+                print('WebAPI service already running on %s:%s, reusing it' % (address, port))
+                return service_info
+            else:
+                # Try shutting down the service, even violently
+                stop_service(service_info_file, kill_after=5.0, timeout=5.0)
+        else:
+            # print('warning: service info file exists: %s, removing it' % service_info_file)
+            # os.remove(service_info_file)
+            raise WebAPIServiceError('WebAPI service info file exists: %s' % service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
+    application.auto_exit_enabled = caller == 'ect'
     port = port or find_free_port()
-    address_and_port = '%s:%s' % (address or LOCALHOST, port)
-    print('starting ECT WebAPI on %s' % address_and_port)
+    print('starting ECT WebAPI on %s:%s' % (address or LOCALHOST, port))
     application.listen(port, address=address or '')
     io_loop = IOLoop()
     io_loop.make_current()
     service_info = dict(port=port,
                         address=address,
                         caller=caller,
-                        started=datetime.now().isoformat(sep=' '))
+                        started=datetime.now().isoformat(sep=' '),
+                        process_id=os.getpid())
     if service_info_file:
         _write_service_info(service_info, service_info_file)
+    # IOLoop.call_later(delay, callback, *args, **kwargs)
+    if application.auto_exit_enabled:
+        _install_next_inactivity_check(application)
     IOLoop.instance().start()
     return service_info
 
 
-def stop_service(port=None, address=None, caller: str = None, service_info_file: str = None) -> dict:
+def stop_service(port=None,
+                 address=None,
+                 caller: str = None,
+                 service_info_file: str = None,
+                 kill_after: float = None,
+                 timeout: float = 10.0) -> dict:
     """
     Stop a WebAPI service.
 
@@ -205,25 +255,74 @@ def stop_service(port=None, address=None, caller: str = None, service_info_file:
     :param address:
     :param caller:
     :param service_info_file:
+    :param kill_after: if not ``None``, the number of seconds to wait after a hanging service process will be killed
+    :param timeout:
     :return: service information dictionary
     """
     service_info = {}
     if service_info_file:
         service_info = read_service_info(service_info_file)
+        if service_info is None and port is None:
+            raise RuntimeWarning('WebAPI service not running')
         service_info = service_info or {}
 
-    port = port or service_info.get('port', None)
-    address = address or service_info.get('address', None)
-    caller = caller or service_info.get('caller', None)
+    port = port or service_info.get('port')
+    address = address or service_info.get('address')
+    caller = caller or service_info.get('caller')
+    pid = service_info.get('process_id')
 
     if not port:
-        raise ValueError('cannot stop WebAPI service for unknown port number (caller: %s)' % caller)
+        raise WebAPIServiceError('cannot stop WebAPI service on unknown port (caller: %s)' % caller)
 
     address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('stopping ECT WebAPI on %s' % address_and_port)
-    urllib.request.urlopen('http://%s/exit' % address_and_port)
+
+    # noinspection PyBroadException
+    try:
+        with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout) as response:
+            response.read()
+    except:
+        # Either process does not exist, or timeout, or some other error
+        pass
+
+    # Note: is_service_running() should be replaced by is_process_active(pid)
+    if kill_after and pid and is_service_running(port, address):
+        # If we have a PID and the service runs
+        time.sleep(kill_after)
+        # Note: is_service_running() should be replaced by is_process_active(pid)
+        if is_service_running(port, address):
+            # noinspection PyBroadException
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except:
+                pass
+            if os.path.isfile(service_info_file):
+                os.remove(service_info_file)
 
     return dict(port=port, address=address, caller=caller, started=service_info.get('started', None))
+
+
+def is_service_compatible(port: Optional[int], address: Optional[str], caller: Optional[str],
+                          service_info: dict) -> bool:
+    if not port and not service_info.get('port'):
+        # This means we have a service_info without port, should actually never happen,
+        # but who knows, service_info_file may have been modified.
+        return False
+    port_ok = port == service_info.get('port') if port and port > 0 else True
+    address_ok = address == service_info.get('address') if address else True
+    caller_ok = caller == service_info.get('caller') if caller else True
+    return port_ok and address_ok and caller_ok
+
+
+def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
+    url = 'http://%s:%s/' % (address or '127.0.0.1', port)
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            json_text = response.read()
+    except:
+        return False
+    json_response = json.loads(json_text.decode('utf-8'))
+    return json_response.get('status') == 'ok'
 
 
 def find_free_port():
@@ -268,6 +367,56 @@ def _write_service_info(service_info: dict, service_info_file: str) -> None:
         json.dump(service_info, fp, indent='  ')
 
 
+def _exit(application: Application):
+    service_info_file = application.service_info_file
+    if service_info_file and os.path.isfile(service_info_file):
+        # noinspection PyBroadException
+        try:
+            os.remove(service_info_file)
+        except:
+            pass
+    IOLoop.instance().stop()
+
+
+def _install_next_inactivity_check(application):
+    IOLoop.instance().call_later(ON_INACTIVITY_AUTO_EXIT_AFTER, _check_inactivity, application)
+
+
+def _check_inactivity(application: Application):
+    inactivity_time = time.clock() - application.time_of_last_activity
+    if inactivity_time > ON_INACTIVITY_AUTO_EXIT_AFTER:
+        print('stopping WebAPI service after %.1f seconds of inactivity' % inactivity_time)
+        _auto_exit(application)
+    else:
+        _install_next_inactivity_check(application)
+
+
+def _auto_exit(application: Application):
+    IOLoop.instance().add_callback(_exit, application)
+
+
+def _on_workspace_closed(application: Application):
+    if not application.auto_exit_enabled:
+        return
+    workspace_manager = application.workspace_manager
+    num_open_workspaces = workspace_manager.num_open_workspaces()
+    _check_auto_exit(application, num_open_workspaces == 0, ON_ALL_CLOSED_AUTO_EXIT_AFTER)
+
+
+def _check_auto_exit(application: Application, condition: bool, interval: float):
+    if application.auto_exit_timer is not None:
+        # noinspection PyBroadException
+        try:
+            application.auto_exit_timer.cancel()
+        except:
+            pass
+    if condition:
+        application.auto_exit_timer = Timer(interval, _auto_exit, [application])
+        application.auto_exit_timer.start()
+    else:
+        application.auto_exit_timer = None
+
+
 def url_pattern(pattern: str):
     """
     Convert a string *pattern* where any occurrences of ``{{NAME}}`` are replaced by an equivalent
@@ -310,37 +459,117 @@ def _status_ok(content: object = None):
 
 
 def _status_error(exception: Exception = None, type_name: str = None, message: str = None):
-    type_name = type_name or (type(exception).__name__ if exception else 'unknown')
-    message = message or (str(exception) if exception else None)
-    return dict(status='error', error=dict(type=type_name, message=message))
+    trace_back = None
+    if exception is not None:
+        trace_back = traceback.format_exc()
+        type_name = type_name or type(exception).__name__
+        message = message or str(exception)
+    error_details = {}
+    if trace_back is not None:
+        error_details['traceback'] = trace_back
+    if type_name:
+        error_details['type'] = type_name
+    if message:
+        error_details['message'] = message
+    response = dict(status='error', error=dict(type=type_name, message=message))
+    if exception is not None:
+        response['traceback'] = traceback.format_exc()
+    return dict(status='error', error=error_details) if error_details else dict(status='error')
 
 
 # noinspection PyAbstractClass
-class WorkspaceGetHandler(RequestHandler):
+class BaseRequestHandler(RequestHandler):
+    def on_finish(self):
+        self.application.time_of_last_activity = time.clock()
+
+
+# noinspection PyAbstractClass
+class WorkspaceGetHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
+        open_it = self.get_query_argument('open', default='False').lower() == 'true'
         try:
-            workspace = workspace_manager.get_workspace(base_dir)
+            workspace = workspace_manager.get_workspace(base_dir, open=open_it)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class WorkspaceInitHandler(RequestHandler):
+class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        description = self.get_query_argument('description', default=None)
+        save = self.get_query_argument('save', default='False').lower() == 'true'
+        description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.init_workspace(base_dir, description=description)
+            workspace = workspace_manager.new_workspace(base_dir, save=save, description=description)
             self.write(_status_ok(workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class WorkspaceDeleteHandler(RequestHandler):
+class WorkspaceOpenHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.open_workspace(base_dir)
+            self.write(_status_ok(workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceCloseHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        save = self.get_query_argument('save', default='False').lower() == 'true'
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.close_workspace(base_dir, save)
+            _on_workspace_closed(self.application)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceCloseAllHandler(BaseRequestHandler):
+    def get(self):
+        save = self.get_query_argument('save', default='False').lower() == 'true'
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.close_all_workspaces(save)
+            _on_workspace_closed(self.application)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveAllHandler(BaseRequestHandler):
+    def get(self):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_manager.save_all_workspaces()
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceDeleteHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -351,7 +580,7 @@ class WorkspaceDeleteHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class WorkspaceCleanHandler(RequestHandler):
+class WorkspaceCleanHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
@@ -362,34 +591,50 @@ class WorkspaceCleanHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResourceSetHandler(RequestHandler):
+class ResourceSetHandler(BaseRequestHandler):
     def post(self, base_dir, res_name):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
         op_args = json.loads(op_args) if op_args else None
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
+            with cwd(base_dir):
+                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class ResourceWriteHandler(RequestHandler):
-    def post(self, base_dir, res_name):
-        file_path = self.get_body_argument('file_path')
-        format_name = self.get_body_argument('format_name', default=None)
+class ResourceWriteHandler(BaseRequestHandler):
+    def get(self, base_dir, res_name):
+        file_path = self.get_query_argument('file_path')
+        format_name = self.get_query_argument('format_name', default=None)
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
+            with cwd(base_dir):
+                workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
 
 
 # noinspection PyAbstractClass
-class VersionHandler(RequestHandler):
+class ResourcePlotHandler(BaseRequestHandler):
+    def get(self, base_dir, res_name):
+        var_name = self.get_query_argument('var_name', default=None)
+        file_path = self.get_query_argument('file_path', default=None)
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class VersionHandler(BaseRequestHandler):
     def get(self):
         self.write(_status_ok(content={'name': CLI_NAME,
                                        'version': __version__,
@@ -400,12 +645,7 @@ class VersionHandler(RequestHandler):
 class ExitHandler(RequestHandler):
     def get(self):
         self.write(_status_ok(content='Bye!'))
-        IOLoop.instance().stop()
-        # IOLoop.instance().add_callback(IOLoop.instance().stop)
-
-        service_info_file = self.application.service_info_file
-        if service_info_file and os.path.exists(service_info_file):
-            os.remove(service_info_file)
+        IOLoop.instance().add_callback(_exit, self.application)
 
 
 if __name__ == "__main__":

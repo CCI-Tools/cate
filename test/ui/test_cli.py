@@ -13,7 +13,7 @@ from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams
 from ect.ds.esa_cci_odp import EsaCciOdpDataStore
 from ect.ui import cli
-from ect.ui.workspace import WORKSPACE_DATA_DIR_NAME
+from ect.ui.workspace import FSWorkspaceManager
 
 
 def _create_test_data_store():
@@ -21,13 +21,22 @@ def _create_test_data_store():
         json_text = fp.read()
     json_dict = json.loads(json_text)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore(index_cache_json_dict=json_dict)
+    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
 
 
 class CliTestCase(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
-        DATA_STORE_REGISTRY.add_data_store("default", _create_test_data_store())
+        cls._orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
+        DATA_STORE_REGISTRY._data_stores.clear()
+        DATA_STORE_REGISTRY.add_data_store(_create_test_data_store())
+
+    @classmethod
+    def tearDownClass(cls):
+        DATA_STORE_REGISTRY._data_stores.clear()
+        for data_store in cls._orig_stores:
+            DATA_STORE_REGISTRY.add_data_store(data_store)
 
     def assert_main(self,
                     args: Union[None, List[str]],
@@ -107,68 +116,83 @@ class CliTest(CliTestCase):
 
 
 class WorkspaceCommandTest(CliTestCase):
+    def setUp(self):
+        self.remove_tree('.ect-workspace', ignore_errors=False)
+
+        # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
+        self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
+        self.workspace_manager = FSWorkspaceManager()
+        cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
+
+    def tearDown(self):
+        cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
+        self.remove_tree('.ect-workspace', ignore_errors=False)
+
     def assert_workspace_base_dir(self, base_dir):
         self.assertTrue(os.path.isdir(base_dir))
-        self.assertTrue(os.path.isdir(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)))
-        self.assertTrue(os.path.isfile(os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME, 'workflow.json')))
+        self.assertTrue(os.path.isdir(os.path.join(base_dir, '.ect-workspace')))
+        self.assertTrue(os.path.isfile(os.path.join(base_dir, '.ect-workspace', 'workflow.json')))
 
     def test_ws_init_arg(self):
-        base_dir = '_bibo_workspace'
-        self.remove_tree(base_dir, ignore_errors=False)
+        base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
         self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
-        self.remove_tree(base_dir)
+        self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
+        self.remove_tree('my_workspace')
 
     def test_ws_init(self):
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
-        self.assert_main(['ws', 'init'], expected_stderr=['workspace exists: '], expected_status=1)
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+        self.assert_main(['ws', 'init'],
+                         expected_stderr=['workspace exists: '],
+                         expected_status=1)
 
     def test_ws_del(self):
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
-        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_workspace_base_dir('.')
-        self.assert_main(['ws', 'del', '-y'], expected_stdout=['Workspace deleted'])
-        self.assert_main(['ws', 'del', '-y'], expected_stderr=['ect ws: error: not a workspace: '], expected_status=1)
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+        base_dir = 'my_workspace'
+        self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'del', '-y', base_dir],
+                         expected_stderr=['ect ws: error: not a workspace: '],
+                         expected_status=1)
+        self.remove_tree('my_workspace')
 
     def test_ws_clean(self):
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_workspace_base_dir('.')
         self.assert_main(['res', 'read', 'ds', 'test.nc'], expected_stdout=['Resource "ds" set.'])
         self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
 
 
 class ResourceCommandTest(CliTestCase):
     def setUp(self):
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME, ignore_errors=False)
+        # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
+        self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
+        self.workspace_manager = FSWorkspaceManager()
+        cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
-        self.remove_tree(WORKSPACE_DATA_DIR_NAME)
+        cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
 
     def test_res_read_set_write(self):
         input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
         output_file = '_timeseries_.nc'
 
-        self.assert_main(['ws', 'init'],
-                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'new'],
+                         expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
                          expected_stdout=['Resource "ds" set.'])
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=['Writing resource "ts"'])
+        self.assert_main(['ws', 'close'],
+                         expected_stdout=['Workspace closed.'])
 
         self.remove_file(output_file)
 
     def test_res_open_read_set_set(self):
-        self.assert_main(['ws', 'init'],
-                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'new'],
+                         expected_stdout=['Workspace created'])
         self.assert_main(['res', 'open', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
                          expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
@@ -181,7 +205,7 @@ class ResourceCommandTest(CliTestCase):
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
                           'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=None) [OpStep]'])
+                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=\'nearest\') [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=-10.4', 'lon=176'],
                          expected_stdout=['Resource "ts" set.'])
@@ -191,12 +215,14 @@ class ResourceCommandTest(CliTestCase):
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
                           'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=-10.4, lon=176, method=None) [OpStep]'])
+                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=-10.4, lon=176, method=\'nearest\') [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat="XYZ"', 'lon=50.1'],
                          expected_status=1,
                          expected_stderr=["ect res: error: input 'lat' for operation 'ect.ops.timeseries.timeseries' "
                                           "must be of type 'float', but got type 'str'"])
+
+        self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 
 
 class OperationCommandTest(CliTestCase):
@@ -260,6 +286,7 @@ class DataSourceCommandTest(CliTestCase):
                                          "    list      List all available data sources\n"
                                          "    sync      Synchronise a remote data source with its local version.\n"
                                          "    info      Display information about a data source.\n"
+                                         "    def       Define a data source using a local file pattern.\n"
                                          "\n"
                                          "optional arguments:\n"
                                          "  -h, --help  show this help message and exit\n")

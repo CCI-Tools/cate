@@ -419,9 +419,10 @@ as running operations and workflows.
 
 The CLI uses (sub-)commands for specific functionality. The most important commands are
 
-* ``run`` to run an operation of workflow with given arguments.
-* ``ds`` to display data source information and to synchronise remote data sources with locally cached versions of it.
-* ``list`` to list registered data stores, data sources, operations and plugins
+* ``run`` to run an operation or a *Workflow JSON* file with given arguments.
+* ``ds`` to manage data sources and to synchronise remote data sources with locally cached versions of it.
+* ``ws`` to manage user *workspaces*.
+* ``res`` to add, compute, modify, and display *resources* within the current user workspace.
 
 Each command has its own set of options and arguments and can display help when used with the option ```--help``
 or ``-h``.
@@ -432,23 +433,27 @@ in the ``COMMAND_REGISTRY`` singleton.
 Given here is an early version of the CCI Toolbox CLI usage::
 
    $ ect -h
-   usage: ect [-h] [--version] COMMAND ...
+   usage: ect [-h] [--version] [--traceback] COMMAND ...
 
-   ESA CCI Toolbox command-line interface, version 0.1.0
+   ESA CCI Toolbox command-line interface, version 0.2.0-pre+01
 
    positional arguments:
-     COMMAND     One of the following commands. Type "COMMAND -h" to get command-
-                 specific help.
-       list      List items of a various categories.
-       run       Run an operation OP with given arguments.
-       ds        Data source operations.
-       cr        Print copyright information.
-       lic       Print license information.
-       doc       Display documentation in a browser window.
+     COMMAND      One of the following commands. Type "COMMAND -h" to get
+                  command-specific help.
+       run        Run an operation or Workflow file.
+       ws         Manage workspaces.
+       res        Manage workspace resources.
+       ds         Manage data sources.
+       op         Explore data operations.
+       wa         Manage ECT's WebAPI service. (Rarely used!)
+       pi         Manage installed plugins.
+       lic        Print copyright and license information.
+       doc        Display documentation in a browser window.
 
    optional arguments:
-     -h, --help  show this help message and exit
-     --version   show program's version number and exit
+     -h, --help   show this help message and exit
+     --version    show program's version number and exit
+     --traceback  show (Python) stack traceback for the last error
 
 
 .. _plugin:

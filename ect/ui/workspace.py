@@ -34,13 +34,17 @@ from ect.core.objectio import write_object
 from ect.core.op import OP_REGISTRY
 from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace, encode_url_path
-from ect.core.workflow import Workflow, OpStep, NodePort
+from ect.core.workflow import Workflow, OpStep, NodePort, ValueCache
+
 
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
+# {{ect-config}}
+# allow one hour timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
+PLOT_TIMEOUT = 60. * 60.
 
-# TODO (forman, 20160908): implement file lock for workspaces in access
+# TODO (forman, 20160908): implement file lock for opened workspaces
 
 
 class WorkspaceError(Exception):
@@ -71,6 +75,12 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
+        self._resource_cache = ValueCache()
+        self._is_closed = False
+        self._is_modified = False
+
+    def __del__(self):
+        self.close()
 
     @property
     def base_dir(self) -> str:
@@ -80,7 +90,21 @@ class Workspace:
     @property
     def workflow(self) -> Workflow:
         """The Workspace's workflow."""
+        self._assert_open()
         return self._workflow
+
+    @property
+    def resource_cache(self) -> ValueCache:
+        """The Workspace's resource cache."""
+        return self._resource_cache
+
+    @property
+    def is_closed(self) -> bool:
+        return self._is_closed
+
+    @property
+    def is_modified(self) -> bool:
+        return self._is_modified
 
     @property
     def workspace_dir(self) -> str:
@@ -106,25 +130,10 @@ class Workspace:
 
     @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':
-        try:
-            if not os.path.isdir(base_dir):
-                os.mkdir(base_dir)
-
-            workspace_dir = cls.get_workspace_dir(base_dir)
-            workflow_file = cls.get_workflow_file(base_dir)
-            if not os.path.isdir(workspace_dir):
-                os.mkdir(workspace_dir)
-            elif os.path.isfile(workflow_file):
-                raise WorkspaceError('workspace exists: %s' % base_dir)
-
-            workflow = Workspace.new_workflow(dict(description=description or ''))
-            workflow.store(workflow_file)
-            return Workspace(base_dir, workflow)
-        except (IOError, OSError, FileExistsError) as e:
-            raise WorkspaceError(e)
+        return Workspace(base_dir, Workspace.new_workflow(dict(description=description or '')))
 
     @classmethod
-    def load(cls, base_dir: str) -> 'Workspace':
+    def open(cls, base_dir: str) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_dir(base_dir)):
             raise WorkspaceError('not a valid workspace: %s' % base_dir)
         try:
@@ -134,15 +143,25 @@ class Workspace:
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
-    def store(self):
-        try:
-            self.workflow.store(self.workflow_file)
-        except (IOError, OSError) as e:
-            raise WorkspaceError(e)
+    def close(self):
+        if self._is_closed:
+            return
+        self._resource_cache.close()
 
-    def delete(self):
+    def save(self):
+        self._assert_open()
         try:
-            shutil.rmtree(self.workspace_dir)
+            base_dir = self.base_dir
+            if not os.path.isdir(base_dir):
+                os.mkdir(base_dir)
+            workspace_dir = self.workspace_dir
+            workflow_file = self.workflow_file
+            if not os.path.isdir(workspace_dir):
+                os.mkdir(workspace_dir)
+            elif os.path.isfile(workflow_file):
+                raise WorkspaceError('workspace exists: %s' % base_dir)
+            self.workflow.store(self.workflow_file)
+            self._is_modified = False
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
@@ -154,8 +173,25 @@ class Workspace:
         return Workspace(base_dir, workflow)
 
     def to_json_dict(self):
+        self._assert_open()
         return OrderedDict([('base_dir', self.base_dir),
                             ('workflow', self.workflow.to_json_dict())])
+
+    def delete(self):
+        self.close()
+        try:
+            shutil.rmtree(self.workspace_dir)
+        except (IOError, OSError) as e:
+            raise WorkspaceError(e)
+
+    def execute_workflow(self, res_name, monitor):
+        self._assert_open()
+        result = self.workflow(monitor=monitor)
+        if res_name in result:
+            obj = result[res_name]
+        else:
+            obj = result
+        return obj
 
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], can_exist=False, validate_args=False):
         assert res_name
@@ -166,10 +202,13 @@ class Workspace:
         if not op:
             raise WorkspaceError("unknown operation '%s'" % op_name)
 
-        op_step = OpStep(op, res_name)
+        op_step = OpStep(op, node_id=res_name)
 
         workflow = self.workflow
 
+        # This namespace will allow us to wire the new resource with existing workflow steps
+        # We only add step outputs, so we cannot reference another step's input neither.
+        # Note that workspace workflows never have any inputs to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
             output_namespace = step.output
@@ -179,8 +218,13 @@ class Workspace:
         if not can_exist and does_exist:
             raise WorkspaceError("resource '%s' already exists" % res_name)
 
+        if does_exist:
+            # Prevent resource from self-referencing
+            namespace.pop(res_name, None)
+
         raw_op_args = op_args
         try:
+            # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
             op_args, op_kwargs = parse_op_args(raw_op_args, namespace=namespace)
         except ValueError as e:
             raise WorkspaceError(e)
@@ -195,47 +239,88 @@ class Workspace:
 
         return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
+        # Wire new op_step with outputs from existing steps
         for input_name, input_value in op_kwargs.items():
             if input_name not in op_step.input:
                 raise WorkspaceError("'%s' is not an input of operation '%s'" % (input_name, op_name))
             input_port = op_step.input[input_name]
             if isinstance(input_value, NodePort):
-                output_port = input_value
-                input_port.source = output_port
+                # input_value is an output NodePort of another step
+                input_port.source = input_value
             elif isinstance(input_value, Namespace):
-                output_namespace = input_value
-                if return_output_name not in output_namespace:
+                # input_value is output_namespace of another step
+                if return_output_name not in input_value:
                     raise WorkspaceError("illegal value for input '%s'" % input_name)
-                output_port = output_namespace[return_output_name]
-                input_port.source = output_port
+                input_port.source = input_value['return']
             else:
+                # Neither a Namespace nor a NodePort, it must be a constant value
                 input_port.value = input_value
 
         workflow = self._workflow
         # noinspection PyUnusedLocal
         old_step = workflow.add_step(op_step, can_exist=True)
+        self._is_modified = True
+
         if does_exist:
             # If the step already existed before, we must resolve source references again
             workflow.resolve_source_refs()
-            # TODO (forman, 20160908): Delete all workspace outputs that have old_step outputs as source
+            for workflow_output_port in workflow.output[:]:
+                if workflow_output_port.source.node is old_step:
+                    # We set old outputs to None, as we don't want to change output order and don't want to delete old
+                    # output ports. However, we should better do this one day.
+                    workflow_output_port.value = None
+
+        # Remove cached resource value, if any
+        if res_name in self._resource_cache:
+            del self._resource_cache[res_name]
+        # TODO (forman, 20160924): Must also remove all cached resources values that depend on old_step, if any
 
         if op_step.op_meta_info.has_named_outputs:
-            # TODO (forman, 20160908): Support op_step's named outputs: create multiple workspace outputs
-            raise WorkspaceError("operation '%s' has named outputs which are not (yet) supported" % op_name)
+            for step_output_port in op_step.output[:]:
+                workflow_output_port_name = res_name + '$' + step_output_port.name
+                workflow.op_meta_info.output[workflow_output_port_name] = \
+                    op_step.op_meta_info.output[step_output_port.name]
+                workflow_output_port = NodePort(workflow, workflow_output_port_name)
+                workflow_output_port.source = step_output_port
+                workflow.output[workflow_output_port.name] = workflow_output_port
         else:
             workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-            output_port = NodePort(workflow, res_name)
-            output_port.source = op_step.output[return_output_name]
-            workflow.output[res_name] = output_port
+            workflow_output_port = NodePort(workflow, res_name)
+            workflow_output_port.source = op_step.output[return_output_name]
+            workflow.output[workflow_output_port.name] = workflow_output_port
+
+    def _assert_open(self):
+        if self._is_closed:
+            raise WorkspaceError('already closed: ' + self._base_dir)
 
 
 class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
-    def get_workspace(self, base_dir: str) -> Workspace:
+    def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         pass
 
     @abstractmethod
-    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, save: bool = False, description: str = None) -> Workspace:
+        pass
+
+    @abstractmethod
+    def open_workspace(self, base_dir: str) -> Workspace:
+        pass
+
+    @abstractmethod
+    def close_workspace(self, base_dir: str, save: bool) -> None:
+        pass
+
+    @abstractmethod
+    def close_all_workspaces(self, save: bool) -> None:
+        pass
+
+    @abstractmethod
+    def save_workspace(self, base_dir: str) -> None:
+        pass
+
+    @abstractmethod
+    def save_all_workspaces(self) -> None:
         pass
 
     @abstractmethod
@@ -257,58 +342,109 @@ class WorkspaceManager(metaclass=ABCMeta):
                                  monitor: Monitor = Monitor.NULL) -> None:
         pass
 
+    @abstractmethod
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        pass
+
 
 class FSWorkspaceManager(WorkspaceManager):
     def __init__(self, resolve_dir: str = None):
-        self._workspace_cache = dict()
+        self._open_workspaces = dict()
         self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
+
+    def num_open_workspaces(self) -> int:
+        return len(self._open_workspaces)
 
     def resolve_path(self, dir_path):
         if dir_path and os.path.isabs(dir_path):
             return os.path.normpath(dir_path)
         return os.path.abspath(os.path.join(self._resolve_dir, dir_path or ''))
 
-    def get_workspace(self, base_dir: str) -> Workspace:
+    def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         base_dir = self.resolve_path(base_dir)
-        workspace = self._workspace_cache.get(base_dir, None)
-        if workspace:
+        workspace = self._open_workspaces.get(base_dir, None)
+        if workspace is not None:
+            assert not workspace.is_closed
             return workspace
-        workspace = Workspace.load(base_dir)
-        assert base_dir not in self._workspace_cache
-        self._workspace_cache[base_dir] = workspace
+        if not open:
+            raise WorkspaceError('workspace does not exist: ' + base_dir)
+        workspace = Workspace.open(base_dir)
+        assert base_dir not in self._open_workspaces
+        self._open_workspaces[base_dir] = workspace
         return workspace
 
-    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, save: bool = False, description: str = None) -> Workspace:
         base_dir = self.resolve_path(base_dir)
+        if base_dir in self._open_workspaces:
+            raise WorkspaceError('workspace exists: %s' % base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if os.path.isdir(workspace_dir):
             raise WorkspaceError('workspace exists: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
-        assert base_dir not in self._workspace_cache
-        self._workspace_cache[base_dir] = workspace
+        assert base_dir not in self._open_workspaces
+        if save:
+            workspace.save()
+        self._open_workspaces[base_dir] = workspace
         return workspace
+
+    def open_workspace(self, base_dir: str) -> Workspace:
+        return self.get_workspace(base_dir, open=True)
+
+    def close_workspace(self, base_dir: str, save: bool) -> None:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self._open_workspaces.pop(base_dir, None)
+        if workspace is not None:
+            if save and workspace.is_modified:
+                workspace.save()
+            workspace.close()
+
+    def close_all_workspaces(self, save: bool) -> None:
+        workspaces = self._open_workspaces.values()
+        self._open_workspaces = dict()
+        for workspace in workspaces:
+            if save:
+                workspace.save()
+            workspace.close()
+
+    def save_workspace(self, base_dir: str) -> None:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self.get_workspace(base_dir)
+        if workspace is not None and workspace.is_modified:
+            workspace.save()
+
+    def save_all_workspaces(self) -> None:
+        workspaces = self._open_workspaces.values()
+        self._open_workspaces = dict()
+        for workspace in workspaces:
+            workspace.save()
 
     def clean_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
-        # noinspection PyBroadException
-        try:
-            workspace = Workspace.load(base_dir)
-        except:
-            workspace = None
         workflow_file = Workspace.get_workflow_file(base_dir)
+        old_workflow = None
         if os.path.isfile(workflow_file):
+            # noinspection PyBroadException
+            try:
+                old_workflow = Workflow.load(workflow_file)
+            except:
+                pass
             try:
                 os.remove(workflow_file)
             except (IOError, OSError) as e:
                 raise WorkspaceError(e)
+        old_workspace = self._open_workspaces.get(base_dir)
+        if old_workspace:
+            old_workspace.resource_cache.close()
         # Create new workflow but keep old header info
-        workflow = Workspace.new_workflow(header_dict=workspace.workflow.op_meta_info.header if workspace else None)
+        workflow = Workspace.new_workflow(header_dict=old_workflow.op_meta_info.header if old_workflow else None)
         workspace = Workspace(base_dir, workflow)
-        self._workspace_cache[base_dir] = workspace
-        workspace.store()
-
+        self._open_workspaces[base_dir] = workspace
+        workspace.save()
 
     def delete_workspace(self, base_dir: str) -> None:
+        self.close_workspace(base_dir, save=False)
         base_dir = self.resolve_path(base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if not os.path.isdir(workspace_dir):
@@ -317,13 +453,10 @@ class FSWorkspaceManager(WorkspaceManager):
             shutil.rmtree(workspace_dir)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
-        if base_dir in self._workspace_cache:
-            del self._workspace_cache[base_dir]
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, can_exist=True, validate_args=True)
-        workspace.store()
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
@@ -332,13 +465,43 @@ class FSWorkspaceManager(WorkspaceManager):
         # then write the desired resource?
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
-            result = workspace.workflow(monitor=monitor.child(9))
-            if res_name in result:
-                obj = result[res_name]
-            else:
-                obj = result
+            obj = workspace.execute_workflow(res_name, monitor.child(9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
+
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        # TBD: shall we add a new step to the workflow or just execute the workflow,
+        # then write the desired resource?
+        workspace = self.get_workspace(base_dir)
+        obj = workspace.execute_workflow(res_name, monitor)
+        import xarray as xr
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        if isinstance(obj, xr.Dataset):
+            ds = obj
+            if var_name:
+                variables = [ds.data_vars[var_name]]
+            else:
+                variables = ds.data_vars.values()
+            for var in variables:
+                if hasattr(var, 'plot'):
+                    print('Plotting ', var)
+                    var.plot()
+            plt.show()
+        elif isinstance(obj, xr.DataArray):
+            var = obj
+            if hasattr(var, 'plot'):
+                print('Plotting ', var)
+                var.plot()
+                plt.show()
+        elif isinstance(obj, np.ndarray):
+            plt.plot(obj)
+            plt.show()
+        else:
+            raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -357,13 +520,30 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         with urllib.request.urlopen(url, data=data, timeout=timeout or self.timeout) as response:
             json_text = response.read()
         json_response = json.loads(json_text.decode('utf-8'))
-        status = json_response.get('status', None)
+        status = json_response.get('status')
         if status == 'error':
             error_details = json_response.get('error')
-            message = error_details.get('message', None) if error_details else None
-            type_name = error_details.get('type', None) if error_details else None
-            raise error_type(message or type_name)
-        return json_response.get('content', None)
+            message = error_details.get('message') if error_details else None
+            type_name = error_details.get('type') if error_details else None
+            trace_back = error_details.get('traceback') if error_details else None
+            message = message or type_name or ''
+            if trace_back:
+                message += self.get_traceback_header() + trace_back
+            raise error_type(message)
+        return json_response.get('content')
+
+    def _query(self, **kwargs: dict):
+        return {key:value for key, value in kwargs.items() if value is not None}
+
+    def _post_data(self, **kwargs: dict):
+        data = urllib.parse.urlencode(self._query(**kwargs))
+        return data.encode() if data else None
+
+    @classmethod
+    def get_traceback_header(cls) -> str:
+        traceback_title = 'ECT WebAPI service traceback'
+        traceback_line = len(traceback_title) * '='
+        return '\n' + traceback_line + '\n' + traceback_title + '\n' + traceback_line + '\n'
 
     def is_running(self, timeout: float = None) -> bool:
         # noinspection PyBroadException
@@ -375,34 +555,74 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         except:
             return False
 
-    def get_workspace(self, base_dir: str) -> Workspace:
-        url = self._url('/ws/get/{base_dir}', path_args=dict(base_dir=base_dir))
+    def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
+        url = self._url('/ws/get/{base_dir}',
+                        path_args=dict(base_dir=base_dir),
+                        query_args=dict(open=open))
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
 
-    def init_workspace(self, base_dir: str, description: str = None) -> Workspace:
-        url = self._url('/ws/init', query_args=dict(base_dir=base_dir, description=description or ''))
+    def new_workspace(self, base_dir: str, save: bool = False, description: str = None) -> Workspace:
+        url = self._url('/ws/new',
+                        query_args=dict(base_dir=base_dir,
+                                        save=save,
+                                        description=description or ''))
         json_dict = self._fetch_json(url)
         return Workspace.from_json_dict(json_dict)
+
+    def open_workspace(self, base_dir: str) -> Workspace:
+        url = self._url('/ws/open/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
+        json_dict = self._fetch_json(url)
+        return Workspace.from_json_dict(json_dict)
+
+    def close_workspace(self, base_dir: str, save: bool) -> None:
+        url = self._url('/ws/close/{base_dir}',
+                        path_args=dict(base_dir=base_dir),
+                        query_args=self._query(save=save))
+        self._fetch_json(url)
+
+    def close_all_workspaces(self, save: bool) -> None:
+        url = self._url('/ws/close_all',
+                        query_args=self._query(save=save))
+        self._fetch_json(url)
+
+    def save_workspace(self, base_dir: str) -> None:
+        url = self._url('/ws/save/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
+        self._fetch_json(url)
+
+    def save_all_workspaces(self) -> None:
+        url = self._url('/ws/save_all')
+        self._fetch_json(url)
 
     def delete_workspace(self, base_dir: str) -> None:
-        url = self._url('/ws/del/{base_dir}', path_args=dict(base_dir=base_dir))
+        url = self._url('/ws/del/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
         self._fetch_json(url)
 
     def clean_workspace(self, base_dir: str) -> None:
-        url = self._url('/ws/clean/{base_dir}', path_args=dict(base_dir=base_dir))
+        url = self._url('/ws/clean/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
         self._fetch_json(url)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
-        data = urllib.parse.urlencode(dict(op_name=op_name, op_args=json.dumps(op_args)))
-        self._fetch_json(url, data=data.encode())
+        self._fetch_json(url, data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NULL) -> None:
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
-                        path_args=dict(base_dir=base_dir, res_name=res_name))
-        data = urllib.parse.urlencode(dict(file_path=file_path, format_name=format_name))
-        self._fetch_json(url, data=data.encode())
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(file_path=file_path, format_name=format_name))
+        self._fetch_json(url)
+
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NULL) -> None:
+        url = self._url('/ws/res/plot/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(var_name=var_name, file_path=file_path))
+        self._fetch_json(url, timeout=PLOT_TIMEOUT)

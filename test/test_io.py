@@ -1,14 +1,13 @@
-from datetime import datetime
 from typing import Sequence
 from unittest import TestCase
 
 import xarray as xr
 import ect.core.io as io
-from ect import Monitor
 
 
 class SimpleDataStore(io.DataStore):
-    def __init__(self, data_sources: Sequence[io.DataSource]):
+    def __init__(self, name: str, data_sources: Sequence[io.DataSource]):
+        super().__init__(name)
         self._data_sources = list(data_sources)
 
     def query(self, name=None) -> Sequence[io.DataSource]:
@@ -62,20 +61,25 @@ class InMemoryDataSource(SimpleDataSource):
 
 
 class IOTest(TestCase):
+
     def setUp(self):
         self.DS_AEROSOL = SimpleDataSource('aerosol')
         self.DS_OZONE = SimpleDataSource('ozone')
-        self.TEST_DATA_STORE = SimpleDataStore([self.DS_AEROSOL, self.DS_OZONE])
+        self.TEST_DATA_STORE = SimpleDataStore('test_aero_ozone', [self.DS_AEROSOL, self.DS_OZONE])
         self.DS_AEROSOL._data_store = self.TEST_DATA_STORE
         self.DS_OZONE._data_store = self.TEST_DATA_STORE
         self.DS_SST = SimpleDataSource('sst')
-        self.TEST_DATA_STORE_SST = SimpleDataStore([self.DS_SST])
+        self.TEST_DATA_STORE_SST = SimpleDataStore('test_sst', [self.DS_SST])
 
     def test_query_data_sources_default_data_store(self):
-        self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
+        size_before = len(io.DATA_STORE_REGISTRY)
+        orig_stores = list(io.DATA_STORE_REGISTRY.get_data_stores())
         try:
-            from ect.ds.esa_cci_ftp import set_default_data_store
-            set_default_data_store()
+            io.DATA_STORE_REGISTRY._data_stores.clear()
+            self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
+
+            from ect.ds.esa_cci_ftp import set_default_data_store as set_default_data_store_ftp
+            set_default_data_store_ftp()
             self.assertEqual(1, len(io.DATA_STORE_REGISTRY))
 
             data_sources = io.query_data_sources()
@@ -92,7 +96,9 @@ class IOTest(TestCase):
             self.assertEqual(len(data_sources), 0)
         finally:
             io.DATA_STORE_REGISTRY._data_stores.clear()
-        self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
+            for data_store in orig_stores:
+                io.DATA_STORE_REGISTRY.add_data_store(data_store)
+        self.assertEqual(size_before, len(io.DATA_STORE_REGISTRY))
 
     def test_query_data_sources_with_data_store_value(self):
         data_sources = io.query_data_sources(data_stores=self.TEST_DATA_STORE)
@@ -146,13 +152,13 @@ class IOTest(TestCase):
 
     def test_open_dataset_duplicated_names(self):
         try:
-            ds_a1 = SimpleDataSource('aerosol')
-            ds_a2 = SimpleDataSource('aerosol')
-            duplicated_cat = SimpleDataStore([ds_a1, ds_a2])
-            io.DATA_STORE_REGISTRY.add_data_store('duplicated_cat', duplicated_cat)
+            ds_a1 = SimpleDataSource('duplicate')
+            ds_a2 = SimpleDataSource('duplicate')
+            duplicated_cat = SimpleDataStore('duplicated_cat', [ds_a1, ds_a2])
+            io.DATA_STORE_REGISTRY.add_data_store(duplicated_cat)
             with self.assertRaises(ValueError) as cm:
-                io.open_dataset('aerosol')
-            self.assertEqual("2 data_sources found for the given query term 'aerosol'", str(cm.exception))
+                io.open_dataset('duplicate')
+            self.assertEqual("2 data_sources found for the given query term 'duplicate'", str(cm.exception))
         finally:
-            io.DATA_STORE_REGISTRY._data_stores.clear()
+            io.DATA_STORE_REGISTRY.remove_data_store('duplicated_cat')
 

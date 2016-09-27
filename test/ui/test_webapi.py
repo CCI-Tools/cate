@@ -32,8 +32,9 @@ class WebAPITest(AsyncHTTPTestCase):
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
 
-        response = self.fetch(encode_url_path('/ws/init',
+        response = self.fetch(encode_url_path('/ws/new',
                                               query_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'),
+                                                              save=True,
                                                               description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
@@ -48,8 +49,9 @@ class WebAPITest(AsyncHTTPTestCase):
         op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
         data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
-        url = encode_url_path('/ws/res/set/{base_dir}/{res_name}', path_args=dict(base_dir=os.path.abspath(base_dir),
-                                                                                  res_name=res_name))
+        url = encode_url_path('/ws/res/set/{base_dir}/{res_name}',
+                              path_args=dict(base_dir=os.path.abspath(base_dir),
+                                             res_name=res_name))
         response = self.fetch(url, method='POST', body=body)
 
         self.assertEqual(response.code, 200)
@@ -57,11 +59,11 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertEqual(json_dict, dict(status='ok', content=None))
 
         file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
-        data = dict(file_path=file_path)
-        body = urllib.parse.urlencode(data)
-        url = encode_url_path('/ws/res/write/{base_dir}/{res_name}', path_args=dict(base_dir=os.path.abspath(base_dir),
-                                                                                    res_name=res_name))
-        response = self.fetch(url, method='POST', body=body)
+        url = encode_url_path('/ws/res/write/{base_dir}/{res_name}',
+                              path_args=dict(base_dir=os.path.abspath(base_dir),
+                                             res_name=res_name),
+                              query_args=dict(file_path=file_path))
+        response = self.fetch(url, method='GET')
 
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
@@ -71,6 +73,32 @@ class WebAPITest(AsyncHTTPTestCase):
 
         if os.path.exists(base_dir):
             shutil.rmtree(base_dir)
+
+
+class IsServiceCompatibleTest(unittest.TestCase):
+    def test_is_service_compatible_true(self):
+        self.assertTrue(webapi.is_service_compatible(None, None, None,
+                                                     service_info=dict(port=8675, address=None, caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address=None, caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address='bibo', caller=None)))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address='bibo', caller='ect-gui')))
+        self.assertTrue(webapi.is_service_compatible(8675, None, None,
+                                                     service_info=dict(port=8675, address=None, caller='ect-gui')))
+        self.assertTrue(webapi.is_service_compatible(8675, None, 'ect',
+                                                     service_info=dict(port=8675, address=None, caller='ect')))
+
+    def test_is_service_compatible_false(self):
+        self.assertFalse(webapi.is_service_compatible(None, None, None,
+                                                      service_info=dict(port=None, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, None,
+                                                      service_info=dict(port=None, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, None,
+                                                      service_info=dict(port=7685, address=None, caller=None)))
+        self.assertFalse(webapi.is_service_compatible(7684, None, 'ect',
+                                                      service_info=dict(port=7684, address=None, caller='ect-gui')))
 
 
 class UrlPatternTest(unittest.TestCase):

@@ -12,9 +12,6 @@ from ect.core.util import to_datetime, to_datetime_range
 from ect.core.util import to_list
 
 
-
-
-
 class UndefinedTest(TestCase):
     def test_it(self):
         self.assertIsNotNone(UNDEFINED)

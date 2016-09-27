@@ -188,41 +188,61 @@ class Node(metaclass=ABCMeta):
         """Find a (child) node with the given *node_id*."""
         return None
 
+    def __call__(self, value_cache: dict = None, monitor=Monitor.NULL, **input_values):
+        """
+        Make this class instance's callable. The call is delegated to :py:meth:`call()`.
+
+        :param value_cache: An optional value cache.
+        :param monitor: An optional progress monitor.
+        :param input_values: The input values.
+        :return: The output value.
+        """
+        return self.call(value_cache=value_cache, monitor=monitor, input_values=input_values)
+
+    def call(self, value_cache: dict = None, monitor=Monitor.NULL, input_values: dict = None):
+        """
+        Calls this workflow with given *input_values* and returns the result.
+
+        The method does the following:
+        1. Set default_value where input values are missing in *input_values*
+        2. Validate the input_values using this workflows's meta-info
+        3. Set this workflow's input port values
+        4. Invoke this workflow with given *value_cache* and *monitor*
+        5. Get this workflow's output port values. Named outputs will be returned as dictionary.
+
+        :param value_cache: An optional value cache.
+        :param monitor: An optional progress monitor.
+        :param input_values: The input values.
+        :return: The output values.
+        """
+        input_values = input_values or {}
+        # 1. Set default_value where input values are missing in *input_values*
+        self.op_meta_info.set_default_input_values(input_values)
+        # 2. Validate the input_values using this workflows's meta-info
+        self.op_meta_info.validate_input_values(input_values)
+        # 3. Set this workflow's input port values
+        self.set_input_values(input_values)
+        # 4. Invoke this workflow with given *value_cache* and *monitor*
+        self.invoke(value_cache=value_cache, monitor=monitor)
+        # 5. Get this workflow's output port values. Named outputs will be returned as dictionary.
+        return self.get_output_value()
+
     @abstractmethod
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
 
-    def __call__(self, monitor=Monitor.NULL, **input_values):
-        """
-        Make this class instance's callable.
-
-        The method
-        1. sets this node's :py:attr:`input` values from given *kwargs*;
-        2. calls ``invoke(monitor)``;
-        3. returns this node's output values retrieved from :py:attr:`output`.
-
-        :param monitor: An optional progress monitor.
-        :param input_values: The input values.
-        :return: The output values.
-        """
-
-        # set default_value where input values are missing
-        self.op_meta_info.set_default_input_values(input_values)
-
-        # validate the input_values using this workflows's meta-info
-        self.op_meta_info.validate_input_values(input_values)
-
+    def set_input_values(self, input_values):
         for node_input in self.input[:]:
             node_input.value = input_values[node_input.name]
 
-        self.invoke(monitor=monitor)
-
+    def get_output_value(self):
         if self.op_meta_info.has_named_outputs:
             return {output.name: output.value for output in self.output[:]}
         else:
@@ -258,14 +278,16 @@ class Node(metaclass=ABCMeta):
     def _body_string(self) -> str:
         return None
 
-    @classmethod
-    def _format_port_assignments(cls, namespace: Namespace):
+    def _format_port_assignments(self, namespace: Namespace, is_input: bool):
         port_assignments = []
         for port in namespace[:]:
             if port.source:
                 port_assignments.append('%s=%s' % (port.name, str(port.source)))
             elif port.has_value:
                 port_assignments.append('%s=%s' % (port.name, repr(port.value)))
+            elif is_input:
+                default_value = self.op_meta_info.input[port.name].get('default_value', None)
+                port_assignments.append('%s=%s' % (port.name, repr(default_value)))
             else:
                 port_assignments.append('%s' % port.name)
         return ', '.join(port_assignments)
@@ -274,10 +296,10 @@ class Node(metaclass=ABCMeta):
         """String representation."""
         op_meta_info = self.op_meta_info
         body_string = self._body_string() or op_meta_info.qualified_name
-        input_assignments = self._format_port_assignments(self.input)
+        input_assignments = self._format_port_assignments(self.input, True)
         output_assignments = ''
         if op_meta_info.has_named_outputs:
-            output_assignments = self._format_port_assignments(self.output)
+            output_assignments = self._format_port_assignments(self.output, False)
             output_assignments = ' -> (%s)' % output_assignments
         return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
@@ -353,7 +375,7 @@ class Workflow(Node):
         for node in self._steps.values():
             node.resolve_source_refs()
 
-    def invoke(self, monitor=Monitor.NULL) -> None:
+    def invoke(self, value_cache: dict = None, monitor=Monitor.NULL) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
         The node invocation order is determined by the input requirements of individual nodes.
@@ -363,11 +385,11 @@ class Workflow(Node):
         steps = self.steps
         step_count = len(steps)
         if step_count == 1:
-            steps[0].invoke(monitor)
+            steps[0].invoke(value_cache=value_cache, monitor=monitor)
         elif step_count > 1:
             monitor.start("Executing workflow '%s'" % self.id, step_count)
             for step in steps:
-                step.invoke(monitor.child(1))
+                step.invoke(value_cache=value_cache, monitor=monitor.child(1))
             monitor.done()
 
     @classmethod
@@ -613,15 +635,22 @@ class WorkflowStep(Step):
         """The workflow's resource path (file path, URL)."""
         return self._resource
 
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying workflow's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
-        self._workflow.invoke(monitor=monitor)
+
+        if value_cache is not None and hasattr(value_cache, 'child'):
+            value_cache = value_cache.child(self.id)
+
+        # Invoke underlying workflow.
+        self._workflow.invoke(value_cache=value_cache, monitor=monitor)
+
         # transfer workflow output values into this node's output values
         for workflow_output in self._workflow.output[:]:
             assert workflow_output.name in self.output
@@ -672,12 +701,13 @@ class OpStep(Step):
         """The operation registration. See :py:class:`ect.core.op.OpRegistration`"""
         return self._op_registration
 
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
@@ -685,7 +715,13 @@ class OpStep(Step):
             if node_input.has_value:
                 input_values[node_input.name] = node_input.value
 
-        return_value = self._op_registration(monitor=monitor, **input_values)
+        can_cache = value_cache is not None and self.op_meta_info.can_cache
+        if can_cache and self.id in value_cache:
+            return_value = value_cache[self.id]
+        else:
+            return_value = self._op_registration(monitor=monitor, **input_values)
+            if can_cache:
+                value_cache[self.id] = return_value
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
@@ -747,19 +783,26 @@ class ExprStep(Step):
         """The expression."""
         return self._expression
 
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
         for node_input in self.input[:]:
             input_values[node_input.name] = node_input.value
 
-        return_value = eval(self.expression, None, input_values)
+        can_cache = value_cache is not None and self.op_meta_info.can_cache
+        if can_cache and self.id in value_cache:
+            return_value = value_cache[self.id]
+        else:
+            return_value = eval(self.expression, None, input_values)
+            if can_cache:
+                value_cache[self.id] = return_value
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
@@ -804,12 +847,13 @@ class NoOpStep(Step):
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
 
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
@@ -868,12 +912,13 @@ class SubProcessStep(Step):
         """The sub process' arguments."""
         return self._sub_process_arguments
 
-    def invoke(self, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
+        :param value_cache: An optional value cache.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
@@ -887,7 +932,7 @@ class SubProcessStep(Step):
         #                 use new filename as new argument
         # TODO (forman, 20160625): SubProcessStep: add option to generate dictionary of named output values
         # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
-        #              2) send all sdtout lines to monitor as textual messages
+        #              2) send all stdout lines to monitor as textual messages
         # TODO (forman, 20160625): SubProcessStep: use monitor here
 
         interpolated_arguments = []
@@ -1105,7 +1150,10 @@ class NodePort:
         if self._source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
         elif self._value is not UNDEFINED:
-            json_dict['value'] = self._value
+            # TODO (forman, 20160927): do not serialize output values, they may not be JSON-serializable (hack!)
+            write_value = self._name not in self._node.op_meta_info.output
+            if write_value:
+                json_dict['value'] = self._value
         return json_dict
 
     def __str__(self):
@@ -1155,3 +1203,51 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
     source_node = source_port.node
     source_gnode = graph_nodes[source_node.id]
     source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))
+
+
+def _close_value(value):
+    if hasattr(value, 'close'):
+        try:
+            value.close()
+        except:
+            pass
+
+
+class ValueCache(dict):
+    """
+    A dictionary that can be closed. If closed, all values that have a ``close`` attribute are closed as well.
+    Values are also closed, if they are removed.
+    """
+
+    def __init__(self):
+        super(ValueCache, self).__init__()
+
+    def __del__(self):
+        self._close_values()
+
+    def __setitem__(self, key, value):
+        old_value = self.get(key)
+        super(ValueCache, self).__setitem__(key, value)
+        if old_value is not value:
+            _close_value(old_value)
+
+    def __delitem__(self, key):
+        old_value = self.get(key)
+        super(ValueCache, self).__delitem__(key)
+        if old_value is not None:
+            _close_value(old_value)
+
+    def child(self, key: str) -> 'ValueCache':
+        child_key = key + '.__child__'
+        if child_key not in self:
+            self[child_key] = ValueCache()
+        return self[child_key]
+
+    def close(self):
+        self._close_values()
+
+    def _close_values(self):
+        values = list(self.values())
+        self.clear()
+        for value in values:
+            _close_value(value)
