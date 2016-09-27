@@ -31,6 +31,7 @@ Components
 
 import xarray as xr
 from typing import Union, List
+import fnmatch
 
 from ect.core.op import op
 from ect.core.util import to_list
@@ -44,7 +45,10 @@ def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Da
 
     :param ds: The dataset from which to perform selection.
     :param var: One or more variable names to select and preserve in the dataset.
-    All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2']
+    All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2'].
+    One can also use wildcards when doing the selection. E.g., choosing 'var_name*' for selection
+    will select all variables that start with 'var_name'. This can be used to select variables
+    along with their auxiliary variables, to select all uncertainty variables, and so on.
     :return: A filtered dataset
     """
     if not var:
@@ -53,9 +57,9 @@ def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Da
     var_names = to_list(var, name='var')
     dropped_var_names = list(ds.data_vars.keys())
 
-    for name in var_names:
-        for drop_name in dropped_var_names:
-            if name == drop_name:
-                dropped_var_names.remove(drop_name)
+    for pattern in var_names:
+        keep = fnmatch.filter(dropped_var_names, pattern)
+        for name in keep:
+            dropped_var_names.remove(name)
 
     return ds.drop(dropped_var_names)

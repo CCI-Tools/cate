@@ -1,7 +1,7 @@
 from unittest import TestCase
 import xarray as xr
 
-from ect.ops.select import select_variables
+from ect.ops.select import select_var
 
 
 class TestSelect(TestCase):
@@ -10,34 +10,30 @@ class TestSelect(TestCase):
                                'bde': ('x', [4, 5, 6])})
 
         # Test if nothing gets dropped if nothing has to be dropped
-        actual = select_variables(dataset)
+        actual = select_var(dataset)
         self.assertDatasetEqual(dataset, actual)
 
-        actual = select_variables(dataset, variable_names='')
+        actual = select_var(dataset, var='')
         self.assertDatasetEqual(dataset, actual)
 
         # Test that everything is dropped if the desired name does not exist in
         # the dataset
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         expected = expected.drop('abc')
-        actual = select_variables(dataset, variable_names='xyz')
+        actual = select_var(dataset, var='xyz')
         self.assertDatasetEqual(expected, actual)
 
         # Test that a single variable selection works
-        actual = select_variables(dataset, variable_names='abc')
-        expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
-        self.assertDatasetEqual(expected, actual)
-
-        # Test that regex selection works
-        actual = select_variables(dataset, variable_names='.*b.*')
-        self.assertDatasetEqual(dataset, actual)
-
-        actual = select_variables(dataset, variable_names='.*c.*')
+        actual = select_var(dataset, var='abc')
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
         self.assertDatasetEqual(expected, actual)
 
         # Test that simple multiple variable selection works
-        actual = select_variables(dataset, variable_names='abc|bde')
+        actual = select_var(dataset, var='abc,bde')
+        self.assertDatasetEqual(dataset, actual)
+
+        # Test that wildcard selection works
+        actual = select_var(dataset, var='*b*')
         self.assertDatasetEqual(dataset, actual)
 
     def assertDatasetEqual(self, expected, actual):
