@@ -145,7 +145,7 @@ class WorkspaceTest(unittest.TestCase):
                 "ts": {
                     "data_type": "xarray.core.dataset.Dataset",
                     "source": "ts.return",
-                    "description": "A timeseries dataset"
+                    "description": "Dataset with timeseries variables"
                 }
             },
             "steps": [
@@ -167,18 +167,14 @@ class WorkspaceTest(unittest.TestCase):
                 },
                 {
                     "id": "ts",
-                    "op": "ect.ops.timeseries.timeseries",
+                    "op": "ect.ops.timeseries.tseries_mean",
                     "input": {
                         "ds": {
                             "source": "p.return"
                         },
-                        "lat": {
-                            "value": 53
-                        },
-                        "lon": {
-                            "value": 10
-                        },
-                        "method": {}
+                        "var": {
+                          "value": "precipitation"
+                        }
                     },
                     "output": {
                         "return": {}
@@ -194,11 +190,11 @@ class WorkspaceTest(unittest.TestCase):
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=2010_precipitation.nc"])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('ts', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=53", "lon=10"])
+        ws.set_resource('ts', 'ect.ops.timeseries.tseries_mean', ["ds=p", "var=precipitation"])
         # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
         with self.assertRaises(ValueError) as e:
-            ws.set_resource('ts2', 'ect.ops.timeseries.timeseries', ["ds=p", "lat=0", "lon=iih!"], validate_args=True)
-        self.assertEqual(str(e.exception), "input 'lon' for operation 'ect.ops.timeseries.timeseries' "
+            ws.set_resource('ts2', 'ect.ops.timeseries.tseries_point', ["ds=p", "lat=0", "lon=iih!", "var=precipitation"], validate_args=True)
+        self.assertEqual(str(e.exception), "input 'lon' for operation 'ect.ops.timeseries.tseries_point' "
                                            "must be of type 'float', but got type 'str'")
