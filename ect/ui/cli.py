@@ -794,7 +794,11 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
-        # TODO (forman, 20160922): implement "ect res plot"
+        print_parser = subparsers.add_parser('print', help='Print a resource.')
+        print_parser.add_argument('res_name', metavar='NAME',
+                                 help='Name of an existing resource.')
+        print_parser.set_defaults(sub_command_function=cls._execute_print)
+
         plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
         plot_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of an existing resource.')
@@ -868,6 +872,12 @@ class ResourceCommand(SubCommandCommand):
                                                    format_name=command_args.format_name,
                                                    monitor=cls.new_monitor())
         print('Resource "%s" written.' % command_args.res_name)
+
+    @classmethod
+    def _execute_print(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.print_workspace_resource(_base_dir(),
+                                                   command_args.res_name)
 
     @classmethod
     def _execute_plot(cls, command_args):

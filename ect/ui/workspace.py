@@ -36,13 +36,13 @@ from ect.core.op import OpMetaInfo, parse_op_args
 from ect.core.util import Namespace, encode_url_path
 from ect.core.workflow import Workflow, OpStep, NodePort, ValueCache
 
-
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
 # {{ect-config}}
 # allow one hour timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
 PLOT_TIMEOUT = 60. * 60.
+
 
 # TODO (forman, 20160908): implement file lock for opened workspaces
 
@@ -343,6 +343,11 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def print_workspace_resource(self, base_dir: str, res_name: str,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        pass
+
+    @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
@@ -469,11 +474,15 @@ class FSWorkspaceManager(WorkspaceManager):
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
 
+    def print_workspace_resource(self, base_dir: str, res_name: str,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        workspace = self.get_workspace(base_dir)
+        obj = workspace.execute_workflow(res_name, monitor)
+        print(obj)
+
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
-        # TBD: shall we add a new step to the workflow or just execute the workflow,
-        # then write the desired resource?
         workspace = self.get_workspace(base_dir)
         obj = workspace.execute_workflow(res_name, monitor)
         import xarray as xr
@@ -533,7 +542,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return json_response.get('content')
 
     def _query(self, **kwargs: dict):
-        return {key:value for key, value in kwargs.items() if value is not None}
+        return {key: value for key, value in kwargs.items() if value is not None}
 
     def _post_data(self, **kwargs: dict):
         data = urllib.parse.urlencode(self._query(**kwargs))
@@ -617,6 +626,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(file_path=file_path, format_name=format_name))
+        self._fetch_json(url)
+
+    def print_workspace_resource(self, base_dir: str, res_name: str,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        url = self._url('/ws/res/print/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name))
         self._fetch_json(url)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
