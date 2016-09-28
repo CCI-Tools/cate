@@ -52,6 +52,8 @@ from ect.core.monitor import Monitor
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
+# {{ect-config}}
+# Where ECT stores information/cached data from data stores: by default "~./.ect/data_stores"
 _DATA_SOURCES_DIR = os.path.expanduser(os.path.join('~', '.ect', 'data_stores'))
 _DATA_ROOT = os.path.join(_DATA_SOURCES_DIR, 'esa_cci_odp')
 
