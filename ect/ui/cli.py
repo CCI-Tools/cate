@@ -794,9 +794,12 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
-        print_parser = subparsers.add_parser('print', help='Print a resource.')
-        print_parser.add_argument('res_name', metavar='NAME',
-                                 help='Name of an existing resource.')
+        print_parser = subparsers.add_parser('print', help='If EXPR is omitted, print value of all current resources.'
+                                                           'Otherwise, if EXPR identifies a resource, print its value.'
+                                                           'Else print the value of a (Python) expression evaluated '
+                                                           'in the context of the current resources.')
+        print_parser.add_argument('res_name_or_expr', metavar='EXPR', nargs='?',
+                                  help='Name of an existing resource or a valid (Python) expression.')
         print_parser.set_defaults(sub_command_function=cls._execute_print)
 
         plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
@@ -874,12 +877,6 @@ class ResourceCommand(SubCommandCommand):
         print('Resource "%s" written.' % command_args.res_name)
 
     @classmethod
-    def _execute_print(cls, command_args):
-        workspace_manager = _new_workspace_manager()
-        workspace_manager.print_workspace_resource(_base_dir(),
-                                                   command_args.res_name)
-
-    @classmethod
     def _execute_plot(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.plot_workspace_resource(_base_dir(),
@@ -887,6 +884,12 @@ class ResourceCommand(SubCommandCommand):
                                                   var_name=command_args.var_name,
                                                   file_path=command_args.file_path,
                                                   monitor=cls.new_monitor())
+
+    @classmethod
+    def _execute_print(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.print_workspace_resource(_base_dir(),
+                                                   command_args.res_name_or_expr)
 
 
 class OperationCommand(SubCommandCommand):

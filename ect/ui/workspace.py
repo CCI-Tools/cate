@@ -21,6 +21,7 @@
 
 import json
 import os
+import pprint
 import shutil
 import sys
 import urllib.parse
@@ -39,12 +40,21 @@ from ect.core.workflow import Workflow, OpStep, NodePort, ValueCache
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
-# {{ect-config}}
-# allow one hour timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
-PLOT_TIMEOUT = 60. * 60.
-
-
 # TODO (forman, 20160908): implement file lock for opened workspaces
+# TODO (forman, 20160928): must turn all WebAPI handler into asynchronous tasks
+
+
+# {{ect-config}}
+# allow two minutes timeout for any synchronous workspace I/O
+WORKSPACE_TIMEOUT = 2 * 60.0
+
+# {{ect-config}}
+# allow one hour timeout for any synchronous resource processing
+RESOURCE_TIMEOUT = 60 * 60.0
+
+# {{ect-config}}
+# allow one hour extra timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
+PLOT_TIMEOUT = 60 * 60.0
 
 
 class WorkspaceError(Exception):
@@ -186,8 +196,8 @@ class Workspace:
 
     def execute_workflow(self, res_name, monitor):
         self._assert_open()
-        result = self.workflow(monitor=monitor)
-        if res_name in result:
+        result = self.workflow.call(value_cache=self._resource_cache, monitor=monitor)
+        if res_name is not None and res_name in result:
             obj = result[res_name]
         else:
             obj = result
@@ -343,14 +353,14 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def print_workspace_resource(self, base_dir: str, res_name: str,
-                                 monitor: Monitor = Monitor.NONE) -> None:
-        pass
-
-    @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
+        pass
+
+    @abstractmethod
+    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
 
@@ -459,29 +469,20 @@ class FSWorkspaceManager(WorkspaceManager):
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str],
+                               monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, can_exist=True, validate_args=True)
+        workspace.execute_workflow(res_name, monitor)
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        # TBD: shall we add a new step to the workflow or just execute the workflow,
-        # then write the desired resource?
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name, monitor.child(9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
-
-    def print_workspace_resource(self, base_dir: str, res_name: str,
-                                 monitor: Monitor = Monitor.NONE) -> None:
-        workspace = self.get_workspace(base_dir)
-        obj = workspace.execute_workflow(res_name, monitor)
-        if res_name.isidentifier():
-            print(obj)
-        else:
-            print(eval(res_name, None, workspace.resource_cache))
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
@@ -516,6 +517,16 @@ class FSWorkspaceManager(WorkspaceManager):
             plt.show()
         else:
             raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
+
+    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        workspace = self.get_workspace(base_dir)
+        if res_name_or_expr is None:
+            pprint.pprint(workspace.resource_cache)
+        elif res_name_or_expr.isidentifier() and res_name_or_expr in workspace.resource_cache:
+            pprint.pprint(workspace.resource_cache[res_name_or_expr])
+        else:
+            pprint.pprint(eval(res_name_or_expr, None, workspace.resource_cache))
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -573,7 +584,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/get/{base_dir}',
                         path_args=dict(base_dir=base_dir),
                         query_args=dict(open=open))
-        json_dict = self._fetch_json(url)
+        json_dict = self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
     def new_workspace(self, base_dir: str, save: bool = False, description: str = None) -> Workspace:
@@ -581,49 +592,50 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         query_args=dict(base_dir=base_dir,
                                         save=save,
                                         description=description or ''))
-        json_dict = self._fetch_json(url)
+        json_dict = self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
     def open_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/open/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        json_dict = self._fetch_json(url)
+        json_dict = self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
     def close_workspace(self, base_dir: str, save: bool) -> None:
         url = self._url('/ws/close/{base_dir}',
                         path_args=dict(base_dir=base_dir),
                         query_args=self._query(save=save))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def close_all_workspaces(self, save: bool) -> None:
         url = self._url('/ws/close_all',
                         query_args=self._query(save=save))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def save_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/save/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def save_all_workspaces(self) -> None:
         url = self._url('/ws/save_all')
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def delete_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/del/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def clean_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/clean/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
-        self._fetch_json(url, data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT,
+                         data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
@@ -631,13 +643,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(file_path=file_path, format_name=format_name))
-        self._fetch_json(url)
-
-    def print_workspace_resource(self, base_dir: str, res_name: str,
-                                 monitor: Monitor = Monitor.NONE) -> None:
-        url = self._url('/ws/res/print/{base_dir}/{res_name}',
-                        path_args=dict(base_dir=base_dir, res_name=res_name))
-        self._fetch_json(url)
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
@@ -645,4 +651,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(var_name=var_name, file_path=file_path))
-        self._fetch_json(url, timeout=PLOT_TIMEOUT)
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT + PLOT_TIMEOUT)
+
+    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        url = self._url('/ws/res/print/{base_dir}',
+                        path_args=dict(base_dir=base_dir),
+                        query_args=self._query(res_name_or_expr=res_name_or_expr))
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT)

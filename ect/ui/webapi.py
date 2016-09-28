@@ -95,8 +95,8 @@ def get_application():
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
-        (url_pattern('/ws/res/print/{{base_dir}}/{{res_name}}'), ResourcePrintHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
@@ -623,18 +623,6 @@ class ResourceWriteHandler(BaseRequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResourcePrintHandler(BaseRequestHandler):
-    def get(self, base_dir, res_name):
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.print_workspace_resource(base_dir, res_name)
-            self.write(_status_ok())
-        except Exception as e:
-            self.write(_status_error(exception=e))
-
-
-# noinspection PyAbstractClass
 class ResourcePlotHandler(BaseRequestHandler):
     def get(self, base_dir, res_name):
         var_name = self.get_query_argument('var_name', default=None)
@@ -643,6 +631,19 @@ class ResourcePlotHandler(BaseRequestHandler):
         try:
             with cwd(base_dir):
                 workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class ResourcePrintHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        res_name_or_expr = self.get_query_argument('res_name_or_expr', default=None)
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
