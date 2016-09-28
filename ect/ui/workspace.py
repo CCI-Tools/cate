@@ -478,7 +478,10 @@ class FSWorkspaceManager(WorkspaceManager):
                                  monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         obj = workspace.execute_workflow(res_name, monitor)
-        print(obj)
+        if res_name.isidentifier():
+            print(obj)
+        else:
+            print(eval(res_name, None, workspace.resource_cache))
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
