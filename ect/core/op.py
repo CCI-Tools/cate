@@ -105,7 +105,7 @@ Components
 import re
 from collections import OrderedDict
 from inspect import isclass
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Union, Callable
 
 from .monitor import Monitor
 from .util import object_to_qualified_name, qualified_name_to_object
@@ -599,7 +599,7 @@ class OpRegistry:
 
         :return: a mapping of fully qualified operation names to operation registrations
         """
-        return OrderedDict(sorted(self._op_registrations.items(), key=lambda name: name[0]))
+        return OrderedDict(sorted(self._op_registrations.items(), key=lambda item: item[0]))
 
     def add_op(self, operation, fail_if_exists=True) -> OpRegistration:
         """
@@ -609,14 +609,14 @@ class OpRegistry:
         :param fail_if_exists: raise ``ValueError`` if the operation was already registered
         :return: a :py:class:`ect.core.op.OpRegistration` object
         """
-        op_qualified_name = object_to_qualified_name(operation)
-        if op_qualified_name in self._op_registrations:
+        op_key = self.get_op_key(operation)
+        if op_key in self._op_registrations:
             if fail_if_exists:
-                raise ValueError("operation with name '%s' already registered" % op_qualified_name)
+                raise ValueError("operation with name '%s' already registered" % op_key)
             else:
-                return self._op_registrations[op_qualified_name]
+                return self._op_registrations[op_key]
         op_registration = OpRegistration(operation)
-        self._op_registrations[op_qualified_name] = op_registration
+        self._op_registrations[op_key] = op_registration
         return op_registration
 
     def remove_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
@@ -628,13 +628,13 @@ class OpRegistry:
         :return: the removed :py:class:`ect.core.op.OpRegistration` object or ``None``
                  if *fail_if_not_exists* is ``False``.
         """
-        op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
-        if op_qualified_name not in self._op_registrations:
+        op_key = self.get_op_key(operation)
+        if op_key not in self._op_registrations:
             if fail_if_not_exists:
-                raise ValueError("operation with name '%s' not registered" % op_qualified_name)
+                raise ValueError("operation with name '%s' not registered" % op_key)
             else:
                 return None
-        return self._op_registrations.pop(op_qualified_name)
+        return self._op_registrations.pop(op_key)
 
     def get_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
         """
@@ -644,11 +644,28 @@ class OpRegistry:
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
         :return: a :py:class:`ect.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
         """
-        op_qualified_name = operation if isinstance(operation, str) else object_to_qualified_name(operation)
-        op_registration = self._op_registrations.get(op_qualified_name, None)
+        op_key = self.get_op_key(operation)
+        op_registration = self._op_registrations.get(op_key, None)
         if op_registration is None and fail_if_not_exists:
-            raise ValueError("operation with name '%s' not registered" % op_qualified_name)
+            raise ValueError("operation with name '%s' not registered" % op_key)
         return op_registration
+
+    # noinspection PyMethodMayBeStatic
+    def get_op_key(self, operation: Union[str, Callable]):
+        """
+        Get a key under which the given operation will be registered.
+
+        :param operation: A fully qualified operation name or a callable object
+        :return: The operation key
+        """
+        if isinstance(operation, str):
+            qualified_name = operation
+        else:
+            qualified_name = object_to_qualified_name(operation)
+        if qualified_name.startswith('ect.ops.'):
+            return qualified_name.rsplit('.', maxsplit=1)[1]
+        else:
+            return qualified_name
 
 
 class _DefaultOpRegistry(OpRegistry):
