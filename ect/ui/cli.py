@@ -111,7 +111,7 @@ from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range
 from ect.core.workflow import Workflow
-from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info
+from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info, is_service_running
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
 from ect.version import __version__
 
@@ -150,15 +150,15 @@ WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.json')
 def _default_workspace_manager_factory() -> WorkspaceManager:
     # Read any existing '.ect/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
-    if not service_info:
-        # If there is no '.ect/webapi.json' but we need a WebAPI, start service
+
+    if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
         start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         # Read new '.ect/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:
             raise WorkspaceError('ECT WebAPI service could not be started')
 
-    return WebAPIWorkspaceManager(service_info, timeout=5)
+    return WebAPIWorkspaceManager(service_info, timeout=5.)
 
 
 WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory

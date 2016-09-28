@@ -33,8 +33,8 @@ from datetime import date, datetime
 from threading import Timer
 from typing import Optional
 
-from ect.ui.workspace import FSWorkspaceManager
 from ect.core.util import cwd
+from ect.ui.workspace import FSWorkspaceManager
 from ect.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
@@ -150,7 +150,7 @@ def start_service_subprocess(port: int = None,
         exit_code = webapi.poll()
         if exit_code is not None:
             # Process terminated, we can return now, as there will be no running service
-            raise WebAPIServiceError('WebAPI service terminated with exit code %d' % exit_code)
+            raise WebAPIServiceError('ECT WebAPI service terminated with exit code %d' % exit_code)
         # noinspection PyBroadException
         try:
             urllib.request.urlopen(webapi_url, timeout=2)
@@ -161,7 +161,7 @@ def start_service_subprocess(port: int = None,
         time.sleep(0.1)
         t1 = time.clock()
         if t1 - t0 > timeout:
-            raise TimeoutError('WebAPI service timeout, exceeded %d sec' % timeout)
+            raise TimeoutError('ECT WebAPI service timeout, exceeded %d sec' % timeout)
 
 
 def stop_service_subprocess(port: int = None,
@@ -172,7 +172,7 @@ def stop_service_subprocess(port: int = None,
     command = _join_command('stop', port, address, caller, service_info_file)
     exit_code = subprocess.call(command, shell=True, timeout=timeout)
     if exit_code != 0:
-        raise WebAPIServiceError('WebAPI service terminated with exit code %d' % exit_code)
+        raise WebAPIServiceError('ECT WebAPI service terminated with exit code %d' % exit_code)
 
 
 def _join_command(sub_command, port, address, caller, service_info_file):
@@ -210,15 +210,14 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
             port = service_info.get('port')
             address = service_info.get('address') or LOCALHOST
             if is_service_running(port, address):
-                print('WebAPI service already running on %s:%s, reusing it' % (address, port))
+                print('ECT WebAPI service already running on %s:%s, reusing it' % (address, port))
                 return service_info
             else:
                 # Try shutting down the service, even violently
                 stop_service(service_info_file, kill_after=5.0, timeout=5.0)
         else:
-            # print('warning: service info file exists: %s, removing it' % service_info_file)
-            # os.remove(service_info_file)
-            raise WebAPIServiceError('WebAPI service info file exists: %s' % service_info_file)
+            print('warning: ECT WebAPI service info file exists: %s, removing it' % service_info_file)
+            os.remove(service_info_file)
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
@@ -263,7 +262,7 @@ def stop_service(port=None,
     if service_info_file:
         service_info = read_service_info(service_info_file)
         if service_info is None and port is None:
-            raise RuntimeWarning('WebAPI service not running')
+            raise RuntimeWarning('ECT WebAPI service not running')
         service_info = service_info or {}
 
     port = port or service_info.get('port')
@@ -272,7 +271,7 @@ def stop_service(port=None,
     pid = service_info.get('process_id')
 
     if not port:
-        raise WebAPIServiceError('cannot stop WebAPI service on unknown port (caller: %s)' % caller)
+        raise WebAPIServiceError('cannot stop ECT WebAPI service on unknown port (caller: %s)' % caller)
 
     address_and_port = '%s:%s' % (address or LOCALHOST, port)
     print('stopping ECT WebAPI on %s' % address_and_port)

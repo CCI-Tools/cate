@@ -35,6 +35,8 @@ ECT can be run from sources directly, once the following module requirements are
 * `matplotlib`
 * `numba`
 * `cartopy`
+* `basemap`
+* `tornado`
 
 The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
 
@@ -61,7 +63,7 @@ Windows users can omit the `source` command and just type
 
 Now we add all required packages to the activated `ect` Conda environment:
 
-    (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4
+    (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado
     (ect) $ conda install -c conda-forge cartopy
     (ect) $ conda install -c conda-forge basemap
 
