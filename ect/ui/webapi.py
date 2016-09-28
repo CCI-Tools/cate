@@ -134,7 +134,7 @@ def main(args=None):
     if args_obj.command == 'start':
         start_service(**kwargs)
     else:
-        stop_service(kill_after=10.0, timeout=10.0, **kwargs)
+        stop_service(kill_after=5.0, timeout=5.0, **kwargs)
 
 
 def start_service_subprocess(port: int = None,
@@ -279,18 +279,21 @@ def stop_service(port=None,
 
     # noinspection PyBroadException
     try:
-        with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout) as response:
+        with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout * 0.3) as response:
             response.read()
     except:
         # Either process does not exist, or timeout, or some other error
         pass
 
+    # give the service a bit time to shut down before testing
+    time.sleep(kill_after * 0.5)
+
     # Note: is_service_running() should be replaced by is_process_active(pid)
-    if kill_after and pid and is_service_running(port, address):
+    if kill_after and pid and is_service_running(port, address, timeout=timeout * 0.3):
         # If we have a PID and the service runs
-        time.sleep(kill_after)
+        time.sleep(kill_after * 0.5)
         # Note: is_service_running() should be replaced by is_process_active(pid)
-        if is_service_running(port, address):
+        if is_service_running(port, address, timeout=timeout * 0.3):
             # noinspection PyBroadException
             try:
                 os.kill(pid, signal.SIGTERM)
