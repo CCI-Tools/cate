@@ -57,20 +57,34 @@ def add_to_data_store():
 
 
 class LocalFilePatternDataSource(DataSource):
-    def __init__(self, name: str, file_pattern: str, local_data_store: DataStore):
+    def __init__(self, name: str, file_pattern: str, _data_store: DataStore):
         self._name = name
         self._file_pattern = file_pattern
-        self._local_data_store = local_data_store
+        self._data_store = _data_store
 
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
         return open_xarray_dataset(self._file_pattern)
 
+    @property
+    def info_string(self):
+        table_data = self.get_table_data()
+        return '\n'.join(['%s: %s' % (name, value)
+                          for name, value in table_data.items()])
+
     def _repr_html_(self):
-        pass
+        import html
+        table_data = self.get_table_data()
+        rows = '\n'.join(['<tr><td>%s</td><td><strong>%s</strong></td></tr>' % (name, html.escape(str(value)))
+                          for name, value in table_data.items()])
+        return '<table style="border:0;">%s</table>' % rows
+
+    def get_table_data(self):
+        return OrderedDict([('Name', self._name),
+                            ('File pattern', self._file_pattern)])
 
     @property
     def data_store(self) -> DataStore:
-        return self._local_data_store
+        return self._data_store
 
     @property
     def name(self) -> str:
@@ -103,8 +117,11 @@ class LocalFilePatternDataStore(DataStore):
         self._data_sources = []
 
     def add_pattern(self, name: str, file_pattern: str):
-        if not name.startswith('local.'):
-            name = 'local.' + name
+        if not name.startswith('%s.' % self.name):
+            name = '%s.%s' % (self.name, name)
+        for ds in self._data_sources:
+            if ds.name == name:
+                raise ValueError("The data_store already contains a data_source with the name '%s'" % name)
         self._data_sources.append(LocalFilePatternDataSource(name, file_pattern, self))
         self.store_to_json()
         return name
@@ -122,7 +139,7 @@ class LocalFilePatternDataStore(DataStore):
             row_count += 1
             # noinspection PyProtectedMember
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
-        return '<p>Contents of FilePatternDataStore</p><table>%s</table>' % ('\n'.join(rows))
+        return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.name, '\n'.join(rows))
 
     @classmethod
     def from_json_file(cls, json_path: str) -> 'LocalFilePatternDataStore':
