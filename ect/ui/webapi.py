@@ -55,6 +55,8 @@ ON_INACTIVITY_AUTO_EXIT_AFTER = 15.0 * 60.0
 # By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed (if caller='ect', the CLI)
 ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
 
+WEBAPI_LOG_FILE = os.path.join(os.path.expanduser('~'), '.ect', 'webapi.log')
+
 
 class WebAPIServiceError(Exception):
     def __init__(self, cause, *args, **kwargs):
@@ -219,6 +221,11 @@ def start_service(port: int = None, address: str = None, caller: str = None, ser
         else:
             print('warning: ECT WebAPI service info file exists: %s, removing it' % service_info_file)
             os.remove(service_info_file)
+    import tornado.options
+    options = tornado.options.options
+    # Check, we should better use a log file per caller, e.g. "~/.ect/webapi-%s.log" % caller
+    options.log_file_prefix = WEBAPI_LOG_FILE
+    options.log_to_stderr = None
     enable_pretty_logging()
     application = get_application()
     application.service_info_file = service_info_file
