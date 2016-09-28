@@ -188,7 +188,7 @@ class Node(metaclass=ABCMeta):
         """Find a (child) node with the given *node_id*."""
         return None
 
-    def __call__(self, value_cache: dict = None, monitor=Monitor.NULL, **input_values):
+    def __call__(self, value_cache: dict = None, monitor=Monitor.NONE, **input_values):
         """
         Make this class instance's callable. The call is delegated to :py:meth:`call()`.
 
@@ -199,7 +199,7 @@ class Node(metaclass=ABCMeta):
         """
         return self.call(value_cache=value_cache, monitor=monitor, input_values=input_values)
 
-    def call(self, value_cache: dict = None, monitor=Monitor.NULL, input_values: dict = None):
+    def call(self, value_cache: dict = None, monitor=Monitor.NONE, input_values: dict = None):
         """
         Calls this workflow with given *input_values* and returns the result.
 
@@ -228,7 +228,7 @@ class Node(metaclass=ABCMeta):
         return self.get_output_value()
 
     @abstractmethod
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -375,7 +375,7 @@ class Workflow(Node):
         for node in self._steps.values():
             node.resolve_source_refs()
 
-    def invoke(self, value_cache: dict = None, monitor=Monitor.NULL) -> None:
+    def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
         The node invocation order is determined by the input requirements of individual nodes.
@@ -635,7 +635,7 @@ class WorkflowStep(Step):
         """The workflow's resource path (file path, URL)."""
         return self._resource
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -701,7 +701,7 @@ class OpStep(Step):
         """The operation registration. See :py:class:`ect.core.op.OpRegistration`"""
         return self._op_registration
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -729,7 +729,7 @@ class OpStep(Step):
         else:
             self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
-    def __call__(self, monitor=Monitor.NULL, **input_values):
+    def __call__(self, monitor=Monitor.NONE, **input_values):
         """
         Make this class instance's callable.
 
@@ -783,7 +783,7 @@ class ExprStep(Step):
         """The expression."""
         return self._expression
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -847,7 +847,7 @@ class NoOpStep(Step):
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -912,7 +912,7 @@ class SubProcessStep(Step):
         """The sub process' arguments."""
         return self._sub_process_arguments
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NULL):
+    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will

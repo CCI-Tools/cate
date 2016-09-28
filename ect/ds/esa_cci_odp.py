@@ -244,7 +244,7 @@ class EsaCciOdpDataStore(DataStore):
     def index_cache_expiration_days(self):
         return self._index_cache_expiration_days
 
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NULL):
+    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         with monitor.starting('Updating indices', 100):
             self._init_data_sources()
             monitor.progress(work=10 if update_file_lists else 100)
@@ -255,7 +255,7 @@ class EsaCciOdpDataStore(DataStore):
                         data_source.update_file_list()
                         child_monitor.progress(work=1)
 
-    def query(self, name: str = None, monitor: Monitor = Monitor.NULL) -> Sequence['DataSource']:
+    def query(self, name: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
         if not name:
             return list(self._data_sources)
@@ -407,7 +407,7 @@ class EsaCciOdpDataSource(DataSource):
 
     def sync(self,
              time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return 0, 0

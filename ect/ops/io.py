@@ -38,7 +38,7 @@ def open_dataset(ds_name: str,
                  start_date: str = None,
                  end_date: str = None,
                  sync: bool = False,
-                 monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 

@@ -536,7 +536,7 @@ class OpRegistration:
     def __str__(self):
         return '%s: %s' % (self.operation, self.op_meta_info)
 
-    def __call__(self, monitor: Monitor = Monitor.NULL, **input_values):
+    def __call__(self, monitor: Monitor = Monitor.NONE, **input_values):
         """
         Perform this operation.
 

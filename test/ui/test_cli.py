@@ -374,7 +374,7 @@ class LicenseCommandTest(CliTestCase):
         self.assert_main(['lic'], expected_stdout=['MIT License'])
 
 
-def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NONE) -> list:
     """Timeseries dummy function for testing."""
     print('lat=%s lon=%s method=%s' % (lat, lon, method))
     work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]
@@ -385,7 +385,7 @@ def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.
     return work_units
 
 
-def timeseries2(var, lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NULL) -> list:
+def timeseries2(var, lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NONE) -> list:
     """Timeseries dummy function for testing."""
     print('lat=%s lon=%s method=%s' % (lat, lon, method))
     work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]

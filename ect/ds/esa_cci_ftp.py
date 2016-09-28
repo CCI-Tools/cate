@@ -201,7 +201,7 @@ class FileSetDataSource(DataSource):
 
     def sync(self,
              time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
 
         assert self._file_set_data_store.remote_url
 
@@ -486,7 +486,7 @@ class FileSetDataStore(DataStore):
         """Optional URL of the data store's remote service."""
         return self._remote_url
 
-    def query(self, name=None, monitor: Monitor = Monitor.NULL) -> Sequence[DataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(name)]
 
     def load_from_json(self, json_fp_or_str: Union[str, IOBase]):

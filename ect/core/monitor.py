@@ -81,7 +81,7 @@ class Monitor(metaclass=ABCMeta):
 
     #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
     #: functions and methods that expect an argument of type ``Monitor``.
-    NULL = None
+    NONE = None
 
     @contextmanager
     def starting(self, label: str, total_work: float = None):
@@ -166,7 +166,7 @@ class Monitor(metaclass=ABCMeta):
 class _NullMonitor(Monitor):
     def __repr__(self):
         # Overridden to make Sphinx use a readable name.
-        return 'Monitor.NULL'
+        return 'Monitor.NONE'
 
     def start(self, label: str, total_work: float = None):
         pass
@@ -178,11 +178,11 @@ class _NullMonitor(Monitor):
         pass
 
     def child(self, partial_work: float):
-        return Monitor.NULL
+        return Monitor.NONE
 
 
-#: Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
-Monitor.NULL = _NullMonitor()
+#: Pass ``Monitor.NONE`` to functions that expect a monitor instead of passing ``None``.
+Monitor.NONE = _NullMonitor()
 
 
 class ChildMonitor(Monitor):

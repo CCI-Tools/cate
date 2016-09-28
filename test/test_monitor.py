@@ -5,15 +5,15 @@ from ect.core.util import fetch_std_streams
 
 
 class NullMonitorTest(TestCase):
-    def test_NULL(self):
-        self.assertIsNotNone(Monitor.NULL)
-        self.assertEqual(repr(Monitor.NULL), 'Monitor.NULL')
+    def test_NONE(self):
+        self.assertIsNotNone(Monitor.NONE)
+        self.assertEqual(repr(Monitor.NONE), 'Monitor.NONE')
 
     def test_child_monitor(self):
-        self.assertIs(Monitor.NULL.child(10), Monitor.NULL)
+        self.assertIs(Monitor.NONE.child(10), Monitor.NONE)
 
     def test_cancel(self):
-        m = Monitor.NULL
+        m = Monitor.NONE
         m.start('task A', total_work=10)
         self.assertFalse(m.is_cancelled())
         m.cancel()

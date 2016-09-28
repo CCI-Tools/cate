@@ -109,7 +109,7 @@ class LocalFilePatternDataStore(DataStore):
         self.store_to_json()
         return name
 
-    def query(self, name=None, monitor: Monitor = Monitor.NULL) -> Sequence[DataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         return [ds for ds in self._data_sources if ds.matches_filter(name)]
 
     def __repr__(self):

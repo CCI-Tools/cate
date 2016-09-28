@@ -241,7 +241,7 @@ class ObjectIO(metaclass=ABCMeta):
     def write_op(self) -> OpRegistration:
         return None
 
-    def read(self, file, monitor: Monitor = Monitor.NULL, **kwargs):
+    def read(self, file, monitor: Monitor = Monitor.NONE, **kwargs):
         """
         Read data from *file*.
 
@@ -256,7 +256,7 @@ class ObjectIO(metaclass=ABCMeta):
         # TODO: support monitor: return self.read_op(file, monitor=monitor, **kwargs)
         return self.read_op(file, **kwargs)
 
-    def write(self, obj, file, monitor: Monitor = Monitor.NULL, **kwargs):
+    def write(self, obj, file, monitor: Monitor = Monitor.NONE, **kwargs):
         """
         Write data to *file*.
 

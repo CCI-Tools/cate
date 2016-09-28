@@ -136,7 +136,7 @@ class DataSource(metaclass=ABCMeta):
     # noinspection PyMethodMayBeStatic
     def sync(self,
              time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NULL) -> Tuple[int, int]:
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
         """
         Synchronize remote data with locally stored data.
         The default implementation does nothing.
@@ -190,7 +190,7 @@ class DataStore(metaclass=ABCMeta):
         return self._name
 
     @abstractmethod
-    def query(self, name=None, monitor: Monitor = Monitor.NULL) -> Sequence[DataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         """
         Retrieve data sources in this data store using the given constraints.
 
@@ -199,7 +199,7 @@ class DataStore(metaclass=ABCMeta):
         :return: Sequence of data sources.
         """
 
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NULL):
+    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         """
         Update this data store's indices to speed up queries and to fetch meta-information about its
         contained data sources.
@@ -293,7 +293,7 @@ def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,
                  sync: bool = False,
-                 monitor: Monitor = Monitor.NULL) -> xr.Dataset:
+                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source.
 

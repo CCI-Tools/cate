@@ -482,7 +482,7 @@ class RunCommand(Command):
                 if command_args.monitor:
                     monitor = self.new_monitor()
                 else:
-                    monitor = Monitor.NULL
+                    monitor = Monitor.NONE
                 namespace[res_name] = open_dataset(ds_name,
                                                    start_date=start_date,
                                                    end_date=end_date,
@@ -529,7 +529,7 @@ class RunCommand(Command):
         if command_args.monitor:
             monitor = self.new_monitor()
         else:
-            monitor = Monitor.NULL
+            monitor = Monitor.NONE
 
         # print("Running '%s' with args=%s and kwargs=%s" % (op.op_meta_info.qualified_name, op_args, dict(op_kwargs)))
         return_value = op(monitor=monitor, **op_kwargs)

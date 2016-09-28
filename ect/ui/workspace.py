@@ -339,13 +339,13 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NULL) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NULL) -> None:
+                                monitor: Monitor = Monitor.NONE) -> None:
         pass
 
 
@@ -460,7 +460,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NULL) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
         workspace = self.get_workspace(base_dir)
@@ -471,7 +471,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NULL) -> None:
+                                monitor: Monitor = Monitor.NONE) -> None:
         # TBD: shall we add a new step to the workflow or just execute the workflow,
         # then write the desired resource?
         workspace = self.get_workspace(base_dir)
@@ -613,7 +613,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NULL) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(file_path=file_path, format_name=format_name))
@@ -621,7 +621,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NULL) -> None:
+                                monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(var_name=var_name, file_path=file_path))
