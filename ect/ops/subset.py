@@ -31,7 +31,6 @@ Components
 
 import xarray as xr
 from ect.core.op import op
-from datetime import datetime
 
 
 @op(tags=['geometric', 'subset', 'spatial', 'geom'])
@@ -57,7 +56,7 @@ def subset_spatial(ds: xr.Dataset,
 
 
 @op(tags=['subset', 'temporal'])
-#def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
+# def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
 def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
     """
     Do a temporal subset of the dataset. When using this operation on the
@@ -92,3 +91,6 @@ def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int) 
     time_slice = slice(time_ind_min, time_ind_max + 1)
     indexers = {'time': time_slice}
     return ds.isel(**indexers)
+
+def new_op(ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
+    pass

@@ -41,7 +41,7 @@ import fnmatch
 @op_input('lon', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 # TODO (Gailis, 27.09.16) See issues #45 and #46
-#def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: Union[str, List[str], None], method: str = 'nearest') -> xr.Dataset:
+# def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: Union[str, List[str], None], method: str = 'nearest') -> xr.Dataset:
 def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: str, method: str = 'nearest') -> xr.Dataset:
     """
     Extract time-series from *ds* at given *lat*, *lon* position using interpolation *method* for each
@@ -80,7 +80,7 @@ def tseries_point(ds: xr.Dataset, lat: float, lon: float, var: str, method: str 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
 # TODO (Gailis, 27.09.16) See issues #45 and #46
-#def timeseries_mean(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
+# def timeseries_mean(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
 def tseries_mean(ds: xr.Dataset, var: str) -> xr.Dataset:
     """
     Extract spatial mean timeseries of the provided variables, return the
@@ -108,6 +108,6 @@ def tseries_mean(ds: xr.Dataset, var: str) -> xr.Dataset:
         for name in names:
             dims = list(ds[name].dims)
             dims.remove('time')
-            retset[name+'_ts_mean'] = ds[name].mean(dim = dims)
+            retset[name+'_ts_mean'] = ds[name].mean(dim=dims)
 
     return retset
