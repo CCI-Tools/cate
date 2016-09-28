@@ -9,6 +9,8 @@ from ect.core.util import encode_url_path
 from ect.ui import webapi
 from tornado.testing import AsyncHTTPTestCase
 
+NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+
 
 # For usage of the tornado.testing.AsyncHTTPTestCase see http://www.tornadoweb.org/en/stable/testing.html
 
@@ -45,7 +47,7 @@ class WebAPITest(AsyncHTTPTestCase):
 
         res_name = 'ds'
 
-        file_path = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+        file_path = NETCDF_TEST_FILE
         op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
         data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)

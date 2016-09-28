@@ -1,14 +1,16 @@
 import json
 import os
 import shutil
-import unittest
 import sys
 import time
+import unittest
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
+
+NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
 
 # noinspection PyUnresolvedReferences
@@ -71,7 +73,8 @@ class WorkspaceManagerTestMixin:
         workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf', op_args=['file=SST.nc'])
+                                                 op_name='ect.ops.io.read_netcdf',
+                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
         workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
@@ -88,7 +91,8 @@ class WorkspaceManagerTestMixin:
         workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True, description='test clean workspace')
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf', op_args=['file=SST.nc'])
+                                                 op_name='ect.ops.io.read_netcdf',
+                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
         workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
@@ -154,7 +158,7 @@ class WorkspaceTest(unittest.TestCase):
                     "op": "ect.ops.io.read_netcdf",
                     "input": {
                         "file": {
-                            "value": "2010_precipitation.nc"
+                            "value": "%s"
                         },
                         "drop_variables": {},
                         "decode_cf": {},
@@ -182,19 +186,20 @@ class WorkspaceTest(unittest.TestCase):
                 }
             ]
         }
-        """
+        """ % NETCDF_TEST_FILE.replace('\\', '\\\\')
 
         expected_json_dict = json.loads(expected_json_text)
 
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=2010_precipitation.nc"])
+        ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=%s" % NETCDF_TEST_FILE])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'ect.ops.timeseries.tseries_mean', ["ds=p", "var=precipitation"])
-        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
         with self.assertRaises(ValueError) as e:
-            ws.set_resource('ts2', 'ect.ops.timeseries.tseries_point', ["ds=p", "lat=0", "lon=iih!", "var=precipitation"], validate_args=True)
+            ws.set_resource('ts2', 'ect.ops.timeseries.tseries_point',
+                            ["ds=p", "lat=0", "lon=iih!", "var=precipitation"], validate_args=True)
         self.assertEqual(str(e.exception), "input 'lon' for operation 'ect.ops.timeseries.tseries_point' "
                                            "must be of type 'float', but got type 'str'")

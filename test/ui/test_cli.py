@@ -15,6 +15,8 @@ from ect.ds.esa_cci_odp import EsaCciOdpDataStore
 from ect.ui import cli
 from ect.ui.workspace import FSWorkspaceManager
 
+NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+
 
 def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
@@ -25,7 +27,6 @@ def _create_test_data_store():
 
 
 class CliTestCase(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls._orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
@@ -159,7 +160,7 @@ class WorkspaceCommandTest(CliTestCase):
 
     def test_ws_clean(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_main(['res', 'read', 'ds', 'test.nc'], expected_stdout=['Resource "ds" set.'])
+        self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE], expected_stdout=['Resource "ds" set.'])
         self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
 
 
@@ -174,7 +175,7 @@ class ResourceCommandTest(CliTestCase):
         cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
 
     def test_res_read_set_write(self):
-        input_file = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+        input_file = NETCDF_TEST_FILE
         output_file = '_timeseries_.nc'
 
         self.assert_main(['ws', 'new'],
@@ -193,34 +194,40 @@ class ResourceCommandTest(CliTestCase):
     def test_res_open_read_set_set(self):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
-        self.assert_main(['res', 'open', 'ds1', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2', '2010'],
+        self.assert_main(['res', 'read', 'ds1', NETCDF_TEST_FILE],
                          expected_stdout=['Resource "ds1" set.'])
-        self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
+        self.assert_main(['res', 'read', 'ds2', NETCDF_TEST_FILE],
                          expected_stdout=['Resource "ds2" set.'])
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat=13.2', 'lon=52.9', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                          '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                          'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
-                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.tseries_point(ds=ds2, lat=13.2, lon=52.9, var=\'temperature\', method=\'nearest\') [OpStep]'])
+                          '  ds1 = ect.ops.io.read_object('
+                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                          '  ds2 = ect.ops.io.read_object('
+                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                          '  ts = ect.ops.timeseries.tseries_mean('
+                          'ds=ds2, var=\'temperature\') [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat=-10.4', 'lon=176', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                          '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
-                          'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
-                          '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.tseries_point(ds=ds2, lat=-10.4, lon=176, var=\'temperature\', method=\'nearest\') [OpStep]'])
+                          '  ds1 = ect.ops.io.read_object('
+                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                          '  ds2 = ect.ops.io.read_object('
+                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                          '  ts = ect.ops.timeseries.tseries_mean('
+                          'ds=ds2, var=\'temperature\') [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
+                          'var=temperature'],
                          expected_status=1,
-                         expected_stderr=["ect res: error: input 'lat' for operation 'ect.ops.timeseries.tseries_point' "
-                                          "must be of type 'float', but got type 'str'"])
+                         expected_stderr=[
+                             "ect res: error: input 'lat' for operation 'ect.ops.timeseries.tseries_point' "
+                             "must be of type 'float', but got type 'str'"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 
