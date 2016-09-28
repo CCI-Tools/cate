@@ -1147,9 +1147,9 @@ class NodePort:
         :return: A JSON-serializable dictionary
         """
         json_dict = dict()
-        if self._source is not None:
+        if self.source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self._value is not UNDEFINED:
+        elif self.has_value:
             # TODO (forman, 20160927): do not serialize output values, they may not be JSON-serializable (hack!)
             write_value = self._name not in self._node.op_meta_info.output
             if write_value:
