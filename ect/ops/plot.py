@@ -61,6 +61,8 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif,
 # matplotlib.use('agg')
 
 # https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
+import matplotlib
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
