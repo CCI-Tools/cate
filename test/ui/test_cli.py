@@ -181,7 +181,7 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
                          expected_stdout=['Resource "ds" set.'])
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds', 'lat=0', 'lon=0'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=['Writing resource "ts"'])
@@ -197,7 +197,7 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', 'precip_and_temp.nc'],
                          expected_stdout=['Resource "ds2" set.'])
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=13.2', 'lon=52.9'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat=13.2', 'lon=52.9', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
@@ -205,9 +205,9 @@ class ResourceCommandTest(CliTestCase):
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
                           'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=13.2, lon=52.9, method=\'nearest\') [OpStep]'])
+                          '  ts = ect.ops.timeseries.tseries_point(ds=ds2, lat=13.2, lon=52.9, var=\'temperature\', method=\'nearest\') [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat=-10.4', 'lon=176'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat=-10.4', 'lon=176', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
@@ -215,11 +215,11 @@ class ResourceCommandTest(CliTestCase):
                           '  ds1 = ect.ops.io.open_dataset(ds_name=\'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2\', '
                           'start_date=\'2010\', end_date=None, sync=True) [OpStep]',
                           '  ds2 = ect.ops.io.read_object(file=\'precip_and_temp.nc\', format=None) [OpStep]\n',
-                          '  ts = ect.ops.timeseries.timeseries(ds=ds2, lat=-10.4, lon=176, method=\'nearest\') [OpStep]'])
+                          '  ts = ect.ops.timeseries.tseries_point(ds=ds2, lat=-10.4, lon=176, var=\'temperature\', method=\'nearest\') [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.timeseries', 'ds=ds2', 'lat="XYZ"', 'lon=50.1'],
+        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1', 'var=temperature'],
                          expected_status=1,
-                         expected_stderr=["ect res: error: input 'lat' for operation 'ect.ops.timeseries.timeseries' "
+                         expected_stderr=["ect res: error: input 'lat' for operation 'ect.ops.timeseries.tseries_point' "
                                           "must be of type 'float', but got type 'str'"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
@@ -227,7 +227,7 @@ class ResourceCommandTest(CliTestCase):
 
 class OperationCommandTest(CliTestCase):
     def test_op_info(self):
-        self.assert_main(['op', 'info', 'ect.ops.timeseries.timeseries'],
+        self.assert_main(['op', 'info', 'ect.ops.timeseries.tseries_point'],
                          expected_stdout=['Extract time-series'])
         self.assert_main(['op', 'info', 'foobarbaz'],
                          expected_status=1,
