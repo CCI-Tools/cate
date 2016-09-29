@@ -470,21 +470,27 @@ class Workflow(Node):
     def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
-        The node invocation order is determined by the input requirements of individual nodes.
 
         :param value_cache: An optional dictionary that serves as a cache for node invocation results.
                A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
         :param monitor: An optional progress monitor.
         """
-        steps = self.steps
+        self.invoke_steps(self.steps, value_cache=value_cache, monitor=monitor)
+
+    @classmethod
+    def invoke_steps(cls,
+                     steps: List['Step'],
+                     value_cache: dict = None,
+                     monitor_label: str = None,
+                     monitor=Monitor.NONE):
         step_count = len(steps)
         if step_count == 1:
             steps[0].invoke(value_cache=value_cache, monitor=monitor)
         elif step_count > 1:
-            monitor.start("Executing %d steps of workflow '%s'" % (step_count, self.id), step_count)
-            for step in steps:
-                step.invoke(value_cache=value_cache, monitor=monitor.child(1))
-            monitor.done()
+            monitor_label = monitor_label or "Executing {step_count} workflow steps"
+            with monitor.starting(monitor_label.format(step_count=step_count), step_count):
+                for step in steps:
+                    step.invoke(value_cache=value_cache, monitor=monitor.child(1))
 
     @classmethod
     def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Workflow':

@@ -163,8 +163,7 @@ class Workspace:
     def execute_workflow(self, res_name, monitor=Monitor.NONE):
         self._assert_open()
         steps = self.workflow.find_steps_to_compute(res_name)
-        for step in steps:
-            step.invoke(value_cache=self._resource_cache, monitor=monitor)
+        Workflow.invoke_steps(steps, value_cache=self._resource_cache, monitor=monitor)
         return steps[-1].get_output_value()
         # result = self.workflow.call(value_cache=self._resource_cache, monitor=monitor)
         # if res_name is not None and res_name in result:
