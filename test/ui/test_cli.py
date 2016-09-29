@@ -138,7 +138,7 @@ class WorkspaceCommandTest(CliTestCase):
         base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
-        self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
+        self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace already opened: '], expected_status=1)
         self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
         self.remove_tree('my_workspace')
 
@@ -146,7 +146,7 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
         self.assert_main(['ws', 'init'],
-                         expected_stderr=['workspace exists: '],
+                         expected_stderr=['workspace already opened: '],
                          expected_status=1)
 
     def test_ws_del(self):
@@ -208,7 +208,7 @@ class ResourceCommandTest(CliTestCase):
                           '  ds2 = ect.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
                           '  ts = ect.ops.timeseries.tseries_mean('
-                          'ds=ds2, var=\'temperature\') [OpStep]'])
+                          'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
@@ -220,7 +220,7 @@ class ResourceCommandTest(CliTestCase):
                           '  ds2 = ect.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
                           '  ts = ect.ops.timeseries.tseries_mean('
-                          'ds=ds2, var=\'temperature\') [OpStep]'])
+                          'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
                           'var=temperature'],
@@ -249,7 +249,9 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
-        self.assert_main(['op', 'list', '--tag', 'io'], expected_stdout=['14 operations found'])
+        self.assert_main(['op', 'list', '--internal'], expected_stdout=['One operation found'])
+        self.assert_main(['op', 'list', '--tag', 'input'], expected_stdout=['5 operations found'])
+        self.assert_main(['op', 'list', '--tag', 'output'], expected_stdout=['6 operations found'])
 
 
 class DataSourceCommandTest(CliTestCase):

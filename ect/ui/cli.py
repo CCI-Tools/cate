@@ -615,6 +615,9 @@ class WorkspaceCommand(SubCommandCommand):
         status_parser.add_argument('base_dir', **base_dir_args)
         status_parser.set_defaults(sub_command_function=cls._execute_status)
 
+        list_parser = subparsers.add_parser('list', help='List all opened workspaces.')
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
+
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
         del_parser.add_argument('base_dir', **base_dir_args)
         del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
@@ -702,14 +705,24 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), open=False)
-        workflow = workspace.workflow
-        print('Workspace base directory is %s' % workspace.base_dir)
-        if len(workflow.steps) > 0:
-            print('Workspace resources:')
-            for step in workflow.steps:
-                print('  %s' % str(step))
+        cls._print_workspace(workspace)
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def _execute_list(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspaces = workspace_manager.get_open_workspaces()
+        if workspaces:
+            num_open_workspaces = len(workspaces)
+            if num_open_workspaces == 1:
+                print('One open workspace:')
+            else:
+                print('%d open workspaces:' % num_open_workspaces)
+            for workspace in workspaces:
+                print()
+                cls._print_workspace(workspace)
         else:
-            print('Workspace has no resources.')
+            print('No open workspaces.')
 
     @classmethod
     def _execute_exit(cls, command_args):
@@ -721,6 +734,19 @@ class WorkspaceCommand(SubCommandCommand):
             workspace_manager = _new_workspace_manager()
             workspace_manager.close_all_workspaces(save=command_args.save_all)
             stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+
+    @classmethod
+    def _print_workspace(cls, workspace):
+        workflow = workspace.workflow
+        print('Workspace base directory is [%s] (%s, %s)' % (workspace.base_dir,
+                                                           'saved' if os.path.exists(workspace.workspace_dir) else 'not saved yet',
+                                                           'modified' if workspace.is_modified else 'no changes'))
+        if len(workflow.steps) > 0:
+            print('Workspace resources:')
+            for step in workflow.steps:
+                print('  %s' % str(step))
+        else:
+            print('Workspace has no resources.')
 
 
 class ResourceCommand(SubCommandCommand):
@@ -933,6 +959,7 @@ class OperationCommand(SubCommandCommand):
         def _is_op_selected(op_reg, tag_part: str, is_internal: bool):
             tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
+                # Tagged operations
                 if is_internal:
                     if 'internal' not in tags:
                         return False
@@ -945,6 +972,9 @@ class OperationCommand(SubCommandCommand):
                         return any(tag_part in tag.lower() for tag in tags)
                     elif isinstance(tags, str):
                         return tag_part in tags.lower()
+            elif is_internal or tag_part:
+                # Untagged operations
+                return False
             return True
 
         op_names = [op_name for op_name, op_reg in op_regs.items() if
