@@ -49,8 +49,8 @@ CLI_NAME = 'ect-webapi'
 LOCALHOST = '127.0.0.1'
 
 # {{ect-config}}
-# By default, WebAPI service will auto-exit after 15 minutes of inactivity (if caller='ect', the CLI)
-ON_INACTIVITY_AUTO_EXIT_AFTER = 60 * 60.0
+# By default, WebAPI service will auto-exit after 2 hours of inactivity (if caller='ect', the CLI)
+ON_INACTIVITY_AUTO_EXIT_AFTER = 120 * 60.0
 # {{ect-config}}
 # By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed (if caller='ect', the CLI)
 ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
