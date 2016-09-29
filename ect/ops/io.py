@@ -29,7 +29,7 @@ from ect.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from ect.core.op import op_input, op
 
 
-@op(tags=['io'])
+@op(tags=['input'])
 @op_input('ds_name')
 @op_input('start_date')
 @op_input('end_date')
@@ -54,7 +54,7 @@ def open_dataset(ds_name: str,
 
 
 # noinspection PyShadowingBuiltins
-@op(tags=['io'], no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('ds')
 @op_input('file')
 @op_input('format')
@@ -63,7 +63,7 @@ def save_dataset(ds: xr.Dataset, file: str, format: str = None):
 
 
 # noinspection PyShadowingBuiltins
-@op(tags='io')
+@op(tags=['input'])
 @op_input('file')
 @op_input('format')
 def read_object(file: str, format: str = None) -> object:
@@ -73,7 +73,7 @@ def read_object(file: str, format: str = None) -> object:
 
 
 # noinspection PyShadowingBuiltins
-@op(tags='io', no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('format')
@@ -82,7 +82,7 @@ def write_object(obj, file: str, format: str = None):
     ect.core.objectio.write_object(obj, file, format_name=format)
 
 
-@op(tags=['io'])
+@op(tags=['input'])
 @op_input('file')
 @op_input('encoding')
 def read_text(file: str, encoding: str = None) -> str:
@@ -94,7 +94,7 @@ def read_text(file: str, encoding: str = None) -> str:
         return file.read()
 
 
-@op(tags=['io'], no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('encoding')
@@ -107,7 +107,7 @@ def write_text(obj: object, file: str, encoding: str = None):
         return file.write(str(obj))
 
 
-@op(tags=['io'])
+@op(tags=['input'])
 @op_input('file')
 @op_input('encoding')
 def read_json(file: str, encoding: str = None) -> object:
@@ -118,7 +118,7 @@ def read_json(file: str, encoding: str = None) -> object:
         return json.load(file)
 
 
-@op(tags=['io'], no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('encoding')
@@ -132,7 +132,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None,
         return json.dump(obj, file, indent=indent, separators=separators)
 
 
-@op(tags=['io'])
+@op(tags=['input'])
 @op_input('file')
 @op_input('drop_variables')
 @op_input('decode_cf')
@@ -144,7 +144,7 @@ def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, d
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
 
 
-@op(tags=['io'], no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('engine')
@@ -152,7 +152,7 @@ def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF3_64BIT', engine=engine)
 
 
-@op(tags=['io'], no_cache=True)
+@op(tags=['output'], no_cache=True)
 @op_input('obj')
 @op_input('file')
 @op_input('engine')

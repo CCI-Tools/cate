@@ -178,7 +178,9 @@ class WorkspaceTest(unittest.TestCase):
                         },
                         "var": {
                           "value": "precipitation"
-                        }
+                        },
+                        "std_suffix": {},
+                        "calculate_std": {}
                     },
                     "output": {
                         "return": {}

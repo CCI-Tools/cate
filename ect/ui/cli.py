@@ -933,6 +933,7 @@ class OperationCommand(SubCommandCommand):
         def _is_op_selected(op_reg, tag_part: str, is_internal: bool):
             tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
+                # Tagged operations
                 if is_internal:
                     if 'internal' not in tags:
                         return False
@@ -945,6 +946,9 @@ class OperationCommand(SubCommandCommand):
                         return any(tag_part in tag.lower() for tag in tags)
                     elif isinstance(tags, str):
                         return tag_part in tags.lower()
+            elif is_internal or tag_part:
+                # Untagged operations
+                return False
             return True
 
         op_names = [op_name for op_name, op_reg in op_regs.items() if
