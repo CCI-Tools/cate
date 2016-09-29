@@ -109,7 +109,7 @@ from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from ect.core.plugin import PLUGIN_REGISTRY
-from ect.core.util import to_datetime_range
+from ect.core.util import to_datetime_range, to_list
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info, is_service_running
 from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
@@ -917,6 +917,8 @@ class OperationCommand(SubCommandCommand):
                                  help="List only operations tagged by TAG or "
                                       "that have TAG in one of their tags. "
                                       "The comparison is case insensitive.")
+        list_parser.add_argument('--internal', '-i', action='store_true',
+                                 help='List operations tagged "internal".')
         list_parser.set_defaults(sub_command_function=cls._execute_list)
 
         info_parser = subparsers.add_parser('info', help='Show usage information about an operation.')
@@ -926,21 +928,27 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
-        op_registrations = OP_REGISTRY.op_registrations
+        op_regs = OP_REGISTRY.op_registrations
 
-        def _op_has_tag(op_registration, tag_part):
-            tags = op_registration.op_meta_info.header.get('tags', None)
+        def _is_op_selected(op_reg, tag_part: str, is_internal: bool):
+            tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
-                tag_part = tag_part.lower()
-                if isinstance(tags, list):
-                    return any(tag_part in tag.lower() for tag in tags)
-                elif isinstance(tags, str):
-                    return tag_part in tags.lower()
-            return False
+                if is_internal:
+                    if 'internal' not in tags:
+                        return False
+                else:
+                    if 'internal' in tags:
+                        return False
+                if tag_part:
+                    tag_part = tag_part.lower()
+                    if isinstance(tags, list):
+                        return any(tag_part in tag.lower() for tag in tags)
+                    elif isinstance(tags, str):
+                        return tag_part in tags.lower()
+            return True
 
-        op_names = op_registrations.keys()
-        if command_args.tag:
-            op_names = sorted(name for name in op_names if _op_has_tag(op_registrations.get(name), command_args.tag))
+        op_names = [op_name for op_name, op_reg in op_regs.items() if
+                    _is_op_selected(op_reg, command_args.tag, command_args.internal)]
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
