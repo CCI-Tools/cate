@@ -34,7 +34,7 @@ from threading import Timer
 from typing import Optional
 
 from ect.core.util import cwd
-from ect.ui.workspace import FSWorkspaceManager
+from ect.ui.wsmanag import FSWorkspaceManager
 from ect.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging

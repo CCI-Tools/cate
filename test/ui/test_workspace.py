@@ -1,139 +1,43 @@
 import json
 import os
-import shutil
-import sys
-import time
 import unittest
 
 from ect.core.op import OpMetaInfo
 from ect.core.workflow import Workflow
-from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
-from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager, Workspace
+from ect.ui.workspace import Workspace
 
-NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
-
-
-# noinspection PyUnresolvedReferences
-class WorkspaceManagerTestMixin:
-    def new_workspace_manager(self) -> WorkspaceManager:
-        raise NotImplementedError
-
-    def new_base_dir(self, base_dir):
-        base_dir = os.path.abspath(base_dir)
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
-        return base_dir
-
-    def del_base_dir(self, base_dir):
-        shutil.rmtree(base_dir)
-
-    def test_get_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
-
-        self.assertEqual(workspace1.base_dir, workspace2.base_dir)
-        self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
-
-        self.del_base_dir(base_dir)
-
-    def test_init_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.new_workspace(base_dir=base_dir, save=True)
-        self.assertTrue(os.path.exists(base_dir))
-        self.assertIsNotNone(workspace)
-
-        self.del_base_dir(base_dir)
-
-    def test_delete_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT')
-
-        workspace_manager = self.new_workspace_manager()
-
-        workspace = workspace_manager.new_workspace(base_dir=base_dir, save=True)
-        self.assertTrue(os.path.exists(base_dir))
-        self.assertTrue(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
-        self.assertIsNotNone(workspace)
-
-        workspace_manager.delete_workspace(base_dir=base_dir)
-        self.assertTrue(os.path.exists(base_dir))
-        self.assertFalse(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
-        self.assertIsNotNone(workspace)
-
-        self.del_base_dir(base_dir)
-
-    def test_set_workspace_resource(self):
-        base_dir = self.new_base_dir('TESTOMAT')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
-        self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf',
-                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
-
-        self.assertEqual(workspace2.base_dir, workspace1.base_dir)
-        self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
-        sst_step = workspace2.workflow.find_node('SST')
-        self.assertIsNotNone(sst_step)
-
-        self.del_base_dir(base_dir)
-
-    def test_clean_workspace(self):
-        base_dir = self.new_base_dir('TESTOMAT')
-
-        workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True, description='test clean workspace')
-        self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf',
-                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
-
-        self.assertEqual(workspace2.base_dir, workspace1.base_dir)
-        self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
-        sst_step = workspace2.workflow.find_node('SST')
-        self.assertIsNotNone(sst_step)
-
-        workspace_manager.clean_workspace(base_dir=base_dir)
-        workspace3 = workspace_manager.get_workspace(base_dir=base_dir)
-        steps = workspace3.workflow.steps
-        # Test that all steps & resources are removed
-        self.assertEqual(steps, [])
-        # Test that header info is kept
-        self.assertEqual(workspace3.workflow.op_meta_info.header.get('description', None), 'test clean workspace')
-
-        self.del_base_dir(base_dir)
-
-
-class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-    def new_workspace_manager(self):
-        return FSWorkspaceManager()
-
-
-@unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
-class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-    def setUp(self):
-        self.port = find_free_port()
-        start_service_subprocess(port=self.port, caller='pytest')
-
-    def tearDown(self):
-        stop_service_subprocess(port=self.port, caller='pytest')
-        if sys.platform == 'win32':
-            # This helps getting around silly error raised inside Popen._internal_poll():
-            # OSError: [WinError 6] Das Handle ist ungültig
-            time.sleep(0.5)
-
-    def new_workspace_manager(self):
-        return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
+NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), 'precip_and_temp_2.nc')
 
 
 class WorkspaceTest(unittest.TestCase):
+    def test_set_and_execute_step(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+
+        ws.set_resource('X', 'ect.ops.io.read_netcdf', ["file=%s" % NETCDF_TEST_FILE_1])
+        ws.set_resource('Y', 'ect.ops.timeseries.tseries_mean', ["ds=X", "var=precipitation"])
+        self.assertEqual(ws.resource_cache, {})
+
+        value = ws.execute_workflow('Y')
+        self.assertIn('X', ws.resource_cache)
+        self.assertIn('Y', ws.resource_cache)
+
+        ws.set_resource('Y', 'ect.ops.timeseries.tseries_mean', ["ds=X", "var=temperature"], overwrite=True)
+        self.assertIn('X', ws.resource_cache)
+        self.assertNotIn('Y', ws.resource_cache)
+
+        value = ws.execute_workflow('Y')
+        self.assertIn('X', ws.resource_cache)
+        self.assertIn('Y', ws.resource_cache)
+
+        ws.set_resource('X', 'ect.ops.io.read_netcdf', ["file=%s" % NETCDF_TEST_FILE_2], overwrite=True)
+        self.assertNotIn('X', ws.resource_cache)
+        self.assertNotIn('Y', ws.resource_cache)
+
+        value = ws.execute_workflow('Y')
+        self.assertIn('X', ws.resource_cache)
+        self.assertIn('Y', ws.resource_cache)
+
     def test_example(self):
         expected_json_text = """{
             "qualified_name": "workspace_workflow",
@@ -188,13 +92,13 @@ class WorkspaceTest(unittest.TestCase):
                 }
             ]
         }
-        """ % NETCDF_TEST_FILE.replace('\\', '\\\\')
+        """ % NETCDF_TEST_FILE_1.replace('\\', '\\\\')
 
         expected_json_dict = json.loads(expected_json_text)
 
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=%s" % NETCDF_TEST_FILE])
+        ws.set_resource('p', 'ect.ops.io.read_netcdf', ["file=%s" % NETCDF_TEST_FILE_1])
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'ect.ops.timeseries.tseries_mean', ["ds=p", "var=precipitation"])
         print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))

@@ -112,7 +112,8 @@ from ect.core.plugin import PLUGIN_REGISTRY
 from ect.core.util import to_datetime_range, to_list
 from ect.core.workflow import Workflow
 from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info, is_service_running
-from ect.ui.workspace import WorkspaceManager, WebAPIWorkspaceManager, WorkspaceError
+from ect.ui.workspace import WorkspaceError
+from ect.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
@@ -739,8 +740,9 @@ class WorkspaceCommand(SubCommandCommand):
     def _print_workspace(cls, workspace):
         workflow = workspace.workflow
         print('Workspace base directory is [%s] (%s, %s)' % (workspace.base_dir,
-                                                           'saved' if os.path.exists(workspace.workspace_dir) else 'not saved yet',
-                                                           'modified' if workspace.is_modified else 'no changes'))
+                                                             'saved' if os.path.exists(
+                                                                 workspace.workspace_dir) else 'not saved yet',
+                                                             'modified' if workspace.is_modified else 'no changes'))
         if len(workflow.steps) > 0:
             print('Workspace resources:')
             for step in workflow.steps:

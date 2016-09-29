@@ -13,7 +13,7 @@ from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams
 from ect.ds.esa_cci_odp import EsaCciOdpDataStore
 from ect.ui import cli
-from ect.ui.workspace import FSWorkspaceManager
+from ect.ui.wsmanag import FSWorkspaceManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
@@ -27,6 +27,9 @@ def _create_test_data_store():
 
 
 class CliTestCase(unittest.TestCase):
+
+    _orig_stores = None
+
     @classmethod
     def setUpClass(cls):
         cls._orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
