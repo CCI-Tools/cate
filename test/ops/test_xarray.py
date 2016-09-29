@@ -38,7 +38,7 @@ class TestIO(unittest.TestCase):
     def test_sel_op(self):
         ds = new_ds()
 
-        ds.to_netcdf('precip_and_temp.nc')
+        # ds.to_netcdf('precip_and_temp.nc')
 
         sel_ds = sel_op(ds=ds, time='2014-09-06')
         self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
