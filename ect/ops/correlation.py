@@ -72,4 +72,10 @@ def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, var_y: str, var_x: s
             print("Correlation coefficient: {}".format(corr_coef.values), file=text_file)
             print("Test value: {}".format(test.values), file=text_file)
 
-    return {'correlation_coefficient': corr_coef, 'test_value': test}
+    retset = xr.Dataset()
+    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
+                                                                         var_x)
+    retset['correlation_coefficient'] = corr_coef
+    retset['test_value'] = test
+
+    return retset
