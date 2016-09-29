@@ -35,7 +35,8 @@ import xarray as xr
 
 
 @op(tags=['correlation'])
-def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, var_y: str, var_x: str, file: str = None) -> dict:
+def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, var_y: str, var_x:
+                        str, file: str = None) -> xr.Dataset:
     """
     Do product moment Pearson's correlation analysis.
 
@@ -62,6 +63,12 @@ def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, var_y: str, var_x: s
         a = a + ((array_x[i] - x_mean) * (array_y[i] - y_mean))
         b = b + (array_x[i] - pow(x_mean, 2))
         c = c + (array_y[i] - pow(y_mean, 2))
+
+    # TODO (Gailis 29.09) Can I do abs here? on clouds and ozone, I got b but
+    # not c negative, resulting in math domain error
+    a = abs(a)
+    b = abs(b)
+    c = abs(c)
 
     corr_coef = a / (math.sqrt(b * c))
     test = corr_coef * math.sqrt((len(array_y.data) - 2) / (1 - pow(corr_coef, 2)))

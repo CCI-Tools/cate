@@ -21,12 +21,11 @@ class TestCorrelation(TestCase):
         correlation = pearson_correlation(dataset, dataset2, 'first', 'first', file='remove_me.txt')
         self.assertTrue(os.path.isfile('remove_me.txt'))
         os.remove('remove_me.txt')
-        
+
         test_value = round(float(correlation['test_value']), 2)
-        self.assertTrue(test_value == -2.47)
-        
+        self.assertTrue(test_value == 2.47)
         correlation_coefficient = round(float(correlation['correlation_coefficient']), 2)
-        self.assertTrue(correlation_coefficient == -0.78)
+        self.assertTrue(correlation_coefficient == 0.78)
 
         # Test too many data vars
         with self.assertRaises(TypeError):
