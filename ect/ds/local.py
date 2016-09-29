@@ -64,8 +64,10 @@ class LocalFilePatternDataSource(DataSource):
         self._data_store = _data_store
 
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
-        paths = [glob(file) for file in self._files]
-        paths = sorted(paths)
+        paths = []
+        for file in self._files:
+            paths.extend(glob(file))
+        paths = sorted(set(paths))
         return open_xarray_dataset(paths)
 
     @property
