@@ -168,8 +168,6 @@ class Workspace:
             workflow_file = self.workflow_file
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
-            elif os.path.isfile(workflow_file):
-                raise WorkspaceError('workspace exists: %s' % base_dir)
             self.workflow.store(self.workflow_file)
             self._is_modified = False
         except (IOError, OSError) as e:
@@ -350,7 +348,8 @@ class WorkspaceManager(metaclass=ABCMeta):
 
     @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
-                               op_name: str, op_args: List[str]) -> None:
+                               op_name: str, op_args: List[str],
+                               monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
@@ -646,7 +645,9 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str]) -> None:
+    def set_workspace_resource(self, base_dir: str, res_name: str,
+                               op_name: str, op_args: List[str],
+                               monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
         self._fetch_json(url, timeout=RESOURCE_TIMEOUT,
