@@ -99,18 +99,16 @@ def tseries_mean(ds: xr.Dataset, var: str) -> xr.Dataset:
     :return: Dataset with timeseries variables
     """
     if not var:
-        return ds
+        var = '*'
 
-    # This is a shallow copy
-    retset = ds.copy()
-    var_names = to_list(var, name='var')
-    keys = list(ds.data_vars.keys())
+    retset = select_var(ds, var)
+    names = retset.data_vars.keys()
 
-    for pattern in var_names:
-        names = fnmatch.filter(keys, pattern)
-        for name in names:
-            dims = list(ds[name].dims)
-            dims.remove('time')
-            retset[name+'_ts_mean'] = ds[name].mean(dim=dims)
+    for name in names:
+        dims = list(ds[name].dims)
+        dims.remove('time')
+        retset[name] = retset[name].mean(dim=dims)
+        retset[name].attrs['ECT_Description'] = 'Mean aggregated over\
+{} at each point in time.'.format(dims)
 
     return retset
