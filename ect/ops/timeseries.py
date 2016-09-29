@@ -32,9 +32,7 @@ Components
 import xarray as xr
 
 from ect.core.op import op_input, op
-from ect.core.util import to_list
 from ect.ops.select import select_var
-import fnmatch
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
