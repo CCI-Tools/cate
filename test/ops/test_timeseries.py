@@ -46,19 +46,18 @@ class TimeSeriesTest(TestCase):
                      '2000-05-01', '2000-06-01']})
         actual = tseries_mean(dataset, var='*bs')
         expected = xr.Dataset({
-            'abs': (['lat', 'lon', 'time'], np.ones([4, 8, 6])),
-            'bbs': (['lat', 'lon', 'time'], np.ones([4, 8, 6])),
-            'abs_ts_mean': (['time'], np.ones([6])),
-            'bbs_ts_mean': (['time'], np.ones([6])),
+            'abs': (['time'], np.ones([6])),
+            'bbs': (['time'], np.ones([6])),
+            'abs_std': (['time'], np.zeros([6])),
+            'bbs_std': (['time'], np.zeros([6])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': ['2000-01-01', '2000-02-01', '2000-03-01', '2000-04-01',
                      '2000-05-01', '2000-06-01']})
         self.assertDatasetEqual(expected, actual)
 
-        # Test damage control
         actual = tseries_mean(dataset, var='')
-        self.assertDatasetEqual(actual, dataset)
+        self.assertDatasetEqual(actual, expected)
 
     def assertDatasetEqual(self, expected, actual):
         # this method is functionally equivalent to
