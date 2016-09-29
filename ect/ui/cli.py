@@ -1013,10 +1013,11 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display information about contained dataset variables.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        def_parser = subparsers.add_parser('def', help='Define a data source using a local file pattern.')
+        def_parser = subparsers.add_parser('def', help='Define a local data source using a file pattern.')
         def_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
-        def_parser.add_argument('file_pattern', metavar='PATTERN', help='A file glob that includes all files '
-                                                                        'belonging to this data source.')
+        def_parser.add_argument('file', metavar='FILE', nargs="+",
+                                help='A list of files comprising this data source. '
+                                     'The files can contain the wildcard characters "*" and "?".')
         def_parser.set_defaults(sub_command_function=cls._execute_def)
 
     @classmethod
@@ -1073,8 +1074,8 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ds_name
-        file_pattern = command_args.file_pattern
-        name = local_store.add_pattern(ds_name, file_pattern)
+        files = command_args.file
+        name = local_store.add_pattern(ds_name, files)
         print("Added local data source with name: '%s'" % name)
 
 

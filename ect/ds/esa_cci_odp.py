@@ -276,7 +276,7 @@ class EsaCciOdpDataStore(DataStore):
     def __repr__(self) -> str:
         return "EsaCciOdpDataStore"
 
-    def _init_data_sources(self) -> str:
+    def _init_data_sources(self):
         if self._data_sources:
             return
         if self._index_json_dict is None:

@@ -293,7 +293,7 @@ class DataSourceCommandTest(CliTestCase):
                                          "    list      List all available data sources\n"
                                          "    sync      Synchronise a remote data source with its local version.\n"
                                          "    info      Display information about a data source.\n"
-                                         "    def       Define a data source using a local file pattern.\n"
+                                         "    def       Define a local data source using a file pattern.\n"
                                          "\n"
                                          "optional arguments:\n"
                                          "  -h, --help  show this help message and exit\n")

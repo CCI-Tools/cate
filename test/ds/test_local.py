@@ -2,23 +2,20 @@ import os
 import os.path
 import tempfile
 import unittest
+from collections import OrderedDict
 
 from ect.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
-
-TMP_STORE_JSON = os.path.join(tempfile.gettempdir(), 'LocalFilePatternDataStoreTest.json')
 
 
 class LocalFilePatternDataStoreTest(unittest.TestCase):
     def setUp(self):
-        self.data_store = LocalFilePatternDataStore('test', TMP_STORE_JSON)
-        self.assertFalse(os.path.isfile(TMP_STORE_JSON))
+        self.tmp_dir = tempfile.mkdtemp()
+        self.data_store = LocalFilePatternDataStore('test', self.tmp_dir)
+        self.assertTrue(os.path.isdir(self.tmp_dir))
+        self.assertEqual(0, len(os.listdir(self.tmp_dir)))
         self.data_store.add_pattern("ozone", "/DATA/ozone/*/*.nc")
-        self.data_store.add_pattern("aerosol", "/DATA/aerosol/*/*/AERO*.nc")
-        self.assertTrue(os.path.isfile(TMP_STORE_JSON))
-
-    def tearDown(self):
-        if os.path.isfile(TMP_STORE_JSON):
-            os.remove(TMP_STORE_JSON)
+        self.data_store.add_pattern("aerosol", ["/DATA/aerosol/*/*/AERO_V1*.nc", "/DATA/aerosol/*/*/AERO_V2*.nc"])
+        self.assertEqual(2, len(os.listdir(self.tmp_dir)))
 
     def test_add_pattern(self):
         data_sources = self.data_store.query()
@@ -40,25 +37,48 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
     def test__repr_html(self):
         html = self.data_store._repr_html_()
-        self.assertEqual(499, len(html))
+        self.assertEqual(524, len(html))
+
+    def test_init(self):
+        data_store2 = LocalFilePatternDataStore('test', self.tmp_dir)
+        data_sources = data_store2.query()
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 2)
 
 
 class LocalFilePatternSourceTest(unittest.TestCase):
     def setUp(self):
-        self.data_source = LocalFilePatternDataSource("ozone", "/DATA/ozone/*/*.nc", self)
-        self.assertIsNotNone(self.data_source)
+        self._dummy_store = LocalFilePatternDataStore('dummy', 'dummy')
+        self.ds1 = LocalFilePatternDataSource("ozone",
+                                              ["/DATA/ozone/*/*.nc"],
+                                              self._dummy_store)
+        self.ds2 = LocalFilePatternDataSource("aerosol",
+                                              ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"],
+                                              self._dummy_store)
+        self.assertIsNotNone(self.ds1)
+        self.assertIsNotNone(self.ds2)
 
     def test_data_store(self):
-        self.assertIs(self.data_source.data_store, self)
+        self.assertIs(self.ds1.data_store, self._dummy_store)
+        self.assertIs(self.ds2.data_store, self._dummy_store)
 
     def test_id(self):
-        self.assertEqual(self.data_source.name, 'ozone')
+        self.assertEqual(self.ds1.name, 'ozone')
+        self.assertEqual(self.ds2.name, 'aerosol')
 
     def test_schema(self):
-        self.assertEqual(self.data_source.schema, None)
+        self.assertEqual(self.ds1.schema, None)
+        self.assertEqual(self.ds2.schema, None)
 
     def test_info_string(self):
-        self.assertEqual('Name: ozone\nFile pattern: /DATA/ozone/*/*.nc', self.data_source.info_string)
+        self.assertEqual('Name: ozone\nFiles: /DATA/ozone/*/*.nc', self.ds1.info_string)
+        self.assertEqual('Name: aerosol\nFiles: /DATA/aerosol/*/A*.nc /DATA/aerosol/*/B*.nc', self.ds2.info_string)
 
     def test_temporal_coverage(self):
-        self.assertEqual(self.data_source.temporal_coverage, None)
+        self.assertEqual(self.ds1.temporal_coverage, None)
+        self.assertEqual(self.ds2.temporal_coverage, None)
+
+    def test_to_json_dict(self):
+        self.assertEqual(self.ds1.to_json_dict(), OrderedDict([('name', 'ozone'), ('files', ['/DATA/ozone/*/*.nc'])]))
+        self.assertEqual(self.ds2.to_json_dict(), OrderedDict(
+            [('name', 'aerosol'), ('files', ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"])]))
