@@ -138,7 +138,7 @@ class WorkspaceCommandTest(CliTestCase):
         base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
-        self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace exists: '], expected_status=1)
+        self.assert_main(['ws', 'init', base_dir], expected_stderr=['workspace already opened: '], expected_status=1)
         self.assert_main(['ws', 'del', '-y', base_dir], expected_stdout=['Workspace deleted'])
         self.remove_tree('my_workspace')
 
@@ -146,7 +146,7 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
         self.assert_main(['ws', 'init'],
-                         expected_stderr=['workspace exists: '],
+                         expected_stderr=['workspace already opened: '],
                          expected_status=1)
 
     def test_ws_del(self):
