@@ -72,7 +72,7 @@ def sel(ds: xr.Dataset,
              is indexed by the appropriate indexers. In general, each variable's data will be a view of the
              variable's data in this dataset.
     """
-    indexers = dict(indexers) or {}
+    indexers = dict(indexers) if indexers is not None else {}
     if lat is not None:
         indexers.setdefault('lat', lat)
     if lon is not None:
