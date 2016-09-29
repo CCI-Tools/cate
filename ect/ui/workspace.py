@@ -80,14 +80,14 @@ class Workspace:
     By design, workspace workflows have no inputs and every step is an output.
     """
 
-    def __init__(self, base_dir: str, workflow: Workflow):
+    def __init__(self, base_dir: str, workflow: Workflow, is_modified: bool = False):
         assert base_dir
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
-        self._resource_cache = ValueCache()
+        self._is_modified = is_modified
         self._is_closed = False
-        self._is_modified = False
+        self._resource_cache = ValueCache()
 
     def __del__(self):
         self.close()
@@ -178,13 +178,16 @@ class Workspace:
     @classmethod
     def from_json_dict(cls, json_dict):
         base_dir = json_dict.get('base_dir', None)
-        workflow_json = json_dict.get('workflow', None)
+        workflow_json = json_dict.get('workflow', {})
+        is_modified = json_dict.get('is_modified', False)
         workflow = Workflow.from_json_dict(workflow_json)
-        return Workspace(base_dir, workflow)
+        return Workspace(base_dir, workflow, is_modified=is_modified)
 
     def to_json_dict(self):
         self._assert_open()
         return OrderedDict([('base_dir', self.base_dir),
+                            ('is_modified', self.is_modified),
+                            ('is_saved', os.path.exists(self.workspace_dir)),
                             ('workflow', self.workflow.to_json_dict())])
 
     def delete(self):
@@ -306,6 +309,10 @@ class Workspace:
 
 class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
+    def get_open_workspaces(self) -> List[Workspace]:
+        pass
+
+    @abstractmethod
     def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         pass
 
@@ -366,7 +373,7 @@ class WorkspaceManager(metaclass=ABCMeta):
 
 class FSWorkspaceManager(WorkspaceManager):
     def __init__(self, resolve_dir: str = None):
-        self._open_workspaces = dict()
+        self._open_workspaces = OrderedDict()
         self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
     def num_open_workspaces(self) -> int:
@@ -376,6 +383,9 @@ class FSWorkspaceManager(WorkspaceManager):
         if dir_path and os.path.isabs(dir_path):
             return os.path.normpath(dir_path)
         return os.path.abspath(os.path.join(self._resolve_dir, dir_path or ''))
+
+    def get_open_workspaces(self) -> List[Workspace]:
+        return list(self._open_workspaces.values())
 
     def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -393,10 +403,10 @@ class FSWorkspaceManager(WorkspaceManager):
     def new_workspace(self, base_dir: str, save: bool = False, description: str = None) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         if base_dir in self._open_workspaces:
-            raise WorkspaceError('workspace exists: %s' % base_dir)
+            raise WorkspaceError('workspace already opened: %s' % base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if os.path.isdir(workspace_dir):
-            raise WorkspaceError('workspace exists: %s' % base_dir)
+            raise WorkspaceError('workspace exists, consider opening it: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         assert base_dir not in self._open_workspaces
         if save:
@@ -579,6 +589,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
             return True
         except:
             return False
+
+    def get_open_workspaces(self) -> List[Workspace]:
+        url = self._url('/ws/get_open')
+        json_list = self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
+        return [Workspace.from_json_dict(ws_json_dict) for ws_json_dict in json_list]
 
     def get_workspace(self, base_dir: str, open: bool = False) -> Workspace:
         url = self._url('/ws/get/{base_dir}',

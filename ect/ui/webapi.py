@@ -87,6 +87,7 @@ def get_application():
     application = Application([
         (url_pattern('/'), VersionHandler),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
+        (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
         (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
         (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
@@ -501,6 +502,17 @@ class WorkspaceGetHandler(BaseRequestHandler):
         try:
             workspace = workspace_manager.get_workspace(base_dir, open=open_it)
             self.write(_status_ok(content=workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceGetOpenHandler(BaseRequestHandler):
+    def get(self):
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace_list = workspace_manager.get_open_workspaces()
+            self.write(_status_ok(content=[workspace.to_json_dict() for workspace in workspace_list]))
         except Exception as e:
             self.write(_status_error(exception=e))
 
