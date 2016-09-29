@@ -979,8 +979,8 @@ class OperationCommand(SubCommandCommand):
                 return False
             return True
 
-        op_names = [op_name for op_name, op_reg in op_regs.items() if
-                    _is_op_selected(op_reg, command_args.tag, command_args.internal)]
+        op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
+                           _is_op_selected(op_reg, command_args.tag, command_args.internal)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
