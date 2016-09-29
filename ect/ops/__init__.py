@@ -54,23 +54,35 @@ from .plot import plot_map
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
+from .xarray import sel
 
 __all__ = [
+    # .timeseries
     'tseries_point',
     'tseries_mean'
+    # .resampling
     'resample_2d',
     'downsample_2d',
     'upsample_2d',
+    # .harmonize
     'harmonize',
+    # .select
     'select_var',
+    # .coregistration
     'coregister',
+    # .subset
     'subset_spatial',
     'subset_temporal',
     'subset_temporal_index',
+    # .correlation
     'person_correlation',
+    # .plot
     'plot_map'
+    # .io
     'open_dataset',
-    'save_dataset'
+    'save_dataset',
+    # .xarray
+    'sel'
 ]
 
 
