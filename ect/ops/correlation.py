@@ -28,61 +28,50 @@ Correlation operations
 Components
 ==========
 """
-import math
 
 from ect.core.op import op
 import xarray as xr
+from scipy.stats import pearsonr
 
 
 @op(tags=['correlation'])
 def pearson_correlation(ds_y: xr.Dataset, ds_x: xr.Dataset, var_y: str, var_x:
                         str, file: str = None) -> xr.Dataset:
     """
-    Do product moment Pearson's correlation analysis.
+    Do product moment Pearson's correlation analysis. See
+
+    http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation
+    http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/
 
     :param ds_y: The 'dependent' dataset
     :param ds_x: The 'variable' dataset
-    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
-    :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
-    :param file: Filepath variable. If given, this is where the results will be saved in a text file.
+    :param var_y: Dataset variable to use for correlation analysis in the
+    'dependent' dataset
+    :param var_x: Dataset variable to use for correlation analysis in the
+    'variable' dataset
+    :param file: Filepath variable. If given, this is where the results will
+    be saved in a text file.
     """
     if len(ds_y[var_y].dims) != 1 or len(ds_x[var_x].dims) != 1:
-        raise ValueError('Person correlation for multi-dimensional variables is not yet implemented.')
+        raise ValueError('Person correlation for multi-dimensional variables\
+ is not yet implemented.')
 
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    y_mean = array_y.mean().data
-    x_mean = array_x.mean().data
-
-    a = 0.
-    b = 0.
-    c = 0.
-
-    for i in range(0, len(array_y.data)):
-        a = a + ((array_x[i] - x_mean) * (array_y[i] - y_mean))
-        b = b + (array_x[i] - pow(x_mean, 2))
-        c = c + (array_y[i] - pow(y_mean, 2))
-
-    # TODO (Gailis 29.09) Can I do abs here? on clouds and ozone, I got b but
-    # not c negative, resulting in math domain error
-    a = abs(a)
-    b = abs(b)
-    c = abs(c)
-
-    corr_coef = a / (math.sqrt(b * c))
-    test = corr_coef * math.sqrt((len(array_y.data) - 2) / (1 - pow(corr_coef, 2)))
+    corr_coef, p_value = pearsonr(array_x, array_y)
 
     # Save the result if file path is given
     if file:
         with open(file, "w") as text_file:
-            print("Correlation coefficient: {}".format(corr_coef.values), file=text_file)
-            print("Test value: {}".format(test.values), file=text_file)
+            print("Correlation coefficient: {}".format(corr_coef),
+                  file=text_file)
+            print("P value: {}".format(p_value), file=text_file)
 
     retset = xr.Dataset()
     retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
                                                                          var_x)
     retset['correlation_coefficient'] = corr_coef
-    retset['test_value'] = test
+    retset['p_value'] = p_value
 
     return retset
