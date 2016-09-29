@@ -116,6 +116,7 @@ Components
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from io import IOBase
+from itertools import chain
 from typing import Sequence, Optional, Union, List, Dict
 
 from .monitor import Monitor
@@ -188,6 +189,49 @@ class Node(metaclass=ABCMeta):
         """Find a (child) node with the given *node_id*."""
         return None
 
+    def requires(self, other_node: 'Node') -> bool:
+        """
+        Does this node require *other_node* for its computation?
+        Is *other_node* a source of this node?
+
+        :param other_node: The other node.
+        :return: ``True`` if this node is a target of *other_node*
+        """
+        return self.distance_to(other_node) >= 0
+
+    def distance_to(self, other_node: 'Node') -> int:
+        """
+        If *other_node* is a source of this node, then return the number of connections from this node to *node*.
+        If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, ect.
+        If *other_node* is this node, return 0.
+        If *other_node* is not a source of this node, return -1.
+
+        :param other_node: The other node.
+        :return: The distance to *other_node*
+        """
+        if self == other_node:
+            return 0
+        for port in self._input[:]:
+            if port.source is not None and port.source.node is other_node:
+                return 1
+        for port in self._input[:]:
+            if port.source is not None:
+                distance = port.source.node.requires(other_node)
+                if distance > 0:
+                    return distance + 1
+        return -1
+
+    def collect_predecessors(self, predecessors: List['Node'], excludes: List['Node'] = None):
+        """Collect all predecessors of this node into *result* and finally append this node (self)."""
+        if excludes and self in excludes:
+            return
+        if self in predecessors:
+            predecessors.remove(self)
+        predecessors.insert(0, self)
+        for port in self.input[:]:
+            if port.source is not None:
+                port.source.node.collect_predecessors(predecessors, excludes)
+
     def __call__(self, value_cache: dict = None, monitor=Monitor.NONE, **input_values):
         """
         Make this class instance's callable. The call is delegated to :py:meth:`call()`.
@@ -234,7 +278,8 @@ class Node(metaclass=ABCMeta):
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
+               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
         :param monitor: An optional progress monitor.
         """
 
@@ -258,10 +303,16 @@ class Node(metaclass=ABCMeta):
 
     def resolve_source_refs(self):
         """Resolve unresolved source references in inputs and outputs."""
-        for node_output_port in self._output[:]:
-            node_output_port.resolve_source_ref()
-        for node_input_port in self._input[:]:
-            node_input_port.resolve_source_ref()
+        for port in chain(self._output[:], self._input[:]):
+            port.resolve_source_ref()
+
+    def remove_orphaned_sources(self, orphaned_node: 'Node'):
+        # Set all input/output ports to None, whose source are still old_step.
+        # This will also set each port's source to None.
+        # TODO (forman, 20160929): Actually, we should remove ports that still refer to old_step.
+        for port in chain(self._output[:], self._input[:]):
+            if port.source is not None and port.source.node is orphaned_node:
+                port.value = None
 
     def find_port(self, name) -> 'NodePort':
         """
@@ -336,7 +387,23 @@ class Workflow(Node):
     def steps(self) -> List['Step']:
         return list(self._steps.values())
 
-    def find_node(self, step_id) -> 'Step':
+    def find_steps_to_compute(self, step_id: str) -> List['Step']:
+        """
+        Compute the list of steps required to compute the output of the step with the given *step_id*.
+        The order of the returned list is its execution order, with the step given by *step_id* is the last one.
+
+        :param step_id: The step to be computed last and whose output value is requested.
+        :return: a list of steps, which is never empty
+        """
+        if step_id not in self._steps:
+            raise ValueError('step_id argument does not identify a step: %s' % step_id)
+
+        step = self._steps[step_id]
+        steps = []
+        step.collect_predecessors(steps, [self])
+        return steps
+
+    def find_node(self, step_id: str) -> 'Step':
         # is it the ID of one of the direct children?
         if step_id in self._steps:
             return self._steps[step_id]
@@ -347,19 +414,30 @@ class Workflow(Node):
                 return other_node
         return None
 
-    def add_steps(self, *steps: Sequence['Step'], can_exist=False) -> None:
+    def add_steps(self, *steps: Sequence['Step'], can_exist: bool = False) -> None:
         for step in steps:
             self.add_step(step, can_exist=can_exist)
 
-    def add_step(self, step: 'Step', can_exist=False) -> 'Step':
-        if not can_exist and step.id in self._steps:
+    def add_step(self, step: 'Step', can_exist: bool = False) -> 'Step':
+        old_step = self._steps.get(step.id)
+        if old_step is not None and not can_exist:
             raise ValueError("step '%s' already exists" % step.id)
-        old_step = self._steps.get(step.id, None)
-        self._steps[step.id] = step
+
+        is_new = old_step is not step
+        if is_new:
+            self._steps[step.id] = step
+
         step._parent_node = self
+
+        if is_new and old_step is not None:
+            # If the step already existed before, we must resolve source references again
+            self.resolve_source_refs()
+            # After reassigning sources, remove ports whose source is still old_step.
+            self.remove_orphaned_sources(old_step)
+
         return old_step
 
-    def remove_step(self, step: Union[str, 'Step'], must_exist=False) -> 'Step':
+    def remove_step(self, step: Union[str, 'Step'], must_exist: bool = False) -> 'Step':
         step_id = step if isinstance(step, str) else step.id
         if step_id not in self._steps:
             if must_exist:
@@ -367,19 +445,35 @@ class Workflow(Node):
             return None
         old_step = self._steps.pop(step_id)
         step._parent_node = None
+
+        if old_step is not None:
+            # After removing old_step, remove ports whose source is still old_step.
+            self.remove_orphaned_sources(old_step)
+
         return old_step
 
     def resolve_source_refs(self) -> None:
         """Resolve unresolved source references in inputs and outputs."""
         super(Workflow, self).resolve_source_refs()
-        for node in self._steps.values():
-            node.resolve_source_refs()
+        for step in self._steps.values():
+            step.resolve_source_refs()
+
+    def remove_orphaned_sources(self, removed_node: Node):
+        """
+        Remove all input/output ports, whose source is still referring to *removed_node*.
+        :param removed_node: A removed node.
+        """
+        super(Workflow, self).remove_orphaned_sources(removed_node)
+        for step in self._steps.values():
+            step.remove_orphaned_sources(removed_node)
 
     def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
         The node invocation order is determined by the input requirements of individual nodes.
 
+        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
+               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
         :param monitor: An optional progress monitor.
         """
         steps = self.steps
@@ -387,7 +481,7 @@ class Workflow(Node):
         if step_count == 1:
             steps[0].invoke(value_cache=value_cache, monitor=monitor)
         elif step_count > 1:
-            monitor.start("Executing workflow '%s'" % self.id, step_count)
+            monitor.start("Executing %d steps of workflow '%s'" % (step_count, self.id), step_count)
             for step in steps:
                 step.invoke(value_cache=value_cache, monitor=monitor.child(1))
             monitor.done()
@@ -1207,6 +1301,7 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
 
 def _close_value(value):
     if hasattr(value, 'close'):
+        # noinspection PyBroadException
         try:
             value.close()
         except:

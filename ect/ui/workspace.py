@@ -162,12 +162,16 @@ class Workspace:
 
     def execute_workflow(self, res_name, monitor=Monitor.NONE):
         self._assert_open()
-        result = self.workflow.call(value_cache=self._resource_cache, monitor=monitor)
-        if res_name is not None and res_name in result:
-            obj = result[res_name]
-        else:
-            obj = result
-        return obj
+        steps = self.workflow.find_steps_to_compute(res_name)
+        for step in steps:
+            step.invoke(value_cache=self._resource_cache, monitor=monitor)
+        return steps[-1].get_output_value()
+        # result = self.workflow.call(value_cache=self._resource_cache, monitor=monitor)
+        # if res_name is not None and res_name in result:
+        #     obj = result[res_name]
+        # else:
+        #     obj = result
+        # return obj
 
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], overwrite=False, validate_args=False):
         assert res_name
@@ -235,33 +239,24 @@ class Workspace:
         old_step = workflow.find_node(res_name)
 
         # Collect keys of invalidated cache entries, initialize with res_name
-        invalid_cache_keys = {res_name}
+        ids_of_invalidated_steps = {res_name}
         if old_step is not None:
             # Collect all IDs of steps that depend on old_step, if any
             for step in workflow.steps:
-                for input_port in step.input[:]:
-                    if input_port.source and input_port.source.node is old_step:
-                        invalid_cache_keys.add(step.id)
+                if step.requires(old_step):
+                    ids_of_invalidated_steps.add(step.id)
 
         workflow = self._workflow
         # noinspection PyUnusedLocal
         old_step = workflow.add_step(op_step, can_exist=True)
         self._is_modified = True
 
-        if does_exist:
-            # If the step already existed before, we must resolve source references again
-            workflow.resolve_source_refs()
-            for workflow_output_port in workflow.output[:]:
-                if workflow_output_port.source.node is old_step:
-                    # We set old outputs to None, as we don't want to change output order and don't want to delete old
-                    # output ports. However, we should better do this one day.
-                    workflow_output_port.value = None
-
-        # Remove cached resource value, if any
-        for key in invalid_cache_keys:
+        # Remove any cached resource values, whose steps became invalidated
+        for key in ids_of_invalidated_steps:
             if key in self._resource_cache:
                 del self._resource_cache[key]
 
+        # Add workflow outputs
         if op_step.op_meta_info.has_named_outputs:
             for step_output_port in op_step.output[:]:
                 workflow_output_port_name = res_name + '$' + step_output_port.name

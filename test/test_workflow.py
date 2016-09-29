@@ -49,6 +49,31 @@ class WorkflowTest(TestCase):
         workflow.output.q.source = step3.output.w
         return step1, step2, step3, workflow
 
+    def test_get_steps_to_compute(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        self.assertEqual(workflow.find_steps_to_compute('op1'), [step1])
+        self.assertEqual(workflow.find_steps_to_compute('op2'), [step1, step2])
+        self.assertEqual(workflow.find_steps_to_compute('op3'), [step1, step2, step3])
+
+    def test_requires(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        self.assertFalse(step1.requires(step2))
+        self.assertFalse(step1.requires(step3))
+        self.assertFalse(step2.requires(step3))
+        self.assertTrue(step2.requires(step1))
+        self.assertTrue(step3.requires(step2))
+        self.assertTrue(step3.requires(step1))
+
+    def test_distance_to(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        self.assertEqual(step1.distance_to(step2), -1)
+        self.assertEqual(step1.distance_to(step3), -1)
+        self.assertEqual(step2.distance_to(step3), -1)
+        self.assertEqual(step2.distance_to(step1), 1)
+        self.assertEqual(step3.distance_to(step2), 1)
+        self.assertEqual(step3.distance_to(step1), 1)
+        self.assertEqual(step3.distance_to(step3), 0)
+
     def test_add_step(self):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
         self.assertEqual(workflow.steps, [step1, step2, step3])
