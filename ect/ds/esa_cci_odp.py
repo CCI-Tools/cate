@@ -477,7 +477,10 @@ class EsaCciOdpDataSource(DataSource):
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            return None
+            msg = 'Data source seems not have any data files'
+            if time_range is not None:
+                msg += ' for given time range %s' % time_range
+            raise IOError(msg)
 
         dataset_dir = self.local_dataset_dir()
         files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
