@@ -1097,7 +1097,12 @@ class DataSourceCommand(SubCommandCommand):
 
         num_sync, num_total = data_source.sync(time_range=time_range,
                                                monitor=cls.new_monitor())
-        print(('%d of %d file(s) synchronized' % (num_sync, num_total)) if num_total > 0 else 'No files found')
+        if num_total == 0:
+            print('No files to synchronize')
+        elif num_sync == 0:
+            print('All files (%d) synchronized' % num_total)
+        else:
+            print('%d of %d file(s) synchronized' % (num_sync, num_total))
 
     @classmethod
     def _execute_def(cls, command_args):
