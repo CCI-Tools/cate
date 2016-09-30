@@ -146,7 +146,7 @@ class DataSource(metaclass=ABCMeta):
         :param monitor: a progress monitor.
         :return: a tuple: (synchronized number of selected files, total number of selected files)
         """
-        pass
+        return 0, 0
 
     # TODO (forman, 20160916): (also) return JSON-dict so we can use the data source meta-data more flexible
     @property
