@@ -479,7 +479,7 @@ class EsaCciOdpDataSource(DataSource):
         if not selected_file_list:
             msg = "Data source '%s' does not seem to have any data files" % self.name
             if time_range is not None:
-                msg += ' in given time range %s' % time_range
+                msg += ' in given time range %s to %s' % time_range
             raise IOError(msg)
 
         dataset_dir = self.local_dataset_dir()
