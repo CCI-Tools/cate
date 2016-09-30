@@ -477,16 +477,16 @@ class EsaCciOdpDataSource(DataSource):
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Data source seems not have any data files'
+            msg = "Data source '%s' does not seem to have any data files" % self.name
             if time_range is not None:
-                msg += ' for given time range %s' % time_range
+                msg += ' in given time range %s' % time_range
             raise IOError(msg)
 
         dataset_dir = self.local_dataset_dir()
         files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
         for file in files:
             if not os.path.exists(file):
-                raise IOError('Missing local files, consider synchronizing the dataset first.')
+                raise IOError('Missing local data files, consider synchronizing the dataset first.')
 
         # TODO (Gailis, 20160729): The preprocess way still does not work for me
         # return open_xarray_dataset(files)
