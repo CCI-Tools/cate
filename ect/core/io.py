@@ -342,7 +342,7 @@ def open_xarray_dataset(paths, preprocess=False, chunks=None, **kwargs) -> xr.Da
     # for the time being rely on xarray for opening
     # the added logic prevents dask from being used, which lead to a huge memory usage and longer runtime
     # other ways have to be found to fix broken datasets in the opening phase
-    # if not this can be removed
+    # if not this code below can be removed
 
     # open all datasets
     lock = xr.backends.api._default_lock(paths[0], None)
