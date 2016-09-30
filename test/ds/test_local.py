@@ -71,8 +71,8 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.assertEqual(self.ds2.schema, None)
 
     def test_info_string(self):
-        self.assertEqual('Name: ozone\nFiles: /DATA/ozone/*/*.nc', self.ds1.info_string)
-        self.assertEqual('Name: aerosol\nFiles: /DATA/aerosol/*/A*.nc /DATA/aerosol/*/B*.nc', self.ds2.info_string)
+        self.assertEqual('Files: /DATA/ozone/*/*.nc', self.ds1.info_string)
+        self.assertEqual('Files: /DATA/aerosol/*/A*.nc /DATA/aerosol/*/B*.nc', self.ds2.info_string)
 
     def test_temporal_coverage(self):
         self.assertEqual(self.ds1.temporal_coverage, None)

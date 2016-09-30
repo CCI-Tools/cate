@@ -74,7 +74,7 @@ class LocalFilePatternDataSource(DataSource):
 
     @property
     def info_string(self):
-        return 'Name: %s\nFiles: %s' % (self._name, ' '.join(self._files))
+        return 'Files: %s' % (' '.join(self._files))
 
     def _repr_html_(self):
         import html
