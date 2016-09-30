@@ -123,7 +123,7 @@ class LocalFilePatternDataStore(DataStore):
             name = '%s.%s' % (self.name, name)
         for ds in self._data_sources:
             if ds.name == name:
-                raise ValueError("The data_store already contains a data_source with the name '%s'" % name)
+                raise ValueError("The '%s' data store already contains a data source with the name '%s'" % (self.name, name))
         data_source = LocalFilePatternDataSource(name, files, self)
         self._data_sources.append(data_source)
         self._save_data_source(data_source)
