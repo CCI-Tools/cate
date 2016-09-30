@@ -36,6 +36,7 @@ from typing import Optional
 from ect.core.util import cwd
 from ect.ui.wsmanag import FSWorkspaceManager
 from ect.version import __version__
+from ect.core.monitor import Monitor, ConsoleMonitor
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -428,6 +429,10 @@ def _check_auto_exit(application: Application, condition: bool, interval: float)
         application.auto_exit_timer = None
 
 
+def _new_monitor() -> Monitor:
+    return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
+
+
 def url_pattern(pattern: str):
     """
     Convert a string *pattern* where any occurrences of ``{{NAME}}`` are replaced by an equivalent
@@ -621,7 +626,8 @@ class ResourceSetHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args)
+                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
+                                                         monitor=_new_monitor())
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))
