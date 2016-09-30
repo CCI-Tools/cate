@@ -49,7 +49,7 @@ setup(
             'ect_ds = ect.ds:ect_init',
         ],
     },
-    install_requires=['pyqt >= 5.6',
+    install_requires=[
                       'matplotlib >= 1.5',
                       'xarray >= 0.8',
                       'netcdf4 >= 1.2',
