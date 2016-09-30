@@ -49,7 +49,9 @@ setup(
             'ect_ds = ect.ds:ect_init',
         ],
     },
-    install_requires=['xarray >= 0.8',
+    install_requires=['pyqt >= 5.6',
+                      'matplotlib >= 1.5',
+                      'xarray >= 0.8',
                       'netcdf4 >= 1.2',
                       'dask >= 0.8',
                       'tornado >= 4.4',
@@ -58,6 +60,5 @@ setup(
                       'scipy >= 0.17',
                       'pandas >= 0.18',
                       'basemap >= 1.0',
-                      'matplotlib >= 1.5',
                       ],
 )
