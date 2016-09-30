@@ -31,6 +31,7 @@ from typing import List
 
 from ect.core.monitor import Monitor
 from ect.core.objectio import write_object
+from ect.core.util import UNDEFINED
 from ect.core.util import encode_url_path
 from ect.core.workflow import Workflow
 
@@ -252,7 +253,8 @@ class FSWorkspaceManager(WorkspaceManager):
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
-        obj = workspace.execute_workflow(res_name, monitor)
+        obj = self._get_resource_value(workspace, res_name, monitor)
+
         import xarray as xr
         import numpy as np
         import matplotlib
@@ -285,12 +287,18 @@ class FSWorkspaceManager(WorkspaceManager):
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
+        value = self._get_resource_value(workspace, res_name_or_expr, monitor)
+        pprint.pprint(value)
+
+    def _get_resource_value(self, workspace, res_name_or_expr, monitor):
+        value = UNDEFINED
         if res_name_or_expr is None:
-            pprint.pprint(workspace.resource_cache)
-        elif res_name_or_expr.isidentifier() and res_name_or_expr in workspace.resource_cache:
-            pprint.pprint(workspace.resource_cache[res_name_or_expr])
-        else:
-            pprint.pprint(eval(res_name_or_expr, None, workspace.resource_cache))
+            value = workspace.resource_cache
+        elif res_name_or_expr.isidentifier() and workspace.workflow.find_node(res_name_or_expr) is not None:
+            value = workspace.execute_workflow(res_name_or_expr, monitor)
+        if value is UNDEFINED:
+            value = eval(res_name_or_expr, None, workspace.resource_cache)
+        return value
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
