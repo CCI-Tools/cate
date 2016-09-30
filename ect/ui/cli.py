@@ -790,9 +790,14 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
+        base_dir_args = ['-d', '--dir']
+        base_dir_kwargs = dict(dest='base_dir', metavar='DIR', default='.',
+                               help='The workspace\'s base directory. '
+                                    'If not given, the current working directory is used.')
 
         open_parser = subparsers.add_parser('open',
                                             help='Open a dataset from a data source and set a resource.')
+        open_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         open_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
         open_parser.add_argument('ds_name', metavar='DS',
@@ -805,11 +810,12 @@ class ResourceCommand(SubCommandCommand):
 
         read_parser = subparsers.add_parser('read',
                                             help='Read an object from a file and set a resource.')
+        read_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         read_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
         read_parser.add_argument('file_path', metavar='FILE',
                                  help='File path.')
-        read_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+        read_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
                                  choices=READ_FORMAT_NAMES,
                                  help='File format. Possible FORMAT values are {format}.'
                                       ''.format(format=', '.join(READ_FORMAT_NAMES)))
@@ -821,11 +827,12 @@ class ResourceCommand(SubCommandCommand):
 
         write_parser = subparsers.add_parser('write',
                                              help='Write a resource to a file.')
+        write_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         write_parser.add_argument('res_name', metavar='NAME',
                                   help='Name of an existing resource.')
         write_parser.add_argument('file_path', metavar='FILE',
                                   help='File path.')
-        write_parser.add_argument('--format', '-f', dest='format_name', metavar='FORMAT',
+        write_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
                                   choices=WRITE_FORMAT_NAMES,
                                   help='File format. Possible FORMAT values are {format}.'
                                        ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
@@ -836,7 +843,8 @@ class ResourceCommand(SubCommandCommand):
         write_parser.set_defaults(sub_command_function=cls._execute_write)
 
         set_parser = subparsers.add_parser('set',
-                                           help='Create a workflow operation and set a resource.')
+                                           help='Set a resource from the result of an operation.')
+        set_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         set_parser.add_argument('res_name', metavar='NAME',
                                 help='Name of the new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
@@ -845,27 +853,31 @@ class ResourceCommand(SubCommandCommand):
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
+        del_parser = subparsers.add_parser('del', help='Delete a resource.')
+        del_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        del_parser.add_argument('res_name', metavar='DIR',
+                                help='Resource name.')
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
         print_parser = subparsers.add_parser('print', help='If EXPR is omitted, print value of all current resources.'
                                                            'Otherwise, if EXPR identifies a resource, print its value.'
                                                            'Else print the value of a (Python) expression evaluated '
                                                            'in the context of the current workspace.')
+        print_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         print_parser.add_argument('res_name_or_expr', metavar='EXPR', nargs='?',
                                   help='Name of an existing resource or a valid (Python) expression.')
         print_parser.set_defaults(sub_command_function=cls._execute_print)
 
         plot_parser = subparsers.add_parser('plot', help='Plot a resource or the value of a (Python) expression '
                                                          'evaluated in the context of the current workspace.')
+        plot_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         plot_parser.add_argument('res_name_or_expr', metavar='EXPR',
                                  help='Name of an existing resource or any (Python) expression.')
-        plot_parser.add_argument('--var', '-v', dest='var_name', metavar='VAR', nargs='?',
+        plot_parser.add_argument('-v', '--var', dest='var_name', metavar='VAR', nargs='?',
                                  help='Name of a variable to plot.')
-        plot_parser.add_argument('--out', '-o', dest='file_path', metavar='FILE', nargs='?',
+        plot_parser.add_argument('-o', '--out', dest='file_path', metavar='FILE', nargs='?',
                                  help='Output file to write the plot figure to.')
         plot_parser.set_defaults(sub_command_function=cls._execute_plot)
-
-        # TODO (forman, 20160922): implement "ect res print"
-        # print_parser = subparsers.add_parser('print', help='Print a resource value.')
-        # print_parser.set_defaults(sub_command_function=cls._execute_print)
 
         # TODO (forman, 20160922): implement "ect res rename"
         # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
@@ -874,12 +886,6 @@ class ResourceCommand(SubCommandCommand):
         # rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
         #                            help='New resource name.')
         # rename_parser.set_defaults(sub_command_function=cls._execute_rename)
-
-        # TODO (forman, 20160916): implement "ect res del"
-        # del_parser = subparsers.add_parser('del', help='Delete a resource.')
-        # del_parser.add_argument('res_name', metavar='DIR',
-        #                         help='Resource name.')
-        # del_parser.set_defaults(sub_command_function=cls._execute_del)
 
     @classmethod
     def _execute_open(cls, command_args):
@@ -891,7 +897,7 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
-        workspace_manager.set_workspace_resource(_base_dir(),
+        workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'ect.ops.io.open_dataset',
                                                  op_args)
@@ -903,7 +909,7 @@ class ResourceCommand(SubCommandCommand):
         op_args = ['file=%s' % _to_str_const(command_args.file_path)]
         if command_args.format_name:
             op_args.append('format=%s' % _to_str_const(command_args.format_name))
-        workspace_manager.set_workspace_resource(_base_dir(),
+        workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'ect.ops.io.read_object',
                                                  op_args)
@@ -912,7 +918,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.set_workspace_resource(_base_dir(),
+        workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  command_args.op_name,
                                                  command_args.op_args,
@@ -920,9 +926,16 @@ class ResourceCommand(SubCommandCommand):
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
+    def _execute_del(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.delete_workspace_resource(_base_dir(command_args.base_dir),
+                                                    command_args.res_name)
+        print('Resource "%s" deleted.' % command_args.res_name)
+
+    @classmethod
     def _execute_write(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.write_workspace_resource(_base_dir(),
+        workspace_manager.write_workspace_resource(_base_dir(command_args.base_dir),
                                                    command_args.res_name,
                                                    command_args.file_path,
                                                    format_name=command_args.format_name,
@@ -932,7 +945,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_plot(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.plot_workspace_resource(_base_dir(),
+        workspace_manager.plot_workspace_resource(_base_dir(command_args.base_dir),
                                                   command_args.res_name_or_expr,
                                                   var_name=command_args.var_name,
                                                   file_path=command_args.file_path,
@@ -941,7 +954,7 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_print(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.print_workspace_resource(_base_dir(),
+        workspace_manager.print_workspace_resource(_base_dir(command_args.base_dir),
                                                    command_args.res_name_or_expr)
 
 

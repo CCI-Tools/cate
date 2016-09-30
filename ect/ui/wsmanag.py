@@ -115,6 +115,10 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+        pass
+
+    @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
@@ -251,6 +255,10 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
         workspace.execute_workflow(res_name, monitor)
+
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+        workspace = self.get_workspace(base_dir)
+        workspace.delete_resource(res_name)
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
@@ -427,6 +435,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=RESOURCE_TIMEOUT,
                          data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+        url = self._url('/ws/res/del/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name))
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT)
 
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],

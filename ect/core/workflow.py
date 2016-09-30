@@ -222,7 +222,7 @@ class Node(metaclass=ABCMeta):
         return -1
 
     def collect_predecessors(self, predecessors: List['Node'], excludes: List['Node'] = None):
-        """Collect all predecessors of this node into *result* and finally append this node (self)."""
+        """Collect this node (self) and preceding nodes in *predecessors*."""
         if excludes and self in excludes:
             return
         if self in predecessors:

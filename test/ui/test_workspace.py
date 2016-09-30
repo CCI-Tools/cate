@@ -45,17 +45,7 @@ class WorkspaceTest(unittest.TestCase):
                 "description": "Test!"
             },
             "input": {},
-            "output": {
-                "p": {
-                    "data_type": "xarray.core.dataset.Dataset",
-                    "source": "p.return"
-                },
-                "ts": {
-                    "data_type": "xarray.core.dataset.Dataset",
-                    "source": "ts.return",
-                    "description": "Dataset with timeseries variables"
-                }
-            },
+            "output": {},
             "steps": [
                 {
                     "id": "p",

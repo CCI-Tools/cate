@@ -160,6 +160,24 @@ class Workspace:
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
+    def delete_resource(self, res_name: str):
+        res_step = self.workflow.find_node(res_name)
+        if res_step is None:
+            raise WorkspaceError('Resource not found: %s' % res_name)
+
+        dependent_steps = []
+        for step in self.workflow.steps:
+            if step is not res_step and step.requires(res_step):
+                dependent_steps.append(res_step.id)
+
+        if dependent_steps:
+            raise WorkspaceError("Cannot delete resource '%s' because the following resource "
+                                 "depend on it: %s" % (res_step, ', '.join(dependent_steps)))
+
+        self.workflow.remove_step(res_step)
+        if res_name in self._resource_cache:
+            del self._resource_cache[res_name]
+
     def execute_workflow(self, res_name, monitor=Monitor.NONE):
         self._assert_open()
         steps = self.workflow.find_steps_to_compute(res_name)
@@ -255,20 +273,20 @@ class Workspace:
             if key in self._resource_cache:
                 del self._resource_cache[key]
 
-        # Add workflow outputs
-        if op_step.op_meta_info.has_named_outputs:
-            for step_output_port in op_step.output[:]:
-                workflow_output_port_name = res_name + '$' + step_output_port.name
-                workflow.op_meta_info.output[workflow_output_port_name] = \
-                    op_step.op_meta_info.output[step_output_port.name]
-                workflow_output_port = NodePort(workflow, workflow_output_port_name)
-                workflow_output_port.source = step_output_port
-                workflow.output[workflow_output_port.name] = workflow_output_port
-        else:
-            workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-            workflow_output_port = NodePort(workflow, res_name)
-            workflow_output_port.source = op_step.output[return_output_name]
-            workflow.output[workflow_output_port.name] = workflow_output_port
+        # # Add workflow outputs
+        # if op_step.op_meta_info.has_named_outputs:
+        #     for step_output_port in op_step.output[:]:
+        #         workflow_output_port_name = res_name + '$' + step_output_port.name
+        #         workflow.op_meta_info.output[workflow_output_port_name] = \
+        #             op_step.op_meta_info.output[step_output_port.name]
+        #         workflow_output_port = NodePort(workflow, workflow_output_port_name)
+        #         workflow_output_port.source = step_output_port
+        #         workflow.output[workflow_output_port.name] = workflow_output_port
+        # else:
+        #     workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
+        #     workflow_output_port = NodePort(workflow, res_name)
+        #     workflow_output_port.source = op_step.output[return_output_name]
+        #     workflow.output[workflow_output_port.name] = workflow_output_port
 
     def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
         try:
