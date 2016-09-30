@@ -33,10 +33,10 @@ from datetime import date, datetime
 from threading import Timer
 from typing import Optional
 
+from ect.core.monitor import Monitor, ConsoleMonitor
 from ect.core.util import cwd
 from ect.ui.wsmanag import FSWorkspaceManager
 from ect.version import __version__
-from ect.core.monitor import Monitor, ConsoleMonitor
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -97,6 +97,7 @@ def get_application():
         (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
+        (url_pattern('/ws/run_op/{{base_dir}}'), WorkspaceRunOpHandler),
         (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
@@ -612,6 +613,22 @@ class WorkspaceCleanHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace_manager.clean_workspace(base_dir)
+            self.write(_status_ok())
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceRunOpHandler(BaseRequestHandler):
+    def post(self, base_dir):
+        op_name = self.get_body_argument('op_name')
+        op_args = self.get_body_argument('op_args', default=None)
+        op_args = json.loads(op_args) if op_args else None
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
+                                                      monitor=_new_monitor())
             self.write(_status_ok())
         except Exception as e:
             self.write(_status_error(exception=e))

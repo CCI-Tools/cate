@@ -172,6 +172,19 @@ class Workspace:
         #     obj = result
         # return obj
 
+    def run_op(self, op_name: str, op_args: List[str], validate_args=False, monitor=Monitor.NONE):
+        assert op_name
+        assert op_args
+
+        op = OP_REGISTRY.get_op(op_name)
+        if not op:
+            raise WorkspaceError("unknown operation '%s'" % op_name)
+
+        with monitor.starting("Running operation '%s'" % op_name, 2):
+            self.workflow.invoke(self.resource_cache, monitor=monitor.child(1))
+            op_kwargs = self._parse_op_args(op, op_args, self.resource_cache, validate_args)
+            op(monitor=monitor.child(1), **op_kwargs)
+
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], overwrite=False, validate_args=False):
         assert res_name
         assert op_name
@@ -201,20 +214,7 @@ class Workspace:
             # Prevent resource from self-referencing
             namespace.pop(res_name, None)
 
-        raw_op_args = op_args
-        try:
-            # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
-            op_args, op_kwargs = parse_op_args(raw_op_args, namespace=namespace)
-        except ValueError as e:
-            raise WorkspaceError(e)
-
-        if op_args:
-            raise WorkspaceError("positional arguments are not yet supported")
-
-        if validate_args:
-            # validate the op_kwargs using the new operation's meta-info
-            namespace_types = set(type(value) for value in namespace.values())
-            op_step.op_meta_info.validate_input_values(op_kwargs, except_types=namespace_types)
+        op_kwargs = self._parse_op_args(op, op_args, namespace, validate_args)
 
         return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -269,6 +269,20 @@ class Workspace:
             workflow_output_port = NodePort(workflow, res_name)
             workflow_output_port.source = op_step.output[return_output_name]
             workflow.output[workflow_output_port.name] = workflow_output_port
+
+    def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
+        try:
+            # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
+            op_args, op_kwargs = parse_op_args(raw_op_args, namespace=namespace)
+        except ValueError as e:
+            raise WorkspaceError(e)
+        if op_args:
+            raise WorkspaceError("positional arguments are not yet supported")
+        if validate_args:
+            # validate the op_kwargs using the operation's meta-info
+            namespace_types = set(type(value) for value in namespace.values())
+            op.op_meta_info.validate_input_values(op_kwargs, except_types=namespace_types)
+        return op_kwargs
 
     def _assert_open(self):
         if self._is_closed:

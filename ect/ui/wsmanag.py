@@ -103,6 +103,12 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def run_op_in_workspace(self, base_dir: str,
+                            op_name: str, op_args: List[str],
+                            monitor: Monitor = Monitor.NONE) -> None:
+        pass
+
+    @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],
                                monitor: Monitor = Monitor.NONE) -> None:
@@ -233,6 +239,12 @@ class FSWorkspaceManager(WorkspaceManager):
             shutil.rmtree(workspace_dir)
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
+
+    def run_op_in_workspace(self, base_dir: str,
+                            op_name: str, op_args: List[str],
+                            monitor: Monitor = Monitor.NONE) -> None:
+        workspace = self.get_workspace(base_dir)
+        workspace.run_op(op_name, op_args, validate_args=True, monitor=monitor)
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str],
                                monitor: Monitor = Monitor.NONE) -> None:
@@ -407,6 +419,14 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/clean/{base_dir}',
                         path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=WORKSPACE_TIMEOUT)
+
+    def run_op_in_workspace(self, base_dir: str,
+                            op_name: str, op_args: List[str],
+                            monitor: Monitor = Monitor.NONE) -> None:
+        url = self._url('/ws/run_op/{base_dir}',
+                        path_args=dict(base_dir=base_dir))
+        self._fetch_json(url, timeout=RESOURCE_TIMEOUT,
+                         data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
 
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],

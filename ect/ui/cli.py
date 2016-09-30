@@ -427,9 +427,9 @@ class RunCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
-        parser.add_argument('--monitor', '-m', action='store_true',
+        parser.add_argument('-m', '--monitor', action='store_true',
                             help='Display progress information during execution.')
-        parser.add_argument('--open', '-o', action='append', metavar='DS_EXPR', dest='open_args',
+        parser.add_argument('-o', '--open', action='append', metavar='DS_EXPR', dest='open_args',
                             help='Open a dataset from DS_EXPR.\n'
                                  'The DS_EXPR syntax is NAME=DS[,START[,END]]. '
                                  'DS must be a valid data source name. Type "ect ds list" to show '
@@ -437,7 +437,7 @@ class RunCommand(Command):
                                  'temporal data subsets. The dataset loaded will be assigned to the arbitrary '
                                  'name NAME which is used to pass the datasets or its variables'
                                  'as an OP argument. To pass a variable use syntax NAME.VAR_NAME.')
-        parser.add_argument('--read', '-r', action='append', metavar='FILE_EXPR', dest='read_args',
+        parser.add_argument('-r', '--read', action='append', metavar='FILE_EXPR', dest='read_args',
                             help='Read object from FILE_EXPR.\n'
                                  'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. Possible value for FORMAT {formats}. '
                                  'If FORMAT is not provided, file format is derived from the PATH\'s '
@@ -446,7 +446,7 @@ class RunCommand(Command):
                                  'variable or any other data type. To pass a variable of a dataset use '
                                  'syntax NAME.VAR_NAME'
                                  ''.format(formats=', '.join(READ_FORMAT_NAMES)))
-        parser.add_argument('--write', '-w', action='append', metavar='FILE_EXPR', dest='write_args',
+        parser.add_argument('-w', '--write', action='append', metavar='FILE_EXPR', dest='write_args',
                             help='Write result to FILE_EXPR. '
                                  'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. Possible value for FORMAT {formats}. '
                                  'If FORMAT is not provided, file format is derived from the object '
@@ -578,58 +578,72 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
-        base_dir_args = dict(metavar='DIR', nargs='?', default='.',
-                             help='The workspace\'s base directory. '
-                                  'If not given, current working directory is used.')
+        base_dir_args = ['-d', '--dir']
+        base_dir_kwargs = dict(dest='base_dir', metavar='DIR', default='.',
+                               help='The workspace\'s base directory. '
+                                    'If not given, the current working directory is used.')
 
         init_parser = subparsers.add_parser('init', help='Initialize workspace.')
-        init_parser.add_argument('base_dir', **base_dir_args)
-        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
+        init_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        init_parser.add_argument('--desc', dest='description', metavar='DESCRIPTION',
                                  help='Workspace description.')
         init_parser.set_defaults(sub_command_function=cls._execute_init)
 
-        init_parser = subparsers.add_parser('new', help='Create new in-memory workspace.')
-        init_parser.add_argument('base_dir', **base_dir_args)
-        init_parser.add_argument('--description', '-d', metavar='DESCRIPTION',
-                                 help='Workspace description.')
-        init_parser.set_defaults(sub_command_function=cls._execute_new)
+        new_parser = subparsers.add_parser('new', help='Create new in-memory workspace.')
+        new_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        new_parser.add_argument('--desc', dest='description', metavar='DESCRIPTION',
+                                help='Workspace description.')
+        new_parser.set_defaults(sub_command_function=cls._execute_new)
 
         open_parser = subparsers.add_parser('open', help='Open workspace.')
-        open_parser.add_argument('base_dir', **base_dir_args)
+        open_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         close_parser = subparsers.add_parser('close', help='Close workspace.')
-        close_parser.add_argument('base_dir', **base_dir_args)
-        close_parser.add_argument('--all', '-a', dest='close_all', action='store_true',
+        close_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        close_parser.add_argument('-a', '--all', dest='close_all', action='store_true',
                                   help='Close all workspaces. Ignores DIR option.')
-        close_parser.add_argument('--save', '-s', dest='save', action='store_true',
+        close_parser.add_argument('-s', '--save', dest='save', action='store_true',
                                   help='Save modified workspace before closing.')
         close_parser.set_defaults(sub_command_function=cls._execute_close)
 
         save_parser = subparsers.add_parser('save', help='Save workspace.')
-        save_parser.add_argument('base_dir', **base_dir_args)
-        save_parser.add_argument('--all', '-a', dest='save_all', action='store_true',
+        save_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        save_parser.add_argument('-a', '--all', dest='save_all', action='store_true',
                                  help='Save all workspaces. Ignores DIR option.')
         save_parser.set_defaults(sub_command_function=cls._execute_save)
 
-        status_parser = subparsers.add_parser('status', help='Print workspace information.')
-        status_parser.add_argument('base_dir', **base_dir_args)
-        status_parser.set_defaults(sub_command_function=cls._execute_status)
-
-        list_parser = subparsers.add_parser('list', help='List all opened workspaces.')
-        list_parser.set_defaults(sub_command_function=cls._execute_list)
+        run_parser = subparsers.add_parser('run', help='Run operation.')
+        run_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        run_parser.add_argument('op_name', metavar='OP',
+                                help='Fully qualified operation name or Workflow file. '
+                                     'Type "ect op list" to list available operations.')
+        run_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
+                                help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
+                                     'depends on the expected data type of an OP input. It can be a True, False, '
+                                     'a string, a numeric constant, or a workspace resource name, or a Python '
+                                     'expression. Type "ect op info OP" to print information about the supported OP '
+                                     'input names to be used as KEY and their data types to be used as VALUE.')
+        run_parser.set_defaults(sub_command_function=cls._execute_run)
 
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
-        del_parser.add_argument('base_dir', **base_dir_args)
+        del_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
         clean_parser = subparsers.add_parser('clean', help='Clean workspace (removes all resources).')
-        clean_parser.add_argument('base_dir', **base_dir_args)
+        clean_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         clean_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                   help='Do not ask for confirmation.')
         clean_parser.set_defaults(sub_command_function=cls._execute_clean)
+
+        status_parser = subparsers.add_parser('status', help='Print workspace information.')
+        status_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        status_parser.set_defaults(sub_command_function=cls._execute_status)
+
+        list_parser = subparsers.add_parser('list', help='List all opened workspaces.')
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
 
         exit_parser = subparsers.add_parser('exit', help='Exit interactive mode. Closes all open workspaces.')
         exit_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
@@ -701,6 +715,15 @@ class WorkspaceCommand(SubCommandCommand):
             workspace_manager = _new_workspace_manager()
             workspace_manager.clean_workspace(_base_dir(command_args.base_dir))
             print('Workspace cleaned.')
+
+    @classmethod
+    def _execute_run(cls, command_args):
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.run_op_in_workspace(_base_dir(command_args.base_dir),
+                                              command_args.op_name,
+                                              command_args.op_args,
+                                              monitor=cls.new_monitor())
+        print("Operation '%s' executed." % command_args.op_name)
 
     @classmethod
     def _execute_status(cls, command_args):
@@ -892,7 +915,8 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager.set_workspace_resource(_base_dir(),
                                                  command_args.res_name,
                                                  command_args.op_name,
-                                                 command_args.op_args)
+                                                 command_args.op_args,
+                                                 monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
