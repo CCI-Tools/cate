@@ -22,9 +22,7 @@ install:
 
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-cov
   - source activate test-environment
-  - conda install xarray dask numpy scipy matplotlib numba netcdf4
-  - conda install -c conda-forge basemap
-  - conda install -c conda-forge cartopy
+  - conda install -c defaults -c conda-forge pyqt matplotlib xarray dask numpy scipy numba netcdf4 basemap cartopy
   - python setup.py install
 
 script:
