@@ -634,7 +634,7 @@ class WorkspaceCommand(SubCommandCommand):
         exit_parser = subparsers.add_parser('exit', help='Exit interactive mode. Closes all open workspaces.')
         exit_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                  help='Do not ask for confirmation.')
-        exit_parser.add_argument('-s', '--save', dest='save', action='store_true', default=False,
+        exit_parser.add_argument('-s', '--save', dest='save_all', action='store_true', default=False,
                                  help='Save any modified workspaces before closing.')
         exit_parser.set_defaults(sub_command_function=cls._execute_exit)
 
