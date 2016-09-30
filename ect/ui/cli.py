@@ -825,16 +825,17 @@ class ResourceCommand(SubCommandCommand):
         print_parser = subparsers.add_parser('print', help='If EXPR is omitted, print value of all current resources.'
                                                            'Otherwise, if EXPR identifies a resource, print its value.'
                                                            'Else print the value of a (Python) expression evaluated '
-                                                           'in the context of the current resources.')
+                                                           'in the context of the current workspace.')
         print_parser.add_argument('res_name_or_expr', metavar='EXPR', nargs='?',
                                   help='Name of an existing resource or a valid (Python) expression.')
         print_parser.set_defaults(sub_command_function=cls._execute_print)
 
-        plot_parser = subparsers.add_parser('plot', help='Plot a resource.')
-        plot_parser.add_argument('res_name', metavar='NAME',
-                                 help='Name of an existing resource.')
+        plot_parser = subparsers.add_parser('plot', help='Plot a resource or the value of a (Python) expression '
+                                                         'evaluated in the context of the current workspace.')
+        plot_parser.add_argument('res_name_or_expr', metavar='EXPR',
+                                 help='Name of an existing resource or any (Python) expression.')
         plot_parser.add_argument('--var', '-v', dest='var_name', metavar='VAR', nargs='?',
-                                 help='Name of the variable to plot.')
+                                 help='Name of a variable to plot.')
         plot_parser.add_argument('--out', '-o', dest='file_path', metavar='FILE', nargs='?',
                                  help='Output file to write the plot figure to.')
         plot_parser.set_defaults(sub_command_function=cls._execute_plot)
@@ -908,7 +909,7 @@ class ResourceCommand(SubCommandCommand):
     def _execute_plot(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.plot_workspace_resource(_base_dir(),
-                                                  command_args.res_name,
+                                                  command_args.res_name_or_expr,
                                                   var_name=command_args.var_name,
                                                   file_path=command_args.file_path,
                                                   monitor=cls.new_monitor())
