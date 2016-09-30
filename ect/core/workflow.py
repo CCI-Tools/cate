@@ -487,7 +487,7 @@ class Workflow(Node):
         if step_count == 1:
             steps[0].invoke(value_cache=value_cache, monitor=monitor)
         elif step_count > 1:
-            monitor_label = monitor_label or "Executing {step_count} workflow steps"
+            monitor_label = monitor_label or "Executing {step_count} workflow step(s)"
             with monitor.starting(monitor_label.format(step_count=step_count), step_count):
                 for step in steps:
                     step.invoke(value_cache=value_cache, monitor=monitor.child(1))
