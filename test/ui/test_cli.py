@@ -88,7 +88,10 @@ class CliTest(CliTestCase):
         self.assert_main(['pipo'], expected_status=2, expected_stderr=None)
 
     def test_option_version(self):
-        self.assert_main(['--version'])
+        self.assert_main(['--version'], expected_stdout=['ect '])
+
+    def test_option_license(self):
+        self.assert_main(['--license'], expected_stdout=['MIT License'])
 
     def test_option_traceback(self):
         self.assert_main(['--traceback'])
@@ -374,8 +377,6 @@ class RunCommandTest(CliTestCase):
     def test_main_options(self):
         self.assert_main(['run', '-h'])
         self.assert_main(['run', '--help'])
-        self.assert_main(['run', '--license'], expected_stdout=['MIT License'])
-        self.assert_main(['run', '--version'], expected_stdout=['ect 0.'])
 
 
 # class PluginCommandTest(CliTestCase):
