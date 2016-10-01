@@ -969,7 +969,7 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Explore data operations.'
+        help_line = 'Manage data operations.'
         return dict(help=help_line, description=help_line)
 
     @classmethod
@@ -1255,55 +1255,18 @@ class PluginCommand(SubCommandCommand):
         _list_items('plugin', 'plugins', sorted(PLUGIN_REGISTRY.keys()), name_pattern)
 
 
-class LicenseCommand(Command):
-    """
-    The ``lic`` command is used to display ECT's licensing information.
-    """
-
-    @classmethod
-    def name(cls):
-        return 'lic'
-
-    @classmethod
-    def parser_kwargs(cls):
-        help_line = 'Print copyright and license information.'
-        return dict(help=help_line, description=help_line)
-
-    def execute(self, command_args):
-        print(_LICENSE)
-
-
-class DocsCommand(Command):
-    """
-    The ``doc`` command is used to display ECT's documentation.
-    """
-
-    @classmethod
-    def name(cls):
-        return 'doc'
-
-    @classmethod
-    def parser_kwargs(cls):
-        help_line = 'Display documentation in a browser window.'
-        return dict(help=help_line, description=help_line)
-
-    def execute(self, command_args):
-        import webbrowser
-        webbrowser.open_new_tab(_DOCS_URL)
 
 
 #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
-    RunCommand,
-    WorkspaceCommand,
-    ResourceCommand,
     DataSourceCommand,
     OperationCommand,
-    WebAPICommand,
-    PluginCommand,
-    LicenseCommand,
-    DocsCommand,
+    WorkspaceCommand,
+    ResourceCommand,
+    RunCommand,
+    # WebAPICommand,
+    # PluginCommand,
 ]
 
 
@@ -1345,6 +1308,8 @@ def main(args=None):
     parser = NoExitArgumentParser(prog=CLI_NAME,
                                   description='ESA CCI Toolbox command-line interface, version %s' % __version__)
     parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
+    parser.add_argument('--license', action='store_true', help='show software license and exit')
+    parser.add_argument('--docs', action='store_true', help='show software documentation in a browser window')
     parser.add_argument('--traceback', action='store_true', help='show (Python) stack traceback for the last error')
     subparsers = parser.add_subparsers(dest='command_name',
                                        metavar='COMMAND',
@@ -1361,6 +1326,15 @@ def main(args=None):
     command_name, status, message = None, 0, None
     try:
         args_obj = parser.parse_args(args)
+
+        if args_obj.license:
+            print(_LICENSE)
+            return 0
+
+        if args_obj.docs:
+            import webbrowser
+            webbrowser.open_new_tab(_DOCS_URL)
+            return 0
 
         if args_obj.command_name and args_obj.command_class:
             command_name = args_obj.command_name

@@ -27,7 +27,6 @@ def _create_test_data_store():
 
 
 class CliTestCase(unittest.TestCase):
-
     _orig_stores = None
 
     @classmethod
@@ -141,7 +140,8 @@ class WorkspaceCommandTest(CliTestCase):
         base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
-        self.assert_main(['ws', 'init', '-d', base_dir], expected_stderr=['workspace already opened: '], expected_status=1)
+        self.assert_main(['ws', 'init', '-d', base_dir], expected_stderr=['workspace already opened: '],
+                         expected_status=1)
         self.assert_main(['ws', 'del', '-y', '-d', base_dir], expected_stdout=['Workspace deleted'])
         self.remove_tree('my_workspace')
 
@@ -371,19 +371,16 @@ class RunCommandTest(CliTestCase):
         finally:
             OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
 
-    def test_run_help(self):
+    def test_main_options(self):
         self.assert_main(['run', '-h'])
         self.assert_main(['run', '--help'])
+        self.assert_main(['run', '--license'], expected_stdout=['MIT License'])
+        self.assert_main(['run', '--version'], expected_stdout=['ect 0.'])
 
 
-class PluginCommandTest(CliTestCase):
-    def test_pi_list(self):
-        self.assert_main(['pi', 'list'], expected_stdout=['plugins found'])
-
-
-class LicenseCommandTest(CliTestCase):
-    def test_lic(self):
-        self.assert_main(['lic'], expected_stdout=['MIT License'])
+# class PluginCommandTest(CliTestCase):
+#     def test_pi_list(self):
+#         self.assert_main(['pi', 'list'], expected_stdout=['plugins found'])
 
 
 def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NONE) -> list:
