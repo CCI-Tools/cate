@@ -49,13 +49,9 @@ from typing import Sequence, Tuple
 import xarray as xr
 from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from ect.core.monitor import Monitor
+from ect.core.io import get_data_stores_path
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
-
-# {{ect-config}}
-# Where ECT stores information/cached data from data stores: by default "~./.ect/data_stores"
-_DATA_SOURCES_DIR = os.path.expanduser(os.path.join('~', '.ect', 'data_stores'))
-_DATA_ROOT = os.path.join(_DATA_SOURCES_DIR, 'esa_cci_odp')
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -73,6 +69,11 @@ _TIME_FREQUENCY_TO_TIME_DELTA = dict([
     ('mon', timedelta(weeks=4)),
     ('yr', timedelta(days=365)),
 ])
+
+
+def get_data_store_path():
+    return os.environ.get('ECT_ESA_CCI_ODP_DATA_STORE_PATH',
+                          os.path.join(get_data_stores_path(), 'esa_cci_odp'))
 
 
 def set_default_data_store():
@@ -293,7 +294,7 @@ class EsaCciOdpDataStore(DataStore):
                                                                                           latest='true',
                                                                                           project='esacci')],
                                                     cache_used=self._index_cache_used,
-                                                    cache_dir=_DATA_ROOT,
+                                                    cache_dir=get_data_store_path(),
                                                     cache_json_filename='dataset-list.json',
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days)
@@ -451,7 +452,7 @@ class EsaCciOdpDataSource(DataSource):
         return len(outdated_file_list), len(selected_file_list)
 
     def local_dataset_dir(self):
-        return os.path.join(_DATA_ROOT, self._master_id)
+        return os.path.join(get_data_store_path(), self._master_id)
 
     def _find_files(self, time_range):
         requested_start_date, requested_end_date = time_range if time_range else (None, None)

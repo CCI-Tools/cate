@@ -40,20 +40,24 @@ import json
 from collections import OrderedDict
 from datetime import datetime
 from glob import glob
-from os import listdir, makedirs
-from os.path import expanduser, join, isfile
+from os import listdir, makedirs, environ
+from os.path import join, isfile
 from typing import Sequence, Tuple, Union
 
 import xarray as xr
 from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from ect.core.monitor import Monitor
 from ect.core.util import to_list
+from ect.core.io import get_data_stores_path
 
-_DATA_SOURCES_DIR = expanduser(join('~', '.ect', 'data_stores', 'local'))
+
+def get_data_store_path():
+    return environ.get('ECT_LOCAL_DATA_STORE_PATH',
+                       join(get_data_stores_path(), 'local'))
 
 
 def add_to_data_store_registry():
-    data_store = LocalFilePatternDataStore('local', _DATA_SOURCES_DIR)
+    data_store = LocalFilePatternDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
 
@@ -65,7 +69,7 @@ class LocalFilePatternDataSource(DataSource):
 
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
         if time_range:
-            raise ValueError("The '%s' data store does not support temporal data subsets." % self._data_store.name)
+            raise ValueError("Local data store '%s' does not (yet) support temporal data subsets." % self._data_store.name)
         paths = []
         for file in self._files:
             paths.extend(glob(file))
@@ -125,7 +129,8 @@ class LocalFilePatternDataStore(DataStore):
             name = '%s.%s' % (self.name, name)
         for ds in self._data_sources:
             if ds.name == name:
-                raise ValueError("The '%s' data store already contains a data source with the name '%s'" % (self.name, name))
+                raise ValueError(
+                    "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
         data_source = LocalFilePatternDataSource(name, files, self)
         self._data_sources.append(data_source)
         self._save_data_source(data_source)

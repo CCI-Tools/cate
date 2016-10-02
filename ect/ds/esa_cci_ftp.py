@@ -51,15 +51,12 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 import xarray as xr
 from ect.core.cdm import Schema
-from ect.core.io import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY
+from ect.core.io import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
 from ect.core.monitor import Monitor, ConsoleMonitor
 from ect.core.util import to_datetime
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
-
-_DATA_SOURCES_DIR = os.path.expanduser(os.path.join('~', '.ect', 'data_stores'))
-_DATA_ROOT = os.path.join(_DATA_SOURCES_DIR, 'esa_cci_ftp')
 
 
 def set_default_data_store():
@@ -69,7 +66,8 @@ def set_default_data_store():
     All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json`` contained in this package.
     This JSON file has been generated from a scan of the entire FTP tree.
     """
-    ect_data_root_dir = os.environ.get('ECT_DATA_ROOT', _DATA_ROOT)
+    ect_data_root_dir = os.environ.get('ECT_ESA_CCI_FTP_DATA_STORE_PATH',
+                                       os.path.join(get_data_stores_path(), 'esa_cci_ftp'))
     json_data = pkgutil.get_data('ect.ds', 'esa_cci_ftp.json')
     data_store = FileSetDataStore.from_json('esa_cci_ftp', ect_data_root_dir, json_data.decode('utf-8'))
     DATA_STORE_REGISTRY.add_data_store(data_store)

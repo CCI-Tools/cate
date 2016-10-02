@@ -81,12 +81,24 @@ from datetime import datetime, date
 from glob import glob
 from typing import Sequence
 from typing import Union, List, Tuple
-
+import os.path
 import pandas as pd
 import xarray as xr
 from ect.core.cdm import Schema
 from ect.core.monitor import Monitor
 from ect.core.util import to_datetime_range
+from ect.core import conf
+
+
+def get_data_stores_path() -> str:
+    """
+    Get the default path to where ECT stores local data store information and stores data files synchronized with their
+    remote versions.
+
+    :return: Effectively reads the value of the configuration parameter ``data_stores_path``, if any. Otherwise return
+             the default value ``~/.ect/data_stores``.
+    """
+    return conf.get_config_path('data_stores_path', os.path.join(conf.DEFAULT_DATA_PATH, 'data_stores'))
 
 
 class DataSource(metaclass=ABCMeta):
