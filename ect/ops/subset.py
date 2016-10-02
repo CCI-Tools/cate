@@ -31,6 +31,7 @@ Components
 
 import xarray as xr
 from ect.core.op import op
+import jdcal
 
 
 @op(tags=['geometric', 'subset', 'spatial', 'geom'])
@@ -56,8 +57,9 @@ def subset_spatial(ds: xr.Dataset,
 
 
 @op(tags=['subset', 'temporal'])
-# def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
-def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
+def subset_temporal(ds: xr.Dataset,
+                    time_min: str,
+                    time_max: str) -> xr.Dataset:
     """
     Do a temporal subset of the dataset. When using this operation on the
     command line, it is neccessary to enclose the times in quotes, or in
@@ -71,13 +73,38 @@ def subset_temporal(ds: xr.Dataset, time_min: str, time_max: str) -> xr.Dataset:
     :param time_max: Maximum time 'YYYY-MM-DD'
     :return: Subset dataset
     """
-    time_slice = slice(time_min, time_max)
+    # If it can be selected, go ahead
+    try:
+        time_slice = slice(time_min, time_max)
+        indexers = {'time': time_slice}
+        return ds.sel(**indexers)
+    except TypeError:
+        # Couldn't select because of unexpected time format but we're going to
+        # try more
+        pass
+
+    # Handle Julian Day time format
+    start = dict()
+    end = dict()
+
+    start['y'], start['m'], start['d'] = time_min.split('-')
+    end['y'], end['m'], end['d'] = time_max.split('-')
+
+    start_jd1, start_jd2 = jdcal.gcal2jd(start['y'], start['m'], start['d'])
+    start_jd = start_jd1 + start_jd2
+
+    end_jd1, end_jd2 = jdcal.gcal2jd(end['y'], end['m'], end['d'])
+    end_jd = end_jd1 + end_jd2
+
+    time_slice = slice(start_jd, end_jd)
     indexers = {'time': time_slice}
     return ds.sel(**indexers)
 
 
 @op(tags=['subset', 'temporal'])
-def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int) -> xr.Dataset:
+def subset_temporal_index(ds: xr.Dataset,
+                          time_ind_min: int,
+                          time_ind_max: int) -> xr.Dataset:
     """
     Do a temporal indices based subset
 
@@ -91,6 +118,3 @@ def subset_temporal_index(ds: xr.Dataset, time_ind_min: int, time_ind_max: int) 
     time_slice = slice(time_ind_min, time_ind_max + 1)
     indexers = {'time': time_slice}
     return ds.isel(**indexers)
-
-def new_op(ds: xr.Dataset, lat: float, lon: float) -> xr.Dataset:
-    pass
