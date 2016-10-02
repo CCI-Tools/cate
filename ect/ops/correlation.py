@@ -36,7 +36,7 @@ from scipy.stats import pearsonr
 
 
 @op(tags=['correlation'])
-@op_input(value_set=['pixel_by_pixel'])
+@op_input('corr_type', value_set=['pixel_by_pixel'])
 def pearson_correlation(ds_y: xr.Dataset,
                         ds_x: xr.Dataset,
                         var_y: str,
@@ -87,7 +87,7 @@ def pearson_correlation(ds_y: xr.Dataset,
 
     # Perform a simple Pearson correlation that returns just a coefficient and
     # a p_value.
-    if len(array_x.dims < 3):
+    if len(array_x.dims) < 3:
         return _pearson_simple(ds_x, ds_y, var_x, var_y, file)
 
     if corr_type != 'pixel_by_pixel':
