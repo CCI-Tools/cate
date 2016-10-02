@@ -37,10 +37,10 @@ from scipy.stats import pearsonr
 
 @op(tags=['correlation'])
 @op_input('corr_type', value_set=['pixel_by_pixel'])
-def pearson_correlation(ds_y: xr.Dataset,
-                        ds_x: xr.Dataset,
-                        var_y: str,
+def pearson_correlation(ds_x: xr.Dataset,
+                        ds_y: xr.Dataset,
                         var_x: str,
+                        var_y: str,
                         file: str = None,
                         corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
     """
@@ -94,7 +94,8 @@ def pearson_correlation(ds_y: xr.Dataset,
         raise NotImplementedError('Only pixel by pixel Pearson correlation\
  is currently implemented for time/lat/lon dataset variables.')
 
-    if ds_x['lat'] != ds_x['lat'] or ds_x['lon'] != ds_y['lon']:
+    if (not ds_x['lat'].equals(ds_y['lat']) or
+            not ds_x['lon'].equals(ds_y['lon'])):
         raise ValueError('When performing a pixel by pixel correlation\
  the datasets have to have the same lat/lon definition.')
 
@@ -117,10 +118,14 @@ def pearson_correlation(ds_y: xr.Dataset,
         'p_value': (['lat', 'lon'], p_value),
         'lat': lat,
         'lon': lon})
+    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
+                                                                         var_x)
 
     if file:
         with open(file, "w") as text_file:
             print(retset, file=text_file)
+            print(retset['corr_coef'], file=text_file)
+            print(retset['p_value'], file=text_file)
 
     return retset
 
@@ -138,17 +143,15 @@ def _pearson_simple(ds_x: xr.Dataset,
     corr_coef, p_value = pearsonr(ds_x[var_x].values,
                                   ds_y[var_y].values)
 
-    # Save the result if file path is given
-    if file:
-        with open(file, "w") as text_file:
-            print("Correlation coefficient: {}".format(corr_coef),
-                  file=text_file)
-            print("P value: {}".format(p_value), file=text_file)
-
     retset = xr.Dataset()
     retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
                                                                          var_x)
     retset['correlation_coefficient'] = corr_coef
     retset['p_value'] = p_value
+
+    # Save the result if file path is given
+    if file:
+        with open(file, "w") as text_file:
+            print(retset, file=text_file)
 
     return retset
