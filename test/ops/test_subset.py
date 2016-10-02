@@ -47,6 +47,28 @@ class TestSubset(TestCase):
             'time': ['2000-02-01', '2000-03-01', '2000-04-01']})
         self.assertDatasetEqual(expected, actual)
 
+    def test_subset_temporal_mjd(self):
+        # Test subsetting for MJD timed datsets
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': [2451544.5,
+                     2451575.5,
+                     2451604.5,
+                     2451635.5,
+                     2451665.5,
+                     2451696.5]})
+        actual = subset.subset_temporal(dataset, '2000-01-10', '2000-04-01')
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': [2451575.5, 2451604.5, 2451635.5]})
+        self.assertDatasetEqual(expected, actual)
+
     def test_subset_temporal_index(self):
         # Test general functionality
         dataset = xr.Dataset({
