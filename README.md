@@ -35,8 +35,9 @@ ECT can be run from sources directly, once the following module requirements are
 * `matplotlib`
 * `numba`
 * `cartopy`
-* `basemap`
 * `tornado`
+* `pyqt`
+* `jdcal`
 
 The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
 
