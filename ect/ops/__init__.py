@@ -50,7 +50,7 @@ from .coregistration import coregister
 from .correlation import pearson_correlation
 from .harmonize import harmonize
 from .io import open_dataset, save_dataset
-from .plot import plot_map
+from .plot import plot_map, plot_1D
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
@@ -78,6 +78,7 @@ __all__ = [
     'person_correlation',
     # .plot
     'plot_map'
+    'plot_1D'
     # .io
     'open_dataset',
     'save_dataset',
