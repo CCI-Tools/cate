@@ -63,7 +63,7 @@ from ect.core.op import op
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
 def plot_map(ds: xr.Dataset,
-             variable: str = None,
+             var: str = None,
              time=None,
              lat_min: float = None,
              lat_max: float = None,
@@ -83,7 +83,7 @@ def plot_map(ds: xr.Dataset,
     svgz, tif, tiff
 
     :param ds: xr.Dataset to plot
-    :param variable: variable name in the dataset to plot
+    :param var: variable name in the dataset to plot
     :param time: time slice index to plot
     :param lat_min: minimum latitude extent to plot
     :param lat_max: maximum latitude extent to plot
@@ -95,9 +95,9 @@ def plot_map(ds: xr.Dataset,
         raise NotImplementedError('Only raster datasets are\
  currently supported')
 
-    if not variable:
+    if not var:
         for key in ds.data_vars.keys():
-            variable = key
+            var = key
             break
 
     if not time:
@@ -123,9 +123,9 @@ def plot_map(ds: xr.Dataset,
     extents = [lon_min, lon_max, lat_min, lat_max]
 
     try:
-        array_slice = ds[variable].isel(time=time)
+        array_slice = ds[var].isel(time=time)
     except ValueError:
-        array_slice = ds[variable]
+        array_slice = ds[var]
     fig = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent(extents, ccrs.PlateCarree())

@@ -26,8 +26,8 @@ class TestCorrelation(TestCase):
 
         test_value = correlation['p_value']
         self.assertTrue(test_value == 0)
-        correlation_coefficient = correlation['correlation_coefficient']
-        self.assertTrue(correlation_coefficient == -1)
+        corr_coef = correlation['corr_coef']
+        self.assertTrue(corr_coef == -1)
 
         # Test general functionality 3D dataset variables
         ds1 = xr.Dataset({

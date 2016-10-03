@@ -34,7 +34,7 @@ class TestPlot(TestCase):
 
         # Test if extents can be used
         plot.plot_map(dataset,
-                      variable='second',
+                      var='second',
                       lat_min=-20.0,
                       lat_max=60.0,
                       lon_min=-40.0,

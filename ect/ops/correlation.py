@@ -146,7 +146,7 @@ def _pearson_simple(ds_x: xr.Dataset,
     retset = xr.Dataset()
     retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
                                                                          var_x)
-    retset['correlation_coefficient'] = corr_coef
+    retset['corr_coef'] = corr_coef
     retset['p_value'] = p_value
 
     # Save the result if file path is given
