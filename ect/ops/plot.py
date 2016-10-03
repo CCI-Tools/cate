@@ -49,30 +49,25 @@ from ect.ops.plot import plot_map
 plot_map(dset)
 ```
 If a file path is given, the plot is saved.
-Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
+svgz, tif, tiff
 
 """
 
-# import matplotlib
-#
-# TODO (forman, 20160922): verify if matplotlib.use('agg') is really required
-# I've uncommented following line in order to show interactive plots.
-# Check: http://matplotlib.org/faq/usage_faq.html#what-is-a-backend
-# matplotlib.use('agg')
-
-# https://github.com/matplotlib/matplotlib/issues/3466/#issuecomment-213678376
 import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
 
 from ect.core.op import op_input, op
 
+matplotlib.use('Qt5Agg')
+
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
 @op_input('ds', description="A dataset from which to create the plot")
-@op_input('variable', description="The geophysical quantity (dataset variable) to plot")
+@op_input('variable', description="The geophysical quantity (dataset variable)\
+ to plot")
 @op_input('time', description="Point in time to plot")
 @op_input('lat_min', description="Minimum latitude extent to plot")
 @op_input('lat_max', description="Maximum latitude extent to plot")
@@ -86,17 +81,18 @@ def plot_map(ds: xr.Dataset,
              lat_max: float = None,
              lon_min: float = None,
              lon_max: float = None,
-             path: str = None) -> None:
+             path: str = None) -> plt.figure:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
-    In case no variable name is given, the first encountered variable in the dataset
-    is plotted. In case no time index is given, the first time slice is taken. It is
-    also possible to set extents of the plot. If no extents are given, a global plot
-    is created.
+    In case no variable name is given, the first encountered variable in the
+    dataset is plotted. In case no time index is given, the first time slicei
+    is taken. It is also possible to set extents of the plot. If no extents
+    are given, a global plot is created.
 
-    The plot can either be shown using pyplot functionality, or saved, if a path is given.
-    The following file formats for saving the plot are supported:
-    eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+    The plot can either be shown using pyplot functionality, or saved,
+    if a path is given. The following file formats for saving the plot
+    are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
+    svgz, tif, tiff
 
     :param ds: xr.Dataset to plot
     :param variable: variable name in the dataset to plot
@@ -108,7 +104,8 @@ def plot_map(ds: xr.Dataset,
     :param path: path where to save the plot
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are currently supported')
+        raise NotImplementedError('Only raster datasets are\
+ currently supported')
 
     if not variable:
         for key in ds.data_vars.keys():
@@ -151,11 +148,15 @@ def plot_map(ds: xr.Dataset,
     if path:
         fig.savefig(path)
 
+    # TODO (Gailis, 03.10.16) Returning a figure results in two plots in
+    # Jupyter
+    # return fig
+
 
 def _extents_sane(lat_min: float,
                   lat_max: float,
                   lon_min: float,
-                  lon_max: float):
+                  lon_max: float) -> bool:
     """
     Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
     are sane.
