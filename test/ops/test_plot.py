@@ -23,13 +23,13 @@ class TestPlot(TestCase):
             'lat': np.linspace(-89.5, 89.5, 5),
             'lon': np.linspace(-179.5, 179.5, 10)})
 
-        plot.plot_map(dataset, path='remove_me.png')
+        plot.plot_map(dataset, file='remove_me.png')
         self.assertTrue(os.path.isfile('remove_me.png'))
         os.remove('remove_me.png')
 
         # Test if an error is raised when an unsupported format is passed
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, path='remove_me.pgm')
+            plot.plot_map(dataset, file='remove_me.pgm')
         self.assertFalse(os.path.isfile('remove_me.pgm'))
 
         # Test if extents can be used
@@ -39,7 +39,7 @@ class TestPlot(TestCase):
                       lat_max=60.0,
                       lon_min=-40.0,
                       lon_max=50.0,
-                      path='remove_me.pdf')
+                      file='remove_me.pdf')
         self.assertTrue(os.path.isfile('remove_me.pdf'))
         os.remove('remove_me.pdf')
 
@@ -48,7 +48,7 @@ class TestPlot(TestCase):
 
         # Test value error is raised when passing an unexpected dataset type
         with self.assertRaises(NotImplementedError):
-            plot.plot_map([1, 2, 4], path='remove_me.jpeg')
+            plot.plot_map([1, 2, 4], file='remove_me.jpeg')
         self.assertFalse(os.path.isfile('remove_me.jpg'))
 
         # Test the extensions bound checking
@@ -74,3 +74,12 @@ class TestPlot(TestCase):
 
         with self.assertRaises(ValueError):
             plot.plot_map(dataset, lon_min=-20.0, lon_max=-25.0)
+
+    def test_plot_1D(self):
+        # Test plot_1D
+        dataset = xr.Dataset({
+            'first': np.random.rand(10)})
+
+        plot.plot_1D(dataset, 'first', file='remove_me.jpg')
+        self.assertTrue(os.path.isfile('remove_me.jpg'))
+        os.remove('remove_me.jpg')
