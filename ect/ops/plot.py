@@ -137,7 +137,10 @@ def plot_map(ds: xr.Dataset,
 
     extents = [lon_min, lon_max, lat_min, lat_max]
 
-    array_slice = ds[variable].isel(time=time)
+    try:
+        array_slice = ds[variable].isel(time=time)
+    except ValueError:
+        array_slice = ds[variable]
     fig = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent(extents, ccrs.PlateCarree())
@@ -149,8 +152,11 @@ def plot_map(ds: xr.Dataset,
         fig.savefig(path)
 
 
-def _extents_sane(lat_min: float, lat_max: float, lon_min: float, lon_max: float):
-    """ 
+def _extents_sane(lat_min: float,
+                  lat_max: float,
+                  lon_min: float,
+                  lon_max: float):
+    """
     Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
     are sane.
     """
