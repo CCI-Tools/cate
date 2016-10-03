@@ -63,9 +63,8 @@ Windows users can omit the `source` command and just type
 
 Now we add all required packages to the activated `ect` Conda environment:
 
-    (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado
+    (ect) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pyqt jdcal
     (ect) $ conda install -c conda-forge cartopy
-    (ect) $ conda install -c conda-forge basemap
 
 Some packages are not available on Anaconda default channels and we have to find them on
 another channel (option `-c CHANNEL`). Above we use channel `conda-forge`. 
