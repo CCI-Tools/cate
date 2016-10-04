@@ -54,9 +54,11 @@ svgz, tif, tiff
 
 """
 
-import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import xarray as xr
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
 
 from ect.core.op import op
 
