@@ -40,8 +40,8 @@ from .workspace import Workspace, WorkspaceError
 WORKSPACE_DATA_DIR_NAME = '.ect-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
-# TODO (forman, 20160908): implement file lock for opened workspaces
-# TODO (forman, 20160928): must turn all WebAPI handler into asynchronous tasks
+# TODO (forman, 20160908): implement file lock for opened workspaces (issue #26)
+# TODO (forman, 20160928): must turn all WebAPI handler into asynchronous tasks (issue #51)
 
 
 # {{ect-config}}

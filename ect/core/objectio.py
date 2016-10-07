@@ -253,7 +253,8 @@ class ObjectIO(metaclass=ABCMeta):
         """
         if self.read_op is None:
             raise NotImplementedError('read operation not supported by format "%s"' % self.format_name)
-        # TODO: support monitor: return self.read_op(file, monitor=monitor, **kwargs)
+        if self.write_op.op_meta_info.has_monitor:
+            kwargs['monitor'] = monitor
         return self.read_op(file, **kwargs)
 
     def write(self, obj, file, monitor: Monitor = Monitor.NONE, **kwargs):
@@ -269,7 +270,8 @@ class ObjectIO(metaclass=ABCMeta):
         """
         if self.write_op is None:
             raise NotImplementedError('write operation not supported by format "%s"' % self.format_name)
-        # TODO: support monitor: self.write_op(obj, file, monitor=monitor, **kwargs)
+        if self.write_op.op_meta_info.has_monitor:
+            kwargs['monitor'] = monitor
         self.write_op(obj, file, **kwargs)
 
     def read_fitness(self, file):

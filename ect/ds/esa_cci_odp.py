@@ -489,8 +489,6 @@ class EsaCciOdpDataSource(DataSource):
             if not os.path.exists(file):
                 raise IOError('Missing local data files, consider synchronizing the dataset first.')
 
-        # TODO (Gailis, 20160729): The preprocess way still does not work for me
-        # return open_xarray_dataset(files)
         return open_xarray_dataset(files)
 
     def _init_file_list(self) -> str:

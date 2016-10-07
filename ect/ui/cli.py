@@ -879,7 +879,7 @@ class ResourceCommand(SubCommandCommand):
                                  help='Output file to write the plot figure to.')
         plot_parser.set_defaults(sub_command_function=cls._execute_plot)
 
-        # TODO (forman, 20160922): implement "ect res rename"
+        # TODO (forman, 20160922): implement "ect res rename" (issue #69)
         # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
         # rename_parser.add_argument('res_name_old', metavar='OLD_NAME',
         #                            help='Old resource name.')

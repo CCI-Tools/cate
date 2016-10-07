@@ -123,9 +123,7 @@ class FileSetDataSource(DataSource):
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
-        # TODO (Gailis, 20160729): The preprocess way still does not work for me
-        # return open_xarray_dataset(existing_paths)
-        return open_xarray_dataset(existing_paths, preprocess=False)
+        return open_xarray_dataset(existing_paths)
 
     def to_json_dict(self):
         """

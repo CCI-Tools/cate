@@ -69,25 +69,26 @@ Technical Requirements
 Verification
 ============
 
-The module's unit-tests are located in `test/test_io.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_io.py>`_
+The module's unit-tests are located in
+`test/test_io.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_io.py>`_
 and may be executed using ``$ py.test test/test_io.py --cov=ect/core/io.py`` for extra code coverage information.
 
 
 Components
 ==========
 """
+import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from glob import glob
 from typing import Sequence
 from typing import Union, List, Tuple
-import os.path
-import pandas as pd
+
 import xarray as xr
+from ect.core import conf
 from ect.core.cdm import Schema
 from ect.core.monitor import Monitor
 from ect.core.util import to_datetime_range
-from ect.core import conf
 
 
 def get_data_stores_path() -> str:
@@ -337,85 +338,17 @@ def open_dataset(data_source: Union[DataSource, str],
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
-def open_xarray_dataset(paths, preprocess=False, chunks=None, **kwargs) -> xr.Dataset:
+def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     """
-    Adapted version of the xarray 'open_mfdataset' function.
+    Open multiple files as a single dataset.
+
+    :param paths: Either a string glob in the form "path/to/my/files/*.nc" or an explicit
+        list of files to open.
+    :param concat_dim: Dimension to concatenate files along. You only
+        need to provide this argument if the dimension along which you want to
+        concatenate is not a dimension in the original datasets, e.g., if you
+        want to stack a collection of 2D arrays along a third dimension.
+    :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
-    if isinstance(paths, str):
-        paths = sorted(glob(paths))
-    if not paths:
-        raise IOError('no files to open')
 
-    if not preprocess:
-        return xr.open_mfdataset(paths, concat_dim='time')
-
-    # TODO (forman, 20160916): marcoz, please cleanup the following code or at least comment what's going on here!
-
-    # for the time being rely on xarray for opening
-    # the added logic prevents dask from being used, which lead to a huge memory usage and longer runtime
-    # other ways have to be found to fix broken datasets in the opening phase
-    # if not this code below can be removed
-
-    # open all datasets
-    lock = xr.backends.api._default_lock(paths[0], None)
-
-    datasets = []
-    engine = 'netcdf4'
-    for p in paths:
-        datasets.append(xr.open_dataset(p, engine=engine, decode_cf=False, chunks=chunks or {}, lock=lock, **kwargs))
-
-    preprocessed_datasets = []
-    file_objs = []
-    for ds in datasets:
-        pds = _preprocess_datasets(ds)
-        if pds is None:
-            ds._file_obj.close()
-        else:
-            pds_decoded = xr.decode_cf(pds)
-            preprocessed_datasets.append(pds_decoded)
-            file_objs.append(ds._file_obj)
-
-    combined_datasets = _combine_datasets(preprocessed_datasets)
-    combined_datasets._file_obj = xr.backends.api._MultiFileCloser(file_objs)
-    return combined_datasets
-
-
-def _combine_datasets(datasets: Sequence[xr.Dataset]) -> xr.Dataset:
-    """
-    Combines all datasets into a single.
-    """
-    if not datasets:
-        raise ValueError('datasets argument must be a sequence of datasets')
-    if 'time' in datasets[0].dims:
-        return xr.auto_combine(datasets, concat_dim='time')
-    else:
-        time_index = [_extract_time_index(ds) for ds in datasets]
-        return xr.concat(datasets, pd.Index(time_index, name='time'))
-
-
-def _preprocess_datasets(dataset: xr.Dataset) -> xr.Dataset:
-    """
-    Modifies datasets, so that it is netcdf-CF compliant
-    """
-    for var in dataset.data_vars:
-        attrs = dataset[var].attrs
-        if '_FillValue' in attrs and 'missing_value' in attrs:
-            # xarray as of version 0.7.2 does not handle it correctly,
-            # if both values are set to NaN. (because the values are compared using '==')
-            # reproducible with  engine='netcdf4'
-            # https://github.com/pydata/xarray/issues/997
-            del attrs['missing_value']
-    return dataset
-
-
-def _extract_time_index(ds: xr.Dataset) -> datetime:
-    # TODO (forman, 20160916): marcoz, how can we be sure time_coverage_start/_end exist?
-    time_coverage_start = ds.attrs['time_coverage_start']
-    time_coverage_end = ds.attrs['time_coverage_end']
-    try:
-        # print(time_coverage_start, time_coverage_end)
-        time_start = datetime.strptime(time_coverage_start, "%Y%m%dT%H%M%SZ")
-        time_end = datetime.strptime(time_coverage_end, "%Y%m%dT%H%M%SZ")
-        return time_end
-    except ValueError:
-        return None
+    return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)

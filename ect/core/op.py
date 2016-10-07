@@ -401,7 +401,7 @@ class OpMetaInfo:
                         "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
                 continue
             data_type = input_properties.get('data_type', None)
-            # TODO (forman, 20160907): perform more elaborated input type checking here
+            # TODO (forman, 20160907): perform more elaborated input type checking here (issue #46)
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if data_type and not (isinstance(value, data_type) or is_float_type):
                 raise ValueError(
@@ -432,7 +432,7 @@ class OpMetaInfo:
             output_properties = outputs[name]
             if value is not None:
                 data_type = output_properties.get('data_type', None)
-                # TODO (forman, 20160907): perform more elaborated output type checking here
+                # TODO (forman, 20160907): perform more elaborated output type checking here (issue #46)
                 if data_type and not isinstance(value, data_type):
                     raise ValueError(
                         "output '%s' for operation '%s' must be of type %s" % (
