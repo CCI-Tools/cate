@@ -60,5 +60,6 @@ setup(
                       'scipy >= 0.17',
                       'pandas >= 0.18',
                       'basemap >= 1.0',
+                      'jdcal >= 1.3',
                       ],
 )
