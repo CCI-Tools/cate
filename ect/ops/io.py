@@ -26,7 +26,7 @@ from abc import ABCMeta
 import xarray as xr
 from ect.core.monitor import Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
-from ect.core.op import op_input, op
+from ect.core.op import OP_REGISTRY, op_input, op
 
 
 @op(tags=['input'])
@@ -176,11 +176,11 @@ class TextObjectIO(ObjectIO):
 
     @property
     def read_op(self):
-        return read_text
+        return OP_REGISTRY.get_op('read_text')
 
     @property
     def write_op(self):
-        return write_text
+        return OP_REGISTRY.get_op('write_text')
 
     def read_fitness(self, file):
         # Basically every object can be written to a text file: str(obj)
@@ -206,11 +206,11 @@ class JsonObjectIO(ObjectIO):
 
     @property
     def read_op(self):
-        return read_json
+        return OP_REGISTRY.get_op('read_json')
 
     @property
     def write_op(self):
-        return write_json
+        return OP_REGISTRY.get_op('write_json')
 
     def read_fitness(self, file):
         return 1 if isinstance(file, str) and os.path.isfile(file) else 0
@@ -255,11 +255,11 @@ class NetCDF3ObjectIO(NetCDFObjectIO):
 
     @property
     def read_op(self):
-        return read_netcdf
+        return OP_REGISTRY.get_op('read_netcdf')
 
     @property
     def write_op(self):
-        return write_netcdf3
+        return OP_REGISTRY.get_op('write_netcdf3')
 
 
 # noinspection PyAbstractClass
@@ -274,11 +274,11 @@ class NetCDF4ObjectIO(NetCDFObjectIO):
 
     @property
     def read_op(self):
-        return read_netcdf
+        return OP_REGISTRY.get_op('read_netcdf')
 
     @property
     def write_op(self):
-        return write_netcdf4
+        return OP_REGISTRY.get_op('write_netcdf4')
 
 
 OBJECT_IO_REGISTRY.object_io_list.extend([
