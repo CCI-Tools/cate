@@ -1,4 +1,6 @@
 name: ect-docs
+channels:
+- conda-forge
 dependencies:
 - python=3.5
 - conda-forge::basemap=1.0.8.dev0
