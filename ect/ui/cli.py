@@ -1255,8 +1255,6 @@ class PluginCommand(SubCommandCommand):
         _list_items('plugin', 'plugins', sorted(PLUGIN_REGISTRY.keys()), name_pattern)
 
 
-
-
 #: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
 #: ECT plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
@@ -1294,6 +1292,26 @@ class NoExitArgumentParser(argparse.ArgumentParser):
             return '%s (%s)' % (self.message, self.status)
 
 
+def make_parser():
+    parser = NoExitArgumentParser(prog=CLI_NAME,
+                                  description='ESA CCI Toolbox command-line interface, version %s' % __version__)
+    parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
+    parser.add_argument('--license', action='store_true', help='show software license and exit')
+    parser.add_argument('--docs', action='store_true', help='show software documentation in a browser window')
+    parser.add_argument('--traceback', action='store_true', help='show (Python) stack traceback for the last error')
+    subparsers = parser.add_subparsers(dest='command_name',
+                                       metavar='COMMAND',
+                                       help='One of the following commands. '
+                                            'Type "COMMAND -h" to get command-specific help.')
+    for command_class in COMMAND_REGISTRY:
+        command_name = command_class.name()
+        command_parser_kwargs = command_class.parser_kwargs()
+        command_parser = subparsers.add_parser(command_name, **command_parser_kwargs)
+        command_class.configure_parser(command_parser)
+        command_parser.set_defaults(command_class=command_class)
+    return parser
+
+
 def main(args=None):
     """
     The CLI's entry point function.
@@ -1305,23 +1323,7 @@ def main(args=None):
     if not args:
         args = sys.argv[1:]
 
-    parser = NoExitArgumentParser(prog=CLI_NAME,
-                                  description='ESA CCI Toolbox command-line interface, version %s' % __version__)
-    parser.add_argument('--version', action='version', version='%s %s' % (CLI_NAME, __version__))
-    parser.add_argument('--license', action='store_true', help='show software license and exit')
-    parser.add_argument('--docs', action='store_true', help='show software documentation in a browser window')
-    parser.add_argument('--traceback', action='store_true', help='show (Python) stack traceback for the last error')
-    subparsers = parser.add_subparsers(dest='command_name',
-                                       metavar='COMMAND',
-                                       help='One of the following commands. '
-                                            'Type "COMMAND -h" to get command-specific help.')
-
-    for command_class in COMMAND_REGISTRY:
-        command_name = command_class.name()
-        command_parser_kwargs = command_class.parser_kwargs()
-        command_parser = subparsers.add_parser(command_name, **command_parser_kwargs)
-        command_class.configure_parser(command_parser)
-        command_parser.set_defaults(command_class=command_class)
+    parser = make_parser()
 
     command_name, status, message = None, 0, None
     try:
