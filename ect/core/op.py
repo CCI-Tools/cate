@@ -720,16 +720,16 @@ def op_input(input_name: str,
     When a function is registered, an introspection is performed. During this process, initial operation
     meta-information input properties are derived for each positional and keyword argument named *input_name*:
 
-    ---------------- ------------------------------------------------------------------------------
+    ================ ==============================================================================
     Derived property Source
-    ---------------- ------------------------------------------------------------------------------
+    ================ ==============================================================================
     *position*       The position of a positional argument, e.g. ``2`` for input ``z`` in
                      ``def f(x, y, z, c=2)``.
     *default_value*  The value of a keyword argument, e.g. ``52.3`` for input ``latitude``
                      from argument definition ``latitude:float=52.3``
     *data_type*      The type annotation type, e.g. ``float`` for input ``latitude``
                      from argument definition  ``latitude:float``
-    ---------------- ------------------------------------------------------------------------------
+    ================ ==============================================================================
 
     The derived properties listed above plus any of *value_set*, *value_range*, and any key-value pairs in *properties*
     are added to the input's meta-information.

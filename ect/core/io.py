@@ -342,7 +342,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     """
     Open multiple files as a single dataset.
 
-    :param paths: Either a string glob in the form "path/to/my/files/*.nc" or an explicit
+    :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
     :param concat_dim: Dimension to concatenate files along. You only
         need to provide this argument if the dimension along which you want to
