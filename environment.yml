@@ -5,8 +5,8 @@ dependencies:
 - conda-forge::cartopy=0.14.2
 - numpy=1.11.*
 - scipy=0.18.*
-- xarray=0.11
-- dask=0.8.2
+- xarray=0.8.2
+- dask=0.11.*
 - netcdf4=1.2.4
 - jdcal=1.3
 - matplotlib=1.5.3
