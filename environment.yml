@@ -2,9 +2,9 @@ name: ect-docs
 channels:
 - conda-forge
 dependencies:
-- python=3.5
-- conda-forge::basemap=1.0.8.dev0
-- conda-forge::cartopy=0.14.2
+- python=3.5.*
+- basemap=1.0.8.dev0
+- cartopy=0.14.2
 - numpy=1.11.*
 - scipy=0.18.*
 - xarray=0.8.2
