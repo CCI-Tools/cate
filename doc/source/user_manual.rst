@@ -6,7 +6,6 @@ The CCI Toolbox user manual has the following sections:
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    user_manual/um_install
    user_manual/um_cli

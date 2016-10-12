@@ -17,7 +17,6 @@ Subsetting and Selections
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    op_specs/subsetting_selections/op_spec_category_subsetting_selections
    op_specs/subsetting_selections/op_spec_spatial-subsetting
@@ -28,7 +27,6 @@ Visualisation
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    op_specs/visualisation/op_spec_category_visualisation
    op_specs/visualisation/op_spec_time-series-plot
@@ -39,7 +37,6 @@ Geometric Adjustments
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    op_specs/geometric-adjustments/op_spec_category_geometric-adjustment
    op_specs/geometric-adjustments/op_spec_coregistration
@@ -49,7 +46,6 @@ Data Inter-Comparison
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
 
    op_specs/data-intercomparison/op_spec_category_data-intercomparison
    op_specs/data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis

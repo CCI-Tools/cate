@@ -6,3 +6,4 @@ Command-Line Interface Usage
    :module: ect.ui.cli
    :func: make_parser
    :prog: ect
+   :path: ds
