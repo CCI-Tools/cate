@@ -1137,10 +1137,10 @@ class NodePort:
         """
         Resolve this node port's source reference, if any.
 
-        If the source reference has the form *node-id*`.`*port-name* then *node-id* must be the ID of the
+        If the source reference has the form *node-id.port-name* then *node-id* must be the ID of the
         workflow or any contained step and *port-name* must be a name either of one of its input or output ports.
 
-        If the source reference has the form `.`*port-name* then *node-id* will refer to either the current step or any
+        If the source reference has the form *.port-name* then *node-id* will refer to either the current step or any
         of its parent nodes that contains an input or output named *port-name*.
 
         If the source reference has the form *node-id* then *node-id* must be the ID of the

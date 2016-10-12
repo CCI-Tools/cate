@@ -16,30 +16,31 @@ Data Stores and Data Sources
 .. autoclass:: ect.DataStore
     :members:
 
-.. autoclass:: ect.FileSetDataStore
+.. autoclass:: ect.ds.esa_cci_odp.EsaCciOdpDataStore
+    :members:
+
+.. autoclass:: ect.ds.local.LocalFilePatternDataStore
     :members:
 
 .. autoclass:: ect.DataSource
     :members:
 
-.. autoclass:: ect.FileSetDataSource
+.. autoclass:: ect.ds.esa_cci_odp.EsaCciOdpDataSource
     :members:
 
-.. autoclass:: ect.FileSetDataSource
+.. autoclass:: ect.ds.local.LocalFilePatternDataSource
     :members:
 
-.. autoclass:: ect.FileSetInfo
-    :members:
 
 Common Data Model
 =================
 
-.. autoclass:: ect.Dataset
-    :members:
+#.. autoclass:: ect.Dataset
+#    :members:
 
 
-.. autoclass:: ect.DatasetCollection
-    :members:
+#.. autoclass:: ect.DatasetCollection
+#    :members:
 
 
 Operations

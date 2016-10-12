@@ -66,7 +66,7 @@ def tseries_point(ds: xr.Dataset,
     :param lat: Latitude of the point to extract.
     :param lon: Longitude of the point to extract.
     :param var: Variable(s) for which to perform the timeseries selection
-    if none is given, all variables in the dataset will be used.
+                if none is given, all variables in the dataset will be used.
     :param method: Interpolation method to use.
     :return: A timeseries dataset
     """
@@ -99,8 +99,7 @@ def tseries_mean(ds: xr.Dataset,
     :param ds: The dataset from which to perform timeseries extraction.
     :param var: Variables for which to perform timeseries extraction
     :param calculate_std: Whether to calculate std in addition to mean
-    :param std_suffix: Std suffix to use for resulting datasets, if
-    std is calculated.
+    :param std_suffix: Std suffix to use for resulting datasets, if std is calculated.
     :return: Dataset with timeseries variables
     """
     if not var:

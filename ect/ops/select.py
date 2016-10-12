@@ -46,10 +46,10 @@ def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
     information, including original coordinates, is preserved.
 
     :param ds: The dataset from which to perform selection.
-    :param var: One or more variable names to select and preserve in the dataset.
-    All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2'].
-    One can also use wildcards when doing the selection. E.g., choosing 'var_name*' for selection
-    will select all variables that start with 'var_name'. This can be used to select variables
+    :param var: One or more variable names to select and preserve in the dataset. \
+    All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2']. \
+    One can also use wildcards when doing the selection. E.g., choosing 'var_name*' for selection \
+    will select all variables that start with 'var_name'. This can be used to select variables \
     along with their auxiliary variables, to select all uncertainty variables, and so on.
     :return: A filtered dataset
     """
