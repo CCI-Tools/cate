@@ -118,8 +118,14 @@ from ect.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
-importlib.import_module('ect.ds')
-importlib.import_module('ect.ops')
+# importlib.import_module('ect.ds')
+# importlib.import_module('ect.ops')
+#
+# noinspection PyUnresolvedReferences
+import ect.ds
+# noinspection PyUnresolvedReferences
+import ect.ops
+
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
