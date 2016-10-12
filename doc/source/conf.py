@@ -236,13 +236,11 @@ html_static_path = ['_static']
 htmlhelp_basename = software_name + '-doc'
 
 # fix to prevent tables from horizontal scrolling. Taken from:
-# https://github.com/snide/sphinx_rtd_theme/issues/117#issuecomment-41506687
+# https://github.com/snide/sphinx_rtd_theme/issues/117#issuecomment-153083280
 
-# html_context = {
-#     'css_files': [
-#         '_static/theme_overrides.css',  # overrides for wide tables in RTD theme
-#     ],
-# }
+def setup(app):
+    # overrides for wide tables in RTD theme
+    app.add_stylesheet('theme_overrides.css')
 
 # -- Options for LaTeX output ---------------------------------------------
 
