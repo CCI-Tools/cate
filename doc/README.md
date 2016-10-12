@@ -6,9 +6,9 @@ RST
 
 To install Sphinx and required plugins run:
 
-     $ conda install Sphinx numpydoc sphinx_rtd_theme
+     $ conda install Sphinx sphinx_rtd_theme
      $ conda install -c conda-forge sphinx-argparse
-     $ pip install sphinx-autodoc-annotation
+     $ pip install sphinx-autodoc-typehints
 
 
 We also use PlantUML for UML diagrams, see ``doc/source/uml/*.puml`` files.

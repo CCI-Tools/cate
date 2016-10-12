@@ -273,21 +273,11 @@ DATA_STORE_REGISTRY = DataStoreRegistry()
 def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
     """Query the data store(s) for data sources matching the given constrains.
 
-    Parameters
-    ----------
-    data_stores : DataStore or Sequence[DataStore]
-       If given these data stores will be queried. Otherwise all registered data stores will be used.
-    name : str, optional
-       The name of a data source.
+    See also :py:func:`open_dataset`.
 
-    Returns
-    -------
-    data_source : List[DataSource]
-       All data sources matching the given constrains.
-
-    See Also
-    --------
-    open_dataset
+    :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
+    :param name:  The name of a data source.
+    :return: All data sources matching the given constrains.
     """
     if data_stores is None:
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()

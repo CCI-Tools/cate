@@ -40,12 +40,12 @@ extensions = [
     'sphinx.ext.viewcode',
 
     'sphinx.ext.autodoc',
-    'sphinx_autodoc_annotation',
+    #'sphinx_autodoc_annotation',
+    'sphinx_autodoc_typehints',
 
     'sphinxarg.ext',
 
     # 'sphinxcontrib.plantuml',
-    'numpydoc',
 ]
 
 # sphinxcontrib-plantuml configuration
@@ -57,10 +57,6 @@ extensions = [
 # plantuml = 'java -jar C:\\Users\\Norman\\IdeaProjects\\ccitools\\ect-core\\doc\\plantuml.jar'
 # plantuml_output_format = 'svg'
 # plantuml_latex_output_format = 'pdf'
-
-# numpydoc configuration
-numpydoc_class_members_toctree = True
-numpydoc_show_class_members = False
 
 
 # Add any paths that contain templates here, relative to this directory.
