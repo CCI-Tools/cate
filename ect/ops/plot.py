@@ -54,7 +54,6 @@ svgz, tif, tiff
 
 """
 
-import cartopy.crs as ccrs
 import xarray as xr
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -129,6 +128,7 @@ def plot_map(ds: xr.Dataset,
     except ValueError:
         array_slice = ds[var]
     fig = plt.figure(figsize=(16, 8))
+    import cartopy.crs as ccrs
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent(extents, ccrs.PlateCarree())
 
