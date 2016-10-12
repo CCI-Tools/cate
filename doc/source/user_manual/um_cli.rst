@@ -24,7 +24,7 @@ This should output the following usage help:::
 
     usage: ect [-h] [--version] [--license] [--docs] [--traceback] COMMAND ...
 
-    ESA CCI Toolbox command-line interface, version 0.5.0a02
+    ESA CCI Toolbox command-line interface, version 0.5.0
 
     positional arguments:
       COMMAND      One of the following commands. Type "COMMAND -h" to get
