@@ -62,8 +62,3 @@ Make an ECV data source locally available for a given time period::
     $ ect ds SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2 --sync --time 2006-05,2006-07
 
 The section :doc:`um_config` describes, how to configure the data cache directory used by this command.
-
-.. argparse::
-   :module: ect.ui.cli
-   :func: make_parser
-   :prog: ect
