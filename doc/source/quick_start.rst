@@ -2,13 +2,13 @@
 Quick Start
 ===========
 
-Problem Definition
-==================
+This section provides a quick start into the CCI Toolbox by demonstrating how a particular climate use case
+is performed using the Toolbox' :doc:`user_manual/um_cli`. Refer to the :doc:`user_manual` for installing
+the CCI Toolbox.
 
-A climate scientist wishes to analyse potential correlations between Ozone and Cloud ECVs.
-
-Required Toolbox Features
-=========================
+The use case describes a climate scientist wishing to analyse potential correlations between the essential
+climate variables (ECV) *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
+:ref:`uc_09`). It requires the toolbox to do the following:
 
 * Access to and ingestion of ESA CCI Ozone and Cloud data (Atmosphere Mole Content of Ozone and Cloud Cover)
 * Geometric adjustments (coregistration)
@@ -17,16 +17,13 @@ Required Toolbox Features
 * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics
 
 Data product ingestion
--------------------------
+----------------------
 
 Use ``ds list`` to list available products. You can filter them according to some name.
 
 .. code-block:: console
 
-    ect ds list -n ozone
-
-.. code-block:: none
-
+    $ ect ds list -n ozone
     3 data sources found
        1: esacci.OZONE.day.L3S.TC.GOME-2.Metop-A.MERGED.fv0100.r1
        2: esacci.OZONE.day.L3S.TC.GOME.ERS-2.MERGED.fv0100.r1
@@ -34,10 +31,7 @@ Use ``ds list`` to list available products. You can filter them according to som
 
 .. code-block:: console
 
-    ect ds list -n cloud
-
-.. code-block:: none
-
+    $ ect ds list -n cloud
     14 data sources found
        1: esacci.CLOUD.day.L3U.CLD_PRODUCTS.AVHRR.NOAA-15.AVHRR_NOAA.1-0.r1
        2: esacci.CLOUD.day.L3U.CLD_PRODUCTS.AVHRR.NOAA-16.AVHRR_NOAA.1-0.r1
@@ -58,77 +52,47 @@ Create a new workspace.
 
 .. code-block:: console
 
-    ect ws new
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.50ms
-    INFO:tornado.access:200 GET /ws/new?description=&base_dir=%2Fhome%2Fccitbx%2FDesktop&save=False (127.0.0.1) 0.66ms
+    $ ect ws new
     Workspace created.
 
 Open the desired datasets, by providing their name and desired time-span.
 
 .. code-block:: console
 
-    ect res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1 2007-01-01 2007-12-30
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.48ms
+    $ ect res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1 2007-01-01 2007-12-30
     Resource "cl07" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cl07 (127.0.0.1) 1386.67ms
 
 .. code-block:: console
 
-    ect res open oz07 esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2007-01-01 2007-12-30
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.49ms
+    $ ect res open oz07 esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2007-01-01 2007-12-30
     Resource "oz07" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/oz07 (127.0.0.1) 349.86ms
 
 
 Dataset variable selection
------------------------------
+--------------------------
 
-To select particular geophysical quantities to work with, use the `select_var` operation together with ``ect res set`` command:
+To select particular geophysical quantities to work with, use the ``select_var`` operation together with
+``ect res set`` command:
 
 .. code-block:: console
 
-    ect res set cc_tot select_var ds=cl07 var=cc_total
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.60ms
+    $ ect res set cc_tot select_var ds=cl07 var=cc_total
     Executing 2 workflow step(s): done
     Resource "cc_tot" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cc_tot (127.0.0.1) 7.61ms
 
 .. code-block:: console
 
-    ect res set oz_tot select_var ds=oz07 var=O3_du_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.54ms
+    $ ect res set oz_tot select_var ds=oz07 var=O3_du_tot
     Executing 2 workflow step(s): done
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/oz_tot (127.0.0.1) 1.84ms
     Resource "oz_tot" set.
 
-We can plot the datasets and save the plots using the `plot_map` operation:
+We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    ect ws run plot_map ds=cc_tot var=cc_total file=fig1.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.70ms
-    Running operation 'plot_map': [------------------------------]   0% Executing 4 workflow
+    $ ect ws run plot_map ds=cc_tot var=cc_total file=fig1.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 2065.44ms
 
 .. figure:: _static/quick_start/fig1.png
    :scale: 100 %
@@ -136,14 +100,9 @@ We can plot the datasets and save the plots using the `plot_map` operation:
 
 .. code-block:: console
 
-    ect ws run plot_map ds=oz_tot var=O3_du_tot file=fig2.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.68ms
+    $ ect ws run plot_map ds=oz_tot var=O3_du_tot file=fig2.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 492.28ms
 
 .. figure:: _static/quick_start/fig2.png
    :scale: 100 %
@@ -157,11 +116,7 @@ The datasets now have different lat/lon definitions. This can be verified by usi
 
 .. code-block:: console
 
-    ect res print cc_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.59ms
+    $ ect res print cc_tot
     <xarray.Dataset>
     Dimensions:       (hist_cot: 7, hist_cot_bin: 6, hist_ctp: 8, hist_ctp_bin: 7, hist_phase: 2, lat: 360, lon: 720, time: 12)
     Coordinates:
@@ -175,15 +130,10 @@ The datasets now have different lat/lon definitions. This can be verified by usi
       * time          (time) float64 2.454e+06 2.454e+06 2.454e+06 2.454e+06 ...
     Data variables:
         cc_total      (time, lat, lon) float64 0.1076 0.3423 0.2857 0.2318 ...
-    INFO:tornado.access:200 GET /ws/res/print/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core?res_name_or_expr=cc_tot (127.0.0.1) 16.48ms
 
 .. code-block:: console
 
-    ect res print oz_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.48ms
+    $ ect res print oz_tot
     <xarray.Dataset>
     Dimensions:       (air_pressure: 17, lat: 180, layers: 16, lon: 360, time: 12)
     Coordinates:
@@ -194,14 +144,10 @@ The datasets now have different lat/lon definitions. This can be verified by usi
       * time          (time) datetime64[ns] 2007-01-04 2007-02-01 2007-03-01 ...
     Data variables:
         O3_du_tot     (time, lat, lon) float32 260.176 264.998 267.394 265.048 ...
-    INFO:tornado.access:200 GET /ws/res/print/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core?res_name_or_expr=oz_tot (127.0.0.1) 9.27ms
 
 .. code-block:: console
 
-    ect op list --tag geom
-
-.. code-block:: none
-
+    $ ect op list --tag geom
     2 operations found
        1: coregister
        2: subset_spatial
@@ -211,9 +157,7 @@ To find out more about a particular operation, use ``ect op info``
 
 .. code-block:: console
 
-    ect op info coregister
-
-.. code-block:: none
+    $ ect op info coregister
 
     Operation ect.ops.coregistration.coregister
     ===========================================
@@ -259,28 +203,15 @@ To carry out coregistration, use ``ect res set`` again with appropriate operatio
 
 .. code-block:: console
 
-    ect res set cc_tot_res coregister ds_master=oz_tot ds_slave=cc_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.50ms
+    $ ect res set cc_tot_res coregister ds_master=oz_tot ds_slave=cc_tot
     Executing 5 workflow step(s): done
     Resource "cc_tot_res" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cc_tot_res (127.0.0.1) 2964.39ms
 
 .. code-block:: console
 
-    ect ws run plot_map ds=cc_tot_res var=cc_total file=fig3.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.50ms
-    Running operation 'plot_map': [------------------------------]   0% Executing 5 workflow step(s)/home/ccitbx/miniconda3/envs/ect_env/lib/python3.5/site-packages/matplotlib/artist.py:221: MatplotlibDeprecationWarning: This has been deprecated in mpl 1.5, please use the
-    axes property.  A removal date has not been set.
-      warnings.warn(_get_axes_msg, mplDeprecation, stacklevel=1)
+    $ ect ws run plot_map ds=cc_tot_res var=cc_total file=fig3.png
     Running operation 'plot_map': Executing 5 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 661.99ms
 
 .. figure:: _static/quick_start/fig3.png
    :scale: 100 %
@@ -290,40 +221,25 @@ To carry out coregistration, use ``ect res set`` again with appropriate operatio
 Spatial Filtering
 -----------------
 
-To filter the datasets to contain only a particular region use the `subset_spatial` operation.
+To filter the datasets to contain only a particular region use the ``subset_spatial`` operation.
 
 .. code-block:: console
 
-    ect res set oz_africa subset_spatial ds=oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.49ms
+    $ ect res set oz_africa subset_spatial ds=oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
     Executing 3 workflow step(s): done
     Resource "oz_africa" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/oz_africa (127.0.0.1) 5.55ms
 
 .. code-block:: console
 
-    ect res set cc_africa subset_spatial ds=cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.61ms
+    $ ect res set cc_africa subset_spatial ds=cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
     Executing 6 workflow step(s): done
     Resource "cc_africa" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cc_africa (127.0.0.1) 6.69ms
 
 .. code-block:: console
 
-    ect ws run plot_map ds=cc_africa var=cc_total file=fig4.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.55ms
+    $ ect ws run plot_map ds=cc_africa var=cc_total file=fig4.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 512.15ms
 
 .. figure:: _static/quick_start/fig4.png
    :scale: 100 %
@@ -331,14 +247,9 @@ To filter the datasets to contain only a particular region use the `subset_spati
 
 .. code-block:: console
 
-    ect ws run plot_map ds=cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.63ms
+    $ ect ws run plot_map ds=cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 451.17ms
 
 .. figure:: _static/quick_start/fig5.png
    :scale: 100 %
@@ -348,82 +259,57 @@ To filter the datasets to contain only a particular region use the `subset_spati
 Temporal Filtering
 ------------------
 
-To further filter the datasets to contain only a particular time-span, use `subset_temporal` operation
+To further filter the datasets to contain only a particular time-span, use ``subset_temporal`` operation
 
 .. code-block:: console
 
-    ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min='2007-01-01' time_max='2007-10-30'
-    ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min='2007-01-01' time_max='2007-10-30'
+    $ ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min='2007-01-01' time_max='2007-10-30'
+    $ ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min='2007-01-01' time_max='2007-10-30'
 
 If on Linux, quotes enclosing datetime strings should be additionally escaped:
 
 .. code-block:: console
 
-    ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.52ms
+    $ ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
     Executing 4 workflow step(s): done
     Resource "oz_africa_janoct" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/oz_africa_janoct (127.0.0.1) 8.37ms
 
 .. code-block:: console
 
-    ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.60ms
+    $ ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
     Executing 7 workflow step(s): done
     Resource "cc_africa_janoct" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cc_africa_janoct (127.0.0.1) 5.78ms
 
 
 Extract time series
 -------------------
 
-We'll extract spatial mean timeseries from both datasets using `tseries_mean` operation.
+We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` operation.
 
 .. code-block:: console
 
-    ect res set cc_africa_ts tseries_mean ds=cc_africa_janoct var=cc_total
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.80ms
+    $ ect res set cc_africa_ts tseries_mean ds=cc_africa_janoct var=cc_total
     Executing 8 workflow step(s): done
     Resource "cc_africa_ts" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/cc_africa_ts (127.0.0.1) 13.74ms
 
 .. code-block:: console
 
-    ect res set oz_africa_ts tseries_mean ds=oz_africa_janoct var=O3_du_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.52ms
+    $ ect res set oz_africa_ts tseries_mean ds=oz_africa_janoct var=O3_du_tot
     Executing 5 workflow step(s): done
     Resource "oz_africa_ts" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/oz_africa_ts (127.0.0.1) 9.68ms
 
 This creates datasets that contain mean and std variables for both time-series.
 
 Time Series Plot
 ----------------
 
-To plot the time-series and save the plot `plot_1D` operation can be used together with ``ect ws run`` operation:
+To plot the time-series and save the ``plot_1D`` operation can be used together with ``ect ws run`` operation:
 
 .. code-block:: console
 
-    ect ws run plot_1D ds=cc_africa_ts var=cc_total file=fig6.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.59ms
+    $ ect ws run plot_1D ds=cc_africa_ts var=cc_total file=fig6.png
     Running operation 'plot_1D': Executing 11 workflow step(s)
     Operation 'plot_1D' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 543.42ms
 
 .. figure:: _static/quick_start/fig6.png
    :scale: 100 %
@@ -431,14 +317,9 @@ To plot the time-series and save the plot `plot_1D` operation can be used togeth
 
 .. code-block:: console
 
-    ect ws run plot_1D ds=oz_africa_ts var=O3_du_tot file=fig7.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.47ms
+    $ ect ws run plot_1D ds=oz_africa_ts var=O3_du_tot file=fig7.png
     Running operation 'plot_1D': Executing 11 workflow step(s)
     Operation 'plot_1D' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 395.39ms
 
 .. figure:: _static/quick_start/fig7.png
    :scale: 100 %
@@ -448,27 +329,19 @@ To plot the time-series and save the plot `plot_1D` operation can be used togeth
 Product-Moment Correlation (Pearson)
 ------------------------------------
 
-To carry out Pearson correlation on the mean time-series, `pearson_correlation` operation can be used.
+To carry out Pearson correlation on the mean time-series, the ``pearson_correlation`` operation can be used.
 
 .. code-block:: console
 
-    ect op list --tag correlation
-
-.. code-block:: none
-
+    $ ect op list --tag correlation
     One operation found
        1: pearson_correlation
 
 .. code-block:: console
 
-    ect res set pearson pearson_correlation ds_y=cc_africa_ts ds_x=oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.49ms
+    $ ect res set pearson pearson_correlation ds_y=cc_africa_ts ds_x=oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
     Executing 12 workflow step(s): done
     Resource "pearson" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/pearson (127.0.0.1) 32.45ms
 
 
 This will calculate the correlation coefficient along with the associated p_value for both mean time-series,
@@ -476,11 +349,7 @@ as well as save the information in the given file. We can view the result using 
 
 .. code-block:: console
 
-    ect res print pearson
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.54ms
+    $ ect res print pearson
     <xarray.Dataset>
     Dimensions:    ()
     Coordinates:
@@ -498,28 +367,15 @@ of the same lat/lon dimension - corr_coeff and p_value that can then be plotted 
 
 .. code-block:: console
 
-    ect res set pearson_map pearson_correlation ds_y=cc_africa_janoct ds_x=oz_africa_janoct var_y=cc_total var_x=O3_du_tot
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.56ms
+    $ ect res set pearson_map pearson_correlation ds_y=cc_africa_janoct ds_x=oz_africa_janoct var_y=cc_total var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
-    INFO:tornado.access:200 POST /ws/res/set/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core/pearson_map (127.0.0.1) 6491.09ms
 
 .. code-block:: console
 
-    ect ws run plot_map ds=pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
-
-.. code-block:: none
-
-    INFO:tornado.access:200 GET / (127.0.0.1) 0.62ms
-    Running operation 'plot_map': [------------------------------]   0% Executing 13 workflow step(s)/home/ccitbx/miniconda3/envs/ect_env/lib/python3.5/site-packages/matplotlib/artist.py:221: MatplotlibDeprecationWarning: This has been deprecated in mpl 1.5, please use the
-    axes property.  A removal date has not been set.
-      warnings.warn(_get_axes_msg, mplDeprecation, stacklevel=1)
+    $ ect ws run plot_map ds=pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
     Running operation 'plot_map': Executing 13 workflow step(s)
     Operation 'plot_map' executed.
-    INFO:tornado.access:200 POST /ws/run_op/%2Fhome%2Fccitbx%2FDevelopment%2Fect-core (127.0.0.1) 458.77ms
 
 .. figure:: _static/quick_start/fig8.png
    :scale: 100 %

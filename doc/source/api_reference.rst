@@ -9,8 +9,6 @@ Datasets
 
 .. autofunction:: ect.open_dataset
 
-.. autofunction:: ect.save_dataset
-
 
 Operations
 ==========

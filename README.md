@@ -18,7 +18,7 @@ The Python core of the ESA CCI Toolbox (ECT).
 
 ## Installation
 
-ECT requires Python 3.5+ and prefers a Miniconda or Anaconda environment.
+The ECT relies on latest Python language features and therefore requires Python 3.5+.
 
 Check out latest ECT code 
 
@@ -41,7 +41,7 @@ ECT can be run from sources directly, once the following module requirements are
 
 The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
 
-It is recommended to install ECT into an isolated Python 3 environment, because this approach avoids clashes 
+As stated above, we recommend installing ECT into an isolated Python 3 environment, because this approach avoids clashes 
 with existing versions of ECT's 3rd-party module requirements. We recommend using Conda 
 ([Miniconda](http://conda.pydata.org/miniconda.html) or [Anaconda](https://www.continuum.io/downloads)) 
 which will usually also avoid platform-specific issues caused by module native binaries.
@@ -75,6 +75,9 @@ You can now safely install ECT into the `ect` environment.
     (ect) $ python setup.py install
     
 ### Installation into an existing Python 3 environment 
+
+If you run it with the [standard CPython](https://www.python.org/downloads/) installation,
+make sure you use a 64-bit version.
 
 To install ECT into an existing Python 3.5+ environment just for the current user, use
 

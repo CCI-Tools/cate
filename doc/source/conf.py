@@ -78,7 +78,7 @@ doc_title = 'ESA CCI Toolbox Documentation'
 # General information about the project.
 software_name = 'ect'
 project_title = 'ESA CCI Toolbox'
-copyright = '2016 by European Space Agency (ESA)'
+copyright = '2016 by the ESA CCI Toolbox Development Team'
 author = software_name + ' Development Team'
 
 # If true, figures, tables and code-blocks are automatically numbered if they have a caption.

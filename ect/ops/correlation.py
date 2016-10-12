@@ -66,12 +66,9 @@ def pearson_correlation(ds_x: xr.Dataset,
 
     :param ds_y: The 'dependent' dataset
     :param ds_x: The 'variable' dataset
-    :param var_y: Dataset variable to use for correlation analysis in the
-    'dependent' dataset
-    :param var_x: Dataset variable to use for correlation analysis in the
-    'variable' dataset
-    :param file: Filepath variable. If given, this is where the results will
-    be saved in a text file.
+    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
+    :param file: Filepath variable. If given, this is where the results will be saved in a text file.
     :param corr_type: Correlation type to use for 3D time/lat/lon variables.
     """
     array_y = ds_y[var_y]

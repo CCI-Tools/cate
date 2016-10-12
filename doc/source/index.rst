@@ -5,10 +5,6 @@ ESA CCI Toolbox Documentation
 =============================
 
 
-.. warning:: This site is under construction and is currently neither complete nor correct in form and content.
-             It will provide useful documentation once we release a final version of the *ESA CCI Toolbox* software,
-             which is planned in mid October 2016.
-
 .. toctree::
    :caption: Table of Contents
    :maxdepth: 1

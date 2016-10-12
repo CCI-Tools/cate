@@ -57,11 +57,119 @@ The following first level sub-commands are used to work interactively with datas
 * ``ect ws`` :ref:`_cli_ect_ws`
 * ``ect res`` :ref:`_cli_ect_res`
 
+When you encounter any error while using ``ect`` and you want to `report the problem <https://github.com/CCI-Tools/ect-core/issues>`_
+to the development team, we kindly ask you to rerun the command with option ``--traceback`` and include the Python stack
+traceback with a short description of your problem.
+
+
+Examples
+========
+
+The following examples shall help you understand the basic concepts behind the various ``ect`` commands.
+
+Manage datasets
+---------------
+
+To query all available datasets, type:::
+
+    ect ds list
+
+To query all datasets that have ``ozone`` in their name, type:::
+
+    ect ds list -n ozone
+
+To get more detailed information on a specific dataset, e.g. ``esacci.OZONE.mon.L3...``, type:::
+
+    ect ds info esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1
+
+To add a local Dataset from all netCDF files in e.g. ``data/sst_v3`` and name it e.g. ``SSTV3``, type:::
+
+    ect ds def SSTV3 data/sst_v3/*.nc
+
+Make sure it is there:::
+
+    ect ds list -n SSTV3
+
+To make a temporal subset ECV dataset locally available, i.e. avoid remote data access during its usage::
+
+    $ ect ds sync esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2006 2007
+
+The section :doc:`um_config` describes, how to configure the directory where ``ect`` stores such synchronised
+data.
+
+Inspect available operations
+----------------------------
+
+To list all available operations, type::
+
+    ect op list
+
+To display more details about a particular operation, e.g. ``tseries_point``, type::
+
+    ect op info tseries_point
+
+Run an operation
+----------------
+
+To run the ``tseries_point`` operation on a dataset, e.g. the ``local.SSTV3`` (from above), at lat=0 and lon=0, type::
+
+    ect run --open ds=local.SSTV3 --write ts2.nc tseries_point ds=ds lat=0 lon=0
+
+To run the ``tseries_point`` operation on a netCDF file, e.g. ``test/ui/precip_and_temp.nc`` at lat=0 and lon=0, type::
+
+    ect run --read ds=test/ui/precip_and_temp.nc --write ts2.nc tseries_point ds=ds lat=0 lon=0
+
+
+Interactive session
+-------------------
+
+The following command sequence is a simple interactive example for a session with the ECT command-line::
+
+    ect ws new
+    ect res open ds local.SSTV3
+    ect res set ts tseries_point ds=ds lat=0 lon=0
+    ect res plot ts
+    ect res write ts ts.nc
+    ect ws status
+
+The steps above explained:
+
+1. ``ect ws new`` is used to create a new in-memory *workspace*. A workspace can hold any number of
+   named *workspace resources* which may refer to opened datasets or any other ingested or computed objects.
+2. ``ect res open`` is used to open a dataset from the available data stores and
+   assign the opened dataset to the workspace resource ``ds``. Accordingly, ``ect res read`` could have been used to
+   read from a local netCDF file.
+3. ``ect res set`` assign the result of the ``tseries_point`` applied to ``ds`` to workspace resource ``ts``.
+4. ``ect res plot`` plots the workspace resource ``ts``.
+5. ``ect res write`` writes the workspace resource ``ts`` to a netCDF file ``./ts.nc``.
+6. ``ect ws status`` shows the current workspace status and lists all workspace resource assignments.
+
+We could now save the current workspace state and close it::
+
+    ect ws save
+    ect ws close
+
+``ect ws save`` creates a hidden sub-directory ``.ect-workspace`` and herewith makes the current directory a
+*workspace directory*. ``ect`` uses this hidden directory to persist the workspace state information.
+At a later point in time, you could ``cd`` into any of your workspace directories, and::
+
+    ect ws open
+    ect ws status
+
+in order to reopen it, display its status, and continue interactively working with its resources.
+
+The following subsections provide detailed information about the ``ect`` commands.
 
 .. _cli_ect_ds:
 
 Dataset Management
 ==================
+
+.. argparse::
+   :module: ect.ui.cli
+   :func: make_parser
+   :prog: ect
+   :path: ds
 
 
 
@@ -70,15 +178,34 @@ Dataset Management
 Operation Management
 ====================
 
+
+.. argparse::
+   :module: ect.ui.cli
+   :func: make_parser
+   :prog: ect
+   :path: op
+
 .. _cli_ect_run:
 
 Running Operations and Workflows
 ================================
 
+.. argparse::
+   :module: ect.ui.cli
+   :func: make_parser
+   :prog: ect
+   :path: run
+
 .. _cli_ect_ws:
 
 Workspace Management
 ====================
+
+.. argparse::
+   :module: ect.ui.cli
+   :func: make_parser
+   :prog: ect
+   :path: ws
 
 .. _cli_ect_res:
 
@@ -86,56 +213,9 @@ Workspace Resource Management
 =============================
 
 
+.. argparse::
+   :module: ect.ui.cli
+   :func: make_parser
+   :prog: ect
+   :path: res
 
-The command-line executable can be used to list available data sources and to synchronise subsets of remote data store
-contents on the user's computer to make them available to the CCI Toolbox. It also allows for listing available
-operations as well as running operations and workflows.
-
-The command-line executable uses sub-commands for a specific functionality. The most important commands are
-
-* ``run`` to run an operation of workflow with given arguments.
-* ``ds`` to display data source information and to synchronise remote data sources with locally cached versions of it.
-* ``list`` to list registered data stores, data sources, operations and plugins
-
-
-Given here is an early version of the ``ect``'s usage::
-
-   $ ect -h
-   usage: ect [-h] [--version] COMMAND ...
-
-   ESA CCI Toolbox command-line interface, version 0.1.0
-
-   positional arguments:
-     COMMAND     One of the following commands. Type "COMMAND -h" to get command-
-                 specific help.
-       list      List items of a various categories.
-       run       Run an operation OP with given arguments.
-       ds        Data source operations.
-       cr        Print copyright information.
-       lic       Print license information.
-       doc       Display documentation in a browser window.
-
-   optional arguments:
-     -h, --help  show this help message and exit
-     --version   show program's version number and exit
-
-
-
-In the following are given some usage examples.
-
-Lists available data sources (ECVs) from ESA's CCI FTP server::
-
-    $ ect list ds
-    ...
-    91: SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2
-    ...
-
-Display (meta-) information about some ECV::
-
-    $ ect ds SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2
-
-Make an ECV data source locally available for a given time period::
-
-    $ ect ds SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2 --sync --time 2006-05,2006-07
-
-The section :doc:`um_config` describes, how to configure the data cache directory used by this command.
