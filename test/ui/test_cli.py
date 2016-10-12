@@ -7,7 +7,7 @@ import unittest
 from time import sleep
 from typing import Union, List
 
-from ect.core.io import DATA_STORE_REGISTRY
+from ect.core.ds import DATA_STORE_REGISTRY
 from ect.core.monitor import Monitor
 from ect.core.op import OP_REGISTRY
 from ect.core.util import fetch_std_streams

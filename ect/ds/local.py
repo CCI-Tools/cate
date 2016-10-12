@@ -45,10 +45,10 @@ from os.path import join, isfile
 from typing import Sequence, Tuple, Union
 
 import xarray as xr
-from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
+from ect.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from ect.core.monitor import Monitor
 from ect.core.util import to_list
-from ect.core.io import get_data_stores_path
+from ect.core.ds import get_data_stores_path
 
 
 def get_data_store_path():

@@ -20,17 +20,10 @@ If available, links to `verifying unit-tests`_ are given in sub-sections called 
 *Components* lists all documented, non-private components of a module, including variables, functions, and classes.
 
 
-Module ``ect.core.cdm``
-=======================
-
-.. automodule:: ect.core.cdm
-    :members:
-
-
-Module ``ect.core.io``
+Module ``ect.core.ds``
 ======================
 
-.. automodule:: ect.core.io
+.. automodule:: ect.core.ds
     :members:
 
 Module ``ect.core.op``
@@ -69,16 +62,16 @@ Module ``ect.ui.cli``
 .. automodule:: ect.ui.cli
     :members:
 
+Module ``ect.ds``
+=================
+
+.. automodule:: ect.ds
+    :members:
+
 Module ``ect.ops``
 ==================
 
 .. automodule:: ect.ops
     :members:
 
-
-Module ``ect.ds``
-=================
-
-.. automodule:: ect.ds
-    :members:
 

@@ -104,7 +104,7 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional
 
-from ect.core.io import DATA_STORE_REGISTRY, open_dataset, query_data_sources
+from ect.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from ect.core.monitor import ConsoleMonitor, Monitor
 from ect.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from ect.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo

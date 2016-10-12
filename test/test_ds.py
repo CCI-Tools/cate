@@ -2,7 +2,7 @@ from typing import Sequence
 from unittest import TestCase
 
 import xarray as xr
-import ect.core.io as io
+import ect.core.ds as io
 
 
 class SimpleDataStore(io.DataStore):

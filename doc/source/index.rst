@@ -15,8 +15,8 @@ ESA CCI Toolbox Documentation
    user_manual
    use_cases
    op_specs
-   api_reference
    architecture
+   api_reference
    detailed_design
    rel_projects
 

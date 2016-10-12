@@ -51,7 +51,7 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 import xarray as xr
 from ect.core.cdm import Schema
-from ect.core.io import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
+from ect.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
 from ect.core.monitor import Monitor, ConsoleMonitor
 from ect.core.util import to_datetime
 

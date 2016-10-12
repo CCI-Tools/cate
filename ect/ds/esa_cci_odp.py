@@ -47,9 +47,9 @@ from datetime import datetime, timedelta
 from typing import Sequence, Tuple
 
 import xarray as xr
-from ect.core.io import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
+from ect.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from ect.core.monitor import Monitor
-from ect.core.io import get_data_stores_path
+from ect.core.ds import get_data_stores_path
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 

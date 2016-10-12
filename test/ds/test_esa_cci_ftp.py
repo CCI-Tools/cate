@@ -4,8 +4,8 @@ import os.path
 from datetime import datetime
 from unittest import TestCase
 
-import ect.core.io as io
-from ect.core.io import DATA_STORE_REGISTRY
+import ect.core.ds as io
+from ect.core.ds import DATA_STORE_REGISTRY
 from ect.ds.esa_cci_ftp import FileSetDataStore, set_default_data_store
 
 

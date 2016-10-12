@@ -70,8 +70,8 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/test_io.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_io.py>`_
-and may be executed using ``$ py.test test/test_io.py --cov=ect/core/io.py`` for extra code coverage information.
+`test/test_ds.py <https://github.com/CCI-Tools/ect-core/blob/master/test/test_ds.py>`_
+and may be executed using ``$ py.test test/test_ds.py --cov=ect/core/ds.py`` for extra code coverage information.
 
 
 Components
