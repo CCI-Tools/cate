@@ -2,8 +2,20 @@
 .. _CCI Open Data Portal: http://cci.esa.int/
 .. _THREDDS: http://www.unidata.ucar.edu/software/thredds/current/tds/
 .. _xarray: http://xarray.pydata.org/en/stable/
+.. _xarray.Dataset: http://xarray.pydata.org/en/stable/data-structures.html#dataset
+.. _xarray.DataArray: http://xarray.pydata.org/en/stable/data-structures.html#dataarray
+.. _GeoPandas: http://geopandas.org/
+.. _geopandas.GeoDataFrame: http://geopandas.org/data_structures.html#geodataframe
+.. _geopandas.GeoSeries: http://geopandas.org/data_structures.html#geoseries
 .. _Fiona: http://toblerity.org/fiona/
 .. _CCI Toolbox User Requirements Document: https://www.dropbox.com/s/0bhp6uwwk6omj8k/CCITBX-URD-v1.0Rev1.pdf?dl=0
+.. _Unidata Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM/
+.. _CF Conventions: http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html
+.. _Simple Features Standard: https://en.wikipedia.org/wiki/Simple_Features
+.. _numpy: http://www.numpy.org/
+.. _numpy ndarrays: http://docs.scipy.org/doc/numpy/reference/arrays.ndarray.html
+.. _pandas: http://pandas.pydata.org/
+
 
 ============
 Architecture
@@ -75,18 +87,18 @@ The ``ect.core`` package
 As a framework, ``ect.core`` allows plugins to extend the CCI Toolbox capabilities. The most interesting extension
 points are
 
-* climate data stores (DS) that will be added to the global data store registry
-* climate data visualisation, processing, analysis operations (OP) that will be added to the global operations registry
+* climate data stores that will be added to the global data store registry
+* climate data visualisation, processing, analysis operations that will be added to the global operations registry
 
-The modules contained in the ``ect.core`` are all essential and described in detail in the following sub-sections:
+The ``ect.core`` packages comprises the essential modules which described in more detail in the following sub-sections:
 
-* module ``cdm`` - :ref:`cdm`
-* module ``io`` - :ref:`io`
+* module ``ds`` - :ref:`ds`
 * module ``op`` - :ref:`op`
 * module ``workflow`` - :ref:`workflow`
+* module ``objectio`` - :ref:`objectio`
 
 There are some utility modules included in ``ect.core`` not included in :numref:`uml_modules` but nevertheless
-they are an important part of the API:
+they provide important parts of the API:
 
 * module ``monitor`` - :ref:`monitor`
 * module ``plugin`` - :ref:`plugin`
@@ -97,13 +109,21 @@ they are an important part of the API:
 Package ``ect.ds``
 ------------------
 
-The Python package ``ect.ds`` contains specific climate data stores (DS). Every module in this package is
-dedicated to a specific data store. The ``esa_cci_ftp`` module provides the data store that represents the
-ESA CCI Open Data Portal's FTP data.
+The Python package ``ect.ds`` contains specific climate data stores (=ds). Every module in this package is
+dedicated to a specific data store.
+
+
+* The ``esa_cci_odp`` module provides the data store that allows opening datasets provided by the
+  ESA CCI Open Data Portal (ODP). More specifically, it provides data for the ``esacii`` entry in
+  the ESGF data service.
+* The ``esa_cci_ftp`` module provides the data store that allows opening datasets provided by the
+  FTP service of the ESA CCI Open Data Portal. This data store is now deprecated in favour of the
+  ESGF service.
 
 The package ``ect.ds`` is a *plugin* package. The modules in ``ect.ds`` are activated during installation
 and their data sources are registered once the module is imported. In fact, no module in package ``ect.core``
-has any knowledge about the package ``ect.ds``.
+has any knowledge about the package ``ect.ds`` and users never deal with its modules directly.
+Instead, all registered data stores are accessible through the ``ect.core.ds.DATA_STORE_REGISTRY`` singleton.
 
 .. _ect_ops:
 
@@ -121,88 +141,82 @@ The chapter :doc:`op_specs` provides abstract descriptions of the individual ope
 Similar to ``ect.ds``, the package ``ect.ops`` is a *plugin* package, only loaded if requested, and no module in
 package ``ect.core`` has any knowledge about the package ``ect.ops``.
 
+
 .. _ect_ui:
 
 Package ``ect.ui``
 ------------------
 
-The package ``ect.ui`` comprises the modules ``ws`` which implements a RESTful web service that offers the WebAPI
-interface for the CCI Toolbox GUI.
+The package ``ect.ui`` comprises the ``cli`` module, the CCI Toolbox' command-line interface, and ``webapi`` module,
+which implements a RESTful web service that offers the Web API for the CCI Toolbox Desktop GUI and the interactive
+commands provided by the command-line interface.
 
-The ``cli`` module is described in section :ref:`cli`.
+The command-line interface is described in section :ref:`cli`.
 
-
-.. _Unidata's Common Data Model: http://www.unidata.ucar.edu/software/thredds/current/netcdf-java/CDM/
 
 .. _cdm:
 
 Common Data Model
 =================
 
-Considering the ESA CCI data products as primary source for the CCI Toolbox, a *Common Data Model* (CDM) has to be designed
-for both *netCDF CF* formatted datasets as well as for the *ESRI Shapefile* format.
+The primary data source of the first releases of the CCI Toolbox are the data products delivered by the
+ESA CCI programme. Later in the project, the CCI Toolbox will also address other datasets.
 
-The most important aspect of a common data model in the context of the CCI Toolbox is the applicability of operations
-to climate datasets independently of the their underlying format.
+The majority of the gridded ECV datasets from ESA CCI are in *netCDF-CF* format, which is a de-factor standard in
+climate science. The datasets of the Land Cover CCI are provided in *GeoTIFF* format and the Glaciers and Ice Sheets
+CCIs deliver their datasets in *ESRI Shapefile* format.
 
-Both the netCDF CF and Shapefile format have a long-time tradition in geospatial data domain. Very good, well tested
-and popular libraries exist for them in a variety of programming languages. Furthermore, for the netCDF (CF) and HDF5 datasets
-there exists already the `Unidata's Common Data Model`_. Creating a new common data model which incorporates netCDF,
-HDF5 and Shapefiles models would first be an enormous effort and secondly, user's of the CCI Toolbox API could be
-unhappy to deal with yet another API for netCDF, HDF5, or Shapefiles.
+Ideally, the CCI Toolbox could combine the various datasets in a single *common data model* so that an API could be
+designed that allows a uniform and transparent for data access. This would also allow to make a maximum of operations
+work on both raster and vector data.
 
-Therefore it has been decided to make the CCI Toolbox CDM a lightweight wrapper around existing data models that exists already
-for a given format. This wrapper will just make sure that (climate) operations can be performed on the different
-data models. CCI Toolbox users can still decide to switch to the underlying, dedicated data model of a specific format or stay
-with the lightweight wrapper used by the CCI Toolbox CDM.
-However, this approach burdens the CCI Toolbox developer with having to implement each operation for each the
-supported data formats. But in doing so comes another advantage: the operations may be implemented very effectively
-and performant with respect to a given data layout.
+As this sounds reasonable at first, the team has decided not go for such a grand unification as the way how gridded
+raster data is processed is substantially different from how vector data is processed. To make the majority of data
+operations applicable to both data types, rasterisation (or vectorisation) would need to occur implicitly and would need
+to be controlled by explicit operation parameters.
 
+Instead, the CCI Toolbox stays with the `Unidata Common Data Model`_ and `CF Conventions`_ for raster data, and the
+`Simple Features Standard`_ (ISO 19125) for vector data. This is achieved by reusing the data models and APIs
+of the popular, geo-spatial Python libraries.
 
-The CCI Toolbox CDM is implemented in the ``cdm`` module and comprises the following types:
+Raster Data
+-----------
 
-.. _uml_cdm:
+For the representation of raster or gridded data, the CCI Toolbox relies on the xarray_ Python library.
+``xarray`` builds on top of numpy_, the fundamental package for scientific computing with Python,
+and pandas_, the Python Data Analysis Library.
 
-.. figure:: _static/uml/cdm.png
-   :scale: 75 %
-   :align: center
+The central data structure in the CCI Toolbox is `xarray.Dataset`_, which is an in-memory representation of the data
+model from the netCDF file format. Because of its generality for multi-dimensional arrays, it is also well-suited to
+represent the GeoTIFF and other raster and gridded data formats. The ``xarray.Dataset`` structure is composed of the
+following elements and follows the `Unidata Common Data Model`_:
 
-   DatasetCollection, Dataset, DatasetAdapter
+:Variables: are containers for the dataset's geo-physical quantities. They are named, multi-dimensional arrays
+   of type `xarray.DataArray`_ which behave quite like `numpy ndarrays`_. The dataset variables are accessible through
+   the ``data_vars`` attribute, which is mapping from variable name to the multi-dimensional data arrays.
 
+:Coordinates: To label the grid points contained in the variable arrays, **coordinates* are used. Coordinates are also
+   `xarray.DataArray`_ instances and are accessible through the ``coords`` attribute, which is a mapping from coordinate
+   names to the usually one-dimensional label arrays.
 
-The ``Dataset`` interface defines the abstract operations that can be performed on all supported data formats. The
-``DatasetAdapter`` is the base class for all ``Dataset`` implementations for a given data model. :numref:`uml_cdm`
-shows two implementations:
+:Dimensions: All dimensions used by the variables and coordinates arrays are named and have a size.
+   The mapping from dimension name to size is accessible through the ``dims`` attribute.
 
-* ``XarrayDatasetAdapter``: a ``Dataset`` implementation for the netCDF CD CDM provided by the excellent xarray_ Python library
-* ``ShapefileDatasetAdapter``: a ``Dataset`` implementation for ESRI Shapefiles data models, e.g. as provided by the
-  Fiona_ Python library
-
-The ``Schema`` is a meta-model that describes a dataset's supposed structure and and contents.
-It names the variables and dimensions contained in a dataset, their data types, units.
-
-.. _uml_cdm_seq_2:
-
-.. figure:: _static/uml/cdm_seq_2.png
-   :scale: 75 %
-   :align: right
-
-   Dataset collection delegation
-
-A ``DatasetCollection`` is first a concrete collection of datasets and secondly it also implements the
-``Dataset`` interface. The ``DatasetCollection`` operation implementations will usually invoke the same operation
-on the children of the collection and either return a new collection or aggregate the result in some way. For example,
-the *timeseries* operation would extract the time series from netCDF and Shapefiles and then combine the result
-as a new instance of either one or the other type as shown in :numref:`uml_cdm_seq_2`.
+:Attributes: are used to hold metadata both for ``xarray.Dataset`` and ``xarray.DataArray`` instances.
+   Attributes are accessed by the ``attrs`` attribute which is a mapping from attribute names to arbitrary values.
 
 
-In general, dataset collection delegate operations to their contained datasets and combine the individual results.
+Vector Data
+-----------
 
-Python implementation note: plugins may dynamically extend the ``DatasetCollection``, ``Dataset``, and
-``DatasetAdapter`` types by *monkey patching* new operations into them.
+From version 1.0 on, the representation of vector data will be provided by utilising the GeoPandas_ Python library.
+Similar to xarray_, also ``GeoPandas`` relies on pandas_, the Python Data Analysis Library.
 
-.. _io:
+Once the CCI Toolbox supports vector data, it will provide a rasterisation operation in order to convert vector data
+into the raster data model, namely `xarray.Dataset`_ instances.
+
+
+.. _ds:
 
 Data Stores and Data Sources
 ============================
@@ -213,11 +227,11 @@ For example, the ESA CCI Open Data Portal currently (June 2016) provides climate
 climate variables (ECVs). Each ECV comes in different spatial and temporal resolutions, may originate from various
 sensors and may be provided in various processing versions. A *data source* refers to such a unique ECV occurence.
 
-The CCI Toolbox ``io`` module comprises the following abstract types:
+The ``ds`` module comprises the following abstract types:
 
-.. _uml_io:
+.. _uml_ds:
 
-.. figure:: _static/uml/io.png
+.. figure:: _static/uml/ds.png
    :scale: 100 %
    :align: center
 
@@ -231,28 +245,10 @@ on the user's computer.
 The ``DataStore.query()`` allows for querying a data store for data sources given some optional constraints.
 
 The actual data of a data source can be provided by calling the ``DataSource.open_dataset()`` method
-which provides instances of the ``Dataset`` type which has been introduced in the former section :ref:`cdm`.
+which provides instances of the ``xarray.Dataset`` type which has been introduced in the former section :ref:`cdm`.
 
 The ``DataSource.sync()`` method is used to explicitly synchronise the remote content of a data store
 with locally cached data.
-
-
-The ``FileSetDataStore`` represents a special data store which refers to a directory tree in the file system. A
-``FileSetDataSource`` refers to set of files that is identified by a path pattern, usually comprising the measurement's
-year, month, day of month as variables:
-
-.. _uml_io_file_set:
-
-.. figure:: _static/uml/io_file_set.png
-   :scale: 100 %
-   :align: center
-
-   FileSetDataStore and FileSetDataSource
-
-A common usage of the ``FileSetDataStore`` is to act as a local *cache* for some remote data service
-(property ``remote_url``), e.g. for the CCI FTP service.
-Another common use case of the ``FileSetDataStore`` is to let users add their own
-local data stores to the CCI Toolbox.
 
 
 .. _op:
@@ -265,7 +261,7 @@ The CCI Toolbox ``op`` module allows for the registration, lookup and controlled
 may be referenced from within processing *workflows* (see next section :ref:`workflow`), or may be invoked from
 from the WebAPI (see :numref:`uml_modules`) as a result of a GUI request.
 
-An operation is represented by the ``OpRegistration`` type (TBC: may rename to Operation) which comprises any Python
+An operation is represented by the ``OpRegistration`` type which comprises any Python
 callable (function, lambda expression, etc.) and some additional meta-information ``OpMetaInfo`` that describes the
 operation and allows for automatic input validation, input value conversion, monitoring. The ``OpMetaInfo`` object
 specifies an operation's signature in terms of its expected inputs and produced outputs.
@@ -373,6 +369,30 @@ contained steps.
 The ``workflow`` module is independent of any other CCI Toolbox module so that it may later be replaced by a
 more advanced workflow management system.
 
+.. _objectio:
+
+Object Input/Output
+===================
+
+The ``objectio`` module provides two generic functions for Python object input and output:
+
+* ``read_object(file, format)`` reads an object from a file with optional format name, if known.
+* ``write_object(obj, file, format)`` writes an object to a file with a given format.
+
+The module defines the abstract base class ``ObjectIO`` which is implemented by classes that read Python objects from
+files and write them into files. ``ObjectIO`` instances represent a file format and the Python object types that
+they can read from and write to files of that format. Therefore they can make a guess how suitable they are for reading
+from a given file (method ``read_fitness(file)``) or writing an object to a file (method ``write_fitness(obj)``).
+
+``ObjectIO`` instances are registered in the ``OBJECT_IO_REGISTRY`` singleton which can be extended by plug-ins.
+
+.. figure:: _static/uml/objectio.png
+   :scale: 100 %
+   :align: center
+
+   ObjectIO and some of its implementations
+
+
 .. _monitor:
 
 Task Monitoring
@@ -421,6 +441,7 @@ The CLI uses (sub-)commands for specific functionality. The most important comma
 
 * ``run`` to run an operation or a *Workflow JSON* file with given arguments.
 * ``ds`` to manage data sources and to synchronise remote data sources with locally cached versions of it.
+* ``op`` to list and display details about available operations.
 * ``ws`` to manage user *workspaces*.
 * ``res`` to add, compute, modify, and display *resources* within the current user workspace.
 
@@ -429,31 +450,6 @@ or ``-h``.
 
 Plugins can easily add new CLI commands to the CCI Toolbox by implementing a new ``Command`` class and registering it
 in the ``COMMAND_REGISTRY`` singleton.
-
-Given here is an early version of the CCI Toolbox CLI usage::
-
-   $ ect -h
-   usage: ect [-h] [--version] [--traceback] COMMAND ...
-
-   ESA CCI Toolbox command-line interface, version 0.2.0-pre+01
-
-   positional arguments:
-     COMMAND      One of the following commands. Type "COMMAND -h" to get
-                  command-specific help.
-       run        Run an operation or Workflow file.
-       ws         Manage workspaces.
-       res        Manage workspace resources.
-       ds         Manage data sources.
-       op         Explore data operations.
-       wa         Manage ECT's WebAPI service. (Rarely used!)
-       pi         Manage installed plugins.
-       lic        Print copyright and license information.
-       doc        Display documentation in a browser window.
-
-   optional arguments:
-     -h, --help   show this help message and exit
-     --version    show program's version number and exit
-     --traceback  show (Python) stack traceback for the last error
 
 
 .. _plugin:
@@ -464,9 +460,10 @@ Plugin Concept
 A CCI Toolbox *plugin* is actually any Python module that extend one of the registry singletons introduced in the
 previous sections:
 
-* Add a new ``ect.core.io.DataStore`` object to ``ect.core.io.DATA_STORE_REGISTRY``
-* Add a new ``ect.core.op.OpRegistration`` object to ``ect.core.io.OP_REGISTRY``
-* Add a new ``ect.cli.Command`` object to ``ect.cli.COMMAND_REGISTRY``
+* Add a new ``ect.core.ds.DataStore`` object to ``ect.core.ds.DATA_STORE_REGISTRY``
+* Add a new ``ect.core.op.OpRegistration`` object to ``ect.core.op.OP_REGISTRY``
+* Add a new ``ect.core.objectio.ObjectIO`` object to ``ect.core.objectio.OBJECT_IO_REGISTRY``
+* Add a new ``ect.ui.cli.Command`` object to ``ect.ui.cli.COMMAND_REGISTRY``
 
 It could also be a Python module that modifies or extends existing CCI Toolbox types by performing some
 controlled *monkey patching*.
@@ -474,7 +471,7 @@ controlled *monkey patching*.
 .. _uml_plugin:
 
 .. figure:: _static/uml/plugin.png
-   :scale: 100 %
+   :scale: 70 %
    :align: left
 
    The ``plugin`` module

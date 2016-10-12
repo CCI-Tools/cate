@@ -2,16 +2,15 @@
 Configuration
 =============
 
-In order to work, the CCI Toolbox currently requires to store all ECV datasets you would like to work with
-on your local computer.
+CCI Toolbox' configuration file is called ``conf.py`` and is located in the ``~/.ect`` directory, where ``~`` is
+the current user's home directory.
 
-Currently, there is only a single configuration setting which you can use to determine the location of the locally
-cached data from ESA's remote CCI FTP server. By default, it is ``~/.ect/data_stores/esa_cci_portal_ftp``.
-(Windows users: ``~`` evaluates to your user home directory).
+Given here is an overview of the possible configuration parameters (currently only one):
 
-To overwrite the default, set the environment variable ``ECT_DATA_ROOT`` to a directory of your choice.
-
-The data cache directory can become rather populated with data after a while and it is advisable to place
-it where there exists a high transfer rate and sufficient capacity. Ideally, you would point ``ECT_DATA_ROOT`` to a
-dedicated solid state disc.
+:``data_stores_path``:
+    Directory where ECT stores information about data stores and also saves local data files synchronized with their
+    remote versions. Use the tilde '~' (also on Windows) within the path to point to your home directory.
+    This directory can become rather populated once after a while and it is advisable to place it where there exists
+    a high transfer rate and sufficient capacity. Ideally, you would let it point to a dedicated solid state disc (SSD).
+    The default value for ``data_stores_path`` is the ``~/.ect/data_stores`` directory.
 

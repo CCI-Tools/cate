@@ -31,11 +31,8 @@ This is a plugin package automatically imported by the installation script's ent
 Verification
 ============
 
-The module's unit-tests are located
-
-* `test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/ect-core/blob/master/test/ds/test_esa_cci_ftp.py>`_.
-
-and may be executed using ``$ py.test test/ops/test_<MODULE>.py --cov=ect/ops/<MODULE>.py`` for extra code coverage
+The module's unit-tests are located in `test/ds <https://github.com/CCI-Tools/ect-core/blob/master/test/ds>`_ and may
+be executed using ``$ py.test test/ops/test_<MODULE>.py --cov=ect/ops/<MODULE>.py`` for extra code coverage
 information.
 
 Components
@@ -44,10 +41,9 @@ Components
 
 
 def ect_init():
-    """
-    Plugin initializer.
-    Sets the default data store.
-    """
+    # Plugin initializer.
+    # Sets the default data store.
+
     # from .esa_cci_ftp import set_default_data_store
     from .esa_cci_odp import set_default_data_store
     set_default_data_store()

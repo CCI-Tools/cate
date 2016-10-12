@@ -3,7 +3,7 @@
 object globals {
     DATA_STORE_REGISTRY: DataStoreRegistry
     query_data_sources(data_stores, constraints)
-    open_dataset(data_stores, name)
+    open_dataset(data_source, name, time_range)
 }
 
 note bottom of globals
@@ -20,21 +20,19 @@ class DataStoreRegistry {
 }
 
 interface DataStore {
-    {abstract} query(constraints): DataSource
+    name: str
+    {abstract} query(query_expr): DataSource
 }
 
 interface DataSource {
-    {abstract} get_dataset_schema()
-    {abstract} open_dataset(constraints): cdm.Dataset
+    name: str
+    {abstract} get_dataset_schema(): cdm.Schema
+    {abstract} open_dataset(name, time_range): xarray.Dataset
     {abstract} sync(time_range)
 }
 
 DataStoreRegistry o--> "N" DataStore
 DataStore  ..>  DataSource: <provide>
-
-DataSource ..>  interface cdm.Dataset: <open>
-DataSource ..>  interface cdm.Schema: <provide>
-
 
 
 @enduml

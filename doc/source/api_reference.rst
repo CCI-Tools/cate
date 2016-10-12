@@ -2,49 +2,78 @@
 API Reference
 =============
 
-.. warning:: The CCI Toolbox API has not yet been been released. The functions and classes given here
-    are a subset of the CCI Toolbox components that will likely become official API in the future.
-
-
-Data Stores and Data Sources
-============================
+Datasets
+========
 
 .. autofunction:: ect.query_data_sources
 
 .. autofunction:: ect.open_dataset
 
+.. autofunction:: ect.save_dataset
+
+
+Operations
+==========
+
+Coregistration
+--------------
+
+.. autofunction:: ect.ops.coregister
+
+Resampling
+----------
+
+.. autofunction:: ect.ops.resample_2d
+
+.. autofunction:: ect.ops.downsample_2d
+
+.. autofunction:: ect.ops.upsample_2d
+
+
+Subsetting
+----------
+
+.. autofunction:: ect.ops.select_var
+
+.. autofunction:: ect.ops.subset_spatial
+
+.. autofunction:: ect.ops.subset_temporal
+
+.. autofunction:: ect.ops.subset_temporal_index
+
+Correlation
+-----------
+
+.. autofunction:: ect.ops.pearson_correlation
+
+Timeseries
+----------
+
+.. autofunction:: ect.ops.tseries_point
+
+.. autofunction:: ect.ops.tseries_mean
+
+
+Misc
+----
+
+.. autofunction:: ect.ops.harmonize
+
+.. autofunction:: ect.ops.sel
+
+
+Data Stores and Data Sources API
+================================
+
 .. autoclass:: ect.DataStore
-    :members:
-
-.. autoclass:: ect.ds.esa_cci_odp.EsaCciOdpDataStore
-    :members:
-
-.. autoclass:: ect.ds.local.LocalFilePatternDataStore
     :members:
 
 .. autoclass:: ect.DataSource
     :members:
 
-.. autoclass:: ect.ds.esa_cci_odp.EsaCciOdpDataSource
-    :members:
 
-.. autoclass:: ect.ds.local.LocalFilePatternDataSource
-    :members:
-
-
-Common Data Model
-=================
-
-#.. autoclass:: ect.Dataset
-#    :members:
-
-
-#.. autoclass:: ect.DatasetCollection
-#    :members:
-
-
-Operations
-==========
+Operation Registration API
+==========================
 
 .. autoclass:: ect.OpRegistration
     :members:
@@ -61,8 +90,8 @@ Operations
 .. autofunction:: ect.op_return
 
 
-Workflows
-=========
+Workflow API
+============
 
 .. autoclass:: ect.Workflow
     :members:
@@ -91,8 +120,8 @@ Workflows
 .. autoclass:: ect.NodePort
     :members:
 
-Task Monitoring
-===============
+Task Monitoring API
+===================
 
 .. autoclass:: ect.Monitor
     :members:

@@ -23,8 +23,8 @@
 Description
 ===========
 
-Naive implementation of generic :py:func:``read_object`` / :py:func:``write_object`` functions operating
-on a global object I/O registry ``OBJECT_IO_REGISTRY``.
+Implementation of generic :py:func:``read_object`` / :py:func:``write_object`` functions operating
+on a global I/O registry ``OBJECT_IO_REGISTRY`` singleton.
 
 """
 import os.path

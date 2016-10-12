@@ -59,6 +59,13 @@ def open_dataset(ds_name: str,
 @op_input('file')
 @op_input('format')
 def save_dataset(ds: xr.Dataset, file: str, format: str = None):
+    """
+    Save a dataset to NetCDF file.
+
+    :param ds: The dataset
+    :param file: File path
+    :param format: NetCDF format flavour, one of 'NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_64BIT', 'NETCDF3_CLASSIC'.
+    """
     ds.to_netcdf(file, format=format)
 
 

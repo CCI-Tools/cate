@@ -25,8 +25,8 @@ Description
 
 Correlation operations
 
-Components
-==========
+Functions
+=========
 """
 
 from ect.core.op import op, op_input
@@ -44,10 +44,10 @@ def pearson_correlation(ds_x: xr.Dataset,
                         file: str = None,
                         corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
     """
-    Do product moment Pearson's correlation analysis. See
+    Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
-    http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation
-    http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/
+    For more information how to interpret the results, see
+    `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_.
 
     The provided variables have to have the same shape, but depending on the
     type of variables and chosen correlation type, not necessarily the same
@@ -78,12 +78,11 @@ def pearson_correlation(ds_x: xr.Dataset,
     array_x = ds_x[var_x]
 
     if len(array_x.dims) > 3 or len(array_y.dims) > 3:
-        raise NotImplementedError('Pearson correlation for multi-dimensional variables\
- is not yet implemented.')
+        raise NotImplementedError('Pearson correlation for multi-dimensional variables is not yet implemented.')
 
     if array_x.values.shape != array_y.values.shape:
-        raise ValueError('The provided variables {} and {} do not have the\
- same shape, Pearson correlation can not be performed.'.format(var_x, var_y))
+        raise ValueError('The provided variables {} and {} do not have the same shape, '
+                         'Pearson correlation can not be performed.'.format(var_x, var_y))
 
     # Perform a simple Pearson correlation that returns just a coefficient and
     # a p_value.
@@ -91,13 +90,13 @@ def pearson_correlation(ds_x: xr.Dataset,
         return _pearson_simple(ds_x, ds_y, var_x, var_y, file)
 
     if corr_type != 'pixel_by_pixel':
-        raise NotImplementedError('Only pixel by pixel Pearson correlation\
- is currently implemented for time/lat/lon dataset variables.')
+        raise NotImplementedError('Only pixel by pixel Pearson correlation is currently implemented for '
+                                  'time/lat/lon dataset variables.')
 
     if (not ds_x['lat'].equals(ds_y['lat']) or
             not ds_x['lon'].equals(ds_y['lon'])):
-        raise ValueError('When performing a pixel by pixel correlation\
- the datasets have to have the same lat/lon definition.')
+        raise ValueError('When performing a pixel by pixel correlation the datasets have to have the same '
+                         'lat/lon definition.')
 
     # Do pixel by pixel correlation
 
@@ -118,8 +117,7 @@ def pearson_correlation(ds_x: xr.Dataset,
         'p_value': (['lat', 'lon'], p_value),
         'lat': lat,
         'lon': lon})
-    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
-                                                                         var_x)
+    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
     if file:
         with open(file, "w") as text_file:
@@ -144,8 +142,7 @@ def _pearson_simple(ds_x: xr.Dataset,
                                   ds_y[var_y].values)
 
     retset = xr.Dataset()
-    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y,
-                                                                         var_x)
+    retset.attrs['ECT_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
     retset['corr_coef'] = corr_coef
     retset['p_value'] = p_value
 

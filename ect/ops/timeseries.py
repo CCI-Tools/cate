@@ -25,8 +25,8 @@ Description
 
 Simple time-series extraction operation.
 
-Components
-==========
+Functions
+=========
 """
 
 import xarray as xr
@@ -112,11 +112,9 @@ def tseries_mean(ds: xr.Dataset,
         dims = list(ds[name].dims)
         dims.remove('time')
         retset[name] = retset[name].mean(dim=dims, keep_attrs=True)
-        retset[name].attrs['ECT_Description'] = 'Mean aggregated over\
- {} at each point in time.'.format(dims)
+        retset[name].attrs['ECT_Description'] = 'Mean aggregated over {} at each point in time.'.format(dims)
         std_name = name+std_suffix
         retset[std_name] = ds[name].std(dim=dims)
-        retset[std_name].attrs['ECT_Description'] = 'Accompanying std\
- values for variable \'{}\''.format(name)
+        retset[std_name].attrs['ECT_Description'] = 'Accompanying std values for variable \'{}\''.format(name)
 
     return retset

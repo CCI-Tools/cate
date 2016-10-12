@@ -3,54 +3,63 @@
 
 node "CCI_Toolbox_Core" {
     package "ect.ds" {
-        DS - [esa_cci_ftp]
-        [more data stores...] #white
+        [esa_cci_odp]
+        [esa_cci_ftp]
+        [more data store modules...] #white
     }
 
     package ect.ops {
-        OP-[timeseries]
-        [gapfill]
-        [resample]
-        [filter]
+        [coregistration]
+        [correlation]
+        [harmonize]
+        [io]
         [plot]
-        [more operations...] #white
+        [resampling]
+        [select]
+        [subset]
+        [timeseries]
+        [more operation modules...] #white
     }
 
     package "ect.core" {
-        [cdm]
-        [io]
-
+        [ds]
+        [monitor]
+        [objectio]
         [op]
+        [plugin]
+        [util]
         [workflow]
     }
 
     package "ect.ui" {
-        CLI - [cli]
-        WebAPI - [ws]
+        [cli]
+        [webapi]
     }
 }
 
 node "CCI_Toolbox_GUI" {
     package "ect.gui" {
-        [web_app]
+        [webapp]
     }
 }
 
 cloud {
 node "CCI_Open_Data_Portal" #eeeeee {
-    FTP - [ftp_service]
+    [FTP]
+    [HTTP]
+    [OPeNDAP]
     [more services...] #white
 }
 }
 
+[cli] ..> [webapi]
+[webapp] ..> [webapi]
 
-[io] ..> [cdm]
 [workflow] ..> [op]
-[esa_cci_ftp] ..> FTP
-[esa_cci_ftp] ..> io
 
-ect.ops .r.> [cdm]
+ect.ui .r.> ect.ops
+ect.ui .r.> ect.ds
+ect.ds .r.> CCI_Open_Data_Portal
 
-[web_app] --> WebAPI
 
 @enduml

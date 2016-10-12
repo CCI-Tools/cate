@@ -12,9 +12,14 @@ class ListCommand implements Command {
 class RunCommand implements Command {
 }
 
-class DataSourceCommand implements Command {
+class DataStoreCommand implements Command {
 }
 
+class WorkspaceCommand implements Command {
+}
+
+class WorkspaceResourceCommand implements Command {
+}
 
 Command ..> argparse.ArgumentParser : <configure>
 Command ..> argparse.Namespace : <execute with>

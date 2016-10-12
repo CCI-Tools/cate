@@ -2,7 +2,12 @@
 Installation
 ============
 
-The CCI Toolbox installation instructions are currently located in the
-project's `README <https://github.com/CCI-Tools/ect-core/blob/master/README.md>`_.
+Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
+`release page <https://github.com/CCI-Tools/ect-core/releases>`_ on GitHub.
 
-Before installing, please read the :doc:`um_sysreq` first.
+The installers are self contained, so there is no need to install additional software.
+
+If you are a developer you may wish to install CCI Toolbox from Python source code.
+In this case, please follow the instructions given in the project's
+`README <https://github.com/CCI-Tools/ect-core/blob/master/README.md>`_ on GitHub.
+

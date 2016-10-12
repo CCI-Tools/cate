@@ -2,11 +2,90 @@
 Command-Line Interface
 ======================
 
-The CCI Toolbox comprises a single command-line executable, which is called ``ect`` and is made available
-from your Python installation after installing the CCI Toolbox (Python) Core. See section :doc:`um_install`
-for more information.
+The CCI Toolbox comprises a single command-line executable, which is called ``ect`` and is available after installing
+the CCI Toolbox on your computer. See section :doc:`um_install` for more information. The command-line
+interface allows for accessing local and remote datasets as well as running virtually all CCI Toolbox
+operations on them.
 
-.. warning:: The command-line executable is under development and its current functionality is rather limited.
+The most easy way to use ``ect`` is running the ``ect-cli`` script found in ``bin`` directory of your CCI Toolbox
+installation directory. Windows and Unix users will find a link to this script in their start menu or on their desktop.
+Opening the link will open a new console / terminal window configured to run ``ect``.
+
+**Developers only:** If you build and install the CCI Toolbox from Python sources into your current Python environment,
+``ect`` will be registered as an executable script. It can be found as ``$PYTHON_PREFIX/bin/ect.sh`` on Unix systems
+and as ``%PYTHON_PREFIX%\\Scripts\\ect.exe`` on Windows systems where ``PYTHON_PREFIX`` is the path to the current
+Python environment.
+
+In the console / terminal window type::
+
+    ect -h
+
+This should output the following usage help:::
+
+    usage: ect [-h] [--version] [--license] [--docs] [--traceback] COMMAND ...
+
+    ESA CCI Toolbox command-line interface, version 0.5.0a02
+
+    positional arguments:
+      COMMAND      One of the following commands. Type "COMMAND -h" to get
+                   command-specific help.
+        ds         Manage data sources.
+        op         Manage data operations.
+        ws         Manage workspaces.
+        res        Manage workspace resources.
+        run        Run an operation or Workflow file.
+
+    optional arguments:
+      -h, --help   show this help message and exit
+      --version    show program's version number and exit
+      --license    show software license and exit
+      --docs       show software documentation in a browser window
+      --traceback  show (Python) stack traceback for the last error
+
+
+
+``ect`` uses up to two sub-command levels. Each sub-command has its own set of options and arguments and can display
+help when used with the option ```--help`` or ``-h``. The first sub-command level comprises the following list of
+commands:::
+
+* ``ect ds`` :ref:`_cli_ect_ds`
+* ``ect op`` :ref:`_cli_ect_op`
+* ``ect run`` :ref:`_cli_ect_run`
+
+The following first level sub-commands are used to work interactively with datasets and operations:::
+
+* ``ect ws`` :ref:`_cli_ect_ws`
+* ``ect res`` :ref:`_cli_ect_res`
+
+
+.. _cli_ect_ds:
+
+Dataset Management
+==================
+
+
+
+.. _cli_ect_op:
+
+Operation Management
+====================
+
+.. _cli_ect_run:
+
+Running Operations and Workflows
+================================
+
+.. _cli_ect_ws:
+
+Workspace Management
+====================
+
+.. _cli_ect_res:
+
+Workspace Resource Management
+=============================
+
+
 
 The command-line executable can be used to list available data sources and to synchronise subsets of remote data store
 contents on the user's computer to make them available to the CCI Toolbox. It also allows for listing available
@@ -18,8 +97,6 @@ The command-line executable uses sub-commands for a specific functionality. The 
 * ``ds`` to display data source information and to synchronise remote data sources with locally cached versions of it.
 * ``list`` to list registered data stores, data sources, operations and plugins
 
-Each command has its own set of options and arguments and can display help when used with the option ```--help``
-or ``-h``.
 
 Given here is an early version of the ``ect``'s usage::
 

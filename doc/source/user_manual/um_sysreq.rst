@@ -14,7 +14,7 @@ in order to cache it locally.
 Operating System
 ================
 
-The CCI Toolbox is supposed to work on up-to-date Windows, MacOS X, and Linux.
+The CCI Toolbox is supposed to work on up-to-date Windows, Mac OS X, and Linux.
 
 Python
 ======
