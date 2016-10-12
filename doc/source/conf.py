@@ -40,8 +40,7 @@ extensions = [
     'sphinx.ext.viewcode',
 
     'sphinx.ext.autodoc',
-    #'sphinx_autodoc_annotation',
-    'sphinx_autodoc_typehints',
+    'sphinx_autodoc_annotation',
 
     'sphinxarg.ext',
 
@@ -390,7 +389,6 @@ intersphinx_mapping = {
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'sphinx': ('http://sphinx-doc.org/', None),
     'xarray': ('http://xarray.pydata.org/en/stable/', None),
     'cartopy': ('http://scitools.org.uk/cartopy/docs/latest/', None),
     'python': ('https://docs.python.org/3.5/', None),
