@@ -95,6 +95,7 @@ Components
 """
 
 import argparse
+import importlib
 import os
 import os.path
 import pprint
@@ -117,8 +118,8 @@ from ect.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
 from ect.version import __version__
 
 # Explicitly load ECT-internal plugins.
-__import__('ect.ds')
-__import__('ect.ops')
+importlib.import_module('ect.ds')
+importlib.import_module('ect.ops')
 
 #: Name of the ECT CLI executable (= ``ect``).
 CLI_NAME = 'ect'
