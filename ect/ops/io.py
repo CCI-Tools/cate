@@ -74,6 +74,13 @@ def save_dataset(ds: xr.Dataset, file: str, format: str = None):
 @op_input('file')
 @op_input('format')
 def read_object(file: str, format: str = None) -> object:
+    """
+    Read a data object from a file.
+
+    :param file: The file path.
+    :param format: Optional format name.
+    :return: The data object.
+    """
     import ect.core.objectio
     obj, _ = ect.core.objectio.read_object(file, format_name=format)
     return obj
@@ -85,6 +92,13 @@ def read_object(file: str, format: str = None) -> object:
 @op_input('file')
 @op_input('format')
 def write_object(obj, file: str, format: str = None):
+    """
+    Read a data object from a file.
+
+    :param file: The file path.
+    :param format: Optional format name.
+    :return: The data object.
+    """
     import ect.core.objectio
     ect.core.objectio.write_object(obj, file, format_name=format)
 
@@ -93,6 +107,13 @@ def write_object(obj, file: str, format: str = None):
 @op_input('file')
 @op_input('encoding')
 def read_text(file: str, encoding: str = None) -> str:
+    """
+    Read a string object from a text file.
+
+    :param file: The text file path.
+    :param encoding: Optional encoding, e.g. "utc-8".
+    :return: The string object.
+    """
     if isinstance(file, str):
         with open(file, 'r', encoding=encoding) as fp:
             return fp.read()
@@ -106,6 +127,13 @@ def read_text(file: str, encoding: str = None) -> str:
 @op_input('file')
 @op_input('encoding')
 def write_text(obj: object, file: str, encoding: str = None):
+    """
+    Write an object as string to a text file.
+
+    :param obj: The data object.
+    :param file: The text file path.
+    :param encoding: Optional encoding, e.g. "utc-8".
+    """
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
             fp.write(str(obj))
@@ -118,6 +146,13 @@ def write_text(obj: object, file: str, encoding: str = None):
 @op_input('file')
 @op_input('encoding')
 def read_json(file: str, encoding: str = None) -> object:
+    """
+    Read a data object from a JSON text file.
+
+    :param file: The JSON file path.
+    :param encoding: Optional encoding, e.g. "utc-8".
+    :return: The data object.
+    """
     if isinstance(file, str):
         with open(file, 'r', encoding=encoding) as fp:
             return json.load(fp)
@@ -131,12 +166,20 @@ def read_json(file: str, encoding: str = None) -> object:
 @op_input('encoding')
 @op_input('indent')
 @op_input('separators')
-def write_json(obj: object, file: str, encoding: str = None, indent: str = None, separators: str = None):
+def write_json(obj: object, file: str, encoding: str = None, indent: str = None):
+    """
+    Write a data object to a JSON text file. Note that the data object must be JSON-serializable.
+
+    :param obj: A JSON-serializable data object.
+    :param file: The JSON file path.
+    :param encoding: Optional encoding, e.g. "utf-8".
+    :param indent: indent used in the file, e.g. "  " (two spaces).
+    """
     if isinstance(file, str):
         with open(file, 'w', encoding=encoding) as fp:
-            json.dump(obj, fp, indent=indent, separators=separators)
+            json.dump(obj, fp, indent=indent)
     else:
-        return json.dump(obj, file, indent=indent, separators=separators)
+        return json.dump(obj, file, indent=indent)
 
 
 @op(tags=['input'])
@@ -147,6 +190,15 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None,
 @op_input('engine')
 def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, decode_times: bool = True,
                 engine: str = None) -> xr.Dataset:
+    """
+    Read a dataset from a netCDF 3/4 or HDF file.
+
+    :param file: The netCDF file path.
+    :param drop_variables: List of variables to be dropped.
+    :param decode_cf: Whether to decode CF attributes and coordinate variables.
+    :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
+    :param engine: Optional netCDF engine name.
+    """
     return xr.open_dataset(file, drop_variables=drop_variables,
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
 
@@ -156,6 +208,13 @@ def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, d
 @op_input('file')
 @op_input('engine')
 def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
+    """
+    Write a data object to a netCDF 3 file. Note that the data object must be netCDF-serializable.
+
+    :param obj: A netCDF-serializable data object.
+    :param file: The netCDF file path.
+    :param engine: Optional netCDF engine to be used
+    """
     obj.to_netcdf(file, format='NETCDF3_64BIT', engine=engine)
 
 
@@ -164,6 +223,13 @@ def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
 @op_input('file')
 @op_input('engine')
 def write_netcdf4(obj: xr.Dataset, file: str, engine: str = None):
+    """
+    Write a data object to a netCDF 4 file. Note that the data object must be netCDF-serializable.
+
+    :param obj: A netCDF-serializable data object.
+    :param file: The netCDF file path.
+    :param engine: Optional netCDF engine to be used
+    """
     obj.to_netcdf(file, format='NETCDF4', engine=engine)
 
 
