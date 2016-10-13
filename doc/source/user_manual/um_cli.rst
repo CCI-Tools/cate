@@ -2,6 +2,9 @@
 Command-Line Interface
 ======================
 
+Overview
+========
+
 The CCI Toolbox comprises a single command-line executable, which is called ``ect`` and is available after installing
 the CCI Toolbox on your computer. See section :doc:`um_install` for more information. The command-line
 interface allows for accessing local and remote datasets as well as running virtually all CCI Toolbox
@@ -46,16 +49,16 @@ This should output the following usage help:::
 
 ``ect`` uses up to two sub-command levels. Each sub-command has its own set of options and arguments and can display
 help when used with the option ```--help`` or ``-h``. The first sub-command level comprises the following list of
-commands:::
+commands:
 
-* ``ect ds`` :ref:`_cli_ect_ds`
-* ``ect op`` :ref:`_cli_ect_op`
-* ``ect run`` :ref:`_cli_ect_run`
+* :ref:`cli_ect_ds`
+* :ref:`cli_ect_op`
+* :ref:`cli_ect_run`
 
-The following first level sub-commands are used to work interactively with datasets and operations:::
+The following first level sub-commands are used to work interactively with datasets and operations:
 
-* ``ect ws`` :ref:`_cli_ect_ws`
-* ``ect res`` :ref:`_cli_ect_res`
+* :ref:`cli_ect_ws`
+* :ref:`cli_ect_res`
 
 When you encounter any error while using ``ect`` and you want to `report the problem <https://github.com/CCI-Tools/ect-core/issues>`_
 to the development team, we kindly ask you to rerun the command with option ``--traceback`` and include the Python stack
@@ -70,29 +73,29 @@ The following examples shall help you understand the basic concepts behind the v
 Manage datasets
 ---------------
 
-To query all available datasets, type:::
+To query all available datasets, type::
 
     ect ds list
 
-To query all datasets that have ``ozone`` in their name, type:::
+To query all datasets that have ``ozone`` in their name, type::
 
     ect ds list -n ozone
 
-To get more detailed information on a specific dataset, e.g. ``esacci.OZONE.mon.L3...``, type:::
+To get more detailed information on a specific dataset, e.g. ``esacci.OZONE.mon.L3...``, type::
 
     ect ds info esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1
 
-To add a local Dataset from all netCDF files in e.g. ``data/sst_v3`` and name it e.g. ``SSTV3``, type:::
+To add a local Dataset from all netCDF files in e.g. ``data/sst_v3`` and name it e.g. ``SSTV3``, type::
 
     ect ds def SSTV3 data/sst_v3/*.nc
 
-Make sure it is there:::
+Make sure it is there::
 
     ect ds list -n SSTV3
 
 To make a temporal subset ECV dataset locally available, i.e. avoid remote data access during its usage::
 
-    $ ect ds sync esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2006 2007
+    ect ds sync esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2006 2007
 
 The section :doc:`um_config` describes, how to configure the directory where ``ect`` stores such synchronised
 data.
@@ -162,8 +165,8 @@ The following subsections provide detailed information about the ``ect`` command
 
 .. _cli_ect_ds:
 
-Dataset Management
-==================
+``ect ds`` - Dataset Management
+===============================
 
 .. argparse::
    :module: ect.ui.cli
@@ -175,8 +178,8 @@ Dataset Management
 
 .. _cli_ect_op:
 
-Operation Management
-====================
+``ect op`` - Operation Management
+=================================
 
 
 .. argparse::
@@ -187,8 +190,8 @@ Operation Management
 
 .. _cli_ect_run:
 
-Running Operations and Workflows
-================================
+``ect run`` - Running Operations and Workflows
+==============================================
 
 .. argparse::
    :module: ect.ui.cli
@@ -198,8 +201,8 @@ Running Operations and Workflows
 
 .. _cli_ect_ws:
 
-Workspace Management
-====================
+``ect ws``: Workspace Management
+================================
 
 .. argparse::
    :module: ect.ui.cli
@@ -209,8 +212,8 @@ Workspace Management
 
 .. _cli_ect_res:
 
-Workspace Resource Management
-=============================
+``ect res`` - Workspace Resources Management
+============================================
 
 
 .. argparse::

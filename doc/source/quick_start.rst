@@ -3,8 +3,9 @@ Quick Start
 ===========
 
 This section provides a quick start into the CCI Toolbox by demonstrating how a particular climate use case
-is performed using the Toolbox' :doc:`user_manual/um_cli`. Refer to the :doc:`user_manual` for installing
-the CCI Toolbox.
+is performed.
+
+Refer to the :doc:`user_manual` for installing the CCI Toolbox.
 
 The use case describes a climate scientist wishing to analyse potential correlations between the essential
 climate variables (ECV) *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
@@ -16,8 +17,16 @@ climate variables (ECV) *Ozone Mole Content* and *Cloud Coverage* in a certain r
 * Visualisation of time series
 * Correlation analysis, scatter-plot of correlation statistics, saving of image and correlation statistics
 
-Data product ingestion
-----------------------
+
+Using the CLI
+=============
+
+In the following, a demonstration is given how the use case described above is performed using the CCI Toolbox'
+:doc:`user_manual/um_cli`.
+
+-----------------
+Dataset Ingestion
+-----------------
 
 Use ``ds list`` to list available products. You can filter them according to some name.
 
@@ -68,7 +77,8 @@ Open the desired datasets, by providing their name and desired time-span.
     Resource "oz07" set.
 
 
-Dataset variable selection
+--------------------------
+Dataset Variable Selection
 --------------------------
 
 To select particular geophysical quantities to work with, use the ``select_var`` operation together with
@@ -109,7 +119,8 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
    :align: center
 
 
-Co-Register the datasets
+------------------------
+Co-Register the Datasets
 ------------------------
 
 The datasets now have different lat/lon definitions. This can be verified by using ``ect res print``
@@ -218,6 +229,7 @@ To carry out coregistration, use ``ect res set`` again with appropriate operatio
    :align: center
 
 
+-----------------
 Spatial Filtering
 -----------------
 
@@ -256,6 +268,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
    :align: center
 
 
+------------------
 Temporal Filtering
 ------------------
 
@@ -281,7 +294,8 @@ If on Linux, quotes enclosing datetime strings should be additionally escaped:
     Resource "cc_africa_janoct" set.
 
 
-Extract time series
+-------------------
+Extract Time Series
 -------------------
 
 We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` operation.
@@ -300,6 +314,7 @@ We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` 
 
 This creates datasets that contain mean and std variables for both time-series.
 
+----------------
 Time Series Plot
 ----------------
 
@@ -326,10 +341,11 @@ To plot the time-series and save the ``plot_1D`` operation can be used together 
    :align: center
 
 
-Product-Moment Correlation (Pearson)
-------------------------------------
+--------------------------
+Product-Moment Correlation
+--------------------------
 
-To carry out Pearson correlation on the mean time-series, the ``pearson_correlation`` operation can be used.
+To carry out a product-moment correlation on the mean time-series, the ``pearson_correlation`` operation can be used.
 
 .. code-block:: console
 
@@ -380,4 +396,11 @@ of the same lat/lon dimension - corr_coeff and p_value that can then be plotted 
 .. figure:: _static/quick_start/fig8.png
    :scale: 100 %
    :align: center
+
+
+Using the API
+=============
+
+A demonstration of how to apply the CCI Toolbox API to the use case described here is given in a dedicated
+`IPython Notebook <https://github.com/CCI-Tools/ect-core/blob/master/notebooks/ect-uc9.ipynb>`_ on GitHub.
 
