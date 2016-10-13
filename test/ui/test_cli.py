@@ -292,19 +292,7 @@ class DataSourceCommandTest(CliTestCase):
 
     def test_ds(self):
         self.assert_main(['ds'],
-                         expected_stdout="usage: ect ds [-h] COMMAND ...\n"
-                                         "\n"
-                                         "Manage data sources.\n"
-                                         "\n"
-                                         "positional arguments:\n"
-                                         "  COMMAND     One of the following commands. Type \"COMMAND -h\" for help.\n"
-                                         "    list      List all available data sources\n"
-                                         "    sync      Synchronise a remote data source with its local version.\n"
-                                         "    info      Display information about a data source.\n"
-                                         "    def       Define a local data source using a file pattern.\n"
-                                         "\n"
-                                         "optional arguments:\n"
-                                         "  -h, --help  show this help message and exit\n")
+                         expected_stdout=["usage: ect ds [-h] COMMAND ..."])
 
 
 class RunCommandTest(CliTestCase):

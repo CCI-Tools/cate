@@ -428,9 +428,12 @@ class RunCommand(Command):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Run an operation or Workflow file.'
-        return dict(help=help_line,
-                    description='%s Type "ect op list" to list all available operations.' % help_line)
+        return dict(help='Run an operation or Workflow file.',
+                    description='Runs the given operation or Workflow file with the specified operation '
+                                'arguments. Argument values may be constant values or the names of data loaded '
+                                'by the --open or --read options. '
+                                'Type "ect op list" to list all available operations. Type "ect op info" to find out'
+                                'which arguments are supported by a given operation.')
 
     @classmethod
     def configure_parser(cls, parser):
@@ -459,8 +462,7 @@ class RunCommand(Command):
                                  'If FORMAT is not provided, file format is derived from the object '
                                  'type and the PATH\'s filename extensions. If OP returns multiple '
                                  'named output values, NAME is used to identify them. Multiple -w '
-                                 'options may be used in this case. Type "ect write list" to show'
-                                 'list of allowed format names.'
+                                 'options may be used in this case.'
                                  ''.format(formats=', '.join(WRITE_FORMAT_NAMES)))
         parser.add_argument('op_name', metavar='OP',
                             help='Fully qualified operation name or Workflow file. '
@@ -580,8 +582,13 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Manage workspaces.'
-        return dict(help=help_line, description=help_line)
+        return dict(help='Manage workspaces.',
+                    description='Used to create, open, save, modify, and delete workspaces. '
+                                'Workspaces contain named workflow resources, which can be datasets read from data '
+                                'stores, or any other data objects originating from applying operations to datasets '
+                                'and other data objects. The origin of every resource is stored in the workspace\'s '
+                                'workflow description. '
+                                'Type "ect res -h" for more information about workspace resource commands.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -792,8 +799,10 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Manage workspace resources.'
-        return dict(help=help_line, description=help_line)
+        return dict(help='Manage workspace resources.',
+                    description='Used to set, run, open, read, write, plot, etc. workspace resources. '
+                                'All commands expect an opened workspace. '
+                                'Type "ect ws -h" for more information about workspace commands.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -976,8 +985,9 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Manage data operations.'
-        return dict(help=help_line, description=help_line)
+        return dict(help='Manage data operations.',
+                    description='Provides a set of commands to inquire the available operations used to '
+                                'analyse and process climate datasets.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -1044,7 +1054,7 @@ class OperationCommand(SubCommandCommand):
 
 class DataSourceCommand(SubCommandCommand):
     """
-    The ``ds`` command implements various operations w.r.t. data sources.
+    The ``ds`` command implements various operations w.r.t. datasets.
     """
 
     @classmethod
@@ -1053,8 +1063,10 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def parser_kwargs(cls):
-        help_line = 'Manage data sources.'
-        return dict(help=help_line, description=help_line)
+        return dict(help='Manage data sources.',
+                    description='Provides a set of sub-commands used to manage climate data sources. Data sources '
+                                'are used to open local and remote datasets which are input to various analysis and '
+                                'processing operations. Type "ect op -h" to find out more about available operations.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
