@@ -22,7 +22,7 @@ Windows Installer
 When you run the installer on Windows, make sure you un-check **Add Anaconda to my PATH environment variable**.
 Otherwise the Anaconda Python distribution used by the CCI Toolbox would become your system's default Python.
 
-.. figure:: _static/figures/installer-win.png
+.. figure:: ../_static/figures/installer-win.png
    :scale: 100 %
    :align: center
 
