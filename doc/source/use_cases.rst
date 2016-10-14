@@ -203,16 +203,20 @@ School Seminar Glacier
 
 .. _uc_06:
 
+.. _El Niño-Southern Oscillation: https://de.wikipedia.org/wiki/El_Ni%C3%B1o-Southern_Oscillation
+.. _Multivariate ENSO Index: https://en.wikipedia.org/wiki/Multivariate_ENSO_index
+.. _EOF analysis: https://climatedataguide.ucar.edu/climate-data-tools-and-analysis/empirical-orthogonal-function-eof-analysis-and-rotated-eof-analysis
+
 Teleconnection Explorer
 =======================
 
 :User Types:
     * Undergraduate and postgraduate students
 
-:Problem Definition: As part of a project on climatic teleconnection, a student investigates how El Niño-Southern
-    Oscillation (ENSO) relates to monsoon rainfall. A result could be a plot showing the sliding correlation between
-    Indian Summer Monsoon Rainfall (ISMR) and Niño3.4 SST anomalies `[RD-4]`_. A more sophisticated version of this
-    task would be to calculate the Multivariate ENSO Index (MEI, `[RD-5]`_, `[RD-6]`_). Additionally, also the comparison
+:Problem Definition: As part of a project on climatic teleconnection, a student investigates how `El Niño-Southern Oscillation`_
+    (ENSO) relates to monsoon rainfall. A result could be a plot showing the sliding correlation between
+    Indian Summer Monsoon Rainfall (ISMR) and SST anomalies `[RD-4]`_. A more sophisticated version of this
+    task would be to calculate the `Multivariate ENSO Index`_ (MEI, `[RD-5]`_, `[RD-6]`_). Additionally, also the comparison
     of the ENSO index with other CCI datasets (e.g. Cloud, Fire) would be interesting.
 
 :Required Toolbox Features:
@@ -238,7 +242,7 @@ In case of choosing the MEI instead of a solely SST-based index:
       components of the surface wind, sea surface temperature (S), surface air temperature (A), and total cloudiness
       fraction of the sky (C))
     * Geometric adjustments
-    * Index calculation including EOF analysis (incorporated by built-in function, user-supplied plug-in or CLI, API)
+    * Index calculation including `EOF analysis`_ (incorporated by built-in function, user-supplied plug-in or CLI, API)
 
 :Additional Features:
     * Access to and ingestion of additional ESA CCI data (fire, clouds, ocean colour, sea ice)
