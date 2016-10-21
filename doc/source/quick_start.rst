@@ -7,8 +7,7 @@ is performed.
 
 Refer to the :doc:`user_manual` for installing the CCI Toolbox.
 
-The use case describes a climate scientist wishing to analyse potential correlations between the essential
-climate variables (ECV) *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
+The use case describes a climate scientist wishing to analyse potential correlations between the geophysical quantities *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
 :ref:`uc_09`). It requires the toolbox to do the following:
 
 * Access to and ingestion of ESA CCI Ozone and Cloud data (Atmosphere Mole Content of Ozone and Cloud Cover)
