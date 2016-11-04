@@ -3,13 +3,13 @@ from datetime import datetime, date
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
-from ect.core.util import Namespace
-from ect.core.util import UNDEFINED
-from ect.core.util import encode_url_path
-from ect.core.util import extend
-from ect.core.util import object_to_qualified_name, qualified_name_to_object
-from ect.core.util import to_datetime, to_datetime_range
-from ect.core.util import to_list
+from cate.core.util import Namespace
+from cate.core.util import UNDEFINED
+from cate.core.util import encode_url_path
+from cate.core.util import extend
+from cate.core.util import object_to_qualified_name, qualified_name_to_object
+from cate.core.util import to_datetime, to_datetime_range
+from cate.core.util import to_list
 
 
 class UndefinedTest(TestCase):

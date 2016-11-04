@@ -7,13 +7,13 @@ import unittest
 from time import sleep
 from typing import Union, List
 
-from ect.core.ds import DATA_STORE_REGISTRY
-from ect.core.monitor import Monitor
-from ect.core.op import OP_REGISTRY
-from ect.core.util import fetch_std_streams
-from ect.ds.esa_cci_odp import EsaCciOdpDataStore
-from ect.ui import cli
-from ect.ui.wsmanag import FSWorkspaceManager
+from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.monitor import Monitor
+from cate.core.op import OP_REGISTRY
+from cate.core.util import fetch_std_streams
+from cate.ds.esa_cci_odp import EsaCciOdpDataStore
+from cate.ui import cli
+from cate.ui.wsmanag import FSWorkspaceManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
@@ -88,7 +88,7 @@ class CliTest(CliTestCase):
         self.assert_main(['pipo'], expected_status=2, expected_stderr=None)
 
     def test_option_version(self):
-        self.assert_main(['--version'], expected_stdout=['ect '])
+        self.assert_main(['--version'], expected_stdout=['cate '])
 
     def test_option_license(self):
         self.assert_main(['--license'], expected_stdout=['MIT License'])
@@ -123,7 +123,7 @@ class CliTest(CliTestCase):
 
 class WorkspaceCommandTest(CliTestCase):
     def setUp(self):
-        self.remove_tree('.ect-workspace', ignore_errors=False)
+        self.remove_tree('.cate-workspace', ignore_errors=False)
 
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
@@ -132,12 +132,12 @@ class WorkspaceCommandTest(CliTestCase):
 
     def tearDown(self):
         cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
-        self.remove_tree('.ect-workspace', ignore_errors=False)
+        self.remove_tree('.cate-workspace', ignore_errors=False)
 
     def assert_workspace_base_dir(self, base_dir):
         self.assertTrue(os.path.isdir(base_dir))
-        self.assertTrue(os.path.isdir(os.path.join(base_dir, '.ect-workspace')))
-        self.assertTrue(os.path.isfile(os.path.join(base_dir, '.ect-workspace', 'workflow.json')))
+        self.assertTrue(os.path.isdir(os.path.join(base_dir, '.cate-workspace')))
+        self.assertTrue(os.path.isfile(os.path.join(base_dir, '.cate-workspace', 'workflow.json')))
 
     def test_ws_init_arg(self):
         base_dir = 'my_workspace'
@@ -160,7 +160,7 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
         self.assert_main(['ws', 'del', '-y', '-d', base_dir], expected_stdout=['Workspace deleted'])
         self.assert_main(['ws', 'del', '-y', '-d', base_dir],
-                         expected_stderr=['ect ws: error: not a workspace: '],
+                         expected_stderr=['cate ws: error: not a workspace: '],
                          expected_status=1)
         self.remove_tree('my_workspace')
 
@@ -188,7 +188,7 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
                          expected_stdout=['Resource "ds" set.'])
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=['Writing resource "ts"'])
@@ -204,35 +204,35 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', NETCDF_TEST_FILE],
                          expected_stdout=['Resource "ds2" set.'])
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                          '  ds1 = ect.ops.io.read_object('
+                          '  ds1 = cate.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ds2 = ect.ops.io.read_object('
+                          '  ds2 = cate.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ts = ect.ops.timeseries.tseries_mean('
+                          '  ts = cate.ops.timeseries.tseries_mean('
                           'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=
                          ['Workspace resources:',
-                          '  ds1 = ect.ops.io.read_object('
+                          '  ds1 = cate.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ds2 = ect.ops.io.read_object('
+                          '  ds2 = cate.ops.io.read_object('
                           'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ts = ect.ops.timeseries.tseries_mean('
+                          '  ts = cate.ops.timeseries.tseries_mean('
                           'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'ect.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
                           'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
-                             "ect res: error: input 'lat' for operation 'ect.ops.timeseries.tseries_point' "
+                             "cate res: error: input 'lat' for operation 'cate.ops.timeseries.tseries_point' "
                              "must be of type 'float', but got type 'str'"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
@@ -240,16 +240,16 @@ class ResourceCommandTest(CliTestCase):
 
 class OperationCommandTest(CliTestCase):
     def test_op_info(self):
-        self.assert_main(['op', 'info', 'ect.ops.timeseries.tseries_point'],
+        self.assert_main(['op', 'info', 'cate.ops.timeseries.tseries_point'],
                          expected_stdout=['Extract time-series'])
         self.assert_main(['op', 'info', 'foobarbaz'],
                          expected_status=1,
                          expected_stdout='',
-                         expected_stderr=['ect op: error: unknown operation "foobarbaz"'])
+                         expected_stderr=['cate op: error: unknown operation "foobarbaz"'])
         self.assert_main(['op', 'info'],
                          expected_status=2,
                          expected_stdout='',
-                         expected_stderr=["ect op info: error: the following arguments are required: OP"])
+                         expected_stderr=["cate op info: error: the following arguments are required: OP"])
 
     def test_op_list(self):
         self.assert_main(['op', 'list'], expected_stdout=['operations found'])
@@ -292,7 +292,7 @@ class DataSourceCommandTest(CliTestCase):
 
     def test_ds(self):
         self.assert_main(['ds'],
-                         expected_stdout=["usage: ect ds [-h] COMMAND ..."])
+                         expected_stdout=["usage: cate ds [-h] COMMAND ..."])
 
 
 class RunCommandTest(CliTestCase):
@@ -300,13 +300,13 @@ class RunCommandTest(CliTestCase):
         self.assert_main(['run'],
                          expected_status=2,
                          expected_stdout='',
-                         expected_stderr=["ect run: error: the following arguments are required: OP, ..."])
+                         expected_stderr=["cate run: error: the following arguments are required: OP, ..."])
 
     def test_run_foobar(self):
         self.assert_main(['run', 'foobar', 'lat=13.2', 'lon=52.9'],
                          expected_status=1,
                          expected_stdout='',
-                         expected_stderr='ect run: error: unknown operation "foobar"\n')
+                         expected_stderr='cate run: error: unknown operation "foobar"\n')
 
     def test_run_op(self):
         op_reg = OP_REGISTRY.add_op(timeseries, fail_if_exists=True)
@@ -330,7 +330,7 @@ class RunCommandTest(CliTestCase):
             # Run with invalid keyword
             self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'],
                              expected_status=1,
-                             expected_stderr=["ect run: error: 'l*t' is not a valid input name"],
+                             expected_stderr=["cate run: error: 'l*t' is not a valid input name"],
                              expected_stdout='')
 
         finally:

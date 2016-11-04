@@ -2,7 +2,7 @@ from typing import Sequence
 from unittest import TestCase
 
 import xarray as xr
-import ect.core.ds as io
+import cate.core.ds as io
 
 
 class SimpleDataStore(io.DataStore):
@@ -78,7 +78,7 @@ class IOTest(TestCase):
             io.DATA_STORE_REGISTRY._data_stores.clear()
             self.assertEqual(0, len(io.DATA_STORE_REGISTRY))
 
-            from ect.ds.esa_cci_ftp import set_default_data_store as set_default_data_store_ftp
+            from cate.ds.esa_cci_ftp import set_default_data_store as set_default_data_store_ftp
             set_default_data_store_ftp()
             self.assertEqual(1, len(io.DATA_STORE_REGISTRY))
 

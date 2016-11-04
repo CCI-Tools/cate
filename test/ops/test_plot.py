@@ -8,11 +8,11 @@ from unittest import TestCase
 
 import numpy as np
 import xarray as xr
-from ect.ops import plot
+from cate.ops import plot
 
 
-@unittest.skipIf(condition=os.environ.get('ECT_DISABLE_PLOT_TESTS', None),
-                 reason="skipped if ECT_DISABLE_PLOT_TESTS=1")
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
 class TestPlot(TestCase):
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,

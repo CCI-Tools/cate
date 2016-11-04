@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import xarray as xr
-from ect.ops.xarray import sel as sel_op
+from cate.ops.xarray import sel as sel_op
 
 
 def new_ds():

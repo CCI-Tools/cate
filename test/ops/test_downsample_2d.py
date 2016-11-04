@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-import ect.ops.resampling as rs
+import cate.ops.resampling as rs
 
 NAN = np.nan
 

@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from ect.core.monitor import Monitor, ChildMonitor, ConsoleMonitor
-from ect.core.util import fetch_std_streams
+from cate.core.monitor import Monitor, ChildMonitor, ConsoleMonitor
+from cate.core.util import fetch_std_streams
 
 
 class NullMonitorTest(TestCase):

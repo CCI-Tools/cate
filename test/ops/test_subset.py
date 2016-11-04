@@ -6,7 +6,7 @@ from unittest import TestCase
 import xarray as xr
 import numpy as np
 
-from ect.ops import subset
+from cate.ops import subset
 
 
 class TestSubset(TestCase):

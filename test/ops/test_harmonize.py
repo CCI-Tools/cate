@@ -5,7 +5,7 @@ Test for the harmonization operation
 from unittest import TestCase
 import xarray as xr
 
-from ect.ops.harmonize import harmonize
+from cate.ops.harmonize import harmonize
 
 
 class TestHarmonize(TestCase):

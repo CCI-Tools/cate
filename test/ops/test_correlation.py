@@ -7,7 +7,7 @@ import xarray as xr
 import numpy as np
 import os
 
-from ect.ops.correlation import pearson_correlation
+from cate.ops.correlation import pearson_correlation
 
 
 class TestCorrelation(TestCase):

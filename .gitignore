@@ -56,5 +56,5 @@ doc/build/
 # Other files created by tests or so
 test_workflow_svg.html
 
-# ECT workspace
-.ect-workspace
+# Cate workspace
+.cate-workspace

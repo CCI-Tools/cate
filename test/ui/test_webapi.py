@@ -5,8 +5,8 @@ import shutil
 import unittest
 import urllib.parse
 
-from ect.core.util import encode_url_path
-from ect.ui import webapi
+from cate.core.util import encode_url_path
+from cate.ui import webapi
 from tornado.testing import AsyncHTTPTestCase
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
@@ -14,7 +14,7 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
 # For usage of the tornado.testing.AsyncHTTPTestCase see http://www.tornadoweb.org/en/stable/testing.html
 
-@unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPITest(AsyncHTTPTestCase):
     def get_app(self):
         return webapi.get_application()
@@ -49,7 +49,7 @@ class WebAPITest(AsyncHTTPTestCase):
 
         file_path = NETCDF_TEST_FILE
         op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
-        data = dict(op_name='ect.ops.io.read_netcdf', op_args=json.dumps(op_args))
+        data = dict(op_name='cate.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
         url = encode_url_path('/ws/res/set/{base_dir}/{res_name}',
                               path_args=dict(base_dir=os.path.abspath(base_dir),
@@ -86,11 +86,11 @@ class IsServiceCompatibleTest(unittest.TestCase):
         self.assertTrue(webapi.is_service_compatible(8675, None, None,
                                                      service_info=dict(port=8675, address='bibo', caller=None)))
         self.assertTrue(webapi.is_service_compatible(8675, None, None,
-                                                     service_info=dict(port=8675, address='bibo', caller='ect-gui')))
+                                                     service_info=dict(port=8675, address='bibo', caller='cate-gui')))
         self.assertTrue(webapi.is_service_compatible(8675, None, None,
-                                                     service_info=dict(port=8675, address=None, caller='ect-gui')))
-        self.assertTrue(webapi.is_service_compatible(8675, None, 'ect',
-                                                     service_info=dict(port=8675, address=None, caller='ect')))
+                                                     service_info=dict(port=8675, address=None, caller='cate-gui')))
+        self.assertTrue(webapi.is_service_compatible(8675, None, 'cate',
+                                                     service_info=dict(port=8675, address=None, caller='cate')))
 
     def test_is_service_compatible_false(self):
         self.assertFalse(webapi.is_service_compatible(None, None, None,
@@ -99,8 +99,8 @@ class IsServiceCompatibleTest(unittest.TestCase):
                                                       service_info=dict(port=None, address=None, caller=None)))
         self.assertFalse(webapi.is_service_compatible(7684, None, None,
                                                       service_info=dict(port=7685, address=None, caller=None)))
-        self.assertFalse(webapi.is_service_compatible(7684, None, 'ect',
-                                                      service_info=dict(port=7684, address=None, caller='ect-gui')))
+        self.assertFalse(webapi.is_service_compatible(7684, None, 'cate',
+                                                      service_info=dict(port=7684, address=None, caller='cate-gui')))
 
 
 class UrlPatternTest(unittest.TestCase):

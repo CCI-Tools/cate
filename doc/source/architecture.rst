@@ -67,49 +67,49 @@ one software installation on the user's computer.
 
 The CCI Toolbox Core comprises four main packages of which are described in the following four sections.
 
-.. _ect_core:
+.. _cate_core:
 
-Package ``ect.core``
+Package ``cate.core``
 --------------------
 
-The Python package ``ect.core`` is the heart of the CCI Toolbox architecture. It provides a common framework for
+The Python package ``cate.core`` is the heart of the CCI Toolbox architecture. It provides a common framework for
 climate data I/O and processing and defines the user API. Although designed for climate tooling and use with climate
-data the framework and API is more or less application-independent. ``ect.core`` has no dependency on the other
-CCI Toolbox packages ``ect.ds``, ``ect.ops``, and ``ect.ui``.
+data the framework and API is more or less application-independent. ``cate.core`` has no dependency on the other
+CCI Toolbox packages ``cate.ds``, ``cate.ops``, and ``cate.ui``.
 
-The ``ect.core`` package
+The ``cate.core`` package
 
 * defines the CCI Toolbox' common data model
 * provides the means to read climate data and represent it in the common data model
 * provides the means to process / transform data in the common data model
 * to write data from the common data model to some external representation
 
-As a framework, ``ect.core`` allows plugins to extend the CCI Toolbox capabilities. The most interesting extension
+As a framework, ``cate.core`` allows plugins to extend the CCI Toolbox capabilities. The most interesting extension
 points are
 
 * climate data stores that will be added to the global data store registry
 * climate data visualisation, processing, analysis operations that will be added to the global operations registry
 
-The ``ect.core`` packages comprises the essential modules which described in more detail in the following sub-sections:
+The ``cate.core`` packages comprises the essential modules which described in more detail in the following sub-sections:
 
 * module ``ds`` - :ref:`ds`
 * module ``op`` - :ref:`op`
 * module ``workflow`` - :ref:`workflow`
 * module ``objectio`` - :ref:`objectio`
 
-There are some utility modules included in ``ect.core`` not included in :numref:`uml_modules` but nevertheless
+There are some utility modules included in ``cate.core`` not included in :numref:`uml_modules` but nevertheless
 they provide important parts of the API:
 
 * module ``monitor`` - :ref:`monitor`
 * module ``plugin`` - :ref:`plugin`
 * module ``util`` - Common utility functions
 
-.. _ect_ds:
+.. _cate_ds:
 
-Package ``ect.ds``
+Package ``cate.ds``
 ------------------
 
-The Python package ``ect.ds`` contains specific climate data stores (=ds). Every module in this package is
+The Python package ``cate.ds`` contains specific climate data stores (=ds). Every module in this package is
 dedicated to a specific data store.
 
 
@@ -120,17 +120,17 @@ dedicated to a specific data store.
   FTP service of the ESA CCI Open Data Portal. This data store is now deprecated in favour of the
   ESGF service.
 
-The package ``ect.ds`` is a *plugin* package. The modules in ``ect.ds`` are activated during installation
-and their data sources are registered once the module is imported. In fact, no module in package ``ect.core``
-has any knowledge about the package ``ect.ds`` and users never deal with its modules directly.
-Instead, all registered data stores are accessible through the ``ect.core.ds.DATA_STORE_REGISTRY`` singleton.
+The package ``cate.ds`` is a *plugin* package. The modules in ``cate.ds`` are activated during installation
+and their data sources are registered once the module is imported. In fact, no module in package ``cate.core``
+has any knowledge about the package ``cate.ds`` and users never deal with its modules directly.
+Instead, all registered data stores are accessible through the ``cate.core.ds.DATA_STORE_REGISTRY`` singleton.
 
-.. _ect_ops:
+.. _cate_ops:
 
-Package ``ect.ops``
+Package ``cate.ops``
 -------------------
 
-The Python package ``ect.ops`` contains (climate-)specific visualisation, processing and analysis functions.
+The Python package ``cate.ops`` contains (climate-)specific visualisation, processing and analysis functions.
 Every module in this package is dedicated to a specific operation implementation.
 For example the ``timeseries`` module provides an operation that can be used to extract time series from
 datasets. Section :ref:`op` describes the registration, lookup, and invocation of operations,
@@ -138,16 +138,16 @@ section :ref:`workflow` describes how an operation can become part of a workflow
 
 The chapter :doc:`op_specs` provides abstract descriptions of the individual operations in this package.
 
-Similar to ``ect.ds``, the package ``ect.ops`` is a *plugin* package, only loaded if requested, and no module in
-package ``ect.core`` has any knowledge about the package ``ect.ops``.
+Similar to ``cate.ds``, the package ``cate.ops`` is a *plugin* package, only loaded if requested, and no module in
+package ``cate.core`` has any knowledge about the package ``cate.ops``.
 
 
-.. _ect_ui:
+.. _cate_ui:
 
-Package ``ect.ui``
+Package ``cate.ui``
 ------------------
 
-The package ``ect.ui`` comprises the ``cli`` module, the CCI Toolbox' command-line interface, and ``webapi`` module,
+The package ``cate.ui`` comprises the ``cli`` module, the CCI Toolbox' command-line interface, and ``webapi`` module,
 which implements a RESTful web service that offers the Web API for the CCI Toolbox Desktop GUI and the interactive
 commands provided by the command-line interface.
 
@@ -423,7 +423,7 @@ of passing ``None`` into methods that don't require monitoring but expect a non-
 Command-Line Interface
 ======================
 
-The primary user interface of the CCI Toolbox Core is a command-line interface (CLI) executable named ``ect``.
+The primary user interface of the CCI Toolbox Core is a command-line interface (CLI) executable named ``cate``.
 
 The CLI can be used to list available data sources and to synchronise subsets of remote data store contents on the
 user's computer to make them available to the CCI Toolbox. It also allows for listing available operations as well
@@ -460,10 +460,10 @@ Plugin Concept
 A CCI Toolbox *plugin* is actually any Python module that extend one of the registry singletons introduced in the
 previous sections:
 
-* Add a new ``ect.core.ds.DataStore`` object to ``ect.core.ds.DATA_STORE_REGISTRY``
-* Add a new ``ect.core.op.OpRegistration`` object to ``ect.core.op.OP_REGISTRY``
-* Add a new ``ect.core.objectio.ObjectIO`` object to ``ect.core.objectio.OBJECT_IO_REGISTRY``
-* Add a new ``ect.ui.cli.Command`` object to ``ect.ui.cli.COMMAND_REGISTRY``
+* Add a new ``cate.core.ds.DataStore`` object to ``cate.core.ds.DATA_STORE_REGISTRY``
+* Add a new ``cate.core.op.OpRegistration`` object to ``cate.core.op.OP_REGISTRY``
+* Add a new ``cate.core.objectio.ObjectIO`` object to ``cate.core.objectio.OBJECT_IO_REGISTRY``
+* Add a new ``cate.ui.cli.Command`` object to ``cate.ui.cli.COMMAND_REGISTRY``
 
 It could also be a Python module that modifies or extends existing CCI Toolbox types by performing some
 controlled *monkey patching*.
@@ -476,29 +476,29 @@ controlled *monkey patching*.
 
    The ``plugin`` module
 
-The CCI Toolbox will call any plugin functions that are registered with the ``ect_plugins`` entry point
+The CCI Toolbox will call any plugin functions that are registered with the ``cate_plugins`` entry point
 of the standard Python ``setuptools`` module. These entry points can be easily provided in the plugin's
 ``setup.py`` file. The value of each entry point must be a no-arg initialisation function, which is
 called by the CCI Toolbox at given time. After successful initialisation the plugin is registered
 in the ``PLUGIN_REGISTRY`` singleton.
 
-In fact the ``ect.ds`` and ``ect.ops`` packages of the CCI Toolbox Core are such plugins registered
+In fact the ``cate.ds`` and ``cate.ops`` packages of the CCI Toolbox Core are such plugins registered
 with the same entry point::
 
    setup(
-       name="ect-core",
+       name="cate-core",
        version=__version__,
        description='ESA CCI Toolbox Core',
        license='MIT',
        author='ESA CCI Toolbox Development Team',
-       packages=['ect'],
+       packages=['cate'],
        entry_points={
            'console_scripts': [
-               'ect = ect.ui.cli:main',
+               'cate = cate.ui.cli:main',
            ],
-           'ect_plugins': [
-               'ect_ops = ect.ops:ect_init',
-               'ect_ds = ect.ds:ect_init',
+           'cate_plugins': [
+               'cate_ops = cate.ops:cate_init',
+               'cate_ds = cate.ds:cate_init',
            ],
        },
        ...

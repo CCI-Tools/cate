@@ -32,16 +32,16 @@ abstract class ObjectIO {
     write(obj, file_path)
 }
 
-class ect.ops.io.TextObjectIO extends ObjectIO {
+class cate.ops.io.TextObjectIO extends ObjectIO {
 }
 
-class ect.ops.io.JsonObjectIO extends ObjectIO {
+class cate.ops.io.JsonObjectIO extends ObjectIO {
 }
 
-class ect.ops.io.Netcdf4ObjectIO extends ObjectIO {
+class cate.ops.io.Netcdf4ObjectIO extends ObjectIO {
 }
 
-class ect.ops.io.Netcdf3ObjectIO extends ObjectIO {
+class cate.ops.io.Netcdf3ObjectIO extends ObjectIO {
 }
 
 

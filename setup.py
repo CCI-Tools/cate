@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # The MIT License (MIT)
-# Copyright (c) 2016 by the ECT Development Team and contributors
+# Copyright (c) 2016 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -26,27 +26,27 @@ from setuptools import setup, find_packages
 
 packages = find_packages(exclude=["test", "test.*"])
 
-# Same effect as "from ect import __version__", but avoids importing ect:
+# Same effect as "from cate import __version__", but avoids importing cate:
 __version__ = None
-with open('ect/version.py') as f:
+with open('cate/version.py') as f:
     exec(f.read())
 
 setup(
-    name="ect-core",
+    name="cate-core",
     version=__version__,
-    description='ESA CCI Toolbox Python Core',
+    description='ESA CCI Toolbox (Cate) Python Core',
     license='MIT',
-    author='ESA CCI Toolbox Development Team',
+    author='Cate Development Team',
     packages=packages,
-    data_files=[('ect/ds', ['ect/ds/esa_cci_ftp.json'])],
+    data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
     entry_points={
         'console_scripts': [
-            'ect = ect.ui.cli:main',
-            'ect-webapi = ect.ui.webapi:main',
+            'cate = cate.ui.cli:main',
+            'cate-webapi = cate.ui.webapi:main',
         ],
-        'ect_plugins': [
-            'ect_ops = ect.ops:ect_init',
-            'ect_ds = ect.ds:ect_init',
+        'cate_plugins': [
+            'cate_ops = cate.ops:cate_init',
+            'cate_ds = cate.ds:cate_init',
         ],
     },
     install_requires=[

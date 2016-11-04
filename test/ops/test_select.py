@@ -1,7 +1,7 @@
 from unittest import TestCase
 import xarray as xr
 
-from ect.ops.select import select_var
+from cate.ops.select import select_var
 
 
 class TestSelect(TestCase):

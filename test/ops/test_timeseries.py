@@ -7,7 +7,7 @@ from unittest import TestCase
 import numpy as np
 import xarray as xr
 
-from ect.ops.timeseries import tseries_point, tseries_mean
+from cate.ops.timeseries import tseries_point, tseries_mean
 
 
 class TimeSeriesTest(TestCase):

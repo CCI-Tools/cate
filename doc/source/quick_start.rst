@@ -31,7 +31,7 @@ Use ``ds list`` to list available products. You can filter them according to som
 
 .. code-block:: console
 
-    $ ect ds list -n ozone
+    $ cate ds list -n ozone
     3 data sources found
        1: esacci.OZONE.day.L3S.TC.GOME-2.Metop-A.MERGED.fv0100.r1
        2: esacci.OZONE.day.L3S.TC.GOME.ERS-2.MERGED.fv0100.r1
@@ -39,7 +39,7 @@ Use ``ds list`` to list available products. You can filter them according to som
 
 .. code-block:: console
 
-    $ ect ds list -n cloud
+    $ cate ds list -n cloud
     14 data sources found
        1: esacci.CLOUD.day.L3U.CLD_PRODUCTS.AVHRR.NOAA-15.AVHRR_NOAA.1-0.r1
        2: esacci.CLOUD.day.L3U.CLD_PRODUCTS.AVHRR.NOAA-16.AVHRR_NOAA.1-0.r1
@@ -60,19 +60,19 @@ Create a new workspace.
 
 .. code-block:: console
 
-    $ ect ws new
+    $ cate ws new
     Workspace created.
 
 Open the desired datasets, by providing their name and desired time-span.
 
 .. code-block:: console
 
-    $ ect res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1 2007-01-01 2007-12-30
+    $ cate res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1 2007-01-01 2007-12-30
     Resource "cl07" set.
 
 .. code-block:: console
 
-    $ ect res open oz07 esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2007-01-01 2007-12-30
+    $ cate res open oz07 esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2007-01-01 2007-12-30
     Resource "oz07" set.
 
 
@@ -81,17 +81,17 @@ Dataset Variable Selection
 --------------------------
 
 To select particular geophysical quantities to work with, use the ``select_var`` operation together with
-``ect res set`` command:
+``cate res set`` command:
 
 .. code-block:: console
 
-    $ ect res set cc_tot select_var ds=cl07 var=cc_total
+    $ cate res set cc_tot select_var ds=cl07 var=cc_total
     Executing 2 workflow step(s): done
     Resource "cc_tot" set.
 
 .. code-block:: console
 
-    $ ect res set oz_tot select_var ds=oz07 var=O3_du_tot
+    $ cate res set oz_tot select_var ds=oz07 var=O3_du_tot
     Executing 2 workflow step(s): done
     Resource "oz_tot" set.
 
@@ -99,7 +99,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=cc_tot var=cc_total file=fig1.png
+    $ cate ws run plot_map ds=cc_tot var=cc_total file=fig1.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -109,7 +109,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=oz_tot var=O3_du_tot file=fig2.png
+    $ cate ws run plot_map ds=oz_tot var=O3_du_tot file=fig2.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -122,11 +122,11 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
 Co-Register the Datasets
 ------------------------
 
-The datasets now have different lat/lon definitions. This can be verified by using ``ect res print``
+The datasets now have different lat/lon definitions. This can be verified by using ``cate res print``
 
 .. code-block:: console
 
-    $ ect res print cc_tot
+    $ cate res print cc_tot
     <xarray.Dataset>
     Dimensions:       (hist_cot: 7, hist_cot_bin: 6, hist_ctp: 8, hist_ctp_bin: 7, hist_phase: 2, lat: 360, lon: 720, time: 12)
     Coordinates:
@@ -143,7 +143,7 @@ The datasets now have different lat/lon definitions. This can be verified by usi
 
 .. code-block:: console
 
-    $ ect res print oz_tot
+    $ cate res print oz_tot
     <xarray.Dataset>
     Dimensions:       (air_pressure: 17, lat: 180, layers: 16, lon: 360, time: 12)
     Coordinates:
@@ -157,19 +157,19 @@ The datasets now have different lat/lon definitions. This can be verified by usi
 
 .. code-block:: console
 
-    $ ect op list --tag geom
+    $ cate op list --tag geom
     2 operations found
        1: coregister
        2: subset_spatial
 
 will list all commands that have a tag that matches '\*geom\*'.
-To find out more about a particular operation, use ``ect op info``
+To find out more about a particular operation, use ``cate op info``
 
 .. code-block:: console
 
-    $ ect op info coregister
+    $ cate op info coregister
 
-    Operation ect.ops.coregistration.coregister
+    Operation cate.ops.coregistration.coregister
     ===========================================
 
     Perform coregistration of two datasets by resampling the slave dataset unto the
@@ -209,17 +209,17 @@ To find out more about a particular operation, use ``ect op info``
       return (Dataset)
           The slave dataset resampled on the grid of the master
 
-To carry out coregistration, use ``ect res set`` again with appropriate operation parameters
+To carry out coregistration, use ``cate res set`` again with appropriate operation parameters
 
 .. code-block:: console
 
-    $ ect res set cc_tot_res coregister ds_master=oz_tot ds_slave=cc_tot
+    $ cate res set cc_tot_res coregister ds_master=oz_tot ds_slave=cc_tot
     Executing 5 workflow step(s): done
     Resource "cc_tot_res" set.
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=cc_tot_res var=cc_total file=fig3.png
+    $ cate ws run plot_map ds=cc_tot_res var=cc_total file=fig3.png
     Running operation 'plot_map': Executing 5 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -236,19 +236,19 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ ect res set oz_africa subset_spatial ds=oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set oz_africa subset_spatial ds=oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
     Executing 3 workflow step(s): done
     Resource "oz_africa" set.
 
 .. code-block:: console
 
-    $ ect res set cc_africa subset_spatial ds=cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set cc_africa subset_spatial ds=cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
     Executing 6 workflow step(s): done
     Resource "cc_africa" set.
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=cc_africa var=cc_total file=fig4.png
+    $ cate ws run plot_map ds=cc_africa var=cc_total file=fig4.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -258,7 +258,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
+    $ cate ws run plot_map ds=cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -275,20 +275,20 @@ To further filter the datasets to contain only a particular time-span, use ``sub
 
 .. code-block:: console
 
-    $ ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min='2007-01-01' time_max='2007-10-30'
-    $ ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min='2007-01-01' time_max='2007-10-30'
+    $ cate res set oz_africa_janoct subset_temporal ds=oz_africa time_min='2007-01-01' time_max='2007-10-30'
+    $ cate res set cc_africa_janoct subset_temporal ds=cc_africa time_min='2007-01-01' time_max='2007-10-30'
 
 If on Linux, quotes enclosing datetime strings should be additionally escaped:
 
 .. code-block:: console
 
-    $ ect res set oz_africa_janoct subset_temporal ds=oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
+    $ cate res set oz_africa_janoct subset_temporal ds=oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
     Executing 4 workflow step(s): done
     Resource "oz_africa_janoct" set.
 
 .. code-block:: console
 
-    $ ect res set cc_africa_janoct subset_temporal ds=cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
+    $ cate res set cc_africa_janoct subset_temporal ds=cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
     Executing 7 workflow step(s): done
     Resource "cc_africa_janoct" set.
 
@@ -301,13 +301,13 @@ We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` 
 
 .. code-block:: console
 
-    $ ect res set cc_africa_ts tseries_mean ds=cc_africa_janoct var=cc_total
+    $ cate res set cc_africa_ts tseries_mean ds=cc_africa_janoct var=cc_total
     Executing 8 workflow step(s): done
     Resource "cc_africa_ts" set.
 
 .. code-block:: console
 
-    $ ect res set oz_africa_ts tseries_mean ds=oz_africa_janoct var=O3_du_tot
+    $ cate res set oz_africa_ts tseries_mean ds=oz_africa_janoct var=O3_du_tot
     Executing 5 workflow step(s): done
     Resource "oz_africa_ts" set.
 
@@ -317,11 +317,11 @@ This creates datasets that contain mean and std variables for both time-series.
 Time Series Plot
 ----------------
 
-To plot the time-series and save the ``plot_1D`` operation can be used together with ``ect ws run`` operation:
+To plot the time-series and save the ``plot_1D`` operation can be used together with ``cate ws run`` operation:
 
 .. code-block:: console
 
-    $ ect ws run plot_1D ds=cc_africa_ts var=cc_total file=fig6.png
+    $ cate ws run plot_1D ds=cc_africa_ts var=cc_total file=fig6.png
     Running operation 'plot_1D': Executing 11 workflow step(s)
     Operation 'plot_1D' executed.
 
@@ -331,7 +331,7 @@ To plot the time-series and save the ``plot_1D`` operation can be used together 
 
 .. code-block:: console
 
-    $ ect ws run plot_1D ds=oz_africa_ts var=O3_du_tot file=fig7.png
+    $ cate ws run plot_1D ds=oz_africa_ts var=O3_du_tot file=fig7.png
     Running operation 'plot_1D': Executing 11 workflow step(s)
     Operation 'plot_1D' executed.
 
@@ -348,23 +348,23 @@ To carry out a product-moment correlation on the mean time-series, the ``pearson
 
 .. code-block:: console
 
-    $ ect op list --tag correlation
+    $ cate op list --tag correlation
     One operation found
        1: pearson_correlation
 
 .. code-block:: console
 
-    $ ect res set pearson pearson_correlation ds_y=cc_africa_ts ds_x=oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
+    $ cate res set pearson pearson_correlation ds_y=cc_africa_ts ds_x=oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
     Executing 12 workflow step(s): done
     Resource "pearson" set.
 
 
 This will calculate the correlation coefficient along with the associated p_value for both mean time-series,
-as well as save the information in the given file. We can view the result using ``ect res print``:
+as well as save the information in the given file. We can view the result using ``cate res print``:
 
 .. code-block:: console
 
-    $ ect res print pearson
+    $ cate res print pearson
     <xarray.Dataset>
     Dimensions:    ()
     Coordinates:
@@ -373,7 +373,7 @@ as well as save the information in the given file. We can view the result using 
         corr_coef  float64 -0.2924
         p_value    float64 0.4123
     Attributes:
-        ECT_Description: Correlation between cc_total O3_du_tot
+        Cate_Description: Correlation between cc_total O3_du_tot
 
 If both variables provided to the pearson_correlation operation have time/lat/lon dimensions
 and the lat/lon definition is the same, a pixel by pixel correlation will be carried out
@@ -382,13 +382,13 @@ of the same lat/lon dimension - corr_coeff and p_value that can then be plotted 
 
 .. code-block:: console
 
-    $ ect res set pearson_map pearson_correlation ds_y=cc_africa_janoct ds_x=oz_africa_janoct var_y=cc_total var_x=O3_du_tot
+    $ cate res set pearson_map pearson_correlation ds_y=cc_africa_janoct ds_x=oz_africa_janoct var_y=cc_total var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
 
 .. code-block:: console
 
-    $ ect ws run plot_map ds=pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
+    $ cate ws run plot_map ds=pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
     Running operation 'plot_map': Executing 13 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -401,5 +401,5 @@ Using the API
 =============
 
 A demonstration of how to apply the CCI Toolbox API to the use case described here is given in a dedicated
-`IPython Notebook <https://github.com/CCI-Tools/ect-core/blob/master/notebooks/ect-uc9.ipynb>`_ on GitHub.
+`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc9.ipynb>`_ on GitHub.
 

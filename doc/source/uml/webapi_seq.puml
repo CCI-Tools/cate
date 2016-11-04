@@ -1,6 +1,6 @@
 @startuml
 
-title ECT Frontend/Backend communication using the "React" state transition model
+title Cate Frontend/Backend communication using the "React" state transition model
 
 actor User
 

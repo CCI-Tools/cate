@@ -1,4 +1,4 @@
-.. ECT documentation master file
+.. Cate documentation master file
 
 =============================
 ESA CCI Toolbox Documentation

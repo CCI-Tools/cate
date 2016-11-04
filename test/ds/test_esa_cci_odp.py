@@ -3,11 +3,11 @@ import os
 import os.path
 import unittest
 
-from ect.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
+from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
 
 
 @unittest.skip(reason='Because it writes a lot of files')
-# @unittest.skipUnless(condition=os.environ.get('ECT_ODP_TEST', None), reason="skipped unless ECT_ODP_TEST=1")
+# @unittest.skipUnless(condition=os.environ.get('CATE_ODP_TEST', None), reason="skipped unless CATE_ODP_TEST=1")
 class EsaCciOdpDataStoreIndexCacheTest(unittest.TestCase):
     def test_index_cache(self):
         self.data_store = EsaCciOdpDataStore(index_cache_used=True, index_cache_expiration_days=1.0e-6)

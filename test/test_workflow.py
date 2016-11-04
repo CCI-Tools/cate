@@ -3,9 +3,9 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.op import op_input, op_output, OpRegistration, OpMetaInfo
-from ect.core.util import object_to_qualified_name
-from ect.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
+from cate.core.op import op_input, op_output, OpRegistration, OpMetaInfo
+from cate.core.util import object_to_qualified_name
+from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
 
 
 @op_input('x')
@@ -517,7 +517,7 @@ class WorkflowStepTest(TestCase):
         step.input.p.source = workflow.input.x
         workflow.output.y.source = step.output.q
 
-        from ect.core.workflow import ValueCache
+        from cate.core.workflow import ValueCache
         value_cache = ValueCache()
         workflow.input.x.value = 4
         workflow.invoke(value_cache=value_cache)

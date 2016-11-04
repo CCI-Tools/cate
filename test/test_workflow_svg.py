@@ -1,11 +1,11 @@
 from unittest import TestCase
 
-from ect.core.workflow_svg import Drawing, Graph
+from cate.core.workflow_svg import Drawing, Graph
 
 
 class WorkflowSvgTest(TestCase):
     def test_routing(self):
-        from ect.core.workflow import Workflow
+        from cate.core.workflow import Workflow
         import os.path
         workflow = Workflow.load(os.path.join(os.path.dirname(__file__), 'workflows', 'four_steps_chain.json'))
 

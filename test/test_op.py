@@ -2,9 +2,9 @@ import json
 from collections import OrderedDict
 from unittest import TestCase
 
-from ect.core.monitor import Monitor
-from ect.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
-from ect.core.util import object_to_qualified_name
+from cate.core.monitor import Monitor
+from cate.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
+from cate.core.util import object_to_qualified_name
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME

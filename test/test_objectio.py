@@ -4,9 +4,9 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 import xarray as xr
-from ect.core.objectio import OBJECT_IO_REGISTRY, read_object, write_object
+from cate.core.objectio import OBJECT_IO_REGISTRY, read_object, write_object
 
-__import__('ect.ops.io')
+__import__('cate.ops.io')
 
 
 class WriterRegistryTest(TestCase):

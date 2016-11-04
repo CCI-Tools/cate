@@ -6,7 +6,7 @@ Using the Installers
 ====================
 
 Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
-`release page <https://github.com/CCI-Tools/ect-core/releases>`_ on GitHub.
+`release page <https://github.com/CCI-Tools/cate-core/releases>`_ on GitHub.
 
 The installers are self-contained, so there is no need to install additional software to run the
 CCI Toolbox.
@@ -36,20 +36,20 @@ On Linux/Darwin systems, the downloaded installer is a shell script. To run it, 
 .. code-block:: console
 
     $ cd ~/Downloads
-    $ ./ect-0.5.0-Linux-x86_64.sh
+    $ ./cate-0.5.0-Linux-x86_64.sh
 
 If the installer script is not yet executable, type:
 
 .. code-block:: console
 
-    $ chmod +x ect-0.5.0-Linux-x86_64.sh
+    $ chmod +x cate-0.5.0-Linux-x86_64.sh
 
-By default, the installer will install the CCI Toolbox into ``~/ect``. If you want it in another location, use the
+By default, the installer will install the CCI Toolbox into ``~/cate``. If you want it in another location, use the
 ``-p`` (=prefix) option, e.g.
 
 .. code-block:: console
 
-    $ ./ect-0.5.0-Linux-x86_64.sh -p cci-toolbox
+    $ ./cate-0.5.0-Linux-x86_64.sh -p cci-toolbox
 
 Use the ``-h`` option to display other install options.
 
@@ -59,5 +59,5 @@ Installing from Sources
 
 If you are a developer you may wish to build and install the CCI Toolbox from Python sources.
 In this case, please follow the instructions given in the project's
-`README <https://github.com/CCI-Tools/ect-core/blob/master/README.md>`_ on GitHub.
+`README <https://github.com/CCI-Tools/cate-core/blob/master/README.md>`_ on GitHub.
 

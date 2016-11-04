@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-import ect.ops.resampling as rs
+import cate.ops.resampling as rs
 
 
 def _test_resample_2d(src, out_w, out_h, ds_method, us_method, desired_out):

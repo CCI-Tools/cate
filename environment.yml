@@ -1,4 +1,4 @@
-name: ect-docs
+name: cate-docs
 channels:
   - defaults
   - conda-forge

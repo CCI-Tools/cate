@@ -28,14 +28,14 @@
   "output": {
     "return": {
       "source": "step_filter.return",
-      "data_type": "ect.Dataset",
+      "data_type": "cate.Dataset",
       "description": "A new dataset that just contains variable "
     }
   },
   "steps": [
     {
       "id": "step_load_ds",
-      "op": "ect.ops.io.load_dataset",
+      "op": "cate.ops.io.load_dataset",
       "input": {
         "data_source": "workflow.ds",
         "start_date": "workflow.start_date",
@@ -54,7 +54,7 @@
     },
     {
       "id": "step_save_ds",
-      "op": "ect.ops.io.save_dataset",
+      "op": "cate.ops.io.save_dataset",
       "input": {
         "data_set": "step_filter",
         "output_file": "workflow.output_file"

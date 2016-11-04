@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from ect.core.cdm import Schema
+from cate.core.cdm import Schema
 import json
 
 

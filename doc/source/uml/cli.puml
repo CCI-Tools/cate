@@ -37,7 +37,7 @@ globals o--> "3..N" Command
 
 note right of globals
 COMMAND_REGISTRY is a mutable list.
-ECT-plugins can extend the CLI by
+Cate-plugins can extend the CLI by
 adding new commands to it.
 end note
 

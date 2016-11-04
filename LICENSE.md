@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 
-Copyright &copy; 2016 by the [ECT Development Team](https://github.com/orgs/CCI-Tools/people) and contributors
+Copyright &copy; 2016 by the [Cate Development Team](https://github.com/orgs/CCI-Tools/people) and contributors
 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 

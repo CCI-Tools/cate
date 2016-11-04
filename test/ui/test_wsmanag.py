@@ -4,8 +4,8 @@ import sys
 import time
 import unittest
 
-from ect.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
-from ect.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager
+from cate.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
+from cate.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
@@ -53,12 +53,12 @@ class WorkspaceManagerTestMixin:
 
         workspace = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
-        self.assertTrue(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertTrue(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
 
         workspace_manager.delete_workspace(base_dir=base_dir)
         self.assertTrue(os.path.exists(base_dir))
-        self.assertFalse(os.path.exists(os.path.join(base_dir, '.ect-workspace')))
+        self.assertFalse(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
 
         self.del_base_dir(base_dir)
@@ -70,7 +70,7 @@ class WorkspaceManagerTestMixin:
         workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True)
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf',
+                                                 op_name='cate.ops.io.read_netcdf',
                                                  op_args=['file=%s' % NETCDF_TEST_FILE])
         workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
 
@@ -88,7 +88,7 @@ class WorkspaceManagerTestMixin:
         workspace1 = workspace_manager.new_workspace(base_dir=base_dir, save=True, description='test clean workspace')
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
-                                                 op_name='ect.ops.io.read_netcdf',
+                                                 op_name='cate.ops.io.read_netcdf',
                                                  op_args=['file=%s' % NETCDF_TEST_FILE])
         workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
 
@@ -113,7 +113,7 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         return FSWorkspaceManager()
 
 
-@unittest.skipIf(os.environ.get('ECT_DISABLE_WEB_TESTS', None) == '1', 'ECT_DISABLE_WEB_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def setUp(self):
         self.port = find_free_port()

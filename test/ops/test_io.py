@@ -6,7 +6,7 @@ import os
 import unittest
 from unittest import TestCase
 
-from ect.ops.io import open_dataset, save_dataset
+from cate.ops.io import open_dataset, save_dataset
 
 
 class TestIO(TestCase):

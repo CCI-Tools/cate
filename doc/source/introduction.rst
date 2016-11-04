@@ -22,11 +22,11 @@ The CCI Open Data Portal will provide a single point of harmonised access to a s
 ECV-related data products. The CCI Toolbox will provide tools that support visualisation, analysis and processing across
 CCI and other climate data products. With these two technical cross cutting activities ESA is providing an interface
 between its CCI projects and the ECVs generated there, and the wider climate change user community
-(see following :numref:`ect_context`).
+(see following :numref:`cate_context`).
 
-.. _ect_context:
+.. _cate_context:
 
-.. figure:: _static/figures/ect_context.png
+.. figure:: _static/figures/cate_context.png
    :scale: 60 %
    :align: center
 

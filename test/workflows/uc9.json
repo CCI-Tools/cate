@@ -40,7 +40,7 @@
   "steps": [
     {
       "id": "open_ds1",
-      "op": "ect.ops.io.load_dataset",
+      "op": "cate.ops.io.load_dataset",
       "input": {
         "data_source": "uc9.ds1",
         "start_date": "uc9.start_date",
@@ -49,7 +49,7 @@
     },
     {
       "id": "open_ds2",
-      "op": "ect.ops.io.load_dataset",
+      "op": "cate.ops.io.load_dataset",
       "input": {
         "data_source": "uc9.ds2",
         "start_date": "uc9.start_date",
@@ -72,7 +72,7 @@
     },
     {
       "id": "filter1",
-      "op": "ect.ops.select.select_variables",
+      "op": "cate.ops.select.select_variables",
       "input": {
         "dataset": "open_ds1",
         "variable_names": "filter_list1"
@@ -80,7 +80,7 @@
     },
     {
       "id": "filter2",
-      "op": "ect.ops.select.select_variables",
+      "op": "cate.ops.select.select_variables",
       "input": {
         "dataset": "open_ds2",
         "variable_names": "filter_list2"
@@ -96,7 +96,7 @@
     },
     {
       "id": "harmonize",
-      "op": "ect.ops.harmonize.harmonize",
+      "op": "cate.ops.harmonize.harmonize",
       "input": {
         "datasets": "dataset_list"
       }
@@ -149,7 +149,7 @@
     },
     {
       "id": "plot_map1",
-      "op": "ect.ops.plot.plot_map",
+      "op": "cate.ops.plot.plot_map",
       "input": {
         "ds": "filter1",
         "variable": "uc9.var1",
@@ -159,7 +159,7 @@
     },
     {
       "id": "plot_map2",
-      "op": "ect.ops.plot.plot_map",
+      "op": "cate.ops.plot.plot_map",
       "input": {
         "ds": "filter2",
         "variable": "uc9.var2",
@@ -169,7 +169,7 @@
     },
     {
       "id": "coregister",
-      "op": "ect.ops.coregistration.coregister",
+      "op": "cate.ops.coregistration.coregister",
       "input": {
         "master": "filter2",
         "slave": "filter1",
@@ -178,7 +178,7 @@
     },
     {
       "id": "plot_map3",
-      "op": "ect.ops.plot.plot_map",
+      "op": "cate.ops.plot.plot_map",
       "input": {
         "ds": "coregister",
         "variable": "uc9.var1",
@@ -188,21 +188,21 @@
     },
     {
       "id": "timeseries1",
-      "op": "ect.ops.timeseries.timeseries_mean",
+      "op": "cate.ops.timeseries.timeseries_mean",
       "input": {
         "ds": "coregister"
       }
     },
     {
       "id": "timeseries2",
-      "op": "ect.ops.timeseries.timeseries_mean",
+      "op": "cate.ops.timeseries.timeseries_mean",
       "input": {
         "ds": "filter2"
       }
     },
     {
       "id": "correlation",
-      "op": "ect.ops.correlation.pearson_correlation",
+      "op": "cate.ops.correlation.pearson_correlation",
       "input": {
         "ds_y": "timeseries1",
         "ds_x": "timeseries2",

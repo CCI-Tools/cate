@@ -2,7 +2,7 @@ import os.path
 import io
 import unittest
 
-from ect.core.conf import get_config_value, get_config_path, get_config, _read_python_config
+from cate.core.conf import get_config_value, get_config_path, get_config, _read_python_config
 
 
 class ConfTest(unittest.TestCase):
@@ -19,9 +19,9 @@ class ConfTest(unittest.TestCase):
         self.assertEqual(value, 'Yes!')
 
     def test_get_config_path(self):
-        value = get_config_path('_im_not_in_', default='~/.ect/data_stores')
+        value = get_config_path('_im_not_in_', default='~/.cate/data_stores')
         self.assertIsNotNone(value)
-        self.assertTrue(value.endswith('/.ect/data_stores'))
+        self.assertTrue(value.endswith('/.cate/data_stores'))
         self.assertNotIn('~', value)
 
     def test_get_config(self):

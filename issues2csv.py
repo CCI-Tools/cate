@@ -15,7 +15,7 @@ def get_issues(state=None, labels=None, milestones=None):
         query.update(labels=','.join(labels))
     if milestones:
         query.update(milestones=','.join(milestones))
-    url = 'https://api.github.com/repos/CCI-Tools/ect-core/issues?' + urllib.parse.urlencode(query)
+    url = 'https://api.github.com/repos/CCI-Tools/cate-core/issues?' + urllib.parse.urlencode(query)
     with urllib.request.urlopen(url) as req:
         res = req.read()
         issues = json.loads(res.decode())

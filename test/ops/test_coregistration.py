@@ -1,5 +1,5 @@
 """
-Test ect/ops/coregistration.py
+Test cate/ops/coregistration.py
 
 Test coregistration, checks if the values seem as expected
 when using default upsampling/downsampling methods.
@@ -11,7 +11,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal
 import xarray as xr
 
-from ect.ops.coregistration import coregister
+from cate.ops.coregistration import coregister
 
 class TestCoregistration(TestCase): 
     def test_coregister(self):

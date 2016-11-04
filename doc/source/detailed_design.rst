@@ -1,5 +1,5 @@
 .. _docstrings: https://en.wikipedia.org/wiki/Docstring
-.. _verifying unit-tests: https://github.com/CCI-Tools/ect-core/tree/master/test
+.. _verifying unit-tests: https://github.com/CCI-Tools/cate-core/tree/master/test
 
 ===============
 Detailed Design
@@ -20,58 +20,58 @@ If available, links to `verifying unit-tests`_ are given in sub-sections called 
 *Components* lists all documented, non-private components of a module, including variables, functions, and classes.
 
 
-Module ``ect.core.ds``
+Module ``cate.core.ds``
 ======================
 
-.. automodule:: ect.core.ds
+.. automodule:: cate.core.ds
     :members:
 
-Module ``ect.core.op``
+Module ``cate.core.op``
 ======================
 
-.. automodule:: ect.core.op
+.. automodule:: cate.core.op
     :members:
 
-Module ``ect.core.workflow``
+Module ``cate.core.workflow``
 ============================
 
-.. automodule:: ect.core.workflow
+.. automodule:: cate.core.workflow
     :members:
 
-Module ``ect.core.plugin``
+Module ``cate.core.plugin``
 ==========================
 
-.. automodule:: ect.core.plugin
+.. automodule:: cate.core.plugin
     :members:
 
-Module ``ect.core.monitor``
+Module ``cate.core.monitor``
 ===========================
 
-.. automodule:: ect.core.monitor
+.. automodule:: cate.core.monitor
     :members:
 
-Module ``ect.core.util``
+Module ``cate.core.util``
 ========================
 
-.. automodule:: ect.core.util
+.. automodule:: cate.core.util
     :members:
 
-Module ``ect.ui.cli``
+Module ``cate.ui.cli``
 =====================
 
-.. automodule:: ect.ui.cli
+.. automodule:: cate.ui.cli
     :members:
 
-Module ``ect.ds``
+Module ``cate.ds``
 =================
 
-.. automodule:: ect.ds
+.. automodule:: cate.ds
     :members:
 
-Module ``ect.ops``
+Module ``cate.ops``
 ==================
 
-.. automodule:: ect.ops
+.. automodule:: cate.ops
     :members:
 
 

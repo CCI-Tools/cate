@@ -2,13 +2,13 @@
 
 
 node "CCI_Toolbox_Core" {
-    package "ect.ds" {
+    package "cate.ds" {
         [esa_cci_odp]
         [esa_cci_ftp]
         [more data store modules...] #white
     }
 
-    package ect.ops {
+    package cate.ops {
         [coregistration]
         [correlation]
         [harmonize]
@@ -21,7 +21,7 @@ node "CCI_Toolbox_Core" {
         [more operation modules...] #white
     }
 
-    package "ect.core" {
+    package "cate.core" {
         [ds]
         [monitor]
         [objectio]
@@ -31,14 +31,14 @@ node "CCI_Toolbox_Core" {
         [workflow]
     }
 
-    package "ect.ui" {
+    package "cate.ui" {
         [cli]
         [webapi]
     }
 }
 
 node "CCI_Toolbox_GUI" {
-    package "ect.gui" {
+    package "cate.gui" {
         [webapp]
     }
 }
@@ -57,9 +57,9 @@ node "CCI_Open_Data_Portal" #eeeeee {
 
 [workflow] ..> [op]
 
-ect.ui .r.> ect.ops
-ect.ui .r.> ect.ds
-ect.ds .r.> CCI_Open_Data_Portal
+cate.ui .r.> cate.ops
+cate.ui .r.> cate.ds
+cate.ds .r.> CCI_Open_Data_Portal
 
 
 @enduml

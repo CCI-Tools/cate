@@ -5,9 +5,9 @@ API Reference
 Datasets
 ========
 
-.. autofunction:: ect.query_data_sources
+.. autofunction:: cate.query_data_sources
 
-.. autofunction:: ect.open_dataset
+.. autofunction:: cate.open_dataset
 
 
 Operations
@@ -16,114 +16,114 @@ Operations
 Coregistration
 --------------
 
-.. autofunction:: ect.ops.coregister
+.. autofunction:: cate.ops.coregister
 
 Resampling
 ----------
 
-.. autofunction:: ect.ops.resample_2d
+.. autofunction:: cate.ops.resample_2d
 
-.. autofunction:: ect.ops.downsample_2d
+.. autofunction:: cate.ops.downsample_2d
 
-.. autofunction:: ect.ops.upsample_2d
+.. autofunction:: cate.ops.upsample_2d
 
 
 Subsetting
 ----------
 
-.. autofunction:: ect.ops.select_var
+.. autofunction:: cate.ops.select_var
 
-.. autofunction:: ect.ops.subset_spatial
+.. autofunction:: cate.ops.subset_spatial
 
-.. autofunction:: ect.ops.subset_temporal
+.. autofunction:: cate.ops.subset_temporal
 
-.. autofunction:: ect.ops.subset_temporal_index
+.. autofunction:: cate.ops.subset_temporal_index
 
 Correlation
 -----------
 
-.. autofunction:: ect.ops.pearson_correlation
+.. autofunction:: cate.ops.pearson_correlation
 
 Timeseries
 ----------
 
-.. autofunction:: ect.ops.tseries_point
+.. autofunction:: cate.ops.tseries_point
 
-.. autofunction:: ect.ops.tseries_mean
+.. autofunction:: cate.ops.tseries_mean
 
 
 Misc
 ----
 
-.. autofunction:: ect.ops.harmonize
+.. autofunction:: cate.ops.harmonize
 
-.. autofunction:: ect.ops.sel
+.. autofunction:: cate.ops.sel
 
 
 Data Stores and Data Sources API
 ================================
 
-.. autoclass:: ect.DataStore
+.. autoclass:: cate.DataStore
     :members:
 
-.. autoclass:: ect.DataSource
+.. autoclass:: cate.DataSource
     :members:
 
 
 Operation Registration API
 ==========================
 
-.. autoclass:: ect.OpRegistration
+.. autoclass:: cate.OpRegistration
     :members:
 
-.. autoclass:: ect.OpMetaInfo
+.. autoclass:: cate.OpMetaInfo
     :members:
 
-.. autofunction:: ect.op
+.. autofunction:: cate.op
 
-.. autofunction:: ect.op_input
+.. autofunction:: cate.op_input
 
-.. autofunction:: ect.op_output
+.. autofunction:: cate.op_output
 
-.. autofunction:: ect.op_return
+.. autofunction:: cate.op_return
 
 
 Workflow API
 ============
 
-.. autoclass:: ect.Workflow
+.. autoclass:: cate.Workflow
     :members:
 
-.. autoclass:: ect.OpStep
+.. autoclass:: cate.OpStep
     :members:
 
-.. autoclass:: ect.NoOpStep
+.. autoclass:: cate.NoOpStep
     :members:
 
-.. autoclass:: ect.ExprStep
+.. autoclass:: cate.ExprStep
     :members:
 
-.. autoclass:: ect.SubProcessStep
+.. autoclass:: cate.SubProcessStep
     :members:
 
-.. autoclass:: ect.WorkflowStep
+.. autoclass:: cate.WorkflowStep
     :members:
 
-.. autoclass:: ect.Step
+.. autoclass:: cate.Step
     :members:
 
-.. autoclass:: ect.Node
+.. autoclass:: cate.Node
     :members:
 
-.. autoclass:: ect.NodePort
+.. autoclass:: cate.NodePort
     :members:
 
 Task Monitoring API
 ===================
 
-.. autoclass:: ect.Monitor
+.. autoclass:: cate.Monitor
     :members:
 
-.. autoclass:: ect.ConsoleMonitor
+.. autoclass:: cate.ConsoleMonitor
     :members:
 

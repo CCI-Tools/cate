@@ -37,7 +37,7 @@ class SubProcessStep extends Step {
 class NoOpStep extends Step {
 }
 
-class ect.core.op.OpMetaInfo {
+class cate.core.op.OpMetaInfo {
     qualified_name : str
     header : dict
     input : dict
@@ -45,8 +45,8 @@ class ect.core.op.OpMetaInfo {
 }
 
 WorkflowStep --> Workflow: workflow
-OpStep o--> ect.core.op.OpRegistration
-Node o--> ect.core.op.OpMetaInfo: op_meta_info
+OpStep o--> cate.core.op.OpRegistration
+Node o--> cate.core.op.OpMetaInfo: op_meta_info
 Workflow o--> "0..N" Step: steps
 Step --> Node : parent
 

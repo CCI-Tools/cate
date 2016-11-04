@@ -29,9 +29,9 @@ script:
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - export NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
-  # - export ECT_DISABLE_WEB_TESTS=1
-  - export ECT_DISABLE_PLOT_TESTS=1
-  - py.test -v --cov=ect test
+  # - export CATE_DISABLE_WEB_TESTS=1
+  - export CATE_DISABLE_PLOT_TESTS=1
+  - py.test -v --cov=cate test
 
 after_success:
   - pip install codecov

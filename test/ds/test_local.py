@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from collections import OrderedDict
 
-from ect.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
+from cate.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
 
 
 class LocalFilePatternDataStoreTest(unittest.TestCase):
