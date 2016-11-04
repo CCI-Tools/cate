@@ -175,9 +175,8 @@ Operations
 - Ice Sheets Analysis *-> part of BA + GIS?*
 
 
-**not implemented as as operations**
+**not specified as operations**
 
-- *Load Data*
-- *Save Table*
+- *Load File*
 - *Save Image*
 - *(Save Plot)*
