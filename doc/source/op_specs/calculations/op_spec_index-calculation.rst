@@ -1,6 +1,6 @@
-==============
-Operation Name
-==============
+=================
+Index Calculation
+=================
 
 Operation
 =========
@@ -9,11 +9,11 @@ Operation
 
 --------------------------
 
-:Operation name: 
-:Algorithm name: *XXX*
-:Algorithm reference: *XXX*
-:Description: **to be defined later**
-:Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow` 
+:Operation name: Index Calculation
+.. :Algorithm name: *XXX*
+.. :Algorithm reference: *XXX*
+:Description: This Operation serves for calculation of (pre-defined) indices involving spatial and temporal averaging, anomalies, standardization, filtering etc. 
+:Utilised in: :doc:`../uc_workflows/uc06_workflow` 
 
 --------------------------
 
@@ -24,17 +24,17 @@ Options
 
 --------------------------
 
-:name: 
-:description:
-:settings: 
+:name: Niño3.4 index
+:description: five month running mean of anomalies of monthly means of SST in Niño3.4 region (120°W-170°W, 5°S- 5°N), see `UCAR webpage on El Niño indices <http://www.cgd.ucar.edu/cas/catalog/climind/Nino_3_3.4_indices.html>`_
+:settings: time series calculation, Boolean El Niño (threshold +0.4 deg C), Boolean La Niña (threshold -0.4 deg C)
 
 --------------------------
 
-:name: 
-:description:
-:settings: 
+.. :name: 
+.. :description:
+.. :settings: 
 
---------------------------
+.. --------------------------
 
 Input data
 ==========
@@ -92,51 +92,27 @@ Output data
 
 ---------------------------------
 
-:name: 
-:type: 
-:description:
+:name: index timeseries (values or Boolean)
+:type: floating point or Boolean
+:description: timeseries of values or Boolean results of index calculation
 
 ---------------------------------
 
 
-Parameters
-==========
+.. Parameters
+.. ==========
 
 .. *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
 
---------------------------
+.. --------------------------
 
-:name: lon1, x1 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] respectively [0.; 360.]
+.. :name: lon1, x1 (longitudinal position)
+.. :type: floating point number
+.. :valid values: [-180.; +180.] respectively [0.; 360.]
 :default value: minimum longitude of input data
-:description: longitudinal coordinate limiting rectangular area of interest
+.. :description: longitudinal coordinate limiting rectangular area of interest
 
---------------------------
-
-:name: lon2, x2 (longitudinal position)
-:type: floating point number
-:valid values: [-180.; +180.] resp. [0.; 360.]
-:default value: maximum longitude of input data 
-:description: longitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat1, y1 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: minimum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
---------------------------
-
-:name: lat2, y2 (latitudinal position)
-:type: floating point number
-:valid values: [-90.; +90.]
-:default value: maximum latitude of input data 
-:description: latitudinal coordinate limiting rectangular area of interest
-
------------------------------
+.. --------------------------
 
 
 .. Computational complexity

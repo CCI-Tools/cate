@@ -1,6 +1,6 @@
-===========
-Arithmetics
-===========
+===============
+Seasonal Values
+===============
 
 Operation
 =========
@@ -9,26 +9,26 @@ Operation
 
 --------------------------
 
-:Operation name: Arithmetics
+:Operation name: Seasonal Values
 .. :Algorithm name: *XXX*
 .. :Algorithm reference: *XXX*
-:Description: This Operation serves for simple arithmetic data manipulation (log transformation, adding/subtracting/multiplying/dividing constants etc.) by defining equations.
+:Description: This Operation serves for the calculation of seasonal values.
 :Utilised in: :doc:`../uc_workflows/uc06_workflow` 
 
 --------------------------
 
-.. Options
-.. ========================
+Options
+========================
 
 .. *Describe options regarding the use of the Operation.*
 
-.. --------------------------
+--------------------------
 
-.. :name: 
-.. :description: 
-.. :settings: 
+:name: season of interest
+:description: definition of season of interest
+:settings: starting point, terminating point
 
-.. --------------------------
+--------------------------
 
 Input data
 ==========
@@ -86,28 +86,35 @@ Output data
 
 ---------------------------------
 
-:name: result
-:type: same as input data 
-:description: result of arithmetic manipulation of input data
+:name: seasonal values
+:type: same as input data
+:description: seasonal values of input data for user-defined season
 
 ---------------------------------
 
 
-.. Parameters
-.. ==========
+Parameters
+==========
 
 .. *Define applicable parameters here. A parameter differs from an input in that it has a default value. Parameters are often used to control certain aspects of the algorithm behavior.*
 
-.. --------------------------
+-----------------------------
 
-.. :name: lon1, x1 (longitudinal position)
-.. :type: floating point number
-.. :valid values: [-180.; +180.] respectively [0.; 360.]
-.. :default value: minimum longitude of input data
-.. :description: longitudinal coordinate limiting rectangular area of interest
+:name: time1, tim1 
+:type: *character*
+:valid values: *{01-01, ... , 12-31}*
+:default value: January 1st 
+:description: starting point of season of interest
 
-.. --------------------------
+--------------------------
 
+:name: time2, tim2 
+:type: *character*
+:valid values: *{01-01, ... , 12-31}*
+:default value: December 31st
+:description: terminal point of season of interest
+
+---------------------------
 
 
 .. Computational complexity
