@@ -61,7 +61,7 @@ Operations
 		- Skewness
 		- Kurtosis 
 	
-	- Temporal Comparison
+	- Comparison
 	
 		- Relative Values
 		- Anomalies
