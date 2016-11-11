@@ -10,9 +10,9 @@ Operation
 --------------------------
 
 :Operation name: Map
-:Algorithm name: *XXX*
-:Algorithm reference: *XXX*
-:Description: **to be defined later**
+.. :Algorithm name: *XXX*
+.. :Algorithm reference: *XXX*
+:Description: This Operation serves for plotting of maps (data of one time step or temporal mean).
 :Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow` 
 
 --------------------------
