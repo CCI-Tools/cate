@@ -9,10 +9,10 @@ Operation
 
 --------------------------
 
-:Operation name: 
-:Algorithm name: *XXX*
-:Algorithm reference: *XXX*
-:Description: Calculation of differences compared to a reference.
+:Operation name: Anomalies
+.. :Algorithm name: *XXX*
+.. :Algorithm reference: *XXX*
+:Description: This Operation serves for the calculation of differences compared to a reference.
 :Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow` 
 
 --------------------------
@@ -33,6 +33,18 @@ Options
 :name: spatial
 :description: calculate anomalies compared to the spatial mean of a specific reference region
 :settings: reference region
+
+--------------------------
+
+:name: internal reference
+:description: calculate anomalies compared to the mean of a specfic region/time of the input data itself.
+:settings: reference region, reference period
+
+--------------------------
+
+:name: external reference
+:description: calculate anomalies compared to the mean of a specfic region/time of external reference data.
+:settings: reference region, reference period, reference data 
 
 --------------------------
 
