@@ -2,14 +2,14 @@
 Operations
 ===========
 
-Geometric Adjustment
-====================
+Geometric Adjustments
+=====================
 
-#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 
-#.	The user selects the Operation :doc:`Reprojection <../geometric-adjustments/op_spec_reprojection>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Reprojection <../geometric-adjustments/op_spec_reprojection>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 
-#.	The user selects the Operation :doc:`Geospatial Gap Filling <../geometric-adjustments/geospatial-gapfilling>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Geospatial Gap Filling <../geometric-adjustments/geospatial-gapfilling>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 
 Subsetting and Selections
 =========================

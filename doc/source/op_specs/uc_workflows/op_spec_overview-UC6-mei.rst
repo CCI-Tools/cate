@@ -3,7 +3,7 @@ Operations  UC6 MEI
 
 **Preprocessing**
 
-- Geometric Adjustment
+- Geometric Adjustments
 
 	- Co-Registration
 

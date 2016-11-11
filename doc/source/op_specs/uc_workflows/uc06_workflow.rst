@@ -6,7 +6,7 @@ Use Case #6 :ref:`uc_06`.
 Version 1: Niño3.4 Index
 
 #.	The user selects CCI ECV data products from a checklist (geophysical quantities: sea surface temperature, surface soil moisture volumetric absolutes).
-#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 #.	The user selects the particular options (Co-Registration method: spline, propagation of uncertainties analysis).
 #.	The user executes the Operation.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
@@ -40,7 +40,7 @@ Version 1: Niño3.4 Index
 Version 2: Multivariate ENSO Index
 
 #.	The user selects CCI (geophysical quantities: sea surface temperature, cloud cover) and non-CCI (geophysical quantities: sea level pressure, zonal surface wind components, meridional surface wind components, surface air temperature) ECV data products from a checklist.
-#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 #.	The user selects the particular options (Co-Registration method: spline, propagation of uncertainties analysis).
 #.	The user executes the Operation.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other.
@@ -86,7 +86,7 @@ Version 2: Multivariate ENSO Index
 Additional features:
 
 #.	The user selects CCI ECV data products from a checklist (geophysical quantities e.g. burned area, cloud cover, phytoplankton chlorophyll-A concentration, sea ice concentration).
-#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the Operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 #.	The user selects the particular options (Co-Registration method: spline, propagation of uncertainties analysis, apply to multiple data products).
 #.	The user executes the Operation.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other.

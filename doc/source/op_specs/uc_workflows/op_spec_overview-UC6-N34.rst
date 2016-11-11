@@ -3,7 +3,7 @@ Operations  UC6 N3.4
 
 **Preprocessing**
 
-- Geometric Adjustment
+- Geometric Adjustments
 
 	- Co-Registration
 

@@ -1,4 +1,4 @@
-Use Case #9 Workflow
+﻿Use Case #9 Workflow
 ====================
 
 This sections describes an exemplary workflow performed to accomplish the climate problem given by
@@ -6,7 +6,7 @@ Use Case #9 :ref:`uc_09`.
 
 
 #.	The user selects CCI data products from a checklist (geophysical quantities: aerosol optical depth or absorbing aerosol index, cloud cover). 
-#.	The user selects the operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the operation category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the operation category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 #.	The user selects the particular options (use of grid1 or grid2, interpolation method, propagation of uncertainties analysis).
 #.	The user executes the operation.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
@@ -55,7 +55,7 @@ Utilised Operations
 	- :doc:`Temporal Subsetting <../subsetting_selections/op_spec_temporal-subsetting>`
 	
 	
-- :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`
+- :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`
 
 	- :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>`
 	
@@ -79,3 +79,4 @@ Other referred Operations
 - *Load Data*
 - *Save Image*
 - *(Save Plot)*
+
