@@ -1,6 +1,6 @@
-=======================
-Comparison(Subcategory)
-=======================
+========================
+Comparison (Subcategory)
+========================
 
 Operation Subcategory
 ===========================
