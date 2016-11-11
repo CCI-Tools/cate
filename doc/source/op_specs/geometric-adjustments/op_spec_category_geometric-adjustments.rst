@@ -1,11 +1,11 @@
-===============================
-Geometric Adjustment (Category)
-===============================
+================================
+Geometric Adjustments (Category)
+================================
 
 Operation Category
 ==================
 
-:Operation Category name: Geometric Adjustment
+:Operation Category name: Geometric Adjustments
 :Description: This Operation Category embraces Operations for different kinds of geometric adjustments like grid adaption, geospatial gap filling or matchup dataset generation.
 
 --------------------------
