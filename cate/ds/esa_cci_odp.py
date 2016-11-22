@@ -51,7 +51,7 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, ope
 from cate.core.monitor import Monitor
 from cate.core.ds import get_data_stores_path
 
-_ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
+_ESGF_CEDA_URL = "http://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -182,7 +182,7 @@ def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
+def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, service_type: str='HTTPServer'):
     file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL, dict(type='File',
                                                                  fields='url,title,size',
                                                                  dataset_id=dataset_query_id,
@@ -199,8 +199,8 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
     for doc in docs:
         url_rec_list = doc.get('url', [])
         for url_rec in url_rec_list:
-            url, mime_type, service_type = url_rec.split('|')
-            if mime_type == 'application/netcdf' and service_type == 'HTTPServer':
+            url, mime_type, url_type = url_rec.split('|')
+            if url_type == service_type:
                 filename = doc.get('title', None)
                 file_size = doc.get('size', -1)
                 if not filename:
@@ -232,12 +232,14 @@ class EsaCciOdpDataStore(DataStore):
                  name: str = 'esa_cci_odp',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict = None):
+                 index_cache_json_dict: dict=None,
+                 use_opendap: bool=False):
         super().__init__(name)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._index_json_dict = index_cache_json_dict
         self._data_sources = []
+        self._use_opendap = use_opendap
 
     @property
     def index_cache_used(self):
@@ -285,7 +287,7 @@ class EsaCciOdpDataStore(DataStore):
         docs = self._index_json_dict.get('response', {}).get('docs', [])
         self._data_sources = []
         for doc in docs:
-            self._data_sources.append(EsaCciOdpDataSource(self, doc))
+            self._data_sources.append(EsaCciOdpDataSource(self, doc, use_opendap=self._use_opendap))
 
     def _load_index(self) -> str:
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
@@ -304,13 +306,15 @@ class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
-                 schema: Schema = None):
+                 schema: Schema=None,
+                 use_opendap: bool=False):
         super(EsaCciOdpDataSource, self).__init__()
         self._master_id = json_dict.get('master_id', None)
         self._dataset_id = json_dict.get('id', None)
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
+        self._use_opendap = use_opendap
         self._file_list = None
         self._temporal_coverage = None
 
@@ -395,9 +399,10 @@ class EsaCciOdpDataSource(DataSource):
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
 
-    def find_url(self, desired_service='HTTP'):
+    def find_url(self, desired_service='HTTPServer'):
         for url_service in self._json_dict.get('url', []):
             parts = url_service.split('|')
+            print(parts)
             if len(parts) == 2:
                 url, service = parts
                 if service == desired_service:
@@ -411,45 +416,48 @@ class EsaCciOdpDataSource(DataSource):
     def sync(self,
              time_range: Tuple[datetime, datetime] = None,
              monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            return 0, 0
+        if self._use_opendap is True:
+                return 0, 0
+        else:
+            selected_file_list = self._find_files(time_range)
+            if not selected_file_list:
+                return 0, 0
 
-        dataset_dir = self.local_dataset_dir()
-
-        # Find outdated files
-        outdated_file_list = []
-        for file_rec in selected_file_list:
-            filename, _, _, file_size, url = file_rec
-            dataset_file = os.path.join(dataset_dir, filename)
-            # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-            # ... outdated or incomplete or corrupted.
-            # JSON also includes "checksum" and "checksum_type" fields.
-            if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                outdated_file_list.append(file_rec)
-
-        if not outdated_file_list:
-            # No sync needed
-            return 0, len(selected_file_list)
-
-        with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
             dataset_dir = self.local_dataset_dir()
-            for filename, _, _, file_size, url in outdated_file_list:
-                if monitor.is_cancelled():
-                    raise InterruptedError
-                dataset_file = os.path.join(dataset_dir, filename)
-                sub_monitor = monitor.child(1.0)
 
-                # noinspection PyUnusedLocal
-                def reporthook(block_number, read_size, total_file_size):
+            # Find outdated files
+            outdated_file_list = []
+            for file_rec in selected_file_list:
+                filename, _, _, file_size, url = file_rec
+                dataset_file = os.path.join(dataset_dir, filename)
+                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+                # ... outdated or incomplete or corrupted.
+                # JSON also includes "checksum" and "checksum_type" fields.
+                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                    outdated_file_list.append(file_rec)
+
+            if not outdated_file_list:
+                # No sync needed
+                return 0, len(selected_file_list)
+
+            with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                dataset_dir = self.local_dataset_dir()
+                for filename, _, _, file_size, url in outdated_file_list:
                     if monitor.is_cancelled():
                         raise InterruptedError
-                    sub_monitor.progress(work=read_size)
+                    dataset_file = os.path.join(dataset_dir, filename)
+                    sub_monitor = monitor.child(1.0)
 
-                with sub_monitor.starting('', file_size):
-                    urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+                    # noinspection PyUnusedLocal
+                    def reporthook(block_number, read_size, total_file_size):
+                        if monitor.is_cancelled():
+                            raise InterruptedError
+                        sub_monitor.progress(work=read_size)
 
-        return len(outdated_file_list), len(selected_file_list)
+                    with sub_monitor.starting('', file_size):
+                        urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+
+            return len(outdated_file_list), len(selected_file_list)
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
@@ -483,12 +491,18 @@ class EsaCciOdpDataSource(DataSource):
                 msg += ' in given time range %s to %s' % time_range
             raise IOError(msg)
 
-        dataset_dir = self.local_dataset_dir()
-        files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
-        for file in files:
-            if not os.path.exists(file):
-                raise IOError('Missing local data files, consider synchronizing the dataset first.')
+        if self._use_opendap is True:
+            files = [file_rec[4].replace('.html', '')
+                     for file_rec in selected_file_list]
+        else:
+            dataset_dir = self.local_dataset_dir()
+            files = [os.path.join(dataset_dir, file_rec[0])
+                     for file_rec in selected_file_list]
+            for file in files:
+                if not os.path.exists(file):
+                    raise IOError('Missing local data files, consider synchronizing the dataset first.')
 
+        print(files)
         return open_xarray_dataset(files)
 
     def _init_file_list(self) -> str:
