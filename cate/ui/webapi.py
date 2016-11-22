@@ -376,7 +376,9 @@ def _write_service_info(service_info: dict, service_info_file: str) -> None:
         raise ValueError('service_info argument must be given')
     if not service_info_file:
         raise ValueError('service_info_file argument must be given')
-    os.makedirs(os.path.dirname(service_info_file), exist_ok=True)
+    dir_path = os.path.dirname(service_info_file)
+    if dir_path:
+        os.makedirs(dir_path, exist_ok=True)
     with open(service_info_file, 'w') as fp:
         json.dump(service_info, fp, indent='  ')
 
