@@ -29,8 +29,8 @@ import sys
 import time
 import traceback
 import urllib.request
+import threading
 from datetime import date, datetime
-from threading import Timer
 from typing import Optional
 
 from cate.core.monitor import Monitor, ConsoleMonitor
@@ -40,6 +40,11 @@ from cate.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
+import tornado.websocket
+import concurrent.futures
+
+thread_pool = concurrent.futures.ThreadPoolExecutor()
+
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -87,6 +92,7 @@ class WebAPIServiceError(Exception):
 def get_application():
     application = Application([
         (url_pattern('/'), VersionHandler),
+        (url_pattern('/app'), AppWebSocketHandler),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
@@ -427,7 +433,7 @@ def _check_auto_exit(application: Application, condition: bool, interval: float)
         except:
             pass
     if condition:
-        application.auto_exit_timer = Timer(interval, _auto_exit, [application])
+        application.auto_exit_timer = threading.Timer(interval, _auto_exit, [application])
         application.auto_exit_timer.start()
     else:
         application.auto_exit_timer = None
@@ -501,6 +507,46 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 class BaseRequestHandler(RequestHandler):
     def on_finish(self):
         self.application.time_of_last_activity = time.clock()
+
+
+# noinspection PyAbstractClass
+class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
+    # TODO: this constructor causes an exception!?
+    #def __init__(self, application, request, **kwargs):
+    #    super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
+    #    self.set_nodelay(True)
+
+    # We must override this to return True (= all origins are ok), otherwise we get
+    #   WebSocket connection to 'ws://localhost:9090/app' failed:
+    #   Error during WebSocket handshake:
+    #   Unexpected response code: 403 (forbidden)
+    def check_origin(self, origin):
+        print("WebSocket: check " + str(origin))
+        return True
+
+    def open(self):
+        print("WebSocket opened")
+        #self.write_message('hello')
+
+    def on_message(self, message: str):
+        print("WebSocket message:", message)
+        self.write_message('WebSocketServer: got [' + str(message) + "] of type " + str(type(message)))
+        #future = thread_pool.submit(self.process_message, message)
+        #future.add_done_callback(lambda f: self.write_message(str(f.result())))
+
+    def on_close(self):
+        print("WebSocket closed")
+
+    #def process_message(self, message):
+    #    n = 10
+    #    sum = 0
+    #    for i in range(n):
+    #        time.sleep(0.1)
+    #        response = "thread %s: worked %s of %s" % (id(threading.current_thread()), i + 1, n)
+    #        print(response)
+    #        #self.write_message(response)
+    #        sum += 1
+    #    return dict(sum=sum, message=message)
 
 
 # noinspection PyAbstractClass
