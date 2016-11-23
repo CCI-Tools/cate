@@ -51,7 +51,7 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, ope
 from cate.core.monitor import Monitor
 from cate.core.ds import get_data_stores_path
 
-_ESGF_CEDA_URL = "http://esgf-index1.ceda.ac.uk/esg-search/search/"
+_ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -69,6 +69,11 @@ _TIME_FREQUENCY_TO_TIME_DELTA = dict([
     ('mon', timedelta(weeks=4)),
     ('yr', timedelta(days=365)),
 ])
+
+_ODP_PROTOCOLS_HTTP = 'HTTPServer'
+_ODP_PROTOCOLS_OPENDAP = 'OPENDAP'
+
+_ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOLS_HTTP, _ODP_PROTOCOLS_OPENDAP]
 
 
 def get_data_store_path():
@@ -182,13 +187,14 @@ def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, service_type: str='HTTPServer'):
-    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL, dict(type='File',
-                                                                 fields='url,title,size',
-                                                                 dataset_id=dataset_query_id,
-                                                                 replica='false',
-                                                                 latest='true',
-                                                                 project='esacci'))
+def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
+    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
+                                            dict(type='File',
+                                                 fields='url,title,size',
+                                                 dataset_id=dataset_query_id,
+                                                 replica='false',
+                                                 latest='true',
+                                                 project='esacci'))
 
     if not isinstance(file_index_json_dict, dict):
         return None
@@ -197,29 +203,31 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, service_type: 
     docs = file_index_json_dict.get('response', {}).get('docs', [])
     time_info = None
     for doc in docs:
+        urls = dict()
         url_rec_list = doc.get('url', [])
         for url_rec in url_rec_list:
             url, mime_type, url_type = url_rec.split('|')
-            if url_type == service_type:
-                filename = doc.get('title', None)
-                file_size = doc.get('size', -1)
-                if not filename:
-                    filename = os.path.basename(urllib.parse.urlparse(url)[2])
-                if filename in file_list:
-                    raise ValueError('filename %s already seen in dataset %s' % (filename, dataset_id))
-                if not time_info:
-                    time_info = find_datetime_format(filename)
-                # Start time will be extracted from filename using time_info
-                start_time = None
-                # We also reserve an end_time field, just in case.
-                end_time = None
-                if time_info:
-                    time_format, p1, p2 = time_info
-                    start_time = datetime.strptime(filename[p1:p2], time_format)
-                    # Convert back to text, so we can JSON-encode it
-                    start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
-                file_list.append([filename, start_time, end_time, file_size, url])
-                break
+            urls[url_type] = url
+
+        filename = doc.get('title', None)
+        file_size = doc.get('size', -1)
+        if not filename:
+            filename = os.path.basename(urllib.parse.urlparse(url)[2])
+        if filename in file_list:
+            raise ValueError('filename {} already seen in dataset {}'
+                             .format(filename, dataset_id))
+        if not time_info:
+            time_info = find_datetime_format(filename)
+        # Start time will be extracted from filename using time_info
+        start_time = None
+        # We also reserve an end_time field, just in case.
+        end_time = None
+        if time_info:
+            time_format, p1, p2 = time_info
+            start_time = datetime.strptime(filename[p1:p2], time_format)
+            # Convert back to text, so we can JSON-encode it
+            start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
+        file_list.append([filename, start_time, end_time, file_size, urls])
 
     def pick_start_time(file_info_rec):
         return file_info_rec[1]
@@ -232,14 +240,12 @@ class EsaCciOdpDataStore(DataStore):
                  name: str = 'esa_cci_odp',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict=None,
-                 use_opendap: bool=False):
+                 index_cache_json_dict: dict=None):
         super().__init__(name)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._index_json_dict = index_cache_json_dict
         self._data_sources = []
-        self._use_opendap = use_opendap
 
     @property
     def index_cache_used(self):
@@ -287,14 +293,16 @@ class EsaCciOdpDataStore(DataStore):
         docs = self._index_json_dict.get('response', {}).get('docs', [])
         self._data_sources = []
         for doc in docs:
-            self._data_sources.append(EsaCciOdpDataSource(self, doc, use_opendap=self._use_opendap))
+            self._data_sources.append(EsaCciOdpDataSource(self, doc))
 
     def _load_index(self) -> str:
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
-                                                    fetch_json_args=[_ESGF_CEDA_URL, dict(type='Dataset',
-                                                                                          replica='false',
-                                                                                          latest='true',
-                                                                                          project='esacci')],
+                                                    fetch_json_args=[
+                                                        _ESGF_CEDA_URL,
+                                                        dict(type='Dataset',
+                                                             replica='false',
+                                                             latest='true',
+                                                             project='esacci')],
                                                     cache_used=self._index_cache_used,
                                                     cache_dir=get_data_store_path(),
                                                     cache_json_filename='dataset-list.json',
@@ -306,15 +314,13 @@ class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
-                 schema: Schema=None,
-                 use_opendap: bool=False):
+                 schema: Schema=None):
         super(EsaCciOdpDataSource, self).__init__()
         self._master_id = json_dict.get('master_id', None)
         self._dataset_id = json_dict.get('id', None)
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
-        self._use_opendap = use_opendap
         self._file_list = None
         self._temporal_coverage = None
 
@@ -383,12 +389,17 @@ class EsaCciOdpDataSource(DataSource):
     def variables_info_string(self):
         names = self._json_dict.get('variable', [])
         default_list = len(names) * [None]
-        units = self._json_dict.get('variable_units', default_list)
-        long_names = self._json_dict.get('variable_long_name', default_list)
-        cf_standard_names = self._json_dict.get('cf_standard_name', default_list)
+        units = self._json_dict.get('variable_units',
+                                    default_list)
+        long_names = self._json_dict.get('variable_long_name',
+                                         default_list)
+        cf_standard_names = self._json_dict.get('cf_standard_name',
+                                                default_list)
 
         info_lines = []
-        for name, unit, long_name, cf_standard_name in zip(names, units, long_names, cf_standard_names):
+        for name, unit, long_name, cf_standard_name in zip(names, units,
+                                                           long_names,
+                                                           cf_standard_names):
             info_lines.append('%s (%s):' % (name, unit))
             info_lines.append('  Long name:        %s' % long_name)
             info_lines.append('  CF standard name: %s' % cf_standard_name)
@@ -396,13 +407,20 @@ class EsaCciOdpDataSource(DataSource):
 
         return '\n'.join(info_lines)
 
+    @property
+    def protocols(self) -> []:
+        return [protocol for protocol in self._json_dict.get('access', [])
+                if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
+
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
 
-    def find_url(self, desired_service='HTTPServer'):
+    def find_url(self, desired_service=_ODP_PROTOCOLS_HTTP):
+        '''
+        '''
+        # TODO: find the purpose of this method, add documentation
         for url_service in self._json_dict.get('url', []):
             parts = url_service.split('|')
-            print(parts)
             if len(parts) == 2:
                 url, service = parts
                 if service == desired_service:
@@ -414,15 +432,15 @@ class EsaCciOdpDataSource(DataSource):
         self._init_file_list()
 
     def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-        if self._use_opendap is True:
-                return 0, 0
-        else:
-            selected_file_list = self._find_files(time_range)
-            if not selected_file_list:
-                return 0, 0
+             time_range: Tuple[datetime, datetime]=None,
+             monitor: Monitor=Monitor.NONE,
+             protocol: str=_ODP_PROTOCOLS_HTTP) -> Tuple[int, int]:
 
+        selected_file_list = self._find_files(time_range)
+        if not selected_file_list:
+            return 0, 0
+
+        if protocol is _ODP_PROTOCOLS_HTTP:
             dataset_dir = self.local_dataset_dir()
 
             # Find outdated files
@@ -455,9 +473,11 @@ class EsaCciOdpDataSource(DataSource):
                         sub_monitor.progress(work=read_size)
 
                     with sub_monitor.starting('', file_size):
-                        urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+                        urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
 
             return len(outdated_file_list), len(selected_file_list)
+        else:
+            return 0, 0
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
@@ -483,27 +503,35 @@ class EsaCciOdpDataSource(DataSource):
             selected_file_list = self._file_list
         return selected_file_list
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=_ODP_PROTOCOLS_HTTP) -> xr.Dataset:
+
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = "Data source '%s' does not seem to have any data files" % self.name
+            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
             if time_range is not None:
-                msg += ' in given time range %s to %s' % time_range
+                msg += ' in given time range {} to {}'.format(time_range[0], time_range[1])
             raise IOError(msg)
 
-        if self._use_opendap is True:
-            files = [file_rec[4].replace('.html', '')
-                     for file_rec in selected_file_list]
-        else:
-            dataset_dir = self.local_dataset_dir()
-            files = [os.path.join(dataset_dir, file_rec[0])
-                     for file_rec in selected_file_list]
-            for file in files:
-                if not os.path.exists(file):
-                    raise IOError('Missing local data files, consider synchronizing the dataset first.')
+        for file_rec in selected_file_list:
+            files = []
+            if protocol is _ODP_PROTOCOLS_OPENDAP and protocol in file_rec[4]:
+                files.append(file_rec[4][protocol].replace('.html', ''))
+            elif protocol is _ODP_PROTOCOLS_HTTP and protocol in file_rec[4]:
+                dataset_dir = self.local_dataset_dir()
+                files.append(os.path.join(dataset_dir, file_rec[0]))
+                for file in files:
+                    if not os.path.exists(file):
+                        raise IOError('Missing local data files, consider'
+                                      ' synchronizing the dataset first.')
+            else:
+                raise ValueError('Protocol \'{}\' is not supported.'
+                                 .format(protocol))
 
-        print(files)
-        return open_xarray_dataset(files)
+            try:
+                return open_xarray_dataset(files)
+            except OSError as e:
+                raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
 
     def _init_file_list(self) -> str:
         if self._file_list:
