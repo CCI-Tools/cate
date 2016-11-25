@@ -323,6 +323,7 @@ class EsaCciOdpDataSource(DataSource):
         self._schema = schema
         self._file_list = None
         self._temporal_coverage = None
+        self._protocol_list = None
 
     @property
     def name(self) -> str:
@@ -409,8 +410,10 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def protocols(self) -> []:
-        return [protocol for protocol in self._json_dict.get('access', [])
-                if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
+        if self._protocol_list is None:
+            self._protocol_list = [protocol for protocol in self._json_dict.get('access', [])
+                                   if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
+        return self._protocol_list
 
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
@@ -434,12 +437,14 @@ class EsaCciOdpDataSource(DataSource):
     def sync(self,
              time_range: Tuple[datetime, datetime]=None,
              monitor: Monitor=Monitor.NONE,
-             protocol: str=_ODP_PROTOCOLS_HTTP) -> Tuple[int, int]:
+             protocol: str=None) -> Tuple[int, int]:
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return 0, 0
 
+        if protocol is None:
+            protocol = _ODP_PROTOCOLS_HTTP
         if protocol is _ODP_PROTOCOLS_HTTP:
             dataset_dir = self.local_dataset_dir()
 
@@ -504,8 +509,16 @@ class EsaCciOdpDataSource(DataSource):
         return selected_file_list
 
     def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
-                     protocol: str=_ODP_PROTOCOLS_HTTP) -> xr.Dataset:
+                     protocol: str=None) -> xr.Dataset:
+        if protocol is None:
+            protocol = _ODP_PROTOCOLS_HTTP
+        if protocol not in self.protocols:
+            raise ValueError('Protocol \'{}\' is not supported.'
+                             .format(protocol))
 
+        self.sync(time_range, protocol)
+
+        files = []
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
@@ -514,24 +527,20 @@ class EsaCciOdpDataSource(DataSource):
             raise IOError(msg)
 
         for file_rec in selected_file_list:
-            files = []
-            if protocol is _ODP_PROTOCOLS_OPENDAP and protocol in file_rec[4]:
+            if protocol is _ODP_PROTOCOLS_OPENDAP:
                 files.append(file_rec[4][protocol].replace('.html', ''))
-            elif protocol is _ODP_PROTOCOLS_HTTP and protocol in file_rec[4]:
+            elif protocol is _ODP_PROTOCOLS_HTTP:
                 dataset_dir = self.local_dataset_dir()
                 files.append(os.path.join(dataset_dir, file_rec[0]))
                 for file in files:
                     if not os.path.exists(file):
                         raise IOError('Missing local data files, consider'
                                       ' synchronizing the dataset first.')
-            else:
-                raise ValueError('Protocol \'{}\' is not supported.'
-                                 .format(protocol))
-
-            try:
-                return open_xarray_dataset(files)
-            except OSError as e:
-                raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
+        try:
+            return open_xarray_dataset(files)
+        except OSError as e:
+            raise IOError("Files: {} caused:\nOSError({}): {}"
+                          .format(files, e.errno, e.strerror))
 
     def _init_file_list(self) -> str:
         if self._file_list:

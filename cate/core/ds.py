@@ -137,26 +137,41 @@ class DataSource(metaclass=ABCMeta):
         return True
 
     @abstractmethod
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self,
+                     time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=None) -> xr.Dataset:
         """
         Open a dataset for the given *time_range*.
 
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
+
+        :param time_range: An optional tuple comprising a start and end date,
+                which must be ``datetime.datetime`` objects.
+        :param protocol: Protocol name, if None selected default protocol
+                will be used to access data
         :return: A dataset instance or ``None`` if no data is available in *time_range*.
         """
 
+    @property
+    @abstractmethod
+    def protocols(self) -> []:
+        """The list of available protocols."""
+
     # noinspection PyMethodMayBeStatic
     def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
+             time_range: Tuple[datetime, datetime]=None,
+             monitor: Monitor=Monitor.NONE,
+             protocol: str=None) -> Tuple[int, int]:
         """
-        Synchronize remote data with locally stored data.
+        Allows to synchronize remote data with locally stored data.
+        Availability of synchornization feature depends on protocol type and
+        datasource implementation.
         The default implementation does nothing.
 
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
+        :param time_range: An optional tuple comprising a start and end date,
+                which must be ``datetime.datetime`` objects.
         :param monitor: a progress monitor.
+        :param protocol: Protocol name, if None selected default protocol
+                will be used to access data
         :return: a tuple: (synchronized number of selected files, total number of selected files)
         """
         return 0, 0
