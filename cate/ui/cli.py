@@ -790,7 +790,7 @@ class WorkspaceCommand(SubCommandCommand):
 
 class ResourceCommand(SubCommandCommand):
     """
-    The ``ws`` command implements various operations w.r.t. *workspaces*.
+    The ``res`` command implements various operations w.r.t. *workspaces*.
     """
 
     @classmethod
