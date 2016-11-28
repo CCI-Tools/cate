@@ -27,17 +27,18 @@ Check out latest Cate code
 
 Cate can be run from sources directly, once the following module requirements are resolved:
 
-* `xarray`
-* `dask`
-* `netcdf4`
-* `numpy`
-* `scipy`
-* `matplotlib`
-* `numba`
+* `basemap`
 * `cartopy`
-* `tornado`
-* `pyqt`
+* `dask`
 * `jdcal`
+* `matplotlib`
+* `netcdf4`
+* `numba`
+* `numpy`
+* `pyqt`
+* `scipy`
+* `tornado`
+* `xarray`
 
 The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
 
@@ -65,7 +66,7 @@ Windows users can omit the `source` command and just type
 Now we add all required packages to the activated `cate` Conda environment:
 
     (cate) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pyqt jdcal
-    (cate) $ conda install -c conda-forge cartopy
+    (cate) $ conda install -c conda-forge cartopy basemap
 
 Some packages are not available on Anaconda default channels and we have to find them on
 another channel (option `-c CHANNEL`). Above we use channel `conda-forge`. 
