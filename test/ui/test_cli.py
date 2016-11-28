@@ -288,7 +288,7 @@ class DataSourceCommandTest(CliTestCase):
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_sync_with_period(self):
         self.assert_main(
-            ['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--time', '2010-12'])
+            ['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '2007-12'])
 
     def test_ds(self):
         self.assert_main(['ds'],
