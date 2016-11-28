@@ -34,10 +34,12 @@ from cate.core.op import OP_REGISTRY, op_input, op
 @op_input('start_date')
 @op_input('end_date')
 @op_input('sync')
+@op_input('protocol')
 def open_dataset(ds_name: str,
                  start_date: str = None,
                  end_date: str = None,
                  sync: bool = False,
+                 protocol: str=None,
                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
@@ -50,7 +52,8 @@ def open_dataset(ds_name: str,
     :return: An new dataset instance.
     """
     import cate.core.ds
-    return cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date, sync=sync, monitor=monitor)
+    return cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
+                                     protocol=protocol, sync=sync, monitor=monitor)
 
 
 # noinspection PyShadowingBuiltins

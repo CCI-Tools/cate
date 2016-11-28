@@ -311,6 +311,7 @@ def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,
                  sync: bool = False,
+                 protocol: str=None,
                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source.
@@ -319,6 +320,7 @@ def open_dataset(data_source: Union[DataSource, str],
     :param start_date: Optional start date of the requested dataset
     :param end_date: Optional end date of the requested dataset
     :param sync: Whether to synchronize local and remote data files before opening the dataset
+    :param protocol: Name of protocol used to access dataset
     :param monitor: a progress monitor, used only if *snyc* is ``True``
     :return: An new dataset instance
     """
@@ -337,9 +339,9 @@ def open_dataset(data_source: Union[DataSource, str],
     time_range = to_datetime_range(start_date, end_date)
 
     if sync:
-        data_source.sync(time_range, monitor=monitor)
+        data_source.sync(time_range, protocol=protocol, monitor=monitor)
 
-    return data_source.open_dataset(time_range)
+    return data_source.open_dataset(time_range, protocol=protocol)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
