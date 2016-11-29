@@ -152,9 +152,12 @@ class DataSource(metaclass=ABCMeta):
         """
 
     @property
-    @abstractmethod
     def protocols(self) -> []:
-        """The list of available protocols."""
+        """
+        The list of available protocols.
+
+        """
+        return [None]
 
     # noinspection PyMethodMayBeStatic
     def sync(self,

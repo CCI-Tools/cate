@@ -67,7 +67,8 @@ class LocalFilePatternDataSource(DataSource):
         self._files = files
         self._data_store = _data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=None) -> xr.Dataset:
         if time_range:
             raise ValueError("Local data store '%s' does not (yet) support temporal data subsets." % self._data_store.name)
         paths = []

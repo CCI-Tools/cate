@@ -117,10 +117,6 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    @property
-    def protocols(self) -> []:
-        return ['FTP']
-
     def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
                      protocol: str=None) -> xr.Dataset:
         paths = self.resolve_paths(time_range)
