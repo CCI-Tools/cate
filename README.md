@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/CCI-Tools/cate-core.svg?branch=master)](https://travis-ci.org/CCI-Tools/cate-core)
 [![codecov.io](https://codecov.io/github/CCI-Tools/cate-core/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/cate-core?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/cate-core/badge/?version=latest)](http://cate-core.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/ect-core/badge/?version=latest)](http://ect-core.readthedocs.io/en/latest/?badge=latest)
                 
 # cate-core
 
