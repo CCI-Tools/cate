@@ -822,6 +822,8 @@ class ResourceCommand(SubCommandCommand):
                                  help='Start date. Use format YYYY[-MM[-DD]].')
         open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format YYYY[-MM[-DD]].')
+        open_parser.add_argument('protocol', metavar='PROTOCOL', nargs='?',
+                                 help='A data source named DS. Type "cate ds info --protocols" to list available protocols')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
@@ -913,6 +915,8 @@ class ResourceCommand(SubCommandCommand):
         if command_args.end_date:
             op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
         op_args.append('sync=True')
+        if command_args.protocol:
+            op_args.append('protocol={}'.format(_to_str_const(command_args.protocol)))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.open_dataset',

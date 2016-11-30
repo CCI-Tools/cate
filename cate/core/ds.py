@@ -162,8 +162,8 @@ class DataSource(metaclass=ABCMeta):
     # noinspection PyMethodMayBeStatic
     def sync(self,
              time_range: Tuple[datetime, datetime]=None,
-             monitor: Monitor=Monitor.NONE,
-             protocol: str=None) -> Tuple[int, int]:
+             protocol: str=None,
+             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
         """
         Allows to synchronize remote data with locally stored data.
         Availability of synchornization feature depends on protocol type and
@@ -172,9 +172,9 @@ class DataSource(metaclass=ABCMeta):
 
         :param time_range: An optional tuple comprising a start and end date,
                 which must be ``datetime.datetime`` objects.
-        :param monitor: a progress monitor.
         :param protocol: Protocol name, if None selected default protocol
                 will be used to access data
+        :param monitor: a progress monitor.
         :return: a tuple: (synchronized number of selected files, total number of selected files)
         """
         return 0, 0
@@ -342,7 +342,7 @@ def open_dataset(data_source: Union[DataSource, str],
     time_range = to_datetime_range(start_date, end_date)
 
     if sync:
-        data_source.sync(time_range, protocol=protocol, monitor=monitor)
+        data_source.sync(time_range, monitor=monitor, protocol=protocol)
 
     return data_source.open_dataset(time_range, protocol=protocol)
 

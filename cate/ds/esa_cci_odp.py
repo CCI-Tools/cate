@@ -436,8 +436,8 @@ class EsaCciOdpDataSource(DataSource):
 
     def sync(self,
              time_range: Tuple[datetime, datetime]=None,
-             monitor: Monitor=Monitor.NONE,
-             protocol: str=None) -> Tuple[int, int]:
+             protocol: str=None,
+             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
