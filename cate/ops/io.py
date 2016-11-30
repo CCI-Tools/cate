@@ -52,10 +52,9 @@ def open_dataset(ds_name: str,
     :param monitor: a progress monitor, used only if *sync* is ``True``.
     :return: An new dataset instance.
     """
-    import cate.core.ds as ds
-    # return None
-    return ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
-                           protocol=protocol, sync=sync, monitor=monitor)
+    import cate.core.ds
+    return cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
+                                     protocol=protocol, sync=sync, monitor=monitor)
 
 
 # noinspection PyShadowingBuiltins
