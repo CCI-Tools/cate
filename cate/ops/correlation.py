@@ -65,8 +65,12 @@ def pearson_correlation(ds_x: xr.Dataset,
     definition, so that a 2D lat/lon map of correlation coefficients, as well
     as p_values can be constructed.
 
-    :param ds_y: The 'dependent' dataset
-    :param ds_x: The 'variable' dataset
+    There are 'x' and 'y' datasets. Positive correlations imply that as x
+    grows, so does y. Negative correlations imply that as x increases, y
+    decreases.
+
+    :param ds_y: The 'y' dataset
+    :param ds_x: The 'x' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param file: Filepath variable. If given, this is where the results will be saved in a text file.
