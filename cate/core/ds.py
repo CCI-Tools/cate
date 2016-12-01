@@ -309,7 +309,6 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         results.extend(data_store.query(name))
     return results
 
-
 def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,

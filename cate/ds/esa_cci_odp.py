@@ -379,10 +379,22 @@ class EsaCciOdpDataSource(DataSource):
                 value = value[0]
             info_lines.append('%s:%s %s' % (name, (max_len - len(name)) * ' ', value))
 
+        info_lines.append('')
+
+        first_line = True
+        title = 'available protocols:'
+        for protocol in self.protocols:
+            info_lines.append('%s%s %s' % (
+                title, (max_len - len(title)+1) * ' ', protocol))
+            if first_line:
+                first_line = False
+                title = ''
+
         if self._temporal_coverage:
             start, end = self._temporal_coverage
             info_lines.append('')
-            info_lines.append('Temporal coverage: %s to %s' % (start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')))
+            info_lines.append('Temporal coverage: %s to %s' % (
+                start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 

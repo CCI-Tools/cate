@@ -825,7 +825,7 @@ class ResourceCommand(SubCommandCommand):
         open_parser.add_argument('protocol', metavar='PROTOCOL', nargs='?',
                                  help=
                                  'Name of protocol used to access data source.'
-                                 ' Type "cate ds protocols" to list available '
+                                 ' Type "cate ds info [DS]" to list available '
                                  'protocols.')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
