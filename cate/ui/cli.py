@@ -823,7 +823,10 @@ class ResourceCommand(SubCommandCommand):
         open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format YYYY[-MM[-DD]].')
         open_parser.add_argument('protocol', metavar='PROTOCOL', nargs='?',
-                                 help='A data source named DS. Type "cate ds info --protocols" to list available protocols')
+                                 help=
+                                 'Name of protocol used to access data source.'
+                                 ' Type "cate ds protocols" to list available '
+                                 'protocols.')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
