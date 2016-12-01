@@ -324,7 +324,7 @@ def open_dataset(data_source: Union[DataSource, str],
     :param end_date: Optional end date of the requested dataset
     :param sync: Whether to synchronize local and remote data files before opening the dataset
     :param protocol: Name of protocol used to access dataset
-    :param monitor: a progress monitor, used only if *snyc* is ``True``
+    :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """
     if data_source is None:
