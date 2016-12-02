@@ -377,24 +377,28 @@ class EsaCciOdpDataSource(DataSource):
             # Many values in the index JSON are one-element lists: not very helpful for human readers
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            info_lines.append('%s:%s %s' % (name, (max_len - len(name)) * ' ', value))
-
+            info_lines.append('{name}:{adjustment} {value}'
+                              .format(name=name,
+                                      adjustment=' ' * (max_len - len(name)),
+                                      value=value))
         info_lines.append('')
-
-        first_line = True
         title = 'available protocols:'
-        for protocol in self.protocols:
-            info_lines.append('%s%s %s' % (
-                title, (max_len - len(title)+1) * ' ', protocol))
-            if first_line:
-                first_line = False
-                title = ''
+        info_lines.append('{title}{adjustment} {protocol}'
+                          .format(title=title,
+                                  adjustment=' ' * (max_len - len(title) + 1),
+                                  protocol=self.protocols[0]))
+        adjustment = ' ' * (max_len + 1)
+        for protocol in self.protocols[1:]:
+            info_lines.append('{adjustment} {protocol}'
+                              .format(adjustment=adjustment,
+                                      protocol=protocol))
 
         if self._temporal_coverage:
             start, end = self._temporal_coverage
             info_lines.append('')
-            info_lines.append('Temporal coverage: %s to %s' % (
-                start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')))
+            info_lines.append('Temporal coverage: {date_from} to {date_to}'
+                              .format(date_from=start.strftime('%Y-%m-%d'),
+                                      date_to=end.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 

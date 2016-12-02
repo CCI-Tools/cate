@@ -1130,18 +1130,27 @@ class DataSourceCommand(SubCommandCommand):
             raise CommandError('data source "%s" not found' % ds_name)
 
         data_source = data_sources[0]
-        title = 'Data source %s' % data_source.name
-        print()
-        print(title)
-        print('=' * len(title))
-        print()
-        print(data_source.info_string)
+        title = 'Data source {ds}'.format(ds=data_source.name)
+        print(
+            '\n'
+            '{title}\n'
+            '{line}\n'
+            '\n'
+            '{info}'
+            .format(title=title, line='=' * len(title),
+                    info=data_source.info_string)
+        )
         if command_args.var:
-            print()
-            print('Variables')
-            print('---------')
-            print()
-            print(data_source.variables_info_string)
+            title = 'Variables'
+            print(
+                '\n'
+                '{title}\n'
+                '{line}\n'
+                '\n'
+                '{info}'
+                .format(title=title, line='-' * len(title),
+                        info=data_source.variables_info_string)
+            )
 
     @classmethod
     def _execute_sync(cls, command_args):
