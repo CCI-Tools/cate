@@ -528,8 +528,6 @@ class EsaCciOdpDataSource(DataSource):
             raise ValueError('Protocol \'{}\' is not supported.'
                              .format(protocol))
 
-        self.sync(time_range, protocol)
-
         files = []
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
