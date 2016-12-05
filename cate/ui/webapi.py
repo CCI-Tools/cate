@@ -31,19 +31,21 @@ import threading
 import time
 import traceback
 import urllib.request
+from concurrent.futures import CancelledError
+from concurrent.futures import Future
 from datetime import date, datetime
 from typing import Optional
 
 import tornado.websocket
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
+from cate.ui.service import Service
 from cate.ui.wsmanag import FSWorkspaceManager
 from cate.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
-from .service import Service
 
 thread_pool = concurrent.futures.ThreadPoolExecutor()
 
@@ -540,11 +542,16 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
         self.service = None
+        # TODO: set_nodelay() causes an exception!?
+        # self.set_nodelay(True)
 
-    # TODO: this constructor causes an exception!?
-    # def __init__(self, application, request, **kwargs):
-    #    super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
-    #    self.set_nodelay(True)
+    def open(self):
+        print("AppWebSocketHandler.open")
+        self.service = Service()
+
+    def on_close(self):
+        print("AppWebSocketHandler.on_close")
+        self.service = None
 
     # We must override this to return True (= all origins are ok), otherwise we get
     #   WebSocket connection to 'ws://localhost:9090/app' failed:
@@ -554,13 +561,8 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         print("AppWebSocketHandler: check " + str(origin))
         return True
 
-    def open(self):
-        self.service = Service()
-        print("AppWebSocketHandler: opened")
-        # self.write_message('hello')
-
     def on_message(self, message: str):
-        print("AppWebSocketHandler: message: %s" % message)
+        print("AppWebSocketHandler.on_message('%s')" % message)
 
         try:
             message_obj = json.loads(message)
@@ -574,13 +576,13 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             return
 
         method_id = message_obj.get('id', None)
-        if method_id is None:
-            print('Received invalid JSON-RCP message: missing "id" value: %s' % message)
+        if not isinstance(method_id, int):
+            print('Received invalid JSON-RCP message: missing or invalid "id" value: %s' % message)
             return
 
         method_name = message_obj.get('method', None)
-        if method_name is None:
-            print('Received invalid JSON-RCP message: missing "method" value: %s' % message)
+        if not isinstance(method_name, str) or len(method_name) == 0:
+            print('Received invalid JSON-RCP message: missing or invalid "method" value: %s' % message)
             return
 
         method_params = message_obj.get('params', None)
@@ -588,61 +590,63 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         method_name = _map_service_method_name(method_name)
         print("AppWebSocketHandler: method: %s" % method_name)
         if hasattr(self.service, method_name):
-            method = getattr(self.service, method_name)
-            try:
-                # future = thread_pool.submit(self.process_message, message)
-                # future.add_done_callback(lambda f: self.write_message(str(f.result())))
-                if isinstance(method_params, type([])):
-                    method_return = method(*method_params)
-                elif isinstance(method_params, type({})):
-                    method_return = method(**method_params)
-                else:
-                    method_return = method()
-                response = dict(jsonrcp='2.0',
-                                id=method_id,
-                                response=method_return)
-            except Exception as e:
-                response = dict(jsonrcp='2.0',
-                                id=method_id,
-                                error=dict(code=10,
-                                           message='Exception caught: %s' % e,
-                                           data=traceback.format_exc()))
+            future = thread_pool.submit(self.call_service_method, method_name, method_params)
+
+            def _send_service_method_result(f: Future) -> None:
+                self.send_service_method_result(method_id, f)
+
+            future.add_done_callback(_send_service_method_result)
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
+            self.write_message(json.dumps(response))
 
+    def send_service_method_result(self,  method_id: int, future: Future):
+        try:
+            result = future.result()
+            response = dict(jsonrcp='2.0',
+                            id=method_id,
+                            response=result)
+        except CancelledError as e:
+            response = dict(jsonrcp='2.0',
+                            id=method_id,
+                            error=dict(code=999,
+                                       message='Cancelled'))
+        except Exception as e:
+            stack_trace = traceback.format_exc()
+            response = dict(jsonrcp='2.0',
+                            id=method_id,
+                            error=dict(code=10,
+                                       message='Exception caught: %s' % e,
+                                       data=stack_trace))
         try:
             json_text = json.dumps(response)
         except Exception as e:
             stacktrace = traceback.format_exc()
             print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
             print('response = %s' % response)
+            print(stacktrace)
             json_text = json.dumps(dict(jsonrcp='2.0',
                                         id=method_id,
                                         error=dict(code=30,
                                                    message='Exception caught: %s' % e,
                                                    data=stacktrace)))
-            return
 
         self.write_message(json_text)
 
-    def on_close(self):
-        print("AppWebSocketHandler: closed")
+    def call_service_method(self, method_name, method_params):
+        method = getattr(self.service, method_name)
+        if isinstance(method_params, type([])):
+            result = method(*method_params)
+        elif isinstance(method_params, type({})):
+            result = method(**method_params)
+        else:
+            result = method()
+        return result
 
-        traceback.print_exc()
 
-        # def process_message(self, message):
-        #    n = 10
-        #    sum = 0
-        #    for i in range(n):
-        #        time.sleep(0.1)
-        #        response = "thread %s: worked %s of %s" % (id(threading.current_thread()), i + 1, n)
-        #        print(response)
-        #        #self.write_message(response)
-        #        sum += 1
-        #    return dict(sum=sum, message=message)
 
 
 # noinspection PyAbstractClass
