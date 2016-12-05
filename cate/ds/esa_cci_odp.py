@@ -43,6 +43,7 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Sequence, Tuple
 
@@ -300,6 +301,23 @@ class EsaCciOdpDataStore(DataStore):
                                                     cache_expiration_days=self._index_cache_expiration_days)
 
 
+INFO_FIELD_NAMES = sorted(["realization",
+                           "project",
+                           "number_of_aggregations",
+                           "size",
+                           "product_string",
+                           "platform_id",
+                           "number_of_files",
+                           "product_version",
+                           "time_frequency",
+                           "processing_level",
+                           "sensor_id",
+                           "version",
+                           "cci_project",
+                           "data_type",
+                           ])
+
+
 class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
@@ -331,66 +349,52 @@ class EsaCciOdpDataSource(DataSource):
         return self._schema
 
     @property
-    def info_string(self):
-        self._init_file_list()
+    def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
-            self._init_file_list()
+            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
+            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
+            # self._init_file_list()
+            pass
         except Exception:
             # ...but this isn't required to return a useful info string.
             pass
 
-        info_field_names = sorted(["realization",
-                                   "project",
-                                   "number_of_aggregations",
-                                   "size",
-                                   "product_string",
-                                   "platform_id",
-                                   "number_of_files",
-                                   "product_version",
-                                   "time_frequency",
-                                   "processing_level",
-                                   "sensor_id",
-                                   "version",
-                                   "cci_project",
-                                   "data_type",
-                                   ])
-        max_len = 0
-        for name in info_field_names:
-            max_len = max(max_len, len(name))
-
-        info_lines = []
-        for name in info_field_names:
-            value = self._json_dict[name]
-            # Many values in the index JSON are one-element lists: not very helpful for human readers
+        meta_info = OrderedDict()
+        for name in INFO_FIELD_NAMES:
+            value = self._json_dict.get(name, None)
+            # Many values in the index JSON are one-element lists: turn them into scalars
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            info_lines.append('%s:%s %s' % (name, (max_len - len(name)) * ' ', value))
+            meta_info[name] = value
 
         if self._temporal_coverage:
             start, end = self._temporal_coverage
-            info_lines.append('')
-            info_lines.append('Temporal coverage: %s to %s' % (start.strftime('%Y-%m-%d'), end.strftime('%Y-%m-%d')))
+            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
+            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
 
-        return '\n'.join(info_lines)
+        meta_info['variables'] = self._variables_info()
 
-    @property
-    def variables_info_string(self):
-        names = self._json_dict.get('variable', [])
-        default_list = len(names) * [None]
+        return meta_info
+
+    def _variables_info(self):
+        variable_names = self._json_dict.get('variable', [])
+        default_list = len(variable_names) * [None]
         units = self._json_dict.get('variable_units', default_list)
         long_names = self._json_dict.get('variable_long_name', default_list)
         cf_standard_names = self._json_dict.get('cf_standard_name', default_list)
 
-        info_lines = []
-        for name, unit, long_name, cf_standard_name in zip(names, units, long_names, cf_standard_names):
-            info_lines.append('%s (%s):' % (name, unit))
-            info_lines.append('  Long name:        %s' % long_name)
-            info_lines.append('  CF standard name: %s' % cf_standard_name)
-            info_lines.append('')
+        variables_info = OrderedDict()
+        for name, unit, long_name, cf_standard_name in zip(variable_names, units, long_names, cf_standard_names):
+            variable = OrderedDict()
+            variable['name'] = name
+            variable['units'] = unit
+            variable['long_name'] = long_name
+            variable['standard_name'] = cf_standard_name
+            variables_info[name] = variable
 
-        return '\n'.join(info_lines)
+        return variables_info
 
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
