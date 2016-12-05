@@ -20,19 +20,21 @@
 # SOFTWARE.
 
 import argparse
+import concurrent.futures
 import json
 import os.path
 import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import urllib.request
 from datetime import date, datetime
-from threading import Timer
 from typing import Optional
 
+import tornado.websocket
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
 from cate.ui.wsmanag import FSWorkspaceManager
@@ -40,6 +42,10 @@ from cate.version import __version__
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
+
+from .service import Service
+
+thread_pool = concurrent.futures.ThreadPoolExecutor()
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -87,6 +93,7 @@ class WebAPIServiceError(Exception):
 def get_application():
     application = Application([
         (url_pattern('/'), VersionHandler),
+        (url_pattern('/app'), AppWebSocketHandler),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
@@ -427,7 +434,7 @@ def _check_auto_exit(application: Application, condition: bool, interval: float)
         except:
             pass
     if condition:
-        application.auto_exit_timer = Timer(interval, _auto_exit, [application])
+        application.auto_exit_timer = threading.Timer(interval, _auto_exit, [application])
         application.auto_exit_timer.start()
     else:
         application.auto_exit_timer = None
@@ -435,6 +442,31 @@ def _check_auto_exit(application: Application, condition: bool, interval: float)
 
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
+
+
+def _map_service_method_name(name: str) -> str:
+    n = len(name)
+    if n == 0:
+        return name
+    new_name = []
+    s0 = False  # state = LC
+    s1 = False  # state = LC
+    for i in range(n):
+        c = name[i]
+        s2 = c.isupper() or c.isdigit()
+        if not s1 and s2:
+            new_name.append('_')
+            new_name.append(c.lower())
+        elif s0 and s1 and not s2 and c.isalpha():
+            new_name.insert(-1, '_')
+            new_name.append(c)
+        elif s2:
+            new_name.append(c.lower())
+        else:
+            new_name.append(c)
+        s0 = s1
+        s1 = s2
+    return ''.join(new_name)
 
 
 def url_pattern(pattern: str):
@@ -501,6 +533,116 @@ def _status_error(exception: Exception = None, type_name: str = None, message: s
 class BaseRequestHandler(RequestHandler):
     def on_finish(self):
         self.application.time_of_last_activity = time.clock()
+
+
+# noinspection PyAbstractClass
+class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
+    def __init__(self, application, request, **kwargs):
+        super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
+        self.service = None
+
+    # TODO: this constructor causes an exception!?
+    # def __init__(self, application, request, **kwargs):
+    #    super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
+    #    self.set_nodelay(True)
+
+    # We must override this to return True (= all origins are ok), otherwise we get
+    #   WebSocket connection to 'ws://localhost:9090/app' failed:
+    #   Error during WebSocket handshake:
+    #   Unexpected response code: 403 (forbidden)
+    def check_origin(self, origin):
+        print("AppWebSocketHandler: check " + str(origin))
+        return True
+
+    def open(self):
+        self.service = Service()
+        print("AppWebSocketHandler: opened")
+        # self.write_message('hello')
+
+    def on_message(self, message: str):
+        print("AppWebSocketHandler: message: %s" % message)
+
+        try:
+            message_obj = json.loads(message)
+        except Exception as e:
+            print("Failed to parse incoming JSON-RCP message: %s" % message)
+            traceback.print_exc(file=sys.stdout)
+            return
+
+        if not isinstance(message_obj, type({})):
+            print('Received invalid JSON-RCP message of unexpected type "%s": %s' % (type(message_obj), message))
+            return
+
+        method_id = message_obj.get('id', None)
+        if method_id is None:
+            print('Received invalid JSON-RCP message: missing "id" value: %s' % message)
+            return
+
+        method_name = message_obj.get('method', None)
+        if method_name is None:
+            print('Received invalid JSON-RCP message: missing "method" value: %s' % message)
+            return
+
+        method_params = message_obj.get('params', None)
+
+        method_name = _map_service_method_name(method_name)
+        print("AppWebSocketHandler: method: %s" % method_name)
+        if hasattr(self.service, method_name):
+            method = getattr(self.service, method_name)
+            try:
+                # future = thread_pool.submit(self.process_message, message)
+                # future.add_done_callback(lambda f: self.write_message(str(f.result())))
+                if isinstance(method_params, type([])):
+                    method_return = method(*method_params)
+                elif isinstance(method_params, type({})):
+                    method_return = method(**method_params)
+                else:
+                    method_return = method()
+                response = dict(jsonrcp='2.0',
+                                id=method_id,
+                                response=method_return)
+            except Exception as e:
+                response = dict(jsonrcp='2.0',
+                                id=method_id,
+                                error=dict(code=10,
+                                           message='Exception caught: %s' % e,
+                                           data=traceback.format_exc()))
+        else:
+            response = dict(jsonrcp='2.0',
+                            id=method_id,
+                            error=dict(code=20,
+                                       message='Unsupported method: %s' % method_name))
+
+        try:
+            json_text = json.dumps(response)
+        except Exception as e:
+            stacktrace = traceback.format_exc()
+            print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
+            print('response = %s' % response)
+            json_text = json.dumps(dict(jsonrcp='2.0',
+                                        id=method_id,
+                                        error=dict(code=30,
+                                                   message='Exception caught: %s' % e,
+                                                   data=stacktrace)))
+            return
+
+        self.write_message(json_text)
+
+    def on_close(self):
+        print("AppWebSocketHandler: closed")
+
+        traceback.print_exc()
+
+        # def process_message(self, message):
+        #    n = 10
+        #    sum = 0
+        #    for i in range(n):
+        #        time.sleep(0.1)
+        #        response = "thread %s: worked %s of %s" % (id(threading.current_thread()), i + 1, n)
+        #        print(response)
+        #        #self.write_message(response)
+        #        sum += 1
+        #    return dict(sum=sum, message=message)
 
 
 # noinspection PyAbstractClass
