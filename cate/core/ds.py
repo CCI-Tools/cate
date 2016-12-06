@@ -194,7 +194,8 @@ class DataSource(metaclass=ABCMeta):
 
         info_lines = []
         for name, value in meta_info.items():
-            info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
+            if name != 'variables':
+                info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
 
         return '\n'.join(info_lines)
 
@@ -210,10 +211,10 @@ class DataSource(metaclass=ABCMeta):
 
         variables = meta_info['variables']
         info_lines = []
-        for name, props in variables.items():
-            info_lines.append('%s (%s):' % (name, props.get('units', '-')))
-            info_lines.append('  Long name:        %s' % props.get('long_name', 'None'))
-            info_lines.append('  CF standard name: %s' % props.get('standard_name', 'None'))
+        for variable in variables:
+            info_lines.append('%s (%s):' % (variable.get('name', '?'), variable.get('units', '-')))
+            info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
+            info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
             info_lines.append('')
 
         return '\n'.join(info_lines)

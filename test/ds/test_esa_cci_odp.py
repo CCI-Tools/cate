@@ -63,7 +63,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_info_string(self):
         # print(self.data_source.info_string)
-        self.assertIn('product_string:         MERGED\n',
+        self.assertIn('product_string:          MERGED\n',
                       self.data_source.info_string)
 
     def test_variables_info_string(self):

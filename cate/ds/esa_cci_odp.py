@@ -374,27 +374,22 @@ class EsaCciOdpDataSource(DataSource):
             meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
             meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
 
-        meta_info['variables'] = self._variables_info()
+        meta_info['variables'] = self._variables_list()
 
         return meta_info
 
-    def _variables_info(self):
+    def _variables_list(self):
         variable_names = self._json_dict.get('variable', [])
         default_list = len(variable_names) * [None]
         units = self._json_dict.get('variable_units', default_list)
         long_names = self._json_dict.get('variable_long_name', default_list)
-        cf_standard_names = self._json_dict.get('cf_standard_name', default_list)
+        standard_names = self._json_dict.get('cf_standard_name', default_list)
 
-        variables_info = OrderedDict()
-        for name, unit, long_name, cf_standard_name in zip(variable_names, units, long_names, cf_standard_names):
-            variable = OrderedDict()
-            variable['name'] = name
-            variable['units'] = unit
-            variable['long_name'] = long_name
-            variable['standard_name'] = cf_standard_name
-            variables_info[name] = variable
+        variables_list = []
+        for name, unit, long_name, standard_name in zip(variable_names, units, long_names, standard_names):
+            variables_list.append(dict(name=name, units=unit, long_name=long_name, standard_name=standard_name))
 
-        return variables_info
+        return variables_list
 
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
