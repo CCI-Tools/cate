@@ -1101,7 +1101,7 @@ class DataSourceCommand(SubCommandCommand):
         info_parser.add_argument('--var', '-v', action='store_true',
                                  help="Also display information about contained dataset variables.")
         info_parser.add_argument('--local', '-l', action='store_true',
-                                 help="Also display information about contained dataset variables.")
+                                 help="Also display temporal coverage of cached datasets.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
         def_parser = subparsers.add_parser('def', help='Define a local data source using a file pattern.')
