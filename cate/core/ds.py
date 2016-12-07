@@ -170,6 +170,16 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
+    def cache_info(self) -> Union[dict, None]:
+        """
+        Return information about cached, locally available data sets.
+        The returned dict, if any, is JSON-serializable.
+        """
+        return None
+
+
+
+    @property
     def variables_info(self) -> Union[dict, None]:
         """
         Return meta-information about the variables contained in this data source.
@@ -216,6 +226,25 @@ class DataSource(metaclass=ABCMeta):
             info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
             info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
             info_lines.append('')
+
+        return '\n'.join(info_lines)
+
+    @property
+    def cached_datasets_coverage_string(self):
+        """
+        Return a textual representation of information about cached, locally available data sets.
+        Useful for CLI / REPL applications.
+        """
+        cache_coverage = self.cache_info
+        if not cache_coverage:
+            return 'No information about cached datasets available.'
+
+        info_lines = []
+        for date_from, date_to in sorted(cache_coverage.items()):
+            info_lines.append('{date_from} to {date_to}'
+                              .format(
+                                date_from=date_from.strftime('%Y-%m-%d'),
+                                date_to=date_to.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 

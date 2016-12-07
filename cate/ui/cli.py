@@ -1100,6 +1100,8 @@ class DataSourceCommand(SubCommandCommand):
                                       'Type "cate ds list" to show all possible data source names.')
         info_parser.add_argument('--var', '-v', action='store_true',
                                  help="Also display information about contained dataset variables.")
+        info_parser.add_argument('--local', '-l', action='store_true',
+                                 help="Also display information about contained dataset variables.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
         def_parser = subparsers.add_parser('def', help='Define a local data source using a file pattern.')
@@ -1129,6 +1131,11 @@ class DataSourceCommand(SubCommandCommand):
         print('=' * len(title))
         print()
         print(data_source.info_string)
+        if command_args.local:
+            print('\n'
+                  'Locally stored datasets:\n'
+                  '------------------------\n'
+                  '{info}'.format(info=data_source.cached_datasets_coverage_string))
         if command_args.var:
             print()
             print('Variables')
