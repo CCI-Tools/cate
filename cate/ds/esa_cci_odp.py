@@ -355,9 +355,7 @@ class EsaCciOdpDataSource(DataSource):
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
-            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
-            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
-            # self._init_file_list()
+            self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.
@@ -379,6 +377,27 @@ class EsaCciOdpDataSource(DataSource):
         meta_info['variables'] = self._variables_list()
 
         return meta_info
+
+    @property
+    def cache_info(self) -> OrderedDict:
+        coverage = OrderedDict()
+        selected_file_list = self._find_files(None)
+        if selected_file_list:
+            dataset_dir = self.local_dataset_dir()
+            for filename, date_from, date_to, none, none \
+                    in selected_file_list:
+                if os.path.exists(os.path.join(dataset_dir, filename)):
+                    if date_from in coverage.values():
+                        for temp_date_from, temp_date_to in coverage.items():
+                            if temp_date_to == date_from:
+                                coverage[temp_date_from] = date_to
+                    elif date_to in coverage.keys():
+                        temp_date_to = coverage[date_to]
+                        coverage.pop(date_to)
+                        coverage[date_from] = temp_date_to
+                    else:
+                        coverage[date_from] = date_to
+        return coverage
 
     def _variables_list(self):
         variable_names = self._json_dict.get('variable', [])

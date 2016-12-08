@@ -41,6 +41,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 20)
 
 
+@unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
