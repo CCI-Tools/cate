@@ -5,6 +5,8 @@ import shutil
 import unittest
 import urllib.parse
 
+
+
 from cate.core.util import encode_url_path
 from cate.ui import webapi
 from tornado.testing import AsyncHTTPTestCase
@@ -139,3 +141,16 @@ class UrlPatternTest(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             webapi.url_pattern('/info/{{id}')
         self.assertEqual(str(cm.exception), 'no matching "}}" after "{{" in "/info/{{id}"')
+
+
+
+
+class MapServiceMethodNameTest(unittest.TestCase):
+    def test_map_service_method_name(self):
+        self.assertEqual(webapi._map_service_method_name(''), '')
+        self.assertEqual(webapi._map_service_method_name('newWorkspace'), 'new_workspace')
+        self.assertEqual(webapi._map_service_method_name('new_workspace'), 'new_workspace')
+        self.assertEqual(webapi._map_service_method_name('getWebAPIConfig'), 'get_web_api_config')
+        self.assertEqual(webapi._map_service_method_name('compute4Nodes'), 'compute_4_nodes')
+        self.assertEqual(webapi._map_service_method_name('computeGRAPH42'), 'compute_graph42')
+        self.assertEqual(webapi._map_service_method_name('compute42GRAPHS'), 'compute_42graphs')

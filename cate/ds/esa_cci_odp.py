@@ -43,6 +43,7 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Sequence, Tuple
 
@@ -240,7 +241,7 @@ class EsaCciOdpDataStore(DataStore):
                  name: str = 'esa_cci_odp',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict=None):
+                 index_cache_json_dict: dict = None):
         super().__init__(name)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
@@ -268,9 +269,11 @@ class EsaCciOdpDataStore(DataStore):
 
     def query(self, name: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
-        if not name:
-            return list(self._data_sources)
-        return [data_source for data_source in self._data_sources if data_source.matches_filter(name)]
+        if name:
+            result = [data_source for data_source in self._data_sources if data_source.matches_filter(name)]
+        else:
+            result = self._data_sources
+        return sorted(result, key=lambda data_source: data_source.name)
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
@@ -310,11 +313,28 @@ class EsaCciOdpDataStore(DataStore):
                                                     cache_expiration_days=self._index_cache_expiration_days)
 
 
+INFO_FIELD_NAMES = sorted(["realization",
+                           "project",
+                           "number_of_aggregations",
+                           "size",
+                           "product_string",
+                           "platform_id",
+                           "number_of_files",
+                           "product_version",
+                           "time_frequency",
+                           "processing_level",
+                           "sensor_id",
+                           "version",
+                           "cci_project",
+                           "data_type",
+                           ])
+
+
 class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
-                 schema: Schema=None):
+                 schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._master_id = json_dict.get('master_id', None)
         self._dataset_id = json_dict.get('id', None)
@@ -342,102 +362,71 @@ class EsaCciOdpDataSource(DataSource):
         return self._schema
 
     @property
-    def info_string(self):
-        self._init_file_list()
+    def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
             self._init_file_list()
+            pass
         except Exception:
             # ...but this isn't required to return a useful info string.
             pass
 
-        info_field_names = sorted(["realization",
-                                   "project",
-                                   "number_of_aggregations",
-                                   "size",
-                                   "product_string",
-                                   "platform_id",
-                                   "number_of_files",
-                                   "product_version",
-                                   "time_frequency",
-                                   "processing_level",
-                                   "sensor_id",
-                                   "version",
-                                   "cci_project",
-                                   "data_type",
-                                   ])
-        max_len = 0
-        for name in info_field_names:
-            max_len = max(max_len, len(name))
-
-        info_lines = []
-        for name in info_field_names:
-            value = self._json_dict[name]
-            # Many values in the index JSON are one-element lists: not very helpful for human readers
+        meta_info = OrderedDict()
+        for name in INFO_FIELD_NAMES:
+            value = self._json_dict.get(name, None)
+            # Many values in the index JSON are one-element lists: turn them into scalars
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            info_lines.append('{name}:{adjustment} {value}'
-                              .format(name=name,
-                                      adjustment=' ' * (max_len - len(name)),
-                                      value=value))
-        info_lines.append('')
-        title = 'available protocols:'
-        info_lines.append('{title}{adjustment} {protocol}'
-                          .format(title=title,
-                                  adjustment=' ' * (max_len - len(title) + 1),
-                                  protocol=self.protocols[0]))
-        adjustment = ' ' * (max_len + 1)
-        for protocol in self.protocols[1:]:
-            info_lines.append('{adjustment} {protocol}'
-                              .format(adjustment=adjustment,
-                                      protocol=protocol))
+            meta_info[name] = value
 
         if self._temporal_coverage:
             start, end = self._temporal_coverage
-            info_lines.append('')
-            info_lines.append('Temporal coverage: {date_from} to {date_to}'
-                              .format(date_from=start.strftime('%Y-%m-%d'),
-                                      date_to=end.strftime('%Y-%m-%d')))
+            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
+            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
 
-        return '\n'.join(info_lines)
+        meta_info['variables'] = self._variables_list()
 
-    @property
-    def variables_info_string(self):
-        names = self._json_dict.get('variable', [])
-        default_list = len(names) * [None]
-        units = self._json_dict.get('variable_units',
-                                    default_list)
-        long_names = self._json_dict.get('variable_long_name',
-                                         default_list)
-        cf_standard_names = self._json_dict.get('cf_standard_name',
-                                                default_list)
-
-        info_lines = []
-        for name, unit, long_name, cf_standard_name in zip(names, units,
-                                                           long_names,
-                                                           cf_standard_names):
-            info_lines.append('%s (%s):' % (name, unit))
-            info_lines.append('  Long name:        %s' % long_name)
-            info_lines.append('  CF standard name: %s' % cf_standard_name)
-            info_lines.append('')
-
-        return '\n'.join(info_lines)
+        return meta_info
 
     @property
-    def protocols(self) -> []:
-        if self._protocol_list is None:
-            self._protocol_list = [protocol for protocol in self._json_dict.get('access', [])
-                                   if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
-        return self._protocol_list
+    def cache_info(self) -> OrderedDict:
+        coverage = OrderedDict()
+        selected_file_list = self._find_files(None)
+        if selected_file_list:
+            dataset_dir = self.local_dataset_dir()
+            for filename, date_from, date_to, none, none \
+                    in selected_file_list:
+                if os.path.exists(os.path.join(dataset_dir, filename)):
+                    if date_from in coverage.values():
+                        for temp_date_from, temp_date_to in coverage.items():
+                            if temp_date_to == date_from:
+                                coverage[temp_date_from] = date_to
+                    elif date_to in coverage.keys():
+                        temp_date_to = coverage[date_to]
+                        coverage.pop(date_to)
+                        coverage[date_from] = temp_date_to
+                    else:
+                        coverage[date_from] = date_to
+        return coverage
+
+    def _variables_list(self):
+        variable_names = self._json_dict.get('variable', [])
+        default_list = len(variable_names) * [None]
+        units = self._json_dict.get('variable_units', default_list)
+        long_names = self._json_dict.get('variable_long_name', default_list)
+        standard_names = self._json_dict.get('cf_standard_name', default_list)
+
+        variables_list = []
+        for name, unit, long_name, standard_name in zip(variable_names, units, long_names, standard_names):
+            variables_list.append(dict(name=name, units=unit, long_name=long_name, standard_name=standard_name))
+
+        return variables_list
 
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
 
-    def find_url(self, desired_service=_ODP_PROTOCOLS_HTTP):
-        '''
-        '''
-        # TODO: find the purpose of this method, add documentation
+    def find_url(self, desired_service='HTTP'):
         for url_service in self._json_dict.get('url', []):
             parts = url_service.split('|')
             if len(parts) == 2:

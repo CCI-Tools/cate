@@ -179,23 +179,92 @@ class DataSource(metaclass=ABCMeta):
         """
         return 0, 0
 
-    # TODO (forman, 20160916): (also) return JSON-dict so we can use the data source meta-data more flexible
+    @property
+    def meta_info(self) -> Union[dict, None]:
+        """
+        Return meta-information about this data source.
+        The returned dict, if any, is JSON-serializable.
+        """
+        return None
+
+    @property
+    def cache_info(self) -> Union[dict, None]:
+        """
+        Return information about cached, locally available data sets.
+        The returned dict, if any, is JSON-serializable.
+        """
+        return None
+
+
+
+    @property
+    def variables_info(self) -> Union[dict, None]:
+        """
+        Return meta-information about the variables contained in this data source.
+        The returned dict, if any, is JSON-serializable.
+        """
+        return None
+
     @property
     def info_string(self):
         """
-        Return some textual information about this data source.
+        Return a textual representation of the meta-information about this data source.
         Useful for CLI / REPL applications.
         """
-        return 'No data source meta-data available.'
+        meta_info = self.meta_info
 
-    # TODO (forman, 20160916): (also) return JSON-dict so we can use the variables meta-data more flexible
+        if not meta_info:
+            return 'No data source meta-information available.'
+
+        max_len = 0
+        for name in meta_info.keys():
+            max_len = max(max_len, len(name))
+
+        info_lines = []
+        for name, value in meta_info.items():
+            if name != 'variables':
+                info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
+
+        return '\n'.join(info_lines)
+
     @property
     def variables_info_string(self):
         """
         Return some textual information about the variables contained in this data source.
         Useful for CLI / REPL applications.
         """
-        return 'No variables meta-data available.'
+        meta_info = self.meta_info
+        if not meta_info or meta_info.get('variables', None) is None:
+            return 'No variables information available.'
+
+        variables = meta_info['variables']
+        info_lines = []
+        for variable in variables:
+            info_lines.append('%s (%s):' % (variable.get('name', '?'), variable.get('units', '-')))
+            info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
+            info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
+            info_lines.append('')
+
+        return '\n'.join(info_lines)
+
+    @property
+    def cached_datasets_coverage_string(self):
+        """
+        Return a textual representation of information about cached, locally available data sets.
+        Useful for CLI / REPL applications.
+        """
+        cache_coverage = self.cache_info
+        if not cache_coverage:
+            return 'No information about cached datasets available.'
+
+        info_lines = []
+        for date_from, date_to in sorted(cache_coverage.items()):
+            info_lines.append('{date_from} to {date_to}'
+                              .format(
+                                date_from=date_from.strftime('%Y-%m-%d'),
+                                date_to=date_to.strftime('%Y-%m-%d')))
+
+        return '\n'.join(info_lines)
 
     def __str__(self):
         return self.info_string

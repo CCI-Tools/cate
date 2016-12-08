@@ -47,7 +47,8 @@ def pearson_correlation(ds_x: xr.Dataset,
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
     For more information how to interpret the results, see
-    `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_.
+    `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_,
+    and `here <https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.pearsonr.html>`_.
 
     The provided variables have to have the same shape, but depending on the
     type of variables and chosen correlation type, not necessarily the same
@@ -64,8 +65,12 @@ def pearson_correlation(ds_x: xr.Dataset,
     definition, so that a 2D lat/lon map of correlation coefficients, as well
     as p_values can be constructed.
 
-    :param ds_y: The 'dependent' dataset
-    :param ds_x: The 'variable' dataset
+    There are 'x' and 'y' datasets. Positive correlations imply that as x
+    grows, so does y. Negative correlations imply that as x increases, y
+    decreases.
+
+    :param ds_y: The 'y' dataset
+    :param ds_x: The 'x' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param file: Filepath variable. If given, this is where the results will be saved in a text file.
