@@ -265,7 +265,7 @@ class EsaCciOdpDataStore(DataStore):
             result = [data_source for data_source in self._data_sources if data_source.matches_filter(name)]
         else:
             result = self._data_sources
-        return sorted(result, key=lambda data_source: data_source.name)
+        return result
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
