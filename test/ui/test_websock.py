@@ -1,7 +1,7 @@
-import json
-import os
 import unittest
+
 import cate.ui.websock as websock
+
 
 class MapServiceMethodNameTest(unittest.TestCase):
     def test_map_service_method_name(self):
