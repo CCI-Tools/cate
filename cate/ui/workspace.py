@@ -34,9 +34,7 @@ from cate.core.op import OP_REGISTRY
 from cate.core.op import OpMetaInfo, parse_op_args
 from cate.core.util import Namespace
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-
-WORKSPACE_DATA_DIR_NAME = '.cate-workspace'
-WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
+from cate.ui.conf import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 
 
 class Workspace:
@@ -50,6 +48,7 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
+        self._is_scratch = (base_dir or '').startswith(SCRATCH_WORKSPACES_PATH)
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
@@ -72,6 +71,10 @@ class Workspace:
     def resource_cache(self) -> ValueCache:
         """The Workspace's resource cache."""
         return self._resource_cache
+
+    @property
+    def is_scratch(self) -> bool:
+        return self._is_scratch
 
     @property
     def is_closed(self) -> bool:
@@ -130,7 +133,7 @@ class Workspace:
             if not os.path.isdir(base_dir):
                 os.mkdir(base_dir)
             workspace_dir = self.workspace_dir
-            workflow_file = self.workflow_file
+            # workflow_file = self.workflow_file
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             self.workflow.store(self.workflow_file)
@@ -149,6 +152,7 @@ class Workspace:
     def to_json_dict(self):
         self._assert_open()
         return OrderedDict([('base_dir', self.base_dir),
+                            ('is_scratch', self.is_scratch),
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
                             ('workflow', self.workflow.to_json_dict())])
@@ -273,21 +277,22 @@ class Workspace:
             if key in self._resource_cache:
                 del self._resource_cache[key]
 
-        # # Add workflow outputs
-        # if op_step.op_meta_info.has_named_outputs:
-        #     for step_output_port in op_step.output[:]:
-        #         workflow_output_port_name = res_name + '$' + step_output_port.name
-        #         workflow.op_meta_info.output[workflow_output_port_name] = \
-        #             op_step.op_meta_info.output[step_output_port.name]
-        #         workflow_output_port = NodePort(workflow, workflow_output_port_name)
-        #         workflow_output_port.source = step_output_port
-        #         workflow.output[workflow_output_port.name] = workflow_output_port
-        # else:
-        #     workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-        #     workflow_output_port = NodePort(workflow, res_name)
-        #     workflow_output_port.source = op_step.output[return_output_name]
-        #     workflow.output[workflow_output_port.name] = workflow_output_port
+                # # Add workflow outputs
+                # if op_step.op_meta_info.has_named_outputs:
+                #     for step_output_port in op_step.output[:]:
+                #         workflow_output_port_name = res_name + '$' + step_output_port.name
+                #         workflow.op_meta_info.output[workflow_output_port_name] = \
+                #             op_step.op_meta_info.output[step_output_port.name]
+                #         workflow_output_port = NodePort(workflow, workflow_output_port_name)
+                #         workflow_output_port.source = step_output_port
+                #         workflow.output[workflow_output_port.name] = workflow_output_port
+                # else:
+                #     workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
+                #     workflow_output_port = NodePort(workflow, res_name)
+                #     workflow_output_port.source = op_step.output[return_output_name]
+                #     workflow.output[workflow_output_port.name] = workflow_output_port
 
+    # noinspection PyMethodMayBeStatic
     def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
         try:
             # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps

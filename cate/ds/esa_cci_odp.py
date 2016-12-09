@@ -100,31 +100,27 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=10000, timeout=10):
     """
     Return JSON value read from paginated Solr web-service.
     """
-    new_offset = offset
     combined_json_dict = None
-    combined_num_found = 0
+    num_found = -1
     while True:
         paging_query_args = dict(query_args or {})
-        paging_query_args.update(offset=new_offset, limit=limit, format='application/solr+json')
+        paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
         url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
         with urllib.request.urlopen(url, timeout=timeout) as response:
             json_text = response.read()
             json_dict = json.loads(json_text.decode('utf-8'))
-            num_found = json_dict.get('response', {}).get('numFound', 0)
+            if num_found is -1:
+                num_found = json_dict.get('response', {}).get('numFound', 0)
             if not combined_json_dict:
                 combined_json_dict = json_dict
                 if num_found < limit:
                     break
             else:
-                if num_found > 0:
-                    combined_num_found += num_found
-                    docs = json_dict.get('response', {}).get('docs', [])
-                    combined_json_dict.get('response', {}).get('docs', []).append(docs)
-                    combined_json_dict.get('response', {})['numFound'] = combined_num_found
-                    if num_found < limit:
-                        break
-                else:
+                docs = json_dict.get('response', {}).get('docs', [])
+                combined_json_dict.get('response', {}).get('docs', []).extend(docs)
+                if num_found < offset + limit:
                     break
+        offset += limit
     return combined_json_dict
 
 
@@ -265,7 +261,7 @@ class EsaCciOdpDataStore(DataStore):
             result = [data_source for data_source in self._data_sources if data_source.matches_filter(name)]
         else:
             result = self._data_sources
-        return sorted(result, key=lambda data_source: data_source.name)
+        return result
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
@@ -355,7 +351,9 @@ class EsaCciOdpDataSource(DataSource):
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
-            self._init_file_list()
+            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
+            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
+            # self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.

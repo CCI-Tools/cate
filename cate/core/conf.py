@@ -31,7 +31,8 @@ Functions
 
 import os.path
 
-DEFAULT_DATA_PATH = os.path.expanduser(os.path.join('~', '.cate'))
+DEFAULT_DATA_DIR_NAME = '.cate'
+DEFAULT_DATA_PATH = os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME)
 DEFAULT_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
 
 _LOCAL_CONF_FILE = 'cate-conf.py'

@@ -5,11 +5,10 @@ import shutil
 import unittest
 import urllib.parse
 
-
+from tornado.testing import AsyncHTTPTestCase
 
 from cate.core.util import encode_url_path
 from cate.ui import webapi
-from tornado.testing import AsyncHTTPTestCase
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 
@@ -38,7 +37,7 @@ class WebAPITest(AsyncHTTPTestCase):
 
         response = self.fetch(encode_url_path('/ws/new',
                                               query_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'),
-                                                              save=True,
+                                                              do_save=True,
                                                               description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
@@ -141,16 +140,3 @@ class UrlPatternTest(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             webapi.url_pattern('/info/{{id}')
         self.assertEqual(str(cm.exception), 'no matching "}}" after "{{" in "/info/{{id}"')
-
-
-
-
-class MapServiceMethodNameTest(unittest.TestCase):
-    def test_map_service_method_name(self):
-        self.assertEqual(webapi._map_service_method_name(''), '')
-        self.assertEqual(webapi._map_service_method_name('newWorkspace'), 'new_workspace')
-        self.assertEqual(webapi._map_service_method_name('new_workspace'), 'new_workspace')
-        self.assertEqual(webapi._map_service_method_name('getWebAPIConfig'), 'get_web_api_config')
-        self.assertEqual(webapi._map_service_method_name('compute4Nodes'), 'compute_4_nodes')
-        self.assertEqual(webapi._map_service_method_name('computeGRAPH42'), 'compute_graph42')
-        self.assertEqual(webapi._map_service_method_name('compute42GRAPHS'), 'compute_42graphs')
