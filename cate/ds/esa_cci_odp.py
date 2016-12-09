@@ -351,7 +351,9 @@ class EsaCciOdpDataSource(DataSource):
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
-            self._init_file_list()
+            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
+            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
+            # self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.
