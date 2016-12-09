@@ -100,12 +100,10 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=10000, timeout=10):
     """
     Return JSON value read from paginated Solr web-service.
     """
-    new_offset = offset
     combined_json_dict = None
-    combined_num_found = 0
     while True:
         paging_query_args = dict(query_args or {})
-        paging_query_args.update(offset=new_offset, limit=limit, format='application/solr+json')
+        paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
         url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
         with urllib.request.urlopen(url, timeout=timeout) as response:
             json_text = response.read()
@@ -116,15 +114,13 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=10000, timeout=10):
                 if num_found < limit:
                     break
             else:
-                if num_found > 0:
-                    combined_num_found += num_found
-                    docs = json_dict.get('response', {}).get('docs', [])
-                    combined_json_dict.get('response', {}).get('docs', []).append(docs)
-                    combined_json_dict.get('response', {})['numFound'] = combined_num_found
-                    if num_found < limit:
+                docs = json_dict.get('response', {}).get('docs', [])
+                combined_json_dict.get('response', {}).get('docs', []).extend(docs)
+                if num_found < offset + limit:
                         break
                 else:
                     break
+        offset += limit
     return combined_json_dict
 
 
