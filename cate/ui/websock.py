@@ -9,6 +9,7 @@ import tornado.websocket
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
+from cate.core.util import cwd
 from cate.ui.conf import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.ui.wsmanag import WorkspaceManager
 
@@ -105,6 +106,20 @@ class ServiceMethods:
     def new_workspace(self) -> dict:
         workspace = self.workspace_manager.new_workspace(None)
         return workspace.to_json_dict()
+
+    # noinspection PyAbstractClass
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
+                               monitor: Monitor) -> dict:
+        # TODO (nf): op_args come in as ["name1=value1", "name2=value2", ...] due to the CLI and REST API
+        #            If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
+        op_args = ['%s=%s' % (k, ('"%s"' % v) if isinstance(v, str) else v) for k, v in op_args.items()]
+        with cwd(base_dir):
+            workspace = self.workspace_manager.set_workspace_resource(base_dir,
+                                                                      res_name,
+                                                                      op_name,
+                                                                      op_args=op_args,
+                                                                      monitor=monitor)
+            return workspace.to_json_dict()
 
 
 # noinspection PyAbstractClass
@@ -249,7 +264,7 @@ class WebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _write_progress(self, work=None, message=None):
+    def _write_progress(self, message=None):
         current_time = time.time()
         if not self.last_time or (current_time - self.last_time) >= WEBAPI_PROGRESS_DEFER_PERIOD:
 
@@ -274,10 +289,10 @@ class WebSocketMonitor(Monitor):
         self.worked = 0.0 if total_work else None
         self._write_progress(message='Started')
 
-    def progress(self, work: float = None, message: str = None):
+    def progress(self, work: float = None, msg: str = None):
         if work:
             self.worked = (self.worked or 0.0) + work
-        self._write_progress(message=message)
+        self._write_progress(message=msg)
 
     def done(self):
         self.worked = self.total
