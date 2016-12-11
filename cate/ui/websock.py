@@ -178,8 +178,6 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
 
         method_params = message_obj.get('params', None)
 
-        method_name = _map_service_method_name(method_name)
-        print("AppWebSocketHandler: method: %s" % method_name)
         if hasattr(self._service, method_name):
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
 
@@ -298,27 +296,3 @@ class WebSocketMonitor(Monitor):
         self.worked = self.total
         self._write_progress(message='Done')
 
-
-def _map_service_method_name(name: str) -> str:
-    n = len(name)
-    if n == 0:
-        return name
-    new_name = []
-    s0 = False  # state = LC
-    s1 = False  # state = LC
-    for i in range(n):
-        c = name[i]
-        s2 = c.isupper() or c.isdigit()
-        if not s1 and s2:
-            new_name.append('_')
-            new_name.append(c.lower())
-        elif s0 and s1 and not s2 and c.isalpha():
-            new_name.insert(-1, '_')
-            new_name.append(c)
-        elif s2:
-            new_name.append(c.lower())
-        else:
-            new_name.append(c)
-        s0 = s1
-        s1 = s2
-    return ''.join(new_name)
