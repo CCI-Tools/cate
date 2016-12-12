@@ -9,6 +9,7 @@ import tornado.websocket
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
+from cate.core.util import cwd
 from cate.ui.conf import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.ui.wsmanag import WorkspaceManager
 
@@ -106,6 +107,20 @@ class ServiceMethods:
         workspace = self.workspace_manager.new_workspace(None)
         return workspace.to_json_dict()
 
+    # noinspection PyAbstractClass
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
+                               monitor: Monitor) -> dict:
+        # TODO (nf): op_args come in as ["name1=value1", "name2=value2", ...] due to the CLI and REST API
+        #            If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
+        op_args = ['%s=%s' % (k, ('"%s"' % v) if isinstance(v, str) else v) for k, v in op_args.items()]
+        with cwd(base_dir):
+            workspace = self.workspace_manager.set_workspace_resource(base_dir,
+                                                                      res_name,
+                                                                      op_name,
+                                                                      op_args=op_args,
+                                                                      monitor=monitor)
+            return workspace.to_json_dict()
+
 
 # noinspection PyAbstractClass
 class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -163,8 +178,6 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
 
         method_params = message_obj.get('params', None)
 
-        method_name = _map_service_method_name(method_name)
-        print("AppWebSocketHandler: method: %s" % method_name)
         if hasattr(self._service, method_name):
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
 
@@ -249,7 +262,7 @@ class WebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _write_progress(self, work=None, message=None):
+    def _write_progress(self, message=None):
         current_time = time.time()
         if not self.last_time or (current_time - self.last_time) >= WEBAPI_PROGRESS_DEFER_PERIOD:
 
@@ -274,36 +287,12 @@ class WebSocketMonitor(Monitor):
         self.worked = 0.0 if total_work else None
         self._write_progress(message='Started')
 
-    def progress(self, work: float = None, message: str = None):
+    def progress(self, work: float = None, msg: str = None):
         if work:
             self.worked = (self.worked or 0.0) + work
-        self._write_progress(message=message)
+        self._write_progress(message=msg)
 
     def done(self):
         self.worked = self.total
         self._write_progress(message='Done')
 
-
-def _map_service_method_name(name: str) -> str:
-    n = len(name)
-    if n == 0:
-        return name
-    new_name = []
-    s0 = False  # state = LC
-    s1 = False  # state = LC
-    for i in range(n):
-        c = name[i]
-        s2 = c.isupper() or c.isdigit()
-        if not s1 and s2:
-            new_name.append('_')
-            new_name.append(c.lower())
-        elif s0 and s1 and not s2 and c.isalpha():
-            new_name.insert(-1, '_')
-            new_name.append(c)
-        elif s2:
-            new_name.append(c.lower())
-        else:
-            new_name.append(c)
-        s0 = s1
-        s1 = s2
-    return ''.join(new_name)

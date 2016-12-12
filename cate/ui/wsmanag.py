@@ -66,7 +66,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def close_workspace(self, base_dir: str, do_save: bool) -> None:
+    def close_workspace(self, base_dir: str, do_save: bool) -> Workspace:
         pass
 
     @abstractmethod
@@ -74,7 +74,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def save_workspace(self, base_dir: str) -> None:
+    def save_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
@@ -92,34 +92,34 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: List[str],
-                            monitor: Monitor = Monitor.NONE) -> None:
+                            monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],
-                               monitor: Monitor = Monitor.NONE) -> None:
+                               monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         pass
 
     @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> None:
+                                monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
 
@@ -193,11 +193,12 @@ class FSWorkspaceManager(WorkspaceManager):
                 workspace.save()
             workspace.close()
 
-    def save_workspace(self, base_dir: str) -> None:
+    def save_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
         if workspace is not None and workspace.is_modified:
             workspace.save()
+        return workspace
 
     def save_all_workspaces(self) -> None:
         workspaces = self._open_workspaces.values()
@@ -205,7 +206,7 @@ class FSWorkspaceManager(WorkspaceManager):
         for workspace in workspaces:
             workspace.save()
 
-    def clean_workspace(self, base_dir: str) -> None:
+    def clean_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workflow_file = Workspace.get_workflow_file(base_dir)
         old_workflow = None
@@ -227,6 +228,7 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace = Workspace(base_dir, workflow)
         self._open_workspaces[base_dir] = workspace
         workspace.save()
+        return workspace
 
     def delete_workspace(self, base_dir: str) -> None:
         self.close_workspace(base_dir, do_save=False)
@@ -241,32 +243,36 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: List[str],
-                            monitor: Monitor = Monitor.NONE) -> None:
+                            monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.run_op(op_name, op_args, validate_args=True, monitor=monitor)
+        return workspace
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str],
-                               monitor: Monitor = Monitor.NONE) -> None:
+                               monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
         workspace.execute_workflow(res_name, monitor)
+        return workspace
 
-    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.delete_resource(res_name)
+        return workspace
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name, monitor.child(9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
+        return workspace
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> None:
+                                monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         obj = self._get_resource_value(workspace, res_name, monitor)
 
@@ -298,12 +304,14 @@ class FSWorkspaceManager(WorkspaceManager):
             plt.show()
         else:
             raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
+        return workspace
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         value = self._get_resource_value(workspace, res_name_or_expr, monitor)
         pprint.pprint(value)
+        return workspace
 
     # noinspection PyMethodMayBeStatic
     def _get_resource_value(self, workspace, res_name_or_expr, monitor):
@@ -406,10 +414,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         query_args=self._query(do_save=do_save))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def save_workspace(self, base_dir: str) -> None:
+    def save_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/save/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def save_all_workspaces(self) -> None:
         url = self._url('/ws/save_all')
@@ -420,51 +429,58 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def clean_workspace(self, base_dir: str) -> None:
+    def clean_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/clean/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: List[str],
-                            monitor: Monitor = Monitor.NONE) -> None:
+                            monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/run_op/{base_dir}',
                         path_args=dict(base_dir=base_dir))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT,
-                         data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT,
+                                     data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        return Workspace.from_json_dict(json_dict)
 
-    def delete_workspace_resource(self, base_dir: str, res_name: str) -> None:
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         url = self._url('/ws/res/del/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],
-                               monitor: Monitor = Monitor.NONE) -> None:
+                               monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT,
-                         data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT,
+                                     data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        return Workspace.from_json_dict(json_dict)
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(file_path=file_path, format_name=format_name))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> None:
+                                monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(var_name=var_name, file_path=file_path))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
+                                 monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/res/print/{base_dir}',
                         path_args=dict(base_dir=base_dir),
                         query_args=self._query(res_name_or_expr=res_name_or_expr))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
