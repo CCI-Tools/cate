@@ -536,7 +536,7 @@ class WorkspaceNewHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.new_workspace(base_dir, do_save=do_save, description=description)
-            self.write(_status_ok(workspace.to_json_dict()))
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -547,7 +547,7 @@ class WorkspaceOpenHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.open_workspace(base_dir)
-            self.write(_status_ok(workspace.to_json_dict()))
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -583,8 +583,8 @@ class WorkspaceSaveHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.save_workspace(base_dir)
-            self.write(_status_ok())
+            workspace = workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -616,8 +616,8 @@ class WorkspaceCleanHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.clean_workspace(base_dir)
-            self.write(_status_ok())
+            workspace = workspace_manager.clean_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -631,9 +631,9 @@ class WorkspaceRunOpHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
-                                                      monitor=_new_monitor())
-            self.write(_status_ok())
+                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
+                                                                  monitor=_new_monitor())
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -644,8 +644,8 @@ class ResourceDeleteHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.delete_workspace_resource(base_dir, res_name)
-            self.write(_status_ok())
+                workspace = workspace_manager.delete_workspace_resource(base_dir, res_name)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -659,9 +659,9 @@ class ResourceSetHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
-                                                         monitor=_new_monitor())
-            self.write(_status_ok())
+                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
+                                                                     monitor=_new_monitor())
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -674,8 +674,9 @@ class ResourceWriteHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
-            self.write(_status_ok())
+                workspace = workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
+                                                                       format_name=format_name)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -701,8 +702,8 @@ class ResourcePrintHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
-            self.write(_status_ok())
+                workspace = workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
