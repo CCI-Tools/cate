@@ -39,10 +39,10 @@ from tornado.web import RequestHandler, Application
 
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
-from cate.version import __version__
 from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, WEBAPI_LOG_FILE
 from cate.ui.websock import AppWebSocketHandler
 from cate.ui.wsmanag import FSWorkspaceManager
+from cate.version import __version__
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -98,6 +98,8 @@ def get_application():
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
+        # Natural Earth v2 imagery provider for testing, see cate.ui.imaging.data_sources.NaturalEarth2Image class
+        (url_pattern('/ws/tiles/ne2/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
@@ -706,6 +708,18 @@ class ResourcePrintHandler(BaseRequestHandler):
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class NE2Handler(BaseRequestHandler):
+    import cate.ui.imaging.data_sources as ds
+
+    PYRAMID = ds.NaturalEarth2Image.get_pyramid()
+
+    def get(self, z, y, x):
+        # print('NE2Handler.get(%s, %s, %s)' % (z, y, x))
+        self.set_header('Content-Type', 'image/jpg')
+        self.write(NE2Handler.PYRAMID.get_tile(int(x), int(y), int(z)))
 
 
 # noinspection PyAbstractClass
