@@ -712,7 +712,7 @@ class ResourcePrintHandler(BaseRequestHandler):
 
 # noinspection PyAbstractClass
 class NE2Handler(BaseRequestHandler):
-    import cate.ui.imaging.data_sources as ds
+    import cate.ui.imaging.ds as ds
 
     PYRAMID = ds.NaturalEarth2Image.get_pyramid()
 
