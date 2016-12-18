@@ -30,9 +30,9 @@ import threading
 import time
 import traceback
 import urllib.request
+import xarray as xr
 from datetime import date, datetime
 from typing import Optional, Union
-
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -43,6 +43,8 @@ from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLO
 from cate.ui.websock import AppWebSocketHandler
 from cate.ui.wsmanag import FSWorkspaceManager
 from cate.version import __version__
+from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from cate.ui.imaging.ds import NaturalEarth2Image
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -98,8 +100,10 @@ def get_application():
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
+        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         # Natural Earth v2 imagery provider for testing, see cate.ui.imaging.data_sources.NaturalEarth2Image class
-        (url_pattern('/ws/tiles/ne2/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
@@ -712,14 +716,101 @@ class ResourcePrintHandler(BaseRequestHandler):
 
 # noinspection PyAbstractClass
 class NE2Handler(BaseRequestHandler):
-    import cate.ui.imaging.ds as ds
 
-    PYRAMID = ds.NaturalEarth2Image.get_pyramid()
+    PYRAMID = NaturalEarth2Image.get_pyramid()
 
     def get(self, z, y, x):
         # print('NE2Handler.get(%s, %s, %s)' % (z, y, x))
         self.set_header('Content-Type', 'image/jpg')
         self.write(NE2Handler.PYRAMID.get_tile(int(x), int(y), int(z)))
+
+
+# noinspection PyAbstractClass
+class ResVarTileHandler(BaseRequestHandler):
+    PYRAMIDS = dict()
+
+    def get(self, base_dir, res_name, z, y, x):
+
+        # GLOBAL_LOCK.acquire()
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+
+        if res_name not in workspace.resource_cache:
+            self.write(_status_error(message='Unknown resource "%s"' % res_name))
+            return
+
+        dataset = workspace.resource_cache[res_name]
+        if not isinstance(dataset, xr.Dataset):
+            self.write(_status_error(message='Resource "%s" must be a Dataset' % res_name))
+            return
+
+        var_name = self.get_query_argument('var')
+
+        cmap_name = self.get_query_argument('cmap', default='jet')
+        cmap_min = float(self.get_query_argument('min', default=0.0))
+        cmap_max = float(self.get_query_argument('max', default=1.0))
+
+        image_id = '%s|%s|%s|%s|%s' % (res_name, var_name, cmap_name, cmap_min, cmap_max)
+
+        if image_id in ResVarTileHandler.PYRAMIDS:
+            pyramid = ResVarTileHandler.PYRAMIDS[image_id]
+        else:
+            variable = dataset[var_name]
+
+            pyramid = ImagePyramid.create_from_array(variable)
+            pyramid = pyramid.apply(lambda image: TransformArrayImage(image,
+                                                                      no_data_value=variable.fillvalue,
+                                                                      force_masked=True,
+                                                                      flip_y=self.is_y_flipped(variable)))
+            pyramid = pyramid.apply(lambda image: ColorMappedRgbaImage(image,
+                                                                       value_range=(cmap_min, cmap_max),
+                                                                       cmap_name=cmap_name,
+                                                                       encode=True, format='PNG'))
+            ResVarTileHandler.PYRAMIDS[image_id] = pyramid
+            print('num_level_zero_tiles:', pyramid.num_level_zero_tiles)
+            print('num_levels:', pyramid.num_levels)
+
+        print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
+
+        t1 = time.clock()
+        tile = pyramid.get_tile(int(x), int(y), int(z))
+        t2 = time.clock()
+
+        self.set_header('Content-Type', 'image/png')
+        self.write(tile)
+
+        print('PERF: <<< Tile:', threading.current_thread(), image_id, z, y, x, 'took', t2 - t1, 'seconds')
+        # GLOBAL_LOCK.release()
+
+    def is_y_flipped(self, variable):
+        lat_var = self.get_lat_var(variable)
+        if lat_var is not None:
+            return lat_var[0] < lat_var[1]
+        return False
+
+    def is_lat_lon_image_variable(self, variable):
+        lon_var = self.get_lon_var(variable)
+        if lon_var is not None and lon_var.shape[0] >= 2:
+            lat_var = self.get_lat_var(variable)
+            return lat_var is not None and lat_var.shape[0] >= 2
+        return False
+
+    def get_lon_var(self, variable):
+        return self.get_dim_var(variable, ['lon', 'longitude', 'long'], -1)
+
+    def get_lat_var(self, variable):
+        return self.get_dim_var(variable, ['lat', 'latitude'], -2)
+
+    # noinspection PyMethodMayBeStatic
+    def get_dim_var(self, variable, names, pos):
+        if len(variable.dims) >= -pos:
+            dim = variable.dims[len(variable.dims) + pos]
+            for name in names:
+                if name in dim:
+                    dim_var = dim[name]
+                    if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
+                        return dim_var
+        return None
 
 
 # noinspection PyAbstractClass
