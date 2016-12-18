@@ -35,6 +35,7 @@ Cate can be run from sources directly, once the following module requirements ar
 * `netcdf4`
 * `numba`
 * `numpy`
+* `pillow`
 * `pyqt`
 * `scipy`
 * `tornado`
@@ -65,7 +66,7 @@ Windows users can omit the `source` command and just type
 
 Now we add all required packages to the activated `cate` Conda environment:
 
-    (cate) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pyqt jdcal
+    (cate) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pillow pyqt jdcal
     (cate) $ conda install -c conda-forge cartopy basemap
 
 Some packages are not available on Anaconda default channels and we have to find them on
