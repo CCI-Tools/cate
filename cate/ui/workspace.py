@@ -37,6 +37,7 @@ from cate.core.op import OpMetaInfo, parse_op_args
 from cate.core.util import Namespace
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
 from cate.ui.conf import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
+from cate.ui.imaging.image import ImagePyramid
 
 
 class Workspace:
@@ -191,8 +192,7 @@ class Workspace:
             'shape': variable.shape,
             'chunks': variable.chunks,
             'dimensions': variable.dims,
-            #'fill_value': _get_float_attr(attrs, '_FillValue',
-            #                              default_value=float(variable.fillvalue) if variable.fillvalue else None),
+            'fill_value': self._get_float_attr(attrs, '_FillValue'),
             'valid_min': self._get_float_attr(attrs, 'valid_min'),
             'valid_max': self._get_float_attr(attrs, 'valid_max'),
             'add_offset': self._get_float_attr(attrs, 'add_offset'),
@@ -202,33 +202,52 @@ class Workspace:
             'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
             'comment': self._get_unicode_attr(attrs, 'comment'),
         }
-        # if is_lat_lon_image_variable(variable):
-        #     variable_info['imageConfig'] = _get_variable_image_config(variable)
-        #     variable_info['y-flipped'] = is_y_flipped(variable)
-        #     nanmin = numpy.nanmin(variable.values)
-        #     nanmax = numpy.nanmax(variable.values)
-        #     variable_info['real_min'] = str(nanmin)
-        #     variable_info['real_max'] = str(nanmax)
+        if self._is_lat_lon_image_variable(variable):
+            variable_info['imageLayout'] = self._get_variable_image_config(variable)
+            variable_info['y-flipped'] = self._is_y_flipped(variable)
+            # TODO (mz, 2016-12-19) do we need these, they require reading of all data
+            # nanmin = np.nanmin(variable.values)
+            # nanmax = np.nanmax(variable.values)
+            # variable_info['real_min'] = str(nanmin)
+            # variable_info['real_max'] = str(nanmax)
         return variable_info
 
 
-    # def _get_variable_image_config(self, variable):
-    #     max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
-    #     return {
-    #         # todo - compute imageConfig.sector from variable attributes. See frontend todo.
-    #         'sector': {
-    #             'minLongitude': -180.0,
-    #             'minLatitude': -90.0,
-    #             'maxLongitude': 180.0,
-    #             'maxLatitude': 90.0
-    #         },
-    #         'numLevels': num_levels,
-    #         'numLevelZeroTilesX': num_level_zero_tiles[0],
-    #         'numLevelZeroTilesY': num_level_zero_tiles[1],
-    #         'tileWidth': tile_size[0],
-    #         'tileHeight': tile_size[1]
-    # }
+    def _get_variable_image_config(self, variable):
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
+        return {
+            # todo - compute imageConfig.sector from variable attributes. See frontend todo.
+            'sector': {
+                'minLongitude': -180.0,
+                'minLatitude': -90.0,
+                'maxLongitude': 180.0,
+                'maxLatitude': 90.0
+            },
+            'numLevels': num_levels,
+            'numLevelZeroTilesX': num_level_zero_tiles[0],
+            'numLevelZeroTilesY': num_level_zero_tiles[1],
+            'tileWidth': tile_size[0],
+            'tileHeight': tile_size[1]
+    }
 
+    def _is_y_flipped(self, variable):
+        lat_coords = variable.coords[self._get_lat_dim_name(variable)]
+        return lat_coords.to_index().is_monotonic_increasing
+
+    def _is_lat_lon_image_variable(self, variable):
+        return self._get_lat_dim_name(variable) != None and self._get_lon_dim_name(variable) != None
+
+    def _get_lon_dim_name(self, variable):
+        return self._get_dim_name(variable, ['lon', 'longitude', 'long'])
+
+    def _get_lat_dim_name(self, variable):
+        return self._get_dim_name(variable, ['lat', 'latitude'])
+
+    def _get_dim_name(self, variable, possible_names):
+        for name in possible_names:
+            if name in variable.dims:
+                return name
+        return None
 
     def _get_unicode_attr(self, attr, key, default_value=''):
         if key in attr:
