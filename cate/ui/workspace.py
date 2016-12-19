@@ -28,6 +28,8 @@ import shutil
 import sys
 from collections import OrderedDict
 from typing import List
+import xarray as xr
+import numpy as np
 
 from cate.core.monitor import Monitor
 from cate.core.op import OP_REGISTRY
@@ -155,7 +157,98 @@ class Workspace:
                             ('is_scratch', self.is_scratch),
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
-                            ('workflow', self.workflow.to_json_dict())])
+                            ('workflow', self.workflow.to_json_dict()),
+                            ('resources', self._resources_to_json_dict())
+                            ])
+
+    def _resources_to_json_dict(self):
+        resources_json = []
+        for resource_name in self._resource_cache:
+            resource = self._resource_cache[resource_name]
+            if isinstance(resource, xr.Dataset):
+                print("resource", resource)
+                variable_infos = []
+                for variable in resource.data_vars:
+                    print("variable", variable)
+                    variable_infos.append(self._get_variable_info(resource.data_vars[variable]))
+                resource_info = {
+                    'name': resource_name,
+                    'variables': variable_infos,
+                }
+                resources_json.append(resource_info)
+
+        print("resources_json", resources_json)
+        return resources_json
+
+    def _get_variable_info(self, variable: xr.DataArray):
+        # See http://docs.h5py.org/en/latest/
+        # print(list(variable.attrs.keys()))
+        attrs = variable.attrs
+        variable_info = {
+            'name': variable.name,
+            'dataType': str(variable.dtype),
+            'ndim': len(variable.dims),
+            'shape': variable.shape,
+            'chunks': variable.chunks,
+            'dimensions': variable.dims,
+            #'fill_value': _get_float_attr(attrs, '_FillValue',
+            #                              default_value=float(variable.fillvalue) if variable.fillvalue else None),
+            'valid_min': self._get_float_attr(attrs, 'valid_min'),
+            'valid_max': self._get_float_attr(attrs, 'valid_max'),
+            'add_offset': self._get_float_attr(attrs, 'add_offset'),
+            'scale_factor': self._get_float_attr(attrs, 'scale_factor'),
+            'standard_name': self._get_unicode_attr(attrs, 'standard_name'),
+            'long_name': self._get_unicode_attr(attrs, 'long_name'),
+            'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
+            'comment': self._get_unicode_attr(attrs, 'comment'),
+        }
+        # if is_lat_lon_image_variable(variable):
+        #     variable_info['imageConfig'] = _get_variable_image_config(variable)
+        #     variable_info['y-flipped'] = is_y_flipped(variable)
+        #     nanmin = numpy.nanmin(variable.values)
+        #     nanmax = numpy.nanmax(variable.values)
+        #     variable_info['real_min'] = str(nanmin)
+        #     variable_info['real_max'] = str(nanmax)
+        return variable_info
+
+
+    # def _get_variable_image_config(self, variable):
+    #     max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
+    #     return {
+    #         # todo - compute imageConfig.sector from variable attributes. See frontend todo.
+    #         'sector': {
+    #             'minLongitude': -180.0,
+    #             'minLatitude': -90.0,
+    #             'maxLongitude': 180.0,
+    #             'maxLatitude': 90.0
+    #         },
+    #         'numLevels': num_levels,
+    #         'numLevelZeroTilesX': num_level_zero_tiles[0],
+    #         'numLevelZeroTilesY': num_level_zero_tiles[1],
+    #         'tileWidth': tile_size[0],
+    #         'tileHeight': tile_size[1]
+    # }
+
+
+    def _get_unicode_attr(self, attr, key, default_value=''):
+        if key in attr:
+            value = attr.get(key)
+            #print(key, ' type:', str(type(value)), ' value:', str(value))
+            if type(value) == bytes or type(value) == np.bytes_:
+                return value.decode('unicode_escape')
+            elif type(value) != str:
+                return str(value)
+            else:
+                return value
+        return default_value
+
+    def _get_float_attr(self, attr, key, default_value=None):
+        if key in attr:
+            try:
+                return float(attr.get(key))
+            except:
+                pass
+        return default_value
 
     def delete(self):
         self.close()
