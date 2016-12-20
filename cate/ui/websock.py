@@ -300,7 +300,7 @@ class WebSocketMonitor(Monitor):
             self.handler.write_message(json.dumps(dict(jsonrcp="2.0",
                                                        id=self.method_id,
                                                        progress=progress)))
-        self.last_time = current_time
+            self.last_time = current_time
 
     def start(self, label: str, total_work: float = None):
         self.label = label
