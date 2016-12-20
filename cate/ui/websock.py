@@ -26,6 +26,7 @@ import time
 import traceback
 
 import tornado.websocket
+from tornado.ioloop import IOLoop
 
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
@@ -207,7 +208,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                 # noinspection PyTypeChecker
                 self.send_service_method_result(method_id, f)
 
-            future.add_done_callback(_send_service_method_result)
+            IOLoop.current().add_future(future=future, callback=_send_service_method_result)
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
