@@ -17,21 +17,21 @@ In order to avoid confusion and ambiguity, a common terminology was agreed on as
    * - Term
      - CCI Toolbox Definition
    * - ECV
-     - Umbrella term for /U+2192\ geophysical quantity/quantities associated with climate variation and change as well as the impact of climate change onto Earth (e.g. cloud properties).
+     - Umbrella term for geophysical quantity/quantities associated with climate variation and change as well as the impact of climate change onto Earth (e.g. cloud properties).
    * - ECV product
-     - Subdivision of /U+2192\ ECVs in long-term data record of values or fields, covering one or more /U+2192\ geophysical quantities (e.g. Cloud Water Path).
+     - Subdivision of ECVs in long-term data record of values or fields, covering one or more geophysical quantities (e.g. Cloud Water Path).
    * - Geophysical quantity
      - One physical parameter/variable in that constitutes a time series of observations (e.g. Cloud Liquid Water Path).
    * - Dataset
-     - In-memory representation of data read from a /U+2192\ data source. Contains multiple layers of a /U+2192\ geophysical quantity or multiple /U+2192\ geophysical quantities with multiple layers encompassing e.g. information on temporal and spatial dimensions and localization or uncertainty information.
+     - In-memory representation of data read from a data source. Contains multiple layers of a geophysical quantity or multiple geophysical quantities with multiple layers encompassing e.g. information on temporal and spatial dimensions and localization or uncertainty information.
    * - Data product
-     - Combination of /U+2192\ dataset and /U+2192\ geophysical quantity incl. uncertainty information (e.g. Cloud Liquid Water Path from L3S Modis merged phase1 v1.0 including uncertainty, standard deviation, number of observations, …)
+     - Combination of dataset and geophysical quantity incl. uncertainty information (e.g. Cloud Liquid Water Path from L3S Modis merged phase1 v1.0 including uncertainty, standard deviation, number of observations, …)
    * - Schema
-     - Describes a /U+2192\ dataset's structure, contents and data types.
+     - Describes a dataset's structure, contents and data types.
    * - Data store
-     - Offers multiple /U+2192\ data sources.
+     - Offers multiple data sources.
    * - Data source
-     - A concrete source for /U+2192\ datasets. Has a /U+2192\ schema and knows about dataset coverage. Used to load /U+2192\ datasets.
+     - A concrete source for datasets. Has a schema and knows about dataset coverage. Used to load datasets.
 
 .. figure:: _static/figures/terminology.png
    :scale: 60 %

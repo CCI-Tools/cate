@@ -279,6 +279,10 @@ class ConsoleMonitor(Monitor):
         if self._stay_in_line:
             sys.stdout.write('\n')
 
+    def _recalculate_effective_progress_size(self, term_size: int):
+        self._term_size = term_size
+        self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size - 11
+
     def _report_progress(self, percentage=None, msg=None):
 
         percentage_str = ''
