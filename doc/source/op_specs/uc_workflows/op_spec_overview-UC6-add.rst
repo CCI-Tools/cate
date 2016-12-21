@@ -28,9 +28,10 @@ Operations  UC6 MEI
 	
 		- Arithmetic Mean *(weighting option)*
 
-	- Temporal Comparison
+	- Comparison
 	
 		- Anomalies
+		- Long-term average
 	
 - Data Intercomparison *(= Bivariate Statistics)*
 
