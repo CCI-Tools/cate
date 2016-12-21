@@ -291,7 +291,8 @@ class ConsoleMonitor(Monitor):
         term_size = get_terminal_size().columns
         if term_size is not self._term_size:
             self._term_size = term_size
-            self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size - 11
+            self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size \
+                if self._progress_bar_size is not None else 0 - 11
         if percentage is not None:
             percentage_str = '%3d%%' % percentage
             if self._progress_bar_size is not None and self._progress_bar_size <= 0:
