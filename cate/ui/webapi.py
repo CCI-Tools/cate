@@ -31,8 +31,9 @@ import time
 import traceback
 import urllib.request
 import xarray as xr
+import numpy as np
 from datetime import date, datetime
-from typing import Optional, Union
+from typing import Optional, Union, List
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -756,12 +757,27 @@ class ResVarTileHandler(BaseRequestHandler):
             pyramid = ResVarTileHandler.PYRAMIDS[image_id]
         else:
             variable = dataset[var_name]
+            no_data_value = variable.attrs.get('_FillValue', float('nan'))
+            is_y_flipped = self.is_y_flipped(dataset, variable)
 
-            pyramid = ImagePyramid.create_from_array(variable)
+            # Make sure we work with 2D image arrays only
+            if variable.ndim > 2:
+                index = (0,) * (variable.ndim - 2) + (slice(None), slice(None),)
+                print('index =', index)
+                array = variable[index]
+            else:
+                array = variable
+
+            # TODO: remove this debugging code. It is here because we have no control currently
+            cmap_min = np.nanmin(array.values)
+            cmap_max = np.nanmax(array.values)
+
+            pyramid = ImagePyramid.create_from_array(array)
+
             pyramid = pyramid.apply(lambda image: TransformArrayImage(image,
-                                                                      no_data_value=variable.fillvalue,
+                                                                      no_data_value=no_data_value,
                                                                       force_masked=True,
-                                                                      flip_y=self.is_y_flipped(variable)))
+                                                                      flip_y=is_y_flipped))
             pyramid = pyramid.apply(lambda image: ColorMappedRgbaImage(image,
                                                                        value_range=(cmap_min, cmap_max),
                                                                        cmap_name=cmap_name,
@@ -770,44 +786,47 @@ class ResVarTileHandler(BaseRequestHandler):
             print('num_level_zero_tiles:', pyramid.num_level_zero_tiles)
             print('num_levels:', pyramid.num_levels)
 
-        print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
+        try:
+            print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
+            t1 = time.clock()
+            tile = pyramid.get_tile(int(x), int(y), int(z))
+            t2 = time.clock()
 
-        t1 = time.clock()
-        tile = pyramid.get_tile(int(x), int(y), int(z))
-        t2 = time.clock()
+            self.set_header('Content-Type', 'image/png')
+            self.write(tile)
 
-        self.set_header('Content-Type', 'image/png')
-        self.write(tile)
+            print('PERF: <<< Tile:', threading.current_thread(), image_id, z, y, x, 'took', t2 - t1, 'seconds')
+            # GLOBAL_LOCK.release()
+        except Exception as e:
+            traceback.print_exc()
+            self.write(_status_error(message='Internal error: %s' % e))
 
-        print('PERF: <<< Tile:', threading.current_thread(), image_id, z, y, x, 'took', t2 - t1, 'seconds')
-        # GLOBAL_LOCK.release()
-
-    def is_y_flipped(self, variable):
-        lat_var = self.get_lat_var(variable)
+    def is_y_flipped(self, dataset: xr.Dataset, variable: xr.DataArray):
+        lat_var = self.get_lat_var(dataset, variable)
         if lat_var is not None:
             return lat_var[0] < lat_var[1]
         return False
 
-    def is_lat_lon_image_variable(self, variable):
-        lon_var = self.get_lon_var(variable)
+    def is_lat_lon_image_variable(self, dataset: xr.Dataset, variable: xr.DataArray):
+        lon_var = self.get_lon_var(dataset, variable)
         if lon_var is not None and lon_var.shape[0] >= 2:
-            lat_var = self.get_lat_var(variable)
+            lat_var = self.get_lat_var(dataset, variable)
             return lat_var is not None and lat_var.shape[0] >= 2
         return False
 
-    def get_lon_var(self, variable):
-        return self.get_dim_var(variable, ['lon', 'longitude', 'long'], -1)
+    def get_lon_var(self, dataset: xr.Dataset, variable: xr.DataArray):
+        return self.get_dim_var(dataset, variable, ['lon', 'longitude', 'long'], -1)
 
-    def get_lat_var(self, variable):
-        return self.get_dim_var(variable, ['lat', 'latitude'], -2)
+    def get_lat_var(self, dataset: xr.Dataset, variable: xr.DataArray):
+        return self.get_dim_var(dataset, variable, ['lat', 'latitude'], -2)
 
     # noinspection PyMethodMayBeStatic
-    def get_dim_var(self, variable, names, pos):
+    def get_dim_var(self, dataset: xr.Dataset, variable: xr.DataArray, names: List[str], pos: int):
         if len(variable.dims) >= -pos:
-            dim = variable.dims[len(variable.dims) + pos]
+            dim_name = variable.dims[len(variable.dims) + pos]
             for name in names:
-                if name in dim:
-                    dim_var = dim[name]
+                if name == dim_name:
+                    dim_var = dataset.coords[dim_name]
                     if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
                         return dim_var
         return None
