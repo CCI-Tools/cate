@@ -100,7 +100,6 @@ class NdarrayImageTest(TestCase):
 
         self.assertEqual(target_image.size, (6, 4))
         self.assertEqual(target_image.num_tiles, (3, 2))
-        self.assertEqual(target_image.num_tiles, (3, 2))
 
         self.assertEqual(target_image.get_tile(0, 0).tolist(), [[0, 1],
                                                                 [6, 7]])
@@ -115,6 +114,15 @@ class NdarrayImageTest(TestCase):
                                                                 [20, 21]])
         self.assertEqual(target_image.get_tile(2, 1).tolist(), [[16, None],
                                                                 [22, 23]])
+
+    def test_force_2d(self):
+        a = np.arange(0, 48, dtype=np.int32)
+        a.shape = 2, 4, 6
+        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        target_image = TransformArrayImage(source_image, force_2d=True)
+
+        self.assertEqual(target_image.size, (6, 4))
+        self.assertEqual(target_image.num_tiles, (3, 2))
 
 
 class ImagePyramidTest(TestCase):

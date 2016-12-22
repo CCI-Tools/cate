@@ -23,6 +23,7 @@ import io
 import sys
 import uuid
 from abc import ABCMeta, abstractmethod, abstractproperty
+from typing import Tuple, Sequence, Union
 
 import matplotlib.cm as cm
 import numpy as np
@@ -239,7 +240,7 @@ class DecoratorImage(OpImage, metaclass=ABCMeta):
     """
 
     def __init__(self,
-                 source_image,
+                 source_image: TiledImage,
                  size=None,
                  tile_size=None,
                  num_tiles=None,
@@ -283,9 +284,17 @@ class TransformArrayImage(DecoratorImage):
     Performs basic (numpy) array transforms. Currently available: force_masked, flip_y.
     Expects the source image to provide (numpy) arrays.
     """
-    def __init__(self, source_image, flip_y=False, force_masked=True, no_data_value=None, tile_cache=None):
+
+    def __init__(self,
+                 source_image: TiledImage,
+                 flip_y=False,
+                 force_masked=True,
+                 force_2d=False,
+                 no_data_value=None,
+                 tile_cache=None):
         super().__init__(source_image, tile_cache=tile_cache)
         self._force_masked = force_masked
+        self._force_2d = force_2d
         self._flip_y = flip_y
         self._no_data_value = no_data_value
 
@@ -307,6 +316,10 @@ class TransformArrayImage(DecoratorImage):
         return target_tile
 
     def compute_tile_from_source_tile(self, tile_x, tile_y, rectangle, tile):
+        if self._force_2d and tile.ndim > 2:
+            # Create 2D subset using basic indexing
+            index = (tile.ndim - 2) * [0] + [slice(None), slice(None)]
+            tile = tile[index]
         if self._flip_y:
             # Flip tile using fancy indexing
             tile = tile[..., ::-1, :]
@@ -326,8 +339,15 @@ class ColorMappedRgbaImage(DecoratorImage):
     Creates a color-mapped image from a source image that provide tiles as numpy-like image arrays.
     """
 
-    def __init__(self, source_image, value_range=(0.0, 1.0), cmap_name=None, num_colors=256,
-                 no_data_value=None, encode=False, format=None, tile_cache=None):
+    def __init__(self,
+                 source_image: TiledImage,
+                 value_range: Tuple[float, float]=(0.0, 1.0),
+                 cmap_name: str=None,
+                 num_colors: int=256,
+                 no_data_value: Union[int, float]=None,
+                 encode: bool=False,
+                 format: str=None,
+                 tile_cache=None):
         """
         Constructor.
 
@@ -363,7 +383,14 @@ class ColorMappedRgbaImage(DecoratorImage):
             array = source_tile.clip(value_min, value_max)
 
         old_shape = array.shape
-        array = np.reshape(array, (old_shape[-2], old_shape[-1]))
+        height = old_shape[-2]
+        width = old_shape[-1]
+        if width * height == array.size:
+            array = np.reshape(array, (height, width))
+        else:
+            index = [0] * (array.ndim - 2) + [slice(None), slice(None)]
+            array = array[index]
+
         # check if we can optimize the following calls by using Numexpr
         # see https://github.com/pydata/numexpr/wiki/Numexpr-Users-Guide
         array -= value_min
@@ -451,7 +478,7 @@ class PilDownsamplingImage(DownsamplingImage):
     """
 
     def __init__(self,
-                 source_image,
+                 source_image: TiledImage,
                  image_id=None,
                  tile_cache=None,
                  resampling=Image.ANTIALIAS):
@@ -486,7 +513,7 @@ class NdarrayDownsamplingImage(DownsamplingImage):
     """
 
     def __init__(self,
-                 source_image,
+                 source_image: TiledImage,
                  image_id=None,
                  tile_cache=None,
                  aggregator=aggregate_ndarray_first):
@@ -529,9 +556,9 @@ class FastNdarrayDownsamplingImage(OpImage):
 
     def __init__(self,
                  array,
-                 tile_size,
-                 z_index,
-                 num_levels,
+                 tile_size: Tuple[int, int],
+                 z_index: int,
+                 num_levels: int,
                  tile_cache=None):
         """
         Constructor.
@@ -557,7 +584,7 @@ class FastNdarrayDownsamplingImage(OpImage):
         self._z_index = z_index
         self._zoom = zoom
 
-    def compute_tile(self, tile_x, tile_y, rectangle):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Tuple[int, int, int, int]):
         x, y, w, h = rectangle
         zoom = self._zoom
         x *= zoom
@@ -586,10 +613,10 @@ class ImagePyramid:
     """
 
     @staticmethod
-    def create_from_image(source_image,
+    def create_from_image(source_image: TiledImage,
                           level_image_factory,
                           num_level_zero_tiles=None,
-                          num_levels=None,
+                          num_levels: int = None,
                           **kwargs):
 
         """
@@ -621,9 +648,9 @@ class ImagePyramid:
 
     @staticmethod
     def create_from_array(array,
-                          tile_size=None,
-                          num_level_zero_tiles=None,
-                          num_levels=None,
+                          tile_size: Tuple[int, int] = None,
+                          num_level_zero_tiles: Tuple[int, int] = None,
+                          num_levels: int = None,
                           **kwargs):
 
         """
@@ -651,12 +678,12 @@ class ImagePyramid:
         return ImagePyramid(num_level_zero_tiles, tile_size, level_images)
 
     @staticmethod
-    def compute_layout(max_size=None,
+    def compute_layout(max_size: Tuple[int, int] = None,
                        array=None,
-                       tile_size=None,
-                       int_div=True,
-                       num_level_zero_tiles=None,
-                       num_levels=None):
+                       tile_size: Tuple[int, int] = None,
+                       int_div: bool = True,
+                       num_level_zero_tiles: Tuple[int, int] = None,
+                       num_levels: int = None):
         """
         Compute a suitable pyramid layout.
 
@@ -704,7 +731,10 @@ class ImagePyramid:
                 num_levels += 1
         return max_size, tile_size, num_level_zero_tiles, num_levels
 
-    def __init__(self, num_level_zero_tiles, tile_size, level_images):
+    def __init__(self,
+                 num_level_zero_tiles: Tuple[int, int],
+                 tile_size: Tuple[int, int],
+                 level_images: Sequence[TiledImage]):
         self._num_level_zero_tiles_x = num_level_zero_tiles[0]
         self._num_level_zero_tiles_y = num_level_zero_tiles[1]
         self._tile_width = tile_size[0]
@@ -724,10 +754,10 @@ class ImagePyramid:
     def num_levels(self):
         return self._num_levels
 
-    def get_level_image(self, z_index):
+    def get_level_image(self, z_index: int):
         return self._level_images[z_index]
 
-    def get_tile(self, tile_x, tile_y, z_index):
+    def get_tile(self, tile_x: int, tile_y: int, z_index: int):
         level_image = self._level_images[z_index]
         return level_image.get_tile(tile_x, tile_y)
 
@@ -741,11 +771,19 @@ class ImagePyramid:
                             [level_mapper(level_image, *args, **kwargs) for level_image in self._level_images])
 
 
-def create_pil_downsampling_image(source_image, higher_level_image, z_index, num_levels, **kwargs):
+def create_pil_downsampling_image(source_image: TiledImage,
+                                  higher_level_image: TiledImage,
+                                  z_index: int,
+                                  num_levels: int,
+                                  **kwargs):
     image_id = '%s-L%d' % (source_image.id, z_index)
     return PilDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
 
 
-def create_ndarray_downsampling_image(source_image, higher_level_image, z_index, num_levels, **kwargs):
+def create_ndarray_downsampling_image(source_image: TiledImage,
+                                      higher_level_image: TiledImage,
+                                      z_index: int,
+                                      num_levels: int,
+                                      **kwargs):
     image_id = '%s-L%d' % (source_image.id, z_index)
     return NdarrayDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
