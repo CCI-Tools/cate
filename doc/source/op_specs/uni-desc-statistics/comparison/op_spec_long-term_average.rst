@@ -26,11 +26,14 @@ Options
 
 :name: preserve saisonality 
 :description: calculate long-term mean for every timestep inside a year (month, day, ...)
+:settings: reference period
 
 --------------------------
 
 :name: one value
 :description: calculate one long-term mean without preserving saisonality
+:settings: reference period
+
 --------------------------
 
 
