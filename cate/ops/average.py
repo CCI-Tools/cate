@@ -42,6 +42,7 @@ def long_term_average(source: str,
                       year_max: int,
                       file: str,
                       var: str = None,
+                      save: bool = False,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Perform the long term monthly average of the given monthly or daily data
@@ -60,35 +61,50 @@ def long_term_average(source: str,
     :param file: filepath where to save the long term average dataset
     :param var: If given, only these variable names will be preserved in the
     output.
+    :param save: If True, saves the data downloaded during this operation. This
+    can potentially be a very large amount of data.
     :param monitor: A progress monitor to use
     """
     n_years = year_max - year_min + 1
     res = 0
+    total_work = 100
 
-    # Download and process the datasource year by year
-    year = year_min
-    while year != year_max+1:
-        # Download the dataset
-        tmin = "{}-01-01".format(year)
-        tmax = "{}-12-31".format(year)
-        # If daily dataset, has to be converted to monthly first
-        ds = open_dataset(source, tmin, tmax, sync=True, monitor=monitor)
+    with monitor.starting('Long Term Average', total_work=total_work):
+        monitor.progress(work=0)
+        # Download and process the datasource year by year
+        year = year_min
+        step = total_work*0.9/n_years
+        while year != year_max+1:
+            # Download the dataset
+            tmin = "{}-01-01".format(year)
+            tmax = "{}-12-31".format(year)
+            # If daily dataset, has to be converted to monthly first
+            ds = open_dataset(source, tmin, tmax, sync=True,
+                              monitor=monitor.child(work=step*0.9))
 
-        # Filter the dataset
-        ds = select_var(ds, var)
+            # Filter the dataset
+            ds = select_var(ds, var)
 
-        try:
-            res = res + ds/n_years
-        except TypeError:
-            raise TypeError('One or more data arrays feature a dtype that can\
-                            not be divided. Consider using the var parameter\
-                            to filter the dataset.')
+            try:
+                res = res + ds/n_years
+            except TypeError:
+                raise TypeError('One or more data arrays feature a dtype that\
+                                can not be divided. Consider using the var\
+                                parameter to filter the dataset.')
 
-        # delete data for the current year, if it was not already downloaded.
+            # delete data for the current year, if it should be deleted and it
+            # was not already downloaded.
+            if not save:
+                # Delete data
+                pass
 
-        year = year + 1
+            monitor.progress(work=step*0.1)
 
-    save_dataset(res, file)
+            year = year + 1
+
+        monitor.progress(msg='Save the LTA dataset')
+        save_dataset(res, file)
+        monitor.progress(total_work*0.1)
     return res
 
 
