@@ -78,15 +78,28 @@ def long_term_average(source: str,
             # Download the dataset
             tmin = "{}-01-01".format(year)
             tmax = "{}-12-31".format(year)
+
             # If daily dataset, has to be converted to monthly first
+
+            worked = monitor._worked
             ds = open_dataset(source, tmin, tmax, sync=True,
                               monitor=monitor.child(work=step*0.9))
+            # As open_dataset only uses monitor if data have to be synced,
+            # we update progress if there have been no progress updates during
+            # open dataset.
+            if worked == monitor._worked:
+                monitor.progress(work=step*0.9)
 
             # Filter the dataset
             ds = select_var(ds, var)
 
             try:
-                res = res + ds/n_years
+                if res == 0:
+                    res = ds/n_years
+                else:
+                    # Xarray doesn't do automatic alignment for in place
+                    # operations, hence we have to do it manually
+                    res = res + ds.reindex_like(res)/n_years
             except TypeError:
                 raise TypeError('One or more data arrays feature a dtype that\
                                 can not be divided. Consider using the var\
@@ -102,9 +115,10 @@ def long_term_average(source: str,
 
             year = year + 1
 
-        monitor.progress(msg='Save the LTA dataset')
+        monitor.progress(msg='Saving the LTA dataset')
         save_dataset(res, file)
         monitor.progress(total_work*0.1)
+
     return res
 
 
