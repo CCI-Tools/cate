@@ -14,10 +14,6 @@ Version 1: Niño3.4 Index
 #.	The user selects start and end years of a time period.
 #.	The user executes the Operation.
 #.	The Toolbox creates a temporal subset of the data. 
-#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
-#.	The user selects options (preserve saisonality, reference period)
-#.	The user executes the Operation.
-#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
 #.	The user selects the Operation :doc:`Index Calculation <../calculations/op_spec_index-calculation>` (Operation Category :doc:`Calculations <../calculations/op_spec_category_calculations>`) or a user-supplied plugin/API.
 #.	The user selects the requested ENSO index from a list of pre-defined indices regarding the region selected.
 #.	The user executes the Operation.
@@ -68,10 +64,6 @@ Version 2: Multivariate ENSO Index
 #.	The user selects options (bi-monthly seasons, sliding).
 #.	The user executes the Operation.
 #.	The Toolbox creates 12 new time series per geophysical quantitity comprising bi-monthly values.
-#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
-#.	The user selects options (preserve saisonality, reference period)
-#.	The user executes the Operation.
-#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
 #.	The user selects the Operation :doc:`EOF Analysis <../complex-computations/op_spec_eof>` from the Operation Category :doc:`Complex Computations <../complex-computations/op_spec_category_complex-computations>`.
 #.	The user selects options (combined EOF analysis, correlation matrix, …; apply to multiple data products).
 #.	The user executes the Operation.
@@ -154,6 +146,10 @@ Additional features:
 #.	The user selects options (preserve saisonality, reference period)
 #.	The user executes the Operation.
 #.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
+#.	The user selects the Operation :doc:`Anomalies <../uni-desc-statistics/comparison/op_spec_anomalies>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (reference period)
+#.	The user executes the Operation.
+#.	The Toolbox calculates anomalies.
 #.	The user selects the Operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (Operation Category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, Operation Subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
 #.	The user selects options (scatter plot, apply to multiple data products).
 #.	The user executes the Operation.
