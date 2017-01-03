@@ -75,6 +75,7 @@ def long_term_average(source: str,
         year = year_min
         step = total_work*0.9/n_years
         while year != year_max+1:
+            was_already_downloaded = True
             # Download the dataset
             tmin = "{}-01-01".format(year)
             tmax = "{}-12-31".format(year)
@@ -107,7 +108,7 @@ def long_term_average(source: str,
 
             # delete data for the current year, if it should be deleted and it
             # was not already downloaded.
-            if not save:
+            if (not save) and (not was_already_downloaded):
                 # Delete data
                 pass
 
