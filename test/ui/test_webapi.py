@@ -59,7 +59,8 @@ class WebAPITest(AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertEqual(json_dict, dict(status='ok', content=None))
+        self.assertIn('status', json_dict)
+        self.assertEqual(json_dict['status'], 'ok')
 
         file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
         url = encode_url_path('/ws/res/write/{base_dir}/{res_name}',
@@ -70,7 +71,8 @@ class WebAPITest(AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertEqual(json_dict, dict(status='ok', content=None))
+        self.assertIn('status', json_dict)
+        self.assertEqual(json_dict['status'], 'ok')
 
         self.assertTrue(os.path.isfile(file_path))
 

@@ -3,7 +3,7 @@ Operations
 
 **Preprocessing**
 
-- Geometric Adjustment
+- Geometric Adjustments
 
 	- Co-Registration
 	- Reprojection
@@ -11,7 +11,7 @@ Operations
 	- Geospatial Gap Filling
 	- Matchup Dataset Generation 
 
-- Non-Geometric Adjustment
+- Non-Geometric Adjustments
 
 	- Temporal Aggregation
 	- Temporal Gap Filling
@@ -64,6 +64,7 @@ Operations
 	- Comparison
 	
 		- Relative Values
+		- Long-term Average
 		- Anomalies
 		- Standardization
 		- Cumulative Changes

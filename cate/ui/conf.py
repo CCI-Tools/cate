@@ -10,7 +10,7 @@ WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
 # {{cate-config}}
 # allow a 100 ms period between two progress messages sent to the client
-WEBAPI_PROGRESS_DEFER_PERIOD = 0.1
+WEBAPI_PROGRESS_DEFER_PERIOD = 0.5
 
 # {{cate-config}}
 # allow two minutes timeout for any synchronous workspace I/O

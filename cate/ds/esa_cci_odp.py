@@ -286,7 +286,7 @@ class EsaCciOdpDataStore(DataStore):
         for doc in docs:
             self._data_sources.append(EsaCciOdpDataSource(self, doc))
 
-    def _load_index(self) -> str:
+    def _load_index(self):
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
                                                     fetch_json_args=[_ESGF_CEDA_URL, dict(type='Dataset',
                                                                                           replica='false',
@@ -451,6 +451,10 @@ class EsaCciOdpDataSource(DataSource):
             return 0, len(selected_file_list)
 
         with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+            bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+            dl_stat = _DownloadStatistics(bytes_to_download)
+
+            file_number = 1
             dataset_dir = self.local_dataset_dir()
             for filename, _, _, file_size, url in outdated_file_list:
                 if monitor.is_cancelled():
@@ -460,12 +464,15 @@ class EsaCciOdpDataSource(DataSource):
 
                 # noinspection PyUnusedLocal
                 def reporthook(block_number, read_size, total_file_size):
+                    dl_stat.handle_chunk(read_size)
                     if monitor.is_cancelled():
                         raise InterruptedError
-                    sub_monitor.progress(work=read_size)
+                    sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
-                with sub_monitor.starting('', file_size):
+                sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                with sub_monitor.starting(sub_monitor_msg, file_size):
                     urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
+                file_number += 1
 
         return len(outdated_file_list), len(selected_file_list)
 
@@ -509,7 +516,7 @@ class EsaCciOdpDataSource(DataSource):
 
         return open_xarray_dataset(files)
 
-    def _init_file_list(self) -> str:
+    def _init_file_list(self):
         if self._file_list:
             return
 
@@ -553,3 +560,25 @@ class EsaCciOdpDataSource(DataSource):
 
     def __repr__(self):
         return self.name
+
+
+class _DownloadStatistics:
+    def __init__(self, bytes_total):
+        self.bytes_total = bytes_total
+        self.bytes_done = 0
+        self.startTime = datetime.now()
+
+    def handle_chunk(self, bytes):
+        self.bytes_done += bytes
+
+    def asMB(self, bytes):
+        return bytes / (1024 * 1024)
+
+    def __str__(self):
+        seconds = (datetime.now() - self.startTime).seconds
+        if seconds > 0:
+            mb_per_sec = self.asMB(self.bytes_done) / seconds
+        else:
+            mb_per_sec = 0
+        return "%d of %d MB, speed %.3f MB/s" % \
+               (self.asMB(self.bytes_done), self.asMB(self.bytes_total), mb_per_sec)

@@ -375,7 +375,7 @@ class Command(metaclass=ABCMeta):
 
     @classmethod
     def new_monitor(cls) -> Monitor:
-        return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
+        return ConsoleMonitor(stay_in_line=True, progress_bar_size=-40)
 
 
 class SubCommandCommand(Command, metaclass=ABCMeta):

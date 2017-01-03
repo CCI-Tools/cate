@@ -58,6 +58,7 @@ setup(
                       'numba >= 0.26',
                       'numpy >= 1.7',
                       'scipy >= 0.17',
+                      'pillow >= 3.4',
                       'pandas >= 0.18',
                       'basemap >= 1.0',
                       'jdcal >= 1.3',
