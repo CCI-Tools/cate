@@ -22,6 +22,10 @@ Version 1: Niño3.4 Index
 #.	The user enters the calculation specification (log transformation of SM data).
 #.	The user executes the Operation.
 #.	The Toolbox generates a new dataset.
+#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (preserve saisonality, reference period)
+#.	The user executes the Operation.
+#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
 #.	The user selects the Operation :doc:`Anomalies <../uni-desc-statistics/comparison/op_spec_anomalies>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
 #.	The user enters the calculation specification (absolute anomaly of log transformed SM data with respect to mean of reference period).
 #.	The user executes the Operation.
@@ -72,6 +76,10 @@ Version 2: Multivariate ENSO Index
 #.	The user enters the calculation specification (log transformation of SM data).
 #.	The user executes the Operation.
 #.	The Toolbox generates a new dataset.
+#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (preserve saisonality, reference period)
+#.	The user executes the Operation.
+#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
 #.	The user selects the Operation :doc:`Anomalies <../uni-desc-statistics/comparison/op_spec_anomalies>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
 #.	The user enters the calculation specification (absolute anomaly of log transformed SM data with respect to mean of reference period).
 #.	The user executes the Operation.
@@ -110,6 +118,10 @@ Additional features:
 #.	The user selects options (temporal mean, propagation of uncertainties, apply to multiple data products).
 #.	The user executes the Operation.
 #.	The Toolbox calculates the temporal mean for every grid cell in the selected area. 
+#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (preserve saisonality, reference period)
+#.	The user executes the Operation.
+#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
 #.	The user selects the Operation :doc:`Map <../visualisation/op_spec_map>` from the Operation Category :doc:`Visualisation <../visualisation/op_spec_category_visualisation>`.
 #.	The user selects options (multiple data products).
 #.	The user executes the Operation.
@@ -130,6 +142,14 @@ Additional features:
 #.	The user selects options (spatial mean, propagation of uncertainties, apply to multiple data products).
 #.	The user executes the Operation.
 #.	The Toolbox generates new time series consisting of regional mean values. 
+#.	The user selects the Operation :doc:`Long-term Average <../uni-desc-statistics/comparison/op_spec_long-term_average>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (preserve saisonality, reference period)
+#.	The user executes the Operation.
+#.	The Toolbox generates a new dataset comprising a one-year time series of the long-term average of the data.
+#.	The user selects the Operation :doc:`Anomalies <../uni-desc-statistics/comparison/op_spec_anomalies>` (Operation Category :doc:`Univariate Descriptive Statistics <../uni-desc-statistics/op_spec_category_uni-desc-statistics>`, Operation Subcategory :doc:`Comparison <../uni-desc-statistics/comparison/op_spec_subcategory_comparison>`).
+#.	The user selects options (reference period)
+#.	The user executes the Operation.
+#.	The Toolbox calculates anomalies.
 #.	The user selects the Operation :doc:`Product-Moment Correlation (Pearson) <../data-intercomparison/correlation-analysis/op_spec_product-moment-correlation>` (Operation Category :doc:`Data Intercomparison <../data-intercomparison/op_spec_category_data-intercomparison>`, Operation Subcategory :doc:`Correlation Analysis <../data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis>`).
 #.	The user selects options (scatter plot, apply to multiple data products).
 #.	The user executes the Operation.

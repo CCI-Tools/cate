@@ -22,9 +22,10 @@ Operations  UC6 N3.4
 
 - Univariate Descriptive Statistics
 
-	- Temporal Comparison
+	- Comparison
 	
 		- Anomalies
+		- Long-term average
 	
 - Data Intercomparison *(= Bivariate Statistics)*
 

@@ -105,31 +105,27 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=10000, timeout=10):
     """
     Return JSON value read from paginated Solr web-service.
     """
-    new_offset = offset
     combined_json_dict = None
-    combined_num_found = 0
+    num_found = -1
     while True:
         paging_query_args = dict(query_args or {})
-        paging_query_args.update(offset=new_offset, limit=limit, format='application/solr+json')
+        paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
         url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
         with urllib.request.urlopen(url, timeout=timeout) as response:
             json_text = response.read()
             json_dict = json.loads(json_text.decode('utf-8'))
-            num_found = json_dict.get('response', {}).get('numFound', 0)
+            if num_found is -1:
+                num_found = json_dict.get('response', {}).get('numFound', 0)
             if not combined_json_dict:
                 combined_json_dict = json_dict
                 if num_found < limit:
                     break
             else:
-                if num_found > 0:
-                    combined_num_found += num_found
-                    docs = json_dict.get('response', {}).get('docs', [])
-                    combined_json_dict.get('response', {}).get('docs', []).append(docs)
-                    combined_json_dict.get('response', {})['numFound'] = combined_num_found
-                    if num_found < limit:
-                        break
-                else:
+                docs = json_dict.get('response', {}).get('docs', [])
+                combined_json_dict.get('response', {}).get('docs', []).extend(docs)
+                if num_found < offset + limit:
                     break
+        offset += limit
     return combined_json_dict
 
 
@@ -273,7 +269,7 @@ class EsaCciOdpDataStore(DataStore):
             result = [data_source for data_source in self._data_sources if data_source.matches_filter(name)]
         else:
             result = self._data_sources
-        return sorted(result, key=lambda data_source: data_source.name)
+        return result
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
@@ -298,7 +294,7 @@ class EsaCciOdpDataStore(DataStore):
         for doc in docs:
             self._data_sources.append(EsaCciOdpDataSource(self, doc))
 
-    def _load_index(self) -> str:
+    def _load_index(self):
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
                                                     fetch_json_args=[
                                                         _ESGF_CEDA_URL,
@@ -366,7 +362,9 @@ class EsaCciOdpDataSource(DataSource):
         # noinspection PyBroadException
         try:
             # Try updating file list, so we have temporal coverage info...
-            self._init_file_list()
+            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
+            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
+            # self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.
@@ -443,7 +441,6 @@ class EsaCciOdpDataSource(DataSource):
              time_range: Tuple[datetime, datetime]=None,
              protocol: str=None,
              monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
-
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return 0, 0
@@ -469,6 +466,10 @@ class EsaCciOdpDataSource(DataSource):
                 return 0, len(selected_file_list)
 
             with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                dl_stat = _DownloadStatistics(bytes_to_download)
+
+                file_number = 1
                 dataset_dir = self.local_dataset_dir()
                 for filename, _, _, file_size, url in outdated_file_list:
                     if monitor.is_cancelled():
@@ -478,12 +479,15 @@ class EsaCciOdpDataSource(DataSource):
 
                     # noinspection PyUnusedLocal
                     def reporthook(block_number, read_size, total_file_size):
+                        dl_stat.handle_chunk(read_size)
                         if monitor.is_cancelled():
                             raise InterruptedError
-                        sub_monitor.progress(work=read_size)
+                        sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
+                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                     with sub_monitor.starting('', file_size):
                         urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                    file_number += 1
 
             return len(outdated_file_list), len(selected_file_list)
         else:
@@ -545,7 +549,7 @@ class EsaCciOdpDataSource(DataSource):
             raise IOError("Files: {} caused:\nOSError({}): {}"
                           .format(files, e.errno, e.strerror))
 
-    def _init_file_list(self) -> str:
+    def _init_file_list(self):
         if self._file_list:
             return
 
@@ -589,3 +593,25 @@ class EsaCciOdpDataSource(DataSource):
 
     def __repr__(self):
         return self.name
+
+
+class _DownloadStatistics:
+    def __init__(self, bytes_total):
+        self.bytes_total = bytes_total
+        self.bytes_done = 0
+        self.startTime = datetime.now()
+
+    def handle_chunk(self, bytes):
+        self.bytes_done += bytes
+
+    def asMB(self, bytes):
+        return bytes / (1024 * 1024)
+
+    def __str__(self):
+        seconds = (datetime.now() - self.startTime).seconds
+        if seconds > 0:
+            mb_per_sec = self.asMB(self.bytes_done) / seconds
+        else:
+            mb_per_sec = 0
+        return "%d of %d MB, speed %.3f MB/s" % \
+               (self.asMB(self.bytes_done), self.asMB(self.bytes_total), mb_per_sec)

@@ -45,6 +45,7 @@ import signal
 import sys
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
+from shutil import get_terminal_size
 
 
 class Monitor(metaclass=ABCMeta):
@@ -228,12 +229,14 @@ class ConsoleMonitor(Monitor):
 
     :param stay_in_line: If ``True``, the text written out will stay in the same line.
     :param progress_bar_size: If ``> 0``, a progress monitor of *progress_bar_size* characters
-        will be written to the console.
+        will be written to the console. If ``0 or less`` it will adapt size to console size, where ``0`` is maximum
+        available space
     """
 
     def __init__(self, stay_in_line=False, progress_bar_size=None):
         self._stay_in_line = stay_in_line
         self._progress_bar_size = progress_bar_size
+        self._effective_progress_size = 0
         self._label = None
         self._worked = None
         self._total_work = None
@@ -242,6 +245,7 @@ class ConsoleMonitor(Monitor):
         self._last_line_len = None
         self._old_ctrl_c_handler = False
         self._msg = None
+        self._term_size = 0
 
     def start(self, label: str, total_work: float = None):
         if not label:
@@ -275,17 +279,25 @@ class ConsoleMonitor(Monitor):
         if self._stay_in_line:
             sys.stdout.write('\n')
 
+    def _recalculate_effective_progress_size(self, term_size: int):
+        self._term_size = term_size
+        self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size - 11
+
     def _report_progress(self, percentage=None, msg=None):
 
         percentage_str = ''
         progress_bar_str = ''
 
+        term_size = get_terminal_size().columns
+        if term_size is not self._term_size:
+            self._term_size = term_size
+            self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size \
+                if self._progress_bar_size is not None else 0 - 11
         if percentage is not None:
             percentage_str = '%3d%%' % percentage
-            if self._progress_bar_size:
-                # TODO (forman, 20160919): use shutil.get_terminal_size() to compute progress_bar_size
-                done_count = int(self._progress_bar_size * percentage / 100 + 0.5)
-                remaining_count = self._progress_bar_size - done_count
+            if self._progress_bar_size is not None and self._progress_bar_size <= 0:
+                done_count = int(self._effective_progress_size * percentage / 100 + 0.5)
+                remaining_count = self._effective_progress_size - done_count
                 progress_bar_str = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)
 
         if percentage is not None and msg:
@@ -298,13 +310,12 @@ class ConsoleMonitor(Monitor):
             line = '%s: progress' % self._label
 
         if self._stay_in_line:
+            if len(line) > term_size:
+                line = line[:term_size]
+            else:
+                line = line.ljust(term_size, ' ')
             sys.stdout.write('\r')
             sys.stdout.write(line)
-            if self._last_line_len:
-                delta = self._last_line_len - len(line)
-                if delta > 0:
-                    sys.stdout.write(' ' * delta)
-            self._last_line_len = len(line)
         else:
             sys.stdout.write(line)
             sys.stdout.write('\n')

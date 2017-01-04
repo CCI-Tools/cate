@@ -28,15 +28,16 @@ import shutil
 import sys
 from collections import OrderedDict
 from typing import List
+import xarray as xr
+import numpy as np
 
 from cate.core.monitor import Monitor
 from cate.core.op import OP_REGISTRY
 from cate.core.op import OpMetaInfo, parse_op_args
 from cate.core.util import Namespace
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-
-WORKSPACE_DATA_DIR_NAME = '.cate-workspace'
-WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
+from cate.ui.conf import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
+from cate.ui.imaging.image import ImagePyramid
 
 
 class Workspace:
@@ -50,6 +51,7 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
+        self._is_scratch = (base_dir or '').startswith(SCRATCH_WORKSPACES_PATH)
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
@@ -72,6 +74,10 @@ class Workspace:
     def resource_cache(self) -> ValueCache:
         """The Workspace's resource cache."""
         return self._resource_cache
+
+    @property
+    def is_scratch(self) -> bool:
+        return self._is_scratch
 
     @property
     def is_closed(self) -> bool:
@@ -130,7 +136,7 @@ class Workspace:
             if not os.path.isdir(base_dir):
                 os.mkdir(base_dir)
             workspace_dir = self.workspace_dir
-            workflow_file = self.workflow_file
+            # workflow_file = self.workflow_file
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             self.workflow.store(self.workflow_file)
@@ -149,9 +155,119 @@ class Workspace:
     def to_json_dict(self):
         self._assert_open()
         return OrderedDict([('base_dir', self.base_dir),
+                            ('is_scratch', self.is_scratch),
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
-                            ('workflow', self.workflow.to_json_dict())])
+                            ('workflow', self.workflow.to_json_dict()),
+                            ('resources', self._resources_to_json_dict())
+                            ])
+
+    def _resources_to_json_dict(self):
+        resources_json = []
+        for resource_name in self._resource_cache:
+            resource = self._resource_cache[resource_name]
+            if isinstance(resource, xr.Dataset):
+                print("resource", resource)
+                variable_infos = []
+                for variable in resource.data_vars:
+                    print("variable", variable)
+                    variable_infos.append(self._get_variable_info(resource.data_vars[variable]))
+                resource_info = {
+                    'name': resource_name,
+                    'variables': variable_infos,
+                }
+                resources_json.append(resource_info)
+
+        print("resources_json", resources_json)
+        return resources_json
+
+    def _get_variable_info(self, variable: xr.DataArray):
+        # See http://docs.h5py.org/en/latest/
+        # print(list(variable.attrs.keys()))
+        attrs = variable.attrs
+        variable_info = {
+            'name': variable.name,
+            'dataType': str(variable.dtype),
+            'ndim': len(variable.dims),
+            'shape': variable.shape,
+            'chunks': variable.chunks,
+            'dimensions': variable.dims,
+            'fill_value': self._get_float_attr(attrs, '_FillValue'),
+            'valid_min': self._get_float_attr(attrs, 'valid_min'),
+            'valid_max': self._get_float_attr(attrs, 'valid_max'),
+            'add_offset': self._get_float_attr(attrs, 'add_offset'),
+            'scale_factor': self._get_float_attr(attrs, 'scale_factor'),
+            'standard_name': self._get_unicode_attr(attrs, 'standard_name'),
+            'long_name': self._get_unicode_attr(attrs, 'long_name'),
+            'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
+            'comment': self._get_unicode_attr(attrs, 'comment'),
+        }
+        if self._is_lat_lon_image_variable(variable):
+            variable_info['imageLayout'] = self._get_variable_image_config(variable)
+            variable_info['y_flipped'] = self._is_y_flipped(variable)
+            # TODO (mz, 2016-12-19) do we need these, they require reading of all data
+            # nanmin = np.nanmin(variable.values)
+            # nanmax = np.nanmax(variable.values)
+            # variable_info['real_min'] = str(nanmin)
+            # variable_info['real_max'] = str(nanmax)
+        return variable_info
+
+
+    def _get_variable_image_config(self, variable):
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
+        return {
+            # todo - compute imageConfig.sector from variable attributes. See frontend todo.
+            'sector': {
+                'minLongitude': -180.0,
+                'minLatitude': -90.0,
+                'maxLongitude': 180.0,
+                'maxLatitude': 90.0
+            },
+            'numLevels': num_levels,
+            'numLevelZeroTilesX': num_level_zero_tiles[0],
+            'numLevelZeroTilesY': num_level_zero_tiles[1],
+            'tileWidth': tile_size[0],
+            'tileHeight': tile_size[1]
+    }
+
+    def _is_y_flipped(self, variable):
+        lat_coords = variable.coords[self._get_lat_dim_name(variable)]
+        return lat_coords.to_index().is_monotonic_increasing
+
+    def _is_lat_lon_image_variable(self, variable):
+        return self._get_lat_dim_name(variable) != None and self._get_lon_dim_name(variable) != None
+
+    def _get_lon_dim_name(self, variable):
+        return self._get_dim_name(variable, ['lon', 'longitude', 'long'])
+
+    def _get_lat_dim_name(self, variable):
+        return self._get_dim_name(variable, ['lat', 'latitude'])
+
+    def _get_dim_name(self, variable, possible_names):
+        for name in possible_names:
+            if name in variable.dims:
+                return name
+        return None
+
+    def _get_unicode_attr(self, attr, key, default_value=''):
+        if key in attr:
+            value = attr.get(key)
+            #print(key, ' type:', str(type(value)), ' value:', str(value))
+            if type(value) == bytes or type(value) == np.bytes_:
+                return value.decode('unicode_escape')
+            elif type(value) != str:
+                return str(value)
+            else:
+                return value
+        return default_value
+
+    def _get_float_attr(self, attr, key, default_value=None):
+        if key in attr:
+            try:
+                return float(attr.get(key))
+            except:
+                pass
+        return default_value
 
     def delete(self):
         self.close()
@@ -273,21 +389,22 @@ class Workspace:
             if key in self._resource_cache:
                 del self._resource_cache[key]
 
-        # # Add workflow outputs
-        # if op_step.op_meta_info.has_named_outputs:
-        #     for step_output_port in op_step.output[:]:
-        #         workflow_output_port_name = res_name + '$' + step_output_port.name
-        #         workflow.op_meta_info.output[workflow_output_port_name] = \
-        #             op_step.op_meta_info.output[step_output_port.name]
-        #         workflow_output_port = NodePort(workflow, workflow_output_port_name)
-        #         workflow_output_port.source = step_output_port
-        #         workflow.output[workflow_output_port.name] = workflow_output_port
-        # else:
-        #     workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
-        #     workflow_output_port = NodePort(workflow, res_name)
-        #     workflow_output_port.source = op_step.output[return_output_name]
-        #     workflow.output[workflow_output_port.name] = workflow_output_port
+                # # Add workflow outputs
+                # if op_step.op_meta_info.has_named_outputs:
+                #     for step_output_port in op_step.output[:]:
+                #         workflow_output_port_name = res_name + '$' + step_output_port.name
+                #         workflow.op_meta_info.output[workflow_output_port_name] = \
+                #             op_step.op_meta_info.output[step_output_port.name]
+                #         workflow_output_port = NodePort(workflow, workflow_output_port_name)
+                #         workflow_output_port.source = step_output_port
+                #         workflow.output[workflow_output_port.name] = workflow_output_port
+                # else:
+                #     workflow.op_meta_info.output[res_name] = op_step.op_meta_info.output[return_output_name]
+                #     workflow_output_port = NodePort(workflow, res_name)
+                #     workflow_output_port.source = op_step.output[return_output_name]
+                #     workflow.output[workflow_output_port.name] = workflow_output_port
 
+    # noinspection PyMethodMayBeStatic
     def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
         try:
             # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps

@@ -20,7 +20,6 @@
 # SOFTWARE.
 
 import argparse
-import concurrent.futures
 import json
 import os.path
 import signal
@@ -31,23 +30,22 @@ import threading
 import time
 import traceback
 import urllib.request
-from concurrent.futures import CancelledError
-from concurrent.futures import Future
+import xarray as xr
+import numpy as np
 from datetime import date, datetime
-from typing import Optional
-
-import tornado.websocket
-from cate.core.monitor import Monitor, ConsoleMonitor
-from cate.core.util import cwd
-from cate.ui.service import Service
-from cate.ui.wsmanag import FSWorkspaceManager
-from cate.version import __version__
+from typing import Optional, Union, List
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
-
-thread_pool = concurrent.futures.ThreadPoolExecutor()
+from cate.core.monitor import Monitor, ConsoleMonitor
+from cate.core.util import cwd
+from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, WEBAPI_LOG_FILE
+from cate.ui.websock import AppWebSocketHandler
+from cate.ui.wsmanag import FSWorkspaceManager
+from cate.version import __version__
+from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from cate.ui.imaging.ds import NaturalEarth2Image
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -57,22 +55,13 @@ CLI_NAME = 'cate-webapi'
 
 LOCALHOST = '127.0.0.1'
 
-# {{cate-config}}
-# By default, WebAPI service will auto-exit after 2 hours of inactivity (if caller='cate', the CLI)
-ON_INACTIVITY_AUTO_EXIT_AFTER = 120 * 60.0
-# {{cate-config}}
-# By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed (if caller='cate', the CLI)
-ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
-
-WEBAPI_LOG_FILE = os.path.join(os.path.expanduser('~'), '.cate', 'webapi.log')
-
 
 class WebAPIServiceError(Exception):
     def __init__(self, cause, *args, **kwargs):
         if isinstance(cause, Exception):
             super(WebAPIServiceError, self).__init__(str(cause), *args, **kwargs)
-            _, _, traceback = sys.exc_info()
-            self.with_traceback(traceback)
+            _, _, tb = sys.exc_info()
+            self.with_traceback(tb)
         elif isinstance(cause, str):
             super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
         else:
@@ -112,6 +101,10 @@ def get_application():
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
+        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        # Natural Earth v2 imagery provider for testing, see cate.ui.imaging.data_sources.NaturalEarth2Image class
+        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+
         (url_pattern('/exit'), ExitHandler)
     ])
     application.workspace_manager = FSWorkspaceManager()
@@ -339,6 +332,7 @@ def is_service_compatible(port: Optional[int], address: Optional[str], caller: O
 
 def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
     url = 'http://%s:%s/' % (address or '127.0.0.1', port)
+    # noinspection PyBroadException
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             json_text = response.read()
@@ -358,7 +352,7 @@ def find_free_port():
     return free_port
 
 
-def read_service_info(service_info_file: str) -> dict:
+def read_service_info(service_info_file: str) -> Union[dict, None]:
     """
     Get a dictionary with WebAPI service information:::
 
@@ -393,6 +387,7 @@ def _write_service_info(service_info: dict, service_info_file: str) -> None:
 
 
 def _exit(application: Application):
+    # noinspection PyUnresolvedReferences
     service_info_file = application.service_info_file
     if service_info_file and os.path.isfile(service_info_file):
         # noinspection PyBroadException
@@ -404,12 +399,14 @@ def _exit(application: Application):
 
 
 def _install_next_inactivity_check(application):
-    IOLoop.instance().call_later(ON_INACTIVITY_AUTO_EXIT_AFTER, _check_inactivity, application)
+    IOLoop.instance().call_later(WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, _check_inactivity, application)
 
 
 def _check_inactivity(application: Application):
-    inactivity_time = time.clock() - application.time_of_last_activity
-    if inactivity_time > ON_INACTIVITY_AUTO_EXIT_AFTER:
+    # noinspection PyUnresolvedReferences
+    time_of_last_activity = application.time_of_last_activity
+    inactivity_time = time.clock() - time_of_last_activity
+    if inactivity_time > WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER:
         print('stopping WebAPI service after %.1f seconds of inactivity' % inactivity_time)
         _auto_exit(application)
     else:
@@ -421,11 +418,13 @@ def _auto_exit(application: Application):
 
 
 def _on_workspace_closed(application: Application):
+    # noinspection PyUnresolvedReferences
     if not application.auto_exit_enabled:
         return
+    # noinspection PyUnresolvedReferences
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()
-    _check_auto_exit(application, num_open_workspaces == 0, ON_ALL_CLOSED_AUTO_EXIT_AFTER)
+    _check_auto_exit(application, num_open_workspaces == 0, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER)
 
 
 def _check_auto_exit(application: Application, condition: bool, interval: float):
@@ -444,31 +443,6 @@ def _check_auto_exit(application: Application, condition: bool, interval: float)
 
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
-
-
-def _map_service_method_name(name: str) -> str:
-    n = len(name)
-    if n == 0:
-        return name
-    new_name = []
-    s0 = False  # state = LC
-    s1 = False  # state = LC
-    for i in range(n):
-        c = name[i]
-        s2 = c.isupper() or c.isdigit()
-        if not s1 and s2:
-            new_name.append('_')
-            new_name.append(c.lower())
-        elif s0 and s1 and not s2 and c.isalpha():
-            new_name.insert(-1, '_')
-            new_name.append(c)
-        elif s2:
-            new_name.append(c.lower())
-        else:
-            new_name.append(c)
-        s0 = s1
-        s1 = s2
-    return ''.join(new_name)
 
 
 def url_pattern(pattern: str):
@@ -538,124 +512,12 @@ class BaseRequestHandler(RequestHandler):
 
 
 # noinspection PyAbstractClass
-class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
-    def __init__(self, application, request, **kwargs):
-        super(AppWebSocketHandler, self).__init__(application, request, **kwargs)
-        self.service = None
-        # TODO: set_nodelay() causes an exception!?
-        # self.set_nodelay(True)
-
-    def open(self):
-        print("AppWebSocketHandler.open")
-        self.service = Service()
-
-    def on_close(self):
-        print("AppWebSocketHandler.on_close")
-        self.service = None
-
-    # We must override this to return True (= all origins are ok), otherwise we get
-    #   WebSocket connection to 'ws://localhost:9090/app' failed:
-    #   Error during WebSocket handshake:
-    #   Unexpected response code: 403 (forbidden)
-    def check_origin(self, origin):
-        print("AppWebSocketHandler: check " + str(origin))
-        return True
-
-    def on_message(self, message: str):
-        print("AppWebSocketHandler.on_message('%s')" % message)
-
-        try:
-            message_obj = json.loads(message)
-        except Exception as e:
-            print("Failed to parse incoming JSON-RCP message: %s" % message)
-            traceback.print_exc(file=sys.stdout)
-            return
-
-        if not isinstance(message_obj, type({})):
-            print('Received invalid JSON-RCP message of unexpected type "%s": %s' % (type(message_obj), message))
-            return
-
-        method_id = message_obj.get('id', None)
-        if not isinstance(method_id, int):
-            print('Received invalid JSON-RCP message: missing or invalid "id" value: %s' % message)
-            return
-
-        method_name = message_obj.get('method', None)
-        if not isinstance(method_name, str) or len(method_name) == 0:
-            print('Received invalid JSON-RCP message: missing or invalid "method" value: %s' % message)
-            return
-
-        method_params = message_obj.get('params', None)
-
-        method_name = _map_service_method_name(method_name)
-        print("AppWebSocketHandler: method: %s" % method_name)
-        if hasattr(self.service, method_name):
-            future = thread_pool.submit(self.call_service_method, method_name, method_params)
-
-            def _send_service_method_result(f: Future) -> None:
-                self.send_service_method_result(method_id, f)
-
-            future.add_done_callback(_send_service_method_result)
-        else:
-            response = dict(jsonrcp='2.0',
-                            id=method_id,
-                            error=dict(code=20,
-                                       message='Unsupported method: %s' % method_name))
-            self.write_message(json.dumps(response))
-
-    def send_service_method_result(self,  method_id: int, future: Future):
-        try:
-            result = future.result()
-            response = dict(jsonrcp='2.0',
-                            id=method_id,
-                            response=result)
-        except CancelledError as e:
-            response = dict(jsonrcp='2.0',
-                            id=method_id,
-                            error=dict(code=999,
-                                       message='Cancelled'))
-        except Exception as e:
-            stack_trace = traceback.format_exc()
-            response = dict(jsonrcp='2.0',
-                            id=method_id,
-                            error=dict(code=10,
-                                       message='Exception caught: %s' % e,
-                                       data=stack_trace))
-        try:
-            json_text = json.dumps(response)
-        except Exception as e:
-            stacktrace = traceback.format_exc()
-            print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
-            print('response = %s' % response)
-            print(stacktrace)
-            json_text = json.dumps(dict(jsonrcp='2.0',
-                                        id=method_id,
-                                        error=dict(code=30,
-                                                   message='Exception caught: %s' % e,
-                                                   data=stacktrace)))
-
-        self.write_message(json_text)
-
-    def call_service_method(self, method_name, method_params):
-        method = getattr(self.service, method_name)
-        if isinstance(method_params, type([])):
-            result = method(*method_params)
-        elif isinstance(method_params, type({})):
-            result = method(**method_params)
-        else:
-            result = method()
-        return result
-
-
-
-
-# noinspection PyAbstractClass
 class WorkspaceGetHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
-        open_it = self.get_query_argument('open', default='False').lower() == 'true'
+        do_open = self.get_query_argument('do_open', default='False').lower() == 'true'
         try:
-            workspace = workspace_manager.get_workspace(base_dir, open=open_it)
+            workspace = workspace_manager.get_workspace(base_dir, do_open=do_open)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -676,12 +538,12 @@ class WorkspaceGetOpenHandler(BaseRequestHandler):
 class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        save = self.get_query_argument('save', default='False').lower() == 'true'
+        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.new_workspace(base_dir, save=save, description=description)
-            self.write(_status_ok(workspace.to_json_dict()))
+            workspace = workspace_manager.new_workspace(base_dir, do_save=do_save, description=description)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -692,7 +554,7 @@ class WorkspaceOpenHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.open_workspace(base_dir)
-            self.write(_status_ok(workspace.to_json_dict()))
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -700,10 +562,10 @@ class WorkspaceOpenHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseHandler(BaseRequestHandler):
     def get(self, base_dir):
-        save = self.get_query_argument('save', default='False').lower() == 'true'
+        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_workspace(base_dir, save)
+            workspace_manager.close_workspace(base_dir, do_save)
             _on_workspace_closed(self.application)
             self.write(_status_ok())
         except Exception as e:
@@ -713,10 +575,10 @@ class WorkspaceCloseHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseAllHandler(BaseRequestHandler):
     def get(self):
-        save = self.get_query_argument('save', default='False').lower() == 'true'
+        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_all_workspaces(save)
+            workspace_manager.close_all_workspaces(do_save)
             _on_workspace_closed(self.application)
             self.write(_status_ok())
         except Exception as e:
@@ -728,8 +590,8 @@ class WorkspaceSaveHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.save_workspace(base_dir)
-            self.write(_status_ok())
+            workspace = workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -761,8 +623,8 @@ class WorkspaceCleanHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.clean_workspace(base_dir)
-            self.write(_status_ok())
+            workspace = workspace_manager.clean_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -776,9 +638,9 @@ class WorkspaceRunOpHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
-                                                      monitor=_new_monitor())
-            self.write(_status_ok())
+                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
+                                                                  monitor=_new_monitor())
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -789,8 +651,8 @@ class ResourceDeleteHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.delete_workspace_resource(base_dir, res_name)
-            self.write(_status_ok())
+                workspace = workspace_manager.delete_workspace_resource(base_dir, res_name)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -804,9 +666,9 @@ class ResourceSetHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
-                                                         monitor=_new_monitor())
-            self.write(_status_ok())
+                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
+                                                                     monitor=_new_monitor())
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -819,8 +681,9 @@ class ResourceWriteHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.write_workspace_resource(base_dir, res_name, file_path, format_name=format_name)
-            self.write(_status_ok())
+                workspace = workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
+                                                                       format_name=format_name)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
 
@@ -846,10 +709,127 @@ class ResourcePrintHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
-            self.write(_status_ok())
+                workspace = workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
+            self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class NE2Handler(BaseRequestHandler):
+
+    PYRAMID = NaturalEarth2Image.get_pyramid()
+
+    def get(self, z, y, x):
+        # print('NE2Handler.get(%s, %s, %s)' % (z, y, x))
+        self.set_header('Content-Type', 'image/jpg')
+        self.write(NE2Handler.PYRAMID.get_tile(int(x), int(y), int(z)))
+
+
+# noinspection PyAbstractClass
+class ResVarTileHandler(BaseRequestHandler):
+    PYRAMIDS = dict()
+
+    def get(self, base_dir, res_name, z, y, x):
+
+        # GLOBAL_LOCK.acquire()
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+
+        if res_name not in workspace.resource_cache:
+            self.write(_status_error(message='Unknown resource "%s"' % res_name))
+            return
+
+        dataset = workspace.resource_cache[res_name]
+        if not isinstance(dataset, xr.Dataset):
+            self.write(_status_error(message='Resource "%s" must be a Dataset' % res_name))
+            return
+
+        var_name = self.get_query_argument('var')
+
+        cmap_name = self.get_query_argument('cmap', default='jet')
+        cmap_min = float(self.get_query_argument('min', default=0.0))
+        cmap_max = float(self.get_query_argument('max', default=1.0))
+
+        image_id = '%s|%s|%s|%s|%s' % (res_name, var_name, cmap_name, cmap_min, cmap_max)
+
+        if image_id in ResVarTileHandler.PYRAMIDS:
+            pyramid = ResVarTileHandler.PYRAMIDS[image_id]
+        else:
+            variable = dataset[var_name]
+            no_data_value = variable.attrs.get('_FillValue', float('nan'))
+            is_y_flipped = self.is_y_flipped(dataset, variable)
+
+            # Make sure we work with 2D image arrays only
+            if variable.ndim > 2:
+                index = (0,) * (variable.ndim - 2) + (slice(None), slice(None),)
+                print('index =', index)
+                array = variable[index]
+            else:
+                array = variable
+
+            # TODO: remove this debugging code. It is here because we have no control currently
+            cmap_min = np.nanmin(array.values)
+            cmap_max = np.nanmax(array.values)
+
+            pyramid = ImagePyramid.create_from_array(array)
+
+            pyramid = pyramid.apply(lambda image: TransformArrayImage(image,
+                                                                      no_data_value=no_data_value,
+                                                                      force_masked=True,
+                                                                      flip_y=is_y_flipped))
+            pyramid = pyramid.apply(lambda image: ColorMappedRgbaImage(image,
+                                                                       value_range=(cmap_min, cmap_max),
+                                                                       cmap_name=cmap_name,
+                                                                       encode=True, format='PNG'))
+            ResVarTileHandler.PYRAMIDS[image_id] = pyramid
+            print('num_level_zero_tiles:', pyramid.num_level_zero_tiles)
+            print('num_levels:', pyramid.num_levels)
+
+        try:
+            print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
+            t1 = time.clock()
+            tile = pyramid.get_tile(int(x), int(y), int(z))
+            t2 = time.clock()
+
+            self.set_header('Content-Type', 'image/png')
+            self.write(tile)
+
+            print('PERF: <<< Tile:', threading.current_thread(), image_id, z, y, x, 'took', t2 - t1, 'seconds')
+            # GLOBAL_LOCK.release()
+        except Exception as e:
+            traceback.print_exc()
+            self.write(_status_error(message='Internal error: %s' % e))
+
+    def is_y_flipped(self, dataset: xr.Dataset, variable: xr.DataArray):
+        lat_var = self.get_lat_var(dataset, variable)
+        if lat_var is not None:
+            return lat_var[0] < lat_var[1]
+        return False
+
+    def is_lat_lon_image_variable(self, dataset: xr.Dataset, variable: xr.DataArray):
+        lon_var = self.get_lon_var(dataset, variable)
+        if lon_var is not None and lon_var.shape[0] >= 2:
+            lat_var = self.get_lat_var(dataset, variable)
+            return lat_var is not None and lat_var.shape[0] >= 2
+        return False
+
+    def get_lon_var(self, dataset: xr.Dataset, variable: xr.DataArray):
+        return self.get_dim_var(dataset, variable, ['lon', 'longitude', 'long'], -1)
+
+    def get_lat_var(self, dataset: xr.Dataset, variable: xr.DataArray):
+        return self.get_dim_var(dataset, variable, ['lat', 'latitude'], -2)
+
+    # noinspection PyMethodMayBeStatic
+    def get_dim_var(self, dataset: xr.Dataset, variable: xr.DataArray, names: List[str], pos: int):
+        if len(variable.dims) >= -pos:
+            dim_name = variable.dims[len(variable.dims) + pos]
+            for name in names:
+                if name == dim_name:
+                    dim_var = dataset.coords[dim_name]
+                    if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
+                        return dim_var
+        return None
 
 
 # noinspection PyAbstractClass

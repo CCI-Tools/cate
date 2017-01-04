@@ -25,6 +25,11 @@ Operations
 
 ---------------------------------
 
+:Operation name: Long-term average
+:Operation description: calculates a long term average which can be used as a reference for calculating anomalies
+
+.. ---------------------------------
+
 .. :Operation name: Standardization
 .. :Operation description: calculates the number of standard deviations above the mean
 

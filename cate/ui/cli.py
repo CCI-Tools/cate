@@ -95,7 +95,6 @@ Components
 """
 
 import argparse
-import importlib
 import os
 import os.path
 import pprint
@@ -115,6 +114,7 @@ from cate.core.workflow import Workflow
 from cate.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info, is_service_running
 from cate.ui.workspace import WorkspaceError
 from cate.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
+from cate.ui.conf import DEFAULT_DATA_PATH
 from cate.version import __version__
 
 # Explicitly load Cate-internal plugins.
@@ -152,7 +152,7 @@ program. If not, see https://opensource.org/licenses/MIT.
 WRITE_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('w')
 READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
-WEBAPI_INFO_FILE = os.path.join(os.path.expanduser('~'), '.cate', 'webapi.json')
+WEBAPI_INFO_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.json')
 
 
 def _default_workspace_manager_factory() -> WorkspaceManager:
@@ -375,7 +375,7 @@ class Command(metaclass=ABCMeta):
 
     @classmethod
     def new_monitor(cls) -> Monitor:
-        return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
+        return ConsoleMonitor(stay_in_line=True, progress_bar_size=-40)
 
 
 class SubCommandCommand(Command, metaclass=ABCMeta):
@@ -670,14 +670,14 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.new_workspace(_base_dir(command_args.base_dir),
-                                        save=True, description=command_args.description)
+                                        do_save=True, description=command_args.description)
         print('Workspace initialized.')
 
     @classmethod
     def _execute_new(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.new_workspace(_base_dir(command_args.base_dir),
-                                        save=False, description=command_args.description)
+                                        do_save=False, description=command_args.description)
         print('Workspace created.')
 
     @classmethod
@@ -690,10 +690,10 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_close(cls, command_args):
         workspace_manager = _new_workspace_manager()
         if command_args.close_all:
-            workspace_manager.close_all_workspaces(save=command_args.save)
+            workspace_manager.close_all_workspaces(do_save=command_args.save)
             print('All workspaces closed.')
         else:
-            workspace_manager.close_workspace(_base_dir(command_args.base_dir), save=command_args.save)
+            workspace_manager.close_workspace(_base_dir(command_args.base_dir), do_save=command_args.save)
             print('Workspace closed.')
 
     @classmethod
@@ -742,7 +742,7 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), open=False)
+        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), do_open=False)
         cls._print_workspace(workspace)
 
     # noinspection PyUnusedLocal
@@ -770,7 +770,7 @@ class WorkspaceCommand(SubCommandCommand):
             answer = input('Do you really want to exit interactive mode ([y]/n)? ')
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.close_all_workspaces(save=command_args.save_all)
+            workspace_manager.close_all_workspaces(do_save=command_args.save_all)
             stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
