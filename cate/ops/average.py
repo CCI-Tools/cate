@@ -34,6 +34,8 @@ import xarray as xr
 from cate.core.op import op, op_input
 from cate.ops import select_var, open_dataset, save_dataset
 from cate.core.monitor import Monitor
+from cate.core.util import to_datetime_range
+from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 
 
 @op(tags=['temporal', 'mean', 'average', 'long_running'])
@@ -69,27 +71,54 @@ def long_term_average(source: str,
     res = 0
     total_work = 100
 
-    with monitor.starting('Long Term Average', total_work=total_work):
+    with monitor.starting('LTA', total_work=total_work):
+        # Set up the monitor
         monitor.progress(work=0)
-        # Download and process the datasource year by year
-        year = year_min
         step = total_work*0.9/n_years
+
+        # Process the data source year by year
+        year = year_min
         while year != year_max+1:
-            was_already_downloaded = True
-            # Download the dataset
+            # Select the appropriate data source
+            data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+            data_sources = query_data_sources(data_store_list, name=source)
+            if len(data_sources) == 0:
+                raise ValueError("No data_source found for the given query\
+                                 term {}".format(source))
+            elif len(data_sources) > 1:
+                raise ValueError("{} data_sources found for the given query\
+                                 term {}".format(data_sources, source))
+
+            data_source = data_sources[0]
+            source_info = data_source.cache_info
+
             tmin = "{}-01-01".format(year)
             tmax = "{}-12-31".format(year)
 
+            # Determine if the data for the given year are already downloaded
+            # If at least one file of the given time range is present, we
+            # don't delete the data for this year, we do the syncing anyway.
+            was_already_downloaded = False
+            dt_range = to_datetime_range(tmin, tmax)
+            for date in source_info:
+                if dt_range[0] <= date <= dt_range[1]:
+                    was_already_downloaded = True
+                    # One is enough
+                    break
+
+            data_source.sync(dt_range, monitor=monitor.child(work=step*0.9))
+            ds = data_source.open_dataset(dt_range)
+
             # If daily dataset, has to be converted to monthly first
 
-            worked = monitor._worked
-            ds = open_dataset(source, tmin, tmax, sync=True,
-                              monitor=monitor.child(work=step*0.9))
+            #worked = monitor._worked
+            #ds = open_dataset(source, tmin, tmax, sync=True,
+            #                  monitor=monitor.child(work=step*0.9))
             # As open_dataset only uses monitor if data have to be synced,
             # we update progress if there have been no progress updates during
             # open dataset.
-            if worked == monitor._worked:
-                monitor.progress(work=step*0.9)
+            #if worked == monitor._worked:
+            #    monitor.progress(work=step*0.9)
 
             # Filter the dataset
             ds = select_var(ds, var)
@@ -109,8 +138,7 @@ def long_term_average(source: str,
             # delete data for the current year, if it should be deleted and it
             # was not already downloaded.
             if (not save) and (not was_already_downloaded):
-                # Delete data
-                pass
+                data_source.delete_local(dt_range)
 
             monitor.progress(work=step*0.1)
 
