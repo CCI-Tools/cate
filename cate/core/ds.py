@@ -171,7 +171,7 @@ class DataSource(metaclass=ABCMeta):
                ``datetime.datetime`` objects.
         :return: removed number of files
         """
-        return 0, 0
+        return 0
 
     @property
     def meta_info(self) -> Union[dict, None]:
