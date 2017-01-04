@@ -161,6 +161,18 @@ class DataSource(metaclass=ABCMeta):
         """
         return 0, 0
 
+    def delete_local(self,
+                     time_range: Tuple[datetime, datetime]) -> int:
+        """
+        Delete locally stored data.
+        The default implementation does nothing.
+
+        :param time_range: An optional tuple comprising a start and end date, which must be
+               ``datetime.datetime`` objects.
+        :return: removed number of files
+        """
+        return 0, 0
+
     @property
     def meta_info(self) -> Union[dict, None]:
         """
