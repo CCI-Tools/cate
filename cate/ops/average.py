@@ -106,19 +106,14 @@ def long_term_average(source: str,
                     # One is enough
                     break
 
+            worked = monitor._worked
             data_source.sync(dt_range, monitor=monitor.child(work=step*0.9))
+            if worked == monitor._worked:
+                monitor.progress(work=step*0.9)
+
             ds = data_source.open_dataset(dt_range)
 
             # If daily dataset, has to be converted to monthly first
-
-            #worked = monitor._worked
-            #ds = open_dataset(source, tmin, tmax, sync=True,
-            #                  monitor=monitor.child(work=step*0.9))
-            # As open_dataset only uses monitor if data have to be synced,
-            # we update progress if there have been no progress updates during
-            # open dataset.
-            #if worked == monitor._worked:
-            #    monitor.progress(work=step*0.9)
 
             # Filter the dataset
             ds = select_var(ds, var)
