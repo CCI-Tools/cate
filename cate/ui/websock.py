@@ -153,6 +153,8 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         self._workspace_manager = application.workspace_manager
         self._thread_pool = concurrent.futures.ThreadPoolExecutor()
         self._service = None
+        self._active_monitors = {}
+        self._active_futurs = {}
         # Check: following call causes exception although Tornado docs say, it is ok
         # self.set_nodelay(True)
 
@@ -202,6 +204,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
 
         if hasattr(self._service, method_name):
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
+            self._active_futurs[method_id] = future
 
             def _send_service_method_result(f: concurrent.futures.Future) -> None:
                 assert method_id is not None
@@ -209,6 +212,20 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                 self.send_service_method_result(method_id, f)
 
             IOLoop.current().add_future(future=future, callback=_send_service_method_result)
+        elif method_name == '__cancelJob__':
+            job_id = method_params.get('jobId', None)
+            if not isinstance(job_id, int):
+                print('Received invalid JSON-RCP message: missing or invalid "jobId" value: %s' % message)
+                return
+            # cancel progress monitor
+            if job_id in self._active_monitors:
+                self._active_monitors[job_id].cancel()
+                del self._active_monitors[job_id]
+            # cancel future
+            if job_id in self._active_futurs:
+                self._active_futurs[job_id].cancel()
+                del self._active_futurs[job_id]
+            self.write_message(json.dumps(dict(jsonrcp='2.0', id=method_id)))
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
@@ -222,6 +239,8 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             response=result)
+            del self._active_monitors[method_id]
+            del self._active_futurs[method_id]
         except concurrent.futures.CancelledError:
             response = dict(jsonrcp='2.0',
                             id=method_id,
@@ -257,6 +276,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         if op_meta_info.has_monitor:
             # The impl. will send "progress" messages via the web-socket.
             monitor = WebSocketMonitor(method_id, self)
+            self._active_monitors[method_id] = monitor
             if isinstance(method_params, type([])):
                 result = method(*method_params, monitor=monitor)
             elif isinstance(method_params, type({})):
@@ -278,6 +298,7 @@ class WebSocketMonitor(Monitor):
     def __init__(self, method_id: int, handler: tornado.websocket.WebSocketHandler):
         self.method_id = method_id
         self.handler = handler
+        self._cancelled = False
         self.last_time = None
 
         self.label = None
@@ -318,3 +339,8 @@ class WebSocketMonitor(Monitor):
         self.worked = self.total
         self._write_progress(message='Done')
 
+    def cancel(self):
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
