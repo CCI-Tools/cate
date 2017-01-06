@@ -194,28 +194,31 @@ def temporal_agg(source: str,
     data_store_list = DATA_STORE_REGISTRY.get_data_stores()
     data_sources = query_data_sources(data_store_list, name=source)
     if len(data_sources) == 0:
-        raise ValueError("No data_source found for the given query\
-                         term {}".format(source))
+        raise ValueError("No data_source found for the given query "
+                         "term {}".format(source))
     elif len(data_sources) > 1:
-        raise ValueError("{} data_sources found for the given query\
-                         term {}".format(data_sources, source))
+        raise ValueError("{} data_sources found for the given query "
+                         "term {}".format(data_sources, source))
 
     data_source = data_sources[0]
+
+    # We have to do this to have temporal coverage info in meta_info
+    data_source._init_file_list()
 
     # Check if the data source temporal resolution is known
     known_res = ('day', '8-days', 'mon', 'yr')
 
     fq = data_source.meta_info['time_frequency']
     if (not fq) or (fq not in known_res):
-        raise ValueError("The given data source features unknown time\
-                         resolution: {}".format(fq))
+        raise ValueError("The given data source features unknown time "
+                         "resolution: {}".format(fq))
 
     # Check if the operation supports the desired aggregation step
     valid_steps = list()
     valid_steps.append(('day', 'mon'))
     if (fq, level) not in valid_steps:
-        raise ValueError("Currently the operation does not support aggregation\
-                         from {} to {}".format(fq, level))
+        raise ValueError("Currently the operation does not support aggregation"
+                         " from {} to {}".format(fq, level))
 
     # Determine start and end dates
     if not start_date:
@@ -225,69 +228,96 @@ def temporal_agg(source: str,
     # month
     if start_date.day != 1:
         try:
-            start_date.replace(day=1, month=start_date.month+1)
+            start_date = datetime(start_date.year, start_date.month+1, 1)
         except ValueError:
             # We have tried to set the month to 13
-            start_date.replace(day=1, month=1, year=start_date.year+1)
+            start_date = datetime(start_date.year+1, 1, 1)
 
     if not end_date:
-        end_date =  data_source.meta_info['temporal_coverage_end']
+        end_date = data_source.meta_info['temporal_coverage_end']
     end_date = to_datetime(end_date)
     # If end date is not end of the month, move it to the last day of the
     # previous month
-    if not _end_of_month(end_date):
+    if not _is_end_of_month(end_date):
         try:
-            end_date.replace(day=27, month=end_date.month-1)
+            end_date = datetime(end_date.year, end_date.month-1, 27)
         except ValueError:
             # We have tried to set the month to 0
-            end_date.replace(day=31, month=12, year=end_date.year-1)
+            end_date = datetime(end_date.year-1, 12, 31)
 
-    while not _end_of_month(end_date):
-        end_date.replace(day=end_date.day+1)
+    end_date = _end_of_month(end_date.year, end_date.month)
 
     # Determine the count of processing periods
     n_periods = (end_date.year - start_date.year + 1) * 12\
         + end_date.month - start_date.month - 11
     # 2000-4-1, 2000-6-30 -> 12 + 2 -11 = 3
 
+    print(n_periods)
+
     if n_periods < 1:
-        raise ValueError("The given time range does not contain any full\
-                         calendar months to do aggregation with.")
+        raise ValueError("The given time range does not contain any full "
+                         "calendar months to do aggregation with.")
 
-    # Set up the monitor
-    total_work = 100
-    with monitor.starting('Aggregate', total_work=total_work):
-        monitor.progress(work=0)
-        step = total_work*0.9/n_periods
 
-        # Process the data source period by period
-        start_current = start_date
-        while start_current < end_date:
-            pass
-            # Determine if the data for the given period are already downloaded
+#   # Set up the monitor
+#   total_work = 100
+#   with monitor.starting('Aggregate', total_work=total_work):
+#       monitor.progress(work=0)
+#       step = total_work*0.9/n_periods
 
-            # If at least one file of the given time range is present, we
-            # don't delete the data for this period, we do the syncing anyway
+#       # Process the data source period by period
+#       tmin = start_date
+#       while tmin < end_date:
+#           break
+#           # Determine if the data for the given period are already downloaded
 
-            # Filter the dataset
+#           # If at least one file of the given time range is present, we
+#           # don't delete the data for this period, we do the syncing anyway
 
-            # Do the aggregation
+#           # Filter the dataset
 
-            # Save the dataset for this period into local data store
+#           # Do the aggregation
 
-            # Close and delete the files if needed
+#           # Save the dataset for this period into local data store
 
-    # Tear down the monitor
+#           # Close and delete the files if needed
+#           pass
 
-    # Open the dataset from local data store
+#   # Tear down the monitor
 
-    # Return the dataset and local data source id
+#   # Open the dataset from local data store
+
+#   # Return the dataset and local data source id
     return None, None
 
-def _end_of_month(date: datetime) -> bool:
+
+def _is_end_of_month(date: datetime) -> bool:
+    """
+    Returns a boolean denoting whether the given date is the last day of
+    the month.
+
+    :param date: A datetime date
+    :return: Whether this is the last day of the month
+    """
     try:
         datetime(date.year, date.month, date.day+1)
         return False
     except ValueError:
         # Couldn't add a day -> end of month
         return True
+
+
+def _end_of_month(year: int, month: int) -> datetime:
+    """
+    Given a year and a month, returns a date of the last day of the given month
+
+    :param year: Year
+    :param month: Month
+    :return: Last date of the year/month combination
+    """
+    # If an invalid month is given, datetime will raise the exception
+    date = datetime(year, month, 28)
+    for day in range(28, 32):
+        date = datetime(year, month, day)
+        if _is_end_of_month(date):
+            return date
