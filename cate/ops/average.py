@@ -34,8 +34,10 @@ import xarray as xr
 from cate.core.op import op, op_input
 from cate.ops import select_var, open_dataset, save_dataset
 from cate.core.monitor import Monitor
-from cate.core.util import to_datetime_range
+from cate.core.util import to_datetime_range, to_datetime
 from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
+
+from datetime import datetime
 
 
 @op(tags=['temporal', 'mean', 'average', 'long_running'])
@@ -66,6 +68,7 @@ def long_term_average(source: str,
     :param save: If True, saves the data downloaded during this operation. This
     can potentially be a very large amount of data.
     :param monitor: A progress monitor to use
+    :return: The Long Term Average dataset.
     """
     n_years = year_max - year_min + 1
     res = 0
@@ -152,12 +155,13 @@ def long_term_average(source: str,
 @op_input('level', value_set=['mon'])
 @op_input('method', value_set=['mean'])
 def temporal_agg(source: str,
-                 start_date: str,
-                 end_date: str,
+                 start_date: str = None,
+                 end_date: str = None,
                  var: str = None,
                  level: str = 'mon',
                  method: str = 'mean',
-                 save_data: bool = False) -> (xr.Dataset, str):
+                 save_data: bool = False,
+                 monitor: Monitor = Monitor.NONE) -> (xr.Dataset, str):
     """
     Perform temporal aggregation of the given data source to the given level
     using the given method for the given time range. Only full time periods
@@ -183,6 +187,7 @@ def temporal_agg(source: str,
     :param method: Aggregation method
     :param save_data: Whether to save data downloaded during this operation.
     This can potentially be a lot of data.
+    :param monitor: A progress monitor to use
     :return: The aggregated dataset and a local data source identifier
     """
     # Select the appropriate data source
@@ -212,22 +217,65 @@ def temporal_agg(source: str,
         raise ValueError("Currently the operation does not support aggregation\
                          from {} to {}".format(fq, level))
 
+    # Determine start and end dates
+    if not start_date:
+        start_date = data_source.meta_info['temporal_coverage_start']
+    start_date = to_datetime(start_date)
+    # If start_date is not start of the month, move it to the 1st of next
+    # month
+    if start_date.day != 1:
+        try:
+            start_date.replace(day=1, month=start_date.month+1)
+        except ValueError:
+            # We have tried to set the month to 13
+            start_date.replace(day=1, month=1, year=start_date.year+1)
+
+    if not end_date:
+        end_date =  data_source.meta_info['temporal_coverage_end']
+    end_date = to_datetime(end_date)
+    # If end date is not end of the month, move it to the last day of the
+    # previous month
+    if not _end_of_month(end_date):
+        try:
+            end_date.replace(day=27, month=end_date.month-1)
+        except ValueError:
+            # We have tried to set the month to 0
+            end_date.replace(day=31, month=12, year=end_date.year-1)
+
+    while not _end_of_month(end_date):
+        end_date.replace(day=end_date.day+1)
+
+    # Determine the count of processing periods
+    n_periods = (end_date.year - start_date.year + 1) * 12\
+        + end_date.month - start_date.month - 11
+    # 2000-4-1, 2000-6-30 -> 12 + 2 -11 = 3
+
+    if n_periods < 1:
+        raise ValueError("The given time range does not contain any full\
+                         calendar months to do aggregation with.")
 
     # Set up the monitor
+    total_work = 100
+    with monitor.starting('Aggregate', total_work=total_work):
+        monitor.progress(work=0)
+        step = total_work*0.9/n_periods
 
-    # Process the data source period by period
-        # Determine if the data for the given period are already downloaded
+        # Process the data source period by period
+        start_current = start_date
+        while start_current < end_date:
+            pass
+            # Determine if the data for the given period are already downloaded
 
-        # If at least one file of the given time range is present, we
-        # don't delete the data for this period, we do the syncing anyway
+            # If at least one file of the given time range is present, we
+            # don't delete the data for this period, we do the syncing anyway
 
-        # Filter the dataset
+            # Filter the dataset
 
-        # Do the aggregation
+            # Do the aggregation
 
-        # Save the dataset for this period into local data store
+            # Save the dataset for this period into local data store
 
-        # Close and delete the files if needed
+            # Close and delete the files if needed
 
     # Tear down the monitor
 
@@ -235,3 +283,11 @@ def temporal_agg(source: str,
 
     # Return the dataset and local data source id
     return None, None
+
+def _end_of_month(date: datetime) -> bool:
+    try:
+        datetime(date.year, date.month, date.day+1)
+        return False
+    except ValueError:
+        # Couldn't add a day -> end of month
+        return True
