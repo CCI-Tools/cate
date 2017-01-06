@@ -71,6 +71,18 @@ def long_term_average(source: str,
     res = 0
     total_work = 100
 
+    # Select the appropriate data source
+    data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    data_sources = query_data_sources(data_store_list, name=source)
+    if len(data_sources) == 0:
+        raise ValueError("No data_source found for the given query\
+                         term {}".format(source))
+    elif len(data_sources) > 1:
+        raise ValueError("{} data_sources found for the given query\
+                         term {}".format(data_sources, source))
+
+    data_source = data_sources[0]
+
     with monitor.starting('LTA', total_work=total_work):
         # Set up the monitor
         monitor.progress(work=0)
@@ -79,17 +91,6 @@ def long_term_average(source: str,
         # Process the data source year by year
         year = year_min
         while year != year_max+1:
-            # Select the appropriate data source
-            data_store_list = DATA_STORE_REGISTRY.get_data_stores()
-            data_sources = query_data_sources(data_store_list, name=source)
-            if len(data_sources) == 0:
-                raise ValueError("No data_source found for the given query\
-                                 term {}".format(source))
-            elif len(data_sources) > 1:
-                raise ValueError("{} data_sources found for the given query\
-                                 term {}".format(data_sources, source))
-
-            data_source = data_sources[0]
             source_info = data_source.cache_info
 
             tmin = "{}-01-01".format(year)
@@ -130,6 +131,7 @@ def long_term_average(source: str,
                                 can not be divided. Consider using the var\
                                 parameter to filter the dataset.')
 
+            ds.close()
             # delete data for the current year, if it should be deleted and it
             # was not already downloaded.
             if (not save) and (not was_already_downloaded):
@@ -146,17 +148,90 @@ def long_term_average(source: str,
     return res
 
 
-@op(tags=['temporal', 'mean', 'aggregation'])
-@op_input('level', value_set=['monthly'])
+@op(tags=['temporal', 'mean', 'aggregation', 'long_running'])
+@op_input('level', value_set=['mon'])
 @op_input('method', value_set=['mean'])
-def temporal_agg(ds: xr.Dataset,
-                 level: str,
-                 method: str) -> xr.Dataset:
+def temporal_agg(source: str,
+                 start_date: str,
+                 end_date: str,
+                 var: str = None,
+                 level: str = 'mon',
+                 method: str = 'mean',
+                 save_data: bool = False) -> (xr.Dataset, str):
     """
-    Perform temporal aggregation to the given level using the given method.
+    Perform temporal aggregation of the given data source to the given level
+    using the given method for the given time range. Only full time periods
+    of the given time range will be aggregated.
 
-    :param ds: Dataset to aggregate
+    Depending on the given time range, data size, as well as internet
+    connection quality, this operation can potentially take a very long time
+    to finish.
+
+    Careful consideration is needed in choosing the var parameter to create
+    meaningful outputs. This is unique for each data source.
+
+    The aggregation result is saved into the local data store for later reuse.
+
+    :param source: Data source to aggregate
+    :param start_date: Start date of aggregation. If not given, data source
+    start date is used instead
+    :param end_date: End date of aggregation. If not given, data source end
+    date is used instead
+    :param var: If given, only these dataset variables will be preserved in the
+    result
     :param level: Aggregation level
     :param method: Aggregation method
+    :param save_data: Whether to save data downloaded during this operation.
+    This can potentially be a lot of data.
+    :return: The aggregated dataset and a local data source identifier
     """
-    pass
+    # Select the appropriate data source
+    data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    data_sources = query_data_sources(data_store_list, name=source)
+    if len(data_sources) == 0:
+        raise ValueError("No data_source found for the given query\
+                         term {}".format(source))
+    elif len(data_sources) > 1:
+        raise ValueError("{} data_sources found for the given query\
+                         term {}".format(data_sources, source))
+
+    data_source = data_sources[0]
+
+    # Check if the data source temporal resolution is known
+    known_res = ('day', '8-days', 'mon', 'yr')
+
+    fq = data_source.meta_info['time_frequency']
+    if (not fq) or (fq not in known_res):
+        raise ValueError("The given data source features unknown time\
+                         resolution: {}".format(fq))
+
+    # Check if the operation supports the desired aggregation step
+    valid_steps = list()
+    valid_steps.append(('day', 'mon'))
+    if (fq, level) not in valid_steps:
+        raise ValueError("Currently the operation does not support aggregation\
+                         from {} to {}".format(fq, level))
+
+
+    # Set up the monitor
+
+    # Process the data source period by period
+        # Determine if the data for the given period are already downloaded
+
+        # If at least one file of the given time range is present, we
+        # don't delete the data for this period, we do the syncing anyway
+
+        # Filter the dataset
+
+        # Do the aggregation
+
+        # Save the dataset for this period into local data store
+
+        # Close and delete the files if needed
+
+    # Tear down the monitor
+
+    # Open the dataset from local data store
+
+    # Return the dataset and local data source id
+    return None, None
