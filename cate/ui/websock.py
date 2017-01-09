@@ -154,7 +154,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         self._thread_pool = concurrent.futures.ThreadPoolExecutor()
         self._service = None
         self._active_monitors = {}
-        self._active_futurs = {}
+        self._active_futures = {}
         # Check: following call causes exception although Tornado docs say, it is ok
         # self.set_nodelay(True)
 
@@ -173,6 +173,8 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         print("AppWebSocketHandler: check " + str(origin))
         return True
+
+    # TODO: notify connected client on any of the following error cases
 
     def on_message(self, message: str):
         print("AppWebSocketHandler.on_message('%s')" % message)
@@ -204,7 +206,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
 
         if hasattr(self._service, method_name):
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
-            self._active_futurs[method_id] = future
+            self._active_futures[method_id] = future
 
             def _send_service_method_result(f: concurrent.futures.Future) -> None:
                 assert method_id is not None
@@ -217,14 +219,15 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if not isinstance(job_id, int):
                 print('Received invalid JSON-RCP message: missing or invalid "jobId" value: %s' % message)
                 return
+            # TODO: check if the following code requires thread sync
             # cancel progress monitor
             if job_id in self._active_monitors:
                 self._active_monitors[job_id].cancel()
                 del self._active_monitors[job_id]
             # cancel future
-            if job_id in self._active_futurs:
-                self._active_futurs[job_id].cancel()
-                del self._active_futurs[job_id]
+            if job_id in self._active_futures:
+                self._active_futures[job_id].cancel()
+                del self._active_futures[job_id]
             self.write_message(json.dumps(dict(jsonrcp='2.0', id=method_id)))
         else:
             response = dict(jsonrcp='2.0',
@@ -241,8 +244,8 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                             response=result)
             if method_id in self._active_monitors:
                 del self._active_monitors[method_id]
-            if method_id in self._active_futurs:
-                del self._active_futurs[method_id]
+            if method_id in self._active_futures:
+                del self._active_futures[method_id]
         except (concurrent.futures.CancelledError, InterruptedError):
             response = dict(jsonrcp='2.0',
                             id=method_id,
