@@ -239,9 +239,11 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             response=result)
-            del self._active_monitors[method_id]
-            del self._active_futurs[method_id]
-        except concurrent.futures.CancelledError:
+            if method_id in self._active_monitors:
+                del self._active_monitors[method_id]
+            if method_id in self._active_futurs:
+                del self._active_futurs[method_id]
+        except (concurrent.futures.CancelledError, InterruptedError):
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=999,
