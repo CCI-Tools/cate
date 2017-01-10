@@ -364,7 +364,7 @@ class EsaCciOdpDataSource(DataSource):
             # Try updating file list, so we have temporal coverage info...
             # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
             #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
-            # self._init_file_list()
+            self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.
@@ -377,6 +377,8 @@ class EsaCciOdpDataSource(DataSource):
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
             meta_info[name] = value
+
+        meta_info['protocols'] = self.protocols
 
         if self._temporal_coverage:
             start, end = self._temporal_coverage
@@ -420,6 +422,13 @@ class EsaCciOdpDataSource(DataSource):
             variables_list.append(dict(name=name, units=unit, long_name=long_name, standard_name=standard_name))
 
         return variables_list
+
+    @property
+    def protocols(self) -> []:
+        if self._protocol_list is None:
+            self._protocol_list = [protocol for protocol in self._json_dict.get('access', [])
+                                   if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
+        return self._protocol_list
 
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
