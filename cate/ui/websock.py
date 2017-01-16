@@ -24,7 +24,9 @@ import json
 import sys
 import time
 import traceback
+from typing import Tuple
 
+import xarray as xr
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
@@ -143,6 +145,31 @@ class ServiceMethods:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
+    def get_color_maps(self):
+        from .cmaps import get_cmaps
+        return get_cmaps()
+
+    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Tuple[int]):
+        workspace_manager = self.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        if res_name not in workspace.resource_cache:
+            raise ValueError('Unknown resource "%s"' % res_name)
+
+        dataset = workspace.resource_cache[res_name]
+        if not isinstance(dataset, xr.Dataset):
+            raise ValueError('Resource "%s" must be a Dataset' % res_name)
+
+        if var_name not in dataset:
+            raise ValueError('Variable "%s" not found in "%s"' % (var_name, res_name))
+
+        variable = dataset[var_name]
+        if var_index:
+            variable = variable[var_index]
+
+        valid_min = variable.min(skipna=True)
+        valid_max = variable.max(skipna=True)
+
+        return dict(min=float(valid_min), max=float(valid_max))
 
 # noinspection PyAbstractClass
 class AppWebSocketHandler(tornado.websocket.WebSocketHandler):

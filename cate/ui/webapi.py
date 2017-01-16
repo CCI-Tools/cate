@@ -746,12 +746,17 @@ class ResVarTileHandler(BaseRequestHandler):
             return
 
         var_name = self.get_query_argument('var')
-
+        var_index = tuple(map(int, self.get_query_argument('index', '').split(',')))
         cmap_name = self.get_query_argument('cmap', default='jet')
-        cmap_min = float(self.get_query_argument('min', default=0.0))
-        cmap_max = float(self.get_query_argument('max', default=1.0))
+        cmap_min = float(self.get_query_argument('min', default='nan'))
+        cmap_max = float(self.get_query_argument('max', default='nan'))
 
-        image_id = '%s|%s|%s|%s|%s' % (res_name, var_name, cmap_name, cmap_min, cmap_max)
+        image_id = '%s|%s|%s|%s|%s|%s' % (res_name,
+                                          var_name,
+                                          ','.join(map(str, var_index)),
+                                          cmap_name,
+                                          cmap_min,
+                                          cmap_max)
 
         if image_id in ResVarTileHandler.PYRAMIDS:
             pyramid = ResVarTileHandler.PYRAMIDS[image_id]
@@ -761,16 +766,24 @@ class ResVarTileHandler(BaseRequestHandler):
             is_y_flipped = self.is_y_flipped(dataset, variable)
 
             # Make sure we work with 2D image arrays only
-            if variable.ndim > 2:
-                index = (0,) * (variable.ndim - 2) + (slice(None), slice(None),)
-                print('index =', index)
-                array = variable[index]
-            else:
+            if variable.ndim == 2:
                 array = variable
+            elif variable.ndim > 2:
+                if not var_index or len(var_index) != variable.ndim - 2:
+                    var_index = (0,) * (variable.ndim - 2)
 
-            # TODO: remove this debugging code. It is here because we have no control currently
-            cmap_min = np.nanmin(array.values)
-            cmap_max = np.nanmax(array.values)
+                var_index += (slice(None), slice(None),)
+
+                print('var_index =', var_index)
+                array = variable[var_index]
+            else:
+                self.write(_status_error(message='Variable must be an N-D Dataset with N >= 2, but "%s" is only %d-D' % (var_name, variable.ndim)))
+                return
+
+            cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min
+            cmap_max = np.nanmax(array.values) if np.isnan(cmap_max) else cmap_max
+            print('cmap_min =', cmap_min)
+            print('cmap_max =', cmap_max)
 
             pyramid = ImagePyramid.create_from_array(array)
 
