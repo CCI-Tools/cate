@@ -502,6 +502,25 @@ class EsaCciOdpDataSource(DataSource):
         else:
             return 0, 0
 
+    def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
+        selected_file_list = self._find_files(time_range)
+        if not selected_file_list:
+            return 0
+
+        dataset_dir = self.local_dataset_dir()
+        removed_count = 0
+
+        for filename, _, _, _, _ in selected_file_list:
+            dataset_file = os.path.join(dataset_dir, filename)
+            try:
+                os.remove(dataset_file)
+                removed_count += 1
+            except:
+                # File busy on Windows, move on
+                pass
+
+        return removed_count
+
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
 
