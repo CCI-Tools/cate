@@ -137,25 +137,43 @@ class DataSource(metaclass=ABCMeta):
         return True
 
     @abstractmethod
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self,
+                     time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=None) -> xr.Dataset:
         """
         Open a dataset for the given *time_range*.
 
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
+
+        :param time_range: An optional tuple comprising a start and end date,
+                which must be ``datetime.datetime`` objects.
+        :param protocol: Protocol name, if None selected default protocol
+                will be used to access data
         :return: A dataset instance or ``None`` if no data is available in *time_range*.
         """
 
+    @property
+    def protocols(self) -> []:
+        """
+        The list of available protocols.
+
+        """
+        return [None]
+
     # noinspection PyMethodMayBeStatic
     def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
+             time_range: Tuple[datetime, datetime]=None,
+             protocol: str=None,
+             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
         """
-        Synchronize remote data with locally stored data.
+        Allows to synchronize remote data with locally stored data.
+        Availability of synchornization feature depends on protocol type and
+        datasource implementation.
         The default implementation does nothing.
 
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
+        :param time_range: An optional tuple comprising a start and end date,
+                which must be ``datetime.datetime`` objects.
+        :param protocol: Protocol name, if None selected default protocol
+                will be used to access data
         :param monitor: a progress monitor.
         :return: a tuple: (synchronized number of selected files, total number of selected files)
         """
@@ -372,11 +390,11 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         results.extend(data_store.query(name))
     return results
 
-
 def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,
                  sync: bool = False,
+                 protocol: str=None,
                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source.
@@ -385,7 +403,8 @@ def open_dataset(data_source: Union[DataSource, str],
     :param start_date: Optional start date of the requested dataset
     :param end_date: Optional end date of the requested dataset
     :param sync: Whether to synchronize local and remote data files before opening the dataset
-    :param monitor: a progress monitor, used only if *snyc* is ``True``
+    :param protocol: Name of protocol used to access dataset
+    :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """
     if data_source is None:
@@ -403,9 +422,9 @@ def open_dataset(data_source: Union[DataSource, str],
     time_range = to_datetime_range(start_date, end_date)
 
     if sync:
-        data_source.sync(time_range, monitor=monitor)
+        data_source.sync(time_range, monitor=monitor, protocol=protocol)
 
-    return data_source.open_dataset(time_range)
+    return data_source.open_dataset(time_range, protocol=protocol)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember

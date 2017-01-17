@@ -119,7 +119,8 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=None) -> xr.Dataset:
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
@@ -198,8 +199,9 @@ class FileSetDataSource(DataSource):
         return self._base_dir + '/' + resolved_path
 
     def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
+             time_range: Tuple[datetime, datetime]=None,
+             protocol: str=None,
+             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
         # TODO (kbernat, 20161221): remove remote_url validation, there is no public interface to modify it
         assert self._file_set_data_store.remote_url
         url = urllib.parse.urlparse(self._file_set_data_store.remote_url)

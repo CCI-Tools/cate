@@ -71,6 +71,11 @@ _TIME_FREQUENCY_TO_TIME_DELTA = dict([
     ('yr', timedelta(days=365)),
 ])
 
+_ODP_PROTOCOLS_HTTP = 'HTTPServer'
+_ODP_PROTOCOLS_OPENDAP = 'OPENDAP'
+
+_ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOLS_HTTP, _ODP_PROTOCOLS_OPENDAP]
+
 
 def get_data_store_path():
     return os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
@@ -180,12 +185,13 @@ def _load_or_fetch_json(fetch_json_function,
 
 
 def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
-    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL, dict(type='File',
-                                                                 fields='url,title,size',
-                                                                 dataset_id=dataset_query_id,
-                                                                 replica='false',
-                                                                 latest='true',
-                                                                 project='esacci'))
+    file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
+                                            dict(type='File',
+                                                 fields='url,title,size',
+                                                 dataset_id=dataset_query_id,
+                                                 replica='false',
+                                                 latest='true',
+                                                 project='esacci'))
 
     if not isinstance(file_index_json_dict, dict):
         return None
@@ -194,29 +200,31 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
     docs = file_index_json_dict.get('response', {}).get('docs', [])
     time_info = None
     for doc in docs:
+        urls = dict()
         url_rec_list = doc.get('url', [])
         for url_rec in url_rec_list:
-            url, mime_type, service_type = url_rec.split('|')
-            if mime_type == 'application/netcdf' and service_type == 'HTTPServer':
-                filename = doc.get('title', None)
-                file_size = doc.get('size', -1)
-                if not filename:
-                    filename = os.path.basename(urllib.parse.urlparse(url)[2])
-                if filename in file_list:
-                    raise ValueError('filename %s already seen in dataset %s' % (filename, dataset_id))
-                if not time_info:
-                    time_info = find_datetime_format(filename)
-                # Start time will be extracted from filename using time_info
-                start_time = None
-                # We also reserve an end_time field, just in case.
-                end_time = None
-                if time_info:
-                    time_format, p1, p2 = time_info
-                    start_time = datetime.strptime(filename[p1:p2], time_format)
-                    # Convert back to text, so we can JSON-encode it
-                    start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
-                file_list.append([filename, start_time, end_time, file_size, url])
-                break
+            url, mime_type, url_type = url_rec.split('|')
+            urls[url_type] = url
+
+        filename = doc.get('title', None)
+        file_size = doc.get('size', -1)
+        if not filename:
+            filename = os.path.basename(urllib.parse.urlparse(url)[2])
+        if filename in file_list:
+            raise ValueError('filename {} already seen in dataset {}'
+                             .format(filename, dataset_id))
+        if not time_info:
+            time_info = find_datetime_format(filename)
+        # Start time will be extracted from filename using time_info
+        start_time = None
+        # We also reserve an end_time field, just in case.
+        end_time = None
+        if time_info:
+            time_format, p1, p2 = time_info
+            start_time = datetime.strptime(filename[p1:p2], time_format)
+            # Convert back to text, so we can JSON-encode it
+            start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
+        file_list.append([filename, start_time, end_time, file_size, urls])
 
     def pick_start_time(file_info_rec):
         return file_info_rec[1]
@@ -288,10 +296,12 @@ class EsaCciOdpDataStore(DataStore):
 
     def _load_index(self):
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
-                                                    fetch_json_args=[_ESGF_CEDA_URL, dict(type='Dataset',
-                                                                                          replica='false',
-                                                                                          latest='true',
-                                                                                          project='esacci')],
+                                                    fetch_json_args=[
+                                                        _ESGF_CEDA_URL,
+                                                        dict(type='Dataset',
+                                                             replica='false',
+                                                             latest='true',
+                                                             project='esacci')],
                                                     cache_used=self._index_cache_used,
                                                     cache_dir=get_data_store_path(),
                                                     cache_json_filename='dataset-list.json',
@@ -329,6 +339,7 @@ class EsaCciOdpDataSource(DataSource):
         self._schema = schema
         self._file_list = None
         self._temporal_coverage = None
+        self._protocol_list = None
 
     @property
     def name(self) -> str:
@@ -353,7 +364,7 @@ class EsaCciOdpDataSource(DataSource):
             # Try updating file list, so we have temporal coverage info...
             # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
             #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
-            # self._init_file_list()
+            self._init_file_list()
             pass
         except Exception:
             # ...but this isn't required to return a useful info string.
@@ -366,6 +377,8 @@ class EsaCciOdpDataSource(DataSource):
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
             meta_info[name] = value
+
+        meta_info['protocols'] = self.protocols
 
         if self._temporal_coverage:
             start, end = self._temporal_coverage
@@ -410,6 +423,13 @@ class EsaCciOdpDataSource(DataSource):
 
         return variables_list
 
+    @property
+    def protocols(self) -> []:
+        if self._protocol_list is None:
+            self._protocol_list = [protocol for protocol in self._json_dict.get('access', [])
+                                   if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
+        return self._protocol_list
+
     def matches_filter(self, name: str = None) -> bool:
         return name.lower() in self.name.lower()
 
@@ -427,54 +447,60 @@ class EsaCciOdpDataSource(DataSource):
         self._init_file_list()
 
     def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
+             time_range: Tuple[datetime, datetime]=None,
+             protocol: str=None,
+             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             return 0, 0
 
-        dataset_dir = self.local_dataset_dir()
-
-        # Find outdated files
-        outdated_file_list = []
-        for file_rec in selected_file_list:
-            filename, _, _, file_size, url = file_rec
-            dataset_file = os.path.join(dataset_dir, filename)
-            # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-            # ... outdated or incomplete or corrupted.
-            # JSON also includes "checksum" and "checksum_type" fields.
-            if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                outdated_file_list.append(file_rec)
-
-        if not outdated_file_list:
-            # No sync needed
-            return 0, len(selected_file_list)
-
-        with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
-            bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-            dl_stat = _DownloadStatistics(bytes_to_download)
-
-            file_number = 1
+        if protocol is None:
+            protocol = _ODP_PROTOCOLS_HTTP
+        if protocol is _ODP_PROTOCOLS_HTTP:
             dataset_dir = self.local_dataset_dir()
-            for filename, _, _, file_size, url in outdated_file_list:
-                if monitor.is_cancelled():
-                    raise InterruptedError
-                dataset_file = os.path.join(dataset_dir, filename)
-                sub_monitor = monitor.child(1.0)
 
-                # noinspection PyUnusedLocal
-                def reporthook(block_number, read_size, total_file_size):
-                    dl_stat.handle_chunk(read_size)
+            # Find outdated files
+            outdated_file_list = []
+            for file_rec in selected_file_list:
+                filename, _, _, file_size, url = file_rec
+                dataset_file = os.path.join(dataset_dir, filename)
+                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+                # ... outdated or incomplete or corrupted.
+                # JSON also includes "checksum" and "checksum_type" fields.
+                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                    outdated_file_list.append(file_rec)
+
+            if not outdated_file_list:
+                # No sync needed
+                return 0, len(selected_file_list)
+
+            with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                dl_stat = _DownloadStatistics(bytes_to_download)
+
+                file_number = 1
+                dataset_dir = self.local_dataset_dir()
+                for filename, _, _, file_size, url in outdated_file_list:
                     if monitor.is_cancelled():
                         raise InterruptedError
-                    sub_monitor.progress(work=read_size, msg=str(dl_stat))
+                    dataset_file = os.path.join(dataset_dir, filename)
+                    sub_monitor = monitor.child(1.0)
 
-                sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                with sub_monitor.starting(sub_monitor_msg, file_size):
-                    urllib.request.urlretrieve(url, filename=dataset_file, reporthook=reporthook)
-                file_number += 1
+                    # noinspection PyUnusedLocal
+                    def reporthook(block_number, read_size, total_file_size):
+                        dl_stat.handle_chunk(read_size)
+                        if monitor.is_cancelled():
+                            raise InterruptedError
+                        sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
-        return len(outdated_file_list), len(selected_file_list)
+                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                    with sub_monitor.starting('', file_size):
+                        urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                    file_number += 1
+
+            return len(outdated_file_list), len(selected_file_list)
+        else:
+            return 0, 0
 
     def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
         selected_file_list = self._find_files(time_range)
@@ -519,21 +545,37 @@ class EsaCciOdpDataSource(DataSource):
             selected_file_list = self._file_list
         return selected_file_list
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
+                     protocol: str=None) -> xr.Dataset:
+        if protocol is None:
+            protocol = _ODP_PROTOCOLS_HTTP
+        if protocol not in self.protocols:
+            raise ValueError('Protocol \'{}\' is not supported.'
+                             .format(protocol))
+
+        files = []
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = "Data source '%s' does not seem to have any data files" % self.name
+            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
             if time_range is not None:
-                msg += ' in given time range %s to %s' % time_range
+                msg += ' in given time range {} to {}'.format(time_range[0], time_range[1])
             raise IOError(msg)
 
-        dataset_dir = self.local_dataset_dir()
-        files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
-        for file in files:
-            if not os.path.exists(file):
-                raise IOError('Missing local data files, consider synchronizing the dataset first.')
-
-        return open_xarray_dataset(files)
+        for file_rec in selected_file_list:
+            if protocol is _ODP_PROTOCOLS_OPENDAP:
+                files.append(file_rec[4][protocol].replace('.html', ''))
+            elif protocol is _ODP_PROTOCOLS_HTTP:
+                dataset_dir = self.local_dataset_dir()
+                files.append(os.path.join(dataset_dir, file_rec[0]))
+                for file in files:
+                    if not os.path.exists(file):
+                        raise IOError('Missing local data files, consider'
+                                      ' synchronizing the dataset first.')
+        try:
+            return open_xarray_dataset(files)
+        except OSError as e:
+            raise IOError("Files: {} caused:\nOSError({}): {}"
+                          .format(files, e.errno, e.strerror))
 
     def _init_file_list(self):
         if self._file_list:
