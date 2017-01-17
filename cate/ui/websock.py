@@ -255,13 +255,16 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._active_futures:
                 self._active_futures[job_id].cancel()
                 del self._active_futures[job_id]
-            self.write_message(json.dumps(dict(jsonrcp='2.0', id=method_id)))
+            response = dict(jsonrcp='2.0', id=method_id)
+            self._write_response(json.dumps(response))
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
-            self.write_message(json.dumps(response))
+            self._write_response(json.dumps(response))
+
+
 
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
@@ -297,7 +300,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                                         error=dict(code=30,
                                                    message='Exception caught: %s' % e,
                                                    data=stacktrace)))
+        self._write_response(json_text)
 
+    def _write_response(self, json_text):
+        print('<== ', json_text)
         self.write_message(json_text)
 
     def call_service_method(self, method_id, method_name, method_params):
