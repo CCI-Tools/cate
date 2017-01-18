@@ -50,6 +50,7 @@ from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .xarray import sel
 from .average import long_term_average, temporal_agg
+from .arithmetics import arithmetics
 
 __all__ = [
     # .timeseries
@@ -82,6 +83,8 @@ __all__ = [
     # .average
     'long_term_average',
     'temporal_agg'
+    # .arithmetics
+    'arithmetics'
 ]
 
 
