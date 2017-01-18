@@ -351,6 +351,8 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def temporal_coverage(self):
+        if not self._temporal_coverage:
+            self.update_file_list()
         return self._temporal_coverage
 
     @property
@@ -360,15 +362,6 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
-        try:
-            # Try updating file list, so we have temporal coverage info...
-            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
-            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
-            self._init_file_list()
-            pass
-        except Exception:
-            # ...but this isn't required to return a useful info string.
-            pass
 
         meta_info = OrderedDict()
         for name in INFO_FIELD_NAMES:
@@ -501,6 +494,25 @@ class EsaCciOdpDataSource(DataSource):
             return len(outdated_file_list), len(selected_file_list)
         else:
             return 0, 0
+
+    def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
+        selected_file_list = self._find_files(time_range)
+        if not selected_file_list:
+            return 0
+
+        dataset_dir = self.local_dataset_dir()
+        removed_count = 0
+
+        for filename, _, _, _, _ in selected_file_list:
+            dataset_file = os.path.join(dataset_dir, filename)
+            try:
+                os.remove(dataset_file)
+                removed_count += 1
+            except:
+                # File busy on Windows, move on
+                pass
+
+        return removed_count
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)

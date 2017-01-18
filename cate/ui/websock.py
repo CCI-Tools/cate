@@ -25,12 +25,13 @@ import sys
 import time
 import traceback
 from typing import Tuple
+from collections import OrderedDict
 
 import xarray as xr
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
 from cate.core.util import cwd
@@ -97,6 +98,32 @@ class ServiceMethods:
                                          meta_info=data_source.meta_info))
 
         return sorted(data_source_list, key=lambda ds: ds['name'])
+
+    # noinspection PyMethodMayBeStatic
+    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str) -> dict:
+        """
+        Get the temporal coverage of the data source.
+
+        :param data_store_id: ID of the data store
+        :param monitor: a progress monitor
+        :return: JSON-serializable list of data sources, sorted by name.
+        """
+        data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % data_store_id)
+        data_sources = data_store.query(name=data_source_id)
+        if not data_sources:
+            raise ValueError('data source "%s" not found' % data_source_id)
+        data_source = data_sources[0]
+        temporal_coverage = data_source.temporal_coverage
+        meta_info = OrderedDict()
+        if temporal_coverage:
+            start, end = temporal_coverage
+            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
+            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
+        # TODO mz add available data information
+        return meta_info
+
 
     # noinspection PyMethodMayBeStatic
     def get_operations(self) -> list:
