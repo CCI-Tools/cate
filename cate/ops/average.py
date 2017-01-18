@@ -85,6 +85,12 @@ def long_term_average(source: str,
                          term {}".format(data_sources, source))
 
     data_source = data_sources[0]
+    source_info = data_source.cache_info
+
+    # Check if we have a monthly data source
+    fq = data_source.meta_info['time_frequency']
+    if fq != 'mon':
+        raise ValueError("Only monthly datasets are supported for time being.")
 
     with monitor.starting('LTA', total_work=total_work):
         # Set up the monitor
@@ -94,7 +100,6 @@ def long_term_average(source: str,
         # Process the data source year by year
         year = year_min
         while year != year_max+1:
-            source_info = data_source.cache_info
 
             tmin = "{}-01-01".format(year)
             tmax = "{}-12-31".format(year)
@@ -116,8 +121,6 @@ def long_term_average(source: str,
                 monitor.progress(work=step*0.9)
 
             ds = data_source.open_dataset(dt_range)
-
-            # If daily dataset, has to be converted to monthly first
 
             # Filter the dataset
             ds = select_var(ds, var)
@@ -188,8 +191,11 @@ def temporal_agg(source: str,
     :param save_data: Whether to save data downloaded during this operation.
     This can potentially be a lot of data.
     :param monitor: A progress monitor to use
-    :return: The aggregated dataset and a local data source identifier
+    :return: The local data source identifier for the aggregated data
     """
+    # Raise not implemented, while not finished
+    raise ValueError("Operation is not implemented.")
+
     # Select the appropriate data source
     data_store_list = DATA_STORE_REGISTRY.get_data_stores()
     data_sources = query_data_sources(data_store_list, name=source)
@@ -201,6 +207,7 @@ def temporal_agg(source: str,
                          "term {}".format(data_sources, source))
 
     data_source = data_sources[0]
+    source_info = data_source.cache_info
 
     # We have to do this to have temporal coverage info in meta_info
     data_source._init_file_list()
@@ -252,43 +259,67 @@ def temporal_agg(source: str,
         + end_date.month - start_date.month - 11
     # 2000-4-1, 2000-6-30 -> 12 + 2 -11 = 3
 
-    print(n_periods)
-
     if n_periods < 1:
         raise ValueError("The given time range does not contain any full "
                          "calendar months to do aggregation with.")
 
+    # Set up the monitor
+    total_work = 100
+    with monitor.starting('Aggregate', total_work=total_work):
+        monitor.progress(work=0)
+        step = total_work*0.9/n_periods
 
-#   # Set up the monitor
-#   total_work = 100
-#   with monitor.starting('Aggregate', total_work=total_work):
-#       monitor.progress(work=0)
-#       step = total_work*0.9/n_periods
+        # Process the data source period by period
+        tmin = start_date
+        while tmin < end_date:
+            tmax = _end_of_month(tmin.year, tmin.month)
 
-#       # Process the data source period by period
-#       tmin = start_date
-#       while tmin < end_date:
-#           break
-#           # Determine if the data for the given period are already downloaded
+            # Determine if the data for the given period are already downloaded
+            # If at least one file of the given time range is present, we
+            # don't delete the data for this period, we do the syncing anyway
+            was_already_downloaded = False
+            dt_range = to_datetime_range(tmin, tmax)
+            for date in source_info:
+                if dt_range[0] <= date <= dt_range[1]:
+                    was_already_downloaded = True
+                    # One is enough
+                    break
 
-#           # If at least one file of the given time range is present, we
-#           # don't delete the data for this period, we do the syncing anyway
+            worked = monitor._worked
+            data_source.sync(dt_range, monitor=monitor.child(work=step*0.9))
+            if worked == monitor._worked:
+                monitor.progress(work=step*0.9)
 
-#           # Filter the dataset
+            ds = data_source.open_dataset(dt_range)
 
-#           # Do the aggregation
+            # Filter the dataset
+            ds = select_var(ds, var)
 
-#           # Save the dataset for this period into local data store
+            # Do the aggregation
 
-#           # Close and delete the files if needed
-#           pass
+            # Save the dataset for this period into local data store
 
-#   # Tear down the monitor
+            # Close and delete the files if needed
+            ds.close()
+            # delete data for the current period,if it should be deleted and it
+            # was not already downloaded.
+            if (not save_data) and (not was_already_downloaded):
+                data_source.delete_local(dt_range)
 
-#   # Open the dataset from local data store
+            monitor.progress(work=step*0.1)
 
-#   # Return the dataset and local data source id
-    return None, None
+            # tmin for next iteration
+            try:
+                tmin = datetime(tmin.year, tmin.month+1, 1)
+            except ValueError:
+                # Couldn't add a month -> end of year
+                tmin = datetime(tmin.year+1, 1, 1)
+            pass
+
+    monitor.progress(work=step*0.1)
+
+    # Return the local data source id
+    return None
 
 
 def _is_end_of_month(date: datetime) -> bool:
