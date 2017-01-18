@@ -351,6 +351,8 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def temporal_coverage(self):
+        if not self._temporal_coverage:
+            self.update_file_list()
         return self._temporal_coverage
 
     @property
@@ -360,15 +362,6 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
-        try:
-            # Try updating file list, so we have temporal coverage info...
-            # TODO: commented out by forman, 2016-12-05 as this turned out to be a performance killer
-            #       it will fetch JSON infos for A VERY LARGE NUMBER of files from ESA ODP, which can be VERY SLOW!
-            self._init_file_list()
-            pass
-        except Exception:
-            # ...but this isn't required to return a useful info string.
-            pass
 
         meta_info = OrderedDict()
         for name in INFO_FIELD_NAMES:
@@ -379,12 +372,6 @@ class EsaCciOdpDataSource(DataSource):
             meta_info[name] = value
 
         meta_info['protocols'] = self.protocols
-
-        if self._temporal_coverage:
-            start, end = self._temporal_coverage
-            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
-            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
-
         meta_info['variables'] = self._variables_list()
 
         return meta_info

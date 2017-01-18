@@ -205,11 +205,6 @@ class Workspace:
         if self._is_lat_lon_image_variable(variable):
             variable_info['imageLayout'] = self._get_variable_image_config(variable)
             variable_info['y_flipped'] = self._is_y_flipped(variable)
-            # TODO (mz, 2016-12-19) do we need these, they require reading of all data
-            # nanmin = np.nanmin(variable.values)
-            # nanmax = np.nanmax(variable.values)
-            # variable_info['real_min'] = str(nanmin)
-            # variable_info['real_max'] = str(nanmax)
         return variable_info
 
 

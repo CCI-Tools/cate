@@ -24,11 +24,14 @@ import json
 import sys
 import time
 import traceback
+from typing import Tuple
+from collections import OrderedDict
 
+import xarray as xr
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
 from cate.core.util import cwd
@@ -97,6 +100,32 @@ class ServiceMethods:
         return sorted(data_source_list, key=lambda ds: ds['name'])
 
     # noinspection PyMethodMayBeStatic
+    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str) -> dict:
+        """
+        Get the temporal coverage of the data source.
+
+        :param data_store_id: ID of the data store
+        :param monitor: a progress monitor
+        :return: JSON-serializable list of data sources, sorted by name.
+        """
+        data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % data_store_id)
+        data_sources = data_store.query(name=data_source_id)
+        if not data_sources:
+            raise ValueError('data source "%s" not found' % data_source_id)
+        data_source = data_sources[0]
+        temporal_coverage = data_source.temporal_coverage
+        meta_info = OrderedDict()
+        if temporal_coverage:
+            start, end = temporal_coverage
+            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
+            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
+        # TODO mz add available data information
+        return meta_info
+
+
+    # noinspection PyMethodMayBeStatic
     def get_operations(self) -> list:
         """
         Get registered operations.
@@ -143,6 +172,31 @@ class ServiceMethods:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
+    def get_color_maps(self):
+        from .cmaps import get_cmaps
+        return get_cmaps()
+
+    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Tuple[int]):
+        workspace_manager = self.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        if res_name not in workspace.resource_cache:
+            raise ValueError('Unknown resource "%s"' % res_name)
+
+        dataset = workspace.resource_cache[res_name]
+        if not isinstance(dataset, xr.Dataset):
+            raise ValueError('Resource "%s" must be a Dataset' % res_name)
+
+        if var_name not in dataset:
+            raise ValueError('Variable "%s" not found in "%s"' % (var_name, res_name))
+
+        variable = dataset[var_name]
+        if var_index:
+            variable = variable[var_index]
+
+        valid_min = variable.min(skipna=True)
+        valid_max = variable.max(skipna=True)
+
+        return dict(min=float(valid_min), max=float(valid_max))
 
 # noinspection PyAbstractClass
 class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -228,13 +282,16 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._active_futures:
                 self._active_futures[job_id].cancel()
                 del self._active_futures[job_id]
-            self.write_message(json.dumps(dict(jsonrcp='2.0', id=method_id)))
+            response = dict(jsonrcp='2.0', id=method_id)
+            self._write_response(json.dumps(response))
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
-            self.write_message(json.dumps(response))
+            self._write_response(json.dumps(response))
+
+
 
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
@@ -270,7 +327,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                                         error=dict(code=30,
                                                    message='Exception caught: %s' % e,
                                                    data=stacktrace)))
+        self._write_response(json_text)
 
+    def _write_response(self, json_text):
+        print('<== ', json_text)
         self.write_message(json_text)
 
     def call_service_method(self, method_id, method_name, method_params):
