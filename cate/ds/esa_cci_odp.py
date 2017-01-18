@@ -372,12 +372,6 @@ class EsaCciOdpDataSource(DataSource):
             meta_info[name] = value
 
         meta_info['protocols'] = self.protocols
-
-        if self._temporal_coverage:
-            start, end = self._temporal_coverage
-            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
-            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
-
         meta_info['variables'] = self._variables_list()
 
         return meta_info
