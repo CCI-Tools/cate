@@ -120,7 +120,7 @@ class ServiceMethods:
             meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
             meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
         # TODO mz add available data information
-        return temporal_coverage
+        return meta_info
 
 
     # noinspection PyMethodMayBeStatic
