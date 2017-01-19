@@ -34,20 +34,22 @@ equidistant in lat/lon coordinates.
 """
 # TODO (Gailis, 20160623, Migrate this to using routines that handle downsampling better (resampling.py))
 
+from typing import Tuple
+
 import numpy as np
 import xarray as xr
-from cate.core.op import op_input, op_return, op
+
+from cate.core.op import op_input, op
 from cate.ops import resampling
-from typing import Tuple
 
 
 @op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'])
 @op_input('method_us', value_set=['nearest', 'linear'])
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
-def coregister(ds_master: xr.Dataset, 
-        ds_slave: xr.Dataset, 
-        method_us: str = 'linear',
-        method_ds: str = 'mean') -> xr.Dataset:
+def coregister(ds_master: xr.Dataset,
+               ds_slave: xr.Dataset,
+               method_us: str = 'linear',
+               method_ds: str = 'mean') -> xr.Dataset:
     """
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master. If upsampling has to be performed, this is achieved using
@@ -76,26 +78,27 @@ def coregister(ds_master: xr.Dataset,
     """
     # Check if the grid is global, equidistant and pixel-registered
     # The datasets are expected to be harmonized
-    lat_bounds = [-90.0, 90.0]
-    lon_bounds = [-180.0, 180.0]
+    lat_bounds = (-90.0, 90.0)
+    lon_bounds = (-180.0, 180.0)
     lats = [ds_master['lat'].values, ds_slave['lat'].values]
     lons = [ds_master['lon'].values, ds_slave['lon'].values]
-    
+
     # The raised error does not say which dataset it was that failed the check, because
     # the datasets don't have identifiers apart from contained variables.
     for lat in lats:
         if not _is_equidistant(lat, lat_bounds):
-            raise ValueError('The provided dataset does not seem to be \
-global, equidistant and pixel-registered.')
+            raise ValueError('The provided dataset does not seem to be '
+                             'global, equidistant and pixel-registered.')
 
     for lon in lons:
         if not _is_equidistant(lon, lon_bounds):
-            raise ValueError('The provided dataset does not seem to be \
-global, equidistant and pixel-registered.')
+            raise ValueError('The provided dataset does not seem to be '
+                             'global, equidistant and pixel-registered.')
 
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
-    return (_resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds]))
+    return _resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds])
+
 
 def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
     """
@@ -111,10 +114,10 @@ def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
     # center.
     step = (bounds[0] - array[0]) * 2
     for i in range(0, len(array)):
-        if i == len(array)-1:
+        if i == len(array) - 1:
             curr_step = (array[i] - bounds[1]) * 2
         else:
-            curr_step = array[i] - array[i+1]
+            curr_step = array[i] - array[i + 1]
 
         if curr_step != step:
             return False
@@ -137,7 +140,8 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     return xr.DataArray(result)
 
 
-def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, method_us: int, method_ds: int) -> xr.DataArray:
+def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, method_us: int,
+                    method_ds: int) -> xr.DataArray:
     """
     Resample the given xr.DataArray to a new grid defined by lat and lon
 
@@ -178,12 +182,11 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     :param method_ds: Interpolation method for downsampling, see resampling.py
     :return: xr.Dataset The resampled slave dataset
     """
-    master_keys = ds_master.dims.keys()
-    slave_keys = ds_master.dims.keys()
+    # master_keys = ds_master.dims.keys()
+    # slave_keys = ds_master.dims.keys()
 
     lon = ds_master['lon']
     lat = ds_master['lat']
 
     kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds}
-    retset = ds_slave.apply(_resample_array, **kwargs)
-    return retset
+    return ds_slave.apply(_resample_array, **kwargs)
