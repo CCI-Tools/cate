@@ -51,6 +51,7 @@ from .timeseries import tseries_point, tseries_mean
 from .xarray import sel
 from .average import long_term_average, temporal_agg
 from .arithmetics import arithmetics
+from .anomaly import anomaly_internal, anomaly_climatology
 
 __all__ = [
     # .timeseries
@@ -82,9 +83,12 @@ __all__ = [
     'sel',
     # .average
     'long_term_average',
-    'temporal_agg'
+    'temporal_agg',
     # .arithmetics
-    'arithmetics'
+    'arithmetics',
+    # .anomaly
+    'anomaly_internal',
+    'anomaly_climatology'
 ]
 
 
