@@ -292,7 +292,7 @@ def qualified_name_to_object(qualified_name: str, default_module_name='builtins'
     return value
 
 
-def object_to_qualified_name(value, fail=False, default_module_name='builtins') -> str:
+def object_to_qualified_name(value, fail=False, default_module_name='builtins') -> Union[str, None]:
     """
     Get the fully qualified name of a Python object.
     It is true that ``qualified_name_to_object(object_to_qualified_name(obj)) is obj``.
@@ -448,10 +448,38 @@ def to_list(value,
         return [dtype(item.strip() if strip else item) for item in items]
     if isinstance(value, dtype):
         return [value]
+    # noinspection PyBroadException
     try:
         return [dtype(item) for item in value]
     except:
         return [dtype(value)]
+
+
+_PYTHON_QUOTE_CHARS = ['"', "'"]
+
+
+def to_str_constant(s: str, quote="'") -> str:
+    """
+    Convert a given string into another string that is a valid Python representation of a string constant.
+    :param s: the string
+    :param quote: the quote character, either a single or double quote
+    :return:
+    """
+    if s is None:
+        raise ValueError()
+    if quote not in _PYTHON_QUOTE_CHARS:
+        raise ValueError()
+    return quote + s.replace('\\', '\\\\').replace(quote, "\\%s" % quote) + quote
+
+
+def is_str_constant(s: str) -> bool:
+    """
+    Test whether a given string is a Python representation of a string constant.
+
+    :param s: the string
+    :return: True, if so.
+    """
+    return s and len(s) >= 2 and s[0] == s[-1] and s[0] in _PYTHON_QUOTE_CHARS
 
 
 @contextmanager
