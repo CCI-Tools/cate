@@ -33,7 +33,6 @@ Functions
 from cate.core.op import op
 from cate.ops import subset_spatial, select_var
 import xarray as xr
-import pandas as pd
 
 
 @op(tags=['index', 'nino34'])
@@ -61,5 +60,20 @@ def nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     ref_n34 = subset_spatial(ref, n34[0], n34[1], n34[2], n34[3])
     n34_anom = ds_n34 - ref_n34
     n34_ts = n34_anom.mean(dim=['lat', 'lon'])
-    n34_running_mean = pd.rolling_mean(n34_ts[var].data, 5)
-    return xr.Dataset(n34_running_mean)
+    windows = {'time':5}
+    i = True
+    for item in n34_ts[var].rolling(**windows):
+        # After the mean I probably have to give 'time' dimension
+        # back to the item, so that the rolling means can then be concatenated
+        # into a timeseries.
+        if i:
+            retset = item[0].mean()
+            i = False
+        print('====')
+        print(item[0])
+        print(item[1])
+        print('====')
+        retset = xr.concat([retset, item[0].mean()])
+    print(retset)
+    #n34_running_mean = pd.rolling_mean(n34_ts[var].values, 5)
+    #return xr.Dataset(n34_running_mean)

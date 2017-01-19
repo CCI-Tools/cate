@@ -89,7 +89,7 @@ __all__ = [
     'arithmetics',
     # .anomaly
     'anomaly_internal',
-    'anomaly_climatology',
+    'anomaly_climatology'
     # .index
     #'nino34'
 ]
