@@ -169,7 +169,6 @@ def read_json(file: str, encoding: str = None) -> object:
 @op_input('file')
 @op_input('encoding')
 @op_input('indent')
-@op_input('separators')
 def write_json(obj: object, file: str, encoding: str = None, indent: str = None):
     """
     Write a data object to a JSON text file. Note that the data object must be JSON-serializable.
