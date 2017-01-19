@@ -52,6 +52,7 @@ from .xarray import sel
 from .average import long_term_average, temporal_agg
 from .arithmetics import arithmetics
 from .anomaly import anomaly_internal, anomaly_climatology
+from .index import nino34
 
 __all__ = [
     # .timeseries
@@ -88,7 +89,9 @@ __all__ = [
     'arithmetics',
     # .anomaly
     'anomaly_internal',
-    'anomaly_climatology'
+    'anomaly_climatology',
+    # .index
+    #'nino34'
 ]
 
 

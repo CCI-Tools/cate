@@ -58,6 +58,7 @@ def arithmetics(ds: xr.Dataset,
 
     :param ds: The dataset to which to apply arithmetic operations
     :param op: A comma separated list of arithmetic operations to apply
+    :return: The dataset with given arithmetic operations applied
     """
     retset = ds
     for item in op.split(','):

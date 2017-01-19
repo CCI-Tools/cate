@@ -48,6 +48,7 @@ def anomaly_climatology(ds: xr.Dataset,
 
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
+    :return: The anomaly dataset
     """
     clim = xr.open_dataset(file)
     return ds - clim
@@ -75,6 +76,7 @@ def anomaly_internal(ds: xr.Dataset,
     :param lat_max: Reference data maximum latitude
     :param lon_min: Reference data minimum latitude
     :param lon_max: Reference data maximum latitude
+    :return: The anomaly dataset
     """
     ref = ds
     if start_date and end_date:
