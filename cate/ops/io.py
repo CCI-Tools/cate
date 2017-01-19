@@ -192,7 +192,9 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 @op_input('decode_cf')
 @op_input('decode_times')
 @op_input('engine')
-def read_netcdf(file: str, drop_variables: str = None, decode_cf: bool = True, decode_times: bool = True,
+def read_netcdf(file: str,
+                drop_variables: str = None,
+                decode_cf: bool = True, decode_times: bool = True,
                 engine: str = None) -> xr.Dataset:
     """
     Read a dataset from a netCDF 3/4 or HDF file.

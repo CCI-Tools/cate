@@ -102,19 +102,19 @@ import signal
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from cate.core.monitor import ConsoleMonitor, Monitor
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
 from cate.core.plugin import PLUGIN_REGISTRY
-from cate.core.util import to_datetime_range, to_list
+from cate.core.util import to_datetime_range, to_list, to_str_constant
 from cate.core.workflow import Workflow
+from cate.ui.conf import DEFAULT_DATA_PATH
 from cate.ui.webapi import start_service_subprocess, stop_service_subprocess, read_service_info, is_service_running
 from cate.ui.workspace import WorkspaceError
 from cate.ui.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
-from cate.ui.conf import DEFAULT_DATA_PATH
 from cate.version import __version__
 
 # Explicitly load Cate-internal plugins.
@@ -154,6 +154,8 @@ READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
 
 WEBAPI_INFO_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.json')
 
+NullableStr = Union[str, None]
+
 
 def _default_workspace_manager_factory() -> WorkspaceManager:
     # Read any existing '.cate/webapi.json'
@@ -180,7 +182,7 @@ def _to_str_const(s: str) -> str:
     return "'%s'" % s.replace('\\', '\\\\').replace("'", "\\'")
 
 
-def _parse_open_arg(load_arg: str) -> Tuple[str, str, str]:
+def _parse_open_arg(load_arg: str) -> Tuple[NullableStr, NullableStr, NullableStr, NullableStr]:
     """
     Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
 
@@ -199,7 +201,7 @@ def _parse_open_arg(load_arg: str) -> Tuple[str, str, str]:
     return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else None, date2 if date2 else None
 
 
-def _parse_read_arg(read_arg: str) -> Tuple[str, str]:
+def _parse_read_arg(read_arg: str) -> Tuple[NullableStr, NullableStr, NullableStr]:
     """
     Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and return tuple INP_NAME,PATH,FORMAT.
 
@@ -209,7 +211,7 @@ def _parse_read_arg(read_arg: str) -> Tuple[str, str]:
     return _parse_write_arg(read_arg)
 
 
-def _parse_write_arg(write_arg):
+def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
     """
     Parse string argument ``FILE := "[OUT_NAME=]PATH[,FORMAT]`` and return tuple OUT_NAME,PATH,FORMAT.
 
@@ -823,10 +825,9 @@ class ResourceCommand(SubCommandCommand):
         open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format YYYY[-MM[-DD]].')
         open_parser.add_argument('protocol', metavar='PROTOCOL', nargs='?',
-                                 help=
-                                 'Name of protocol used to access data source.'
-                                 ' Type "cate ds info [DS]" to list available '
-                                 'protocols.')
+                                 help='Name of protocol used to access data source.'
+                                      ' Type "cate ds info [DS]" to list available '
+                                      'protocols.')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
@@ -912,14 +913,14 @@ class ResourceCommand(SubCommandCommand):
     def _execute_open(cls, command_args):
         workspace_manager = _new_workspace_manager()
         ds_name = command_args.ds_name
-        op_args = ['ds_name=%s' % _to_str_const(ds_name)]
+        op_args = ['ds_name=%s' % to_str_constant(ds_name)]
         if command_args.start_date:
-            op_args.append('start_date=%s' % _to_str_const(command_args.start_date))
+            op_args.append('start_date=%s' % to_str_constant(command_args.start_date))
         if command_args.end_date:
-            op_args.append('end_date=%s' % _to_str_const(command_args.end_date))
+            op_args.append('end_date=%s' % to_str_constant(command_args.end_date))
         op_args.append('sync=True')
         if command_args.protocol:
-            op_args.append('protocol={}'.format(_to_str_const(command_args.protocol)))
+            op_args.append('protocol={}'.format(to_str_constant(command_args.protocol)))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.open_dataset',
@@ -929,9 +930,9 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_read(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        op_args = ['file=%s' % _to_str_const(command_args.file_path)]
+        op_args = ['file=%s' % to_str_constant(command_args.file_path)]
         if command_args.format_name:
-            op_args.append('format=%s' % _to_str_const(command_args.format_name))
+            op_args.append('format=%s' % to_str_constant(command_args.format_name))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.read_object',

@@ -34,7 +34,7 @@ import numpy as np
 from cate.core.monitor import Monitor
 from cate.core.op import OP_REGISTRY
 from cate.core.op import OpMetaInfo, parse_op_args
-from cate.core.util import Namespace
+from cate.core.util import Namespace, object_to_qualified_name
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
 from cate.ui.conf import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.ui.imaging.image import ImagePyramid
@@ -167,18 +167,23 @@ class Workspace:
         for resource_name in self._resource_cache:
             resource = self._resource_cache[resource_name]
             if isinstance(resource, xr.Dataset):
-                print("resource", resource)
                 variable_infos = []
                 for variable in resource.data_vars:
-                    print("variable", variable)
                     variable_infos.append(self._get_variable_info(resource.data_vars[variable]))
                 resource_info = {
                     'name': resource_name,
+                    'dataType': object_to_qualified_name(type(resource)),
                     'variables': variable_infos,
                 }
                 resources_json.append(resource_info)
+            else:
+                resource_info = {
+                    'name': resource_name,
+                    'dataType': object_to_qualified_name(type(resource)),
+                    'variables': [],
+                }
+                resources_json.append(resource_info)
 
-        print("resources_json", resources_json)
         return resources_json
 
     def _get_variable_info(self, variable: xr.DataArray):
@@ -187,7 +192,7 @@ class Workspace:
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,
-            'dataType': str(variable.dtype),
+            'dataType': object_to_qualified_name(variable.dtype),
             'ndim': len(variable.dims),
             'shape': variable.shape,
             'chunks': variable.chunks,
@@ -206,7 +211,6 @@ class Workspace:
             variable_info['imageLayout'] = self._get_variable_image_config(variable)
             variable_info['y_flipped'] = self._is_y_flipped(variable)
         return variable_info
-
 
     def _get_variable_image_config(self, variable):
         max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)

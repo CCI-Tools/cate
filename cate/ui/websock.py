@@ -24,7 +24,7 @@ import json
 import sys
 import time
 import traceback
-from typing import Tuple
+from typing import Tuple, List
 from collections import OrderedDict
 
 import xarray as xr
@@ -34,7 +34,7 @@ from tornado.ioloop import IOLoop
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
-from cate.core.util import cwd
+from cate.core.util import cwd, to_str_constant, is_str_constant
 from cate.ui.conf import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.ui.wsmanag import WorkspaceManager
 
@@ -125,7 +125,7 @@ class ServiceMethods:
         return meta_info
 
     # noinspection PyMethodMayBeStatic
-    def get_operations(self) -> list:
+    def get_operations(self) -> List[dict]:
         """
         Get registered operations.
 
@@ -133,22 +133,11 @@ class ServiceMethods:
         """
         op_list = []
         for op_name, op_reg in OP_REGISTRY.op_registrations.items():
-            op_meta_info = op_reg.op_meta_info
-            inputs = []
-            for input_name, input_props in op_meta_info.input.items():
-                inputs.append(dict(name=input_name,
-                                   dataType=type_to_str(input_props.get('data_type', 'str')),
-                                   description=input_props.get('description', '')))
-            outputs = []
-            for output_name, output_props in op_meta_info.output.items():
-                outputs.append(dict(name=output_name,
-                                    dataType=type_to_str(output_props.get('data_type', 'str')),
-                                    description=output_props.get('description', '')))
-            op_list.append(dict(name=op_name,
-                                tags=op_meta_info.header.get('tags', []),
-                                description=op_meta_info.header.get('description', ''),
-                                inputs=inputs,
-                                outputs=outputs))
+            op_json_dict = op_reg.op_meta_info.to_json_dict()
+            op_json_dict['name'] = op_name
+            op_json_dict['input'] = [dict(name=name, **props) for name, props in op_json_dict['input'].items()]
+            op_json_dict['output'] = [dict(name=name, **props) for name, props in op_json_dict['output'].items()]
+            op_list.append(op_json_dict)
 
         return sorted(op_list, key=lambda op: op['name'])
 
@@ -165,15 +154,17 @@ class ServiceMethods:
         # constant values from workflow step IDs (= resource names).
         # If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
         encoded_op_args = []
-        for name, value in op_args.items():
-            if 'value' in value:
-                v = value['value']
-                encoded_op_arg = '%s=%s' % (name, (('"%s"' % v) if isinstance(v, str) else v))
-            elif 'source' in value:
-                v = value['source']
-                encoded_op_arg = '%s=%s' % (name, v)
+        for name, value_obj in op_args.items():
+            if 'value' in value_obj:
+                value = value_obj['value']
+                if isinstance(value, str) and not is_str_constant(value):
+                    value = to_str_constant(value)
+                encoded_op_arg = '%s=%s' % (name, value)
+            elif 'source' in value_obj:
+                source = value_obj['source']
+                encoded_op_arg = '%s=%s' % (name, source)
             else:
-                raise ValueError('illegal operation argument: %s=%s' % (name, value))
+                raise ValueError('illegal operation argument: %s=%s' % (name, value_obj))
             encoded_op_args.append(encoded_op_arg)
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource(base_dir,
