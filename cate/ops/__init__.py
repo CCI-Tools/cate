@@ -50,7 +50,7 @@ from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .xarray import sel
 from .average import long_term_average, temporal_agg
-from .arithmetics import arithmetics
+from .arithmetics import ds_arithmetics
 from .anomaly import anomaly_internal, anomaly_climatology
 from .index import nino34
 
@@ -86,7 +86,7 @@ __all__ = [
     'long_term_average',
     'temporal_agg',
     # .arithmetics
-    'arithmetics',
+    'ds_arithmetics',
     # .anomaly
     'anomaly_internal',
     'anomaly_climatology'
