@@ -54,15 +54,20 @@ svgz, tif, tiff
 
 """
 
-import xarray as xr
 import matplotlib
+import xarray as xr
+
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
-from cate.core.op import op
+from cate.core.op import op, op_input
 
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
+@op_input('lat_min', units='degrees', value_range=[-90, 90])
+@op_input('lat_max', units='degrees', value_range=[-90, 90])
+@op_input('lon_min', units='degrees', value_range=[-180, 180])
+@op_input('lon_max', units='degrees', value_range=[-180, 180])
 def plot_map(ds: xr.Dataset,
              var: str = None,
              time=None,
@@ -93,8 +98,8 @@ def plot_map(ds: xr.Dataset,
     :param file: filepath where to save the plot
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are\
- currently supported')
+        raise NotImplementedError('Only raster datasets are currently '
+                                  'supported')
 
     if not var:
         for key in ds.data_vars.keys():
@@ -118,8 +123,8 @@ def plot_map(ds: xr.Dataset,
         lon_max = 180.0
 
     if not _extents_sane(lat_min, lat_max, lon_min, lon_max):
-        raise ValueError('Provided plot extents do not form a valid bounding box\
-                within [-90.0,90.0,-180.0,180.0]')
+        raise ValueError('Provided plot extents do not form a valid bounding box '
+                         'within [-90.0,90.0,-180.0,180.0]')
 
     extents = [lon_min, lon_max, lat_min, lat_max]
 
@@ -138,9 +143,9 @@ def plot_map(ds: xr.Dataset,
     if file:
         fig.savefig(file)
 
-    # TODO (Gailis, 03.10.16) Returning a figure results in two plots in
-    # Jupyter
-    # return fig
+        # TODO (Gailis, 03.10.16) Returning a figure results in two plots in
+        # Jupyter
+        # return fig
 
 
 @op(tags=['graphical', 'plot', '1D'], no_cache=True)

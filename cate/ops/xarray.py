@@ -36,8 +36,8 @@ from cate.core.op import op_input, op
 
 @op(tags=['internal', 'utility'])
 @op_input('ds')
-@op_input('lat', value_range=[-90, 90])
-@op_input('lon', value_range=[-180, 180])
+@op_input('lat', units='degree', value_range=[-90, 90])
+@op_input('lon', units='degree', value_range=[-180, 180])
 @op_input('time')
 @op_input('indexers')
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])

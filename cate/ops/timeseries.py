@@ -36,8 +36,8 @@ from cate.ops.select import select_var
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
-@op_input('lat', value_range=[-90, 90])
-@op_input('lon', value_range=[-180, 180])
+@op_input('lat', units='degrees', value_range=[-90, 90])
+@op_input('lon', units='degrees', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 # TODO (Gailis, 27.09.16) See issues #45 and #46
 # def tseries_point(ds: xr.Dataset,
