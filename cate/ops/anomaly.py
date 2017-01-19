@@ -36,7 +36,7 @@ import xarray as xr
 
 @op(tags=['anomaly', 'climatology'])
 def anomaly_climatology(ds: xr.Dataset,
-                        file: str):
+                        file: str) -> xr.Dataset:
     """
     Calculate anomaly with a given climatology as reference data. The given
     climatology dataset is expected to consist of 12 time slices and contain
@@ -61,7 +61,7 @@ def anomaly_internal(ds: xr.Dataset,
                      lat_min: float = None,
                      lat_max: float = None,
                      lon_min: float = None,
-                     lon_max: float = None):
+                     lon_max: float = None) -> xr.Dataset:
     """
     Calculate anomaly using as reference data an optional region and time slice
     from the given dataset. If no time slice/spatial region is given, the
