@@ -87,7 +87,7 @@ def coregister(ds_master: xr.Dataset,
         if not _is_equidistant(lat, lat_bounds):
             raise ValueError('The provided dataset does not seem to be \
 global, equidistant and pixel-registered.')
-    
+
     for lon in lons:
         if not _is_equidistant(lon, lon_bounds):
             raise ValueError('The provided dataset does not seem to be \

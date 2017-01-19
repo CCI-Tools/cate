@@ -58,3 +58,7 @@ test_workflow_svg.html
 
 # Cate workspace
 .cate-workspace
+
+# vim
+*.swp
+*.swo

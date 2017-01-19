@@ -49,6 +49,10 @@ from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .xarray import sel
+from .average import long_term_average, temporal_agg
+from .arithmetics import arithmetics
+from .anomaly import anomaly_internal, anomaly_climatology
+from .index import nino34
 
 __all__ = [
     # .timeseries
@@ -77,7 +81,17 @@ __all__ = [
     'open_dataset',
     'save_dataset',
     # .xarray
-    'sel'
+    'sel',
+    # .average
+    'long_term_average',
+    'temporal_agg',
+    # .arithmetics
+    'arithmetics',
+    # .anomaly
+    'anomaly_internal',
+    'anomaly_climatology'
+    # .index
+    #'nino34'
 ]
 
 
