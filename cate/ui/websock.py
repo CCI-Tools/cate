@@ -100,11 +100,12 @@ class ServiceMethods:
         return sorted(data_source_list, key=lambda ds: ds['name'])
 
     # noinspection PyMethodMayBeStatic
-    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str) -> dict:
+    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
         Get the temporal coverage of the data source.
 
         :param data_store_id: ID of the data store
+        :param data_source_id: ID of the data source
         :param monitor: a progress monitor
         :return: JSON-serializable list of data sources, sorted by name.
         """
@@ -115,7 +116,7 @@ class ServiceMethods:
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]
-        temporal_coverage = data_source.temporal_coverage
+        temporal_coverage = data_source.temporal_coverage(monitor=monitor)
         meta_info = OrderedDict()
         if temporal_coverage:
             start, end = temporal_coverage
@@ -211,6 +212,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         self._service = None
         self._active_monitors = {}
         self._active_futures = {}
+        self._job_start = {}
         # Check: following call causes exception although Tornado docs say, it is ok
         # self.set_nodelay(True)
 
@@ -261,6 +263,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
+            self._job_start[method_id] = time.clock()
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
             self._active_futures[method_id] = future
 
@@ -284,6 +287,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._active_futures:
                 self._active_futures[job_id].cancel()
                 del self._active_futures[job_id]
+            if job_id in self._job_start:
+                delta_t = time.clock() - self._job_start[job_id]
+                del self._job_start[job_id]
+                print('Canceled job',job_id,'after',delta_t,'seconds')
             response = dict(jsonrcp='2.0', id=method_id)
             self._write_response(json.dumps(response))
         else:
@@ -303,6 +310,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                 del self._active_monitors[method_id]
             if method_id in self._active_futures:
                 del self._active_futures[method_id]
+            if method_id in self._job_start:
+                delta_t = time.clock() - self._job_start[method_id]
+                del self._job_start[method_id]
+                print('Finished job',method_id,'after',delta_t,'seconds')
         except (concurrent.futures.CancelledError, InterruptedError):
             response = dict(jsonrcp='2.0',
                             id=method_id,
@@ -394,6 +405,8 @@ class WebSocketMonitor(Monitor):
         self.total = total_work
         self.worked = 0.0 if total_work else None
         self._write_progress(message='Started')
+        # first progress method should always be sent
+        self.last_time = None
 
     def progress(self, work: float = None, msg: str = None):
         if work:

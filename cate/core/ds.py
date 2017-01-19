@@ -80,9 +80,8 @@ Components
 import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
-from glob import glob
-from typing import Sequence
-from typing import Union, List, Tuple
+from typing import Sequence, Optional
+from typing import Union, Tuple
 
 import xarray as xr
 from cate.core import conf
@@ -113,15 +112,16 @@ class DataSource(metaclass=ABCMeta):
         """Human-readable data source name."""
 
     @property
-    def schema(self) -> Schema:
+    def schema(self) -> Optional[Schema]:
         """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
         return None
 
-    @property
-    def temporal_coverage(self):
+    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[int, int]]:
         """
         The temporal coverage as tuple (*start*, *end*) where *start* and *and* are ``datetime`` instances.
-        Return ``None`` if the temporal coverage is unknown.
+
+        :param monitor: a progress monitor.
+        :return ``None`` if the temporal coverage is unknown.
         """
         return None
 
@@ -206,8 +206,6 @@ class DataSource(metaclass=ABCMeta):
         The returned dict, if any, is JSON-serializable.
         """
         return None
-
-
 
     @property
     def variables_info(self) -> Union[dict, None]:
@@ -335,7 +333,7 @@ class DataStoreRegistry:
     def __init__(self):
         self._data_stores = dict()
 
-    def get_data_store(self, name: str) -> DataStore:
+    def get_data_store(self, name: str) -> Optional[DataStore]:
         return self._data_stores.get(name, None)
 
     def get_data_stores(self) -> Sequence[DataStore]:
@@ -389,6 +387,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
     for data_store in data_store_list:
         results.extend(data_store.query(name))
     return results
+
 
 def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,

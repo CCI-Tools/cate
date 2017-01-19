@@ -75,8 +75,8 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.assertEqual('Files: /DATA/aerosol/*/A*.nc /DATA/aerosol/*/B*.nc', self.ds2.info_string)
 
     def test_temporal_coverage(self):
-        self.assertEqual(self.ds1.temporal_coverage, None)
-        self.assertEqual(self.ds2.temporal_coverage, None)
+        self.assertEqual(self.ds1.temporal_coverage(), None)
+        self.assertEqual(self.ds2.temporal_coverage(), None)
 
     def test_to_json_dict(self):
         self.assertEqual(self.ds1.to_json_dict(), OrderedDict([('name', 'ozone'), ('files', ['/DATA/ozone/*/*.nc'])]))
