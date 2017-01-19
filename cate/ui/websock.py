@@ -31,7 +31,7 @@ import xarray as xr
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
-from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
 from cate.core.util import cwd
@@ -124,7 +124,6 @@ class ServiceMethods:
         # TODO mz add available data information
         return meta_info
 
-
     # noinspection PyMethodMayBeStatic
     def get_operations(self) -> list:
         """
@@ -161,14 +160,26 @@ class ServiceMethods:
     # noinspection PyAbstractClass
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
                                monitor: Monitor) -> dict:
-        # TODO (nf): op_args come in as ["name1=value1", "name2=value2", ...] due to the CLI and REST API
-        #            If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
-        op_args = ['%s=%s' % (k, ('"%s"' % v) if isinstance(v, str) else v) for k, v in op_args.items()]
+        # TODO (nf): op_args come in as {"name1": {value: value1}, "name2": {source: value2}, ...}
+        # Due to the current CLI and REST API implementation we must encode this coding to distinguish
+        # constant values from workflow step IDs (= resource names).
+        # If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
+        encoded_op_args = []
+        for name, value in op_args.items():
+            if 'value' in value:
+                v = value['value']
+                encoded_op_arg = '%s=%s' % (name, (('"%s"' % v) if isinstance(v, str) else v))
+            elif 'source' in value:
+                v = value['source']
+                encoded_op_arg = '%s=%s' % (name, v)
+            else:
+                raise ValueError('illegal operation argument: %s=%s' % (name, value))
+            encoded_op_args.append(encoded_op_arg)
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource(base_dir,
                                                                       res_name,
                                                                       op_name,
-                                                                      op_args=op_args,
+                                                                      op_args=encoded_op_args,
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
@@ -290,8 +301,6 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
             self._write_response(json.dumps(response))
-
-
 
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
