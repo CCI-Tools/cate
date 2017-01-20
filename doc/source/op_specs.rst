@@ -93,9 +93,9 @@ Univariate Descriptive Statistics
    :maxdepth: 1
 
    op_specs/uni-desc-statistics/op_spec_category_uni-desc-statistics
+   op_specs/uni-desc-statistics/comparison/op_spec_subcategory_comparison
    op_specs/uni-desc-statistics/comparison/op_spec_anomalies
    op_specs/uni-desc-statistics/comparison/op_spec_long-term_average
-   op_specs/uni-desc-statistics/comparison/op_spec_subcategory_comparison
-   op_specs/uni-desc-statistics/location-parameters/op_spec_arithmetic-mean
    op_specs/uni-desc-statistics/location-parameters/op_spec_subcategory_location-parameters
+   op_specs/uni-desc-statistics/location-parameters/op_spec_arithmetic-mean
 
