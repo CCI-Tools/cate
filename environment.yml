@@ -3,8 +3,8 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - basemap=1.0.8.dev0=np111py35_2
-  - cartopy=0.14.2=np111py35_1
+  - basemap=1.0.8.dev0=np111py35_3
+  - cartopy=0.14.3=np111py35_4
   - numpy=1.11.1=py35_0
   - scipy=0.18.1=np111py35_0
   - xarray=0.8.2
