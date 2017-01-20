@@ -36,20 +36,20 @@ On Linux/Darwin systems, the downloaded installer is a shell script. To run it, 
 .. code-block:: console
 
     $ cd ~/Downloads
-    $ ./cate-0.5.0-Linux-x86_64.sh
+    $ ./cate-0.6.0-Linux-x86_64.sh
 
 If the installer script is not yet executable, type:
 
 .. code-block:: console
 
-    $ chmod +x cate-0.5.0-Linux-x86_64.sh
+    $ chmod +x cate-0.6.0-Linux-x86_64.sh
 
 By default, the installer will install the CCI Toolbox into ``~/cate``. If you want it in another location, use the
 ``-p`` (=prefix) option, e.g.
 
 .. code-block:: console
 
-    $ ./cate-0.5.0-Linux-x86_64.sh -p cci-toolbox
+    $ ./cate-0.6.0-Linux-x86_64.sh -p cci-toolbox
 
 Use the ``-h`` option to display other install options.
 
