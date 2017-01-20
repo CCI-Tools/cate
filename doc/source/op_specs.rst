@@ -31,6 +31,8 @@ Visualisation
    op_specs/visualisation/op_spec_category_visualisation
    op_specs/visualisation/op_spec_time-series-plot
    op_specs/visualisation/op_spec_animated-map
+   op_specs/visualisation/op_spec_map
+   op_specs/visualisation/op_spec_table
 
 Geometric Adjustments
 =====================
@@ -40,6 +42,8 @@ Geometric Adjustments
 
    op_specs/geometric-adjustments/op_spec_category_geometric-adjustment
    op_specs/geometric-adjustments/op_spec_coregistration
+   op_specs/geometric-adjustments/op_spec_geospatial-gap-filling
+   op_specs/geometric-adjustments/op_spec_reprojection
 
 Data Inter-Comparison
 =====================
@@ -50,4 +54,48 @@ Data Inter-Comparison
    op_specs/data-intercomparison/op_spec_category_data-intercomparison
    op_specs/data-intercomparison/correlation-analysis/op_spec_subcategory_correlation-analysis
    op_specs/data-intercomparison/correlation-analysis/op_spec_product-moment-correlation
+
+Calculations
+============
+
+.. toctree::
+   :maxdepth: 1
+
+   op_specs/calculations/op_spec_category_calculations
+   op_specs/calculations/op_spec_seasonal-values
+   op_specs/calculations/op_spec_arithmetics
+   op_specs/calculations/op_spec_index-calculation
+
+Complex Computations
+====================
+
+.. toctree::
+   :maxdepth: 1
+
+   op_specs/complex-computations/op_spec_category_complex-computations
+   op_specs/complex-computations/op_spec_eof
+
+Filtering and Selections
+========================
+
+.. toctree::
+   :maxdepth: 1
+
+   op_specs/filtering_selections/op_spec_category_filtering_selections
+   op_specs/filtering_selections/op_spec_spatial-filtering
+   op_specs/filtering_selections/op_spec_temporal-filtering
+
+
+Univariate Descriptive Statistics
+=================================
+
+.. toctree::
+   :maxdepth: 1
+
+   op_specs/uni-desc-statistics/op_spec_category_uni-desc-statistics
+   op_specs/uni-desc-statistics/comparison/op_spec_anomalies
+   op_specs/uni-desc-statistics/comparison/op_spec_long-term_average
+   op_specs/uni-desc-statistics/comparison/op_spec_subcategory_comparison
+   op_specs/uni-desc-statistics/location-parameters/op_spec_arithmetic-mean
+   op_specs/uni-desc-statistics/location-parameters/op_spec_subcategory_location-parameters
 
