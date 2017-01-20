@@ -26,7 +26,7 @@ between its CCI projects and the ECVs generated there, and the wider climate cha
 
 .. _cate_context:
 
-.. figure:: _static/figures/cate_context.png
+.. figure:: _static/figures/cate-context.png
    :scale: 60 %
    :align: center
 
