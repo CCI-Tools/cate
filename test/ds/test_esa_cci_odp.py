@@ -75,7 +75,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_source.variables_info_string)
 
     def test_temporal_coverage(self):
-        self.assertEqual(self.data_source.temporal_coverage, None)
+        self.assertEqual(self.data_source.temporal_coverage(), None)
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)

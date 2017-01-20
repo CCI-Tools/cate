@@ -1,4 +1,5 @@
 import unittest
+from collections import OrderedDict
 
 from cate import Monitor
 from cate.ui.websock import ServiceMethods
@@ -27,3 +28,13 @@ class MapServiceMethodNameTest(unittest.TestCase):
         self.assertIsInstance(ops, list)
         self.assertGreater(len(ops), 20)
         self.assertIn('open_dataset', [op['name'] for op in ops])
+        open_dataset_op = [op for op in ops if op['name'] == 'open_dataset'][0]
+        keys = sorted(list(open_dataset_op.keys()))
+        self.assertEqual(keys, ['has_monitor', 'header', 'input', 'name', 'output', 'qualified_name'])
+        keys = sorted(list(open_dataset_op['header'].keys()))
+        self.assertEqual(keys, ['description', 'tags'])
+        names = [props['name'] for props in open_dataset_op['input']]
+        self.assertEqual(names, ['ds_name', 'start_date', 'end_date', 'sync', 'protocol'])
+        names = [props['name'] for props in open_dataset_op['output']]
+        self.assertEqual(names, ['return'])
+

@@ -30,11 +30,15 @@ Components
 """
 
 import xarray as xr
-from cate.core.op import op
+from cate.core.op import op, op_input
 import jdcal
 
 
 @op(tags=['geometric', 'subset', 'spatial', 'geom'])
+@op_input('lat_min', units='degrees', value_range=[-90, 90])
+@op_input('lat_max', units='degrees', value_range=[-90, 90])
+@op_input('lon_min', units='degrees', value_range=[-180, 180])
+@op_input('lon_max', units='degrees', value_range=[-180, 180])
 def subset_spatial(ds: xr.Dataset,
                    lat_min: float,
                    lat_max: float,

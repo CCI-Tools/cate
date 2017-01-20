@@ -24,7 +24,7 @@ import json
 import sys
 import time
 import traceback
-from typing import Tuple
+from typing import Tuple, List
 from collections import OrderedDict
 
 import xarray as xr
@@ -34,7 +34,7 @@ from tornado.ioloop import IOLoop
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
-from cate.core.util import cwd
+from cate.core.util import cwd, to_str_constant, is_str_constant
 from cate.ui.conf import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.ui.wsmanag import WorkspaceManager
 
@@ -100,11 +100,12 @@ class ServiceMethods:
         return sorted(data_source_list, key=lambda ds: ds['name'])
 
     # noinspection PyMethodMayBeStatic
-    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str) -> dict:
+    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
         Get the temporal coverage of the data source.
 
         :param data_store_id: ID of the data store
+        :param data_source_id: ID of the data source
         :param monitor: a progress monitor
         :return: JSON-serializable list of data sources, sorted by name.
         """
@@ -115,7 +116,7 @@ class ServiceMethods:
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]
-        temporal_coverage = data_source.temporal_coverage
+        temporal_coverage = data_source.temporal_coverage(monitor=monitor)
         meta_info = OrderedDict()
         if temporal_coverage:
             start, end = temporal_coverage
@@ -125,7 +126,7 @@ class ServiceMethods:
         return meta_info
 
     # noinspection PyMethodMayBeStatic
-    def get_operations(self) -> list:
+    def get_operations(self) -> List[dict]:
         """
         Get registered operations.
 
@@ -133,22 +134,11 @@ class ServiceMethods:
         """
         op_list = []
         for op_name, op_reg in OP_REGISTRY.op_registrations.items():
-            op_meta_info = op_reg.op_meta_info
-            inputs = []
-            for input_name, input_props in op_meta_info.input.items():
-                inputs.append(dict(name=input_name,
-                                   dataType=type_to_str(input_props.get('data_type', 'str')),
-                                   description=input_props.get('description', '')))
-            outputs = []
-            for output_name, output_props in op_meta_info.output.items():
-                outputs.append(dict(name=output_name,
-                                    dataType=type_to_str(output_props.get('data_type', 'str')),
-                                    description=output_props.get('description', '')))
-            op_list.append(dict(name=op_name,
-                                tags=op_meta_info.header.get('tags', []),
-                                description=op_meta_info.header.get('description', ''),
-                                inputs=inputs,
-                                outputs=outputs))
+            op_json_dict = op_reg.op_meta_info.to_json_dict()
+            op_json_dict['name'] = op_name
+            op_json_dict['input'] = [dict(name=name, **props) for name, props in op_json_dict['input'].items()]
+            op_json_dict['output'] = [dict(name=name, **props) for name, props in op_json_dict['output'].items()]
+            op_list.append(op_json_dict)
 
         return sorted(op_list, key=lambda op: op['name'])
 
@@ -165,15 +155,17 @@ class ServiceMethods:
         # constant values from workflow step IDs (= resource names).
         # If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
         encoded_op_args = []
-        for name, value in op_args.items():
-            if 'value' in value:
-                v = value['value']
-                encoded_op_arg = '%s=%s' % (name, (('"%s"' % v) if isinstance(v, str) else v))
-            elif 'source' in value:
-                v = value['source']
-                encoded_op_arg = '%s=%s' % (name, v)
+        for name, value_obj in op_args.items():
+            if 'value' in value_obj:
+                value = value_obj['value']
+                if isinstance(value, str) and not is_str_constant(value):
+                    value = to_str_constant(value)
+                encoded_op_arg = '%s=%s' % (name, value)
+            elif 'source' in value_obj:
+                source = value_obj['source']
+                encoded_op_arg = '%s=%s' % (name, source)
             else:
-                raise ValueError('illegal operation argument: %s=%s' % (name, value))
+                raise ValueError('illegal operation argument: %s=%s' % (name, value_obj))
             encoded_op_args.append(encoded_op_arg)
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource(base_dir,
@@ -220,6 +212,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         self._service = None
         self._active_monitors = {}
         self._active_futures = {}
+        self._job_start = {}
         # Check: following call causes exception although Tornado docs say, it is ok
         # self.set_nodelay(True)
 
@@ -270,6 +263,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
+            self._job_start[method_id] = time.clock()
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
             self._active_futures[method_id] = future
 
@@ -293,6 +287,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._active_futures:
                 self._active_futures[job_id].cancel()
                 del self._active_futures[job_id]
+            if job_id in self._job_start:
+                delta_t = time.clock() - self._job_start[job_id]
+                del self._job_start[job_id]
+                print('Canceled job',job_id,'after',delta_t,'seconds')
             response = dict(jsonrcp='2.0', id=method_id)
             self._write_response(json.dumps(response))
         else:
@@ -312,6 +310,10 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                 del self._active_monitors[method_id]
             if method_id in self._active_futures:
                 del self._active_futures[method_id]
+            if method_id in self._job_start:
+                delta_t = time.clock() - self._job_start[method_id]
+                del self._job_start[method_id]
+                print('Finished job',method_id,'after',delta_t,'seconds')
         except (concurrent.futures.CancelledError, InterruptedError):
             response = dict(jsonrcp='2.0',
                             id=method_id,
@@ -403,6 +405,8 @@ class WebSocketMonitor(Monitor):
         self.total = total_work
         self.worked = 0.0 if total_work else None
         self._write_progress(message='Started')
+        # first progress method should always be sent
+        self.last_time = None
 
     def progress(self, work: float = None, msg: str = None):
         if work:

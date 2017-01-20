@@ -10,6 +10,7 @@ from cate.core.util import extend
 from cate.core.util import object_to_qualified_name, qualified_name_to_object
 from cate.core.util import to_datetime, to_datetime_range
 from cate.core.util import to_list
+from cate.core.util import to_str_constant, is_str_constant
 
 
 class UndefinedTest(TestCase):
@@ -257,3 +258,32 @@ class ToListTest(TestCase):
         self.assertEqual(to_list([1, 2, 3], dtype=int), [1, 2, 3])
         self.assertEqual(to_list((1, 2, 3), dtype=int), [1, 2, 3])
         self.assertEqual(to_list(['1', '2', '3'], dtype=int), [1, 2, 3])
+
+
+class StrConstantTest(TestCase):
+
+    def test_to_str_constant(self):
+        self.assertEqual(to_str_constant('abc'), "'abc'")
+        self.assertEqual(to_str_constant('abc', "'"), "'abc'")
+        self.assertEqual(to_str_constant('abc', '"'), '"abc"')
+        self.assertEqual(to_str_constant("a'bc", "'"), "'a\\'bc'")
+        self.assertEqual(to_str_constant("a'bc", '"'), '"a\'bc"')
+        self.assertEqual(to_str_constant('a"bc', '"'), '"a\\"bc"')
+        self.assertEqual(to_str_constant('a"bc', "'"), "'a\"bc'")
+
+    def test_to_str_constant_with_eval(self):
+        s1 = '\\\''
+        s2 = to_str_constant(s1, "'")
+        self.assertEqual(s2, "'\\\\\\''")
+        self.assertEqual(eval(s2), s1)
+        s2 = to_str_constant(s1, '"')
+        self.assertEqual(s2, '"\\\\\'"')
+        self.assertEqual(eval(s2), s1)
+
+    def test_is_str_constant(self):
+        self.assertEqual(is_str_constant('abc'), False)
+        self.assertEqual(is_str_constant('\\\''), False)
+        self.assertEqual(is_str_constant('"abc"'), True)
+        self.assertEqual(is_str_constant('"abc\''), False)
+        self.assertEqual(is_str_constant("'abc'"), True)
+        self.assertEqual(is_str_constant("\"abc'"), False)

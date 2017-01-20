@@ -45,7 +45,7 @@ import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 
 import xarray as xr
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
@@ -92,7 +92,7 @@ def set_default_data_store():
     DATA_STORE_REGISTRY.add_data_store(EsaCciOdpDataStore())
 
 
-def find_datetime_format(filename: str) -> Tuple[str, int, int]:
+def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
     for regex, time_format in _RE_TO_DATETIME_FORMATS:
         searcher = regex.search(filename)
         if searcher:
@@ -101,31 +101,36 @@ def find_datetime_format(filename: str) -> Tuple[str, int, int]:
     return None, -1, -1
 
 
-def _fetch_solr_json(base_url, query_args, offset=0, limit=10000, timeout=10):
+def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, monitor: Monitor=Monitor.NONE):
     """
     Return JSON value read from paginated Solr web-service.
     """
     combined_json_dict = None
     num_found = -1
-    while True:
-        paging_query_args = dict(query_args or {})
-        paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
-        url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-        with urllib.request.urlopen(url, timeout=timeout) as response:
-            json_text = response.read()
-            json_dict = json.loads(json_text.decode('utf-8'))
-            if num_found is -1:
-                num_found = json_dict.get('response', {}).get('numFound', 0)
-            if not combined_json_dict:
-                combined_json_dict = json_dict
-                if num_found < limit:
-                    break
-            else:
-                docs = json_dict.get('response', {}).get('docs', [])
-                combined_json_dict.get('response', {}).get('docs', []).extend(docs)
-                if num_found < offset + limit:
-                    break
-        offset += limit
+    # we don't know ahead of time how much request are necessary
+    with monitor.starting("Loading", 10):
+        while True:
+            monitor.progress(work=1)
+            if monitor.is_cancelled():
+                raise InterruptedError
+            paging_query_args = dict(query_args or {})
+            paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
+            url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
+            with urllib.request.urlopen(url, timeout=timeout) as response:
+                json_text = response.read()
+                json_dict = json.loads(json_text.decode('utf-8'))
+                if num_found is -1:
+                    num_found = json_dict.get('response', {}).get('numFound', 0)
+                if not combined_json_dict:
+                    combined_json_dict = json_dict
+                    if num_found < limit:
+                        break
+                else:
+                    docs = json_dict.get('response', {}).get('docs', [])
+                    combined_json_dict.get('response', {}).get('docs', []).extend(docs)
+                    if num_found < offset + limit:
+                        break
+            offset += limit
     return combined_json_dict
 
 
@@ -184,14 +189,15 @@ def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-def _fetch_file_list_json(dataset_id: str, dataset_query_id: str):
+def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monitor=Monitor.NONE):
     file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
                                             dict(type='File',
                                                  fields='url,title,size',
                                                  dataset_id=dataset_query_id,
                                                  replica='false',
                                                  latest='true',
-                                                 project='esacci'))
+                                                 project='esacci'),
+                                            monitor=monitor)
 
     if not isinstance(file_index_json_dict, dict):
         return None
@@ -349,10 +355,9 @@ class EsaCciOdpDataSource(DataSource):
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
-    @property
-    def temporal_coverage(self):
+    def temporal_coverage(self, monitor: Monitor=Monitor.NONE):
         if not self._temporal_coverage:
-            self.update_file_list()
+            self.update_file_list(monitor)
         return self._temporal_coverage
 
     @property
@@ -429,9 +434,9 @@ class EsaCciOdpDataSource(DataSource):
                     return url
         return None
 
-    def update_file_list(self) -> None:
+    def update_file_list(self, monitor: Monitor=Monitor.NONE) -> None:
         self._file_list = None
-        self._init_file_list()
+        self._init_file_list(monitor)
 
     def sync(self,
              time_range: Tuple[datetime, datetime]=None,
@@ -481,7 +486,7 @@ class EsaCciOdpDataSource(DataSource):
                         sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
                     sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                    with sub_monitor.starting('', file_size):
+                    with sub_monitor.starting(sub_monitor_msg, file_size):
                         urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                     file_number += 1
 
@@ -564,12 +569,13 @@ class EsaCciOdpDataSource(DataSource):
             raise IOError("Files: {} caused:\nOSError({}): {}"
                           .format(files, e.errno, e.strerror))
 
-    def _init_file_list(self):
+    def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:
             return
 
         file_list = _load_or_fetch_json(_fetch_file_list_json,
                                         fetch_json_args=[self._master_id, self._dataset_id],
+                                        fetch_json_kwargs=dict(monitor=monitor),
                                         cache_used=self._data_store.index_cache_used,
                                         cache_dir=self.local_dataset_dir(),
                                         cache_json_filename='file-list.json',
