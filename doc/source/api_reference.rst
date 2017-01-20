@@ -13,10 +13,73 @@ Datasets
 Operations
 ==========
 
+Anomaly calculation
+-------------------
+
+.. autofunction:: cate.ops.anomaly_internal
+
+.. autofunction:: cate.ops.anomaly_climatology
+
+
+Arithmetic
+----------
+
+.. autofunction:: cate.ops.ds_arithmetics
+
+
+Averaging
+---------
+
+.. autofunction:: cate.ops.long_term_average
+
+.. autofunction:: cate.ops.temporal_agg
+
+
 Coregistration
 --------------
 
 .. autofunction:: cate.ops.coregister
+
+
+Correlation
+-----------
+
+.. autofunction:: cate.ops.pearson_correlation
+
+
+Input / Output
+---------------
+
+.. autofunction:: cate.ops.open_dataset
+
+.. autofunction:: cate.ops.save_dataset
+
+.. autofunction:: cate.ops.read_object
+
+.. autofunction:: cate.ops.write_object
+
+.. autofunction:: cate.ops.read_text
+
+.. autofunction:: cate.ops.write_text
+
+.. autofunction:: cate.ops.read_json
+
+.. autofunction:: cate.ops.write_json
+
+.. autofunction:: cate.ops.read_netcdf
+
+.. autofunction:: cate.ops.write_netcdf3
+
+.. autofunction:: cate.ops.write_netcdf4
+
+
+Data visualization
+------------------
+
+.. autofunction:: cate.ops.plot_map
+
+.. autofunction:: cate.ops.plot_1D
+
 
 Resampling
 ----------
@@ -39,10 +102,7 @@ Subsetting
 
 .. autofunction:: cate.ops.subset_temporal_index
 
-Correlation
------------
 
-.. autofunction:: cate.ops.pearson_correlation
 
 Timeseries
 ----------
