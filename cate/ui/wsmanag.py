@@ -74,6 +74,10 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
+        pass
+
+    @abstractmethod
     def save_workspace(self, base_dir: str) -> Workspace:
         pass
 
@@ -192,6 +196,16 @@ class FSWorkspaceManager(WorkspaceManager):
             if do_save:
                 workspace.save()
             workspace.close()
+
+    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self.get_workspace(base_dir)
+        if workspace is not None:
+            workspace.save()
+            workspace.close()
+            shutil.move(base_dir, to_dir)
+            workspace = Workspace.open(to_dir)
+        return workspace
 
     def save_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -413,6 +427,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         url = self._url('/ws/close_all',
                         query_args=self._query(do_save=do_save))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+
+    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
+        url = self._url('/ws/move/{base_dir}',
+                        path_args=dict(base_dir=base_dir), query_args=dict(to_dir=to_dir))
+        json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
 
     def save_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/save/{base_dir}',

@@ -147,6 +147,21 @@ class ServiceMethods:
         workspace = self.workspace_manager.new_workspace(None)
         return workspace.to_json_dict()
 
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def open_workspace(self, base_dir) -> dict:
+        workspace = self.workspace_manager.open_workspace(base_dir)
+        return workspace.to_json_dict()
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def close_workspace(self, base_dir) -> dict:
+        workspace = self.workspace_manager.close_workspace(base_dir)
+        return workspace.to_json_dict()
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def save_workspace(self, base_dir) -> dict:
+        workspace = self.workspace_manager.save_workspace(base_dir)
+        return workspace.to_json_dict()
+
     # noinspection PyAbstractClass
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
                                monitor: Monitor) -> dict:
