@@ -30,10 +30,11 @@ import threading
 import time
 import traceback
 import urllib.request
-import xarray as xr
-import numpy as np
 from datetime import date, datetime
 from typing import Optional, Union, List
+
+import numpy as np
+import xarray as xr
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -41,11 +42,11 @@ from tornado.web import RequestHandler, Application
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
 from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, WEBAPI_LOG_FILE
+from cate.ui.imaging.ds import NaturalEarth2Image
+from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.ui.websock import AppWebSocketHandler
 from cate.ui.wsmanag import FSWorkspaceManager
 from cate.version import __version__
-from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
-from cate.ui.imaging.ds import NaturalEarth2Image
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -717,7 +718,6 @@ class ResourcePrintHandler(BaseRequestHandler):
 
 # noinspection PyAbstractClass
 class NE2Handler(BaseRequestHandler):
-
     PYRAMID = NaturalEarth2Image.get_pyramid()
 
     def get(self, z, y, x):
@@ -772,12 +772,14 @@ class ResVarTileHandler(BaseRequestHandler):
                 if not var_index or len(var_index) != variable.ndim - 2:
                     var_index = (0,) * (variable.ndim - 2)
 
+                # noinspection PyTypeChecker
                 var_index += (slice(None), slice(None),)
 
                 print('var_index =', var_index)
                 array = variable[var_index]
             else:
-                self.write(_status_error(message='Variable must be an N-D Dataset with N >= 2, but "%s" is only %d-D' % (var_name, variable.ndim)))
+                self.write(_status_error(message='Variable must be an N-D Dataset with N >= 2, '
+                                                 'but "%s" is only %d-D' % (var_name, variable.ndim)))
                 return
 
             cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min
