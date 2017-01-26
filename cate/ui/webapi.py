@@ -93,6 +93,7 @@ def get_application():
         (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
         (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
         (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
+        (url_pattern('/ws/save_as/{{base_dir}}'), WorkspaceSaveAsHandler),
         (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
@@ -592,6 +593,18 @@ class WorkspaceSaveHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveAsHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        to_dir = self.get_query_argument('to_dir')
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.save_workspace_as(base_dir, to_dir)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
