@@ -74,7 +74,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
+    def save_workspace_as(self, base_dir: str, to_dir: str) -> Workspace:
         pass
 
     @abstractmethod
@@ -197,15 +197,43 @@ class FSWorkspaceManager(WorkspaceManager):
                 workspace.save()
             workspace.close()
 
-    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
+    def save_workspace_as(self, base_dir: str, to_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
-        if workspace is not None:
-            workspace.save()
-            workspace.close()
-            shutil.move(base_dir, to_dir)
-            workspace = Workspace.open(to_dir)
-        return workspace
+
+        empty_dir_exists = False
+        if os.path.realpath(base_dir) == os.path.realpath(to_dir):
+            return workspace
+
+        if os.path.exists(to_dir):
+            if os.path.isdir(to_dir):
+                entries = list(os.listdir(to_dir))
+                if len(entries) == 0:
+                    empty_dir_exists = True
+                else:
+                    raise WorkspaceError('Directory is not empty: ' + to_dir)
+            else:
+                raise WorkspaceError('A file with same name already exists: ' + to_dir)
+
+        # Save and close current workspace
+        workspace.save()
+        workspace.close()
+
+        try:
+            # if the given directory exists and is empty, we must delete it because
+            # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
+            if empty_dir_exists:
+                os.rmdir(to_dir)
+            # Copy all files to new location to_dir
+            shutil.copytree(base_dir, to_dir)
+            # Reopen from new location
+            new_workspace = self.get_workspace(to_dir, do_open=True)
+            # If it was a scratch workspace, delete the original
+            if workspace.is_scratch:
+                shutil.rmtree(base_dir)
+            return new_workspace
+        except (IOError, OSError) as e:
+            raise WorkspaceError(e)
 
     def save_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -428,8 +456,8 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                         query_args=self._query(do_save=do_save))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def move_workspace(self, base_dir: str, to_dir: str) -> Workspace:
-        url = self._url('/ws/move/{base_dir}',
+    def save_workspace_as(self, base_dir: str, to_dir: str) -> Workspace:
+        url = self._url('/ws/save_as/{base_dir}',
                         path_args=dict(base_dir=base_dir), query_args=dict(to_dir=to_dir))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
