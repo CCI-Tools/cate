@@ -129,7 +129,7 @@ class Monitor(metaclass=ABCMeta):
         Call to signal that a task has been done.
         """
 
-    def child(self, work: float):
+    def child(self, work: float = 1):
         """
         Return a child monitor for the given partial amount of *work*.
 
@@ -178,7 +178,7 @@ class _NullMonitor(Monitor):
     def done(self):
         pass
 
-    def child(self, partial_work: float):
+    def child(self, work: float = 1):
         return Monitor.NONE
 
 

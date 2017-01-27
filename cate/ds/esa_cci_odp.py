@@ -476,7 +476,7 @@ class EsaCciOdpDataSource(DataSource):
                     if monitor.is_cancelled():
                         raise InterruptedError
                     dataset_file = os.path.join(dataset_dir, filename)
-                    sub_monitor = monitor.child(1.0)
+                    sub_monitor = monitor.child(work=1.0)
 
                     # noinspection PyUnusedLocal
                     def reporthook(block_number, read_size, total_file_size):
