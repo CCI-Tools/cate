@@ -24,23 +24,22 @@ class WorkspaceManagerTestMixin:
     def del_base_dir(self, base_dir):
         shutil.rmtree(base_dir)
 
-    def test_get_workspace(self):
+    def test_new_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir, do_save=True)
+        workspace1 = workspace_manager.new_workspace(base_dir)
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace1.base_dir, workspace2.base_dir)
         self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
 
-        self.del_base_dir(base_dir)
-
-    def test_init_workspace(self):
+    def test_new_save_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.new_workspace(base_dir, do_save=True)
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
         self.assertTrue(os.path.exists(base_dir))
         self.assertIsNotNone(workspace)
 
@@ -51,7 +50,8 @@ class WorkspaceManagerTestMixin:
 
         workspace_manager = self.new_workspace_manager()
 
-        workspace = workspace_manager.new_workspace(base_dir, do_save=True)
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
         self.assertTrue(os.path.exists(base_dir))
         self.assertTrue(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
@@ -67,7 +67,8 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir, do_save=True)
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',
@@ -85,7 +86,8 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir, do_save=True, description='test clean workspace')
+        workspace1 = workspace_manager.new_workspace(base_dir, description='test clean workspace')
+        workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',

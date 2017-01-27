@@ -346,19 +346,18 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=10,
-                                       message='Exception caught: %s' % e,
+                                       message='%s' % e,
                                        data=stack_trace))
         try:
             json_text = json.dumps(response)
         except Exception as e:
             stack_trace = traceback.format_exc()
-            print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
-            print('response = %s' % response)
             print(stack_trace, file=sys.stderr, flush=True)
+            message = 'INTERNAL ERROR: response could not be converted to JSON: %s' % e
             json_text = json.dumps(dict(jsonrcp='2.0',
                                         id=method_id,
                                         error=dict(code=30,
-                                                   message='Exception caught: %s' % e,
+                                                   message=message,
                                                    data=stack_trace)))
         self._write_response(json_text)
 

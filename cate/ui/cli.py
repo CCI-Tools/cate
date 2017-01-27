@@ -671,15 +671,16 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_init(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace_manager.new_workspace(_base_dir(command_args.base_dir),
-                                        do_save=True, description=command_args.description)
+        workspace = workspace_manager.new_workspace(_base_dir(command_args.base_dir),
+                                                    description=command_args.description)
+        workspace.save()
         print('Workspace initialized.')
 
     @classmethod
     def _execute_new(cls, command_args):
         workspace_manager = _new_workspace_manager()
         workspace_manager.new_workspace(_base_dir(command_args.base_dir),
-                                        do_save=False, description=command_args.description)
+                                        description=command_args.description)
         print('Workspace created.')
 
     @classmethod

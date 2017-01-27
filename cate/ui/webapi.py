@@ -539,11 +539,10 @@ class WorkspaceGetOpenHandler(BaseRequestHandler):
 class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.new_workspace(base_dir, do_save=do_save, description=description)
+            workspace = workspace_manager.new_workspace(base_dir, description=description)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))

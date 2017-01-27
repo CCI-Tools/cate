@@ -24,6 +24,7 @@ import os
 import pprint
 import shutil
 import random
+import uuid
 import urllib.parse
 import urllib.request
 from abc import ABCMeta, abstractmethod
@@ -58,7 +59,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def new_workspace(self, base_dir: Union[str, None], do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: Union[str, None], description: str = None) -> Workspace:
         pass
 
     @abstractmethod
@@ -153,10 +154,9 @@ class FSWorkspaceManager(WorkspaceManager):
         # noinspection PyTypeChecker
         return workspace
 
-    def new_workspace(self, base_dir: str, do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         if base_dir is None:
-            digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-            scratch_dir_name = ''.join([digits[random.randint(0, len(digits) - 1)] for _ in range(32)])
+            scratch_dir_name = str(uuid.uuid4())
             scratch_dir_path = os.path.join(SCRATCH_WORKSPACES_PATH, scratch_dir_name)
             os.makedirs(scratch_dir_path, exist_ok=True)
             base_dir = scratch_dir_path
@@ -169,8 +169,6 @@ class FSWorkspaceManager(WorkspaceManager):
             raise WorkspaceError('workspace exists, consider opening it: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         assert base_dir not in self._open_workspaces
-        if do_save:
-            workspace.save()
         self._open_workspaces[base_dir] = workspace
         return workspace
 
@@ -443,10 +441,9 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def new_workspace(self, base_dir: str, do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         url = self._url('/ws/new',
                         query_args=dict(base_dir=base_dir,
-                                        do_save=do_save,
                                         description=description or ''))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
