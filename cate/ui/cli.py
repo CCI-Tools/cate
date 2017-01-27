@@ -744,7 +744,7 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_status(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir), do_open=False)
+        workspace = workspace_manager.get_workspace(_base_dir(command_args.base_dir))
         cls._print_workspace(workspace)
 
     # noinspection PyUnusedLocal
