@@ -517,9 +517,8 @@ class BaseRequestHandler(RequestHandler):
 class WorkspaceGetHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
-        do_open = self.get_query_argument('do_open', default='False').lower() == 'true'
         try:
-            workspace = workspace_manager.get_workspace(base_dir, do_open=do_open)
+            workspace = workspace_manager.get_workspace(base_dir)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -747,7 +746,7 @@ class ResVarTileHandler(BaseRequestHandler):
 
         # GLOBAL_LOCK.acquire()
         workspace_manager = self.application.workspace_manager
-        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        workspace = workspace_manager.get_workspace(base_dir)
 
         if res_name not in workspace.resource_cache:
             self.write(_status_error(message='Unknown resource "%s"' % res_name))

@@ -25,7 +25,7 @@ import sys
 import time
 import traceback
 from collections import OrderedDict
-from typing import Tuple, List
+from typing import List, Sequence
 
 import tornado.websocket
 import xarray as xr
@@ -148,8 +148,8 @@ class ServiceMethods:
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def open_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.open_workspace(base_dir)
+    def open_workspace(self, base_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
@@ -163,8 +163,8 @@ class ServiceMethods:
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def save_workspace_as(self, base_dir: str, to_dir: str) -> dict:
-        workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir)
+    def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
 
     # noinspection PyAbstractClass
@@ -200,9 +200,9 @@ class ServiceMethods:
         from .cmaps import get_cmaps
         return get_cmaps()
 
-    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Tuple[int]):
+    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int]):
         workspace_manager = self.workspace_manager
-        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        workspace = workspace_manager.get_workspace(base_dir)
         if res_name not in workspace.resource_cache:
             raise ValueError('Unknown resource "%s"' % res_name)
 
