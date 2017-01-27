@@ -692,10 +692,15 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_close(cls, command_args):
         workspace_manager = _new_workspace_manager()
         if command_args.close_all:
-            workspace_manager.close_all_workspaces(do_save=command_args.save)
+            if command_args.save:
+                workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
+            workspace_manager.close_all_workspaces()
             print('All workspaces closed.')
         else:
-            workspace_manager.close_workspace(_base_dir(command_args.base_dir), do_save=command_args.save)
+            base_dir = _base_dir(command_args.base_dir)
+            if command_args.save:
+                workspace_manager.save_workspace(base_dir)
+            workspace_manager.close_workspace(base_dir)
             print('Workspace closed.')
 
     @classmethod

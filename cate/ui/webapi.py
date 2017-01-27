@@ -563,10 +563,9 @@ class WorkspaceOpenHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseHandler(BaseRequestHandler):
     def get(self, base_dir):
-        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_workspace(base_dir, do_save)
+            workspace_manager.close_workspace(base_dir)
             _on_workspace_closed(self.application)
             self.write(_status_ok())
         except Exception as e:

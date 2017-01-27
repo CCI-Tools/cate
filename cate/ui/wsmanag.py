@@ -66,11 +66,11 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def close_workspace(self, base_dir: str, do_save: bool) -> Workspace:
+    def close_workspace(self, base_dir: str) -> None:
         pass
 
     @abstractmethod
-    def close_all_workspaces(self, do_save: bool) -> None:
+    def close_all_workspaces(self) -> None:
         pass
 
     @abstractmethod
@@ -187,20 +187,16 @@ class FSWorkspaceManager(WorkspaceManager):
         self._open_workspaces[base_dir] = workspace
         return workspace
 
-    def close_workspace(self, base_dir: str, do_save: bool) -> None:
+    def close_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.pop(base_dir, None)
         if workspace is not None:
-            if do_save and workspace.is_modified:
-                workspace.save()
             workspace.close()
 
-    def close_all_workspaces(self, do_save: bool) -> None:
+    def close_all_workspaces(self) -> None:
         workspaces = self._open_workspaces.values()
         self._open_workspaces = dict()
         for workspace in workspaces:
-            if do_save:
-                workspace.save()
             workspace.close()
 
     def save_workspace_as(self, base_dir: str, to_dir: str,
@@ -290,7 +286,7 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def delete_workspace(self, base_dir: str) -> None:
-        self.close_workspace(base_dir, do_save=False)
+        self.close_workspace(base_dir)
         base_dir = self.resolve_path(base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if not os.path.isdir(workspace_dir):
@@ -461,15 +457,13 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def close_workspace(self, base_dir: str, do_save: bool) -> None:
+    def close_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/close/{base_dir}',
-                        path_args=dict(base_dir=base_dir),
-                        query_args=self._query(do_save=do_save))
+                        path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def close_all_workspaces(self, do_save: bool) -> None:
-        url = self._url('/ws/close_all',
-                        query_args=self._query(do_save=do_save))
+    def close_all_workspaces(self) -> None:
+        url = self._url('/ws/close_all')
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
     def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:

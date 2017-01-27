@@ -153,9 +153,8 @@ class ServiceMethods:
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def close_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.close_workspace(base_dir)
-        return workspace.to_json_dict()
+    def close_workspace(self, base_dir: str) -> None:
+        self.workspace_manager.close_workspace(base_dir)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def save_workspace(self, base_dir: str) -> dict:
@@ -312,7 +311,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._job_start:
                 delta_t = time.clock() - self._job_start[job_id]
                 del self._job_start[job_id]
-                print('Canceled job', job_id, 'after', delta_t, 'seconds')
+                print('Cancelled job', job_id, 'after', delta_t, 'seconds')
             response = dict(jsonrcp='2.0', id=method_id)
             self._write_response(json.dumps(response))
         else:
@@ -343,6 +342,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                                        message='Cancelled'))
         except Exception as e:
             stack_trace = traceback.format_exc()
+            print(stack_trace, file=sys.stderr, flush=True)
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=10,
@@ -351,15 +351,15 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
         try:
             json_text = json.dumps(response)
         except Exception as e:
-            stacktrace = traceback.format_exc()
+            stack_trace = traceback.format_exc()
             print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
             print('response = %s' % response)
-            print(stacktrace)
+            print(stack_trace, file=sys.stderr, flush=True)
             json_text = json.dumps(dict(jsonrcp='2.0',
                                         id=method_id,
                                         error=dict(code=30,
                                                    message='Exception caught: %s' % e,
-                                                   data=stacktrace)))
+                                                   data=stack_trace)))
         self._write_response(json_text)
 
     def _write_response(self, json_text: str):
