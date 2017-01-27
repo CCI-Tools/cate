@@ -23,7 +23,7 @@ import io
 import sys
 import uuid
 from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Tuple, Sequence, Union
+from typing import Tuple, Sequence, Union, Any
 
 import matplotlib.cm as cm
 import numpy as np
@@ -34,9 +34,20 @@ from .utils import *
 
 _DEFAULT_TILE_CACHE = None
 
+X = int
+Y = int
+Width = int
+Height = int
+Size2D = Tuple[Width, Height]
+Rectangle2D = Tuple[X, Y, Width, Height]
+Number = Union[int, float]
+Tile = Any
+TileQuad = Tuple[Tile, Tile, Tile, Tile]
+TiledImageCollection = Sequence['TileImage']
+
 
 class MemoryTileCacheStore(MemoryCacheStore):
-    def store_value(self, key, tile):
+    def store_value(self, key: str, tile: Tile):
         if hasattr(tile, 'nbytes'):
             # A numpy ndarray instance
             size = tile.nbytes
@@ -53,7 +64,7 @@ class MemoryTileCacheStore(MemoryCacheStore):
         return tile, size
 
 
-def set_default_tile_cache(cache=None, no_cache=False, capacity=64 * 1024 * 1024, threshold=0.75):
+def set_default_tile_cache(cache: Union[Cache, None] = None, no_cache=False, capacity=64 * 1024 * 1024, threshold=0.75):
     global _DEFAULT_TILE_CACHE
     if no_cache:
         _DEFAULT_TILE_CACHE = None
@@ -63,7 +74,7 @@ def set_default_tile_cache(cache=None, no_cache=False, capacity=64 * 1024 * 1024
         _DEFAULT_TILE_CACHE = cache
 
 
-def get_default_tile_cache():
+def get_default_tile_cache() -> Cache:
     global _DEFAULT_TILE_CACHE
     return _DEFAULT_TILE_CACHE
 
@@ -74,7 +85,7 @@ class TiledImage(metaclass=ABCMeta):
     """
 
     @abstractproperty
-    def id(self):
+    def id(self) -> str:
         """
         Return a unique image identifier.
         :return: A unique (string) object
@@ -82,7 +93,7 @@ class TiledImage(metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def format(self):
+    def format(self) -> str:
         """
         Return a format string such as 'PNG', 'JPG', 'RAW', etc, or None according to PIL.
         :return: A string indicating the image (file) format.
@@ -90,7 +101,7 @@ class TiledImage(metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def mode(self):
+    def mode(self) -> str:
         """
         Return the image mode string such as 'RGBA', 'RGB', 'L', etc, or None according to PIL.
         See http://pillow.readthedocs.org/en/3.0.x/handbook/concepts.html#modes
@@ -99,28 +110,28 @@ class TiledImage(metaclass=ABCMeta):
         pass
 
     @abstractproperty
-    def size(self):
+    def size(self) -> Size2D:
         """
         :return: The size of the image as a (width, height) tuple
         """
         pass
 
     @abstractproperty
-    def tile_size(self):
+    def tile_size(self) -> Size2D:
         """
         :return: The size of the image as a (tile_width, tile_height) tuple
         """
         pass
 
     @abstractproperty
-    def num_tiles(self):
+    def num_tiles(self) -> Size2D:
         """
         :return: The number of tiles as a (num_tiles_x, num_tiles_y) tuple
         """
         pass
 
     @abstractmethod
-    def get_tile(self, tile_x, tile_y):
+    def get_tile(self, tile_x, tile_y) -> Tile:
         """
         :param tile_y: the tile coordinate in X direction
         :param tile_x: the tile coordinate in Y direction
@@ -129,7 +140,7 @@ class TiledImage(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def dispose(self):
+    def dispose(self) -> None:
         """
         Disposes this images.
         """
@@ -150,41 +161,41 @@ class AbstractTiledImage(TiledImage, metaclass=ABCMeta):
         self._tile_height = tile_size[1] if tile_size else compute_tile_size(self._height)
         self._num_tiles_x = num_tiles[0] if num_tiles else cardinal_div_round(self._width, self._tile_width)
         self._num_tiles_y = num_tiles[1] if num_tiles else cardinal_div_round(self._height, self._tile_height)
-        self._id = image_id if image_id else str(uuid.uuid4)
+        self._id = image_id if image_id else str(uuid.uuid4())
         self._mode = mode
         self._format = format
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self._id
 
     @property
-    def format(self):
+    def format(self) -> str:
         return self._format
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         return self._mode
 
     @property
-    def size(self):
+    def size(self) -> Size2D:
         return self._width, self._height
 
     @property
-    def tile_size(self):
+    def tile_size(self) -> Size2D:
         return self._tile_width, self._tile_height
 
     @property
-    def num_tiles(self):
+    def num_tiles(self) -> Size2D:
         return self._num_tiles_x, self._num_tiles_y
 
-    def dispose(self):
+    def dispose(self) -> None:
         """
         Does nothing.
         """
         pass
 
-    def get_tile_id(self, tile_x, tile_y):
+    def get_tile_id(self, tile_x, tile_y) -> str:
         return '%s/%d/%d' % (self.id, tile_y, tile_x)
 
 
@@ -202,10 +213,10 @@ class OpImage(AbstractTiledImage, metaclass=ABCMeta):
         self._tile_cache = tile_cache if tile_cache is not None else get_default_tile_cache()
 
     @property
-    def tile_cache(self):
+    def tile_cache(self) -> Cache:
         return self._tile_cache
 
-    def get_tile(self, tile_x, tile_y):
+    def get_tile(self, tile_x: int, tile_y: int) -> Tile:
         tile_id = None
         cache = self._tile_cache
         if cache:
@@ -220,10 +231,10 @@ class OpImage(AbstractTiledImage, metaclass=ABCMeta):
         return tile
 
     @abstractmethod
-    def compute_tile(self, tile_x, tile_y, rectangle):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         pass
 
-    def dispose(self):
+    def dispose(self) -> None:
         cache = self._tile_cache
         if cache:
             num_tiles_x, num_tiles_y = self.num_tiles
@@ -267,7 +278,7 @@ class DecoratorImage(OpImage, metaclass=ABCMeta):
     def source_image(self):
         return self._source_image
 
-    def compute_tile(self, tile_x, tile_y, rectangle):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         source_tile = self._source_image.get_tile(tile_x, tile_y)
         target_tile = None
         if source_tile is not None:
@@ -275,7 +286,10 @@ class DecoratorImage(OpImage, metaclass=ABCMeta):
         return target_tile
 
     @abstractmethod
-    def compute_tile_from_source_tile(self, tile_x, tile_y, rectangle, source_tile):
+    def compute_tile_from_source_tile(self,
+                                      tile_x: int, tile_y: int,
+                                      rectangle: Rectangle2D,
+                                      source_tile: Tile) -> Tile:
         pass
 
 
@@ -290,7 +304,7 @@ class TransformArrayImage(DecoratorImage):
                  flip_y=False,
                  force_masked=True,
                  force_2d=False,
-                 no_data_value=None,
+                 no_data_value: Number = None,
                  tile_cache=None):
         super().__init__(source_image, tile_cache=tile_cache)
         self._force_masked = force_masked
@@ -299,10 +313,10 @@ class TransformArrayImage(DecoratorImage):
         self._no_data_value = no_data_value
 
     @property
-    def no_data_value(self):
+    def no_data_value(self) -> Number:
         return self._no_data_value
 
-    def compute_tile(self, tile_x, tile_y, rectangle):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         if self._flip_y:
             num_tiles_y = self.num_tiles[1]
             tile_size_y = self.tile_size[1]
@@ -315,9 +329,10 @@ class TransformArrayImage(DecoratorImage):
             target_tile = self.compute_tile_from_source_tile(tile_x, tile_y, rectangle, source_tile)
         return target_tile
 
-    def compute_tile_from_source_tile(self, tile_x, tile_y, rectangle, tile):
+    def compute_tile_from_source_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D, tile: Tile) -> Tile:
         if self._force_2d and tile.ndim > 2:
             # Create 2D subset using basic indexing
+            # noinspection PyTypeChecker
             index = (tile.ndim - 2) * [0] + [slice(None), slice(None)]
             tile = tile[index]
         if self._flip_y:
@@ -341,12 +356,12 @@ class ColorMappedRgbaImage(DecoratorImage):
 
     def __init__(self,
                  source_image: TiledImage,
-                 value_range: Tuple[float, float]=(0.0, 1.0),
-                 cmap_name: str=None,
-                 num_colors: int=256,
-                 no_data_value: Union[int, float]=None,
-                 encode: bool=False,
-                 format: str=None,
+                 value_range: Tuple[float, float] = (0.0, 1.0),
+                 cmap_name: str = None,
+                 num_colors: int = 256,
+                 no_data_value: Union[int, float] = None,
+                 encode: bool = False,
+                 format: str = None,
                  tile_cache=None):
         """
         Constructor.
@@ -368,7 +383,9 @@ class ColorMappedRgbaImage(DecoratorImage):
         self._no_data_value = no_data_value
         self._encode = encode
 
-    def compute_tile_from_source_tile(self, tile_x, tile_y, rectangle, source_tile):
+    def compute_tile_from_source_tile(self,
+                                      tile_x: int, tile_y: int,
+                                      rectangle: Rectangle2D, source_tile: Tile) -> Tile:
         value_min, value_max = self._value_range
         if not np.ma.is_masked(source_tile):
             if self._no_data_value is not None:
@@ -388,6 +405,7 @@ class ColorMappedRgbaImage(DecoratorImage):
         if width * height == array.size:
             array = np.reshape(array, (height, width))
         else:
+            # noinspection PyTypeChecker
             index = [0] * (array.ndim - 2) + [slice(None), slice(None)]
             array = array[index]
 
@@ -407,7 +425,7 @@ class ColorMappedRgbaImage(DecoratorImage):
         else:
             return image
 
-    def create_pyramid(self):
+    def create_pyramid(self) -> 'ImagePyramid':
         if self._encode:
             raise TypeError("can't create pyramid from encoded hi-res tiles")
         return ImagePyramid.create_from_image(self, create_pil_downsampling_image)
@@ -420,7 +438,7 @@ class DownsamplingImage(OpImage):
     """
 
     def __init__(self,
-                 source_image,
+                 source_image: TiledImage,
                  image_id=None,
                  tile_cache=None):
         """
@@ -441,10 +459,10 @@ class DownsamplingImage(OpImage):
         self._source_image = source_image
 
     @property
-    def source_image(self):
+    def source_image(self) -> TiledImage:
         return self._source_image
 
-    def compute_tile(self, tile_x, tile_y, rectangle):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         source_tile_x = 2 * tile_x
         source_tile_y = 2 * tile_y
 
@@ -467,7 +485,7 @@ class DownsamplingImage(OpImage):
                                                       target_positions)
 
     @abstractmethod
-    def aggregate_and_stitch_source_tiles(self, source_tiles, target_size, target_positions):
+    def aggregate_and_stitch_source_tiles(self, source_tiles: TileQuad, target_size: Size2D, target_positions) -> Tile:
         pass
 
 
@@ -498,7 +516,7 @@ class PilDownsamplingImage(DownsamplingImage):
     def resampling(self):
         return self._resampling
 
-    def aggregate_and_stitch_source_tiles(self, source_tiles, target_size, target_positions):
+    def aggregate_and_stitch_source_tiles(self, source_tiles: TileQuad, target_size: Size2D, target_positions) -> Tile:
         target_shape = (target_size[0] // 2, target_size[1] // 2)
         agg_tiles = [source_tile.resize(target_shape, self._resampling) for source_tile in source_tiles]
         target_tile = Image.new(self._source_image.mode, target_size)
@@ -520,7 +538,7 @@ class NdarrayDownsamplingImage(DownsamplingImage):
         """
         Constructor.
         :param source_image: a tiled source image (type TiledImage) whose source tiles must be PIL Images
-        :param key: an optional key prefix string used for caching
+        :param image_id: an optional key prefix string used for caching
         :param tile_cache: an optional tile cache of type Cache
         :param aggregator: an aggregator function which will be called like so:
                 aggregator(downsampled_tile_00, downsampled_tile_01, downsampled_tile_10, downsampled_tile_11).
@@ -529,7 +547,7 @@ class NdarrayDownsamplingImage(DownsamplingImage):
         super().__init__(source_image, image_id=image_id, tile_cache=tile_cache)
         self._aggregator = aggregator
 
-    def aggregate_and_stitch_source_tiles(self, source_tiles, target_size, target_positions):
+    def aggregate_and_stitch_source_tiles(self, source_tiles: TileQuad, target_size: Size2D, target_positions) -> Tile:
         prototype_tile = source_tiles[0]
         agg_tiles = [downsample_ndarray(source_tile, aggregator=self._aggregator) for source_tile in source_tiles]
         target_shape = list(prototype_tile.shape)
@@ -552,27 +570,24 @@ class NdarrayDownsamplingImage(DownsamplingImage):
 class FastNdarrayDownsamplingImage(OpImage):
     """
     Down-samples a tiled source image whose tiles are numpy ndarray images.
+
+    :param source_image: a tiled source image (type TiledImage) whose source tiles must be PIL Images
+    :param key: an optional key prefix string used for caching
+    :param tile_cache: an optional tile cache of type Cache
     """
 
     def __init__(self,
                  array,
-                 tile_size: Tuple[int, int],
+                 tile_size: Size2D,
                  z_index: int,
                  num_levels: int,
                  tile_cache=None):
-        """
-        Constructor.
-        :param source_image: a tiled source image (type TiledImage) whose source tiles must be PIL Images
-        :param key: an optional key prefix string used for caching
-        :param tile_cache: an optional tile cache of type Cache
-        """
         zoom = 1 << (num_levels - z_index - 1)
         image_id = '%s-L%d' % (uuid.uuid4(), z_index)
         source_width, source_height = array.shape[-1], array.shape[-2]
         width, height = source_width // zoom, source_height // zoom
         tile_width, tile_height = tile_size
-        num_tiles_x, num_tiles_y = cardinal_div_round(width, tile_width), \
-                                   cardinal_div_round(height, tile_height)
+        num_tiles_x, num_tiles_y = cardinal_div_round(width, tile_width), cardinal_div_round(height, tile_height)
         super().__init__((width, height),
                          tile_size=(tile_width, tile_height),
                          num_tiles=(num_tiles_x, num_tiles_y),
@@ -584,7 +599,7 @@ class FastNdarrayDownsamplingImage(OpImage):
         self._z_index = z_index
         self._zoom = zoom
 
-    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Tuple[int, int, int, int]):
+    def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         x, y, w, h = rectangle
         zoom = self._zoom
         x *= zoom
@@ -615,9 +630,9 @@ class ImagePyramid:
     @staticmethod
     def create_from_image(source_image: TiledImage,
                           level_image_factory,
-                          num_level_zero_tiles=None,
+                          num_level_zero_tiles: Size2D = None,
                           num_levels: int = None,
-                          **kwargs):
+                          **kwargs) -> 'ImagePyramid':
 
         """
         Create an image pyramid build from a single, max-resolution source image of type TiledImage.
@@ -648,10 +663,10 @@ class ImagePyramid:
 
     @staticmethod
     def create_from_array(array,
-                          tile_size: Tuple[int, int] = None,
-                          num_level_zero_tiles: Tuple[int, int] = None,
+                          tile_size: Size2D = None,
+                          num_level_zero_tiles: Size2D = None,
                           num_levels: int = None,
-                          **kwargs):
+                          **kwargs) -> 'ImagePyramid':
 
         """
         Create an image pyramid build from a numpy-like array using nearest neighbor resampling.
@@ -666,11 +681,11 @@ class ImagePyramid:
         :param num_levels: number of levels
         :return: a new ImagePyramid instance
         """
-        max_size, tile_size, \
-        num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=array,
-                                                                       tile_size=tile_size,
-                                                                       num_level_zero_tiles=num_level_zero_tiles,
-                                                                       num_levels=num_levels)
+        max_size, tile_size, num_level_zero_tiles, num_levels = \
+            ImagePyramid.compute_layout(array=array,
+                                        tile_size=tile_size,
+                                        num_level_zero_tiles=num_level_zero_tiles,
+                                        num_levels=num_levels)
         level_images = [None] * num_levels
         for i in range(0, num_levels):
             z_index = num_levels - 1 - i
@@ -678,15 +693,16 @@ class ImagePyramid:
         return ImagePyramid(num_level_zero_tiles, tile_size, level_images)
 
     @staticmethod
-    def compute_layout(max_size: Tuple[int, int] = None,
-                       array=None,
-                       tile_size: Tuple[int, int] = None,
+    def compute_layout(array=None,
+                       max_size: Size2D = None,
+                       tile_size: Size2D = None,
                        int_div: bool = True,
-                       num_level_zero_tiles: Tuple[int, int] = None,
-                       num_levels: int = None):
+                       num_level_zero_tiles: Size2D = None,
+                       num_levels: int = None) -> Tuple[Size2D, Size2D, Size2D, int]:
         """
         Compute a suitable pyramid layout.
 
+        :param array: Numpy ndarray-like array of data
         :param max_size: maximum image size as (width, height)
         :param tile_size: optional tile size (tile_width, tile_height)
         :param int_div: mux_size must be integer-divisible by tile size
@@ -694,7 +710,7 @@ class ImagePyramid:
         :param num_levels: optional number of levels
         :return: pyramid layout as tuple (max_size, tile_size, num_level_zero_tiles, num_levels)
         """
-        if array is not None:
+        if array is not None and hasattr(array, 'shape'):
             size = array.shape[-1], array.shape[-2]
             if not max_size:
                 max_size = size
@@ -732,9 +748,9 @@ class ImagePyramid:
         return max_size, tile_size, num_level_zero_tiles, num_levels
 
     def __init__(self,
-                 num_level_zero_tiles: Tuple[int, int],
-                 tile_size: Tuple[int, int],
-                 level_images: Sequence[TiledImage]):
+                 num_level_zero_tiles: Size2D,
+                 tile_size: Size2D,
+                 level_images: TiledImageCollection):
         self._num_level_zero_tiles_x = num_level_zero_tiles[0]
         self._num_level_zero_tiles_y = num_level_zero_tiles[1]
         self._tile_width = tile_size[0]
@@ -743,25 +759,25 @@ class ImagePyramid:
         self._level_images = list(level_images)
 
     @property
-    def num_level_zero_tiles(self):
+    def num_level_zero_tiles(self) -> Size2D:
         return self._num_level_zero_tiles_x, self._num_level_zero_tiles_y
 
     @property
-    def tile_size(self):
+    def tile_size(self) -> Size2D:
         return self._tile_width, self._tile_height
 
     @property
-    def num_levels(self):
+    def num_levels(self) -> int:
         return self._num_levels
 
-    def get_level_image(self, z_index: int):
+    def get_level_image(self, z_index: int) -> TiledImage:
         return self._level_images[z_index]
 
     def get_tile(self, tile_x: int, tile_y: int, z_index: int):
         level_image = self._level_images[z_index]
         return level_image.get_tile(tile_x, tile_y)
 
-    def dispose(self):
+    def dispose(self) -> None:
         for level_image in self._level_images:
             level_image.dispose()
 
@@ -775,7 +791,7 @@ def create_pil_downsampling_image(source_image: TiledImage,
                                   higher_level_image: TiledImage,
                                   z_index: int,
                                   num_levels: int,
-                                  **kwargs):
+                                  **kwargs) -> TiledImage:
     image_id = '%s-L%d' % (source_image.id, z_index)
     return PilDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
 
@@ -784,6 +800,6 @@ def create_ndarray_downsampling_image(source_image: TiledImage,
                                       higher_level_image: TiledImage,
                                       z_index: int,
                                       num_levels: int,
-                                      **kwargs):
+                                      **kwargs) -> TiledImage:
     image_id = '%s-L%d' % (source_image.id, z_index)
     return NdarrayDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
