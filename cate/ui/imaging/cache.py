@@ -19,9 +19,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+import os.path
+import sys
 import time
 from abc import ABCMeta, abstractmethod
 from threading import RLock
+
+
+def _compute_object_size(obj):
+    if hasattr(obj, 'nbytes'):
+        # A numpy ndarray instance
+        return obj.nbytes
+    elif hasattr(obj, 'size') and hasattr(obj, 'mode'):
+        # A PIL Image instance
+        w, h = obj.size
+        m = obj.mode
+        return w * h * (4 if m in ('RGBA', 'RGBx', 'I', 'F') else
+                        3 if m in ('RGB', 'YCbCr', 'LAB', 'HSV') else
+                        1. / 8. if m == '1' else
+                        1)
+    else:
+        return sys.getsizeof(obj)
 
 
 class CacheStore(metaclass=ABCMeta):
@@ -68,10 +87,55 @@ class MemoryCacheStore(CacheStore):
         """
         Return (value, 1).
         :param key: the key
+        :param value: the original value
+        :return: the tuple (stored value, size) where stored value is the sequence [key, value].
+        """
+        return [key, value], _compute_object_size(value)
+
+    def restore_value(self, key, stored_value):
+        """
+        :param key: the key
+        :param stored_value: the stored representation of the value
+        :return: the original value.
+        """
+        if key != stored_value[0]:
+            raise ValueError('key does not match stored value')
+        return stored_value[1]
+
+    def discard_value(self, key, stored_value):
+        """
+        Clears the value in the given stored_value.
+        :param key: the key
+        :param stored_value: the stored representation of the value
+        """
+        if key != stored_value[0]:
+            raise ValueError('key does not match stored value')
+        stored_value[1] = None
+
+
+class FileCacheStore(CacheStore):
+    """
+    Simple file store for values which can be written and read as bytes, e.g. encoded PNG images.
+    """
+
+    def __init__(self, cache_dir: str, ext: str):
+        self.cache_dir = cache_dir
+        self.ext = ext
+
+    def key_to_path(self, key):
+        return os.path.join(self.cache_dir, key + self.ext)
+
+    def store_value(self, key, value):
+        """
+        Return (value, 1).
+        :param key: the key
         :param value: the value
         :return: (value, 1)
         """
-        return value, 1
+        path = self.key_to_path(key)
+        with open(path, 'wb') as fp:
+            fp.write(value)
+        return path, os.path.getsize(path)
 
     def restore_value(self, key, stored_value):
         """
@@ -80,7 +144,9 @@ class MemoryCacheStore(CacheStore):
         :param stored_value: the stored representation of the value
         :return: stored_value
         """
-        return stored_value
+        path = self.key_to_path(key)
+        with open(path, 'rb') as fp:
+            return fp.read()
 
     def discard_value(self, key, stored_value):
         """
@@ -88,7 +154,11 @@ class MemoryCacheStore(CacheStore):
         :param key: the key
         :param stored_value: the stored representation of the value
         """
-        pass
+        path = self.key_to_path(key)
+        try:
+            os.remove(path)
+        except IOError:
+            pass
 
 
 # Discard Least Recently Used items first
