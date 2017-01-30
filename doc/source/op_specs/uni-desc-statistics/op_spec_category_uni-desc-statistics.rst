@@ -45,9 +45,9 @@ Operation Subcategories
 
 ---------------------------------
 
-.. :Operation Subcategory name: Filtering
-.. :Operation Subcategory description: calculations to manipulate the data in a way to highlight or remove specific features
-.. :Operations: Detection of Outliers, Filtering (High Pass, Low Pass, Band Pass), Removal of Seasonal Cycles
+:Operation Subcategory name: Filtering
+:Operation Subcategory description: calculations to manipulate the data in a way to highlight or remove specific features
+:Operations: Detection of Outliers, Filtering (High Pass, Low Pass, Band Pass), Removal of Seasonal Cycles
 
 .. ---------------------------------
 
