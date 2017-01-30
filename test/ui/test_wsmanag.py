@@ -24,23 +24,22 @@ class WorkspaceManagerTestMixin:
     def del_base_dir(self, base_dir):
         shutil.rmtree(base_dir)
 
-    def test_get_workspace(self):
+    def test_new_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, do_save=True)
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace1.base_dir, workspace2.base_dir)
         self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
 
-        self.del_base_dir(base_dir)
-
-    def test_init_workspace(self):
+    def test_new_save_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace = workspace_manager.new_workspace(base_dir=base_dir, do_save=True)
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
         self.assertTrue(os.path.exists(base_dir))
         self.assertIsNotNone(workspace)
 
@@ -51,12 +50,13 @@ class WorkspaceManagerTestMixin:
 
         workspace_manager = self.new_workspace_manager()
 
-        workspace = workspace_manager.new_workspace(base_dir=base_dir, do_save=True)
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
         self.assertTrue(os.path.exists(base_dir))
         self.assertTrue(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
 
-        workspace_manager.delete_workspace(base_dir=base_dir)
+        workspace_manager.delete_workspace(base_dir)
         self.assertTrue(os.path.exists(base_dir))
         self.assertFalse(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
@@ -67,12 +67,13 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, do_save=True)
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
+        workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',
                                                  op_args=['file=%s' % NETCDF_TEST_FILE])
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
+        workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
         self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
@@ -85,20 +86,21 @@ class WorkspaceManagerTestMixin:
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
-        workspace1 = workspace_manager.new_workspace(base_dir=base_dir, do_save=True, description='test clean workspace')
+        workspace1 = workspace_manager.new_workspace(base_dir, description='test clean workspace')
+        workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir=base_dir, res_name='SST',
+        workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',
                                                  op_args=['file=%s' % NETCDF_TEST_FILE])
-        workspace2 = workspace_manager.get_workspace(base_dir=base_dir)
+        workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
         self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
         sst_step = workspace2.workflow.find_node('SST')
         self.assertIsNotNone(sst_step)
 
-        workspace_manager.clean_workspace(base_dir=base_dir)
-        workspace3 = workspace_manager.get_workspace(base_dir=base_dir)
+        workspace_manager.clean_workspace(base_dir)
+        workspace3 = workspace_manager.get_workspace(base_dir)
         steps = workspace3.workflow.steps
         # Test that all steps & resources are removed
         self.assertEqual(steps, [])

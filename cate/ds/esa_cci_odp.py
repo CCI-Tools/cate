@@ -71,10 +71,10 @@ _TIME_FREQUENCY_TO_TIME_DELTA = dict([
     ('yr', timedelta(days=365)),
 ])
 
-_ODP_PROTOCOLS_HTTP = 'HTTPServer'
-_ODP_PROTOCOLS_OPENDAP = 'OPENDAP'
+_ODP_PROTOCOL_HTTP = 'HTTPServer'
+_ODP_PROTOCOL_OPENDAP = 'OPENDAP'
 
-_ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOLS_HTTP, _ODP_PROTOCOLS_OPENDAP]
+_ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
 
 
 def get_data_store_path():
@@ -447,8 +447,9 @@ class EsaCciOdpDataSource(DataSource):
             return 0, 0
 
         if protocol is None:
-            protocol = _ODP_PROTOCOLS_HTTP
-        if protocol is _ODP_PROTOCOLS_HTTP:
+            protocol = _ODP_PROTOCOL_HTTP
+
+        if protocol == _ODP_PROTOCOL_HTTP:
             dataset_dir = self.local_dataset_dir()
 
             # Find outdated files
@@ -476,7 +477,7 @@ class EsaCciOdpDataSource(DataSource):
                     if monitor.is_cancelled():
                         raise InterruptedError
                     dataset_file = os.path.join(dataset_dir, filename)
-                    sub_monitor = monitor.child(1.0)
+                    sub_monitor = monitor.child(work=1.0)
 
                     # noinspection PyUnusedLocal
                     def reporthook(block_number, read_size, total_file_size):
@@ -540,12 +541,11 @@ class EsaCciOdpDataSource(DataSource):
     def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
                      protocol: str=None) -> xr.Dataset:
         if protocol is None:
-            protocol = _ODP_PROTOCOLS_HTTP
+            protocol = _ODP_PROTOCOL_HTTP
         if protocol not in self.protocols:
             raise ValueError('Protocol \'{}\' is not supported.'
                              .format(protocol))
 
-        files = []
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
@@ -553,21 +553,20 @@ class EsaCciOdpDataSource(DataSource):
                 msg += ' in given time range {} to {}'.format(time_range[0], time_range[1])
             raise IOError(msg)
 
-        for file_rec in selected_file_list:
-            if protocol is _ODP_PROTOCOLS_OPENDAP:
-                files.append(file_rec[4][protocol].replace('.html', ''))
-            elif protocol is _ODP_PROTOCOLS_HTTP:
-                dataset_dir = self.local_dataset_dir()
-                files.append(os.path.join(dataset_dir, file_rec[0]))
-                for file in files:
-                    if not os.path.exists(file):
-                        raise IOError('Missing local data files, consider'
-                                      ' synchronizing the dataset first.')
+        files = []
+        if protocol == _ODP_PROTOCOL_OPENDAP:
+            files = [file_rec[4][protocol].replace('.html', '') for file_rec in selected_file_list]
+        elif protocol == _ODP_PROTOCOL_HTTP:
+            dataset_dir = self.local_dataset_dir()
+            files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
+            for file in files:
+                if not os.path.exists(file):
+                    raise IOError('Missing local data files, consider synchronizing the dataset first.')
+
         try:
             return open_xarray_dataset(files)
         except OSError as e:
-            raise IOError("Files: {} caused:\nOSError({}): {}"
-                          .format(files, e.errno, e.strerror))
+            raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:

@@ -30,10 +30,11 @@ import threading
 import time
 import traceback
 import urllib.request
-import xarray as xr
-import numpy as np
 from datetime import date, datetime
 from typing import Optional, Union, List
+
+import numpy as np
+import xarray as xr
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -41,11 +42,11 @@ from tornado.web import RequestHandler, Application
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
 from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, WEBAPI_LOG_FILE
+from cate.ui.imaging.ds import NaturalEarth2Image
+from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.ui.websock import AppWebSocketHandler
 from cate.ui.wsmanag import FSWorkspaceManager
 from cate.version import __version__
-from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
-from cate.ui.imaging.ds import NaturalEarth2Image
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -92,6 +93,7 @@ def get_application():
         (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
         (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
         (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
+        (url_pattern('/ws/save_as/{{base_dir}}'), WorkspaceSaveAsHandler),
         (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
         (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
         (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
@@ -515,9 +517,8 @@ class BaseRequestHandler(RequestHandler):
 class WorkspaceGetHandler(BaseRequestHandler):
     def get(self, base_dir):
         workspace_manager = self.application.workspace_manager
-        do_open = self.get_query_argument('do_open', default='False').lower() == 'true'
         try:
-            workspace = workspace_manager.get_workspace(base_dir, do_open=do_open)
+            workspace = workspace_manager.get_workspace(base_dir)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -538,11 +539,10 @@ class WorkspaceGetOpenHandler(BaseRequestHandler):
 class WorkspaceNewHandler(BaseRequestHandler):
     def get(self):
         base_dir = self.get_query_argument('base_dir')
-        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         description = self.get_query_argument('description', default='')
         workspace_manager = self.application.workspace_manager
         try:
-            workspace = workspace_manager.new_workspace(base_dir, do_save=do_save, description=description)
+            workspace = workspace_manager.new_workspace(base_dir, description=description)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -562,10 +562,9 @@ class WorkspaceOpenHandler(BaseRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceCloseHandler(BaseRequestHandler):
     def get(self, base_dir):
-        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_workspace(base_dir, do_save)
+            workspace_manager.close_workspace(base_dir)
             _on_workspace_closed(self.application)
             self.write(_status_ok())
         except Exception as e:
@@ -591,6 +590,18 @@ class WorkspaceSaveHandler(BaseRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             workspace = workspace_manager.save_workspace(base_dir)
+            self.write(_status_ok(content=workspace.to_json_dict()))
+        except Exception as e:
+            self.write(_status_error(exception=e))
+
+
+# noinspection PyAbstractClass
+class WorkspaceSaveAsHandler(BaseRequestHandler):
+    def get(self, base_dir):
+        to_dir = self.get_query_argument('to_dir')
+        workspace_manager = self.application.workspace_manager
+        try:
+            workspace = workspace_manager.save_workspace_as(base_dir, to_dir)
             self.write(_status_ok(content=workspace.to_json_dict()))
         except Exception as e:
             self.write(_status_error(exception=e))
@@ -717,7 +728,6 @@ class ResourcePrintHandler(BaseRequestHandler):
 
 # noinspection PyAbstractClass
 class NE2Handler(BaseRequestHandler):
-
     PYRAMID = NaturalEarth2Image.get_pyramid()
 
     def get(self, z, y, x):
@@ -734,7 +744,7 @@ class ResVarTileHandler(BaseRequestHandler):
 
         # GLOBAL_LOCK.acquire()
         workspace_manager = self.application.workspace_manager
-        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        workspace = workspace_manager.get_workspace(base_dir)
 
         if res_name not in workspace.resource_cache:
             self.write(_status_error(message='Unknown resource "%s"' % res_name))
@@ -772,12 +782,14 @@ class ResVarTileHandler(BaseRequestHandler):
                 if not var_index or len(var_index) != variable.ndim - 2:
                     var_index = (0,) * (variable.ndim - 2)
 
+                # noinspection PyTypeChecker
                 var_index += (slice(None), slice(None),)
 
                 print('var_index =', var_index)
                 array = variable[var_index]
             else:
-                self.write(_status_error(message='Variable must be an N-D Dataset with N >= 2, but "%s" is only %d-D' % (var_name, variable.ndim)))
+                self.write(_status_error(message='Variable must be an N-D Dataset with N >= 2, '
+                                                 'but "%s" is only %d-D' % (var_name, variable.ndim)))
                 return
 
             cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min

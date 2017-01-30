@@ -24,11 +24,11 @@ import json
 import sys
 import time
 import traceback
-from typing import Tuple, List
 from collections import OrderedDict
+from typing import List, Sequence
 
-import xarray as xr
 import tornado.websocket
+import xarray as xr
 from tornado.ioloop import IOLoop
 
 from cate.core.ds import DATA_STORE_REGISTRY
@@ -143,8 +143,27 @@ class ServiceMethods:
         return sorted(op_list, key=lambda op: op['name'])
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def new_workspace(self) -> dict:
-        workspace = self.workspace_manager.new_workspace(None)
+    def new_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.new_workspace(base_dir)
+        return workspace.to_json_dict()
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def open_workspace(self, base_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
+        return workspace.to_json_dict()
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def close_workspace(self, base_dir: str) -> None:
+        self.workspace_manager.close_workspace(base_dir)
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def save_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.save_workspace(base_dir)
+        return workspace.to_json_dict()
+
+    # see cate-desktop: src/renderer.states.WorkspaceState
+    def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
 
     # noinspection PyAbstractClass
@@ -175,13 +194,14 @@ class ServiceMethods:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
+    # noinspection PyMethodMayBeStatic
     def get_color_maps(self):
         from .cmaps import get_cmaps
         return get_cmaps()
 
-    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Tuple[int]):
+    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int]):
         workspace_manager = self.workspace_manager
-        workspace = workspace_manager.get_workspace(base_dir, do_open=False)
+        workspace = workspace_manager.get_workspace(base_dir)
         if res_name not in workspace.resource_cache:
             raise ValueError('Unknown resource "%s"' % res_name)
 
@@ -200,6 +220,7 @@ class ServiceMethods:
         valid_max = variable.max(skipna=True)
 
         return dict(min=float(valid_min), max=float(valid_max))
+
 
 # noinspection PyAbstractClass
 class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -290,7 +311,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if job_id in self._job_start:
                 delta_t = time.clock() - self._job_start[job_id]
                 del self._job_start[job_id]
-                print('Canceled job',job_id,'after',delta_t,'seconds')
+                print('Cancelled job', job_id, 'after', delta_t, 'seconds')
             response = dict(jsonrcp='2.0', id=method_id)
             self._write_response(json.dumps(response))
         else:
@@ -313,7 +334,7 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
             if method_id in self._job_start:
                 delta_t = time.clock() - self._job_start[method_id]
                 del self._job_start[method_id]
-                print('Finished job',method_id,'after',delta_t,'seconds')
+                print('Finished job', method_id, 'after', delta_t, 'seconds')
         except (concurrent.futures.CancelledError, InterruptedError):
             response = dict(jsonrcp='2.0',
                             id=method_id,
@@ -321,30 +342,30 @@ class AppWebSocketHandler(tornado.websocket.WebSocketHandler):
                                        message='Cancelled'))
         except Exception as e:
             stack_trace = traceback.format_exc()
+            print(stack_trace, file=sys.stderr, flush=True)
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=10,
-                                       message='Exception caught: %s' % e,
+                                       message='%s' % e,
                                        data=stack_trace))
         try:
             json_text = json.dumps(response)
         except Exception as e:
-            stacktrace = traceback.format_exc()
-            print('INTERNAL ERROR: response could not be converted to JSON: %s' % e)
-            print('response = %s' % response)
-            print(stacktrace)
+            stack_trace = traceback.format_exc()
+            print(stack_trace, file=sys.stderr, flush=True)
+            message = 'INTERNAL ERROR: response could not be converted to JSON: %s' % e
             json_text = json.dumps(dict(jsonrcp='2.0',
                                         id=method_id,
                                         error=dict(code=30,
-                                                   message='Exception caught: %s' % e,
-                                                   data=stacktrace)))
+                                                   message=message,
+                                                   data=stack_trace)))
         self._write_response(json_text)
 
-    def _write_response(self, json_text):
+    def _write_response(self, json_text: str):
         print('<== ', json_text)
         self.write_message(json_text)
 
-    def call_service_method(self, method_id, method_name, method_params):
+    def call_service_method(self, method_id: int, method_name: str, method_params: list):
         method = getattr(self._service, method_name)
 
         # Check if we need a ProgressMonitor impl. here.
@@ -381,7 +402,7 @@ class WebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _write_progress(self, message=None):
+    def _write_progress(self, message: str = None):
         current_time = time.time()
         if not self.last_time or (current_time - self.last_time) >= WEBAPI_PROGRESS_DEFER_PERIOD:
 

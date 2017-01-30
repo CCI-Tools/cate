@@ -131,12 +131,11 @@ class Workspace:
 
     def save(self):
         self._assert_open()
+        base_dir = self.base_dir
         try:
-            base_dir = self.base_dir
             if not os.path.isdir(base_dir):
                 os.mkdir(base_dir)
             workspace_dir = self.workspace_dir
-            # workflow_file = self.workflow_file
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             self.workflow.store(self.workflow_file)
@@ -212,6 +211,7 @@ class Workspace:
             variable_info['y_flipped'] = self._is_y_flipped(variable)
         return variable_info
 
+    # noinspection PyMethodMayBeStatic
     def _get_variable_image_config(self, variable):
         max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
         return {
@@ -227,14 +227,14 @@ class Workspace:
             'numLevelZeroTilesY': num_level_zero_tiles[1],
             'tileWidth': tile_size[0],
             'tileHeight': tile_size[1]
-    }
+        }
 
     def _is_y_flipped(self, variable):
         lat_coords = variable.coords[self._get_lat_dim_name(variable)]
         return lat_coords.to_index().is_monotonic_increasing
 
     def _is_lat_lon_image_variable(self, variable):
-        return self._get_lat_dim_name(variable) != None and self._get_lon_dim_name(variable) != None
+        return self._get_lat_dim_name(variable) is not None and self._get_lon_dim_name(variable) is not None
 
     def _get_lon_dim_name(self, variable):
         return self._get_dim_name(variable, ['lon', 'longitude', 'long'])
@@ -242,16 +242,18 @@ class Workspace:
     def _get_lat_dim_name(self, variable):
         return self._get_dim_name(variable, ['lat', 'latitude'])
 
+    # noinspection PyMethodMayBeStatic
     def _get_dim_name(self, variable, possible_names):
         for name in possible_names:
             if name in variable.dims:
                 return name
         return None
 
+    # noinspection PyMethodMayBeStatic
     def _get_unicode_attr(self, attr, key, default_value=''):
         if key in attr:
             value = attr.get(key)
-            #print(key, ' type:', str(type(value)), ' value:', str(value))
+            # print(key, ' type:', str(type(value)), ' value:', str(value))
             if type(value) == bytes or type(value) == np.bytes_:
                 return value.decode('unicode_escape')
             elif type(value) != str:
@@ -260,8 +262,10 @@ class Workspace:
                 return value
         return default_value
 
+    # noinspection PyMethodMayBeStatic
     def _get_float_attr(self, attr, key, default_value=None):
         if key in attr:
+            # noinspection PyBroadException
             try:
                 return float(attr.get(key))
             except:
@@ -293,17 +297,11 @@ class Workspace:
         if res_name in self._resource_cache:
             del self._resource_cache[res_name]
 
-    def execute_workflow(self, res_name, monitor=Monitor.NONE):
+    def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()
-        steps = self.workflow.find_steps_to_compute(res_name)
+        steps = self.workflow.steps if not res_name else self.workflow.find_steps_to_compute(res_name)
         Workflow.invoke_steps(steps, value_cache=self._resource_cache, monitor=monitor)
         return steps[-1].get_output_value()
-        # result = self.workflow.call(value_cache=self._resource_cache, monitor=monitor)
-        # if res_name is not None and res_name in result:
-        #     obj = result[res_name]
-        # else:
-        #     obj = result
-        # return obj
 
     def run_op(self, op_name: str, op_args: List[str], validate_args=False, monitor=Monitor.NONE):
         assert op_name
@@ -314,9 +312,9 @@ class Workspace:
             raise WorkspaceError("unknown operation '%s'" % op_name)
 
         with monitor.starting("Running operation '%s'" % op_name, 2):
-            self.workflow.invoke(self.resource_cache, monitor=monitor.child(1))
+            self.workflow.invoke(self.resource_cache, monitor=monitor.child(work=1))
             op_kwargs = self._parse_op_args(op, op_args, self.resource_cache, validate_args)
-            op(monitor=monitor.child(1), **op_kwargs)
+            op(monitor=monitor.child(work=1), **op_kwargs)
 
     def set_resource(self, res_name: str, op_name: str, op_args: List[str], overwrite=False, validate_args=False):
         assert res_name

@@ -37,7 +37,6 @@ class WebAPITest(AsyncHTTPTestCase):
 
         response = self.fetch(encode_url_path('/ws/new',
                                               query_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'),
-                                                              do_save=True,
                                                               description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))

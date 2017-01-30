@@ -24,6 +24,7 @@ import os
 import pprint
 import shutil
 import random
+import uuid
 import urllib.parse
 import urllib.request
 from abc import ABCMeta, abstractmethod
@@ -54,23 +55,28 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_workspace(self, base_dir: str, do_open: bool = False) -> Workspace:
+    def get_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
-    def new_workspace(self, base_dir: Union[str, None], do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: Union[str, None], description: str = None) -> Workspace:
         pass
 
     @abstractmethod
-    def open_workspace(self, base_dir: str) -> Workspace:
+    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def close_workspace(self, base_dir: str, do_save: bool) -> Workspace:
+    def close_workspace(self, base_dir: str) -> None:
         pass
 
     @abstractmethod
-    def close_all_workspaces(self, do_save: bool) -> None:
+    def close_all_workspaces(self) -> None:
+        pass
+
+    @abstractmethod
+    def save_workspace_as(self, base_dir: str, to_dir: str,
+                          monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
@@ -78,7 +84,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def save_all_workspaces(self) -> None:
+    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
@@ -139,24 +145,18 @@ class FSWorkspaceManager(WorkspaceManager):
     def get_open_workspaces(self) -> List[Workspace]:
         return list(self._open_workspaces.values())
 
-    def get_workspace(self, base_dir: str, do_open: bool = False) -> Workspace:
+    def get_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.get(base_dir, None)
-        if workspace is not None:
-            assert not workspace.is_closed
-            # noinspection PyTypeChecker
-            return workspace
-        if not do_open:
+        if workspace is None:
             raise WorkspaceError('workspace does not exist: ' + base_dir)
-        workspace = Workspace.open(base_dir)
-        assert base_dir not in self._open_workspaces
-        self._open_workspaces[base_dir] = workspace
+        assert not workspace.is_closed
+        # noinspection PyTypeChecker
         return workspace
 
-    def new_workspace(self, base_dir: str, do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         if base_dir is None:
-            digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-            scratch_dir_name = ''.join([digits[random.randint(0, len(digits) - 1)] for _ in range(32)])
+            scratch_dir_name = str(uuid.uuid4())
             scratch_dir_path = os.path.join(SCRATCH_WORKSPACES_PATH, scratch_dir_name)
             os.makedirs(scratch_dir_path, exist_ok=True)
             base_dir = scratch_dir_path
@@ -169,29 +169,80 @@ class FSWorkspaceManager(WorkspaceManager):
             raise WorkspaceError('workspace exists, consider opening it: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         assert base_dir not in self._open_workspaces
-        if do_save:
-            workspace.save()
         self._open_workspaces[base_dir] = workspace
         return workspace
 
-    def open_workspace(self, base_dir: str) -> Workspace:
-        return self.get_workspace(base_dir, do_open=True)
+    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self._open_workspaces.get(base_dir, None)
+        if workspace is not None:
+            assert not workspace.is_closed
+            # noinspection PyTypeChecker
+            return workspace
+        workspace = Workspace.open(base_dir)
+        assert base_dir not in self._open_workspaces
+        workspace.execute_workflow(monitor=monitor)
+        self._open_workspaces[base_dir] = workspace
+        return workspace
 
-    def close_workspace(self, base_dir: str, do_save: bool) -> None:
+    def close_workspace(self, base_dir: str) -> None:
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.pop(base_dir, None)
         if workspace is not None:
-            if do_save and workspace.is_modified:
-                workspace.save()
             workspace.close()
 
-    def close_all_workspaces(self, do_save: bool) -> None:
+    def close_all_workspaces(self) -> None:
         workspaces = self._open_workspaces.values()
         self._open_workspaces = dict()
         for workspace in workspaces:
-            if do_save:
-                workspace.save()
             workspace.close()
+
+    def save_workspace_as(self, base_dir: str, to_dir: str,
+                          monitor: Monitor = Monitor.NONE) -> Workspace:
+        base_dir = self.resolve_path(base_dir)
+        workspace = self.get_workspace(base_dir)
+
+        empty_dir_exists = False
+        if os.path.realpath(base_dir) == os.path.realpath(to_dir):
+            return workspace
+
+        with monitor.starting('opening "%s"' % to_dir, 100):
+            if os.path.exists(to_dir):
+                if os.path.isdir(to_dir):
+                    entries = list(os.listdir(to_dir))
+                    monitor.progress(work=5)
+                    if len(entries) == 0:
+                        empty_dir_exists = True
+                    else:
+                        raise WorkspaceError('Directory is not empty: ' + to_dir)
+                else:
+                    raise WorkspaceError('A file with same name already exists: ' + to_dir)
+            else:
+                monitor.progress(work=5)
+
+            # Save and close current workspace
+            workspace.save()
+            workspace.close()
+            monitor.progress(work=5)
+
+            try:
+                # if the given directory exists and is empty, we must delete it because
+                # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
+                if empty_dir_exists:
+                    os.rmdir(to_dir)
+                monitor.progress(work=5)
+                # Copy all files to new location to_dir
+                shutil.copytree(base_dir, to_dir)
+                monitor.progress(work=10)
+                # Reopen from new location
+                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=70))
+                # If it was a scratch workspace, delete the original
+                if workspace.is_scratch:
+                    shutil.rmtree(base_dir)
+                monitor.progress(work=5)
+                return new_workspace
+            except (IOError, OSError) as e:
+                raise WorkspaceError(e)
 
     def save_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -200,11 +251,13 @@ class FSWorkspaceManager(WorkspaceManager):
             workspace.save()
         return workspace
 
-    def save_all_workspaces(self) -> None:
+    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
         workspaces = self._open_workspaces.values()
-        self._open_workspaces = dict()
-        for workspace in workspaces:
-            workspace.save()
+        n = len(workspaces)
+        with monitor.starting('Saving %s workspace(s)' % n, n):
+            for workspace in workspaces:
+                workspace.save()
+                monitor.progress(work=1)
 
     def clean_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -231,7 +284,7 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def delete_workspace(self, base_dir: str) -> None:
-        self.close_workspace(base_dir, do_save=False)
+        self.close_workspace(base_dir)
         base_dir = self.resolve_path(base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if not os.path.isdir(workspace_dir):
@@ -252,7 +305,7 @@ class FSWorkspaceManager(WorkspaceManager):
                                monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
-        workspace.execute_workflow(res_name, monitor)
+        workspace.execute_workflow(res_name=res_name, monitor=monitor)
         return workspace
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
@@ -265,7 +318,7 @@ class FSWorkspaceManager(WorkspaceManager):
                                  monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
-            obj = workspace.execute_workflow(res_name, monitor.child(9))
+            obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
         return workspace
@@ -319,7 +372,7 @@ class FSWorkspaceManager(WorkspaceManager):
         if res_name_or_expr is None:
             value = workspace.resource_cache
         elif res_name_or_expr.isidentifier() and workspace.workflow.find_node(res_name_or_expr) is not None:
-            value = workspace.execute_workflow(res_name_or_expr, monitor)
+            value = workspace.execute_workflow(res_name=res_name_or_expr, monitor=monitor)
         if value is UNDEFINED:
             value = eval(res_name_or_expr, None, workspace.resource_cache)
         return value
@@ -382,45 +435,47 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_list = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return [Workspace.from_json_dict(ws_json_dict) for ws_json_dict in json_list]
 
-    def get_workspace(self, base_dir: str, do_open: bool = False) -> Workspace:
+    def get_workspace(self, base_dir: str) -> Workspace:
         url = self._url('/ws/get/{base_dir}',
-                        path_args=dict(base_dir=base_dir),
-                        query_args=dict(do_open=do_open))
+                        path_args=dict(base_dir=base_dir))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def new_workspace(self, base_dir: str, do_save: bool = False, description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         url = self._url('/ws/new',
                         query_args=dict(base_dir=base_dir,
-                                        do_save=do_save,
                                         description=description or ''))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def open_workspace(self, base_dir: str) -> Workspace:
+    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/open/{base_dir}',
                         path_args=dict(base_dir=base_dir))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def close_workspace(self, base_dir: str, do_save: bool) -> None:
+    def close_workspace(self, base_dir: str) -> None:
         url = self._url('/ws/close/{base_dir}',
-                        path_args=dict(base_dir=base_dir),
-                        query_args=self._query(do_save=do_save))
+                        path_args=dict(base_dir=base_dir))
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def close_all_workspaces(self, do_save: bool) -> None:
-        url = self._url('/ws/close_all',
-                        query_args=self._query(do_save=do_save))
+    def close_all_workspaces(self) -> None:
+        url = self._url('/ws/close_all')
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
-    def save_workspace(self, base_dir: str) -> Workspace:
+    def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+        url = self._url('/ws/save_as/{base_dir}',
+                        path_args=dict(base_dir=base_dir), query_args=dict(to_dir=to_dir))
+        json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
+
+    def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/save/{base_dir}',
                         path_args=dict(base_dir=base_dir))
         json_dict = self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def save_all_workspaces(self) -> None:
+    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/save_all')
         self._fetch_json(url, timeout=WEBAPI_WORKSPACE_TIMEOUT)
 

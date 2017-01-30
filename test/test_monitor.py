@@ -10,7 +10,7 @@ class NullMonitorTest(TestCase):
         self.assertEqual(repr(Monitor.NONE), 'Monitor.NONE')
 
     def test_child_monitor(self):
-        self.assertIs(Monitor.NONE.child(10), Monitor.NONE)
+        self.assertIs(Monitor.NONE.child(work=10), Monitor.NONE)
 
     def test_cancel(self):
         m = Monitor.NONE
@@ -53,7 +53,7 @@ class ConsoleMonitorTest(TestCase):
 
     def test_child_monitor(self):
         monitor = ConsoleMonitor()
-        child_monitor = monitor.child(7.5)
+        child_monitor = monitor.child(work=7.5)
         self.assertIsInstance(child_monitor, ChildMonitor)
 
     def test_cancel(self):
@@ -101,7 +101,7 @@ class RecordingMonitorTest(TestCase):
 class ChildMonitorTest(TestCase):
     def test_child_monitor(self):
         m = RecordingMonitor()
-        sub_monitor = m.child(10)
+        sub_monitor = m.child(work=10)
         self.assertIsInstance(sub_monitor, ChildMonitor)
 
         m.start('task A', total_work=10)
@@ -152,7 +152,7 @@ class ChildMonitorTest(TestCase):
 
     def test_cancel(self):
         m = RecordingMonitor()
-        sub_monitor = m.child(10)
+        sub_monitor = m.child(work=10)
         self.assertIsInstance(sub_monitor, ChildMonitor)
 
         m.start('task A', total_work=10)
@@ -171,7 +171,7 @@ class ChildMonitorTest(TestCase):
     def test_no_label(self):
         m = RecordingMonitor()
         m.start('xxx', 20)
-        sm = m.child(10)
+        sm = m.child(work=10)
         sm.start('', total_work=5)
         sm.done()
         sm.start(None, total_work=5)
