@@ -95,7 +95,7 @@ Output data
 :name: subset of variable 
 :type: floating point number
 :range: [-infinity; +infinity]
-:dimensionality: cube or 4D
+:dimensionality: vector or cube or 4D
 :description: values of a certain variable for the chosen area of interest 
 
 --------------------------
