@@ -66,8 +66,8 @@ mem_tile_cache_capacity = 128 * _ONE_MIB
 
 print("Cate tile cache properties:")
 print("  file_tile_cache_dir:", file_tile_cache_dir)
-print("  file_tile_cache_capacity: %s MiB" % (file_tile_cache_dir / _ONE_MIB))
-print("  mem_tile_cache_capacity: %s MiB" % (file_tile_cache_dir / _ONE_MIB))
+print("  file_tile_cache_capacity: %s MiB" % (file_tile_cache_capacity / _ONE_MIB))
+print("  mem_tile_cache_capacity: %s MiB" % (mem_tile_cache_capacity / _ONE_MIB))
 
 MEM_TILE_CACHE = Cache(MemoryCacheStore(), capacity=mem_tile_cache_capacity, threshold=0.75)
 PNG_TILE_CACHE = Cache(FileCacheStore(file_tile_cache_dir, ".png"), capacity=file_tile_cache_capacity, threshold=0.75)
