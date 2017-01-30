@@ -1,6 +1,97 @@
+import os
+import shutil
 from unittest import TestCase
 
-from cate.ui.imaging.cache import CacheStore, Cache
+from cate.ui.imaging.cache import CacheStore, Cache, MemoryCacheStore, FileCacheStore
+
+
+class MemoryCacheStoreTest(TestCase):
+    def setUp(self):
+        self.cache_store = MemoryCacheStore()
+        stored_value_a, size_a = self.cache_store.store_value('a', 42)
+        stored_value_b, size_b = self.cache_store.store_value('b', True)
+        stored_value_c, size_c = self.cache_store.store_value('c', "S" * 256)
+        stored_value_d, size_d = self.cache_store.store_value('d', 3.14)
+        self.stored_value_a = stored_value_a
+        self.stored_value_b = stored_value_b
+        self.stored_value_c = stored_value_c
+        self.stored_value_d = stored_value_d
+        self.assertEqual(size_a, 28)
+        self.assertEqual(size_b, 28)
+        self.assertEqual(size_c, 305)
+        self.assertEqual(size_d, 24)
+
+    def test_store_value(self):
+        self.assertEqual(self.stored_value_a, ['a', 42])
+        self.assertEqual(self.stored_value_b, ['b', True])
+        self.assertEqual(self.stored_value_c, ['c', "S" * 256])
+        self.assertEqual(self.stored_value_d, ['d', 3.14])
+
+    def test_restore_value(self):
+        self.assertEqual(self.cache_store.restore_value('a', self.stored_value_a), 42)
+        self.assertEqual(self.cache_store.restore_value('b', self.stored_value_b), True)
+        with self.assertRaises(ValueError):
+            self.cache_store.restore_value('e', self.stored_value_b)
+
+    def test_discard_value(self):
+        self.cache_store.discard_value('a', self.stored_value_a)
+        self.cache_store.discard_value('b', self.stored_value_b)
+        self.assertEqual(self.cache_store.restore_value('a', self.stored_value_a), None)
+        self.assertEqual(self.cache_store.restore_value('b', self.stored_value_b), None)
+        with self.assertRaises(ValueError):
+            self.cache_store.discard_value('e', self.stored_value_b)
+
+
+class FileCacheStoreTest(TestCase):
+    DIR = '__test_file_cache__'
+
+    def setUp(self):
+        if os.path.exists(FileCacheStoreTest.DIR):
+            shutil.rmtree(FileCacheStoreTest.DIR, ignore_errors=True)
+
+        os.mkdir(FileCacheStoreTest.DIR)
+        try:
+            self.cache_store = FileCacheStore(FileCacheStoreTest.DIR, ".dat")
+            stored_value_a, size_a = self.cache_store.store_value('a', bytes('abc', 'utf8'))
+            stored_value_b, size_b = self.cache_store.store_value('b', bytes('def', 'utf8'))
+            stored_value_c, size_c = self.cache_store.store_value('c', bytes('ghi', 'utf8'))
+            self.stored_value_a = stored_value_a
+            self.stored_value_b = stored_value_b
+            self.stored_value_c = stored_value_c
+            self.assertEqual(size_a, 3)
+            self.assertEqual(size_b, 3)
+            self.assertEqual(size_c, 3)
+        except Exception as e:
+            shutil.rmtree(FileCacheStoreTest.DIR, ignore_errors=True)
+            raise e
+
+
+    def tearDown(self):
+        shutil.rmtree(FileCacheStoreTest.DIR, ignore_errors=True)
+
+    def test_store_value(self):
+        self.assertEqual(self.stored_value_a, os.path.join(FileCacheStoreTest.DIR, 'a.dat'))
+        self.assertEqual(self.stored_value_b, os.path.join(FileCacheStoreTest.DIR, 'b.dat'))
+        self.assertEqual(self.stored_value_c, os.path.join(FileCacheStoreTest.DIR, 'c.dat'))
+
+    def test_restore_value(self):
+        self.assertEqual(self.cache_store.restore_value('a', self.stored_value_a), bytes('abc', 'utf8'))
+        self.assertEqual(self.cache_store.restore_value('b', self.stored_value_b), bytes('def', 'utf8'))
+        self.assertEqual(self.cache_store.restore_value('c', self.stored_value_c), bytes('ghi', 'utf8'))
+        with self.assertRaises(FileNotFoundError):
+            self.cache_store.restore_value('e', self.stored_value_b)
+
+    def test_discard_value(self):
+        self.cache_store.discard_value('a', self.stored_value_a)
+        self.cache_store.discard_value('b', self.stored_value_b)
+        self.cache_store.discard_value('c', self.stored_value_c)
+        self.cache_store.discard_value('e', self.stored_value_b)
+        with self.assertRaises(FileNotFoundError):
+            self.cache_store.restore_value('a', self.stored_value_a)
+        with self.assertRaises(FileNotFoundError):
+            self.cache_store.restore_value('b', self.stored_value_b)
+        with self.assertRaises(FileNotFoundError):
+            self.cache_store.restore_value('c', self.stored_value_c)
 
 
 class TestCacheStore(CacheStore):

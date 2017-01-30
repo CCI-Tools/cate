@@ -20,7 +20,6 @@
 # SOFTWARE.
 
 import io
-import sys
 import uuid
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import Tuple, Sequence, Union
@@ -29,28 +28,10 @@ import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
-from .cache import Cache, MemoryCacheStore
-from .utils import *
+from cate.ui.imaging.cache import Cache, MemoryCacheStore
+from cate.ui.imaging.utils import downsample_ndarray, compute_tile_size, cardinal_div_round, aggregate_ndarray_first
 
 _DEFAULT_TILE_CACHE = None
-
-
-class MemoryTileCacheStore(MemoryCacheStore):
-    def store_value(self, key, tile):
-        if hasattr(tile, 'nbytes'):
-            # A numpy ndarray instance
-            size = tile.nbytes
-        elif hasattr(tile, 'size') and hasattr(tile, 'mode'):
-            # A PIL Image instance
-            w, h = tile.size
-            m = tile.mode
-            size = w * h * (4 if m in ('RGBA', 'RGBx', 'I', 'F') else
-                            3 if m in ('RGB', 'YCbCr', 'LAB', 'HSV') else
-                            1. / 8. if m == '1' else
-                            1)
-        else:
-            size = sys.getsizeof(tile)
-        return tile, size
 
 
 def set_default_tile_cache(cache=None, no_cache=False, capacity=64 * 1024 * 1024, threshold=0.75):
@@ -58,7 +39,7 @@ def set_default_tile_cache(cache=None, no_cache=False, capacity=64 * 1024 * 1024
     if no_cache:
         _DEFAULT_TILE_CACHE = None
     elif cache is None:
-        _DEFAULT_TILE_CACHE = Cache(MemoryTileCacheStore(), capacity=capacity, threshold=threshold)
+        _DEFAULT_TILE_CACHE = Cache(MemoryCacheStore(), capacity=capacity, threshold=threshold)
     else:
         _DEFAULT_TILE_CACHE = cache
 
@@ -150,7 +131,7 @@ class AbstractTiledImage(TiledImage, metaclass=ABCMeta):
         self._tile_height = tile_size[1] if tile_size else compute_tile_size(self._height)
         self._num_tiles_x = num_tiles[0] if num_tiles else cardinal_div_round(self._width, self._tile_width)
         self._num_tiles_y = num_tiles[1] if num_tiles else cardinal_div_round(self._height, self._tile_height)
-        self._id = image_id if image_id else str(uuid.uuid4)
+        self._id = image_id if image_id else str(uuid.uuid4())
         self._mode = mode
         self._format = format
 
@@ -185,7 +166,7 @@ class AbstractTiledImage(TiledImage, metaclass=ABCMeta):
         pass
 
     def get_tile_id(self, tile_x, tile_y):
-        return '%s/%d/%d' % (self.id, tile_y, tile_x)
+        return '%s-y%d-x%d' % (self.id, tile_y, tile_x)
 
 
 class OpImage(AbstractTiledImage, metaclass=ABCMeta):
@@ -341,12 +322,12 @@ class ColorMappedRgbaImage(DecoratorImage):
 
     def __init__(self,
                  source_image: TiledImage,
-                 value_range: Tuple[float, float]=(0.0, 1.0),
-                 cmap_name: str=None,
-                 num_colors: int=256,
-                 no_data_value: Union[int, float]=None,
-                 encode: bool=False,
-                 format: str=None,
+                 value_range: Tuple[float, float] = (0.0, 1.0),
+                 cmap_name: str = None,
+                 num_colors: int = 256,
+                 no_data_value: Union[int, float] = None,
+                 encode: bool = False,
+                 format: str = None,
                  tile_cache=None):
         """
         Constructor.
@@ -520,7 +501,7 @@ class NdarrayDownsamplingImage(DownsamplingImage):
         """
         Constructor.
         :param source_image: a tiled source image (type TiledImage) whose source tiles must be PIL Images
-        :param key: an optional key prefix string used for caching
+        :param image_id: the image id
         :param tile_cache: an optional tile cache of type Cache
         :param aggregator: an aggregator function which will be called like so:
                 aggregator(downsampled_tile_00, downsampled_tile_01, downsampled_tile_10, downsampled_tile_11).
@@ -567,7 +548,7 @@ class FastNdarrayDownsamplingImage(OpImage):
         :param tile_cache: an optional tile cache of type Cache
         """
         zoom = 1 << (num_levels - z_index - 1)
-        image_id = '%s-L%d' % (uuid.uuid4(), z_index)
+        image_id = '%s-z%d' % (uuid.uuid4(), z_index)
         source_width, source_height = array.shape[-1], array.shape[-2]
         width, height = source_width // zoom, source_height // zoom
         tile_width, tile_height = tile_size
@@ -598,8 +579,8 @@ class FastNdarrayDownsamplingImage(OpImage):
 
         # todo: ensure that our tile size is w x h: resize and fill in background value.
         # For time being raise error
-        assert self.tile_size == actual_tile_size, \
-            "unexpected tile size: expected %s, but got %s" % (self.tile_size, actual_tile_size)
+        assert self.tile_size == actual_tile_size, "unexpected tile size: " \
+                                                   "expected %s, but got %s" % (self.tile_size, actual_tile_size)
 
         return tile
 
@@ -776,7 +757,7 @@ def create_pil_downsampling_image(source_image: TiledImage,
                                   z_index: int,
                                   num_levels: int,
                                   **kwargs):
-    image_id = '%s-L%d' % (source_image.id, z_index)
+    image_id = '%s-z%d' % (source_image.id, z_index)
     return PilDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
 
 
@@ -785,5 +766,5 @@ def create_ndarray_downsampling_image(source_image: TiledImage,
                                       z_index: int,
                                       num_levels: int,
                                       **kwargs):
-    image_id = '%s-L%d' % (source_image.id, z_index)
+    image_id = '%s-z%d' % (source_image.id, z_index)
     return NdarrayDownsamplingImage(higher_level_image, image_id=image_id, **kwargs)
