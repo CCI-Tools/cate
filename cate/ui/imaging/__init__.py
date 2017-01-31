@@ -20,7 +20,6 @@
 # SOFTWARE.
 
 from . import cache
-from . import cmaps
 from . import ds
 from . import image
 
