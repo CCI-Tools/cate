@@ -49,6 +49,24 @@ class CacheStore(metaclass=ABCMeta):
     """
 
     @abstractmethod
+    def can_load_from_key(self, key) -> bool:
+        """
+        Test whether a stored value representation can be loaded from the given key.
+        :param key: the key
+        :return: True, if so
+        """
+        pass
+
+    @abstractmethod
+    def load_from_key(self, key):
+        """
+        Load a stored value representation of the value and its size from the given key.
+        :param key: the key
+        :return: a 2-element sequence containing the stored representation of the value and it's size
+        """
+        pass
+
+    @abstractmethod
     def store_value(self, key, value):
         """
         Store a value and return it's stored representation and size in any unit, e.g. in bytes.
@@ -82,6 +100,13 @@ class MemoryCacheStore(CacheStore):
     """
     Simple memory store.
     """
+
+    def can_load_from_key(self, key) -> bool:
+        # This store type does not maintain key-value pairs on its own
+        return False
+
+    def load_from_key(self, key):
+        raise NotImplemented()
 
     def store_value(self, key, value):
         """
@@ -122,58 +147,68 @@ class FileCacheStore(CacheStore):
         self.cache_dir = cache_dir
         self.ext = ext
 
-    def key_to_path(self, key):
-        return os.path.join(self.cache_dir, key + self.ext)
+    def can_load_from_key(self, key) -> bool:
+        path = self._key_to_path(key)
+        return os.path.exists(path)
+
+    def load_from_key(self, key):
+        path = self._key_to_path(key)
+        return path, os.path.getsize(path)
 
     def store_value(self, key, value):
-        """
-        Return (value, 1).
-        :param key: the key
-        :param value: the value
-        :return: (value, 1)
-        """
-        path = self.key_to_path(key)
+        path = self._key_to_path(key)
+        dir_path = os.path.dirname(path)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
         with open(path, 'wb') as fp:
             fp.write(value)
         return path, os.path.getsize(path)
 
     def restore_value(self, key, stored_value):
-        """
-        Return stored_value.
-        :param key: the key
-        :param stored_value: the stored representation of the value
-        :return: stored_value
-        """
-        path = self.key_to_path(key)
+        path = self._key_to_path(key)
         with open(path, 'rb') as fp:
             return fp.read()
 
     def discard_value(self, key, stored_value):
-        """
-        Do nothing.
-        :param key: the key
-        :param stored_value: the stored representation of the value
-        """
-        path = self.key_to_path(key)
+        path = self._key_to_path(key)
         try:
             os.remove(path)
+            # TODO (forman): also remove empty directories up to self.cache_dir
         except IOError:
             pass
 
+    def _key_to_path(self, key):
+        return os.path.join(self.cache_dir, str(key) + self.ext)
+
+
+def _policy_lru(item):
+    return item.access_time
+
+
+def _policy_mru(item):
+    return -item.access_time
+
+
+def _policy_lfu(item):
+    return item.access_count
+
+
+def _policy_rr(item):
+    return item.access_count % 2
+
 
 # Discard Least Recently Used items first
-POLICY_LRU = lambda item: item.access_time
-
+POLICY_LRU = _policy_lru
 # Discard Most Recently Used first
-POLICY_MRU = lambda item: -item.access_time
-
+POLICY_MRU = _policy_mru
 # Discard Least Frequently Used first
-POLICY_LFU = lambda item: item.access_count
-
+POLICY_LFU = _policy_lfu
 # Discard items by Random Replacement
-POLICY_RR = lambda item: item.access_count % 2
+POLICY_RR = _policy_rr
 
 _T0 = time.clock()
+
+_DEBUG = True
 
 
 class Cache:
@@ -195,25 +230,41 @@ class Cache:
             self.access_time = 0
             self.access_count = 0
 
-        def access(self):
-            self.access_time = time.clock() - _T0
-            self.access_count += 1
+        @staticmethod
+        def load_from_key(store, key):
+            if not store.can_load_from_key(key):
+                return None
+            item = Cache.Item()
+            item._load_from_key(store, key)
+            return item
 
         def store(self, store, key, value):
             self.key = key
             self.access_count = 0
-            self.access()
+            self._access()
             stored_value, stored_size = store.store_value(key, value)
             self.stored_value = stored_value
             self.stored_size = stored_size
 
         def restore(self, store, key):
-            self.access()
+            self._access()
             return store.restore_value(key, self.stored_value)
 
         def discard(self, store, key):
             store.discard_value(key, self.stored_value)
             self.__init__()
+
+        def _load_from_key(self, store, key):
+            self.key = key
+            self.access_count = 0
+            self._access()
+            stored_value, stored_size = store.load_from_key(key)
+            self.stored_value = stored_value
+            self.stored_size = stored_size
+
+        def _access(self):
+            self.access_time = time.clock() - _T0
+            self.access_count += 1
 
     def __init__(self, store=MemoryCacheStore(), capacity=1000, threshold=0.75, policy=POLICY_LRU, parent_cache=None):
         """
@@ -263,12 +314,26 @@ class Cache:
         self._lock.acquire()
         item = self._item_dict.get(key)
         value = None
+        restored = False
         if item:
             value = item.restore(self._store, key)
+            restored = True
+            if _DEBUG:
+                _debug_print('restored value for key "%s" from cache' % key)
         elif self._parent_cache:
             item = self._parent_cache.get_value(key)
             if item:
                 value = item.restore(self._parent_cache.store, key)
+                restored = True
+                if _DEBUG:
+                    _debug_print('restored value for key "%s" from parent cache' % key)
+        if not restored:
+            item = Cache.Item.load_from_key(self._store, key)
+            if item:
+                self._add_item(item)
+                value = item.restore(self._store, key)
+                if _DEBUG:
+                    _debug_print('restored value for key "%s" from cache' % key)
         self._lock.release()
         return value
 
@@ -280,14 +345,14 @@ class Cache:
         item = self._item_dict.get(key)
         if item:
             self._remove_item(item)
-            self._size -= item.stored_size
             item.discard(self._store, key)
+            if _DEBUG:
+                _debug_print('discarded value for key "%s" from cache' % key)
         else:
             item = Cache.Item()
         item.store(self._store, key, value)
-        if self._size + item.stored_size > self._max_size:
-            self.trim(item.stored_size)
-        self._size += item.stored_size
+        if _DEBUG:
+            _debug_print('stored value for key "%s" in cache' % key)
         self._add_item(item)
         self._lock.release()
 
@@ -298,19 +363,26 @@ class Cache:
         item = self._item_dict.get(key)
         if item:
             self._remove_item(item)
-            self._size -= item.stored_size
             item.discard(self._store, key)
+            if _DEBUG:
+                _debug_print('cate.ui.imaging.cache.Cache: discarded value for key "%s" from parent cache' % key)
         self._lock.release()
 
     def _add_item(self, item):
         self._item_dict[item.key] = item
         self._item_list.append(item)
+        if self._size + item.stored_size > self._max_size:
+            self.trim(item.stored_size)
+        self._size += item.stored_size
 
     def _remove_item(self, item):
         self._item_dict.pop(item.key)
         self._item_list.remove(item)
+        self._size -= item.stored_size
 
     def trim(self, extra_size=0):
+        if _DEBUG:
+            _debug_print('trimming...')
         self._lock.acquire()
         self._item_list.sort(key=self._policy)
         keys = []
@@ -346,3 +418,7 @@ class Cache:
                 if value:
                     self._parent_cache.put_value(key, value)
             self.remove_value(key)
+
+
+def _debug_print(msg):
+    print("cate.ui.imaging.cache.Cache:", msg)

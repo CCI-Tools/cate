@@ -166,7 +166,7 @@ class AbstractTiledImage(TiledImage, metaclass=ABCMeta):
         pass
 
     def get_tile_id(self, tile_x, tile_y):
-        return '%s-y%d-x%d' % (self.id, tile_y, tile_x)
+        return '%s/%d/%d' % (self.id, tile_x, tile_y)
 
 
 class OpImage(AbstractTiledImage, metaclass=ABCMeta):
@@ -268,12 +268,13 @@ class TransformArrayImage(DecoratorImage):
 
     def __init__(self,
                  source_image: TiledImage,
+                 image_id: str = None,
                  flip_y=False,
                  force_masked=True,
                  force_2d=False,
                  no_data_value=None,
                  tile_cache=None):
-        super().__init__(source_image, tile_cache=tile_cache)
+        super().__init__(source_image, image_id=image_id, tile_cache=tile_cache)
         self._force_masked = force_masked
         self._force_2d = force_2d
         self._flip_y = flip_y
@@ -322,6 +323,7 @@ class ColorMappedRgbaImage(DecoratorImage):
 
     def __init__(self,
                  source_image: TiledImage,
+                 image_id: str = None,
                  value_range: Tuple[float, float] = (0.0, 1.0),
                  cmap_name: str = None,
                  num_colors: int = 256,
@@ -341,7 +343,7 @@ class ColorMappedRgbaImage(DecoratorImage):
         :param format:
         :return:
         """
-        super().__init__(source_image, format=format, mode='RGBA', tile_cache=tile_cache)
+        super().__init__(source_image, image_id=image_id, format=format, mode='RGBA', tile_cache=tile_cache)
         self._value_range = value_range
         self._cmap_name = cmap_name if cmap_name else 'jet'
         self._cmap = cm.get_cmap(self._cmap_name, num_colors)
@@ -747,9 +749,11 @@ class ImagePyramid:
             level_image.dispose()
 
     def apply(self, level_mapper, *args, **kwargs):
+        level_images = self._level_images
         return ImagePyramid(self.num_level_zero_tiles,
                             self.tile_size,
-                            [level_mapper(level_image, *args, **kwargs) for level_image in self._level_images])
+                            [level_mapper(level_images[level], level, *args, **kwargs)
+                             for level in range(len(level_images))])
 
 
 def create_pil_downsampling_image(source_image: TiledImage,

@@ -34,3 +34,14 @@ WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
 
 # {{cate-config}}
 WEBAPI_LOG_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.log')
+
+_ONE_MIB = 1024 * 1024
+_ONE_GIB = 1024 * _ONE_MIB
+
+# {{cate-config}}
+# The number of bytes in a workspace's image file cache
+WORKSPACE_FILE_TILE_CACHE_CAPACITY = 1 * _ONE_GIB
+
+# {{cate-config}}
+# The number of bytes in a workspace's image in-memory cache
+WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB

@@ -95,8 +95,19 @@ class FileCacheStoreTest(TestCase):
 
 
 class TestCacheStore(CacheStore):
+
     def __init__(self):
         self.trace = ''
+
+    def can_load_from_key(self, key) -> bool:
+        self.trace += 'can_load_from_key(%s);' % key
+        return key == 'k5'
+
+    def load_from_key(self, key):
+        self.trace += 'load_from_key(%s);' % key
+        if key == 'k5':
+            return 'S/yyyy', 600
+        raise ValueError()
 
     def store_value(self, key, value):
         self.trace += 'store(%s, %s);' % (key, value)
@@ -114,18 +125,13 @@ class CacheTest(TestCase):
     def setUp(self):
         pass
 
-    def test_it(self):
+    def test_store_and_restore_and_discard(self):
         cache_store = TestCacheStore()
         cache = Cache(store=cache_store, capacity=1000)
 
         self.assertIs(cache.store, cache_store)
         self.assertEqual(cache.size, 0)
         self.assertEqual(cache.max_size, 750)
-
-        cache_store.trace = ''
-        self.assertEqual(cache.get_value('k1'), None)
-        self.assertEqual(cache.size, 0)
-        self.assertEqual(cache_store.trace, '')
 
         cache_store.trace = ''
         cache.put_value('k1', 'x')
@@ -170,3 +176,18 @@ class CacheTest(TestCase):
         cache_store.trace = ''
         cache.clear()
         self.assertEqual(cache.size, 0)
+
+    def test_load_from_key(self):
+        cache_store = TestCacheStore()
+        cache = Cache(store=cache_store, capacity=1000)
+
+        cache_store.trace = ''
+        self.assertEqual(cache.get_value('k1'), None)
+        self.assertEqual(cache.size, 0)
+        self.assertEqual(cache_store.trace, 'can_load_from_key(k1);')
+
+        cache_store.trace = ''
+        self.assertEqual(cache.get_value('k5'), 'yyyy')
+        self.assertEqual(cache.size, 600)
+        self.assertEqual(cache_store.trace, 'can_load_from_key(k5);load_from_key(k5);restore(k5, S/yyyy);')
+

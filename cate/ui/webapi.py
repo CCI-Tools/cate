@@ -26,7 +26,6 @@ import signal
 import socket
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import traceback
@@ -42,10 +41,15 @@ from tornado.web import RequestHandler, Application
 
 from cate.core.monitor import Monitor, ConsoleMonitor
 from cate.core.util import cwd
-from cate.ui.conf import WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, WEBAPI_LOG_FILE
-from cate.ui.imaging.cache import Cache, MemoryCacheStore, FileCacheStore
+from cate.ui.conf import \
+    WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, \
+    WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, \
+    WEBAPI_LOG_FILE, \
+    WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
+    WORKSPACE_MEM_TILE_CACHE_CAPACITY
 from cate.ui.imaging.ds import NaturalEarth2Image
 from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from cate.ui.imaging.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.ui.websock import AppWebSocketHandler
 from cate.ui.wsmanag import FSWorkspaceManager
 from cate.version import __version__
@@ -57,23 +61,6 @@ __import__('cate.ops')
 CLI_NAME = 'cate-webapi'
 
 LOCALHOST = '127.0.0.1'
-
-_ONE_MIB = 1024 * 1024
-_ONE_GIB = 1024 * _ONE_MIB
-
-file_tile_cache_dir = os.path.join(tempfile.gettempdir(), 'cate', 'v%s' % __version__, 'tile-cache')
-file_tile_cache_capacity = 20 * _ONE_GIB
-mem_tile_cache_capacity = 256 * _ONE_MIB
-
-os.makedirs(file_tile_cache_dir, exist_ok=True)
-
-print("Cate tile cache properties:")
-print("  file_tile_cache_dir:", file_tile_cache_dir)
-print("  file_tile_cache_capacity: %s MiB" % (file_tile_cache_capacity / _ONE_MIB))
-print("  mem_tile_cache_capacity: %s MiB" % (mem_tile_cache_capacity / _ONE_MIB))
-
-MEM_TILE_CACHE = Cache(MemoryCacheStore(), capacity=mem_tile_cache_capacity, threshold=0.75)
-PNG_TILE_CACHE = Cache(FileCacheStore(file_tile_cache_dir, ".png"), capacity=file_tile_cache_capacity, threshold=0.75)
 
 
 class WebAPIServiceError(Exception):
@@ -757,9 +744,12 @@ class NE2Handler(BaseRequestHandler):
 
 # noinspection PyAbstractClass
 class ResVarTileHandler(BaseRequestHandler):
-    PYRAMIDS = dict()
+    PYRAMIDS = None
 
     def get(self, base_dir, res_name, z, y, x):
+
+        if not ResVarTileHandler.PYRAMIDS:
+            ResVarTileHandler.PYRAMIDS = dict()
 
         # GLOBAL_LOCK.acquire()
         workspace_manager = self.application.workspace_manager
@@ -780,15 +770,17 @@ class ResVarTileHandler(BaseRequestHandler):
         cmap_min = float(self.get_query_argument('min', default='nan'))
         cmap_max = float(self.get_query_argument('max', default='nan'))
 
-        image_id = '%s|%s|%s|%s|%s|%s' % (res_name,
+        image_id = '%s-%s-%s-%s-%s-%s' % (res_name,
                                           var_name,
                                           ','.join(map(str, var_index)),
                                           cmap_name,
                                           cmap_min,
                                           cmap_max)
 
-        if image_id in ResVarTileHandler.PYRAMIDS:
-            pyramid = ResVarTileHandler.PYRAMIDS[image_id]
+        pyramid_id = '%s-%s' % (base_dir, image_id)
+
+        if pyramid_id in ResVarTileHandler.PYRAMIDS:
+            pyramid = ResVarTileHandler.PYRAMIDS[pyramid_id]
         else:
             variable = dataset[var_name]
             no_data_value = variable.attrs.get('_FillValue', float('nan'))
@@ -816,21 +808,35 @@ class ResVarTileHandler(BaseRequestHandler):
             print('cmap_min =', cmap_min)
             print('cmap_max =', cmap_max)
 
-            pyramid = ImagePyramid.create_from_array(array)
+            rgb_tile_cache_dir = os.path.join(base_dir, '.cate-cache', 'v%s' % __version__, 'tiles')
+            rgb_tile_cache = Cache(FileCacheStore(rgb_tile_cache_dir, ".png"),
+                                   capacity=WORKSPACE_FILE_TILE_CACHE_CAPACITY,
+                                   threshold=0.75)
+            mem_tile_cache = Cache(MemoryCacheStore(),
+                                   capacity=WORKSPACE_MEM_TILE_CACHE_CAPACITY,
+                                   threshold=0.75)
 
-            pyramid = pyramid.apply(lambda image: TransformArrayImage(image,
-                                                                      no_data_value=no_data_value,
-                                                                      force_masked=True,
-                                                                      flip_y=is_y_flipped,
-                                                                      tile_cache=MEM_TILE_CACHE))
-            pyramid = pyramid.apply(lambda image: ColorMappedRgbaImage(image,
-                                                                       value_range=(cmap_min, cmap_max),
-                                                                       cmap_name=cmap_name,
-                                                                       encode=True, format='PNG',
-                                                                       tile_cache=PNG_TILE_CACHE))
-            ResVarTileHandler.PYRAMIDS[image_id] = pyramid
-            print('num_level_zero_tiles:', pyramid.num_level_zero_tiles)
-            print('num_levels:', pyramid.num_levels)
+            pyramid = ImagePyramid.create_from_array(array)
+            pyramid = pyramid.apply(lambda image, level:
+                                    TransformArrayImage(image,
+                                                        image_id='xform-%s/%d' % (image_id, level),
+                                                        no_data_value=no_data_value,
+                                                        force_masked=True,
+                                                        flip_y=is_y_flipped,
+                                                        tile_cache=mem_tile_cache))
+            pyramid = pyramid.apply(lambda image, level:
+                                    ColorMappedRgbaImage(image,
+                                                         image_id='rgb-%s/%d' % (image_id, level),
+                                                         value_range=(cmap_min, cmap_max),
+                                                         cmap_name=cmap_name,
+                                                         encode=True,
+                                                         format='PNG',
+                                                         tile_cache=rgb_tile_cache))
+            ResVarTileHandler.PYRAMIDS[pyramid_id] = pyramid
+            print('Created pyramid "%s":', pyramid_id)
+            print('  tile_size:', pyramid.tile_size)
+            print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
+            print('  num_levels:', pyramid.num_levels)
 
         try:
             print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
