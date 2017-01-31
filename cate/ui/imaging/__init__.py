@@ -27,6 +27,5 @@ from . import image
 __all__ = [
     'cache',
     'image',
-    'cmaps'
     'ds',
 ]
