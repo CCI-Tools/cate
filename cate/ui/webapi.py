@@ -59,10 +59,13 @@ CLI_NAME = 'cate-webapi'
 LOCALHOST = '127.0.0.1'
 
 _ONE_MIB = 1024 * 1024
+_ONE_GIB = 1024 * _ONE_MIB
 
-file_tile_cache_dir = tempfile.mkdtemp(prefix='cate-tile-cache-')
-file_tile_cache_capacity = 1024 * _ONE_MIB
-mem_tile_cache_capacity = 128 * _ONE_MIB
+file_tile_cache_dir = os.path.join(tempfile.gettempdir(), 'cate', 'v%s' % __version__, 'tile-cache')
+file_tile_cache_capacity = 20 * _ONE_GIB
+mem_tile_cache_capacity = 256 * _ONE_MIB
+
+os.makedirs(file_tile_cache_dir, exist_ok=True)
 
 print("Cate tile cache properties:")
 print("  file_tile_cache_dir:", file_tile_cache_dir)
