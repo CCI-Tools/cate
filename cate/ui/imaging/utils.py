@@ -130,3 +130,19 @@ def compute_tile_size(total_size,
         raise ValueError('tile size could not be computed')
 
     return best_tile_size
+
+
+def get_chunk_size(array):
+    chunk_size = None
+    try:
+        # xarray DataArray
+        chunk_size = array.encoding['chunksizes']
+    except:
+        pass
+    if not chunk_size:
+        try:
+            # netCDF4 data array
+            chunk_size = array.chunks
+        except:
+            pass
+    return chunk_size
