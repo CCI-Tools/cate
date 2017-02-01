@@ -742,6 +742,14 @@ class NE2Handler(BaseRequestHandler):
         self.write(NE2Handler.PYRAMID.get_tile(int(x), int(y), int(z)))
 
 
+# TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
+#                However, a global cache is fine as long as we have just one workspace open at a time.
+#
+mem_tile_cache = Cache(MemoryCacheStore(),
+                       capacity=WORKSPACE_MEM_TILE_CACHE_CAPACITY,
+                       threshold=0.75)
+
+
 # noinspection PyAbstractClass
 class ResVarTileHandler(BaseRequestHandler):
     PYRAMIDS = None
@@ -770,12 +778,13 @@ class ResVarTileHandler(BaseRequestHandler):
         cmap_min = float(self.get_query_argument('min', default='nan'))
         cmap_max = float(self.get_query_argument('max', default='nan'))
 
-        image_id = '%s-%s-%s-%s-%s-%s' % (res_name,
-                                          var_name,
-                                          ','.join(map(str, var_index)),
-                                          cmap_name,
-                                          cmap_min,
-                                          cmap_max)
+        array_id = '%s-%s-%s' % (res_name,
+                                 var_name,
+                                 ','.join(map(str, var_index)))
+        image_id = '%s-%s-%s-%s' % (array_id,
+                                    cmap_name,
+                                    cmap_min,
+                                    cmap_max)
 
         pyramid_id = '%s-%s' % (base_dir, image_id)
 
@@ -812,14 +821,15 @@ class ResVarTileHandler(BaseRequestHandler):
             rgb_tile_cache = Cache(FileCacheStore(rgb_tile_cache_dir, ".png"),
                                    capacity=WORKSPACE_FILE_TILE_CACHE_CAPACITY,
                                    threshold=0.75)
-            mem_tile_cache = Cache(MemoryCacheStore(),
-                                   capacity=WORKSPACE_MEM_TILE_CACHE_CAPACITY,
-                                   threshold=0.75)
 
-            pyramid = ImagePyramid.create_from_array(array)
+            def array_image_id_factory(level):
+                return 'arr-%s/%s' % (array_id, level)
+
+            pyramid = ImagePyramid.create_from_array(array,
+                                                     level_image_id_factory=array_image_id_factory)
             pyramid = pyramid.apply(lambda image, level:
                                     TransformArrayImage(image,
-                                                        image_id='xform-%s/%d' % (image_id, level),
+                                                        image_id='tra-%s/%d' % (array_id, level),
                                                         no_data_value=no_data_value,
                                                         force_masked=True,
                                                         flip_y=is_y_flipped,
@@ -833,7 +843,7 @@ class ResVarTileHandler(BaseRequestHandler):
                                                          format='PNG',
                                                          tile_cache=rgb_tile_cache))
             ResVarTileHandler.PYRAMIDS[pyramid_id] = pyramid
-            print('Created pyramid "%s":', pyramid_id)
+            print('Created pyramid "%s":' % pyramid_id)
             print('  tile_size:', pyramid.tile_size)
             print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
             print('  num_levels:', pyramid.num_levels)
