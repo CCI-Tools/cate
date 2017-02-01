@@ -38,6 +38,7 @@ from cate.core.util import Namespace, object_to_qualified_name
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
 from cate.ui.conf import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.ui.imaging.image import ImagePyramid
+from cate.ui.imaging.utils import get_chunk_size
 
 
 class Workspace:
@@ -194,7 +195,7 @@ class Workspace:
             'dataType': object_to_qualified_name(variable.dtype),
             'ndim': len(variable.dims),
             'shape': variable.shape,
-            'chunks': variable.chunks,
+            'chunks': get_chunk_size(variable),
             'dimensions': variable.dims,
             'fill_value': self._get_float_attr(attrs, '_FillValue'),
             'valid_min': self._get_float_attr(attrs, 'valid_min'),
