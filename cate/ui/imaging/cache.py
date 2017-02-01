@@ -26,6 +26,9 @@ import time
 from abc import ABCMeta, abstractmethod
 from threading import RLock
 
+#_DEBUG_CACHE = True
+_DEBUG_CACHE = False
+
 
 def _compute_object_size(obj):
     if hasattr(obj, 'nbytes'):
@@ -208,8 +211,6 @@ POLICY_RR = _policy_rr
 
 _T0 = time.clock()
 
-_DEBUG = True
-
 
 class Cache:
     """
@@ -318,21 +319,21 @@ class Cache:
         if item:
             value = item.restore(self._store, key)
             restored = True
-            if _DEBUG:
+            if _DEBUG_CACHE:
                 _debug_print('restored value for key "%s" from cache' % key)
         elif self._parent_cache:
             item = self._parent_cache.get_value(key)
             if item:
                 value = item.restore(self._parent_cache.store, key)
                 restored = True
-                if _DEBUG:
+                if _DEBUG_CACHE:
                     _debug_print('restored value for key "%s" from parent cache' % key)
         if not restored:
             item = Cache.Item.load_from_key(self._store, key)
             if item:
                 self._add_item(item)
                 value = item.restore(self._store, key)
-                if _DEBUG:
+                if _DEBUG_CACHE:
                     _debug_print('restored value for key "%s" from cache' % key)
         self._lock.release()
         return value
@@ -346,12 +347,12 @@ class Cache:
         if item:
             self._remove_item(item)
             item.discard(self._store, key)
-            if _DEBUG:
+            if _DEBUG_CACHE:
                 _debug_print('discarded value for key "%s" from cache' % key)
         else:
             item = Cache.Item()
         item.store(self._store, key, value)
-        if _DEBUG:
+        if _DEBUG_CACHE:
             _debug_print('stored value for key "%s" in cache' % key)
         self._add_item(item)
         self._lock.release()
@@ -364,7 +365,7 @@ class Cache:
         if item:
             self._remove_item(item)
             item.discard(self._store, key)
-            if _DEBUG:
+            if _DEBUG_CACHE:
                 _debug_print('cate.ui.imaging.cache.Cache: discarded value for key "%s" from parent cache' % key)
         self._lock.release()
 
@@ -381,7 +382,7 @@ class Cache:
         self._size -= item.stored_size
 
     def trim(self, extra_size=0):
-        if _DEBUG:
+        if _DEBUG_CACHE:
             _debug_print('trimming...')
         self._lock.acquire()
         self._item_list.sort(key=self._policy)
