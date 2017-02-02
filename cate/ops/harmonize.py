@@ -32,6 +32,7 @@ Components
 import xarray as xr
 
 from cate.core.op import op
+from cate.core.util import get_lon_dim_name, get_lat_dim_name
 
 
 @op(tags=['harmonize'])
@@ -43,8 +44,8 @@ def harmonize(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to harmonize
     :return: The harmonized dataset
     """
-    lat_name = _get_lat_dim_name(ds)
-    lon_name = _get_lon_dim_name(ds)
+    lat_name = get_lat_dim_name(ds)
+    lon_name = get_lon_dim_name(ds)
 
     name_dict = dict()
     if lat_name:
@@ -54,18 +55,3 @@ def harmonize(ds: xr.Dataset) -> xr.Dataset:
         name_dict[lon_name] = 'lon'
 
     return ds.rename(name_dict)
-
-
-def _get_lon_dim_name(xarray: xr.Dataset) -> str:
-    return _get_dim_name(xarray, ['lon', 'longitude', 'long'])
-
-
-def _get_lat_dim_name(xarray: xr.Dataset) -> str:
-    return _get_dim_name(xarray, ['lat', 'latitude'])
-
-
-def _get_dim_name(xarray: xr.Dataset, possible_names) -> str:
-    for name in possible_names:
-        if name in xarray.dims:
-            return name
-    return None
