@@ -517,6 +517,7 @@ def get_lat_dim_name(ds: xr.Dataset) -> str:
     return _get_dim_name(ds, ['lat', 'latitude'])
 
 
+# noinspection PyMethodMayBeStatic
 def _get_dim_name(ds: xr.Dataset, possible_names) -> str:
     for name in possible_names:
         if name in ds.dims:
