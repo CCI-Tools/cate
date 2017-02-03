@@ -19,6 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Marco Zühlke (Brockmann Consult GmbH)"
+
 """
 Description
 ===========
@@ -84,10 +86,12 @@ from typing import Sequence, Optional
 from typing import Union, Tuple
 
 import xarray as xr
-from cate.core import conf
+
+from cate.conf.defaults import DEFAULT_DATA_PATH
+from cate.conf import get_config_path
 from cate.core.cdm import Schema
-from cate.core.monitor import Monitor
-from cate.core.util import to_datetime_range
+from cate.util.misc import to_datetime_range
+from cate.util.monitor import Monitor
 
 
 def get_data_stores_path() -> str:
@@ -98,7 +102,7 @@ def get_data_stores_path() -> str:
     :return: Effectively reads the value of the configuration parameter ``data_stores_path``, if any. Otherwise return
              the default value ``~/.cate/data_stores``.
     """
-    return conf.get_config_path('data_stores_path', os.path.join(conf.DEFAULT_DATA_PATH, 'data_stores'))
+    return get_config_path('data_stores_path', os.path.join(DEFAULT_DATA_PATH, 'data_stores'))
 
 
 class DataSource(metaclass=ABCMeta):

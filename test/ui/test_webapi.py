@@ -7,8 +7,8 @@ import urllib.parse
 
 from tornado.testing import AsyncHTTPTestCase
 
-from cate.core.util import encode_url_path
 from cate.ui import webapi
+from cate.util.misc import encode_url_path
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
 

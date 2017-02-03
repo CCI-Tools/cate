@@ -30,7 +30,8 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual("Local data store 'test' already contains a data source named 'test.a_name'", str(cm.exception))
+        self.assertEqual("Local data store 'test' already contains a data source named 'test.a_name'",
+                         str(cm.exception))
 
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)

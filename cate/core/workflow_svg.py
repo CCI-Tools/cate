@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
 Internal module that implements the representation of a :py:class:`Workflow` as SVG graphic.

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
 Description
@@ -107,8 +109,8 @@ from collections import OrderedDict
 from inspect import isclass
 from typing import Dict, Tuple, List, Union, Callable
 
-from .monitor import Monitor
-from .util import object_to_qualified_name, qualified_name_to_object
+from cate.util.misc import object_to_qualified_name, qualified_name_to_object
+from cate.util.monitor import Monitor
 
 _SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
 _SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")

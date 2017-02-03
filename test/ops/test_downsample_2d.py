@@ -16,9 +16,9 @@ class Downsample2dTest(unittest.TestCase):
             desired = np.array(desired)
 
         actual = rs.downsample_2d(src, out_w, out_h,
-                                   method=method,
-                                   fill_value=fill_value,
-                                   mode_rank=kwargs.get('mode_rank', 1))
+                                  method=method,
+                                  fill_value=fill_value,
+                                  mode_rank=kwargs.get('mode_rank', 1))
         np.testing.assert_almost_equal(actual=desired, desired=actual)
 
         if isinstance(src, np.ma.MaskedArray):

@@ -39,19 +39,19 @@ from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
-from cate.core.monitor import Monitor, ConsoleMonitor
-from cate.core.util import cwd
-from cate.ui.conf import \
+from cate.conf.defaults import \
     WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, \
     WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER, \
     WEBAPI_LOG_FILE, \
     WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
     WORKSPACE_MEM_TILE_CACHE_CAPACITY
-from cate.ui.imaging.ds import NaturalEarth2Image
-from cate.ui.imaging.image import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
-from cate.ui.imaging.cache import Cache, MemoryCacheStore, FileCacheStore
+from cate.core.wsmanag import FSWorkspaceManager
 from cate.ui.websock import AppWebSocketHandler
-from cate.ui.wsmanag import FSWorkspaceManager
+from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
+from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from cate.util.im.ds import NaturalEarth2Image
+from cate.util.misc import cwd
+from cate.util.monitor import Monitor, ConsoleMonitor
 from cate.version import __version__
 
 # Explicitly load Cate-internal plugins.
@@ -110,7 +110,7 @@ def get_application():
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        # Natural Earth v2 imagery provider for testing, see cate.ui.imaging.data_sources.NaturalEarth2Image class
+        # Natural Earth v2 imagery provider for testing, see cate.ui.im.data_sources.NaturalEarth2Image class
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
 
         (url_pattern('/exit'), ExitHandler)

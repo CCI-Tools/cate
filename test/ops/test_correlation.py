@@ -2,10 +2,11 @@
 Tests for correlation operations
 """
 
-from unittest import TestCase
-import xarray as xr
-import numpy as np
 import os
+from unittest import TestCase
+
+import numpy as np
+import xarray as xr
 
 from cate.ops.correlation import pearson_correlation
 
@@ -17,7 +18,7 @@ class TestCorrelation(TestCase):
         dataset = xr.Dataset({
             'first': ('time', np.linspace(0, 5, 6))})
         dataset2 = xr.Dataset({
-            'first': ('time', np.linspace(5, 0, 6,))})
+            'first': ('time', np.linspace(5, 0, 6, ))})
 
         correlation = pearson_correlation(dataset, dataset2, 'first', 'first',
                                           file='remove_me.txt')

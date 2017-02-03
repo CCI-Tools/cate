@@ -7,15 +7,15 @@ import unittest
 from time import sleep
 from typing import Union, List
 
+from cate.cli import main
 from cate.core.ds import DATA_STORE_REGISTRY
-from cate.core.monitor import Monitor
 from cate.core.op import OP_REGISTRY
-from cate.core.util import fetch_std_streams
+from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
-from cate.ui import cli
-from cate.ui.wsmanag import FSWorkspaceManager
+from cate.util.misc import fetch_std_streams
+from cate.util.monitor import Monitor
 
-NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
 
 def _create_test_data_store():
@@ -47,7 +47,7 @@ class CliTestCase(unittest.TestCase):
                     expected_stdout: Union[None, str, List[str]] = None,
                     expected_stderr: Union[None, str, List[str]] = '') -> None:
         with fetch_std_streams() as (stdout, stderr):
-            actual_status = cli.main(args=args)
+            actual_status = main.main(args=args)
             self.assertEqual(actual_status, expected_status,
                              msg='args = %s\n'
                                  'status = %s\n'
@@ -101,23 +101,23 @@ class CliTest(CliTestCase):
         self.assert_main(['--help'])
 
     def test_parse_open_arg(self):
-        self.assertEqual(cli._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+        self.assertEqual(main._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1'),
                          ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
-        self.assertEqual(cli._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1,2011'),
+        self.assertEqual(main._parse_open_arg('sst2011=SST_LT_ATSR_L3U_V01.0_ATSR1,2011'),
                          ('sst2011', 'SST_LT_ATSR_L3U_V01.0_ATSR1', '2011', None))
-        self.assertEqual(cli._parse_open_arg('SST_LT_ATSR_L3U_V01.0_ATSR1,,2012'),
+        self.assertEqual(main._parse_open_arg('SST_LT_ATSR_L3U_V01.0_ATSR1,,2012'),
                          (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, '2012'))
-        self.assertEqual(cli._parse_open_arg('=SST_LT_ATSR_L3U_V01.0_ATSR1'),
+        self.assertEqual(main._parse_open_arg('=SST_LT_ATSR_L3U_V01.0_ATSR1'),
                          (None, 'SST_LT_ATSR_L3U_V01.0_ATSR1', None, None))
-        self.assertEqual(cli._parse_open_arg('sst2011='),
+        self.assertEqual(main._parse_open_arg('sst2011='),
                          ('sst2011', None, None, None))
 
     def test_parse_write_arg(self):
-        self.assertEqual(cli._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
-        self.assertEqual(cli._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
-        self.assertEqual(cli._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', None))
-        self.assertEqual(cli._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
-        self.assertEqual(cli._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
+        self.assertEqual(main._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
+        self.assertEqual(main._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
@@ -126,12 +126,12 @@ class WorkspaceCommandTest(CliTestCase):
         self.remove_tree('.cate-workspace', ignore_errors=False)
 
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
-        self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
+        self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
         self.workspace_manager = FSWorkspaceManager()
-        cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
+        main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
-        cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
+        main.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
         self.remove_tree('.cate-workspace', ignore_errors=False)
 
     def assert_workspace_base_dir(self, base_dir):
@@ -173,12 +173,12 @@ class WorkspaceCommandTest(CliTestCase):
 class ResourceCommandTest(CliTestCase):
     def setUp(self):
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
-        self.cli_workspace_manager_factory = cli.WORKSPACE_MANAGER_FACTORY
+        self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
         self.workspace_manager = FSWorkspaceManager()
-        cli.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
+        main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
-        cli.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
+        main.WORKSPACE_MANAGER_FACTORY = self.cli_workspace_manager_factory
 
     def test_res_read_set_write(self):
         input_file = NETCDF_TEST_FILE

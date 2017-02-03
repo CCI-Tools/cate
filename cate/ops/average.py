@@ -29,15 +29,15 @@ Components
 ==========
 """
 
+from datetime import datetime
+
 import xarray as xr
 
-from cate.core.op import op, op_input
-from cate.ops import select_var, open_dataset, save_dataset
-from cate.core.monitor import Monitor
-from cate.core.util import to_datetime_range, to_datetime
 from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
-
-from datetime import datetime
+from cate.core.op import op, op_input
+from cate.ops import select_var, save_dataset
+from cate.util import to_datetime_range, to_datetime
+from cate.util.monitor import Monitor
 
 
 @op(tags=['temporal', 'mean', 'average', 'long_running'])

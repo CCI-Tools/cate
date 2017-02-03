@@ -3,6 +3,7 @@ Test for the harmonization operation
 """
 
 from unittest import TestCase
+
 import xarray as xr
 
 from cate.ops.harmonize import harmonize

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -31,21 +31,11 @@ import tornado.websocket
 import xarray as xr
 from tornado.ioloop import IOLoop
 
+from cate.conf.defaults import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.ds import DATA_STORE_REGISTRY
-from cate.core.monitor import Monitor
 from cate.core.op import OpMetaInfo, OP_REGISTRY
-from cate.core.util import cwd, to_str_constant, is_str_constant
-from cate.ui.conf import WEBAPI_PROGRESS_DEFER_PERIOD
-from cate.ui.wsmanag import WorkspaceManager
-
-
-def type_to_str(data_type):
-    if isinstance(data_type, str):
-        return data_type
-    elif hasattr(data_type, '__name__'):
-        return data_type.__name__
-    else:
-        return str(data_type)
+from cate.core.wsmanag import WorkspaceManager
+from cate.util import Monitor, cwd, to_str_constant, is_str_constant
 
 
 class ServiceMethods:
@@ -196,7 +186,7 @@ class ServiceMethods:
 
     # noinspection PyMethodMayBeStatic
     def get_color_maps(self):
-        from .cmaps import get_cmaps
+        from cate.util.im.cmaps import get_cmaps
         return get_cmaps()
 
     def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int]):

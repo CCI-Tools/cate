@@ -41,7 +41,7 @@ setup(
     data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
     entry_points={
         'console_scripts': [
-            'cate = cate.ui.cli:main',
+            'cate = cate.cli.main:main',
             'cate-webapi = cate.ui.webapi:main',
         ],
         'cate_plugins': [

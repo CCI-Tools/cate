@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 import xarray as xr
 
 from cate.ops.select import select_var
@@ -7,7 +8,7 @@ from cate.ops.select import select_var
 class TestSelect(TestCase):
     def test_select(self):
         dataset = xr.Dataset({'abc': ('x', [1, 2, 3]),
-                               'bde': ('x', [4, 5, 6])})
+                              'bde': ('x', [4, 5, 6])})
 
         # Test if nothing gets dropped if nothing has to be dropped
         actual = select_var(dataset)

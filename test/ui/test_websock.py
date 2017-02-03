@@ -1,13 +1,11 @@
 import unittest
-from collections import OrderedDict
 
-from cate import Monitor
+from cate.core.wsmanag import FSWorkspaceManager
 from cate.ui.websock import ServiceMethods
-from cate.ui.wsmanag import FSWorkspaceManager
+from cate.util.monitor import Monitor
 
 
 class MapServiceMethodNameTest(unittest.TestCase):
-
     def setUp(self):
         self.service_methods = ServiceMethods(FSWorkspaceManager())
 
@@ -37,4 +35,3 @@ class MapServiceMethodNameTest(unittest.TestCase):
         self.assertEqual(names, ['ds_name', 'start_date', 'end_date', 'sync', 'protocol'])
         names = [props['name'] for props in open_dataset_op['output']]
         self.assertEqual(names, ['return'])
-

@@ -24,9 +24,10 @@ import os.path
 from abc import ABCMeta
 
 import xarray as xr
-from cate.core.monitor import Monitor
+
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
+from cate.util.monitor import Monitor
 
 
 @op(tags=['input'])

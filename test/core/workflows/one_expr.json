@@ -1,0 +1,34 @@
+{
+  "qualified_name": "expr_workflow",
+  "header": {
+    "description": "This is a test workflow composed of a single ExprNode."
+  },
+  "input": {
+    "a": {},
+    "b": {},
+    "c": {}
+  },
+  "output": {
+    "x": {
+      "source": "expr_node.x"
+    },
+    "y": {
+      "source": "expr_node.y"
+    }
+  },
+  "steps": [
+    {
+      "id": "expr_node",
+      "expression": "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)",
+      "input": {
+        "a": "expr_workflow.a",
+        "b": "expr_workflow.b",
+        "c": "expr_workflow.c"
+      },
+      "output": {
+        "x": {},
+        "y": {}
+      }
+    }
+  ]
+}

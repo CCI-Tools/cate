@@ -3,8 +3,9 @@ Tests for subsetting operations
 """
 
 from unittest import TestCase
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 
 from cate.ops import subset
 

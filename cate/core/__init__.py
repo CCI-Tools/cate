@@ -19,11 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 """
 Cate core classes and functions.
 """
-
-from .monitor import Monitor
 
 # As last step, run plugin registration by importing the plugin module
 from .plugin import cate_init as _

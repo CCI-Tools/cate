@@ -19,6 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 """
 Description
 ===========
@@ -110,7 +112,7 @@ Components
 from collections import OrderedDict
 from typing import List
 
-from cate.core.util import object_to_qualified_name, qualified_name_to_object
+from cate.util.misc import object_to_qualified_name, qualified_name_to_object
 
 
 class Schema:
