@@ -45,6 +45,11 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertIn('base_dir', json_dict['content'])
         self.assertIn('workflow', json_dict['content'])
 
+        response = self.fetch(encode_url_path('/ws/save/{base_dir}',
+                                              path_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'))))
+
+        self.assertEqual(response.code, 200)
+
         res_name = 'ds'
 
         file_path = NETCDF_TEST_FILE
