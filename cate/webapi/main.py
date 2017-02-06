@@ -1,0 +1,102 @@
+# The MIT License (MIT)
+# Copyright (c) 2017 by the Cate Development Team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+import sys
+from datetime import date
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
+
+from tornado.web import Application
+
+from cate.version import __version__
+from cate.core.wsmanag import FSWorkspaceManager
+from cate.util.web import JsonRcpWebSocketHandler
+from .rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
+    WorkspaceCloseHandler, WorkspaceGetOpenHandler, WorkspaceCleanHandler, \
+    WorkspaceCloseAllHandler, WorkspaceDeleteHandler, WorkspaceRunOpHandler, \
+    WorkspaceSaveAllHandler, WorkspaceSaveAsHandler, WorkspaceSaveHandler, \
+    ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
+    ResourcePrintHandler, ResourceWriteHandler, \
+    ResVarTileHandler, NE2Handler
+from cate.util.web.webapi import url_pattern, run_main, WebAPIRequestHandler, WebAPIExitHandler
+from .websocket import WebSocketService
+
+# Explicitly load Cate-internal plugins.
+__import__('cate.ds')
+__import__('cate.ops')
+
+CLI_NAME = 'cate-webapi'
+CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) Web API'
+
+
+# noinspection PyAbstractClass
+class WebAPIVersionHandler(WebAPIRequestHandler):
+    def get(self):
+        self.write_status_ok(content={'name': CLI_NAME,
+                                      'version': __version__,
+                                      'timestamp': date.today().isoformat()})
+
+
+def service_factory(application):
+    return WebSocketService(application.workspace_manager)
+
+
+# All JSON REST responses should have same structure, namely a dictionary as follows:
+#
+# {
+#    "status": "ok" | "error",
+#    "error": optional error-details,
+#    "content": optional content, if status "ok"
+# }
+
+def create_application():
+    application = Application([
+        (url_pattern('/'), WebAPIVersionHandler),
+        (url_pattern('/exit'), WebAPIExitHandler),
+        (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory)),
+        (url_pattern('/ws/new'), WorkspaceNewHandler),
+        (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
+        (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
+        (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
+        (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
+        (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
+        (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
+        (url_pattern('/ws/save_as/{{base_dir}}'), WorkspaceSaveAsHandler),
+        (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
+        (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
+        (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
+        (url_pattern('/ws/run_op/{{base_dir}}'), WorkspaceRunOpHandler),
+        (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
+        (url_pattern('/ws/res/del/{{base_dir}}/{{res_name}}'), ResourceDeleteHandler),
+        (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
+        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
+        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        # Natural Earth v2 imagery provider for testing, see cate.webapi.im.data_sources.NaturalEarth2Image class
+        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+    ])
+    application.workspace_manager = FSWorkspaceManager()
+    return application
+
+
+if __name__ == "__main__":
+    sys.exit(run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
+                      application_factory=create_application))

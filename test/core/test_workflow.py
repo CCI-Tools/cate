@@ -3,7 +3,8 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from cate.core.op import op_input, op_output, OpRegistration, OpMetaInfo
+from cate.core.op import op_input, op_output, OpRegistration
+from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
 from cate.util.misc import object_to_qualified_name
 

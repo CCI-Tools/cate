@@ -19,6 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
+
 """
 Description
 ===========
@@ -98,22 +101,22 @@ import argparse
 import os
 import os.path
 import pprint
-import signal
 import sys
 from typing import Tuple, Union
 
 from cate.conf.defaults import WEBAPI_INFO_FILE
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
-from cate.core.op import OP_REGISTRY, parse_op_args, OpMetaInfo
+from cate.core.op import OP_REGISTRY, parse_op_args
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError
 from cate.core.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
-from cate.webapi.webapi import read_service_info, is_service_running
-from cate.webapi.webapi import start_service_subprocess, stop_service_subprocess
 from cate.util import to_datetime_range, to_list, to_str_constant, Monitor
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
+from cate.util.opmetainf import OpMetaInfo
+from cate.util.web.webapi import read_service_info, is_service_running, \
+    start_service_subprocess, stop_service_subprocess
 from cate.version import __version__
 
 #: Name of the Cate CLI executable (= ``cate``).
@@ -1071,74 +1074,6 @@ class DataSourceCommand(SubCommandCommand):
         print("Local data source with name '%s' added." % name)
 
 
-class WebAPICommand(SubCommandCommand):
-    """
-    The ``webapi`` command implements various operations w.r.t. WebAPI service.
-    """
-
-    @classmethod
-    def name(cls):
-        return 'wa'
-
-    @classmethod
-    def parser_kwargs(cls):
-        help_line = "Manage Cate's WebAPI service. (Rarely used!)"
-        return dict(help=help_line, description=help_line)
-
-    @classmethod
-    def configure_parser_and_subparsers(cls, parser, subparsers):
-        start_parser = subparsers.add_parser('start', help='start WebAPI service')
-        start_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
-                                  help="Port number. If omitted, a free port number will be selected.")
-        start_parser.set_defaults(sub_command_function=cls._execute_start)
-
-        stop_parser = subparsers.add_parser('stop', help='stop WebAPI service')
-        stop_parser.add_argument('--port', '-p', metavar='PORT', default=None, type=int,
-                                 help="Port number. If omitted, port number will be identified.")
-        stop_parser.set_defaults(sub_command_function=cls._execute_stop)
-
-        kill_parser = subparsers.add_parser('kill', help='kill process which runs the WebAPI service')
-        kill_parser.set_defaults(sub_command_function=cls._execute_kill)
-
-        status_parser = subparsers.add_parser('status', help='display status of WebAPI service')
-        status_parser.set_defaults(sub_command_function=cls._execute_status)
-
-    @classmethod
-    def _execute_start(cls, command_args):
-        start_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
-
-    # noinspection PyUnusedLocal
-    @classmethod
-    def _execute_stop(cls, command_args):
-        stop_service_subprocess(port=command_args.port, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
-
-    # noinspection PyUnusedLocal
-    @classmethod
-    def _execute_kill(cls, command_args):
-        service_info = read_service_info(WEBAPI_INFO_FILE)
-        if service_info:
-            pid = service_info.get('process_id')
-            if pid:
-                try:
-                    os.kill(pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                os.remove(WEBAPI_INFO_FILE)
-            else:
-                raise RuntimeError("Missing 'process_id' in status information for WebAPI service.")
-        else:
-            print('No status information for WebAPI service available.')
-
-    # noinspection PyUnusedLocal
-    @classmethod
-    def _execute_status(cls, command_args):
-        service_info = read_service_info(WEBAPI_INFO_FILE)
-        if service_info:
-            pprint.pprint(service_info)
-        else:
-            print('No status information for WebAPI service available.')
-
-
 class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
@@ -1180,7 +1115,6 @@ COMMAND_REGISTRY = [
     WorkspaceCommand,
     ResourceCommand,
     RunCommand,
-    # WebAPICommand,
     # PluginCommand,
 ]
 

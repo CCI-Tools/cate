@@ -42,7 +42,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cate = cate.cli.main:main',
-            'cate-webapi = cate.webapi.webapi:main',
+            'cate-webapi = cate.webapi.main:main',
         ],
         'cate_plugins': [
             'cate_ops = cate.ops:cate_init',

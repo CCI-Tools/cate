@@ -35,7 +35,8 @@ import numpy as np
 import xarray as xr
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
-from cate.core.op import OP_REGISTRY, OpMetaInfo, parse_op_args
+from cate.core.op import OP_REGISTRY, parse_op_args
+from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
 from cate.util import Monitor, Namespace, object_to_qualified_name
 from cate.util.im import ImagePyramid, get_chunk_size

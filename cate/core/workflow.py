@@ -123,7 +123,8 @@ from typing import Sequence, Optional, Union, List, Dict
 
 from cate.util import Namespace, UNDEFINED
 from cate.util.monitor import Monitor
-from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
+from .op import OP_REGISTRY, OpRegistration
+from cate.util.opmetainf import OpMetaInfo
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node

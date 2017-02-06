@@ -2,7 +2,7 @@ import json
 import os
 import unittest
 
-from cate.core.op import OpMetaInfo
+from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow
 from cate.core.workspace import Workspace
 

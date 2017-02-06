@@ -2,7 +2,8 @@ import json
 from collections import OrderedDict
 from unittest import TestCase
 
-from cate.core.op import OpMetaInfo, OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
+from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
+from cate.util.opmetainf import OpMetaInfo
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
 

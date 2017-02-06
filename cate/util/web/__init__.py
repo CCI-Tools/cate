@@ -19,30 +19,5 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Description
-===========
-
-Provides random utility functions.
-
-*Implementation note: this module shall not have any dependencies to higher-level Cate modules.*
-
-Verification
-============
-
-The module's unit-tests are located in
-`test/test_misc.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_misc.py>`_ and may be executed using
-``$ py.test test/test_misc.py --cov=cate/core/misc.py`` for extra code coverage information.
-
-Components
-==========
-"""
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
-from .extend import extend
-from .misc import *
-from .monitor import Monitor, ChildMonitor, ConsoleMonitor
-from .namespace import Namespace
-from .opmetainf import OpMetaInfo
-from .undefined import UNDEFINED
+from .jsonrcphandler import JsonRcpWebSocketHandler
+from .jsonrcpmonitor import JsonRcpWebSocketMonitor
