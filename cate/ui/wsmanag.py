@@ -247,7 +247,7 @@ class FSWorkspaceManager(WorkspaceManager):
     def save_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
-        if workspace is not None and workspace.is_modified:
+        if workspace:
             workspace.save()
         return workspace
 
