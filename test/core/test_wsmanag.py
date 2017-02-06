@@ -5,7 +5,7 @@ import time
 import unittest
 
 from cate.core.wsmanag import WorkspaceManager, WebAPIWorkspaceManager, FSWorkspaceManager
-from cate.ui.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
+from cate.webapi.webapi import start_service_subprocess, stop_service_subprocess, find_free_port
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 

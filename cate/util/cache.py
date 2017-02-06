@@ -28,8 +28,6 @@ import time
 from abc import ABCMeta, abstractmethod
 from threading import RLock
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 # _DEBUG_CACHE = True
 _DEBUG_CACHE = False
 
@@ -370,7 +368,7 @@ class Cache:
             self._remove_item(item)
             item.discard(self._store, key)
             if _DEBUG_CACHE:
-                _debug_print('cate.ui.im.cache.Cache: discarded value for key "%s" from parent cache' % key)
+                _debug_print('cate.util.im.cache.Cache: discarded value for key "%s" from parent cache' % key)
         self._lock.release()
 
     def _add_item(self, item):
@@ -426,4 +424,4 @@ class Cache:
 
 
 def _debug_print(msg):
-    print("cate.ui.im.cache.Cache:", msg)
+    print("cate.util.im.cache.Cache:", msg)

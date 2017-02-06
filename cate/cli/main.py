@@ -86,8 +86,8 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ui/test_cli.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ui/test_cli.py>`_
-and may be executed using ``$ py.test test/ui/test_cli.py --cov=cate/ui/main.py`` for extra code coverage information.
+`test/webapi/test_cli.py <https://github.com/CCI-Tools/cate-core/blob/master/test/webapi/test_cli.py>`_
+and may be executed using ``$ py.test test/webapi/test_cli.py --cov=cate/webapi/main.py`` for extra code coverage information.
 
 
 Components
@@ -110,8 +110,8 @@ from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError
 from cate.core.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
-from cate.ui.webapi import read_service_info, is_service_running
-from cate.ui.webapi import start_service_subprocess, stop_service_subprocess
+from cate.webapi.webapi import read_service_info, is_service_running
+from cate.webapi.webapi import start_service_subprocess, stop_service_subprocess
 from cate.util import to_datetime_range, to_list, to_str_constant, Monitor
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.version import __version__

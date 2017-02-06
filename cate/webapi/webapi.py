@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
+
 
 import argparse
 import json
@@ -46,7 +50,7 @@ from cate.conf.defaults import \
     WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
     WORKSPACE_MEM_TILE_CACHE_CAPACITY
 from cate.core.wsmanag import FSWorkspaceManager
-from cate.ui.websock import AppWebSocketHandler
+from cate.webapi.websock import AppWebSocketHandler
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
@@ -110,7 +114,7 @@ def get_application():
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        # Natural Earth v2 imagery provider for testing, see cate.ui.im.data_sources.NaturalEarth2Image class
+        # Natural Earth v2 imagery provider for testing, see cate.webapi.im.data_sources.NaturalEarth2Image class
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
 
         (url_pattern('/exit'), ExitHandler)
@@ -193,7 +197,7 @@ def stop_service_subprocess(port: int = None,
 
 
 def _join_command(sub_command, port, address, caller, service_info_file):
-    command = '"%s" -m cate.ui.webapi' % sys.executable
+    command = '"%s" -m cate.webapi.webapi' % sys.executable
     if port:
         command += ' -p %d' % port
     if address:
