@@ -3,8 +3,7 @@ package:
   version: "0.7.0a2"
 
 build:
-  #string: 'rc0'
-  number: 0
+  number: 1
   # noarch_python: False
   # preserve_egg_dir: False
   # osx_is_app: False

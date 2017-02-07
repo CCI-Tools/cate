@@ -3,8 +3,9 @@ package:
   version: "0.7.0a2"
 
 build:
-  #string: 'rc0'
-  number: 0
+  number: 1
+  noarch_python: True
+
 
 source:
   # git_rev: v0.7.0a1
