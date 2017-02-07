@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import subprocess
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -26,6 +25,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 import argparse
 import os.path
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -51,8 +51,8 @@ def run_main(name: str,
              version: str,
              application_factory: ApplicationFactory,
              log_file_prefix=None,
-             auto_exit_enabled: bool = False,
-             auto_exit_after: float = None,
+             auto_stop_enabled: bool = False,
+             auto_stop_after: float = None,
              args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
@@ -62,8 +62,8 @@ def run_main(name: str,
     :param version: The CLI's version string.
     :param application_factory: A no-arg function that creates a Tornado web application instance.
     :param log_file_prefix: Log file prefix name.
-    :param auto_exit_enabled: whether the service can automatically terminate
-    :param auto_exit_after: if not-None, time of idleness in seconds before service is terminated
+    :param auto_stop_enabled: whether the service can automatically be stopped
+    :param auto_stop_after: if not-None, time of idleness in seconds before service is stopped
     :param args: The command-line arguments, may be None.
     :return: the exit code, zero on success.
     """
@@ -74,13 +74,15 @@ def run_main(name: str,
                                      description='%s, version %s' % (description, version))
     parser.add_argument('--version', '-V', action='version', version='%s %s' % (name, version))
     parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
-                        help='run WebAPI service on port number PORT')
+                        help='start/stop WebAPI service on port number PORT')
     parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
-                        help='run WebAPI service using address ADDRESS', default='')
+                        help='start/stop WebAPI service using address ADDRESS', default='')
     parser.add_argument('--caller', '-c', dest='caller', default=name,
                         help='name of the calling application')
     parser.add_argument('--file', '-f', dest='file', metavar='FILE',
                         help="if given, service information will be written to (start) or read from (stop) FILE")
+    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='TIME',
+                        help="if given, service will stop after TIME seconds of inactivity")
     parser.add_argument('command', choices=['start', 'stop'],
                         help='start or stop the service')
 
@@ -95,8 +97,8 @@ def run_main(name: str,
         if args_obj.command == 'start':
             service = WebAPI()
             service.start(name, application_factory,
-                          auto_exit_enabled=auto_exit_enabled,
-                          auto_exit_after=auto_exit_after,
+                          auto_stop_enabled=auto_stop_enabled,
+                          auto_stop_after=auto_stop_after,
                           log_file_prefix=log_file_prefix,
                           **kwargs)
         else:
@@ -115,9 +117,9 @@ class WebAPI:
     def __init__(self):
         self.name = None
         self.application = None
-        self.auto_exit_enabled = None
-        self.auto_exit_timer = None
-        self.auto_exit_after = None
+        self.auto_stop_enabled = None
+        self.auto_stop_timer = None
+        self.auto_stop_after = None
         self.service_info_file = None
         self.service_info = None
 
@@ -135,8 +137,8 @@ class WebAPI:
               name: str,
               application_factory: ApplicationFactory,
               log_file_prefix: str = None,
-              auto_exit_enabled: float = None,
-              auto_exit_after: float = None,
+              auto_stop_enabled: float = None,
+              auto_stop_after: float = None,
               port: int = None,
               address: str = None,
               caller: str = None,
@@ -154,8 +156,8 @@ class WebAPI:
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
-        :param auto_exit_enabled: whether the service can automatically terminate
-        :param auto_exit_after: if not-None, time of idleness in seconds before service is terminated
+        :param auto_stop_enabled: whether the service can automatically terminate
+        :param auto_stop_after: if not-None, time of idleness in seconds before service is terminated
         :param port: the port number
         :param address: the address
         :param caller: the name of the calling application (informal)
@@ -185,15 +187,15 @@ class WebAPI:
         options.log_to_stderr = None
         enable_pretty_logging()
 
-        if auto_exit_enabled and not auto_exit_after:
-            auto_exit_after = 2 * 60
+        if auto_stop_enabled and not auto_stop_after:
+            auto_stop_after = 2 * 60
 
         port = port or find_free_port()
 
         self.name = name
-        self.auto_exit_enabled = auto_exit_enabled
-        self.auto_exit_after = auto_exit_after
-        self.auto_exit_timer = None
+        self.auto_stop_enabled = auto_stop_enabled
+        self.auto_stop_after = auto_stop_after
+        self.auto_stop_timer = None
         self.service_info_file = service_info_file
         self.service_info = dict(port=port,
                                  address=address,
@@ -213,7 +215,7 @@ class WebAPI:
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
         # IOLoop.call_later(delay, callback, *args, **kwargs)
-        if self.auto_exit_enabled:
+        if self.auto_stop_enabled:
             self._install_next_inactivity_check()
         IOLoop.instance().start()
         return self.service_info
@@ -284,7 +286,7 @@ class WebAPI:
 
         return dict(port=port, address=address, caller=caller, started=service_info.get('started', None))
 
-    def check_for_auto_exit(self, condition: bool, interval: float = 100):
+    def check_for_auto_stop(self, condition: bool, interval: float = 100):
         """
         If *condition* is True, the WebAPI service will end after *interval* seconds.
 
@@ -293,40 +295,40 @@ class WebAPI:
         :return:
         """
         # noinspection PyUnresolvedReferences
-        if not self.auto_exit_enabled:
+        if not self.auto_stop_enabled:
             return
-        if self.auto_exit_timer is not None:
+        if self.auto_stop_timer is not None:
             # noinspection PyBroadException
             try:
-                self.auto_exit_timer.cancel()
+                self.auto_stop_timer.cancel()
             except:
                 pass
         if condition:
-            self.auto_exit_timer = threading.Timer(interval, self.exit)
-            self.auto_exit_timer.start()
+            self.auto_stop_timer = threading.Timer(interval, self.shut_down)
+            self.auto_stop_timer.start()
         else:
-            self.auto_exit_timer = None
+            self.auto_stop_timer = None
 
-    def exit(self):
+    def shut_down(self):
         """
-        Exits the Tornado web server.
+        Stops the Tornado web server.
         """
-        IOLoop.instance().add_callback(self._exit)
+        IOLoop.instance().add_callback(self._on_shut_down)
 
     def _install_next_inactivity_check(self):
-        IOLoop.instance().call_later(self.auto_exit_after, self._check_inactivity)
+        IOLoop.instance().call_later(self.auto_stop_after, self._check_inactivity)
 
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
         time_of_last_activity = self.application.time_of_last_activity
         inactivity_time = time.clock() - time_of_last_activity
-        if inactivity_time > self.auto_exit_after:
+        if inactivity_time > self.auto_stop_after:
             print('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
-            self.exit()
+            self.shut_down()
         else:
             self._install_next_inactivity_check()
 
-    def _exit(self):
+    def _on_shut_down(self):
         # noinspection PyUnresolvedReferences
         service_info_file = self.service_info_file
         if service_info_file and os.path.isfile(service_info_file):
@@ -414,11 +416,11 @@ class WebAPI:
         return command + ' ' + sub_command
 
 
-def check_for_auto_exit(application: Application, condition: bool,
+def check_for_auto_stop(application: Application, condition: bool,
                         interval: float = 100):
     webapi = WebAPI.get_webapi(application)
     if webapi:
-        webapi.check_for_auto_exit(condition, interval)
+        webapi.check_for_auto_stop(condition, interval)
 
 
 # noinspection PyAbstractClass
@@ -483,7 +485,7 @@ class WebAPIExitHandler(WebAPIRequestHandler):
 
     def get(self):
         self.write_status_ok(content='Bye!')
-        IOLoop.instance().add_callback(self.webapi.exit)
+        IOLoop.instance().add_callback(self.webapi.shut_down)
 
 
 class WebAPIServiceError(Exception):

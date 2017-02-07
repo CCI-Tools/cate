@@ -38,12 +38,12 @@ from tornado.web import Application
 from cate.conf.defaults import \
     WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
     WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
-    WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER
+    WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
 from cate.util.misc import cwd
-from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_exit
+from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
 
 # Explicitly load Cate-internal plugins.
@@ -434,4 +434,4 @@ def _on_workspace_closed(application: Application):
     # noinspection PyUnresolvedReferences
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()
-    check_for_auto_exit(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER)
+    check_for_auto_stop(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER)

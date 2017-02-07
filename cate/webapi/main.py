@@ -18,20 +18,21 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import sys
-from datetime import date
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
+import sys
+from datetime import date
+
 from tornado.web import Application
 
-from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, \
+from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER, \
     WEBAPI_PROGRESS_DEFER_PERIOD
-from cate.version import __version__
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRcpWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
+from cate.version import __version__
 from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
     WorkspaceCloseHandler, WorkspaceGetOpenHandler, WorkspaceCleanHandler, \
     WorkspaceCloseAllHandler, WorkspaceDeleteHandler, WorkspaceRunOpHandler, \
@@ -100,8 +101,13 @@ def create_application():
     return application
 
 
+def main(args=None) -> int:
+    return run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
+                    application_factory=create_application,
+                    log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
+                    auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER,
+                    args=args)
+
+
 if __name__ == "__main__":
-    sys.exit(run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
-                      application_factory=create_application,
-                      log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
-                      auto_exit_after=WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER))
+    sys.exit(main())

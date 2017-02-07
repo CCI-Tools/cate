@@ -63,7 +63,7 @@ WEBAPI_RESOURCE_TIMEOUT = 60 * 60.0
 WEBAPI_PLOT_TIMEOUT = 60 * 60.0
 
 #: By default, WebAPI service will auto-exit after 2 hours of inactivity, if WebAPI auto-exit enabled
-WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER = 120 * 60.0
+WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER = 120 * 60.0
 
 #: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed, if WebAPI auto-exit enabled
-WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
+WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
