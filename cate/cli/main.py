@@ -105,7 +105,7 @@ import pprint
 import sys
 from typing import Tuple, Union
 
-from cate.conf.defaults import WEBAPI_INFO_FILE
+from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY, parse_op_args
@@ -156,7 +156,10 @@ def _default_workspace_manager_factory() -> WorkspaceManager:
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
     if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
-        WebAPI.start_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+        WebAPI.start_subprocess(CATE_WEBAPI_MAIN_MODULE,
+                                caller=CLI_NAME,
+                                service_info_file=WEBAPI_INFO_FILE,
+                                auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER)
         # Read new '.cate/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:

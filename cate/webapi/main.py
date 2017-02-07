@@ -94,7 +94,6 @@ def create_application():
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        # Natural Earth v2 imagery provider for testing, see cate.webapi.im.data_sources.NaturalEarth2Image class
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
     ])
     application.workspace_manager = FSWorkspaceManager()
@@ -105,7 +104,6 @@ def main(args=None) -> int:
     return run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
                     application_factory=create_application,
                     log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
-                    auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER,
                     args=args)
 
 

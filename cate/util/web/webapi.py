@@ -51,8 +51,6 @@ def run_main(name: str,
              version: str,
              application_factory: ApplicationFactory,
              log_file_prefix=None,
-             auto_stop_enabled: bool = False,
-             auto_stop_after: float = None,
              args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
@@ -62,8 +60,6 @@ def run_main(name: str,
     :param version: The CLI's version string.
     :param application_factory: A no-arg function that creates a Tornado web application instance.
     :param log_file_prefix: Log file prefix name.
-    :param auto_stop_enabled: whether the service can automatically be stopped
-    :param auto_stop_after: if not-None, time of idleness in seconds before service is stopped
     :param args: The command-line arguments, may be None.
     :return: the exit code, zero on success.
     """
@@ -81,7 +77,7 @@ def run_main(name: str,
                         help='name of the calling application')
     parser.add_argument('--file', '-f', dest='file', metavar='FILE',
                         help="if given, service information will be written to (start) or read from (stop) FILE")
-    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='TIME',
+    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='TIME', type=float,
                         help="if given, service will stop after TIME seconds of inactivity")
     parser.add_argument('command', choices=['start', 'stop'],
                         help='start or stop the service')
@@ -97,9 +93,8 @@ def run_main(name: str,
         if args_obj.command == 'start':
             service = WebAPI()
             service.start(name, application_factory,
-                          auto_stop_enabled=auto_stop_enabled,
-                          auto_stop_after=auto_stop_after,
                           log_file_prefix=log_file_prefix,
+                          auto_stop_after=args_obj.auto_stop_after,
                           **kwargs)
         else:
             WebAPI.stop(name, kill_after=5.0, timeout=5.0, **kwargs)
@@ -137,7 +132,6 @@ class WebAPI:
               name: str,
               application_factory: ApplicationFactory,
               log_file_prefix: str = None,
-              auto_stop_enabled: float = None,
               auto_stop_after: float = None,
               port: int = None,
               address: str = None,
@@ -156,7 +150,6 @@ class WebAPI:
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
-        :param auto_stop_enabled: whether the service can automatically terminate
         :param auto_stop_after: if not-None, time of idleness in seconds before service is terminated
         :param port: the port number
         :param address: the address
@@ -183,17 +176,14 @@ class WebAPI:
         import tornado.options
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
-        options.log_file_prefix = log_file_prefix or 'webapi.log'
+        options.log_file_prefix = log_file_prefix or ('%s.log' % self.name)
         options.log_to_stderr = None
         enable_pretty_logging()
-
-        if auto_stop_enabled and not auto_stop_after:
-            auto_stop_after = 2 * 60
 
         port = port or find_free_port()
 
         self.name = name
-        self.auto_stop_enabled = auto_stop_enabled
+        self.auto_stop_enabled = not not auto_stop_after
         self.auto_stop_after = auto_stop_after
         self.auto_stop_timer = None
         self.service_info_file = service_info_file
@@ -346,6 +336,7 @@ class WebAPI:
                          address: str = None,
                          caller: str = None,
                          service_info_file: str = None,
+                         auto_stop_after: float = None,
                          timeout: float = 10.0) -> None:
         """
         Start the Web API service as a sub-process.
@@ -355,10 +346,11 @@ class WebAPI:
         :param address: the service address, if not given, "localhost" will be used.
         :param caller: the caller's program name
         :param service_info_file: optional path to a (JSON) file, where service info will be stored
+        :param auto_stop_after: if not-None, time of idleness in seconds before service will automatically stop
         :param timeout: timeout in seconds
         """
         port = port or find_free_port()
-        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file)
+        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file, auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
         t0 = time.clock()
@@ -397,13 +389,13 @@ class WebAPI:
         :param service_info_file: optional path to a (JSON) file, where service info will be stored
         :param timeout: timeout in seconds
         """
-        command = cls._join_subprocess_command(module, 'stop', port, address, caller, service_info_file)
+        command = cls._join_subprocess_command(module, 'stop', port, address, caller, service_info_file, None)
         exit_code = subprocess.call(command, shell=True, timeout=timeout)
         if exit_code != 0:
             raise ValueError('WebAPI service terminated with _exit code %d' % exit_code)
 
     @classmethod
-    def _join_subprocess_command(cls, module, sub_command, port, address, caller, service_info_file):
+    def _join_subprocess_command(cls, module, sub_command, port, address, caller, service_info_file, auto_stop_after):
         command = '"%s" -m %s' % (sys.executable, module)
         if port:
             command += ' -p %d' % port
@@ -413,6 +405,8 @@ class WebAPI:
             command += ' -c "%s"' % caller
         if service_info_file:
             command += ' -f "%s"' % service_info_file
+        if auto_stop_after:
+            command += ' -s %s' % auto_stop_after
         return command + ' ' + sub_command
 
 
