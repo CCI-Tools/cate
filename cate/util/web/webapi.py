@@ -263,6 +263,7 @@ def start_service_subprocess(module: str,
     """
     Start the Web API service as a sub-process.
 
+    :param module: the name of the Python main module to be executed.
     :param port: the port number, if not given, a new free port will be searched.
     :param address: the service address, if not given, "localhost" will be used.
     :param caller: the caller's program name
@@ -301,6 +302,7 @@ def stop_service_subprocess(module: str,
     """
     Stop a Web API service running as a sub-process.
 
+    :param module: the name of the Python main module to be executed.
     :param port: the port number.
     :param address: the service address, if not given, "localhost" will be used.
     :param caller: the caller's program name
