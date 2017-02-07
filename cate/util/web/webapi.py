@@ -129,7 +129,7 @@ class WebAPI:
         :param application: The Tornado web application
         :return: The WebAPI instance, or None
         """
-        return application.webAPI if application and hasattr(application, 'webAPI') else None
+        return application.webapi if application and hasattr(application, 'webapi') else None
 
     def start(self,
               name: str,
@@ -153,7 +153,7 @@ class WebAPI:
 
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
-        :param log_file_prefix: Log file prefix, default is "webapi-log"
+        :param log_file_prefix: Log file prefix, default is "webapi.log"
         :param auto_exit_enabled: whether the service can automatically terminate
         :param auto_exit_after: if not-None, time of idleness in seconds before service is terminated
         :param port: the port number
@@ -181,7 +181,7 @@ class WebAPI:
         import tornado.options
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
-        options.log_file_prefix = log_file_prefix or 'webapi-log'
+        options.log_file_prefix = log_file_prefix or 'webapi.log'
         options.log_to_stderr = None
         enable_pretty_logging()
 
