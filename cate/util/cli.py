@@ -41,6 +41,8 @@ from cate.util import ConsoleMonitor, Monitor
 class CommandError(Exception):
     """
     An exception type signaling command-line errors.
+
+    :param cause: The cause which may be an ``Exception`` or a ``str``.
     """
 
     def __init__(self, cause, *args, **kwargs):
@@ -65,13 +67,13 @@ class Command(metaclass=ABCMeta):
     """
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         """
         :return: A unique command name
         """
 
     @classmethod
-    def parser_kwargs(cls):
+    def parser_kwargs(cls) -> dict:
         """
         Return parser keyword arguments dictionary passed to a ``argparse.ArgumentParser(**parser_kwargs)`` call.
 
@@ -82,7 +84,7 @@ class Command(metaclass=ABCMeta):
         """
 
     @classmethod
-    def configure_parser(cls, parser: argparse.ArgumentParser):
+    def configure_parser(cls, parser: argparse.ArgumentParser) -> None:
         """
         Configure *parser*, i.e. make any required ``parser.add_argument(*args, **kwargs)`` calls.
         See https://docs.python.org/3.5/library/argparse.html#argparse.ArgumentParser.add_argument
@@ -90,21 +92,17 @@ class Command(metaclass=ABCMeta):
         :param parser: The command parser to configure.
         """
 
-    def execute(self, command_args: argparse.Namespace) -> Optional[Tuple[int, str]]:
+    def execute(self, command_args: argparse.Namespace) -> None:
         """
-        Execute this command and return a tuple (*status*, *message*) where *status* is the CLI executable's
-        exit code and *message* a text to be printed before the executable
-        terminates. If *status* is zero, the message will be printed to ``sys.stdout``, otherwise to ``sys.stderr``.
-        Implementors may can return ``STATUS_OK`` on success.
+        Execute this command.
 
         The command's arguments in *command_args* are attributes namespace returned by
         ``argparse.ArgumentParser.parse_args()``.
         Also refer to to https://docs.python.org/3.5/library/argparse.html#argparse.ArgumentParser.parse_args
 
+        ``execute``implementations shall raise a ``CommandError`` instance on failure.
 
         :param command_args: The command's arguments.
-        :return: `None`` (= status ok) or a tuple (*status*, *message*) of type (``int``, ``str``)
-                 where *message* may be ``None``.
         """
 
     @classmethod
@@ -119,7 +117,13 @@ class Command(metaclass=ABCMeta):
 
 class SubCommandCommand(Command, metaclass=ABCMeta):
     @classmethod
-    def configure_parser(cls, parser):
+    def configure_parser(cls, parser: argparse.ArgumentParser) -> None:
+        """
+        Add a new sub-parsers to the given parser.
+        Call ``configure_parser_and_subparsers`` with the new sub-parsers.
+
+        :param parser: The command parser to configure.
+        """
         parser.set_defaults(parser=parser)
         subparsers = parser.add_subparsers(metavar='COMMAND',
                                            help='One of the following commands. '
@@ -130,18 +134,27 @@ class SubCommandCommand(Command, metaclass=ABCMeta):
     @abstractmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
         """
-        Overrides must, e.g.::
-            list_parser.subparsers.add_parser('list', ...)
-            ...
+        Configure the given parser and its sub-parsers.
+
+        Overrides of this method must, e.g.::
+            list_parser = subparsers.add_parser('list', ...)
+            # ... configure list_parser here, and finally set its "sub_command_function" like so:
             list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        :param parser:
-        :param subparsers:
-        :return:
+        Sub-command functions shall raise a ``CommandError`` instance on failure.
+
+        :param parser: The command parser to configure.
+        :param subparsers: A factory for sub-command parsers.
         """
         pass
 
     def execute(self, command_args):
+        """
+        Executes the function given by the "sub_command_function" attribute of given *command_args* with
+        *command_args* as only argument.
+
+        :param command_args:
+        """
         try:
             sub_command_function = command_args.sub_command_function
         except AttributeError:
