@@ -9,7 +9,7 @@ from tornado.testing import AsyncHTTPTestCase
 from cate.util.misc import encode_url_path
 from cate.webapi.main import create_application
 
-NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), 'precip_and_temp.nc')
+NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
 
 # For usage of the tornado.testing.AsyncHTTPTestCase see http://www.tornadoweb.org/en/stable/testing.html
@@ -39,15 +39,18 @@ class WebAPITest(AsyncHTTPTestCase):
                                                               description='Wow!')))
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('status', json_dict)
-        self.assertIn('content', json_dict)
-        self.assertIn('base_dir', json_dict['content'])
-        self.assertIn('workflow', json_dict['content'])
+        self.assertIn('status', json_dict, msg=json_dict)
+        self.assertIn('content', json_dict, msg=json_dict)
+        self.assertIn('base_dir', json_dict['content'], msg=json_dict)
+        self.assertIn('workflow', json_dict['content'], msg=json_dict)
 
         response = self.fetch(encode_url_path('/ws/save/{base_dir}',
                                               path_args=dict(base_dir=os.path.abspath('TEST_WORKSPACE'))))
 
         self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertIn('status', json_dict)
+        self.assertEqual(json_dict['status'], 'ok', msg=json_dict)
 
         res_name = 'ds'
 
@@ -63,7 +66,7 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('status', json_dict)
-        self.assertEqual(json_dict['status'], 'ok')
+        self.assertEqual(json_dict['status'], 'ok', msg=json_dict)
 
         file_path = os.path.abspath(os.path.join('TEST_WORKSPACE', 'precip_and_temp_copy.nc'))
         url = encode_url_path('/ws/res/write/{base_dir}/{res_name}',
@@ -75,7 +78,7 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('status', json_dict)
-        self.assertEqual(json_dict['status'], 'ok')
+        self.assertEqual(json_dict['status'], 'ok', msg=json_dict)
 
         self.assertTrue(os.path.isfile(file_path))
 

@@ -26,18 +26,20 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 from tornado.web import Application
 
+from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER, \
+    WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.version import __version__
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRcpWebSocketHandler
-from .rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
+from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
+from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
     WorkspaceCloseHandler, WorkspaceGetOpenHandler, WorkspaceCleanHandler, \
     WorkspaceCloseAllHandler, WorkspaceDeleteHandler, WorkspaceRunOpHandler, \
     WorkspaceSaveAllHandler, WorkspaceSaveAsHandler, WorkspaceSaveHandler, \
     ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
     ResourcePrintHandler, ResourceWriteHandler, \
     ResVarTileHandler, NE2Handler
-from cate.util.web.webapi import url_pattern, run_main, WebAPIRequestHandler, WebAPIExitHandler
-from .websocket import WebSocketService
+from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -71,7 +73,8 @@ def create_application():
     application = Application([
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory)),
+        (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
+                                                            report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
         (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
@@ -99,4 +102,6 @@ def create_application():
 
 if __name__ == "__main__":
     sys.exit(run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
-                      application_factory=create_application))
+                      application_factory=create_application,
+                      log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
+                      auto_exit_after=WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER))

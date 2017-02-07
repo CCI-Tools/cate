@@ -26,7 +26,6 @@ import time
 
 import tornado.websocket
 
-from cate.conf.defaults import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.util import Monitor
 
 
@@ -45,11 +44,18 @@ class JsonRcpWebSocketMonitor(Monitor):
         }
     }
 
+    :param method_id: The JSON-RCP method id
+    :param handler: The Tornado WebSocket handler
+    :param report_defer_period: The time in seconds between two subsequent progress reports
     """
 
-    def __init__(self, method_id: int, handler: tornado.websocket.WebSocketHandler):
+    def __init__(self,
+                 method_id: int,
+                 handler: tornado.websocket.WebSocketHandler,
+                 report_defer_period: float = None):
         self.method_id = method_id
         self.handler = handler
+        self.report_defer_period = report_defer_period or 0.5
         self._cancelled = False
         self.last_time = None
 
@@ -59,7 +65,7 @@ class JsonRcpWebSocketMonitor(Monitor):
 
     def _write_progress(self, message: str = None):
         current_time = time.time()
-        if not self.last_time or (current_time - self.last_time) >= WEBAPI_PROGRESS_DEFER_PERIOD:
+        if not self.last_time or (current_time - self.last_time) >= self.report_defer_period:
 
             progress = {}
             if self.label is not None:

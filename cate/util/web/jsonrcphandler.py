@@ -42,10 +42,15 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
 
     :param application: Tornado application object
     :param request: Tornado request
+    :param service_factory: A function that returns the object providing the this service's callable methods.
+    :param report_defer_period: The time in seconds between two subsequent progress reports
     :param kwargs: Keyword-arguments passed to the request handler.
     """
 
-    def __init__(self, application: Application, request, service_factory=None, **kwargs):
+    def __init__(self, application: Application, request,
+                 service_factory=None,
+                 report_defer_period: float = None,
+                 **kwargs):
         super(JsonRcpWebSocketHandler, self).__init__(application, request, **kwargs)
         if not service_factory:
             raise ValueError('service_factory must be provided')
@@ -53,10 +58,10 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._service_factory = service_factory
         self._service = None
         self._thread_pool = concurrent.futures.ThreadPoolExecutor()
-        self._service = None
         self._active_monitors = {}
         self._active_futures = {}
         self._job_start = {}
+        self._report_defer_period = report_defer_period
         # Check: following call causes exception although Tornado docs say, it is ok
         # self.set_nodelay(True)
 
@@ -195,7 +200,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         op_meta_info = OpMetaInfo.introspect_operation(method)
         if op_meta_info.has_monitor:
             # The impl. will send "progress" messages via the web-socket.
-            monitor = JsonRcpWebSocketMonitor(method_id, self)
+            monitor = JsonRcpWebSocketMonitor(method_id, self, report_defer_period=self._report_defer_period)
             self._active_monitors[method_id] = monitor
             if isinstance(method_params, type([])):
                 result = method(*method_params, monitor=monitor)

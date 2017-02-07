@@ -753,7 +753,6 @@ class ImagePyramid:
                 raise ValueError('incompatible max_size and array values')
             if not tile_size:
                 chunk_size = get_chunk_size(array)
-                print('############################################### chunk_size', chunk_size)
                 # tile_size = (chunk_size[-1], chunk_size[-2]) if chunk_size and len(chunk_size) >= 2 else None
                 chunk_width, chunk_height = (chunk_size[-1], chunk_size[-2]) if chunk_size and len(
                     chunk_size) >= 2 else (None, None)

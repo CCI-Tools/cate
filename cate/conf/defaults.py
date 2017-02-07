@@ -48,7 +48,7 @@ WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB
 WEBAPI_INFO_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.json')
 
 #: where a running WebAPI service logs to
-WEBAPI_LOG_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.log')
+WEBAPI_LOG_FILE_PREFIX = os.path.join(DEFAULT_DATA_PATH, 'webapi.log')
 
 #: allow a 100 ms period between two progress messages sent to the client
 WEBAPI_PROGRESS_DEFER_PERIOD = 0.5
@@ -62,10 +62,8 @@ WEBAPI_RESOURCE_TIMEOUT = 60 * 60.0
 #: allow one hour extra timeout for matplotlib to block the WebAPI service's main thread by showing a Qt window
 WEBAPI_PLOT_TIMEOUT = 60 * 60.0
 
-#: By default, WebAPI service will auto-exit after 2 hours of inactivity (if caller='cate', the CLI)
+#: By default, WebAPI service will auto-exit after 2 hours of inactivity, if WebAPI auto-exit enabled
 WEBAPI_ON_INACTIVITY_AUTO_EXIT_AFTER = 120 * 60.0
 
-#: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed (if caller='cate', the CLI)
+#: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed, if WebAPI auto-exit enabled
 WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER = 5.0
-
-

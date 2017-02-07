@@ -90,7 +90,8 @@ Verification
 
 The module's unit-tests are located in
 `test/webapi/test_cli.py <https://github.com/CCI-Tools/cate-core/blob/master/test/webapi/test_cli.py>`_
-and may be executed using ``$ py.test test/webapi/test_cli.py --cov=cate/webapi/main.py`` for extra code coverage information.
+and may be executed using ``$ py.test test/webapi/test_cli.py --cov=cate/webapi/main.py``
+for extra code coverage information.
 
 
 Components
@@ -111,12 +112,12 @@ from cate.core.op import OP_REGISTRY, parse_op_args
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError
-from cate.core.wsmanag import WorkspaceManager, WebAPIWorkspaceManager
+from cate.core.wsmanag import WorkspaceManager
 from cate.util import to_datetime_range, to_list, to_str_constant, Monitor
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
-from cate.util.web.webapi import read_service_info, is_service_running, \
-    start_service_subprocess, stop_service_subprocess
+from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
+from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from cate.version import __version__
 
 #: Name of the Cate CLI executable (= ``cate``).
@@ -155,7 +156,7 @@ def _default_workspace_manager_factory() -> WorkspaceManager:
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
     if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
-        start_service_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+        WebAPI.start_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         # Read new '.cate/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:
@@ -661,7 +662,7 @@ class WorkspaceCommand(SubCommandCommand):
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
             workspace_manager.close_all_workspaces(do_save=command_args.save_all)
-            stop_service_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            WebAPI.stop_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):

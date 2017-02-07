@@ -37,7 +37,8 @@ from tornado.web import Application
 
 from cate.conf.defaults import \
     WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
-    WORKSPACE_MEM_TILE_CACHE_CAPACITY
+    WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
+    WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
@@ -433,4 +434,4 @@ def _on_workspace_closed(application: Application):
     # noinspection PyUnresolvedReferences
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()
-    check_for_auto_exit(application, num_open_workspaces == 0)
+    check_for_auto_exit(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_EXIT_AFTER)
