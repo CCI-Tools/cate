@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -21,10 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from setuptools import setup, find_packages
-
-packages = find_packages(exclude=["test", "test.*"])
+from setuptools import setup
 
 # Same effect as "from cate import __version__", but avoids importing cate:
 __version__ = None
@@ -32,35 +29,12 @@ with open('cate/version.py') as f:
     exec(f.read())
 
 setup(
-    name="cate",
+    name="cate-util",
     version=__version__,
-    description='ESA CCI Toolbox (Cate) Python Core',
+    description='ESA CCI Toolbox (Cate), just the utilities',
     license='MIT',
     author='Cate Development Team',
-    packages=packages,
-    data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
-    entry_points={
-        'console_scripts': [
-            'cate = cate.cli.main:main',
-            'cate-webapi = cate.webapi.main:main',
-        ],
-        'cate_plugins': [
-            'cate_ops = cate.ops:cate_init',
-            'cate_ds = cate.ds:cate_init',
-        ],
-    },
-    install_requires=[
-                      'matplotlib >= 1.5',
-                      'xarray >= 0.8',
-                      'netcdf4 >= 1.2',
-                      'dask >= 0.8',
-                      'tornado >= 4.4',
-                      'numba >= 0.26',
-                      'numpy >= 1.7',
-                      'scipy >= 0.17',
-                      'pillow >= 3.4',
-                      'pandas >= 0.18',
-                      'basemap >= 1.0',
-                      'jdcal >= 1.3',
-                      ],
+    packages=['cate', 'cate.util', 'cate.util.im', 'cate.util.web'],
+    install_requires=['tornado >= 4.4',
+                      'pillow >= 3.4'],
 )

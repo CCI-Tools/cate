@@ -1,0 +1,85 @@
+package:
+  name: cate-lib
+  version: "0.7.0a2"
+
+build:
+  #string: 'rc0'
+  number: 0
+  noarch_python: True
+
+source:
+  # git_rev: v0.7.0a1
+  #git_url: https://github.com/CCI-Tools/cate-core.git
+  # Uncomment to skip the "git clone" step
+  path: ../..
+
+requirements:
+  build:
+    - python 3.5*
+    - setuptools
+    - pytest
+    - pytest-cov
+
+    - pyqt 5.6*
+    - matplotlib
+    - xarray
+    - dask
+    - numpy
+    - scipy
+    - netcdf4
+    - numba
+    - pandas
+    - cartopy
+    - pillow >=3.4,<4
+    - hdf4 >=4.2,<5
+    - basemap
+    - tornado
+    - jdcal
+
+  run:
+    - python 3.5*
+    - menuinst    # [win]
+
+    - pyqt 5.6*
+    - matplotlib
+    - xarray
+    - dask
+    - numpy
+    - scipy
+    - netcdf4
+    - numba
+    - pandas
+    - cartopy
+    - pillow  >=3.4,<4
+    - hdf4 >=4.2,<5
+    - basemap
+    - tornado
+    - jdcal
+
+test:
+  # Python imports
+  imports:
+    - cate
+    - cate.core
+    - cate.ops
+    - cate.ds
+    - cate.util
+    - cate.webapi
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  requires:
+    # Put any additional test requirements here.
+    - pytest
+    - pytest-cov
+
+about:
+  home: https://github.com/CCI-Tools/cate-core
+  license: MIT
+  license_file: LICENSE.md
+  summary: "ESA CCI Toolbox (Cate), library only"
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml
