@@ -123,6 +123,8 @@ from cate.version import __version__
 CLI_NAME = 'cate'
 CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
+CATE_WEBAPI_MAIN_MODULE = 'cate.webapi.main'
+
 _DOCS_URL = 'http://cate-core.readthedocs.io/en/latest/'
 
 _LICENSE = """
@@ -153,7 +155,7 @@ def _default_workspace_manager_factory() -> WorkspaceManager:
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
     if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
-        start_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+        start_service_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
         # Read new '.cate/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:
@@ -659,7 +661,7 @@ class WorkspaceCommand(SubCommandCommand):
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
             workspace_manager.close_all_workspaces(do_save=command_args.save_all)
-            stop_service_subprocess(caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            stop_service_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):

@@ -254,7 +254,8 @@ class WebAPI:
             self._install_next_inactivity_check(application)
 
 
-def start_service_subprocess(port: int = None,
+def start_service_subprocess(module: str,
+                             port: int = None,
                              address: str = None,
                              caller: str = None,
                              service_info_file: str = None,
@@ -269,7 +270,7 @@ def start_service_subprocess(port: int = None,
     :param timeout: timeout in seconds
     """
     port = port or find_free_port()
-    command = _join_command('start', port, address, caller, service_info_file)
+    command = _join_command(module, 'start', port, address, caller, service_info_file)
     webapi = subprocess.Popen(command, shell=True)
     webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
     t0 = time.clock()
@@ -291,7 +292,8 @@ def start_service_subprocess(port: int = None,
             raise TimeoutError('WebAPI service timeout, exceeded %d sec' % timeout)
 
 
-def stop_service_subprocess(port: int = None,
+def stop_service_subprocess(module: str,
+                            port: int = None,
                             address: str = None,
                             caller: str = None,
                             service_info_file: str = None,
@@ -305,14 +307,14 @@ def stop_service_subprocess(port: int = None,
     :param service_info_file: optional path to a (JSON) file, where service info will be stored
     :param timeout: timeout in seconds
     """
-    command = _join_command('stop', port, address, caller, service_info_file)
+    command = _join_command(module, 'stop', port, address, caller, service_info_file)
     exit_code = subprocess.call(command, shell=True, timeout=timeout)
     if exit_code != 0:
         raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
 
 
-def _join_command(sub_command, port, address, caller, service_info_file):
-    command = '"%s" -m cate.webapi.main' % sys.executable
+def _join_command(module, sub_command, port, address, caller, service_info_file):
+    command = '"%s" -m %s' % (sys.executable, module)
     if port:
         command += ' -p %d' % port
     if address:
