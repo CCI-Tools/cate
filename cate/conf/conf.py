@@ -124,7 +124,7 @@ def _write_default_config_file() -> str:
         os.mkdir(default_config_dir)
     with open(default_config_file, 'w') as fp:
         import pkgutil
-        template_data = pkgutil.get_data('cate.core', 'template.py')
+        template_data = pkgutil.get_data('cate.conf', 'template.py')
         text = template_data.decode('utf-8')
         fp.write(text)
     return default_config_file
