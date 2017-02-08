@@ -19,5 +19,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+"""
+Description
+===========
+
+The ``cate.util.web`` package provides application-independent utility functions for implementing
+`JSON-RCP <http://www.jsonrpc.org/specification>`_ web services using the
+`Tornado <http://www.tornadoweb.org/en/stable/>`_ web server.
+
+This package is independent of other ``cate.*``packages, but it depends on the external ``tornado`` package.
+
+Verification
+============
+
+The module's unit-tests are located in
+`test/util/web <https://github.com/CCI-Tools/cate-core/blob/master/test/util/web>`_ and may be executed using
+``$ py.test test/util/web --cov=cate/util/web`` for extra code coverage information.
+
+Components
+==========
+"""
+
 from .jsonrcphandler import JsonRcpWebSocketHandler
 from .jsonrcpmonitor import JsonRcpWebSocketMonitor

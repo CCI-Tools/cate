@@ -27,13 +27,15 @@ Description
 
 This module provides handy utilities for creating command-line interfaces.
 
+Components
+==========
 """
 
 import argparse
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Optional, Sequence
+from typing import Sequence
 
 from cate.util import ConsoleMonitor, Monitor
 

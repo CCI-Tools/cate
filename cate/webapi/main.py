@@ -22,6 +22,29 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
+"""
+Description
+===========
+
+This module provides Cate's WebAPI executable.
+
+To use the WebAPI executable, invoke the module file as a script, type ``python3 cate/webapi/main.py [ARGS] [OPTIONS]``.
+Type `python3 cate/webapi/main.py --help`` for usage help.
+
+The WebAPI has two sub-commands, ``start`` and ``stop``.
+
+Verification
+============
+
+The module's unit-tests are located in
+`test/webapi <https://github.com/CCI-Tools/cate-core/blob/master/test/webapi>`_
+and may be executed using ``$ py.test test/webapi --cov=cate/webapi``
+for extra code coverage information.
+
+Components
+==========
+"""
+
 import sys
 from datetime import date
 

@@ -18,14 +18,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 import re
 from collections import OrderedDict
 from inspect import isclass
 from typing import Tuple, Dict, List
 
 from cate.util import object_to_qualified_name, qualified_name_to_object
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class OpMetaInfo:

@@ -21,5 +21,31 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+"""
+Description
+===========
+
+The ``cate.util.im`` package provides application-independent utility functions for working with tiled image pyramids.
+
+The Cate project uses this package for implementing a RESTful web service that provides image tiles from image pyramids.
+
+This package is independent of other ``cate.*``packages, but it depends on the following external packages
+
+* numpy
+* pillow (for PIL)
+* matplotlib
+
+
+Verification
+============
+
+The module's unit-tests are located in
+`test/util/im <https://github.com/CCI-Tools/cate-core/blob/master/test/util/im>`_ and may be executed using
+``$ py.test test/util/im --cov=cate/util/im`` for extra code coverage information.
+
+Components
+==========
+"""
+
 from .image import *
 from .cmaps import get_cmaps

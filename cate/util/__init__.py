@@ -19,26 +19,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 """
 Description
 ===========
 
-Provides random utility functions.
+The ``cate.util`` package provides application-independent utility functions.
 
-*Implementation note: this module shall not have any dependencies to higher-level Cate modules.*
+This package is independent of other ``cate.*``packages and can therefore be used stand-alone.
 
 Verification
 ============
 
 The module's unit-tests are located in
-`test/test_misc.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_misc.py>`_ and may be executed using
-``$ py.test test/test_misc.py --cov=cate/core/misc.py`` for extra code coverage information.
+`test/util <https://github.com/CCI-Tools/cate-core/blob/master/test/util>`_ and may be executed using
+``$ py.test test/util --cov=cate/util`` for extra code coverage information.
 
 Components
 ==========
 """
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 from .extend import extend
 from .misc import *

@@ -21,6 +21,34 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+"""
+Description
+===========
+
+This module defines the :py:class:`Cache` class which represents a general-purpose cache.
+A cache is configured by a :py:class:`CacheStore` which is responsible for storing and reloading cached items.
+
+The default cache stores are
+
+* :py:class:`MemoryCacheStore`
+* :py:class:`FileCacheStore`
+
+Every cache has capacity in physical units defined by the :py:class:`CacheStore`. When the cache capacity is exceeded
+a replacement policy for cached items is applied until the cache size falls below a given ratio of the total capacity.
+
+The default replacement policies are
+
+* :py:data:`POLICY_LRU`
+* :py:data:`POLICY_MRU`
+* :py:data:`POLICY_LFU`
+* :py:data:`POLICY_RR`
+
+This package is independent of other ``cate.*``packages and can therefore be used stand-alone.
+
+Components
+==========
+"""
+
 import os
 import os.path
 import sys
@@ -30,22 +58,6 @@ from threading import RLock
 
 # _DEBUG_CACHE = True
 _DEBUG_CACHE = False
-
-
-def _compute_object_size(obj):
-    if hasattr(obj, 'nbytes'):
-        # A numpy ndarray instance
-        return obj.nbytes
-    elif hasattr(obj, 'size') and hasattr(obj, 'mode'):
-        # A PIL Image instance
-        w, h = obj.size
-        m = obj.mode
-        return w * h * (4 if m in ('RGBA', 'RGBx', 'I', 'F') else
-                        3 if m in ('RGB', 'YCbCr', 'LAB', 'HSV') else
-                        1. / 8. if m == '1' else
-                        1)
-    else:
-        return sys.getsizeof(obj)
 
 
 class CacheStore(metaclass=ABCMeta):
@@ -202,13 +214,13 @@ def _policy_rr(item):
     return item.access_count % 2
 
 
-# Discard Least Recently Used items first
+#: Discard Least Recently Used items first
 POLICY_LRU = _policy_lru
-# Discard Most Recently Used first
+#: Discard Most Recently Used first
 POLICY_MRU = _policy_mru
-# Discard Least Frequently Used first
+#: Discard Least Frequently Used first
 POLICY_LFU = _policy_lfu
-# Discard items by Random Replacement
+#: Discard items by Random Replacement
 POLICY_RR = _policy_rr
 
 _T0 = time.clock()
@@ -273,10 +285,12 @@ class Cache:
         """
         Constructor.
     
-        :param policy: cache replacement policy: LRU, MRU, LFU, or RR
         :param store: the cache store, see CacheStore interface
         :param capacity: the size capacity in units used by the store's store() method
         :param threshold: a number greater than zero and less than one
+        :param policy: cache replacement policy. This is a function that maps a :py:class:`Cache.Item`
+                       to a numerical value. See :py:data:`POLICY_LRU`,
+                       :py:data:`POLICY_MRU`, :py:data:`POLICY_LFU`, :py:data:`POLICY_RR`
         """
         self._store = store
         self._capacity = capacity
@@ -424,4 +438,20 @@ class Cache:
 
 
 def _debug_print(msg):
-    print("cate.util.im.cache.Cache:", msg)
+    print("cate.util.cache.Cache:", msg)
+
+
+def _compute_object_size(obj):
+    if hasattr(obj, 'nbytes'):
+        # A numpy ndarray instance
+        return obj.nbytes
+    elif hasattr(obj, 'size') and hasattr(obj, 'mode'):
+        # A PIL Image instance
+        w, h = obj.size
+        m = obj.mode
+        return w * h * (4 if m in ('RGBA', 'RGBx', 'I', 'F') else
+                        3 if m in ('RGB', 'YCbCr', 'LAB', 'HSV') else
+                        1. / 8. if m == '1' else
+                        1)
+    else:
+        return sys.getsizeof(obj)

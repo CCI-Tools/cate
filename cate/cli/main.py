@@ -28,7 +28,7 @@ Description
 
 This module provides Cate's CLI executable.
 
-To use the CLI executable, invoke the module file as a script, type ``python3 cate/cli/cli/main.py [ARGS] [OPTIONS]``.
+To use the CLI executable, invoke the module file as a script, type ``python3 cate/cli/main.py [ARGS] [OPTIONS]``.
 Type `python3 cate/cli/main.py --help`` for usage help.
 
 The CLI operates on sub-commands. New sub-commands can be added by inheriting from the :py:class:`Command` class
@@ -89,8 +89,8 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/webapi/test_cli.py <https://github.com/CCI-Tools/cate-core/blob/master/test/webapi/test_cli.py>`_
-and may be executed using ``$ py.test test/webapi/test_cli.py --cov=cate/webapi/main.py``
+`test/cli/test_main.py <https://github.com/CCI-Tools/cate-core/blob/master/test/cli/test_main.py>`_
+and may be executed using ``$ py.test test/cli/test_main.py --cov=cate/cli/test_main.py``
 for extra code coverage information.
 
 

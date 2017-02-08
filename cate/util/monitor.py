@@ -31,17 +31,8 @@ that offer support for observation and control of long-running tasks.
 The module also provides a simple but still useful default implementation :py:class:`ConsoleMonitor`, which
 prints progress output directly to the console.
 
-Verification
-============
-
-The module's unit-tests are located in
-`test/test_monitor.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_monitor.py>`_
-and may be executed using ``$ py.test test/test_monitor.py --cov=cate/core/monitor.py`` for extra
-code coverage information.
-
 Components
 ==========
-
 """
 import signal
 import sys
