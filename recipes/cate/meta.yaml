@@ -1,9 +1,10 @@
 package:
   name: cate
-  version: "0.7.0a3"
+  # Not released/deployed yet!
+  version: "0.7.0a4"
 
 build:
-  number: 2
+  number: 1
   entry_points:
     # Put any entry points (scripts to be generated automatically) here.
     - cate = cate.cli.main:main
@@ -34,7 +35,6 @@ requirements:
     - cartopy
     - pillow >=3.4,<4
     - hdf4 >=4.2,<5
-    - basemap
     - tornado
     - jdcal
 
@@ -54,7 +54,6 @@ requirements:
     - cartopy
     - pillow  >=3.4,<4
     - hdf4 >=4.2,<5
-    - basemap
     - tornado
     - jdcal
 
