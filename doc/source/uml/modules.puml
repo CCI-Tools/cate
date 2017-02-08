@@ -5,6 +5,7 @@ node "CCI_Toolbox_Core" {
     package "cate.ds" {
         [esa_cci_odp]
         [esa_cci_ftp]
+        [local]
         [more data store modules...] #white
     }
 
@@ -27,19 +28,22 @@ node "CCI_Toolbox_Core" {
         [objectio]
         [op]
         [plugin]
-        [util]
         [workflow]
+        [workspace]
     }
 
-    package "cate.ui" {
-        [cli]
-        [webapi]
+    package "cate.cli" {
+        [cli_main]
+    }
+
+    package "cate.webapi" {
+        [webapi_main]
     }
 }
 
 node "CCI_Toolbox_GUI" {
-    package "cate.gui" {
-        [webapp]
+    package "cate.desktop" {
+        [desktop_main]
     }
 }
 
@@ -52,13 +56,16 @@ node "CCI_Open_Data_Portal" #eeeeee {
 }
 }
 
-[cli] ..> [webapi]
-[webapp] ..> [webapi]
+[cli_main] ..> [webapi_main]
+[desktop_main] ..> [webapi_main]
 
+[workspace] ..> [workflow]
 [workflow] ..> [op]
 
-cate.ui .r.> cate.ops
-cate.ui .r.> cate.ds
+cate.cli .r.> cate.ops
+cate.cli .r.> cate.ds
+cate.webapi .r.> cate.ops
+cate.webapi .r.> cate.ds
 cate.ds .r.> CCI_Open_Data_Portal
 
 

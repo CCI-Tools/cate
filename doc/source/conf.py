@@ -391,12 +391,12 @@ epub_exclude_files = ['search.html']
 # epub_use_index = True
 
 
-# Example configuration for intersphinx: refer to the Python standard library.
+# Generate automatic links to the documentation of objects in other projects.
 intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.5/', None),
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'xarray': ('http://xarray.pydata.org/en/stable/', None),
     'cartopy': ('http://scitools.org.uk/cartopy/docs/latest/', None),
-    'python': ('https://docs.python.org/3.5/', None),
 }
