@@ -1,9 +1,9 @@
 package:
   name: cate-util
-  version: "0.7.0a2"
+  version: "0.7.0a3"
 
 build:
-  number: 1
+  number: 2
   noarch_python: True
 
 

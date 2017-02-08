@@ -1,12 +1,9 @@
 package:
   name: cate
-  version: "0.7.0a2"
+  version: "0.7.0a3"
 
 build:
-  number: 1
-  # noarch_python: False
-  # preserve_egg_dir: False
-  # osx_is_app: False
+  number: 2
   entry_points:
     # Put any entry points (scripts to be generated automatically) here.
     - cate = cate.cli.main:main

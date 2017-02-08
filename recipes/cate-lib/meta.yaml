@@ -1,10 +1,9 @@
 package:
   name: cate-lib
-  version: "0.7.0a2"
+  version: "0.7.0a3"
 
 build:
-  #string: 'rc0'
-  number: 1
+  number: 2
   noarch_python: True
 
 source:
