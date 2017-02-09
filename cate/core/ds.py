@@ -435,7 +435,10 @@ def open_dataset(data_source: Union[DataSource, str],
 # noinspection PyUnresolvedReferences,PyProtectedMember
 def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     """
-    Open multiple files as a single dataset.
+    Open multiple files as a single dataset. This uses dask. If each individual file
+    of the dataset is small, one dask chunk will coincide with one temporal slice, 
+    e.g. the whole array in the file. Otherwise smaller dask chunks will be used
+    to split the dataset.
 
     :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
@@ -445,6 +448,28 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         want to stack a collection of 2D arrays along a third dimension.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
+    # By default the dask chunk size of xr.open_mfdataset is (lat,lon,1). E.g.,
+    # the whole array is one dask slice irrespective of chunking on disk.
+    #
+    # netCDF files can also feature a significant level of compression rendering
+    # the known file size on disk useless to determine if the default dask chunk
+    # will be small enough that a few of them ccould comfortably fit in memory for 
+    # parallel processing.
+    #
+    # Hence we open the first file of the dataset, find out its uncompressed size
+    # and use that, together with an empirically determined threshold, to find out
+    # the smallest amount of chunks such that each chunk is smaller than the
+    # threshold and the number of chunks is a squared number so that both axes,
+    # lat and lon could be divided evenly. We use a squared number to avoid
+    # in addition to all of this finding the best way how to split the number of
+    # chunks into two coefficients that would produce sane chunk shapes.
+    #
+    # When the number of chunks has been found, we use its root as the divisor
+    # to construct the dask chunks dictionary to use when actually opening
+    # the dataset.
+    #
+    # If the number of chunks is one, we use the default chunking.
+    #
     # Check if the uncompressed file (the default dask Chunk) is too large to
     # comfortably fit in memory
     threshold = 250 * (2 ** 20)  # 250 MB
@@ -478,6 +503,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                          "data source. Are lat/lon coordinates divisible by "
                          "{}?".format(divisor))
 
-    chunks = {lat: n_lat/divisor, lon: n_lon/divisor}
+    chunks = {lat: n_lat//divisor, lon: n_lon//divisor}
 
     return xr.open_mfdataset(paths, concat_dim=concat_dim, chunks=chunks, **kwargs)
