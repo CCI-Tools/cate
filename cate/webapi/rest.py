@@ -381,7 +381,7 @@ class ResVarTileHandler(WebAPIRequestHandler):
             print('  num_levels:', pyramid.num_levels)
 
         try:
-            print('PERF: >>> Tile:', threading.current_thread(), image_id, z, y, x)
+            print('PERF: >>> Tile:', image_id, z, y, x)
             t1 = time.clock()
             tile = pyramid.get_tile(int(x), int(y), int(z))
             t2 = time.clock()
@@ -389,7 +389,7 @@ class ResVarTileHandler(WebAPIRequestHandler):
             self.set_header('Content-Type', 'image/png')
             self.write(tile)
 
-            print('PERF: <<< Tile:', threading.current_thread(), image_id, z, y, x, 'took', t2 - t1, 'seconds')
+            print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
             # GLOBAL_LOCK.release()
         except Exception as e:
             traceback.print_exc()
