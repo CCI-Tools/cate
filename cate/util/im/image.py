@@ -634,11 +634,23 @@ class FastNdarrayDownsamplingImage(OpImage):
         w *= zoom
         h *= zoom
 
-        tile = self._array[..., y:y + h:zoom, x:x + w:zoom]
+        # For performance, we first read the non-resampled tile data.
+        # We could use slices with 'zoom' as step size, but this is incredibly slow when using xarray with dask!
+        # 0.4 vs. 0.025 secs for 220x220 pixel tiles for chunked, compressed SST data.
+        # tile = self._array[..., y:y + h:zoom, x:x + w:zoom]
+        tile = self._array[..., y:y + h, x:x + w]
+
+        # Let's see if it has the xarray.DataArray.load() method.
+        # Pre-loading of tile data makes it easier to find bottlenecks in the image processing chain.
+        if hasattr(tile, 'load'):
+            tile.load()
+
+        # We do the resampling to lower resolution after loading the data, which is MUCH faster, see note above.
+        tile = tile[::zoom, ::zoom]
 
         actual_tile_size = tile.shape[-1], tile.shape[-2]
 
-        # todo: ensure that our tile size is w x h: resize and fill in background value.
+        # TODO (forman): ensure that our tile size is w x h: resize and fill in background value.
         # For time being raise error
         assert self.tile_size == actual_tile_size, "unexpected tile size: " \
                                                    "expected %s, but got %s" % (self.tile_size, actual_tile_size)
