@@ -646,7 +646,7 @@ class FastNdarrayDownsamplingImage(OpImage):
             tile.load()
 
         # We do the resampling to lower resolution after loading the data, which is MUCH faster, see note above.
-        tile = tile[::zoom, ::zoom]
+        tile = tile[..., ::zoom, ::zoom]
 
         actual_tile_size = tile.shape[-1], tile.shape[-2]
 
