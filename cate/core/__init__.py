@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -20,14 +20,27 @@
 # SOFTWARE.
 
 """
-Cate core classes and functions.
+Cate's core API.
 """
 
-from .monitor import Monitor
+# noinspection PyUnresolvedReferences
+from .ds import DataStore, DataSource, open_dataset, query_data_sources
+# noinspection PyUnresolvedReferences
+from .op import op, op_input, op_output, op_return, OpMetaInfo, OpRegistration
+# noinspection PyUnresolvedReferences
+from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
+# noinspection PyUnresolvedReferences
+from ..util.monitor import Monitor, ChildMonitor, ConsoleMonitor
 
-# As last step, run plugin registration by importing the plugin module
+# Run plugin registration by importing the plugin module
+# noinspection PyUnresolvedReferences
 from .plugin import cate_init as _
 
 del _
 
-__all__ = """Monitor""".split()
+__all__ = """
+    DataStore, DataSource, open_dataset, query_data_sources
+    op, op_input, op_output, op_return, OpMetaInfo, OpRegistration
+    Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
+    Monitor, ChildMonitor, ConsoleMonitor
+""".split()

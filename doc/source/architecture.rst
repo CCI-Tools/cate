@@ -65,17 +65,16 @@ The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core,
 Note that although the CCI Toolbox GUI and Core are shown in :numref:`uml_modules` as separate nodes, they are combined in
 one software installation on the user's computer.
 
-The CCI Toolbox Core comprises four main packages of which are described in the following four sections.
+The CCI Toolbox Core comprises several sub-packages of which are described in the following four sections.
 
 .. _cate_core:
 
 Package ``cate.core``
---------------------
+---------------------
 
-The Python package ``cate.core`` is the heart of the CCI Toolbox architecture. It provides a common framework for
-climate data I/O and processing and defines the user API. Although designed for climate tooling and use with climate
-data the framework and API is more or less application-independent. ``cate.core`` has no dependency on the other
-CCI Toolbox packages ``cate.ds``, ``cate.ops``, and ``cate.ui``.
+The ``cate.core`` Python package is most import part of the CCI Toolbox architecture. It provides a common framework for
+climate data I/O and processing. Although designed for climate tooling and use with climate
+data the framework and API is more or less application-independent.
 
 The ``cate.core`` package
 
@@ -96,18 +95,13 @@ The ``cate.core`` packages comprises the essential modules which described in mo
 * module ``op`` - :ref:`op`
 * module ``workflow`` - :ref:`workflow`
 * module ``objectio`` - :ref:`objectio`
-
-There are some utility modules included in ``cate.core`` not included in :numref:`uml_modules` but nevertheless
-they provide important parts of the API:
-
-* module ``monitor`` - :ref:`monitor`
 * module ``plugin`` - :ref:`plugin`
-* module ``util`` - Common utility functions
+
 
 .. _cate_ds:
 
 Package ``cate.ds``
-------------------
+-------------------
 
 The Python package ``cate.ds`` contains specific climate data stores (=ds). Every module in this package is
 dedicated to a specific data store.
@@ -128,7 +122,7 @@ Instead, all registered data stores are accessible through the ``cate.core.ds.DA
 .. _cate_ops:
 
 Package ``cate.ops``
--------------------
+--------------------
 
 The Python package ``cate.ops`` contains (climate-)specific visualisation, processing and analysis functions.
 Every module in this package is dedicated to a specific operation implementation.
@@ -142,19 +136,45 @@ Similar to ``cate.ds``, the package ``cate.ops`` is a *plugin* package, only loa
 package ``cate.core`` has any knowledge about the package ``cate.ops``.
 
 
-.. _cate_ui:
+.. _cate_cli:
 
-Package ``cate.ui``
-------------------
+Package ``cate.cli``
+--------------------
 
-The package ``cate.ui`` comprises the ``cli`` module, the CCI Toolbox' command-line interface, and ``webapi`` module,
-which implements a RESTful web service that offers the Web API for the CCI Toolbox Desktop GUI and the interactive
-commands provided by the command-line interface.
+The package ``cate.cli`` comprises a ``main`` module, which implements the CCI Toolbox' command-line interface.
 
 The command-line interface is described in section :ref:`cli`.
 
+.. _cate_webapi:
+
+Package ``cate.webapi``
+-----------------------
+
+The package ``cate.webapi`` implements the CCI Toolbox' *WebAPI* which implements a web service that allows using the
+CCI Toolbox Python API from the
+* Desktop GUI as well as
+* the interactive commands of the CLI.
 
 .. _cdm:
+
+.. _cate_util:
+
+
+Package ``cate.util``
+---------------------
+
+The ``cate.util`` package is fully application-independent and can be used stand-alone. Numerous,
+CCI Toolbox API functions take a ``monitor`` argument used for progress monitoring of mostly long-running tasks.
+The ``cate.util.monitor``  package defines the ``Monitor``class.
+
+* module ``monitor`` - :ref:`monitor`
+
+Package ``cate.conf``
+---------------------
+
+The ``cate.conf`` package provides Cate's configuration API. The ``cate.conf.defaults`` module defines the default
+values for Cate's configuration parameters.
+
 
 Common Data Model
 =================
@@ -227,7 +247,7 @@ For example, the ESA CCI Open Data Portal currently (June 2016) provides climate
 climate variables (ECVs). Each ECV comes in different spatial and temporal resolutions, may originate from various
 sensors and may be provided in various processing versions. A *data source* refers to such a unique ECV occurence.
 
-The ``ds`` module comprises the following abstract types:
+The ``cate.core.ds`` module comprises the following abstract types:
 
 .. _uml_ds:
 
@@ -256,7 +276,7 @@ with locally cached data.
 Operation Management
 ====================
 
-The CCI Toolbox ``op`` module allows for the registration, lookup and controlled invocation of
+The CCI Toolbox ``cate.core.op`` module allows for the registration, lookup and controlled invocation of
 *operations*. Operations can be run from the CCI Toolbox command-line (see next section :ref:`cli`),
 may be referenced from within processing *workflows* (see next section :ref:`workflow`), or may be invoked from
 from the WebAPI (see :numref:`uml_modules`) as a result of a GUI request.
@@ -302,7 +322,7 @@ Workflow Management
 
 Many analyses on climate data can be decomposed into some sequential steps that perform some fundamental operation.
 To make such recurring chains of operations reusable and reproduceable, the CCI Toolbox contains a simple but powerful
-concept which is implemented in the ``workflow`` module.
+concept which is implemented in the ``cate.core.workflow`` module.
 
 A *workflow* is a network or to be more specific, a directed
 acyclic graph of *steps*. A step execution may invoke a registered *operation* (see section :ref:`op`),
@@ -314,7 +334,7 @@ reporting, input/output validation. Workflows can be composed by a dedicated GUI
 e.g. in JSON, YAML or XML format. Workflow steps can even be used to automatically ingest provenance information
 into the dataset outputs for processing traceability and later data history reconstruction.
 
-:numref:`uml_workflow` shows the types and relationships in the ``workflow`` module:
+:numref:`uml_workflow` shows the types and relationships in the ``cate.core.workflow`` module:
 
 * A ``Node`` has zero or more *inputs* and zero or more *outputs* and can be invoked.
 * A ``Workflow`` is a ``Node`` that is composed of ``Step`` objects.
@@ -463,7 +483,7 @@ previous sections:
 * Add a new ``cate.core.ds.DataStore`` object to ``cate.core.ds.DATA_STORE_REGISTRY``
 * Add a new ``cate.core.op.OpRegistration`` object to ``cate.core.op.OP_REGISTRY``
 * Add a new ``cate.core.objectio.ObjectIO`` object to ``cate.core.objectio.OBJECT_IO_REGISTRY``
-* Add a new ``cate.ui.cli.Command`` object to ``cate.ui.cli.COMMAND_REGISTRY``
+* Add a new ``cate.util.cli.Command`` object to ``cate.cli.COMMAND_REGISTRY``
 
 It could also be a Python module that modifies or extends existing CCI Toolbox types by performing some
 controlled *monkey patching*.
@@ -494,7 +514,7 @@ with the same entry point::
        packages=['cate'],
        entry_points={
            'console_scripts': [
-               'cate = cate.ui.cli:main',
+               'cate = cate.cli.main:main',
            ],
            'cate_plugins': [
                'cate_ops = cate.ops:cate_init',

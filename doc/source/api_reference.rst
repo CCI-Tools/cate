@@ -5,9 +5,9 @@ API Reference
 Datasets
 ========
 
-.. autofunction:: cate.query_data_sources
+.. autofunction:: cate.core.query_data_sources
 
-.. autofunction:: cate.open_dataset
+.. autofunction:: cate.core.open_dataset
 
 
 Operations
@@ -48,7 +48,7 @@ Correlation
 
 
 Input / Output
----------------
+--------------
 
 .. autofunction:: cate.ops.open_dataset
 
@@ -133,57 +133,57 @@ Data Stores and Data Sources API
 Operation Registration API
 ==========================
 
-.. autoclass:: cate.OpRegistration
+.. autoclass:: cate.core.OpRegistration
     :members:
 
-.. autoclass:: cate.OpMetaInfo
+.. autoclass:: cate.core.OpMetaInfo
     :members:
 
-.. autofunction:: cate.op
+.. autofunction:: cate.core.op
 
-.. autofunction:: cate.op_input
+.. autofunction:: cate.core.op_input
 
-.. autofunction:: cate.op_output
+.. autofunction:: cate.core.op_output
 
-.. autofunction:: cate.op_return
+.. autofunction:: cate.core.op_return
 
 
 Workflow API
 ============
 
-.. autoclass:: cate.Workflow
+.. autoclass:: cate.core.Workflow
     :members:
 
-.. autoclass:: cate.OpStep
+.. autoclass:: cate.core.OpStep
     :members:
 
-.. autoclass:: cate.NoOpStep
+.. autoclass:: cate.core.NoOpStep
     :members:
 
-.. autoclass:: cate.ExprStep
+.. autoclass:: cate.core.ExprStep
     :members:
 
-.. autoclass:: cate.SubProcessStep
+.. autoclass:: cate.core.SubProcessStep
     :members:
 
-.. autoclass:: cate.WorkflowStep
+.. autoclass:: cate.core.WorkflowStep
     :members:
 
-.. autoclass:: cate.Step
+.. autoclass:: cate.core.Step
     :members:
 
-.. autoclass:: cate.Node
+.. autoclass:: cate.core.Node
     :members:
 
-.. autoclass:: cate.NodePort
+.. autoclass:: cate.core.NodePort
     :members:
 
 Task Monitoring API
 ===================
 
-.. autoclass:: cate.Monitor
+.. autoclass:: cate.core.Monitor
     :members:
 
-.. autoclass:: cate.ConsoleMonitor
+.. autoclass:: cate.core.ConsoleMonitor
     :members:
 

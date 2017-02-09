@@ -169,8 +169,8 @@ The following subsections provide detailed information about the ``cate`` comman
 ===============================
 
 .. argparse::
-   :module: cate.ui.cli
-   :func: make_parser
+   :module: cate.cli.main
+   :func: _make_parser
    :prog: cate
    :path: ds
 
@@ -183,8 +183,8 @@ The following subsections provide detailed information about the ``cate`` comman
 
 
 .. argparse::
-   :module: cate.ui.cli
-   :func: make_parser
+   :module: cate.cli.main
+   :func: _make_parser
    :prog: cate
    :path: op
 
@@ -194,8 +194,8 @@ The following subsections provide detailed information about the ``cate`` comman
 ==============================================
 
 .. argparse::
-   :module: cate.ui.cli
-   :func: make_parser
+   :module: cate.cli.main
+   :func: _make_parser
    :prog: cate
    :path: run
 
@@ -205,8 +205,8 @@ The following subsections provide detailed information about the ``cate`` comman
 ================================
 
 .. argparse::
-   :module: cate.ui.cli
-   :func: make_parser
+   :module: cate.cli.main
+   :func: _make_parser
    :prog: cate
    :path: ws
 
@@ -217,8 +217,8 @@ The following subsections provide detailed information about the ``cate`` comman
 
 
 .. argparse::
-   :module: cate.ui.cli
-   :func: make_parser
+   :module: cate.cli.main
+   :func: _make_parser
    :prog: cate
    :path: res
 

@@ -1,31 +1,30 @@
 @startuml
 
-interface cate.ui.workspace.WorkspaceManager {
+interface cate.core.WorkspaceManager {
     init_workspace()
     set_workspace_resource()
     write_workspace_resource()
 }
 
-class cate.ui.workspace.FSWorkspaceManager implements cate.ui.workspace.WorkspaceManager {
+class cate.core.FSWorkspaceManager implements cate.core.WorkspaceManager {
 }
 
-class cate.ui.workspace.WebAPIWorkspaceManager implements cate.ui.workspace.WorkspaceManager {
+class cate.webapi.WebAPIWorkspaceManager implements cate.core.WorkspaceManager {
 }
 
-interface cate.ui.webapi.WebService {
+interface cate.webapi.WebService {
 }
 
-class cate.ui.workspace.Workspace {
+class cate.core.Workspace {
 }
 
 
 
-cate.ui.workspace.WebAPIWorkspaceManager ..> cate.ui.webapi.WebService: <communicate>
-cate.ui.workspace.FSWorkspaceManager ..--> cate.ui.workspace.Workspace: <uses>
-cate.ui.workspace.FSWorkspaceManager o--> "0..N" cate.ui.workspace.Workspace: workspace_cache
-cate.ui.webapi.WebService o--> "1" cate.ui.workspace.FSWorkspaceManager
-cate.ui.workspace.Workspace --> "1" cate.core.workflow.Workflow
-
-cate.core.workflow.Workflow o--> "0..N" cate.core.workflow.OpStep
+cate.webapi.WebAPIWorkspaceManager ..> cate.webapi.WebService: <communicate>
+cate.core.FSWorkspaceManager ..--> cate.core.Workspace: <uses>
+cate.core.FSWorkspaceManager o--> "0..N" cate.core.Workspace: workspace_cache
+cate.webapi.WebService o--> "1" cate.core.FSWorkspaceManager
+cate.core.Workspace --> "1" cate.core.Workflow
+cate.core.Workflow o--> "0..N" cate.core.OpStep
 
 @enduml

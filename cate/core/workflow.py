@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
 Description
@@ -119,9 +121,10 @@ from io import IOBase
 from itertools import chain
 from typing import Sequence, Optional, Union, List, Dict
 
-from .monitor import Monitor
-from .op import OP_REGISTRY, OpMetaInfo, OpRegistration
-from .util import Namespace, UNDEFINED
+from cate.util import Namespace, UNDEFINED
+from cate.util.monitor import Monitor
+from .op import OP_REGISTRY, OpRegistration
+from cate.util.opmetainf import OpMetaInfo
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node

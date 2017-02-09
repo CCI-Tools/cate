@@ -19,6 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Marco Zühlke (Brockmann Consult GmbH)"
+
 """
 Description
 ===========
@@ -36,6 +38,7 @@ for extra code coverage information.
 Components
 ==========
 """
+
 import json
 from collections import OrderedDict
 from datetime import datetime
@@ -45,10 +48,11 @@ from os.path import join, isfile
 from typing import Sequence, Tuple, Union
 
 import xarray as xr
+
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
-from cate.core.monitor import Monitor
-from cate.core.util import to_list
 from cate.core.ds import get_data_stores_path
+from cate.util.misc import to_list
+from cate.util.monitor import Monitor
 
 
 def get_data_store_path():
@@ -67,10 +71,11 @@ class LocalFilePatternDataSource(DataSource):
         self._files = files
         self._data_store = _data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
-                     protocol: str=None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime] = None,
+                     protocol: str = None) -> xr.Dataset:
         if time_range:
-            raise ValueError("Local data store '%s' does not (yet) support temporal data subsets." % self._data_store.name)
+            raise ValueError(
+                "Local data store '%s' does not (yet) support temporal data subsets." % self._data_store.name)
         paths = []
         for file in self._files:
             paths.extend(glob(file))

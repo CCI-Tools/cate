@@ -29,12 +29,12 @@ Components
 ==========
 """
 
-import xarray as xr
-from typing import Union, List
 import fnmatch
 
+import xarray as xr
+
 from cate.core.op import op
-from cate.core.util import to_list
+from cate.util import to_list
 
 
 @op(tags=['select', 'subset', 'filter', 'var'])

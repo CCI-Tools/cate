@@ -19,6 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespacio VEGA UK Inc.)"
+
 """
 Description
 ===========
@@ -48,9 +52,10 @@ from datetime import datetime, timedelta
 from typing import Sequence, Tuple, Optional
 
 import xarray as xr
+
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
-from cate.core.monitor import Monitor
 from cate.core.ds import get_data_stores_path
+from cate.util.monitor import Monitor
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespacio VEGA UK Inc.)"
 
 """
 Description
@@ -52,10 +57,10 @@ from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 import xarray as xr
+
 from cate.core.cdm import Schema
 from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
-from cate.core.monitor import Monitor
-from cate.core.util import to_datetime
+from cate.util import to_datetime, Monitor
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
@@ -65,11 +70,12 @@ def set_default_data_store():
     """
     Defines the ESA CCI Data Portal's FTP data store and makes it the default data store.
 
-    All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json`` contained in this package.
+    All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json``
+    contained in this package.
     This JSON file has been generated from a scan of the entire FTP tree.
     """
     cate_data_root_dir = os.environ.get('CATE_ESA_CCI_FTP_DATA_STORE_PATH',
-                                       os.path.join(get_data_stores_path(), 'esa_cci_ftp'))
+                                        os.path.join(get_data_stores_path(), 'esa_cci_ftp'))
     json_data = pkgutil.get_data('cate.ds', 'esa_cci_ftp.json')
     data_store = FileSetDataStore.from_json('esa_cci_ftp', cate_data_root_dir, json_data.decode('utf-8'))
     DATA_STORE_REGISTRY.add_data_store(data_store)
@@ -119,8 +125,8 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
-                     protocol: str=None) -> xr.Dataset:
+    def open_dataset(self, time_range: Tuple[datetime, datetime] = None,
+                     protocol: str = None) -> xr.Dataset:
         paths = self.resolve_paths(time_range)
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
@@ -199,9 +205,9 @@ class FileSetDataSource(DataSource):
         return self._base_dir + '/' + resolved_path
 
     def sync(self,
-             time_range: Tuple[datetime, datetime]=None,
-             protocol: str=None,
-             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
+             time_range: Tuple[datetime, datetime] = None,
+             protocol: str = None,
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
         # TODO (kbernat, 20161221): remove remote_url validation, there is no public interface to modify it
         assert self._file_set_data_store.remote_url
         url = urllib.parse.urlparse(self._file_set_data_store.remote_url)
@@ -228,7 +234,8 @@ class FileSetDataSource(DataSource):
 
         return num_of_synchronised_files, num_of_expected_remote_files
 
-    def _sync_files(self, ftp, ftp_base_dir, expected_remote_files, num_of_expected_remote_files, monitor: Monitor) -> int:
+    def _sync_files(self, ftp, ftp_base_dir, expected_remote_files, num_of_expected_remote_files,
+                    monitor: Monitor) -> int:
         sync_files_number = 0
         checked_files_number = 0
 
@@ -429,7 +436,6 @@ class FtpDownloader:
             self._monitor.progress(work=block_size, msg=str(self._dl_stat))
         else:
             self._monitor.progress(work=block_size, msg=self._filename)
-
 
 
 class FileSetInfo:

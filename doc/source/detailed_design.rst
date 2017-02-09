@@ -21,57 +21,87 @@ If available, links to `verifying unit-tests`_ are given in sub-sections called 
 
 
 Module ``cate.core.ds``
-======================
+=======================
 
 .. automodule:: cate.core.ds
     :members:
 
 Module ``cate.core.op``
-======================
+=======================
 
 .. automodule:: cate.core.op
     :members:
 
 Module ``cate.core.workflow``
-============================
+=============================
 
 .. automodule:: cate.core.workflow
     :members:
 
 Module ``cate.core.plugin``
-==========================
+===========================
 
 .. automodule:: cate.core.plugin
     :members:
 
-Module ``cate.core.monitor``
-===========================
+Module ``cate.conf``
+====================
 
-.. automodule:: cate.core.monitor
-    :members:
-
-Module ``cate.core.util``
-========================
-
-.. automodule:: cate.core.util
-    :members:
-
-Module ``cate.ui.cli``
-=====================
-
-.. automodule:: cate.ui.cli
+.. automodule:: cate.conf
     :members:
 
 Module ``cate.ds``
-=================
+==================
 
 .. automodule:: cate.ds
     :members:
 
 Module ``cate.ops``
-==================
+===================
 
 .. automodule:: cate.ops
+    :members:
+
+Module ``cate.cli.main``
+========================
+
+.. automodule:: cate.cli.main
+    :members:
+
+Module ``cate.webapi``
+======================
+
+.. automodule:: cate.webapi.main
+    :members:
+
+Module ``cate.util``
+====================
+
+.. automodule:: cate.util
+    :members:
+
+Module ``cate.util.cache``
+==========================
+
+.. automodule:: cate.util.cache
+    :members:
+
+Module ``cate.util.cli``
+========================
+
+.. automodule:: cate.util.cli
+    :members:
+
+Module ``cate.util.im``
+=======================
+
+.. automodule:: cate.util.im
+    :members:
+
+Module ``cate.util.web``
+========================
+
+.. automodule:: cate.util.web
     :members:
 
 

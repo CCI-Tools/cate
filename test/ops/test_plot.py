@@ -8,6 +8,7 @@ from unittest import TestCase
 
 import numpy as np
 import xarray as xr
+
 from cate.ops import plot
 
 

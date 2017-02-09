@@ -32,7 +32,7 @@ with open('cate/version.py') as f:
     exec(f.read())
 
 setup(
-    name="cate-core",
+    name="cate",
     version=__version__,
     description='ESA CCI Toolbox (Cate) Python Core',
     license='MIT',
@@ -41,8 +41,8 @@ setup(
     data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
     entry_points={
         'console_scripts': [
-            'cate = cate.ui.cli:main',
-            'cate-webapi = cate.ui.webapi:main',
+            'cate = cate.cli.main:main',
+            'cate-webapi = cate.webapi.main:main',
         ],
         'cate_plugins': [
             'cate_ops = cate.ops:cate_init',
@@ -60,7 +60,6 @@ setup(
                       'scipy >= 0.17',
                       'pillow >= 3.4',
                       'pandas >= 0.18',
-                      'basemap >= 1.0',
                       'jdcal >= 1.3',
                       ],
 )
