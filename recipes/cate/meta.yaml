@@ -4,7 +4,7 @@ package:
   version: "0.7.0a4"
 
 build:
-  number: 1
+  number: 2
   entry_points:
     # Put any entry points (scripts to be generated automatically) here.
     - cate = cate.cli.main:main
