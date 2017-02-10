@@ -38,7 +38,7 @@ from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_
 from cate.core.op import OP_REGISTRY, parse_op_args
 from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name
+from cate.util import Monitor, Namespace, object_to_qualified_name, get_lon_dim_name, get_lat_dim_name
 from cate.util.im import ImagePyramid, get_chunk_size
 
 
@@ -232,24 +232,11 @@ class Workspace:
         }
 
     def _is_y_flipped(self, variable):
-        lat_coords = variable.coords[self._get_lat_dim_name(variable)]
+        lat_coords = variable.coords[get_lat_dim_name(variable)]
         return lat_coords.to_index().is_monotonic_increasing
 
     def _is_lat_lon_image_variable(self, variable):
-        return self._get_lat_dim_name(variable) is not None and self._get_lon_dim_name(variable) is not None
-
-    def _get_lon_dim_name(self, variable):
-        return self._get_dim_name(variable, ['lon', 'longitude', 'long'])
-
-    def _get_lat_dim_name(self, variable):
-        return self._get_dim_name(variable, ['lat', 'latitude'])
-
-    # noinspection PyMethodMayBeStatic
-    def _get_dim_name(self, variable, possible_names):
-        for name in possible_names:
-            if name in variable.dims:
-                return name
-        return None
+        return get_lat_dim_name(variable) is not None and get_lon_dim_name(variable) is not None
 
     # noinspection PyMethodMayBeStatic
     def _get_unicode_attr(self, attr, key, default_value=''):

@@ -24,6 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import os
 import os.path
 import sys
+import xarray as xr
 import urllib.parse
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
@@ -275,3 +276,19 @@ def cwd(path: str):
         yield os.getcwd()
     finally:
         os.chdir(old_dir)
+
+
+def get_lon_dim_name(ds: xr.Dataset) -> str:
+    return _get_dim_name(ds, ['lon', 'longitude', 'long'])
+
+
+def get_lat_dim_name(ds: xr.Dataset) -> str:
+    return _get_dim_name(ds, ['lat', 'latitude'])
+
+
+# noinspection PyMethodMayBeStatic
+def _get_dim_name(ds: xr.Dataset, possible_names) -> str:
+    for name in possible_names:
+        if name in ds.dims:
+            return name
+    return None
