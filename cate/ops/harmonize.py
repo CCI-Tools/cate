@@ -32,7 +32,7 @@ Components
 import xarray as xr
 
 from cate.core.op import op
-from cate.util import get_lon_dim_name, get_lat_dim_name
+from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 
 
 @op(tags=['harmonize'])

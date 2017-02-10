@@ -91,8 +91,8 @@ import xarray as xr
 
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.conf import get_config_path
-from cate.core.cdm import Schema
-from cate.util.misc import to_datetime_range, get_lat_dim_name, get_lon_dim_name
+from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
+from cate.util.misc import to_datetime_range
 from cate.util.monitor import Monitor
 
 
