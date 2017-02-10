@@ -29,7 +29,7 @@ import urllib.parse
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Sequence
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
@@ -287,7 +287,7 @@ def get_lat_dim_name(ds: xr.Dataset) -> Optional[str]:
 
 
 # noinspection PyMethodMayBeStatic
-def _get_dim_name(ds: xr.Dataset, possible_names) -> Optional[str]:
+def _get_dim_name(ds: xr.Dataset, possible_names: Sequence[str]) -> Optional[str]:
     for name in possible_names:
         if name in ds.dims:
             return name
