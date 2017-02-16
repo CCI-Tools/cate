@@ -209,21 +209,50 @@ class Workspace:
             'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
             'comment': self._get_unicode_attr(attrs, 'comment'),
         }
-        if self._is_lat_lon_image_variable(variable):
-            variable_info['imageLayout'] = self._get_variable_image_config(variable)
+        image_config = self._get_variable_image_config(variable)
+        if image_config:
+            variable_info['imageLayout'] = image_config
             variable_info['y_flipped'] = self._is_y_flipped(variable)
         return variable_info
 
     # noinspection PyMethodMayBeStatic
     def _get_variable_image_config(self, variable):
+        lat_dim_name = get_lat_dim_name(variable)
+        lon_dim_name = get_lon_dim_name(variable)
+        if not lat_dim_name or not lon_dim_name:
+            return None
+
+        if lat_dim_name in variable.coords and lon_dim_name in variable.coords:
+            lats = variable.coords[lat_dim_name]
+            lons = variable.coords[lon_dim_name]
+
+            lat_delta = abs(lats[1] - lats[0]) if len(lats) else 0
+            lon_delta = abs(lons[1] - lons[0]) if len(lons) else 0
+
+            south = min(lats[0], lats[-1]) - lat_delta
+            north = max(lats[0], lats[-1]) + lat_delta
+            west = min(lons[0], lons[-1]) - lon_delta
+            east = max(lons[0], lons[-1]) + lon_delta
+
+            south = 90 if south > 90 else (-90 if south < -90 else float(south))
+            north = 90 if north > 90 else (-90 if north < -90 else float(north))
+            west = 180 if west > 180 else (-180 if west < -180 else float(west))
+            east = 180 if east > 180 else (-180 if east < -180 else float(east))
+            if south == north or west == east:
+                return None
+        else:
+            south = -90
+            north = 90
+            west = -180
+            east = 180
+
         max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
         return {
-            # todo - compute imageConfig.sector from variable attributes. See frontend todo.
             'sector': {
-                'minLongitude': -180.0,
-                'minLatitude': -90.0,
-                'maxLongitude': 180.0,
-                'maxLatitude': 90.0
+                'west': west,
+                'south': south,
+                'east': east,
+                'north': north,
             },
             'numLevels': num_levels,
             'numLevelZeroTilesX': num_level_zero_tiles[0],
@@ -235,9 +264,6 @@ class Workspace:
     def _is_y_flipped(self, variable):
         lat_coords = variable.coords[get_lat_dim_name(variable)]
         return lat_coords.to_index().is_monotonic_increasing
-
-    def _is_lat_lon_image_variable(self, variable):
-        return get_lat_dim_name(variable) is not None and get_lon_dim_name(variable) is not None
 
     # noinspection PyMethodMayBeStatic
     def _get_unicode_attr(self, attr, key, default_value=''):
