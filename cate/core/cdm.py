@@ -111,7 +111,7 @@ Components
 """
 
 from collections import OrderedDict
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 import xarray as xr
 
 
@@ -320,7 +320,7 @@ class Schema:
             return json_dict
 
 
-def get_lon_dim_name(ds: xr.Dataset) -> Optional[str]:
+def get_lon_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
     """
     Get the name of the longitude dimension.
     :param ds: An xarray Dataset
@@ -329,7 +329,7 @@ def get_lon_dim_name(ds: xr.Dataset) -> Optional[str]:
     return _get_dim_name(ds, ['lon', 'longitude', 'long'])
 
 
-def get_lat_dim_name(ds: xr.Dataset) -> Optional[str]:
+def get_lat_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
     """
     Get the name of the latitude dimension.
     :param ds: An xarray Dataset
@@ -338,7 +338,7 @@ def get_lat_dim_name(ds: xr.Dataset) -> Optional[str]:
     return _get_dim_name(ds, ['lat', 'latitude'])
 
 
-def _get_dim_name(ds: xr.Dataset, possible_names: Sequence[str]) -> Optional[str]:
+def _get_dim_name(ds: Union[xr.Dataset, xr.DataArray], possible_names: Sequence[str]) -> Optional[str]:
     for name in possible_names:
         if name in ds.dims:
             return name
