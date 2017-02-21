@@ -226,8 +226,8 @@ class Workspace:
             lats = variable.coords[lat_dim_name]
             lons = variable.coords[lon_dim_name]
 
-            lat_delta = abs(lats[1] - lats[0]) if len(lats) else 0
-            lon_delta = abs(lons[1] - lons[0]) if len(lons) else 0
+            lat_delta = 0.5 * abs(lats[1] - lats[0]) if len(lats) else 0
+            lon_delta = 0.5 * abs(lons[1] - lons[0]) if len(lons) else 0
 
             south = min(lats[0], lats[-1]) - lat_delta
             north = max(lats[0], lats[-1]) + lat_delta
