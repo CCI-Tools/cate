@@ -171,6 +171,14 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                                      data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
         return Workspace.from_json_dict(json_dict)
 
+    def rename_workspace_resource(self, base_dir: str,
+                                  res_name: str, new_res_name: str) -> Workspace:
+        url = self._url('/ws/res/rename/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(new_res_name=new_res_name))
+        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        return Workspace.from_json_dict(json_dict)
+
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> Workspace:

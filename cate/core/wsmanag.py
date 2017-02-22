@@ -99,6 +99,11 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def rename_workspace_resource(self, base_dir: str,
+                                  res_name: str, new_res_name: str) -> Workspace:
+        pass
+
+    @abstractmethod
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         pass
 
@@ -299,6 +304,12 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
+        return workspace
+
+    def rename_workspace_resource(self, base_dir: str,
+                                  res_name: str, new_res_name: str) -> Workspace:
+        workspace = self.get_workspace(base_dir)
+        workspace.rename_resource(res_name, new_res_name)
         return workspace
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:

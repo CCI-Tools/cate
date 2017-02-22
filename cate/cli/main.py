@@ -130,7 +130,7 @@ _DOCS_URL = 'http://cate-core.readthedocs.io/en/latest/'
 
 _LICENSE = """
 Cate, the ESA CCI Toolbox, version %s
-Copyright (c) 2016 by Cate Development team and contributors
+Copyright (c) 2017 by Cate Development team and contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the MIT License (MIT) as published by
@@ -760,16 +760,24 @@ class ResourceCommand(SubCommandCommand):
                                            help='Set a resource from the result of an operation.')
         set_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         set_parser.add_argument('res_name', metavar='NAME',
-                                help='Name of the new or existing target resource.')
+                                help='Name of a new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
                                 help='Operation name.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
                                 help='Operation arguments.')
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
+        rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
+        rename_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        rename_parser.add_argument('res_name', metavar='NAME',
+                                   help='Resource name.')
+        rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
+                                   help='New resource name.')
+        rename_parser.set_defaults(sub_command_function=cls._execute_rename)
+
         del_parser = subparsers.add_parser('del', help='Delete a resource.')
         del_parser.add_argument(*base_dir_args, **base_dir_kwargs)
-        del_parser.add_argument('res_name', metavar='DIR',
+        del_parser.add_argument('res_name', metavar='NAME',
                                 help='Resource name.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
@@ -792,14 +800,6 @@ class ResourceCommand(SubCommandCommand):
         plot_parser.add_argument('-o', '--out', dest='file_path', metavar='FILE', nargs='?',
                                  help='Output file to write the plot figure to.')
         plot_parser.set_defaults(sub_command_function=cls._execute_plot)
-
-        # TODO (forman, 20160922): implement "cate res rename" (issue #69)
-        # rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
-        # rename_parser.add_argument('res_name_old', metavar='OLD_NAME',
-        #                            help='Old resource name.')
-        # rename_parser.add_argument('res_name_new', metavar='NEW_NAME',
-        #                            help='New resource name.')
-        # rename_parser.set_defaults(sub_command_function=cls._execute_rename)
 
     @classmethod
     def _execute_open(cls, command_args):
@@ -840,6 +840,17 @@ class ResourceCommand(SubCommandCommand):
                                                  command_args.op_args,
                                                  monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
+
+    @classmethod
+    def _execute_rename(cls, command_args):
+        if command_args.res_name == command_args.res_name_new:
+            print('Names are equal.')
+            return
+        workspace_manager = _new_workspace_manager()
+        workspace_manager.rename_workspace_resource(_base_dir(command_args.base_dir),
+                                                    command_args.res_name,
+                                                    command_args.res_name_new)
+        print('Resource "%s" renamed to "%s".' % (command_args.res_name, command_args.res_name_new))
 
     @classmethod
     def _execute_del(cls, command_args):

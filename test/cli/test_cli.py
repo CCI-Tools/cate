@@ -197,6 +197,32 @@ class ResourceCommandTest(CliTestCase):
 
         self.remove_file(output_file)
 
+    def test_res_read_rename(self):
+        input_file = NETCDF_TEST_FILE
+        output_file = '_timeseries_.nc'
+
+        self.assert_main(['ws', 'new'],
+                         expected_stdout=['Workspace created'])
+        self.assert_main(['res', 'read', 'ds', input_file],
+                         expected_stdout=['Resource "ds" set.'])
+        self.assert_main(['res', 'rename', 'ds', 'myDS'],
+                         expected_stdout=['Resource "ds" renamed to "myDS".'])
+
+    def test_res_read_rename_unique(self):
+        input_file = NETCDF_TEST_FILE
+        output_file = '_timeseries_.nc'
+
+        self.assert_main(['ws', 'new'],
+                         expected_stdout=['Workspace created'])
+        self.assert_main(['res', 'read', 'ds1', input_file],
+                         expected_stdout=['Resource "ds1" set.'])
+        self.assert_main(['res', 'read', 'ds2', input_file],
+                         expected_stdout=['Resource "ds2" set.'])
+        self.assert_main(['res', 'rename', 'ds1', 'ds2'],
+                         expected_status=1,
+                         expected_stderr=['Resource "ds1" cannot be renamed to "ds2", '
+                                          'because "ds2" is already in use.'])
+
     def test_res_open_read_set_set(self):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
