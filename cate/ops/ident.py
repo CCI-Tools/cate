@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2017 by the Cate Development Team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -27,11 +27,11 @@ They can be used to rename a value of a given type.
 All operations in this module are tagged with the ``"utility"`` tag.
 """
 
-from cate.core.op import op_input, op
+from cate.core.op import op
 
 
 @op(tags=['utility'])
-def indent_bool(value: bool) -> bool:
+def ident_bool(value: bool) -> bool:
     """
     Return the given boolean value.
 
@@ -41,7 +41,7 @@ def indent_bool(value: bool) -> bool:
 
 
 @op(tags=['utility'])
-def indent_int(value: int) -> int:
+def ident_int(value: int) -> int:
     """
     Return the given integer value.
 
@@ -51,7 +51,7 @@ def indent_int(value: int) -> int:
 
 
 @op(tags=['utility'])
-def indent_float(value: float) -> float:
+def ident_float(value: float) -> float:
     """
     Return the given floating point value.
 
@@ -61,7 +61,7 @@ def indent_float(value: float) -> float:
 
 
 @op(tags=['utility'])
-def indent_str(value: str) -> str:
+def ident_str(value: str) -> str:
     """
     Return the given string value.
 
