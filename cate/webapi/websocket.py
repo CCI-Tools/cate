@@ -199,7 +199,10 @@ class WebSocketService:
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
 
-    # noinspection PyAbstractClass
+    def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
+        workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
+        return workspace.to_json_dict()
+
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
                                monitor: Monitor) -> dict:
         # TODO (nf): op_args come in as {"name1": {value: value1}, "name2": {source: value2}, ...}
@@ -227,7 +230,6 @@ class WebSocketService:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
-    # noinspection PyMethodMayBeStatic
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()

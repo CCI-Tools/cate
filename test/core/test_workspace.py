@@ -38,6 +38,66 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
+    def test_set_and_rename_and_execute_step(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+
+        ws.set_resource('X', 'cate.ops.ident.ident_int', ["value=1"])
+        ws.set_resource('Y', 'cate.ops.ident.ident_int', ["value=X"])
+        ws.set_resource('Z', 'cate.ops.ident.ident_int', ["value=X"])
+        self.assertEqual(len(ws.workflow.steps), 3)
+        self.assertEqual(ws.resource_cache, {})
+
+        print('----------------------------------')
+        value = ws.execute_workflow('Y')
+        self.assertEqual(value, 1)
+        self.assertEqual(ws.resource_cache.get('X'), 1)
+        self.assertEqual(ws.resource_cache.get('Y'), 1)
+        self.assertEqual(ws.resource_cache.get('Z'), None)
+
+        print('----------------------------------')
+        value = ws.execute_workflow('Z')
+        self.assertEqual(value, 1)
+        self.assertEqual(ws.resource_cache.get('X'), 1)
+        self.assertEqual(ws.resource_cache.get('Y'), 1)
+        self.assertEqual(ws.resource_cache.get('Z'), 1)
+
+        print('----X------------------------------')
+        ws.set_resource('X', 'cate.ops.ident.ident_int', ["value=9"], overwrite=True)
+        self.assertEqual(len(ws.workflow.steps), 3)
+        self.assertEqual(ws.resource_cache.get('X'), None)
+        self.assertEqual(ws.resource_cache.get('Y'), None)
+        self.assertEqual(ws.resource_cache.get('Z'), None)
+
+        print('----Y------------------------------')
+        ws.execute_workflow()
+        self.assertEqual(ws.resource_cache.get('X'), 9)
+        self.assertEqual(ws.resource_cache.get('Y'), 9)
+        self.assertEqual(ws.resource_cache.get('Z'), 9)
+
+        print('----------------------------------')
+        ws.rename_resource('X', 'A')
+        self.assertIsNone(ws.workflow.find_node('X'))
+        self.assertIsNotNone(ws.workflow.find_node('A'))
+        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
+        self.assertEqual(ws.resource_cache.get('A'), 9)
+        self.assertEqual(ws.resource_cache.get('Y'), 9)
+        self.assertEqual(ws.resource_cache.get('Z'), 9)
+
+        print('----------------------------------')
+        ws.set_resource('A', 'cate.ops.ident.ident_int', ["value=5"], overwrite=True)
+        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
+        self.assertEqual(ws.resource_cache.get('A'), None)
+        self.assertEqual(ws.resource_cache.get('Y'), None)
+        self.assertEqual(ws.resource_cache.get('Z'), None)
+
+        print('----------------------------------')
+        ws.execute_workflow()
+        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
+        self.assertEqual(ws.resource_cache.get('A'), 5)
+        self.assertEqual(ws.resource_cache.get('Y'), 5)
+        self.assertEqual(ws.resource_cache.get('Z'), 5)
+
+
     def test_example(self):
         expected_json_text = """{
             "qualified_name": "workspace_workflow",

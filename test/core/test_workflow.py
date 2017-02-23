@@ -50,7 +50,27 @@ class WorkflowTest(TestCase):
         workflow.output.q.source = step3.output.w
         return step1, step2, step3, workflow
 
-    def test_get_steps_to_compute(self):
+    def test_sorted_steps(self):
+        step1, step2, step3, workflow = self.create_example_3_steps_workflow()
+        sorted_steps = workflow.sorted_steps
+        self.assertEqual(sorted_steps, [step1, step2, step3])
+
+    def test_sort_steps(self):
+        step1, step2, step3, _ = self.create_example_3_steps_workflow()
+        self.assertEqual(Workflow.sort_steps([]), [])
+        self.assertEqual(Workflow.sort_steps([step1]), [step1])
+        self.assertEqual(Workflow.sort_steps([step1, step2]), [step1, step2])
+        self.assertEqual(Workflow.sort_steps([step1, step3]), [step1, step3])
+        self.assertEqual(Workflow.sort_steps([step2, step1]), [step1, step2])
+        self.assertEqual(Workflow.sort_steps([step3, step1]), [step1, step3])
+        self.assertEqual(Workflow.sort_steps([step2, step3]), [step2, step3])
+        self.assertEqual(Workflow.sort_steps([step3, step2]), [step2, step3])
+        self.assertEqual(Workflow.sort_steps([step1, step2, step3]), [step1, step2, step3])
+        self.assertEqual(Workflow.sort_steps([step2, step1, step3]), [step1, step2, step3])
+        self.assertEqual(Workflow.sort_steps([step3, step2, step1]), [step1, step2, step3])
+        self.assertEqual(Workflow.sort_steps([step1, step3, step2]), [step1, step2, step3])
+
+    def test_find_steps_to_compute(self):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
         self.assertEqual(workflow.find_steps_to_compute('op1'), [step1])
         self.assertEqual(workflow.find_steps_to_compute('op2'), [step1, step2])
@@ -65,15 +85,15 @@ class WorkflowTest(TestCase):
         self.assertTrue(step3.requires(step2))
         self.assertTrue(step3.requires(step1))
 
-    def test_distance_to(self):
+    def test_max_distance_to(self):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
-        self.assertEqual(step1.distance_to(step2), -1)
-        self.assertEqual(step1.distance_to(step3), -1)
-        self.assertEqual(step2.distance_to(step3), -1)
-        self.assertEqual(step2.distance_to(step1), 1)
-        self.assertEqual(step3.distance_to(step2), 1)
-        self.assertEqual(step3.distance_to(step1), 1)
-        self.assertEqual(step3.distance_to(step3), 0)
+        self.assertEqual(step1.max_distance_to(step2), -1)
+        self.assertEqual(step1.max_distance_to(step3), -1)
+        self.assertEqual(step2.max_distance_to(step3), -1)
+        self.assertEqual(step2.max_distance_to(step1), 1)
+        self.assertEqual(step3.max_distance_to(step2), 1)
+        self.assertEqual(step3.max_distance_to(step1), 2)
+        self.assertEqual(step3.max_distance_to(step3), 0)
 
     def test_add_step(self):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
@@ -916,7 +936,7 @@ class NodePortTest(TestCase):
                                 output_dict=OrderedDict(b={})))
         g.add_steps(step1, step2)
 
-        step2.input.a.resolve_source_ref()
+        step2.input.a.update_source()
 
         self.assertEqual(step2.input.a._source_ref, ('myop1', 'y'))
         self.assertIs(step2.input.a.source, step1.output.y)
