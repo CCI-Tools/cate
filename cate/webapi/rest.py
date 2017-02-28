@@ -33,6 +33,7 @@ from typing import List
 
 import numpy as np
 import xarray as xr
+import fiona
 from tornado.web import Application
 
 from cate.conf import get_config
@@ -322,7 +323,8 @@ class ResVarTileHandler(WebAPIRequestHandler):
             return
 
         var_name = self.get_query_argument('var')
-        var_index = tuple(map(int, self.get_query_argument('index', '').split(',')))
+        var_index = self.get_query_argument('index', default=None)
+        var_index = tuple(map(int, var_index.split(','))) if var_index else []
         cmap_name = self.get_query_argument('cmap', default='jet')
         cmap_min = float(self.get_query_argument('min', default='nan'))
         cmap_max = float(self.get_query_argument('max', default='nan'))
@@ -446,6 +448,53 @@ class ResVarTileHandler(WebAPIRequestHandler):
                     if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
                         return dim_var
         return None
+
+
+# noinspection PyAbstractClass
+class ResVarGeoJSONHandler(WebAPIRequestHandler):
+
+    def get(self, base_dir, res_name):
+
+        print('ResVarGeoJSONHandler:', base_dir, res_name)
+
+        var_name = self.get_query_argument('var')
+        var_index = self.get_query_argument('index', default=None)
+        var_index = tuple(map(int, var_index.split(','))) if var_index else []
+        cmap_name = self.get_query_argument('cmap', default='jet')
+        cmap_min = float(self.get_query_argument('min', default='nan'))
+        cmap_max = float(self.get_query_argument('max', default='nan'))
+
+        print('ResVarGeoJSONHandler:', var_name, var_index, cmap_name, cmap_min, cmap_max)
+
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir)
+
+        if res_name not in workspace.resource_cache:
+            self.write_status_error(message='Unknown resource "%s"' % res_name)
+            return
+
+        collection = workspace.resource_cache[res_name]
+        print('ResVarGeoJSONHandler: collection:', collection)
+        if not isinstance(collection, fiona.Collection):
+            self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
+            return
+
+        try:
+            i = 0
+            self.set_header('Content-Type', 'application/json')
+            self.write('{ "type": "FeatureCollection", "features": [')
+            for feature in collection:
+                i += 1
+                if i > 100:
+                    break
+                if i > 0:
+                    self.write(', ')
+                self.write(json.dumps(feature))
+            self.write(']}')
+
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
 
 
 def _new_monitor() -> Monitor:

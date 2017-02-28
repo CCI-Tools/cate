@@ -33,6 +33,8 @@ from typing import List
 
 import numpy as np
 import xarray as xr
+import pandas as pd
+import fiona
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
@@ -186,15 +188,44 @@ class Workspace:
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
                 variable = resource.data_vars[var_name]
-                variable_descriptors.append(self._get_variable_descriptor(variable))
+                variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+        elif isinstance(resource, pd.DataFrame):
+            var_names = list(resource.columns)
+            for var_name in var_names:
+                variable = resource[var_name]
+                variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
+        elif isinstance(resource, fiona.Collection):
+            properties = resource.schema.get('properties')
+            if properties:
+                for var_name, var_type in properties.items():
+                    variable_descriptors.append({
+                        'name': var_name,
+                        'dataType': var_type,
+                        'isFeatureAttribute': True,
+                    })
+            geometry = resource.schema.get('geometry')
+            if geometry:
+                variable_descriptors.append({
+                    'name': 'geometry',
+                    'dataType': geometry,
+                    'isFeatureAttribute': True,
+                })
         return {
             'name': res_name,
             'dataType': object_to_qualified_name(type(resource)),
             'variables': variable_descriptors,
         }
 
-    def _get_variable_descriptor(self, variable: xr.DataArray):
-        # print(list(variable.attrs.keys()))
+    def _get_pandas_variable_descriptor(self, variable: pd.Series):
+        return {
+            'name': variable.name,
+            'dataType': object_to_qualified_name(variable.dtype),
+            'ndim': variable.ndim,
+            'shape': variable.shape,
+            'dimensions': variable.dims,
+        }
+
+    def _get_xarray_variable_descriptor(self, variable: xr.DataArray):
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,

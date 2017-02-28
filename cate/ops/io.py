@@ -23,6 +23,7 @@ import json
 import os.path
 from abc import ABCMeta
 
+import fiona
 import geopandas as gpd
 import xarray as xr
 
@@ -112,7 +113,7 @@ def write_object(obj, file: str, format: str = None):
 
 
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['.txt']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def read_text(file: str, encoding: str = None) -> str:
     """
@@ -132,7 +133,7 @@ def read_text(file: str, encoding: str = None) -> str:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='Plain Text', extensions=['.txt']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def write_text(obj: object, file: str, encoding: str = None):
     """
@@ -151,7 +152,7 @@ def write_text(obj: object, file: str, encoding: str = None):
 
 
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['.json']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def read_json(file: str, encoding: str = None) -> object:
     """
@@ -170,7 +171,7 @@ def read_json(file: str, encoding: str = None) -> object:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['.json']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
 @op_input('indent')
 def write_json(obj: object, file: str, encoding: str = None, indent: str = None):
@@ -190,9 +191,10 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 
 
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='GeoJSON', extensions=['.json', '.geojson']),
-                                                    dict(name='ESRI Shapefiles', extensions=['.shp'])])
-def read_geodata(file: str) -> gpd.GeoDataFrame:
+@op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
+                                                    dict(name='GeoJSON', extensions=['json', 'geojson']),
+                                                    _ALL_FILE_FILTER])
+def read_geo_data_frame(file: str) -> gpd.GeoDataFrame:
     """
     Returns a GeoDataFrame from a file.
 
@@ -204,7 +206,22 @@ def read_geodata(file: str) -> gpd.GeoDataFrame:
 
 
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['.nc'])])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
+                                                    dict(name='GeoJSON', extensions=['json', 'geojson']),
+                                                    _ALL_FILE_FILTER])
+def read_geo_data_collection(file: str) -> fiona.Collection:
+    """
+    Returns a GeoDataFrame from a file.
+
+    :param file: Is either the absolute or relative path to the file to be
+    opened
+    :return: A GeoDataFrame
+    """
+    return fiona.open(file, mode="r")
+
+
+@op(tags=['input'])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
 @op_input('drop_variables')
 @op_input('decode_cf')
 @op_input('decode_times')
@@ -228,7 +245,7 @@ def read_netcdf(file: str,
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 3', extensions=['.nc'])])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 3', extensions=['nc'])])
 @op_input('engine')
 def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
     """
@@ -243,7 +260,7 @@ def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 4', extensions=['.nc'])])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 4', extensions=['nc'])])
 @op_input('engine')
 def write_netcdf4(obj: xr.Dataset, file: str, engine: str = None):
     """

@@ -90,7 +90,8 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
 
     if fail:
         raise ValueError("missing attribute '__name__'")
-    return None
+
+    return str(value)
 
 
 @contextmanager
