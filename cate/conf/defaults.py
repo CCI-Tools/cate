@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -32,17 +32,21 @@ LOCAL_CONF_FILE = 'cate-conf.py'
 SCRATCH_WORKSPACES_DIR_NAME = 'scratch-workspaces'
 SCRATCH_WORKSPACES_PATH = os.path.join(DEFAULT_DATA_PATH, SCRATCH_WORKSPACES_DIR_NAME)
 
+WORKSPACE_CACHE_DIR_NAME = '.cate-cache'
 WORKSPACE_DATA_DIR_NAME = '.cate-workspace'
 WORKSPACE_WORKFLOW_FILE_NAME = 'workflow.json'
 
 _ONE_MIB = 1024 * 1024
 _ONE_GIB = 1024 * _ONE_MIB
 
+#: Use a per-workspace file imagery cache, see REST "/res/tile/" API
+WEBAPI_USE_WORKSPACE_IMAGERY_CACHE = False
+
 # The number of bytes in a workspace's image file cache
-WORKSPACE_FILE_TILE_CACHE_CAPACITY = 1 * _ONE_GIB
+WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY = 1 * _ONE_GIB
 
 # The number of bytes in a workspace's image in-memory cache
-WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB
+WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB
 
 #: where the information about a running WebAPI service is stored
 WEBAPI_INFO_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.json')
@@ -67,3 +71,4 @@ WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER = 120 * 60.0
 
 #: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed, if WebAPI auto-exit enabled
 WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
+

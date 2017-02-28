@@ -27,7 +27,6 @@ Check out latest Cate code
 
 Cate can be run from sources directly, once the following module requirements are resolved:
 
-* `basemap`
 * `cartopy`
 * `dask`
 * `jdcal`
@@ -67,7 +66,7 @@ Windows users can omit the `source` command and just type
 Now we add all required packages to the activated `cate` Conda environment:
 
     (cate) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pillow pyqt jdcal
-    (cate) $ conda install -c conda-forge cartopy basemap
+    (cate) $ conda install -c conda-forge cartopy
 
 Some packages are not available on Anaconda default channels and we have to find them on
 another channel (option `-c CHANNEL`). Above we use channel `conda-forge`. 
@@ -112,6 +111,10 @@ To use them interactively, you'll need to install Jupyter and run its Notebook a
 
 Open the `notebooks` folder and select a use case.
 
+## Conda Deployment
+
+There is a dedicated repository [cate-conda](https://github.com/CCI-Tools/cate-conda)
+which provides scripts and configuration files to build Cate's Conda packages and a stand-alone installer.
 
 ## Development
 

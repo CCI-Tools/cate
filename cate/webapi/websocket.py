@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -27,12 +27,15 @@ from typing import List, Sequence
 
 import xarray as xr
 
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.conf import conf
+from cate.conf.defaults import DEFAULT_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd, to_str_constant, is_str_constant
 
 
+# noinspection PyMethodMayBeStatic
 class WebSocketService:
     """
     Object which implements Cate's server-side methods.
@@ -46,7 +49,55 @@ class WebSocketService:
     def __init__(self, workspace_manager: WorkspaceManager):
         self.workspace_manager = workspace_manager
 
-    # noinspection PyMethodMayBeStatic
+    def get_config(self) -> dict:
+        config = conf.get_config()
+        return dict(data_stores_path=get_data_stores_path(),
+                    use_workspace_imagery_cache=config.get('use_workspace_imagery_cache',
+                                                           WEBAPI_USE_WORKSPACE_IMAGERY_CACHE))
+
+    def set_config(self, config: dict) -> None:
+
+        # Read existing config file as text
+        # noinspection PyBroadException
+        conf_text = ''
+        try:
+            with open(DEFAULT_CONF_FILE, 'r') as fp:
+                conf_text = fp.read()
+        except:
+            # ok
+            pass
+
+        # Split into config file lines
+        conf_lines = conf_text.split('\n')
+        for key, value in config.items():
+            new_entry = '%s = %s' % (key, repr(value))
+            # Try replacing existing code lines starting with key
+            # Replace in reverse line order, because config files are interpreted top-down
+            indices = list(range(len(conf_lines)))
+            indices.reverse()
+            inserted = False
+            for i in indices:
+                conf_line = conf_lines[i]
+                if conf_line.startswith('#'):
+                    # If comment, remove leading whitespaces
+                    conf_line = conf_line[1:].lstrip()
+                # If it starts with key,
+                # next character must be '='
+                # and line must not end with line continuation character
+                if conf_line.startswith(key) \
+                        and conf_line[len(key):].lstrip().index('=') >= 0 \
+                        and not conf_line.endswith('\\'):
+                    conf_lines[i] = new_entry
+                    inserted = True
+                    break
+            if not inserted:
+                conf_lines.append(new_entry)
+
+        # Now join lines back again and write modified config file
+        conf_text = '\n'.join(conf_lines)
+        with open(DEFAULT_CONF_FILE, 'w') as fp:
+            fp.write(conf_text)
+
     def get_data_stores(self) -> list:
         """
         Get registered data stores.
@@ -62,7 +113,6 @@ class WebSocketService:
 
         return sorted(data_store_list, key=lambda ds: ds['name'])
 
-    # noinspection PyMethodMayBeStatic
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
         """
         Get data sources for a given data store.
@@ -84,7 +134,6 @@ class WebSocketService:
 
         return sorted(data_source_list, key=lambda ds: ds['name'])
 
-    # noinspection PyMethodMayBeStatic
     def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
         Get the temporal coverage of the data source.
@@ -110,7 +159,6 @@ class WebSocketService:
         # TODO mz add available data information
         return meta_info
 
-    # noinspection PyMethodMayBeStatic
     def get_operations(self) -> List[dict]:
         """
         Get registered operations.
@@ -151,7 +199,10 @@ class WebSocketService:
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
 
-    # noinspection PyAbstractClass
+    def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
+        workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
+        return workspace.to_json_dict()
+
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
                                monitor: Monitor) -> dict:
         # TODO (nf): op_args come in as {"name1": {value: value1}, "name2": {source: value2}, ...}
@@ -179,7 +230,6 @@ class WebSocketService:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
-    # noinspection PyMethodMayBeStatic
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -116,7 +116,7 @@ Components
 """
 
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from io import IOBase
 from itertools import chain
 from typing import Sequence, Optional, Union, List, Dict
@@ -162,8 +162,22 @@ class Node(metaclass=ABCMeta):
 
     @property
     def id(self) -> str:
-        """The node's operation meta-information."""
+        """The node's identifier. """
         return self._id
+
+    def set_id(self, node_id: str) -> None:
+        """
+        Set the node's identifier.
+
+        :param node_id: The new node identifier. Must be unique within a workflow.
+        """
+        if not id:
+            raise ValueError('id must be given')
+        old_id = self._id
+        if node_id == old_id:
+            return
+        self._id = node_id
+        self.root_node.update_sources_node_id(self, old_id)
 
     @property
     def input(self) -> Namespace:
@@ -184,11 +198,11 @@ class Node(metaclass=ABCMeta):
         return node
 
     @property
-    def parent_node(self) -> 'Node':
+    def parent_node(self) -> Optional['Node']:
         """The node's parent node or ``None`` if this node has no parent."""
         return None
 
-    def find_node(self, node_id) -> 'Node':
+    def find_node(self, node_id) -> Optional['Node']:
         """Find a (child) node with the given *node_id*."""
         return None
 
@@ -200,9 +214,18 @@ class Node(metaclass=ABCMeta):
         :param other_node: The other node.
         :return: ``True`` if this node is a target of *other_node*
         """
-        return self.distance_to(other_node) >= 0
+        return self.max_distance_to(other_node) > 0
 
-    def distance_to(self, other_node: 'Node') -> int:
+    def is_direct_source_for_port(self, other_port: 'NodePort'):
+        return other_port.source is self or (other_port.source_ref and other_port.source_ref.node_id == self._id)
+
+    def is_direct_source_of(self, other_node: 'Node'):
+        for other_port in other_node._input[:]:
+            if self.is_direct_source_for_port(other_port):
+                return True
+        return False
+
+    def max_distance_to(self, other_node: 'Node') -> int:
         """
         If *other_node* is a source of this node, then return the number of connections from this node to *node*.
         If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, cate.
@@ -212,17 +235,19 @@ class Node(metaclass=ABCMeta):
         :param other_node: The other node.
         :return: The distance to *other_node*
         """
-        if self == other_node:
+        if not other_node:
+            raise ValueError('other_node must be given')
+        if other_node == self:
             return 0
+        max_distance = -1
+        if other_node.is_direct_source_of(self):
+            max_distance = 1
         for port in self._input[:]:
-            if port.source is not None and port.source.node is other_node:
-                return 1
-        for port in self._input[:]:
-            if port.source is not None:
-                distance = port.source.node.requires(other_node)
+            if port.source:
+                distance = port.source.node.max_distance_to(other_node)
                 if distance > 0:
-                    return distance + 1
-        return -1
+                    max_distance = max(max_distance, distance + 1)
+        return max_distance
 
     def collect_predecessors(self, predecessors: List['Node'], excludes: List['Node'] = None):
         """Collect this node (self) and preceding nodes in *predecessors*."""
@@ -304,10 +329,15 @@ class Node(metaclass=ABCMeta):
         :return: A JSON-serializable dictionary
         """
 
-    def resolve_source_refs(self):
+    def update_sources(self):
         """Resolve unresolved source references in inputs and outputs."""
         for port in chain(self._output[:], self._input[:]):
-            port.resolve_source_ref()
+            port.update_source()
+
+    def update_sources_node_id(self, changed_node: 'Node', old_id: str):
+        """Update the source references of input and output ports from *old_id* to *new_id*."""
+        for port in chain(self._output[:], self._input[:]):
+            port.update_source_node_id(changed_node, old_id)
 
     def remove_orphaned_sources(self, orphaned_node: 'Node'):
         # Set all input/output ports to None, whose source are still old_step.
@@ -317,7 +347,7 @@ class Node(metaclass=ABCMeta):
             if port.source is not None and port.source.node is orphaned_node:
                 port.value = None
 
-    def find_port(self, name) -> 'NodePort':
+    def find_port(self, name) -> Optional['NodePort']:
         """
         Find port with given name. Output ports are searched first, then input ports.
         :param name: The port name
@@ -329,7 +359,7 @@ class Node(metaclass=ABCMeta):
             return self._input[name]
         return None
 
-    def _body_string(self) -> str:
+    def _body_string(self) -> Optional[str]:
         return None
 
     def _format_port_assignments(self, namespace: Namespace, is_input: bool):
@@ -384,11 +414,41 @@ class Workflow(Node):
         else:
             op_meta_info = name_or_op_meta_info
         super(Workflow, self).__init__(op_meta_info, op_meta_info.qualified_name)
-        self._steps = OrderedDict()
+        # The list of steps
+        self._steps = []
+        self._steps_dict = {}
 
     @property
     def steps(self) -> List['Step']:
-        return list(self._steps.values())
+        """The workflow steps in the order they where added."""
+        return list(self._steps)
+
+    @property
+    def sorted_steps(self):
+        """The workflow steps in the order they they can be executed."""
+        return Workflow.sort_steps(self.steps)
+
+    @classmethod
+    def sort_steps(cls, steps: List['Step']):
+        """Sorts the list of workflow steps in the order they they can be executed."""
+        # TODO (forman 20170222): Try find a replacement for this expensive, brute-force sorting algorithm.
+        #                         It is ok for a small number of steps only.
+        n = len(steps)
+        if n < 2:
+            return steps
+        dist_and_step_list = []
+        for i1 in range(n):
+            max_dist = 0
+            step = steps[i1]
+            for i2 in range(n):
+                if i1 != i2:
+                    dist = step.max_distance_to(steps[i2])
+                    if dist > 0:
+                        max_dist = max(max_dist, dist)
+            dist_and_step_list.append((max_dist, step))
+        sorted_d_and_step_list = sorted(dist_and_step_list, key=lambda dist_and_step: dist_and_step[0])
+        sorted_steps = [dist_and_step[1] for dist_and_step in sorted_d_and_step_list]
+        return sorted_steps
 
     def find_steps_to_compute(self, step_id: str) -> List['Step']:
         """
@@ -398,21 +458,21 @@ class Workflow(Node):
         :param step_id: The step to be computed last and whose output value is requested.
         :return: a list of steps, which is never empty
         """
-        if step_id not in self._steps:
+        step = self._steps_dict.get(step_id)
+        if not step:
             raise ValueError('step_id argument does not identify a step: %s' % step_id)
-
-        step = self._steps[step_id]
         steps = []
         step.collect_predecessors(steps, [self])
         return steps
 
-    def find_node(self, step_id: str) -> 'Step':
+    def find_node(self, step_id: str) -> Optional['Step']:
         # is it the ID of one of the direct children?
-        if step_id in self._steps:
-            return self._steps[step_id]
+        step = self._steps_dict.get(step_id)
+        if step:
+            return step
         # is it the ID of one of the children of the children?
-        for node in self._steps.values():
-            other_node = node.find_node(step_id)
+        for step in self._steps:
+            other_node = step.find_node(step_id)
             if other_node:
                 return other_node
         return None
@@ -421,45 +481,58 @@ class Workflow(Node):
         for step in steps:
             self.add_step(step, can_exist=can_exist)
 
-    def add_step(self, step: 'Step', can_exist: bool = False) -> 'Step':
-        old_step = self._steps.get(step.id)
-        if old_step is not None and not can_exist:
-            raise ValueError("step '%s' already exists" % step.id)
+    def add_step(self, new_step: 'Step', can_exist: bool = False) -> Optional['Step']:
+        old_step = self._steps_dict.get(new_step.id)
+        if old_step:
+            if not can_exist:
+                raise ValueError("step '%s' already exists" % new_step.id)
+            old_step_index = self._steps.index(old_step)
+            assert old_step_index >= 0
+            self._steps[old_step_index] = new_step
+        else:
+            self._steps.append(new_step)
 
-        is_new = old_step is not step
-        if is_new:
-            self._steps[step.id] = step
+        self._steps_dict[new_step.id] = new_step
 
-        step._parent_node = self
+        new_step._parent_node = self
 
-        if is_new and old_step is not None:
+        if old_step and old_step is not new_step:
             # If the step already existed before, we must resolve source references again
-            self.resolve_source_refs()
+            self.update_sources()
             # After reassigning sources, remove ports whose source is still old_step.
+            # noinspection PyTypeChecker
             self.remove_orphaned_sources(old_step)
 
         return old_step
 
-    def remove_step(self, step: Union[str, 'Step'], must_exist: bool = False) -> 'Step':
-        step_id = step if isinstance(step, str) else step.id
-        if step_id not in self._steps:
+    def remove_step(self, step_or_id: Union[str, 'Step'], must_exist: bool = False) -> Optional['Step']:
+        step_id = step_or_id if isinstance(step_or_id, str) else step_or_id.id
+        if step_id not in self._steps_dict:
             if must_exist:
                 raise ValueError("step '%s' not found" % step_id)
             return None
-        old_step = self._steps.pop(step_id)
-        step._parent_node = None
-
-        if old_step is not None:
-            # After removing old_step, remove ports whose source is still old_step.
-            self.remove_orphaned_sources(old_step)
-
+        old_step = self._steps_dict.pop(step_id)
+        assert old_step is not None
+        self._steps.remove(old_step)
+        old_step._parent_node = None
+        # After removing old_step, remove ports whose source is still old_step.
+        self.remove_orphaned_sources(old_step)
         return old_step
 
-    def resolve_source_refs(self) -> None:
+    def update_sources(self) -> None:
         """Resolve unresolved source references in inputs and outputs."""
-        super(Workflow, self).resolve_source_refs()
-        for step in self._steps.values():
-            step.resolve_source_refs()
+        super(Workflow, self).update_sources()
+        for step in self._steps:
+            step.update_sources()
+
+    def update_sources_node_id(self, changed_node: Node, old_id: str):
+        """Update the source references of input and output ports from *old_id* to *new_id*."""
+        super(Workflow, self).update_sources_node_id(changed_node, old_id)
+        if old_id in self._steps_dict:
+            self._steps_dict.pop(old_id)
+            self._steps_dict[changed_node.id] = changed_node
+        for step in self._steps:
+            step.update_sources_node_id(changed_node, old_id)
 
     def remove_orphaned_sources(self, removed_node: Node):
         """
@@ -467,7 +540,7 @@ class Workflow(Node):
         :param removed_node: A removed node.
         """
         super(Workflow, self).remove_orphaned_sources(removed_node)
-        for step in self._steps.values():
+        for step in self._steps:
             step.remove_orphaned_sources(removed_node)
 
     def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
@@ -571,7 +644,7 @@ class Workflow(Node):
         for node_output in workflow.output[:]:
             node_output.from_json_dict(output_json_dict)
 
-        workflow.resolve_source_refs()
+        workflow.update_sources()
         return workflow
 
     def to_json_dict(self) -> dict:
@@ -600,7 +673,7 @@ class Workflow(Node):
 
         # convert all step nodes to JSON dicts
         steps_json_list = []
-        for step in self._steps.values():
+        for step in self._steps:
             steps_json_list.append(step.to_json_dict())
 
         # convert 'data_type' Python types entries to JSON-strings
@@ -1007,7 +1080,8 @@ class SubProcessStep(Step):
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(SubProcessStep, self).__init__(op_meta_info, node_id)
         self._sub_process_arguments = sub_process_arguments
-        self._environment_variables = dict(environment_variables) if environment_variables else {}
+        # noinspection PyArgumentList
+        self._environment_variables = dict(**environment_variables) if environment_variables else {}
         self._working_directory = working_directory
 
     @property
@@ -1057,8 +1131,8 @@ class SubProcessStep(Step):
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
         sub_process_arguments = json_dict.get('sub_process_arguments', None)
-        working_directory = json_dict.get('working_directory', None)
-        environment_variables = json_dict.get('environment_variables', None)
+        # working_directory = json_dict.get('working_directory', None)
+        # environment_variables = json_dict.get('environment_variables', None)
         if sub_process_arguments is None:
             return None
         return cls(sub_process_arguments, node_id=json_dict.get('id', None))
@@ -1073,6 +1147,9 @@ class SubProcessStep(Step):
 
     def __repr__(self):
         return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
+
+
+SourceRef = namedtuple('SourcerRef', ['node_id', 'port_name'])
 
 
 class NodePort:
@@ -1093,7 +1170,7 @@ class NodePort:
         return self._node
 
     @property
-    def node_id(self) -> Node:
+    def node_id(self) -> str:
         return self._node.id
 
     @property
@@ -1125,6 +1202,10 @@ class NodePort:
         self._source_ref = None
 
     @property
+    def source_ref(self) -> SourceRef:
+        return self._source_ref
+
+    @property
     def source(self) -> 'NodePort':
         return self._source
 
@@ -1133,10 +1214,23 @@ class NodePort:
         if self is new_source:
             raise ValueError("cannot connect '%s' with itself" % self)
         self._source = new_source
-        self._source_ref = (new_source.node_id, new_source.name) if new_source else None
+        self._source_ref = SourceRef(new_source.node_id, new_source.name) if new_source else None
         self._value = UNDEFINED
 
-    def resolve_source_ref(self):
+    def update_source_node_id(self, node: Node, old_node_id: str) -> None:
+        """
+        A node identifier has changed so we update the source references and clear the source
+        of input and output ports from *old_node_id* to *node.id*.
+
+        :param node: The node whose identifier changed.
+        :param new_node_id: The former node identifier.
+        """
+        if self._source_ref and self._source_ref.node_id == old_node_id:
+            port_name = self._source_ref.port_name
+            self.source = node.find_port(port_name)
+            # print('--- update port %s: %s, source=%s' % (self, self._source_ref, self._source))
+
+    def update_source(self):
         """
         Resolve this node port's source reference, if any.
 
@@ -1158,9 +1252,12 @@ class NodePort:
         """
         if self._source_ref:
             other_node_id, other_name = self._source_ref
-            if other_node_id and other_name:
+            other_node = None
+            if other_node_id:
                 root_node = self._node.root_node
                 other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
+
+            if other_node_id and other_name:
                 if other_node:
                     node_port = other_node.find_port(other_name)
                     if node_port:
@@ -1173,8 +1270,6 @@ class NodePort:
                     raise ValueError("cannot connect '%s' with '%s.%s' because node '%s' does not exist" % (
                         self, other_node_id, other_name, other_node_id))
             elif other_node_id:
-                root_node = self._node.root_node
-                other_node = root_node if root_node.id == other_node_id else root_node.find_node(other_node_id)
                 if other_node:
                     if len(other_node.output) == 1:
                         node_port = other_node.output[0]

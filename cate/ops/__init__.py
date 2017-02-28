@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -53,6 +53,7 @@ from .average import long_term_average, temporal_agg
 from .arithmetics import ds_arithmetics
 from .anomaly import anomaly_internal, anomaly_climatology
 from .index import nino34
+from .ident import *
 
 __all__ = [
     # .timeseries
@@ -89,9 +90,14 @@ __all__ = [
     'ds_arithmetics',
     # .anomaly
     'anomaly_internal',
-    'anomaly_climatology'
+    'anomaly_climatology',
     # .index
     #'nino34'
+    # .ident
+    'ident_bool',
+    'ident_int',
+    'ident_float',
+    'ident_str',
 ]
 
 

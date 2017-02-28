@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -96,6 +96,11 @@ class WorkspaceManager(metaclass=ABCMeta):
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: List[str],
                                monitor: Monitor = Monitor.NONE) -> Workspace:
+        pass
+
+    @abstractmethod
+    def rename_workspace_resource(self, base_dir: str,
+                                  res_name: str, new_res_name: str) -> Workspace:
         pass
 
     @abstractmethod
@@ -299,6 +304,12 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
+        return workspace
+
+    def rename_workspace_resource(self, base_dir: str,
+                                  res_name: str, new_res_name: str) -> Workspace:
+        workspace = self.get_workspace(base_dir)
+        workspace.rename_resource(res_name, new_res_name)
         return workspace
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:

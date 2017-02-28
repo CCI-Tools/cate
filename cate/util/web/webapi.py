@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -168,7 +168,7 @@ class WebAPI:
                     return service_info
                 else:
                     # Try shutting down the service, even violently
-                    self.stop(service_info_file, kill_after=5.0, timeout=5.0)
+                    self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
                 print('warning: %s service info file exists: %s, removing it' % (self, service_info_file))
                 os.remove(service_info_file)

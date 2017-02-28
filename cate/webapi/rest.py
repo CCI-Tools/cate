@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2017 by the Cate Development Team and contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 from cate.util import ConsoleMonitor
 from cate.util import Monitor
 
@@ -26,7 +27,6 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 import json
 import os.path
-import threading
 import time
 import traceback
 from typing import List
@@ -35,16 +35,28 @@ import numpy as np
 import xarray as xr
 from tornado.web import Application
 
+from cate.conf import get_config
 from cate.conf.defaults import \
-    WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
-    WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
-    WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER
+    WORKSPACE_CACHE_DIR_NAME, \
+    WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
+    WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
+    WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
 from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
+
+# TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
+#                However, a global cache is fine as long as we have just one workspace open at a time.
+#
+MEM_TILE_CACHE = Cache(MemoryCacheStore(),
+                       capacity=WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY,
+                       threshold=0.75)
+
+USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -223,6 +235,19 @@ class ResourceSetHandler(WebAPIRequestHandler):
 
 
 # noinspection PyAbstractClass
+class ResourceRenameHandler(WebAPIRequestHandler):
+    def get(self, base_dir, res_name):
+        new_res_name = self.get_query_argument('new_res_name')
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace = workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
+            self.write_status_ok(content=workspace.to_json_dict())
+        except Exception as e:
+            self.write_status_error(exception=e)
+
+
+# noinspection PyAbstractClass
 class ResourceWriteHandler(WebAPIRequestHandler):
     def get(self, base_dir, res_name):
         file_path = self.get_query_argument('file_path')
@@ -272,14 +297,6 @@ class NE2Handler(WebAPIRequestHandler):
         # print('NE2Handler.get(%s, %s, %s)' % (z, y, x))
         self.set_header('Content-Type', 'image/jpg')
         self.write(NE2Handler.PYRAMID.get_tile(int(x), int(y), int(z)))
-
-
-# TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
-#                However, a global cache is fine as long as we have just one workspace open at a time.
-#
-mem_tile_cache = Cache(MemoryCacheStore(),
-                       capacity=WORKSPACE_MEM_TILE_CACHE_CAPACITY,
-                       threshold=0.75)
 
 
 # noinspection PyAbstractClass
@@ -349,10 +366,15 @@ class ResVarTileHandler(WebAPIRequestHandler):
             print('cmap_min =', cmap_min)
             print('cmap_max =', cmap_max)
 
-            rgb_tile_cache_dir = os.path.join(base_dir, '.cate-cache', 'v%s' % __version__, 'tiles')
-            rgb_tile_cache = Cache(FileCacheStore(rgb_tile_cache_dir, ".png"),
-                                   capacity=WORKSPACE_FILE_TILE_CACHE_CAPACITY,
-                                   threshold=0.75)
+            if USE_WORKSPACE_IMAGERY_CACHE:
+                mem_tile_cache = MEM_TILE_CACHE
+                rgb_tile_cache_dir = os.path.join(base_dir, WORKSPACE_CACHE_DIR_NAME, 'v%s' % __version__, 'tiles')
+                rgb_tile_cache = Cache(FileCacheStore(rgb_tile_cache_dir, ".png"),
+                                       capacity=WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY,
+                                       threshold=0.75)
+            else:
+                mem_tile_cache = MEM_TILE_CACHE
+                rgb_tile_cache = None
 
             def array_image_id_factory(level):
                 return 'arr-%s/%s' % (array_id, level)
