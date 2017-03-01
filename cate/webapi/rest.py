@@ -482,14 +482,12 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         try:
             i = 0
             self.set_header('Content-Type', 'application/json')
-            self.write('{ "type": "FeatureCollection", "features": [')
+            self.write('{"type": "FeatureCollection", "features": [')
             for feature in collection:
-                i += 1
-                if i > 100:
-                    break
                 if i > 0:
-                    self.write(', ')
+                    self.write(',')
                 self.write(json.dumps(feature))
+                i += 1
             self.write(']}')
 
         except Exception as e:
