@@ -477,23 +477,27 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
         temp_ds = xr.open_dataset(paths[0])
-    except OSError:
+    except (OSError, RuntimeError):
+        # netcdf4 >=1.2.2 raises RuntimeError
         # We have a glob not a list
         temp_ds = xr.open_dataset(glob.glob(paths)[0])
 
-    n_chunks = ceil(sqrt(temp_ds.nbytes/threshold))**2
-
-    if n_chunks == 1:
-        # The file size is fine
-        return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
-
-    divisor = sqrt(n_chunks)
+    n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
     # lat/lon names are not yet known
     lat = get_lat_dim_name(temp_ds)
     lon = get_lon_dim_name(temp_ds)
     n_lat = len(temp_ds[lat])
     n_lon = len(temp_ds[lon])
+
+    # temp_ds is no longer used
+    temp_ds.close()
+
+    if n_chunks == 1:
+        # The file size is fine
+        return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
+
+    divisor = sqrt(n_chunks)
 
     # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5
     # would imply an uncompressed single file of ~6GB! All expected grids
@@ -503,6 +507,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                          "data source. Are lat/lon coordinates divisible by "
                          "{}?".format(divisor))
 
-    chunks = {lat: n_lat//divisor, lon: n_lon//divisor}
+    chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
     return xr.open_mfdataset(paths, concat_dim=concat_dim, chunks=chunks, **kwargs)
