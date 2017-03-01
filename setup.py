@@ -51,7 +51,7 @@ setup(
     },
     install_requires=[
                       'matplotlib >= 1.5',
-                      'xarray >= 0.8',
+                      'xarray >= 0.9',
                       'netcdf4 >= 1.2',
                       'dask >= 0.8',
                       'tornado >= 4.4',
