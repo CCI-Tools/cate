@@ -42,6 +42,7 @@ Components
 import json
 from collections import OrderedDict
 from datetime import datetime
+from dateutil import parser
 from glob import glob
 from os import listdir, makedirs, environ
 from os.path import join, isfile
@@ -66,21 +67,38 @@ def add_to_data_store_registry():
 
 
 class LocalFilePatternDataSource(DataSource):
-    def __init__(self, name: str, files: Sequence[str], _data_store: DataStore):
+    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], _data_store: DataStore):
         self._name = name
-        self._files = files
+        if isinstance(files, Sequence):
+            self._files = OrderedDict.fromkeys(files)
+        else:
+            self._files = files
         self._data_store = _data_store
 
     def open_dataset(self, time_range: Tuple[datetime, datetime] = None,
                      protocol: str = None) -> xr.Dataset:
-        if time_range:
-            raise ValueError(
-                "Local data store '%s' does not (yet) support temporal data subsets." % self._data_store.name)
         paths = []
-        for file in self._files:
-            paths.extend(glob(file))
-        paths = sorted(set(paths))
+        if time_range:
+            time_series = list(self._files.values())
+            file_paths = list(self._files.keys())
+            for i in range(len(time_series)):
+                if time_series[i] and time_range[0] <= time_series[i] < time_range[1]:
+                    paths.extend(glob(file_paths[i]))
+        else:
+            for file in self._files.items():
+                paths.extend(glob(file[0]))
+            paths = sorted(set(paths))
+        print(paths)
         return open_xarray_dataset(paths)
+
+    def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
+        if update or self._files.get(file) is None:
+            self._files[file] = time_stamp.replace(microsecond=0)
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None
+                                         else datetime.max))
+
+    def save(self):
+        self._data_store.save_data_source(self)
 
     @property
     def info_string(self):
@@ -109,14 +127,20 @@ class LocalFilePatternDataSource(DataSource):
         """
         fsds_dict = OrderedDict()
         fsds_dict['name'] = self.name
-        fsds_dict['files'] = self._files
+        fsds_dict['files'] = list(self._files.items())
         return fsds_dict
 
     @classmethod
     def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> 'LocalFilePatternDataSource':
         name = json_dicts.get('name')
-        files = json_dicts.get('files')
-        if name and files:
+        files = json_dicts.get('files', None)
+        if name and isinstance(files, list):
+            if len(files) > 0:
+                if isinstance(files[0], list):
+                    files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
+                                         if item[1] is not None else None) for item in files)
+            else:
+                files = OrderedDict()
             return LocalFilePatternDataSource(name, files, data_store)
         return None
 
@@ -142,9 +166,16 @@ class LocalFilePatternDataStore(DataStore):
         self._save_data_source(data_source)
         return name
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalFilePatternDataSource]:
         self._init_data_sources()
-        return [ds for ds in self._data_sources if ds.matches_filter(name)]
+        if name:
+            result = [ds for ds in self._data_sources if ds.matches_filter(name)]
+        else:
+            result = self._data_sources
+        return result
+
+    def save_data_source(self, data_source):
+        self._save_data_source(data_source)
 
     def __repr__(self):
         return "LocalFilePatternDataStore(%s)" % repr(self.name)
@@ -177,7 +208,7 @@ class LocalFilePatternDataStore(DataStore):
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()
-        dump_kwargs = dict(indent='  ')
+        dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
         file_name = join(self._store_dir, data_source.name + '.json')
         with open(file_name, 'w') as fp:
             json.dump(json_dict, fp, **dump_kwargs)
@@ -188,3 +219,9 @@ class LocalFilePatternDataStore(DataStore):
             with open(json_path) as fp:
                 return json.load(fp=fp) or {}
         return None
+
+    @staticmethod
+    def _json_default_serializer(obj):
+        if isinstance(obj, datetime):
+            return obj.replace(microsecond=0).isoformat()
+        raise TypeError('Not sure how to serialize %s' % (obj,))

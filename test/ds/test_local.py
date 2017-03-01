@@ -56,30 +56,48 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.ds2 = LocalFilePatternDataSource("aerosol",
                                               ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"],
                                               self._dummy_store)
+
+        self.empty_ds = LocalFilePatternDataSource("empty",
+                                              [],
+                                              self._dummy_store)
+
         self.assertIsNotNone(self.ds1)
         self.assertIsNotNone(self.ds2)
+        self.assertIsNotNone(self.empty_ds)
 
     def test_data_store(self):
         self.assertIs(self.ds1.data_store, self._dummy_store)
         self.assertIs(self.ds2.data_store, self._dummy_store)
+        self.assertIs(self.empty_ds.data_store, self._dummy_store)
 
     def test_id(self):
         self.assertEqual(self.ds1.name, 'ozone')
         self.assertEqual(self.ds2.name, 'aerosol')
+        self.assertEqual(self.empty_ds.name, 'empty')
 
     def test_schema(self):
         self.assertEqual(self.ds1.schema, None)
         self.assertEqual(self.ds2.schema, None)
+        self.assertEqual(self.empty_ds.schema, None)
 
     def test_info_string(self):
         self.assertEqual('Files: /DATA/ozone/*/*.nc', self.ds1.info_string)
         self.assertEqual('Files: /DATA/aerosol/*/A*.nc /DATA/aerosol/*/B*.nc', self.ds2.info_string)
+        self.assertEqual('Files: ', self.empty_ds.info_string)
 
     def test_temporal_coverage(self):
         self.assertEqual(self.ds1.temporal_coverage(), None)
         self.assertEqual(self.ds2.temporal_coverage(), None)
+        self.assertEqual(self.empty_ds.temporal_coverage(), None)
 
     def test_to_json_dict(self):
-        self.assertEqual(self.ds1.to_json_dict(), OrderedDict([('name', 'ozone'), ('files', ['/DATA/ozone/*/*.nc'])]))
-        self.assertEqual(self.ds2.to_json_dict(), OrderedDict(
-            [('name', 'aerosol'), ('files', ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"])]))
+        self.assertEqual(self.ds1.to_json_dict().get('name'), 'ozone')
+        self.assertEqual(self.ds1.to_json_dict().get('files'),
+                         [('/DATA/ozone/*/*.nc', None)])
+
+        self.assertEqual(self.ds2.to_json_dict().get('name'), 'aerosol')
+        self.assertEqual(self.ds2.to_json_dict().get('files'),
+                         [("/DATA/aerosol/*/A*.nc", None), ("/DATA/aerosol/*/B*.nc", None)])
+
+        self.assertEqual(self.empty_ds.to_json_dict().get('name'), 'empty')
+        self.assertEqual(self.empty_ds.to_json_dict().get('files'), [])
