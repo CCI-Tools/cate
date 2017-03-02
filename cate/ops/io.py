@@ -24,6 +24,7 @@ import os.path
 from abc import ABCMeta
 
 import xarray as xr
+import pandas as pd
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
@@ -184,6 +185,17 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
             json.dump(obj, fp, indent=indent)
     else:
         return json.dump(obj, file, indent=indent)
+
+
+def read_csv(file: str, **kwargs) -> pd.DataFrame:
+    """
+    Read comma-separated values from plain text csv file info Pandas DataFrame
+
+    :param file: The csv file path.
+    :param kwargs: Optional pandas.read_csv() parameters
+    :return: The DataFrame object.
+    """
+    return pd.read_csv(file, **kwargs)
 
 
 @op(tags=['input'])
