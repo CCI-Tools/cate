@@ -189,7 +189,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 
 def read_csv(file: str, **kwargs) -> pd.DataFrame:
     """
-    Read comma-separated values from plain text csv file info Pandas DataFrame
+    Read comma-separated values from plain text csv file into Pandas DataFrame
 
     :param file: The csv file path.
     :param kwargs: Optional pandas.read_csv() parameters
