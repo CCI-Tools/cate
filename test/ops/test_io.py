@@ -5,8 +5,10 @@ Test the IO operations
 import os
 import unittest
 from unittest import TestCase
+from io import StringIO
+import pandas as pd
 
-from cate.ops.io import open_dataset, save_dataset
+from cate.ops.io import open_dataset, save_dataset, read_csv
 
 
 class TestIO(TestCase):
@@ -42,3 +44,14 @@ class TestIO(TestCase):
             save_dataset(dataset, 'remove_me.nc')
 
         self.assertFalse(os.path.isfile('remove_me.nc'))
+
+    def test_save_dataset(self):
+
+        raw_data = "id,first_name,last_name,age,preTestScore,postTestScore\n0,Jason,Miller,42,4,\"25,000\"\n"
+        file_out = StringIO(raw_data)
+        file_in = StringIO()
+
+        df = read_csv(file_out, index_col='id')
+        df.to_csv(file_in)
+
+        self.assertEquals(file_in.getvalue(), raw_data)
