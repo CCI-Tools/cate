@@ -92,8 +92,8 @@ class LocalFilePatternDataSource(DataSource):
         return open_xarray_dataset(paths)
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
-        if update or self._files.get(file) is None:
-            self._files[file] = time_stamp.replace(microsecond=0)
+        if update or list(self._files.keys()).count(file) == 0:
+            self._files[file] = time_stamp.replace(microsecond=0) if time_stamp else None
         self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None
                                          else datetime.max))
 
