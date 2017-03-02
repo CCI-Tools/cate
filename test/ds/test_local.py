@@ -109,7 +109,8 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.assertEqual(self.ds1.temporal_coverage(), None)
         self.assertEqual(self.ds2.temporal_coverage(), None)
         self.assertEqual(self.empty_ds.temporal_coverage(), None)
-        self.assertEqual(self.ds3.temporal_coverage(), None)
+        self.assertEqual(self.ds3.temporal_coverage(), (datetime.datetime(2017, 2, 27, 0, 0),
+                                                        datetime.datetime(2017, 2, 28, 0, 0)))
         self.assertEqual(self.ds4.temporal_coverage(), None)
 
     def test_to_json_dict(self):
@@ -154,3 +155,5 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                          [("/DATA/file_new.nc", datetime.datetime(2017, 2, 26, 0, 0)),
                           ("/DATA/file1.nc", datetime.datetime(2017, 2, 27, 0, 0)),
                           ("/DATA/file2.nc", datetime.datetime(2017, 2, 28, 0, 0))])
+        self.assertEqual(self.ds3.temporal_coverage(), (datetime.datetime(2017, 2, 26, 0, 0),
+                                                        datetime.datetime(2017, 2, 28, 0, 0)))

@@ -46,7 +46,7 @@ from dateutil import parser
 from glob import glob
 from os import listdir, makedirs, environ
 from os.path import join, isfile
-from typing import Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import xarray as xr
 
@@ -99,6 +99,14 @@ class LocalFilePatternDataSource(DataSource):
 
     def save(self):
         self._data_store.save_data_source(self)
+
+    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[int, int]]:
+        if self._files:
+            cover_min = min(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max)[1]
+            cover_max = max(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.min)[1]
+            if cover_min and cover_max:
+                return cover_min, cover_max
+        return None
 
     @property
     def info_string(self):
