@@ -484,6 +484,12 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
+    if n_chunks == 1:
+        # The file size is fine
+        return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
+
+    divisor = sqrt(n_chunks)
+
     # lat/lon names are not yet known
     lat = get_lat_dim_name(temp_ds)
     lon = get_lon_dim_name(temp_ds)
@@ -507,6 +513,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                          "data source. Are lat/lon coordinates divisible by "
                          "{}?".format(divisor))
 
-    chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
+    chunks = {lat: n_lat//divisor, lon: n_lon//divisor}
 
     return xr.open_mfdataset(paths, concat_dim=concat_dim, chunks=chunks, **kwargs)
