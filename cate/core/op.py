@@ -109,6 +109,9 @@ from inspect import isclass
 from typing import Tuple, List, Union, Callable
 
 from cate.util import OpMetaInfo, object_to_qualified_name, Monitor
+from cate import __version__
+
+import xarray as xr
 
 
 class OpRegistration:
@@ -136,6 +139,21 @@ class OpRegistration:
         :return: The actual operation object which may be a class or any callable.
         """
         return self._operation
+
+    def _stamp_output(self, ds: object) -> object:
+        """
+        Stamp the given output with provenance information about cate, the
+        operation and its inputs
+
+        :return: Stamped dataset
+        """
+        # There can potentially be different ways to stamp an output depending
+        # on its type
+        if not isinstance(xr.Dataset):
+            raise NotImplementedError('Operation output stamping is currently'
+                                      ' only implemented for xarray Datasets')
+        ds['history'] = 'Cate v' + __version__
+        return ds
 
     def __str__(self):
         return '%s: %s' % (self.operation, self.op_meta_info)
@@ -177,6 +195,10 @@ class OpRegistration:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values(return_value)
+
+            # Stamp outputs
+            for name in self.op_meta_info.header['stamp']:
+                return_value[name] = self._stamp_output(return_value[name])
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
@@ -185,6 +207,11 @@ class OpRegistration:
                 return_value = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+
+            # Stamp the output
+            if OpMetaInfo.RETURN_OUTPUT_NAME in self.op_meta_info.header['stamp']:
+                return_value = self._stamp_output(return_value)
+
         return return_value
 
 
