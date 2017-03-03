@@ -54,6 +54,7 @@ from .arithmetics import ds_arithmetics
 from .anomaly import anomaly_internal, anomaly_climatology
 from .index import nino34
 from .ident import *
+from .outliers import detect_outliers
 
 __all__ = [
     # .timeseries
@@ -98,6 +99,8 @@ __all__ = [
     'ident_int',
     'ident_float',
     'ident_str',
+    # .outliers
+    'detect_outliers',
 ]
 
 
