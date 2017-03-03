@@ -34,7 +34,7 @@ class JsonRcpWebSocketMonitor(Monitor):
     A Monitor implementation that reports progress as non-standard JSON-RCP messages of the form:
 
     {
-        jsonrcp: "2.0",
+        jsonrpc: "2.0",
         id: <int>,
         progress: {
             label: <str>,
@@ -77,7 +77,7 @@ class JsonRcpWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            self.handler.write_message(json.dumps(dict(jsonrcp="2.0",
+            self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
                                                        id=self.method_id,
                                                        progress=progress)))
             self.last_time = current_time

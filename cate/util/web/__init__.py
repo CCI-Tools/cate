@@ -42,5 +42,5 @@ Components
 ==========
 """
 
-from .jsonrcphandler import JsonRcpWebSocketHandler
-from .jsonrcpmonitor import JsonRcpWebSocketMonitor
+from .jsonrpchandler import JsonRcpWebSocketHandler
+from .jsonrpcmonitor import JsonRcpWebSocketMonitor
