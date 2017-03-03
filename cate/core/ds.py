@@ -477,7 +477,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
         temp_ds = xr.open_dataset(paths[0])
-    except OSError:
+    except (OSError, RuntimeError):
         # We have a glob not a list
         temp_ds = xr.open_dataset(glob.glob(paths)[0])
 
