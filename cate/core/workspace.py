@@ -31,10 +31,10 @@ import sys
 from collections import OrderedDict
 from typing import List
 
-import numpy as np
-import xarray as xr
-import pandas as pd
 import fiona
+import numpy as np
+import pandas as pd
+import xarray as xr
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
@@ -189,12 +189,19 @@ class Workspace:
             for var_name in var_names:
                 variable = resource.data_vars[var_name]
                 variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+            return dict(name=res_name,
+                        dataType=object_to_qualified_name(type(resource)),
+                        variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
+            return dict(name=res_name,
+                        dataType=object_to_qualified_name(type(resource)),
+                        variables=variable_descriptors)
         elif isinstance(resource, fiona.Collection):
+            num_features = len(resource)
             properties = resource.schema.get('properties')
             if properties:
                 for var_name, var_type in properties.items():
@@ -204,17 +211,11 @@ class Workspace:
                         'isFeatureAttribute': True,
                     })
             geometry = resource.schema.get('geometry')
-            if geometry:
-                variable_descriptors.append({
-                    'name': 'geometry',
-                    'dataType': geometry,
-                    'isFeatureAttribute': True,
-                })
-        return {
-            'name': res_name,
-            'dataType': object_to_qualified_name(type(resource)),
-            'variables': variable_descriptors,
-        }
+            return dict(name=res_name,
+                        dataType=object_to_qualified_name(type(resource)),
+                        variables=variable_descriptors,
+                        geometry=geometry,
+                        numFeatures=num_features)
 
     def _get_pandas_variable_descriptor(self, variable: pd.Series):
         return {
