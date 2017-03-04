@@ -34,6 +34,7 @@ from typing import List
 import numpy as np
 import xarray as xr
 import fiona
+import pyproj
 from tornado.web import Application
 
 from cate.conf import get_config
@@ -475,21 +476,32 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
 
         collection = workspace.resource_cache[res_name]
         print('ResVarGeoJSONHandler: collection:', collection)
+        print('ResVarGeoJSONHandler: collection CRS:', collection.crs)
         if not isinstance(collection, fiona.Collection):
             self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
             return
 
-        try:
-            i = 0
-            self.set_header('Content-Type', 'application/json')
-            self.write('{"type": "FeatureCollection", "features": [')
-            for feature in collection:
-                if i > 0:
-                    self.write(',')
-                self.write(json.dumps(feature))
-                i += 1
-            self.write(']}')
+        source_prj = pyproj.Proj(collection.crs)
+        target_prj = pyproj.Proj(init='EPSG:4326')
 
+        try:
+            feature_count = 0
+            self.set_header('Content-Type', 'application/json')
+            self.write('{"type": "FeatureCollection", "features": [\n')
+            for feature in collection:
+                coordinates = feature['geometry']['coordinates']
+                x = np.array([coord[0] for coord in coordinates[0]])
+                y = np.array([coord[1] for coord in coordinates[0]])
+                x, y = pyproj.transform(source_prj, target_prj, x, y)
+                feature['geometry']['coordinates'] = [[(float(x), float(y)) for x, y in zip(x, y)]]
+                if feature_count > 0:
+                    self.write(',\n')
+                self.write(json.dumps(feature))
+                self.flush()
+                feature_count += 1
+            self.write(']}\n')
+            self.flush()
+            print('ResVarGeoJSONHandler: %s feature(s) streamed:', feature_count)
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
