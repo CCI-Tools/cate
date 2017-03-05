@@ -5,7 +5,7 @@ import os.path as op
 import xarray as xr
 
 import cate.core.ds as ds
-from util import Monitor
+from cate.util import Monitor
 
 _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
 
