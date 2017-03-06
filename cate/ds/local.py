@@ -88,8 +88,10 @@ class LocalFilePatternDataSource(DataSource):
             for file in self._files.items():
                 paths.extend(glob(file[0]))
             paths = sorted(set(paths))
-        print(paths)
-        return open_xarray_dataset(paths)
+        if paths:
+            return open_xarray_dataset(paths)
+        else:
+            return None
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
         if update or list(self._files.keys()).count(file) == 0:

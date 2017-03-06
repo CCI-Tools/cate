@@ -2,16 +2,16 @@
   "name": "local_w_temporal",
   "files": [
     [
-      "resources/local/missing1.nc",
-      "2017-03-01T18:17:08"
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc",
+      "1978-11-14T00:00:00"
     ],
     [
-      "resources/local/missing2k.nc",
-      "2017-03-01T18:17:37"
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781115000000-fv02.2.nc",
+      "1978-11-15T00:00:00"
     ],
     [
-      "resources/local/missing3.nc",
-      "2017-03-01T18:25:07"
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781116000000-fv02.2.nc",
+      "1978-11-16T00:00:00"
     ]
   ]
 }

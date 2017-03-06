@@ -8,12 +8,6 @@ from cate.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
 from collections import OrderedDict
 
 
-def _create_test_data_store():
-    with open(os.path.join(os.path.dirname(__file__), 'resources/local/local.json')) as fp:
-        json_text = fp.read()
-    return LocalFilePatternDataStore('local-wtc', index_cache_json_dict=json.loads(json_text))
-
-
 class LocalFilePatternDataStoreTest(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
@@ -67,25 +61,16 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 1)
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
-    def test_open_dataset(self):
-        local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
-                                                                     'resources/datasources/local/'))
-
-        ds = local_data_store.query('local')[0]
-        self.assertIsNotNone(ds.open_dataset())
-        self.assertIsNotNone(ds.open_dataset(time_range=(datetime.datetime(2017, 2, 27),
-                                                               datetime.datetime(2017, 2, 28))))
-
-        ds = local_data_store.query('local_w_temporal')[0]
-        self.assertIsNotNone(ds.open_dataset())
-        self.assertIsNotNone(ds.open_dataset(time_range=(datetime.datetime(2017, 3, 1),
-                                                               datetime.datetime(2017, 3, 2))))
 
 
 
 class LocalFilePatternSourceTest(unittest.TestCase):
     def setUp(self):
         self._dummy_store = LocalFilePatternDataStore('dummy', 'dummy')
+
+        self._local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
+                                                                                'resources/datasources/local/'))
+
         self.ds1 = LocalFilePatternDataSource("ozone",
                                               ["/DATA/ozone/*/*.nc"],
                                               self._dummy_store)
@@ -193,3 +178,14 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                           ("/DATA/file2.nc", datetime.datetime(2017, 2, 28, 0, 0))])
         self.assertEqual(self.ds3.temporal_coverage(), (datetime.datetime(2017, 2, 26, 0, 0),
                                                         datetime.datetime(2017, 2, 28, 0, 0)))
+
+    def test_open_dataset(self):
+        ds = self._local_data_store.query('local')[0]
+        self.assertIsNotNone(ds.open_dataset())
+        self.assertIsNone(ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
+                                                      datetime.datetime(1978, 11, 15))))
+
+        ds = self._local_data_store.query('local_w_temporal')[0]
+        self.assertIsNotNone(ds.open_dataset())
+        self.assertIsNotNone(ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
+                                                         datetime.datetime(1978, 11, 15))))
