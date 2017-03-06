@@ -35,7 +35,9 @@ from cate.core.op import op
 from cate.util import to_list
 
 
-@op(version='1.0', stamp=['return'])
+# Stamp if/when pull request #143 is accepted
+# @op(version='1.0', stamp=['return'])
+@op
 def detect_outliers(ds: xr.Dataset,
                     var: str,
                     threshold_low: float=0.05,
@@ -63,40 +65,37 @@ def detect_outliers(ds: xr.Dataset,
     # based on the input comma separated list that can contain wildcards
     var_patterns = to_list(var, name='var')
     variables = list(ds.data_vars.keys())
-    for pattern in var_names:
-        keep = fnmatch.filter(dropped_var_names, pattern)
-        for name in keep:
+    for pattern in var_patterns:
+        drop = fnmatch.filter(variables, pattern)
+        for name in drop:
             variables.remove(name)
 
     # For each array in the dataset for which we should detect outliers, detect
     # outliers
+    ret_ds = ds
     for var_name in variables:
         if quantiles:
             # Get threshold values
-            threshold_low = ds[var_name].quantile(threshold_low)
-            threshold_high = ds[var_name].quantile(threshold_high)
+            threshold_low = ret_ds[var_name].quantile(threshold_low)
+            threshold_high = ret_ds[var_name].quantile(threshold_high)
 
         # If not mask, put nans in the data arrays for min/max outliers
         if not mask:
-            pass
+            arr = ret_ds[var_name]
+            attrs = arr.attrs
+            ret_ds[var_name] = arr.where((arr > threshold_low) &
+                                         (arr < threshold_high))
+            ret_ds[var_name].attrs = attrs
         else:
-            _mask_outliers(ds, var_name, threshold_low, threshold_high)
-
-
-        # Otherwise, copy array, put 1 for outliers, and zero for every other
-        # value, add proper attributes to make this into a mask, append this to
-        # the ancillary dataset attribute of the original array.
-    operation_info = None
-    stamp_dataset(ds, operation_info)
+            ret_ds[var_name] = _mask_outliers(ret_ds,
+                                              var_name,
+                                              threshold_low,
+                                              threshold_high)
 
 
 def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
                    threshold_high: float) -> xr.Dataset:
+    # Otherwise, copy array, put 1 for outliers, and zero for every other
+    # value, add proper attributes to make this into a mask, append this to
+    # the ancillary dataset attribute of the original array.
     pass
-
-
-def op_stamp(*args, **kwargs):
-    def wrapper():
-        ds = 
-def stamp_dataset(ds: xr.Dataset, operation_info: dict) -> bool:
-    return True
