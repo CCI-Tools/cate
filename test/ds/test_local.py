@@ -67,6 +67,21 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 1)
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
+    def test_open_dataset(self):
+        local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
+                                                                     'resources/datasources/local/'))
+
+        ds = local_data_store.query('local')[0]
+        self.assertIsNotNone(ds.open_dataset())
+        self.assertIsNotNone(ds.open_dataset(time_range=(datetime.datetime(2017, 2, 27),
+                                                               datetime.datetime(2017, 2, 28))))
+
+        ds = local_data_store.query('local_w_temporal')[0]
+        self.assertIsNotNone(ds.open_dataset())
+        self.assertIsNotNone(ds.open_dataset(time_range=(datetime.datetime(2017, 3, 1),
+                                                               datetime.datetime(2017, 3, 2))))
+
+
 
 class LocalFilePatternSourceTest(unittest.TestCase):
     def setUp(self):
