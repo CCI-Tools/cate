@@ -1,3 +1,4 @@
+import json
 import os
 import os.path
 import tempfile
@@ -5,6 +6,12 @@ import unittest
 import datetime
 from cate.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
 from collections import OrderedDict
+
+
+def _create_test_data_store():
+    with open(os.path.join(os.path.dirname(__file__), 'resources/local/local.json')) as fp:
+        json_text = fp.read()
+    return LocalFilePatternDataStore('local-wtc', index_cache_json_dict=json.loads(json_text))
 
 
 class LocalFilePatternDataStoreTest(unittest.TestCase):
@@ -45,6 +52,20 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_sources = data_store2.query()
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
+
+    def test_query(self):
+        local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
+                                                                     'resources/datasources/local/'))
+        data_sources = local_data_store.query()
+        self.assertEqual(len(data_sources), 2)
+
+        data_sources = local_data_store.query('local')
+        self.assertEqual(len(data_sources), 1)
+        self.assertIsNone(data_sources[0].temporal_coverage())
+
+        data_sources = local_data_store.query('local_w_temporal')
+        self.assertEqual(len(data_sources), 1)
+        self.assertIsNotNone(data_sources[0].temporal_coverage())
 
 
 class LocalFilePatternSourceTest(unittest.TestCase):

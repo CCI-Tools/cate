@@ -1,0 +1,17 @@
+{
+  "name": "local_w_temporal",
+  "files": [
+    [
+      "resources/local/missing1.nc",
+      "2017-03-01T18:17:08"
+    ],
+    [
+      "resources/local/missing2k.nc",
+      "2017-03-01T18:17:37"
+    ],
+    [
+      "resources/local/missing3.nc",
+      "2017-03-01T18:25:07"
+    ]
+  ]
+}

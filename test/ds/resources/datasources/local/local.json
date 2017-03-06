@@ -1,0 +1,8 @@
+{
+  "name": "local",
+  "files": [
+      "resources/local/missing1.nc",
+      "resources/local/missing2k.nc",
+      "resources/local/missing3.nc"
+  ]
+}
