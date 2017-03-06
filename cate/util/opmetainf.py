@@ -65,9 +65,6 @@ class OpMetaInfo:
         self._input = OrderedDict(input_dict if input_dict else {})
         self._output = OrderedDict(output_dict if output_dict else {})
 
-        self._header['version'] = ''
-        self._header['stamp'] = list()
-
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
     MONITOR_INPUT_NAME = 'monitor'

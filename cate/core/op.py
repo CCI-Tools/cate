@@ -140,7 +140,7 @@ class OpRegistration:
         """
         return self._operation
 
-    def _stamp_output(self, ds: object) -> object:
+    def _stamp_output(self, ds: object, input_dict) -> object:
         """
         Stamp the given output with provenance information about cate, the
         operation and its inputs
@@ -149,10 +149,37 @@ class OpRegistration:
         """
         # There can potentially be different ways to stamp an output depending
         # on its type
-        if not isinstance(xr.Dataset):
+        if not isinstance(ds, xr.Dataset):
             raise NotImplementedError('Operation output stamping is currently'
                                       ' only implemented for xarray Datasets')
-        ds['history'] = 'Cate v' + __version__
+
+        # Construct our own dict to stringify, otherwise the full input dataset
+        # repr will be found in history.
+        input_str = dict()
+        for key in input_dict:
+            value = input_dict[key]
+            if isinstance(value, xr.Dataset):
+                # We only show that 'a dataset' was provided, instead of
+                # putting the full dataset repr in history
+                input_str[key] = type(value)
+                continue
+            input_str[key] = value
+
+        # Format the stamp
+        stamp = '\nModified with Cate v' + __version__ + ' ' +\
+                self.op_meta_info.qualified_name + ' v' +\
+                self.op_meta_info.header['version'] +\
+                ' \nDefault input values: ' +\
+                str(self.op_meta_info.input) + '\nProvided input values: ' +\
+                str(input_str) + '\n'
+
+        # Append the stamp to existing history information or create history
+        # attribute if none is found
+        try:
+            ds.attrs['history'] = ds.attrs['history'] + stamp
+        except KeyError:
+            # History doesn't yet exist
+            ds.attrs['history'] = stamp
         return ds
 
     def __str__(self):
@@ -190,6 +217,7 @@ class OpRegistration:
         if self.op_meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
+
             for name, properties in self.op_meta_info.output.items():
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
@@ -197,8 +225,13 @@ class OpRegistration:
             self.op_meta_info.validate_output_values(return_value)
 
             # Stamp outputs
-            for name in self.op_meta_info.header['stamp']:
-                return_value[name] = self._stamp_output(return_value[name])
+            try:
+                for name in self.op_meta_info.header['stamp']:
+                    return_value[name] = self._stamp_output(return_value[name],
+                                                            input_values)
+            except KeyError:
+                # @op doesn't contain stamp
+                pass
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
@@ -209,8 +242,13 @@ class OpRegistration:
             self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
 
             # Stamp the output
-            if OpMetaInfo.RETURN_OUTPUT_NAME in self.op_meta_info.header['stamp']:
-                return_value = self._stamp_output(return_value)
+            try:
+                if OpMetaInfo.RETURN_OUTPUT_NAME in self.op_meta_info.header['stamp']:
+                    return_value = self._stamp_output(return_value,
+                                                      input_values)
+            except KeyError:
+                # @op doesn't contain stamp
+                pass
 
         return return_value
 
@@ -320,6 +358,16 @@ def op(registry=OP_REGISTRY, **properties):
 
     When a function is registered, an introspection is performed. During this process, initial operation
     the meta-information header property *description* is derived from the function's docstring.
+
+    To automatically stamp an output/outputs of the registered operation, add
+    version information to the header, as well as denote which outputs should
+    be stamped. In case of a single, unnamed output use
+    @op(stamp=['return'], version='1.0')
+
+    In case of named outputs use
+    @op(stamp=['named1', 'named2'], version='1.0')
+
+    Currently only outputs of type xr.Dataset can be stamped.
 
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     :param registry: The operation registry.

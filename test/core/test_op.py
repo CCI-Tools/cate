@@ -489,6 +489,42 @@ class OpTest(TestCase):
                              expected_inputs,
                              expected_outputs)
 
+    def test_stamp_op(self):
+        import xarray as xr
+        from cate import __version__
+
+        @op(stamp=['return'], version='0.9', registry=self.registry)
+        def stamp_op(ds: xr.Dataset, a=1, b='bilinear'):
+            return ds
+
+        ds = xr.Dataset()
+
+        op_reg = self.registry.get_op(object_to_qualified_name(stamp_op))
+        op_meta_info = op_reg.op_meta_info
+
+        # This is a partial stamp, as the way a dict is stringified is not
+        # always the same
+        stamp = '\nModified with Cate v' + __version__ + ' ' +\
+                op_meta_info.qualified_name + ' v' +\
+                op_meta_info.header['version'] +\
+                ' \nDefault input values: ' +\
+                str(op_meta_info.input) + '\nProvided input values: '
+
+        ret_ds = op_reg(ds=ds, a=2, b='trilinear')
+        self.assertTrue(stamp in ds.attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('trilinear' in ds.attrs['history'])
+
+        # Double line-break indicates that this is a subsequent stamp entry
+        stamp2 = '\n\nModified with Cate v' + __version__
+
+        ret_ds = op_reg(ds=ret_ds, a=4, b='quadrilinear')
+        self.assertTrue(stamp2 in ret_ds.attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('quadrilinear' in ret_ds.attrs['history'])
+        # Check that a previous passed value is found in the stamp
+        self.assertTrue('trilinear' in ret_ds.attrs['history'])
+
 
 class ParseOpArgsTest(TestCase):
     def test_no_namespace(self):
