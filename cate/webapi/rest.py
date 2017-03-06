@@ -35,7 +35,9 @@ import numpy as np
 import xarray as xr
 import fiona
 import pyproj
-from tornado.web import Application
+import tornado.web
+import tornado.gen
+import concurrent.futures
 
 from cate.conf import get_config
 from cate.conf.defaults import \
@@ -59,6 +61,8 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        threshold=0.75)
 
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
+
+THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -454,6 +458,9 @@ class ResVarTileHandler(WebAPIRequestHandler):
 # noinspection PyAbstractClass
 class ResVarGeoJSONHandler(WebAPIRequestHandler):
 
+    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self, base_dir, res_name):
 
         print('ResVarGeoJSONHandler:', base_dir, res_name)
@@ -485,33 +492,41 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         target_prj = pyproj.Proj(init='EPSG:4326')
 
         try:
-            feature_count = 0
-            self.set_header('Content-Type', 'application/json')
-            self.write('{"type": "FeatureCollection", "features": [\n')
-            for feature in collection:
-                coordinates = feature['geometry']['coordinates']
-                x = np.array([coord[0] for coord in coordinates[0]])
-                y = np.array([coord[1] for coord in coordinates[0]])
-                x, y = pyproj.transform(source_prj, target_prj, x, y)
-                feature['geometry']['coordinates'] = [[(float(x), float(y)) for x, y in zip(x, y)]]
-                if feature_count > 0:
-                    self.write(',\n')
-                self.write(json.dumps(feature))
-                self.flush()
-                feature_count += 1
+            def stream_features():
+                feature_count = 0
+                self.set_header('Content-Type', 'application/json')
+                self.write('{"type": "FeatureCollection", "features": [\n')
+                for feature in collection:
+                    if 'geometry' in feature:
+                        # TODO (forman): fixme for Point, Line, LineString, etc. Following code is for Polygons only
+                        coordinates = feature['geometry']['coordinates']
+                        x = np.array([coord[0] for coord in coordinates[0]])
+                        y = np.array([coord[1] for coord in coordinates[0]])
+                        x, y = pyproj.transform(source_prj, target_prj, x, y)
+                        feature['geometry']['coordinates'] = [[(float(x), float(y)) for x, y in zip(x, y)]]
+                        if feature_count > 0:
+                            self.write(',\n')
+                        self.write(json.dumps(feature))
+                        self.flush()
+                        feature_count += 1
+                print('ResVarGeoJSONHandler: %s feature(s) streamed' % feature_count)
+
+            global THREAD_POOL
+            yield [THREAD_POOL.submit(stream_features)]
+
             self.write(']}\n')
             self.flush()
-            print('ResVarGeoJSONHandler: %s feature(s) streamed:', feature_count)
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
+        self.finish()
 
 
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 
 
-def _on_workspace_closed(application: Application):
+def _on_workspace_closed(application: tornado.web.Application):
     # noinspection PyUnresolvedReferences
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()
