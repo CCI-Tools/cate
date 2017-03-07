@@ -38,7 +38,7 @@ from cate.util import to_list
 # Stamp if/when pull request #143 is accepted
 # @op(version='1.0')
 # @op_return(add_history=True)
-@op
+@op(version='1.0')
 def detect_outliers(ds: xr.Dataset,
                     var: str,
                     threshold_low: float=0.05,
@@ -53,8 +53,8 @@ def detect_outliers(ds: xr.Dataset,
     detection. Note that when multiple variables are selected, absolute
     threshold values might not make much sense. Wild cards can be used to
     select multiple variables matching a pattern.
-    :param threshold_low: Values lower than this will be removed/masked
-    :param threshold_high: Values higher than this will be removed/masked
+    :param threshold_low: Values less or equal to this will be removed/masked
+    :param threshold_high: Values greater or equal to this will be removed/masked
     :bool quantiles: If True, threshold values are treated as quantiles,
     otherwise as absolute values.
     :bool mask: If True, an ancillary variable containing flag values for
@@ -65,15 +65,15 @@ def detect_outliers(ds: xr.Dataset,
     # Create a list of variable names on which to perform outlier detection
     # based on the input comma separated list that can contain wildcards
     var_patterns = to_list(var, name='var')
-    variables = list(ds.data_vars.keys())
+    all_vars = list(ds.data_vars.keys())
+    variables = list()
     for pattern in var_patterns:
-        drop = fnmatch.filter(variables, pattern)
-        for name in drop:
-            variables.remove(name)
+        leave = fnmatch.filter(all_vars, pattern)
+        variables = variables + leave
 
     # For each array in the dataset for which we should detect outliers, detect
     # outliers
-    ret_ds = ds
+    ret_ds = ds.copy()
     for var_name in variables:
         if quantiles:
             # Get threshold values
@@ -92,6 +92,8 @@ def detect_outliers(ds: xr.Dataset,
                                               var_name,
                                               threshold_low,
                                               threshold_high)
+
+    return ret_ds
 
 
 def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
