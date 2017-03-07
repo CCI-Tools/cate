@@ -52,6 +52,7 @@ from cate.util.im.ds import NaturalEarth2Image
 from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
+from .geojson import write_feature_collection
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
 #                However, a global cache is fine as long as we have just one workspace open at a time.
@@ -456,8 +457,39 @@ class ResVarTileHandler(WebAPIRequestHandler):
 
 
 # noinspection PyAbstractClass
-class ResVarGeoJSONHandler(WebAPIRequestHandler):
+class GeoJSONHandler(WebAPIRequestHandler):
+    def __init__(self, application, request, shapefile_path, **kwargs):
+        print('GeoJSONHandler', shapefile_path)
+        super(GeoJSONHandler, self).__init__(application, request, **kwargs)
+        self._shapefile_path = shapefile_path
 
+    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        print('GeoJSONHandler: shapefile_path:', self._shapefile_path)
+        collection = fiona.open(self._shapefile_path)
+        print('GeoJSONHandler: collection:', collection)
+        print('GeoJSONHandler: collection CRS:', collection.crs)
+        try:
+            self.set_header('Content-Type', 'application/json')
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
+        self.finish()
+
+
+# noinspection PyAbstractClass
+class CountriesGeoJSONHandler(GeoJSONHandler):
+    def __init__(self, application, request, **kwargs):
+        print('CountriesGeoJSONHandler', request)
+        shapefile_path = os.path.join(os.path.dirname(__file__), '..', 'ds', 'data', 'countries', 'countries.geojson')
+        super(CountriesGeoJSONHandler, self).__init__(application, request, shapefile_path=shapefile_path, **kwargs)
+
+
+# noinspection PyAbstractClass
+class ResVarGeoJSONHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
@@ -488,38 +520,14 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
             return
 
-        source_prj = pyproj.Proj(collection.crs)
-        target_prj = pyproj.Proj(init='EPSG:4326')
-
         try:
-            def stream_features():
-                feature_count = 0
-                self.set_header('Content-Type', 'application/json')
-                self.write('{"type": "FeatureCollection", "features": [\n')
-                for feature in collection:
-                    if 'geometry' in feature:
-                        # TODO (forman): fixme for Point, Line, LineString, etc. Following code is for Polygons only
-                        coordinates = feature['geometry']['coordinates']
-                        x = np.array([coord[0] for coord in coordinates[0]])
-                        y = np.array([coord[1] for coord in coordinates[0]])
-                        x, y = pyproj.transform(source_prj, target_prj, x, y)
-                        feature['geometry']['coordinates'] = [[(float(x), float(y)) for x, y in zip(x, y)]]
-                        if feature_count > 0:
-                            self.write(',\n')
-                        self.write(json.dumps(feature))
-                        self.flush()
-                        feature_count += 1
-                print('ResVarGeoJSONHandler: %s feature(s) streamed' % feature_count)
-
-            global THREAD_POOL
-            yield [THREAD_POOL.submit(stream_features)]
-
-            self.write(']}\n')
-            self.flush()
+            self.set_header('Content-Type', 'application/json')
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
         self.finish()
+
 
 
 def _new_monitor() -> Monitor:
