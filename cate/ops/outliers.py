@@ -92,6 +92,8 @@ def detect_outliers(ds: xr.Dataset,
                                          (arr < threshold_high))
             ret_ds[var_name].attrs = attrs
         else:
+            # Create and add a data variable containing the mask for this data
+            # variable
             _mask_outliers(ret_ds, var_name, threshold_low, threshold_high)
 
     return ret_ds
@@ -103,6 +105,10 @@ def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
     Create a mask data array for the given variable of the dataset and given
     absolute threshold values. Add the mask data array as an ancillary data
     array to the original array as per CF conventions.
+    
+    For explanation about the relevant attributes, see::
+    http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#flags
+    http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#ancillary-data
 
     :param ds: The dataset (will be mutated)
     :param var_name: variable name
@@ -111,7 +117,8 @@ def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
     """
     arr = ds[var_name]
 
-    # Create a boolean mask where True denotes an outlier
+    # Create a boolean mask where True denotes an outlier, convert it to 8-bit
+    # integer dtype, as to_netcdf will complain about a boolean dtype
     mask = arr.where((arr > threshold_low) & (arr < threshold_high))
     mask = mask.isnull()
     mask = mask.astype('i1')
@@ -146,5 +153,6 @@ def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
     try:
         anc_var = ds[var_name].attrs['ancillary_variables']
     except KeyError:
+        # No ancillary variables associated with this variable yet
         anc_var = ''
     ds[var_name].attrs['ancillary_variables'] = anc_var + ' ' + mask_name
