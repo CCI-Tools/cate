@@ -30,15 +30,15 @@ Functions
 """
 import fnmatch
 import xarray as xr
+import numpy as np
 
-from cate.core.op import op
+from cate.core.op import op, op_return
 from cate.util import to_list
+from cate import __version__
 
 
-# Stamp if/when pull request #143 is accepted
-# @op(version='1.0')
-# @op_return(add_history=True)
 @op(version='1.0')
+@op_return(add_history=True)
 def detect_outliers(ds: xr.Dataset,
                     var: str,
                     threshold_low: float=0.05,
@@ -46,7 +46,11 @@ def detect_outliers(ds: xr.Dataset,
                     quantiles: bool=True,
                     mask: bool=False) -> xr.Dataset:
     """
-    Detect outliers in the given Dataset
+    Detect outliers in the given Dataset.
+
+    When mask=True the input dataset should not contain nan values, otherwise
+    all existing nan values will be marked as 'outliers' in the mask data array
+    added to the output dataset.
 
     :param ds: The dataset for which to do outlier detection
     :param var: Variable or variables in the dataset to which to do outlier
@@ -88,17 +92,59 @@ def detect_outliers(ds: xr.Dataset,
                                          (arr < threshold_high))
             ret_ds[var_name].attrs = attrs
         else:
-            ret_ds[var_name] = _mask_outliers(ret_ds,
-                                              var_name,
-                                              threshold_low,
-                                              threshold_high)
+            _mask_outliers(ret_ds, var_name, threshold_low, threshold_high)
 
     return ret_ds
 
 
 def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
                    threshold_high: float) -> xr.Dataset:
-    # Otherwise, copy array, put 1 for outliers, and zero for every other
-    # value, add proper attributes to make this into a mask, append this to
-    # the ancillary dataset attribute of the original array.
-    pass
+    """
+    Create a mask data array for the given variable of the dataset and given
+    absolute threshold values. Add the mask data array as an ancillary data
+    array to the original array as per CF conventions.
+
+    :param ds: The dataset (will be mutated)
+    :param var_name: variable name
+    :param threshold_low: absolute threshold bottom value
+    :param threshold_high: absolute threshold top value
+    """
+    arr = ds[var_name]
+
+    # Create a boolean mask where True denotes an outlier
+    mask = arr.where((arr > threshold_low) & (arr < threshold_high))
+    mask = mask.isnull()
+    mask = mask.astype('i1')
+
+    # According to CF conventions, the actual variable name in the netCDF can
+    # be whatever, but appending things after an underscore is a reasonable
+    # convention
+    mask_name = var_name + '_outlier_mask'
+
+    # Set the flag data array attributes as per CF conventions
+    try:
+        mask.attrs['long_name'] = arr.attrs['long_name'] + ' outlier mask'
+    except KeyError:
+        # The dataset is not CF compliant, add the attribute anyway
+        mask.attrs['long_name'] = 'Outlier mask'
+    try:
+        mask.attrs['standard_name'] = arr.attrs['standard_name'] + ' status_flag'
+    except KeyError:
+        # The dataset is not CF compliant, add the attribute anyway
+        mask.attrs['standard_name'] = 'status_flag'
+    mask.attrs['_FillValue'] = 0
+    mask.attrs['valid_range'] = np.array([1.0, 1.0], dtype='i1')
+    mask.attrs['flag_values'] = np.array([1], dtype='i1')
+    mask.attrs['flag_meanings'] = "is_outlier"
+    mask.attrs['source'] = "Cate v" + __version__
+
+    # Add the mask array to the dataset
+    ds[mask_name] = mask
+
+    # Create an ancillary variable link between the parent data array and the
+    # mask array
+    try:
+        anc_var = ds[var_name].attrs['ancillary_variables']
+    except KeyError:
+        anc_var = ''
+    ds[var_name].attrs['ancillary_variables'] = anc_var + ' ' + mask_name
