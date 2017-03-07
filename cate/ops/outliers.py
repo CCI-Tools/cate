@@ -36,7 +36,8 @@ from cate.util import to_list
 
 
 # Stamp if/when pull request #143 is accepted
-# @op(version='1.0', stamp=['return'])
+# @op(version='1.0')
+# @op_return(add_history=True)
 @op
 def detect_outliers(ds: xr.Dataset,
                     var: str,
