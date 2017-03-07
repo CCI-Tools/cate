@@ -489,6 +489,130 @@ class OpTest(TestCase):
                              expected_inputs,
                              expected_outputs)
 
+    def test_history_op(self):
+        """
+        Test adding operation signature to output history information.
+        """
+        import xarray as xr
+        from cate import __version__
+
+        # Test @op_return
+        @op(version='0.9', registry=self.registry)
+        @op_return(add_history=True, registry=self.registry)
+        def history_op(ds: xr.Dataset, a=1, b='bilinear'):
+            ret = ds.copy()
+            return ret
+
+        ds = xr.Dataset()
+
+        op_reg = self.registry.get_op(object_to_qualified_name(history_op))
+        op_meta_info = op_reg.op_meta_info
+
+        # This is a partial stamp, as the way a dict is stringified is not
+        # always the same
+        stamp = '\nModified with Cate v' + __version__ + ' ' +\
+                op_meta_info.qualified_name + ' v' +\
+                op_meta_info.header['version'] +\
+                ' \nDefault input values: ' +\
+                str(op_meta_info.input) + '\nProvided input values: '
+
+        ret_ds = op_reg(ds=ds, a=2, b='trilinear')
+        self.assertTrue(stamp in ret_ds.attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('trilinear' in ret_ds.attrs['history'])
+
+        # Double line-break indicates that this is a subsequent stamp entry
+        stamp2 = '\n\nModified with Cate v' + __version__
+
+        ret_ds = op_reg(ds=ret_ds, a=4, b='quadrilinear')
+        self.assertTrue(stamp2 in ret_ds.attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('quadrilinear' in ret_ds.attrs['history'])
+        # Check that a previous passed value is found in the stamp
+        self.assertTrue('trilinear' in ret_ds.attrs['history'])
+
+        # Test @op_output
+        @op(version='1.9', registry=self.registry)
+        @op_output('name1', add_history=True, registry=self.registry)
+        @op_output('name2', add_history=False, registry=self.registry)
+        @op_output('name3', registry=self.registry)
+        def history_named_op(ds: xr.Dataset, a=1, b='bilinear'):
+            ds1 = ds.copy()
+            ds2 = ds.copy()
+            ds3 = ds.copy()
+            return {'name1': ds1, 'name2': ds2, 'name3': ds3}
+
+        ds = xr.Dataset()
+
+        op_reg = self.registry.get_op(object_to_qualified_name(history_named_op))
+        op_meta_info = op_reg.op_meta_info
+
+        # This is a partial stamp, as the way a dict is stringified is not
+        # always the same
+        stamp = '\nModified with Cate v' + __version__ + ' ' +\
+                op_meta_info.qualified_name + ' v' +\
+                op_meta_info.header['version'] +\
+                ' \nDefault input values: ' +\
+                str(op_meta_info.input) + '\nProvided input values: '
+
+        ret = op_reg(ds=ds, a=2, b='trilinear')
+        # Check that the dataset was stamped
+        self.assertTrue(stamp in ret['name1'].attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('trilinear' in ret['name1'].attrs['history'])
+        # Check that none of the other two datasets have been stamped
+        with self.assertRaises(KeyError):
+            ret['name2'].attrs['history']
+        with self.assertRaises(KeyError):
+            ret['name3'].attrs['history']
+
+        # Double line-break indicates that this is a subsequent stamp entry
+        stamp2 = '\n\nModified with Cate v' + __version__
+
+        ret = op_reg(ds=ret_ds, a=4, b='quadrilinear')
+        self.assertTrue(stamp2 in ret['name1'].attrs['history'])
+        # Check that a passed value is found in the stamp
+        self.assertTrue('quadrilinear' in ret['name1'].attrs['history'])
+        # Check that a previous passed value is found in the stamp
+        self.assertTrue('trilinear' in ret['name1'].attrs['history'])
+        # Other datasets should have the old history, while 'name1' should be
+        # updated
+        self.assertTrue(ret['name1'].attrs['history'] !=
+                        ret['name2'].attrs['history'])
+        self.assertTrue(ret['name1'].attrs['history'] !=
+                        ret['name3'].attrs['history'])
+        self.assertTrue(ret['name2'].attrs['history'] ==
+                        ret['name3'].attrs['history'])
+
+        # Test missing version
+        @op(registry=self.registry)
+        @op_return(add_history=True, registry=self.registry)
+        def history_no_version(ds: xr.Dataset, a=1, b='bilinear'):
+            ds1 = ds.copy()
+            return ds1
+
+        ds = xr.Dataset()
+
+        op_reg = \
+        self.registry.get_op(object_to_qualified_name(history_no_version))
+        with self.assertRaises(ValueError) as err:
+            ret = op_reg(ds=ds, a=2, b='trilinear')
+        self.assertTrue('Could not add history' in str(err.exception))
+
+        # Test not implemented output type stamping
+        @op(version='1.1', registry=self.registry)
+        @op_return(add_history=True, registry=self.registry)
+        def history_wrong_type(ds: xr.Dataset, a=1, b='bilinear'):
+            return "Joke's on you"
+
+        ds = xr.Dataset()
+        op_reg = \
+        self.registry.get_op(object_to_qualified_name(history_wrong_type))
+        with self.assertRaises(NotImplementedError) as err:
+            ret = op_reg(ds=ds, a=2, b='abc')
+        self.assertTrue('Adding of operation signature' in str(err.exception))
+
+
 
 class ParseOpArgsTest(TestCase):
     def test_no_namespace(self):

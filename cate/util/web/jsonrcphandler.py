@@ -84,8 +84,6 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
     # TODO: notify connected client on any of the following error cases
 
     def on_message(self, message: str):
-        print("JsonRcpWebSocketHandler.on_message('%s')" % message)
-
         # noinspection PyBroadException
         try:
             message_obj = json.loads(message)
@@ -108,7 +106,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         if not isinstance(method_name, str) or len(method_name) == 0:
             print('Received invalid JSON-RCP message: missing or invalid "method" value: %s' % message)
             return
-
+        print("RPC[%s] ==> %s: %s" % (method_id, method_name, message))
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
@@ -141,13 +139,13 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                 del self._job_start[job_id]
                 print('Cancelled job', job_id, 'after', delta_t, 'seconds')
             response = dict(jsonrcp='2.0', id=method_id)
-            self._write_response(json.dumps(response))
+            self._write_response(json.dumps(response), method_id)
         else:
             response = dict(jsonrcp='2.0',
                             id=method_id,
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
-            self._write_response(json.dumps(response))
+            self._write_response(json.dumps(response), method_id)
 
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
@@ -187,10 +185,10 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                                         error=dict(code=30,
                                                    message=message,
                                                    data=stack_trace)))
-        self._write_response(json_text)
+        self._write_response(json_text, method_id)
 
-    def _write_response(self, json_text: str):
-        print('<== ', json_text)
+    def _write_response(self, json_text: str, method_id: int):
+        print("RPC[%s] <== %s" % (method_id, json_text))
         self.write_message(json_text)
 
     def call_service_method(self, method_id: int, method_name: str, method_params: list):

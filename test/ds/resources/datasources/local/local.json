@@ -1,0 +1,8 @@
+{
+  "name": "local",
+  "files": [
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc",
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781115000000-fv02.2.nc",
+      "test/ds/resources/files/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781116000000-fv02.2.nc"
+  ]
+}
