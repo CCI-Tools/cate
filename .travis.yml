@@ -8,9 +8,10 @@ env:
   global:
     - CONDA_PY=3.5
 
-os:
-  - linux
-  - osx
+# disabled, because osx takes very long
+#os:
+#  - linux
+#  - osx
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
