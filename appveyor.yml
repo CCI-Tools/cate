@@ -15,8 +15,6 @@ build_script:
   - cmd: call %PYTHON_LOC%\Scripts\activate.bat test-environment
   - cmd: conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal
   - cmd: python setup.py install
-
-build_script:
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - set NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
