@@ -109,6 +109,9 @@ from inspect import isclass
 from typing import Tuple, List, Union, Callable
 
 from cate.util import OpMetaInfo, object_to_qualified_name, Monitor
+from cate import __version__
+
+import xarray as xr
 
 
 class OpRegistration:
@@ -136,6 +139,58 @@ class OpRegistration:
         :return: The actual operation object which may be a class or any callable.
         """
         return self._operation
+
+    def _add_history(self, ds: object, input_dict) -> object:
+        """
+        Add provenance information about cate, the operation and its inputs to
+        the given output.
+
+        :return: Dataset with history information appended
+        """
+        op_name = self.op_meta_info.qualified_name
+        # There can potentially be different ways to stamp an output depending
+        # on its type
+        if not isinstance(ds, xr.Dataset):
+            raise NotImplementedError('Adding of operation signature to an'
+                                      ' output is currently implemented only'
+                                      ' for xarray datasets. Operation:'
+                                      ' {}'.format(op_name))
+
+        # Construct our own dict to stringify, otherwise the full input dataset
+        # repr will be found in history.
+        input_str = dict()
+        for key in input_dict:
+            value = input_dict[key]
+            if isinstance(value, xr.Dataset):
+                # We only show that 'a dataset' was provided, instead of
+                # putting the full dataset repr in history
+                input_str[key] = type(value)
+                continue
+            input_str[key] = value
+
+        # Format the stamp
+        try:
+            op_version = self.op_meta_info.header['version']
+        except:
+            raise ValueError('Could not add history information for an'
+                             ' operation that does not have a version defined.'
+                             'Operation: {}'.format(op_name))
+
+        stamp = '\nModified with Cate v' + __version__ + ' ' +\
+                op_name + ' v' +\
+                op_version +\
+                ' \nDefault input values: ' +\
+                str(self.op_meta_info.input) + '\nProvided input values: ' +\
+                str(input_str) + '\n'
+
+        # Append the stamp to existing history information or create history
+        # attribute if none is found
+        try:
+            ds.attrs['history'] = ds.attrs['history'] + stamp
+        except KeyError:
+            # History doesn't yet exist
+            ds.attrs['history'] = stamp
+        return ds
 
     def __str__(self):
         return '%s: %s' % (self.operation, self.op_meta_info)
@@ -172,11 +227,25 @@ class OpRegistration:
         if self.op_meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
+
             for name, properties in self.op_meta_info.output.items():
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values(return_value)
+
+            # Add history information to outputs
+            for name, props in self.op_meta_info.output.items():
+                if name not in return_value:
+                    # Unlikely
+                    continue
+                try:
+                    if props['add_history']:
+                        return_value[name] = \
+                        self._add_history(return_value[name], input_values)
+                except KeyError:
+                    # @op_output doesn't have an 'add_history' key
+                    continue
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
@@ -185,6 +254,17 @@ class OpRegistration:
                 return_value = properties.get('default_value', None)
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+
+            # Add history information to the output
+            try:
+                properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
+                if properties['add_history']:
+                    return_value = self._add_history(return_value,
+                                                      input_values)
+            except KeyError:
+                # @op_return doesn't have an 'add_history' key
+                pass
+
         return return_value
 
 
@@ -294,6 +374,12 @@ def op(registry=OP_REGISTRY, **properties):
     When a function is registered, an introspection is performed. During this process, initial operation
     the meta-information header property *description* is derived from the function's docstring.
 
+    If any output of this operation will have its history information
+    automatically updated, there should be version information found in the
+    operation header. Thus it's always a good idea to add it to all operations::
+
+    @op(version='X.x')
+
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     :param registry: The operation registry.
     """
@@ -389,6 +475,15 @@ def op_output(output_name: str,
         def my_func(...):
             ...
 
+    To automatically add information about cate, its version, this operation
+    and its inputs, to this output, set 'add_history' to True::
+
+        @op_output('name', add_history=True)
+
+    Note that the operation should have version information added to it when
+    add_history is True::
+
+        @op(version='X.x')
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
@@ -442,6 +537,16 @@ def op_return(data_type=None,
         @op_output('return', ...)
         def my_func(...):
             ...
+
+    To automatically add information about cate, its version, this operation
+    and its inputs, to this output, set 'add_history' to True::
+
+        @op_return(add_history=True)
+
+    Note that the operation should have version information added to it when
+    add_history is True::
+
+        @op(version='X.x')
 
     :param data_type: The data type of the return value.
     :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
