@@ -4,8 +4,8 @@ channels:
   - conda-forge
 dependencies:
   # core dependencies, a lot of package are compatible with a specific python and numpy version
-  - python==3.5
-  - numpy>=1.11
+  - python=3.5
+  - numpy>=1.7
   # for testing
   - pytest
   - pytest-cov
@@ -22,7 +22,7 @@ dependencies:
   - pillow==3.0.0
   - pandas>=0.18
   - jdcal>=1.3
-  - geopandas>=0.2
+  - geopandas
   - cartopy
   - pyqt<5
   # these version are needed, lower version have errors
