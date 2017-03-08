@@ -24,7 +24,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda env create -q --file environment.yml
+  - conda env create --file environment.yml
   - source activate cate
   - conda list
   - python setup.py install

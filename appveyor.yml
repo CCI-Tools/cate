@@ -11,7 +11,7 @@ install:
   - conda info -a
 
 build_script:
-  - conda env create -q --file environment.yml
+  - conda env create --file environment.yml
   - call %PYTHON_LOC%\Scripts\activate.bat cate
   - python setup.py install
   - conda list
