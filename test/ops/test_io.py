@@ -56,13 +56,15 @@ class TestIO(TestCase):
 
         self.assertEquals(file_in.getvalue(), raw_data)
 
-    def test_read_vector_data(self):
-
+    def test_read_vector_data_using_fiona(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
 
         collection = read_geo_data_collection(file)
         self.assertIsNotNone(collection)
         self.assertEquals(len(collection), 179)
+
+    def test_read_vector_data_using_geopandas(self):
+        file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
 
         data_frame = read_geo_data_frame(file)
         self.assertIsNotNone(data_frame)
