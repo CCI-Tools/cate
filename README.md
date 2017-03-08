@@ -2,6 +2,7 @@
 
 
 [![Build Status](https://travis-ci.org/CCI-Tools/cate-core.svg?branch=master)](https://travis-ci.org/CCI-Tools/cate-core)
+[![Build status](https://ci.appveyor.com/api/projects/status/leugvo8fq7nx6kym?svg=true)](https://ci.appveyor.com/project/ccitools/cate-core)
 [![codecov.io](https://codecov.io/github/CCI-Tools/cate-core/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/cate-core?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/ect-core/badge/?version=latest)](http://ect-core.readthedocs.io/en/latest/?badge=latest)
                 
