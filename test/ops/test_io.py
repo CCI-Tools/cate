@@ -70,4 +70,3 @@ class TestIO(TestCase):
 
         data_frame = read_geo_data_frame(file)
         self.assertIsNotNone(data_frame)
-        data_frame.close()
