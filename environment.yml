@@ -5,7 +5,7 @@ channels:
 dependencies:
   # core dependencies, a lot of package are compatible with a specific python and numpy version
   - python>=3.6,<3.7
-  - numpy>1.12
+  - numpy>=1.12
   # for testing
   - pytest
   - pytest-cov
