@@ -1,6 +1,7 @@
 from typing import Sequence
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import os.path as op
+import os
 
 import xarray as xr
 
@@ -135,6 +136,7 @@ class IOTest(TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
+    @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):
         with self.assertRaises(ValueError) as cm:
             ds.open_dataset(None)
@@ -154,6 +156,7 @@ class IOTest(TestCase):
         self.assertIsInstance(dataset2, xr.Dataset)
         self.assertEqual(42, dataset2.a.values)
 
+    @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset_duplicated_names(self):
         try:
             ds_a1 = SimpleDataSource('duplicate')

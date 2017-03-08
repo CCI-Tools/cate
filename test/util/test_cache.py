@@ -93,7 +93,7 @@ class FileCacheStoreTest(TestCase):
             self.cache_store.restore_value('c', self.stored_value_c)
 
 
-class TestCacheStore(CacheStore):
+class TracingCacheStore(CacheStore):
     def __init__(self):
         self.trace = ''
 
@@ -124,7 +124,7 @@ class CacheTest(TestCase):
         pass
 
     def test_store_and_restore_and_discard(self):
-        cache_store = TestCacheStore()
+        cache_store = TracingCacheStore()
         cache = Cache(store=cache_store, capacity=1000)
 
         self.assertIs(cache.store, cache_store)
@@ -176,7 +176,7 @@ class CacheTest(TestCase):
         self.assertEqual(cache.size, 0)
 
     def test_load_from_key(self):
-        cache_store = TestCacheStore()
+        cache_store = TracingCacheStore()
         cache = Cache(store=cache_store, capacity=1000)
 
         cache_store.trace = ''
