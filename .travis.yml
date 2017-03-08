@@ -3,15 +3,22 @@
 # See http://conda.pydata.org/docs/travis.html for more info.
 #
 
-language: python
-python:
-  - "3.5"
+language: generic
+env:
+  global:
+    - CONDA_PY=3.5
+
+# disabled, because osx takes very long
+#os:
+#  - linux
+#  - osx
 
 install:
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -20,7 +27,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytest pytest-cov
+  - conda create -q -n test-environment python=$CONDA_PY pytest pytest-cov
   - source activate test-environment
   - conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal geopandas pillow
   - python setup.py install

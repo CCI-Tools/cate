@@ -551,7 +551,7 @@ class OpStepTest(TestCase):
     def test_init(self):
         step = OpStep(Op3)
 
-        self.assertRegex(step.id, 'op_step_[0-9]+')
+        self.assertRegex(step.id, '^op_step_[0-9a-f]+$')
 
         self.assertTrue(len(step.input), 2)
         self.assertTrue(len(step.output), 1)
@@ -789,7 +789,7 @@ class NoOpStepTest(TestCase):
         step = NoOpStep(input_dict=OrderedDict([('a', {}), ('b', {})]),
                         output_dict=OrderedDict([('c', {}), ('d', {})]))
 
-        self.assertRegex(step.id, 'no_op_step_[0-9]+')
+        self.assertRegex(step.id, '^no_op_step_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
@@ -861,7 +861,7 @@ class SubProcessStepTest(TestCase):
         step = SubProcessStep(['cd', '{{dir}}'],
                               input_dict=OrderedDict(dir=dict(data_type=str)))
 
-        self.assertRegex(step.id, 'sub_process_step_[0-9]+')
+        self.assertRegex(step.id, '^sub_process_step_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
