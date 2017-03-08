@@ -54,7 +54,7 @@ Note, after installing Miniconda or Anaconda on Unix and Mac OS you'll need to c
 
 Using Conda, you can create a isolated environment for Cate and add all required packages like so
 
-    $ conda create --file environment.yml
+    $ conda env create --file environment.yml
 
 Some packages are not available on Anaconda default channels and we have to find them on
 another channel (option `-c CHANNEL`). IN the `environment.yml` file we use the channel `conda-forge`.
