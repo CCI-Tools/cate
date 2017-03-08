@@ -63,7 +63,7 @@ class TestIO(TestCase):
         self.assertIsNotNone(collection)
         self.assertEquals(len(collection), 179)
 
-    @unittest.skip(reason="geopandas is broken")
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_GEOPANDAS_TESTS', None) == '1', 'CATE_DISABLE_GEOPANDAS_TESTS = 1')
     def test_read_vector_data_using_geopandas(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
 

@@ -6,19 +6,22 @@ environment:
     CONDA_PY: "3.5"
 
 install:
-  - cmd: call %PYTHON_LOC%\Scripts\activate.bat
-  - cmd: conda config --set always_yes yes --set changeps1 no
-  - cmd: conda update -q conda
-  - cmd: conda info -a
+  - call %PYTHON_LOC%\Scripts\activate.bat
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
 
 build_script:
-  - cmd: conda create -q -n test-environment python=%CONDA_PY% pytest pytest-cov
-  - cmd: call %PYTHON_LOC%\Scripts\activate.bat test-environment
-  - cmd: conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal geopandas pillow
-  - cmd: python setup.py install
+  - conda create -q -n test-environment python=%CONDA_PY% pytest pytest-cov
+  - call %PYTHON_LOC%\Scripts\activate.bat test-environment
+  - conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal geopandas pillow
+  - python setup.py install
+  - set
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - set NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
   - set CATE_DISABLE_WEB_TESTS=1
+  # geopandas in tests break the build on appveyor
+  #- set CATE_DISABLE_GEOPANDAS_TESTS=1
   - set CATE_DISABLE_PLOT_TESTS=1
   - py.test -v --cov=cate test
