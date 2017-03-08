@@ -15,6 +15,7 @@ build_script:
   - conda create -q -n test-environment python=%CONDA_PY% pytest pytest-cov
   - call %PYTHON_LOC%\Scripts\activate.bat test-environment
   - conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal geopandas pillow
+  - call %PYTHON_LOC%\Scripts\activate.bat test-environment
   - python setup.py install
   - set
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
