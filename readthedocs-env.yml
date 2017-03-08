@@ -4,8 +4,8 @@ channels:
   - conda-forge
 dependencies:
   # core dependencies, a lot of package are compatible with a specific python and numpy version
-  - python>=3.6,<3.7
-  - numpy>=1.12
+  - python>=3.5,<3.7
+  - numpy>=1.11
   # for testing
   - pytest
   - pytest-cov
