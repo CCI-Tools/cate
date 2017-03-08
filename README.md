@@ -52,10 +52,13 @@ Note, after installing Miniconda or Anaconda on Unix and Mac OS you'll need to c
 
 ### Installation into a new Conda environment 
 
-Using Conda, you can create a isolated environment for Cate like so
+Using Conda, you can create a isolated environment for Cate and add all required packages like so
 
-    $ conda create -n cate pytest pytest-cov
-    
+    $ conda create --file environment.yml
+
+Some packages are not available on Anaconda default channels and we have to find them on
+another channel (option `-c CHANNEL`). IN the `environment.yml` file we use the channel `conda-forge`.
+
 Then you activate the new environment `cate`:
      
     $ source activate cate
@@ -63,14 +66,6 @@ Then you activate the new environment `cate`:
 Windows users can omit the `source` command and just type 
 
     $ activate cate
-
-Now we add all required packages to the activated `cate` Conda environment:
-
-    (cate) $ conda install xarray dask numpy scipy matplotlib numba netcdf4 tornado pillow pyqt jdcal geopandas
-    (cate) $ conda install -c conda-forge cartopy
-
-Some packages are not available on Anaconda default channels and we have to find them on
-another channel (option `-c CHANNEL`). Above we use channel `conda-forge`. 
 
 You can now safely install Cate into the `cate` environment.
     

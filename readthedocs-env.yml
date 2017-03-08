@@ -1,4 +1,4 @@
-name: cate
+name: cate-docs
 channels:
   - defaults
   - conda-forge
@@ -26,3 +26,9 @@ dependencies:
   # these version are needed, lower version have errors
   - hdf4>=4.2.12
   - geos>=3.5.1
+  # readthedocs specific
+  - sphinx>=1.4
+  - sphinx_rtd_theme=0.1.9
+  - sphinx-argparse
+  - pip:
+    - sphinx_autodoc_annotation

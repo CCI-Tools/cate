@@ -36,5 +36,5 @@ setup(
     author='Cate Development Team',
     packages=['cate', 'cate.util', 'cate.util.im', 'cate.util.web'],
     install_requires=['tornado >= 4.4',
-                      'pillow >= 3.4'],
+                      'pillow >= 4.0'],
 )

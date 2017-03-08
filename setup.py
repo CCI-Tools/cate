@@ -53,7 +53,7 @@ setup(
                       'matplotlib >= 1.5',
                       'xarray >= 0.9',
                       'netcdf4 >= 1.2',
-                      'dask >= 0.8',
+                      'dask >= 0.14',
                       'tornado >= 4.4',
                       'numba >= 0.26',
                       'numpy >= 1.7',
