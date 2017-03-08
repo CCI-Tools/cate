@@ -8,7 +8,7 @@ from unittest import TestCase
 from io import StringIO
 import pandas as pd
 
-from cate.ops.io import open_dataset, save_dataset, read_csv
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_collection, read_geo_data_frame
 
 
 class TestIO(TestCase):
@@ -45,7 +45,7 @@ class TestIO(TestCase):
 
         self.assertFalse(os.path.isfile('remove_me.nc'))
 
-    def test_save_dataset(self):
+    def test_read_csv(self):
 
         raw_data = "id,first_name,last_name,age,preTestScore,postTestScore\n0,Jason,Miller,42,4,\"25,000\"\n"
         file_out = StringIO(raw_data)
@@ -55,3 +55,14 @@ class TestIO(TestCase):
         df.to_csv(file_in)
 
         self.assertEquals(file_in.getvalue(), raw_data)
+
+    def test_read_vector_data(self):
+
+        file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
+
+        collection = read_geo_data_collection(file)
+        self.assertIsNotNone(collection)
+        self.assertEquals(len(collection), 179)
+
+        data_frame = read_geo_data_frame(file)
+        self.assertIsNotNone(data_frame)
