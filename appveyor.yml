@@ -14,6 +14,7 @@ build_script:
   - conda env create -q --file environment.yml
   - call %PYTHON_LOC%\Scripts\activate.bat cate
   - python setup.py install
+  - conda list
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - set NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
