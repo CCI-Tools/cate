@@ -33,7 +33,11 @@ from typing import List
 
 import numpy as np
 import xarray as xr
-from tornado.web import Application
+import fiona
+import pyproj
+import tornado.web
+import tornado.gen
+import concurrent.futures
 
 from cate.conf import get_config
 from cate.conf.defaults import \
@@ -48,6 +52,7 @@ from cate.util.im.ds import NaturalEarth2Image
 from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
+from .geojson import write_feature_collection
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
 #                However, a global cache is fine as long as we have just one workspace open at a time.
@@ -57,6 +62,8 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        threshold=0.75)
 
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
+
+THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -322,7 +329,8 @@ class ResVarTileHandler(WebAPIRequestHandler):
             return
 
         var_name = self.get_query_argument('var')
-        var_index = tuple(map(int, self.get_query_argument('index', '').split(',')))
+        var_index = self.get_query_argument('index', default=None)
+        var_index = tuple(map(int, var_index.split(','))) if var_index else []
         cmap_name = self.get_query_argument('cmap', default='jet')
         cmap_min = float(self.get_query_argument('min', default='nan'))
         cmap_max = float(self.get_query_argument('max', default='nan'))
@@ -448,11 +456,85 @@ class ResVarTileHandler(WebAPIRequestHandler):
         return None
 
 
+# noinspection PyAbstractClass
+class GeoJSONHandler(WebAPIRequestHandler):
+    def __init__(self, application, request, shapefile_path, **kwargs):
+        print('GeoJSONHandler', shapefile_path)
+        super(GeoJSONHandler, self).__init__(application, request, **kwargs)
+        self._shapefile_path = shapefile_path
+
+    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        print('GeoJSONHandler: shapefile_path:', self._shapefile_path)
+        collection = fiona.open(self._shapefile_path)
+        print('GeoJSONHandler: collection:', collection)
+        print('GeoJSONHandler: collection CRS:', collection.crs)
+        try:
+            self.set_header('Content-Type', 'application/json')
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
+        self.finish()
+
+
+# noinspection PyAbstractClass
+class CountriesGeoJSONHandler(GeoJSONHandler):
+    def __init__(self, application, request, **kwargs):
+        print('CountriesGeoJSONHandler', request)
+        shapefile_path = os.path.join(os.path.dirname(__file__), '..', 'ds', 'data', 'countries', 'countries.geojson')
+        super(CountriesGeoJSONHandler, self).__init__(application, request, shapefile_path=shapefile_path, **kwargs)
+
+
+# noinspection PyAbstractClass
+class ResVarGeoJSONHandler(WebAPIRequestHandler):
+    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self, base_dir, res_name):
+
+        print('ResVarGeoJSONHandler:', base_dir, res_name)
+
+        var_name = self.get_query_argument('var')
+        var_index = self.get_query_argument('index', default=None)
+        var_index = tuple(map(int, var_index.split(','))) if var_index else []
+        cmap_name = self.get_query_argument('cmap', default='jet')
+        cmap_min = float(self.get_query_argument('min', default='nan'))
+        cmap_max = float(self.get_query_argument('max', default='nan'))
+
+        print('ResVarGeoJSONHandler:', var_name, var_index, cmap_name, cmap_min, cmap_max)
+
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir)
+
+        if res_name not in workspace.resource_cache:
+            self.write_status_error(message='Unknown resource "%s"' % res_name)
+            return
+
+        collection = workspace.resource_cache[res_name]
+        print('ResVarGeoJSONHandler: collection:', collection)
+        print('ResVarGeoJSONHandler: collection CRS:', collection.crs)
+        if not isinstance(collection, fiona.Collection):
+            self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
+            return
+
+        try:
+            self.set_header('Content-Type', 'application/json')
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
+        self.finish()
+
+
+
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 
 
-def _on_workspace_closed(application: Application):
+def _on_workspace_closed(application: tornado.web.Application):
     # noinspection PyUnresolvedReferences
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()

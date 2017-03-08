@@ -32,7 +32,7 @@ from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
 from cate.util import OpMetaInfo
-from .jsonrcpmonitor import JsonRcpWebSocketMonitor
+from .jsonrpcmonitor import JsonRcpWebSocketMonitor
 
 
 # noinspection PyAbstractClass
@@ -138,10 +138,10 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                 delta_t = time.clock() - self._job_start[job_id]
                 del self._job_start[job_id]
                 print('Cancelled job', job_id, 'after', delta_t, 'seconds')
-            response = dict(jsonrcp='2.0', id=method_id)
+            response = dict(jsonrpc='2.0', id=method_id)
             self._write_response(json.dumps(response), method_id)
         else:
-            response = dict(jsonrcp='2.0',
+            response = dict(jsonrpc='2.0',
                             id=method_id,
                             error=dict(code=20,
                                        message='Unsupported method: %s' % method_name))
@@ -150,7 +150,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
             result = future.result()
-            response = dict(jsonrcp='2.0',
+            response = dict(jsonrpc='2.0',
                             id=method_id,
                             response=result)
             if method_id in self._active_monitors:
@@ -162,14 +162,14 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                 del self._job_start[method_id]
                 print('Finished job', method_id, 'after', delta_t, 'seconds')
         except (concurrent.futures.CancelledError, InterruptedError):
-            response = dict(jsonrcp='2.0',
+            response = dict(jsonrpc='2.0',
                             id=method_id,
                             error=dict(code=999,
                                        message='Cancelled'))
         except Exception as e:
             stack_trace = traceback.format_exc()
             print(stack_trace, file=sys.stderr, flush=True)
-            response = dict(jsonrcp='2.0',
+            response = dict(jsonrpc='2.0',
                             id=method_id,
                             error=dict(code=10,
                                        message='%s' % e,
@@ -180,7 +180,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
             stack_trace = traceback.format_exc()
             print(stack_trace, file=sys.stderr, flush=True)
             message = 'INTERNAL ERROR: response could not be converted to JSON: %s' % e
-            json_text = json.dumps(dict(jsonrcp='2.0',
+            json_text = json.dumps(dict(jsonrpc='2.0',
                                         id=method_id,
                                         error=dict(code=30,
                                                    message=message,

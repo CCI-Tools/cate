@@ -50,7 +50,7 @@ from datetime import date
 
 from tornado.web import Application
 
-from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER, \
+from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX,  \
     WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRcpWebSocketHandler
@@ -61,8 +61,8 @@ from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, Workspace
     WorkspaceCloseAllHandler, WorkspaceDeleteHandler, WorkspaceRunOpHandler, \
     WorkspaceSaveAllHandler, WorkspaceSaveAsHandler, WorkspaceSaveHandler, \
     ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
-    ResourcePrintHandler, ResourceWriteHandler, \
-    ResVarTileHandler, NE2Handler
+    ResourcePrintHandler, ResourceWriteHandler, CountriesGeoJSONHandler, \
+    ResVarTileHandler, ResVarGeoJSONHandler, NE2Handler
 from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
@@ -116,6 +116,8 @@ def create_application():
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
+        (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
+        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_name}}'), ResVarGeoJSONHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
     ])

@@ -51,15 +51,16 @@ setup(
     },
     install_requires=[
                       'matplotlib >= 1.5',
-                      'xarray >= 0.9.1',
+                      'xarray >= 0.9',
                       'netcdf4 >= 1.2',
                       'dask >= 0.8',
                       'tornado >= 4.4',
                       'numba >= 0.26',
                       'numpy >= 1.7',
                       'scipy >= 0.17',
-                      'pillow >= 3.4',
+                      'pillow >= 4.0',
                       'pandas >= 0.18',
                       'jdcal >= 1.3',
+                      'geopandas >= 0.2',
                       ],
 )

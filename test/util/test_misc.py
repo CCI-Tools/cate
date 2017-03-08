@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime, date
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
+from numpy import dtype
 
 from cate.util.misc import encode_url_path
 from cate.util.misc import object_to_qualified_name, qualified_name_to_object
@@ -14,9 +15,10 @@ from cate.util.misc import to_str_constant, is_str_constant
 class UtilTest(TestCase):
     def test_object_to_qualified_name(self):
         self.assertEqual(object_to_qualified_name(float), 'float')
+        self.assertEqual(object_to_qualified_name(dtype('float64')), 'float64')
         self.assertEqual(object_to_qualified_name(TestCase), 'unittest.case.TestCase')
         self.assertEqual(object_to_qualified_name(ElementTree), 'xml.etree.ElementTree.ElementTree')
-        self.assertIs(object_to_qualified_name({}, fail=False), None)
+        self.assertEqual(object_to_qualified_name({}, fail=False), '{}')
         with self.assertRaisesRegex(ValueError, "missing attribute '__name__'"):
             object_to_qualified_name({}, fail=True)
 
