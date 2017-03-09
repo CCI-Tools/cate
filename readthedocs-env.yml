@@ -1,7 +1,7 @@
 name: cate-docs
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   # rdt has currently no higher version
   - python=3.5
