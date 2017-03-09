@@ -105,7 +105,7 @@ def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
     Create a mask data array for the given variable of the dataset and given
     absolute threshold values. Add the mask data array as an ancillary data
     array to the original array as per CF conventions.
-    
+
     For explanation about the relevant attributes, see::
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#flags
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#ancillary-data
