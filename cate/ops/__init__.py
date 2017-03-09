@@ -58,7 +58,6 @@ from .xarray import sel
 from .average import long_term_average, temporal_agg
 from .arithmetics import ds_arithmetics
 from .anomaly import anomaly_internal, anomaly_climatology
-from .index import nino34
 from .ident import *
 from .outliers import detect_outliers
 

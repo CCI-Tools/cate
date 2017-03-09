@@ -37,7 +37,7 @@ import xarray as xr
 
 
 @op(tags=['index', 'nino34'])
-def nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
+def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     """
     Calculate nino34 index, which is defined as five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
@@ -77,4 +77,51 @@ def nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
         retset = xr.concat([retset, item[0].mean()])
     print(retset)
     #n34_running_mean = pd.rolling_mean(n34_ts[var].values, 5)
+    # Should this be a pd.Dataframe instead? Does it make sense to have it in
+    # an xarray dataset? Norman assumes that those can be plotted on the globe,
+    # if this is an actual 'index' table, it should be a dataframe instead.
+    # It could of course be converted to xr.Dataset if needed, say, for
+    # correlation.
     #return xr.Dataset(n34_running_mean)
+
+
+@op(tags=['index'])
+@op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4'])
+@op_input('custom_region', cate_type='polygon')
+def enso_index(ds: xr.Dataset,
+               var: str,
+               file: str,
+               region: str='n34',
+               custom_region=None,
+               threshold: float=False):
+    """
+    Calculate ENSO index, which is defined as a five month running mean of
+    anomalies of monthly means of SST data in the given region.
+
+    :param ds: A monthly SST dataset
+    :param file: Path to the reference data file
+    :param var: Dataset variable to use for index calculation
+    :param region: Region for index calculation, the default is Nino3.4
+    :param custom_region: If 'custom' is chosen as the 'region', this parameter
+    has to be provided to set the desired region.
+    :param threshold: If given, boolean El Nino/La Nina timeseries will be
+    calculated and added to the output dataset, according to the given
+    threshold. Where anomaly larger than then positive value of the threshold
+    indicates El Nino and anomaly smaller than the negative of the given
+    threshold indicates La Nina.
+    :return: A dataset that contains the index timeseries.
+    """
+    pass
+
+
+@op(tags=['index'])
+def oni_index(ds: xr.Dataset, var: str, file: str):
+    """
+    Calculate ONI index, which is defined as a three month running mean of
+    anomalies of monthly means of SST data in the Nino3.4 region.
+
+    :param ds: A monthly SST dataset
+    :param file: Path to the reference data file
+    :param var: Dataset variable to use for index calculation
+    """
+    pass
