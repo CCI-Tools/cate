@@ -56,7 +56,7 @@ else:
         'numpy >= 1.7',
         'pandas >= 0.18',
         'pillow >= 4.0',
-        "pyqt >= 4.0, < 5",
+        #"PyQt4 >= 4.0, < 5",
         'scipy >= 0.17',
         'tornado >= 4.4',
         'xarray >= 0.9.1',
