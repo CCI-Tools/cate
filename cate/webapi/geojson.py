@@ -23,8 +23,11 @@ import json
 from typing import Tuple, List, Callable, Union
 
 import fiona
+import numba
 import numpy as np
 import pyproj
+
+import cate.util.minheap as minheap
 
 Point = Tuple[float, float]
 LineString = List[Point]
@@ -135,3 +138,41 @@ def write_feature_collection(collection: fiona.Collection, io):
     io.flush()
 
     return feature_count
+
+
+@numba.jit(nopython=True)
+def compute_area(x1: float, y1: float, x2: float, y2: float) -> float:
+    return 0.5 * abs(x1 * y2 - y1 * x2)
+
+
+@numba.jit(nopython=True)
+def simplify_coordinates(x: np.ndarray, y: np.ndarray, new_n: float) -> int:
+    n = x.size
+    if n <= 3:
+        return n
+
+    m = n - 2
+
+    areas = np.empty(m, dtype=np.float64)
+    indices = np.empty(m, dtype=np.uint64)
+    heap_size = 0
+
+    for index in range(m):
+        x0 = x[index + 1]
+        y0 = y[index + 1]
+        area = compute_area(x[index] - x0, y[index] - y0, x[index + 2] - x0, y[index + 2] - y0)
+        heap_size = minheap.add(areas, indices, heap_size, np.inf, area, index + 1)
+
+    while heap_size > new_n:
+        heap_size = minheap.remove_min(areas, indices, heap_size, -np.inf)
+
+    xc = np.empty(heap_size, dtype=x.dtype)
+    yc = np.empty(heap_size, dtype=y.dtype)
+    for index in range(heap_size):
+        xc[index] = x[indices[index]]
+        yc[index] = y[indices[index]]
+
+    x[:heap_size] = xc[:]
+    y[:heap_size] = yc[:]
+
+    return heap_size

@@ -1,9 +1,10 @@
 from collections import OrderedDict
 from unittest import TestCase
 
+import numpy as np
 import pyproj
 
-from cate.webapi.geojson import get_geometry_transform, write_feature_collection
+from cate.webapi.geojson import get_geometry_transform, write_feature_collection, simplify_coordinates
 
 source_prj = pyproj.Proj(init='EPSG:4326')
 target_prj = pyproj.Proj(init='EPSG:3395')
@@ -102,10 +103,21 @@ class WriteFeatureCollectionTest(TestCase):
         from io import StringIO
         string_io = StringIO()
         num_written = write_feature_collection(collection, string_io)
-        #print(num_written, string_io.getvalue())
+        # print(num_written, string_io.getvalue())
         self.assertEqual(num_written, 2)
         self.assertEqual(string_io.getvalue(),
                          '{"type": "FeatureCollection", "features": [\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, "properties": {"id": "1", "a": 3, "b": true}},\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, "properties": {"id": "2", "a": 9, "b": false}}\n'
                          ']}\n')
+
+
+class SimplifyCoordinatesTest(TestCase):
+    def test_simplify_coordinates(self):
+        x = np.array([1, 2, 3, 3, 3, 2, 1, 1, 1])
+        y = np.array([1, 1, 1, 2, 3, 3, 3, 2, 1])
+
+        n = simplify_coordinates(x, y, 5)
+        self.assertEqual(n, 5)
+        self.assertEqual(list(x[:5]), [2, 1, 3, 3, 3])
+        self.assertEqual(list(y[:5]), [3, 3, 2, 3, 1])
