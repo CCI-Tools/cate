@@ -53,7 +53,8 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
 svgz, tif, tiff
 
 """
-
+import os
+print(os.environ)
 import matplotlib
 import xarray as xr
 
