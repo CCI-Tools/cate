@@ -22,6 +22,14 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 from cate.version import __version__ as cate_version
 
+# packages thare are difficult to import, becuase the collide with pillow==3.0.0 requirement by rtd
+# http://blog.rtwilson.com/how-to-make-your-sphinx-documentation-compile-with-readthedocs-when-youre-using-numpy-and-scipy/
+import mock
+
+MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

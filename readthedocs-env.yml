@@ -22,12 +22,14 @@ dependencies:
   - pillow==3.0.0
   - pandas>=0.18
   - jdcal>=1.3
-  - geopandas
-  - cartopy
+  #- geopandas (excluded for rtd, mocked instead)
+  #- cartopy (excluded for rtd, mocked instead)
   - pyqt<5
   # these version are needed, lower version have errors
   - hdf4>=4.2.12
   - geos>=3.5.1
+  # for mocking all libraries we DON'T want/cant used
+  - mock
   # readthedocs specific
   - sphinx>=1.4
   - sphinx_rtd_theme=0.1.9
