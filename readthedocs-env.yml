@@ -25,7 +25,7 @@ dependencies:
   # readthedocs has a hard dependency on pillow 3.0.0
   # https://github.com/rtfd/readthedocs.org/issues/2594
   - pillow==3.0.0
-  - pyqt>4,<5
+  - pyqt>=4.0,<5
   - scipy>=0.17
   - tornado>=4.4
   - xarray>=0.9.1
