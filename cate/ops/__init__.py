@@ -38,6 +38,12 @@ information.
 Functions
 ==========
 """
+# We need cate_init being accessible to use by the plugin registering logic
+# before any attempt to import any of the submodules is made. See Issue #148
+def cate_init():
+    # Plugin initializer.
+    # Left empty because operations are registered automatically via decorators.
+    pass
 
 from .select import select_var
 from .coregistration import coregister
@@ -55,6 +61,7 @@ from .anomaly import anomaly_internal, anomaly_climatology
 from .index import nino34
 from .ident import *
 from .outliers import detect_outliers
+
 
 __all__ = [
     # .timeseries
@@ -102,9 +109,3 @@ __all__ = [
     # .outliers
     'detect_outliers',
 ]
-
-
-def cate_init():
-    # Plugin initializer.
-    # Left empty because operations are registered automatically via decorators.
-    pass

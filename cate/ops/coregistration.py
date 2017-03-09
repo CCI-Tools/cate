@@ -40,6 +40,8 @@ import numpy as np
 import xarray as xr
 
 from cate.core.op import op_input, op
+
+# This imports ops/resampling.py, instead of a name from ops.__init__
 from cate.ops import resampling
 
 

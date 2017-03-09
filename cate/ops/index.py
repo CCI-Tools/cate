@@ -31,7 +31,8 @@ Functions
 """
 
 from cate.core.op import op
-from cate.ops import subset_spatial, select_var
+from cate.ops.select import select_var
+from cate.ops.subset import subset_spatial
 import xarray as xr
 
 
