@@ -6,9 +6,9 @@
 language: generic
 
 # disabled, because osx takes very long
-os:
-  - linux
-  - osx
+#os:
+#  - linux
+#  - osx
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
