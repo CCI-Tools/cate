@@ -30,7 +30,6 @@ packages = find_packages(exclude=["test", "test.*"])
 __version__ = None
 with open('cate/version.py') as f:
     exec(f.read())
-
 setup(
     name="cate",
     version=__version__,
@@ -49,18 +48,21 @@ setup(
             'cate_ds = cate.ds:cate_init',
         ],
     },
+    # in alphabetical oder
     install_requires=[
-                      'matplotlib >= 1.5',
-                      'xarray >= 0.9',
-                      'netcdf4 >= 1.2',
-                      'dask >= 0.14',
-                      'tornado >= 4.4',
-                      'numba >= 0.26',
-                      'numpy >= 1.7',
-                      'scipy >= 0.17',
-                      'pillow >= 4.0',
-                      'pandas >= 0.18',
-                      'jdcal >= 1.3',
-                      'geopandas >= 0.2',
-                      ],
+        'cartopy',
+        'dask >= 0.14',
+        'geopandas >= 0.2',
+        'jdcal >= 1.3',
+        'matplotlib >= 1.5,<2',
+        'netcdf4 >= 1.2',
+        'numba >= 0.26',
+        'numpy >= 1.7',
+        'pandas >= 0.18',
+        'pillow >= 4.0',
+        "pyqt > 4, < 5",
+        'scipy >= 0.17',
+        'tornado >= 4.4',
+        'xarray >= 0.9.1',
+    ],
 )
