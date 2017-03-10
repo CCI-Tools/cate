@@ -28,6 +28,7 @@ import numpy as np
 import pyproj
 
 import cate.util.minheap as minheap
+import heapq
 
 Point = Tuple[float, float]
 LineString = List[Point]
@@ -141,38 +142,151 @@ def write_feature_collection(collection: fiona.Collection, io):
 
 
 @numba.jit(nopython=True)
-def compute_area(x1: float, y1: float, x2: float, y2: float) -> float:
-    return 0.5 * abs(x1 * y2 - y1 * x2)
+def compute_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: int) -> float:
+    """
+    Compute area between 3 points given by their coordinates *x_data* and *y_data* and their
+    indices *i0*, *i1*, *i2*.
+    """
+    x0 = x_data[i0]
+    y0 = y_data[i0]
+    dx1 = x_data[i1] - x0
+    dy1 = y_data[i1] - y0
+    dx2 = x_data[i2] - x0
+    dy2 = y_data[i2] - y0
+    return 0.5 * abs(dx1 * dy2 - dy1 * dx2)
 
 
-@numba.jit(nopython=True)
-def simplify_coordinates(x: np.ndarray, y: np.ndarray, new_n: float) -> int:
-    n = x.size
-    if n <= 3:
-        return n
+@numba.jit()
+def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, old_n: int, new_n: int) -> int:
+    """
+    Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *old_n* points to
+    *new_n* points. A ring is detected by same start and end points. The first and last coordinates will always be
+    maintained therefore the minimum number of resulting points is 3 for rings and 2 for line-strings.
 
-    m = n - 2
+    :param x_data: The x coordinates. Will be changed in place.
+    :param y_data: The x coordinates. Will be changed in place.
+    :param old_n: The existing number of points.
+    :param new_n: The desired number of points.
+    :return: The actual number of points after simplification.
+    """
+    is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
+    min_new_n =  3 if is_ring else 2
+    if new_n < min_new_n:
+        new_n = min_new_n
+    if old_n < 0:
+        old_n = x_data.size
+    if old_n <= min_new_n:
+        return old_n
 
-    areas = np.empty(m, dtype=np.float64)
-    indices = np.empty(m, dtype=np.uint64)
-    heap_size = 0
+    point_heap = PointHeap(x_data, y_data)
+    while point_heap.size > new_n:
+        point_heap.pop()
 
-    for index in range(m):
-        x0 = x[index + 1]
-        y0 = y[index + 1]
-        area = compute_area(x[index] - x0, y[index] - y0, x[index + 2] - x0, y[index + 2] - y0)
-        heap_size = minheap.add(areas, indices, heap_size, np.inf, area, index + 1)
+    x_copy = np.zeros(new_n, dtype=x_data.dtype)
+    y_copy = np.zeros(new_n, dtype=y_data.dtype)
+    point = point_heap.first_point
+    i = 0
+    while point is not None:
+        index = point[1]
+        x_copy[i] = x_data[index]
+        y_copy[i] = y_data[index]
+        point = point[3]
+        i += 1
 
-    while heap_size > new_n:
-        heap_size = minheap.remove_min(areas, indices, heap_size, -np.inf)
+    x_data[:new_n] = x_copy[:]
+    y_data[:new_n] = y_copy[:]
+    return new_n
 
-    xc = np.empty(heap_size, dtype=x.dtype)
-    yc = np.empty(heap_size, dtype=y.dtype)
-    for index in range(heap_size):
-        xc[index] = x[indices[index]]
-        yc[index] = y[indices[index]]
 
-    x[:heap_size] = xc[:]
-    y[:heap_size] = yc[:]
+# TODO (forman): Optimize me!
+# This is an non-optimised version of PointHeap for testing only.
+# It uses the pure Python heapq implementation of a min-heap.
+# We should ASAP replace heapq by the jit-compiled cate.util.minheap implementation
+# so that we can compile the PointHeap class using @numba.jitclass().
+# See http://numba.pydata.org/numba-doc/dev/user/jitclass.html
 
-    return heap_size
+# PointHeapSpec = [
+#     ('_x_data', np.float64[:]),
+#     ('_y_data', np.float64[:]),
+#     ('_point_heap', np.int64[:]),
+#     ('_size', np.int64),
+# ]
+# @numba.jitclass(PointHeapSpec)
+class PointHeap:
+    def __init__(self, x_data: np.ndarray, y_data: np.ndarray):
+        size = x_data.size
+        if size < 2:
+            raise ValueError('x_data.size must be greater than 2')
+        if size != y_data.size:
+            raise ValueError('x_data.size must be equal to y_data.size')
+        self._x_data = x_data
+        self._y_data = y_data
+        self._point_heap = []
+        self._size = size
+
+        first_point = None
+        prev_point = None
+        for i in range(size):
+            curr_point = [-1.0, i, prev_point, None]
+            if prev_point is None:
+                first_point = curr_point
+            else:
+                prev_point[3] = curr_point
+            if 0 < i < size - 1:
+                curr_point[0] = compute_area(x_data, y_data, i, i - 1, i + 1)
+                self._push(curr_point)
+            prev_point = curr_point
+
+        # Must store _first_point, so we can later loop through connected points
+        self._first_point = first_point
+        # _counter is used to generate unique indexes, which don't occur in valid points
+        self._counter = size
+
+    @property
+    def size(self):
+        return self._size
+
+    @property
+    def first_point(self):
+        return self._first_point
+
+    def pop(self):
+        """Remove and return the smallest-area point. Raise KeyError if empty."""
+        while self._point_heap:
+            point = heapq.heappop(self._point_heap)
+            prev_point = point[2]
+            next_point = point[3]
+            has_prev_point = prev_point is not None
+            has_next_point = next_point is not None
+            if has_prev_point or has_next_point:  # Not yet removed?
+                if has_prev_point:
+                    prev_point = self._update_point(prev_point)
+                if has_next_point:
+                    next_point = self._update_point(next_point)
+                if has_prev_point and has_next_point:
+                    prev_point[3] = next_point
+                    next_point[2] = prev_point
+                self._size -= 1
+                return point
+        raise KeyError('pop from an empty priority queue')
+
+    def _push(self, point):
+        heapq.heappush(self._point_heap, point)
+
+    def _update_point(self, point):
+        prev_point = point[2]
+        next_point = point[3]
+        if prev_point is not None and next_point is not None:
+            index = point[1]
+            self._counter += 1 # Generate a unique, invalid index
+            point[1] = self._counter
+            point[2] = point[3] = None  # Mark point as removed / invalid
+            area = compute_area(self._x_data, self._y_data, index, prev_point[1], next_point[1])
+            new_point = [area, index, prev_point, next_point]
+            if prev_point is not None:
+                prev_point[3] = new_point
+            if next_point is not None:
+                next_point[2] = new_point
+            self._push(new_point)
+            return new_point
+        return point

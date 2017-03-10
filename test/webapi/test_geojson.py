@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 import pyproj
 
-from cate.webapi.geojson import get_geometry_transform, write_feature_collection, simplify_coordinates
+from cate.webapi.geojson import get_geometry_transform, write_feature_collection, simplify_geometry
 
 source_prj = pyproj.Proj(init='EPSG:4326')
 target_prj = pyproj.Proj(init='EPSG:3395')
@@ -112,12 +112,52 @@ class WriteFeatureCollectionTest(TestCase):
                          ']}\n')
 
 
-class SimplifyCoordinatesTest(TestCase):
-    def test_simplify_coordinates(self):
-        x = np.array([1, 2, 3, 3, 3, 2, 1, 1, 1])
-        y = np.array([1, 1, 1, 2, 3, 3, 3, 2, 1])
+class SimplifyGeometryTest(TestCase):
+    def test_simplify_geometry(self):
+        x_data = [1, 2, 3, 3, 3, 2, 1, 1, 1]
+        y_data = [1, 1, 1, 2, 3, 3, 3, 2, 1]
 
-        n = simplify_coordinates(x, y, 5)
+        #
+        #  3  o----o----o         3  o---------o
+        #     |         |            |         |
+        #  2  o         o   ==>   2  |         |
+        #     |         |            |         |
+        #  1  o----o----o         1  o---------o
+        #     1    2    3            1    2    3
+        #
+        x = np.array(x_data)
+        y = np.array(y_data)
+        n = simplify_geometry(x, y, -1, 5)
         self.assertEqual(n, 5)
-        self.assertEqual(list(x[:5]), [2, 1, 3, 3, 3])
-        self.assertEqual(list(y[:5]), [3, 3, 2, 3, 1])
+        self.assertEqual(list(x[:5]), [1, 3, 3, 1, 1])
+        self.assertEqual(list(y[:5]), [1, 1, 3, 3, 1])
+
+        #
+        #  3  o----o----o         3  o----o----o
+        #     |         |            |         |
+        #  2  o         o   ==>   2  o         |
+        #     |         |            |         |
+        #  1  o----o----o         1  o---------o
+        #     1    2    3            1    2    3
+        #
+        x = np.array(x_data)
+        y = np.array(y_data)
+        n = simplify_geometry(x, y, -1, 7)
+        self.assertEqual(n, 7)
+        self.assertEqual(list(x[:7]), [1, 3, 3, 2, 1, 1, 1])
+        self.assertEqual(list(y[:7]), [1, 1, 3, 3, 3, 2, 1])
+
+        #
+        #  3  o----o----o         3  o----------o
+        #     |         |            |       _/
+        #  2  o         o   ==>   2  |    _/
+        #     |         |            | _/
+        #  1  o----o----o         1  o
+        #     1    2    3            1     2    3
+        #
+        x = np.array(x_data)
+        y = np.array(y_data)
+        n = simplify_geometry(x, y, -1, 4)
+        self.assertEqual(n, 4)
+        self.assertEqual(list(x[:4]), [1, 3, 1, 1])
+        self.assertEqual(list(y[:4]), [1, 3, 3, 1])
