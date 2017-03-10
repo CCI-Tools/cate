@@ -110,7 +110,8 @@ _GEOMETRY_TRANSFORMS = dict(Point=_transform_point,
                             Polygon=_transform_polygon,
                             MultiPoint=_transform_multi_point,
                             MultiLineString=_transform_multi_line_string,
-                            MultiPolygon=_transform_multi_polygon)
+                            MultiPolygon=_transform_multi_polygon,
+                            Unknown=None)
 
 
 def get_geometry_transform(type_name: str) -> GeometryTransform:
@@ -133,31 +134,44 @@ def get_geometry_transform(type_name: str) -> GeometryTransform:
 
 
 def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float = 1.0):
-    geometry_transform = None
+    collection_geometry_transform = None
     source_prj = target_prj = None
 
     if collection.crs:
         source_prj = pyproj.Proj(collection.crs)
         target_prj = pyproj.Proj(init='epsg:4326')
-        geometry_transform = get_geometry_transform(collection.schema['geometry'])
+        collection_geometry_transform = get_geometry_transform(collection.schema['geometry'])
 
     io.write('{"type": "FeatureCollection", "features": [\n')
     io.flush()
 
     feature_count = 0
     for feature in collection:
+        feature_ok = True
         if 'geometry' in feature:
             geometry = feature['geometry']
-            if not geometry_transform:
+            if collection_geometry_transform is not None:
+                geometry_transform = collection_geometry_transform
+            else:
                 geometry_transform = get_geometry_transform(geometry['type'])
-            if geometry_transform:
-                coordinates = geometry_transform(source_prj, target_prj, simp_ratio, geometry['coordinates'])
-                geometry['coordinates'] = coordinates
-        if feature_count > 0:
-            io.write(',\n')
-        io.write(json.dumps(feature))
-        io.flush()
-        feature_count += 1
+            if geometry_transform is not None:
+                # print('transforming feature: ', feature)
+                coordinates = geometry['coordinates']
+                # noinspection PyBroadException
+                try:
+                    coordinates = geometry_transform(source_prj, target_prj, simp_ratio, coordinates)
+                    geometry['coordinates'] = coordinates
+                except Exception as e:
+                    # print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
+                    feature_ok = False
+                    pass
+
+        if feature_ok:
+            if feature_count > 0:
+                io.write(',\n')
+            io.write(json.dumps(feature))
+            io.flush()
+            feature_count += 1
 
     io.write('\n]}\n')
     io.flush()
