@@ -169,7 +169,7 @@ def is_type(value: Any, maybe_type: Any) -> bool:
             # constructed type using typing package Union or Sequence
             raise TypeError('Not possible to explicitly validate {}'
                             ' types. Have you forgotten to add data_value=TYPE'
-                            ' in @op_input decorator?'.format(maybe_type))
+                            ' to @op_input decorator?'.format(maybe_type))
 
     if maybe_type not in _TYPES:
         raise TypeError('Provided type definition {} not'
@@ -178,11 +178,11 @@ def is_type(value: Any, maybe_type: Any) -> bool:
 
     return _TYPES[maybe_type]._is_type(value)
 
-def to_op_object(value: Any, typ: Any) -> Any:
+def to_op_object(value: Any, custom_type: Any) -> Any:
     """
     Return an object that operations expect to work with for the given type
 
     :param value: Value to process
-    :param typ: Complex type
+    :param custom_type: Complex type
     """
-    return _TYPES[typ]._to_op_object(value)
+    return _TYPES[custom_type]._to_op_object(value)
