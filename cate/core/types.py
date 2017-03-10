@@ -40,11 +40,20 @@ def some_op(name1: TYPE_ALIAS -> TypeNotation[TYPE]:
     # Do something useful
     pass
 
-To add a new type, add a new type definition, an alias and a validation
-function and add the new definition to _IS_TYPE.
+Or:
+def some_method(name1: TYPE_ALIAS) -> bool:
+    is_type(name1, TYPE)
+    # Do something useful
+    pass
+
+To add a new type, add a new type definition, an alias and a type class
+and add the new definition to TYPES.
 
 """
+from abc import ABCMeta, abstractmethod
 from typing import Union, Any, List, Optional
+
+from cate.util.misc import to_list
 
 # Using strings instead of ints for better debug message readability down the
 # line
@@ -58,51 +67,90 @@ TIME_SELECTION = 'TIME_SELECTION'
 TIME_SELECTION_ALIAS = Union[str, List[str]]
 
 
-def _is_polygon(val: Any) -> bool:
+class _ComplexType(metaclass=ABCMeta):
     """
-    Check if the given value belongs to the POLYGON type
-
-    :param val: Value to check
+    An abstract complex type
     """
-    return False
+    @staticmethod
+    @abstractmethod
+    def _is_type(val: Any) -> bool:
+        """
+        Determine if given value can be treated as belonging to this type
+
+        :param val: Value to check
+        """
+
+    @classmethod
+    @abstractmethod
+    def _to_op_object(cls, val: Any) -> Any:
+        """
+        Convert the given value to an object that operations expect to use for
+        this type
+
+        :param val: Value to convert
+        """
 
 
-def _is_variable(val: Any) -> bool:
+class _Polygon(_ComplexType):
     """
-    Check if the given value belongs to the VARIABLE type
-
-    :param val: Value to check
+    Complex type for a Polygon object
     """
-    if isinstance(val, str):
-        # It's a single string, yay!
-        return True
+    @staticmethod
+    def _is_type(val: Any) -> bool:
+        return False
 
-    if isinstance(val, list):
-        # It's a list, yay!
-        for item in val:
-            if not isinstance(item, str):
-                # But at least one item is not a string, darn.
-                return False
-
-        # It's a list of strings, yay!
-        return True
-
-    # It's something else completely
-    return False
+    @classmethod
+    def _to_op_object(cls, val: Any) -> Any:
+        return None
 
 
-def _is_time_selection(val: Any) -> bool:
+class _Variable(_ComplexType):
     """
-    Check if the given value belongs to the TIME_SELECTION type
-
-    :param val: Value to check
+    Complex type for a Variable object
     """
-    return False
+    @staticmethod
+    def _is_type(val: Any) -> bool:
+        if isinstance(val, str):
+            # It's a single string, yay!
+            return True
+
+        if isinstance(val, list):
+            # It's a list, yay!
+            for item in val:
+                if not isinstance(item, str):
+                    # But at least one item is not a string, darn.
+                    return False
+
+            # It's a list of strings, yay!
+            return True
+
+        # It's something else completely
+        return False
+
+    @classmethod
+    def _to_op_object(cls, val: VARIABLE_ALIAS) -> List[str]:
+        if not cls._is_type(val):
+            raise TypeError('Provided value is not of type {},'
+                            ' {}'.format(VARIABLE, VARIABLE_ALIAS))
+        return to_list(val)
 
 
-_IS_TYPE = {POLYGON: _is_polygon,
-            VARIABLE: _is_variable,
-            TIME_SELECTION: _is_time_selection}
+class _TimeSelection(_ComplexType):
+    """
+    Complex type for a Time selection object
+    """
+    @staticmethod
+    def _is_type(val: Any) -> bool:
+        return False
+
+    @classmethod
+    def _to_op_object(val: Any) -> Any:
+        return None
+
+
+_TYPES = {POLYGON: _Polygon,
+          VARIABLE: _Variable,
+          TIME_SELECTION: _TimeSelection}
 
 
 def is_type(value: Any, maybe_type: Any) -> bool:
@@ -123,9 +171,21 @@ def is_type(value: Any, maybe_type: Any) -> bool:
                             ' types. Have you forgotten to add data_value=TYPE'
                             ' in @op_input decorator?'.format(maybe_type))
 
-    if maybe_type not in _IS_TYPE:
+    if maybe_type not in _TYPES:
         raise TypeError('Provided type definition {} not'
                         ' found'.format(maybe_type))
     # Now we should have a valid type definition
 
-    return _IS_TYPE[maybe_type](value)
+    return _TYPES[maybe_type]._is_type(value)
+
+def to_op_object(value: Any, typ: Any) -> Any:
+    """
+    Return an object that operations expect to work with for the given type
+
+    :param value: Value to process
+    :param typ: Complex type
+    """
+    return _TYPES[typ]._to_op_object(value)
+
+print(is_type(0.45, VARIABLE))
+print(to_op_object('aa,bb,cc', VARIABLE))
