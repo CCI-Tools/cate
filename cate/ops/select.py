@@ -36,11 +36,9 @@ import xarray as xr
 
 from cate.core.op import op, op_input
 from cate.util import to_list
-from cate.core.types import VARIABLE, VARIABLE_ALIAS
+from cate.core.types import VARIABLE, VARIABLE_ALIAS, to_op_object
 
 
-# TODO (Gailis, 27.09.16) See issues #45 and #46
-#def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
 @op_input('var', data_type=VARIABLE)
 @op(tags=['select', 'subset', 'filter', 'var'])
 def select_var(ds: xr.Dataset, var: VARIABLE_ALIAS = None) -> xr.Dataset:
@@ -59,7 +57,7 @@ def select_var(ds: xr.Dataset, var: VARIABLE_ALIAS = None) -> xr.Dataset:
     if not var:
         return ds
 
-    var_names = to_list(var, name='var')
+    var_names = to_op_object(var, VARIABLE)
     dropped_var_names = list(ds.data_vars.keys())
 
     for pattern in var_names:
