@@ -34,14 +34,16 @@ import fnmatch
 import geopandas as gpd
 import xarray as xr
 
-from cate.core.op import op
+from cate.core.op import op, op_input
 from cate.util import to_list
+from cate.core.types import VARIABLE, VARIABLE_ALIAS
 
 
-@op(tags=['select', 'subset', 'filter', 'var'])
 # TODO (Gailis, 27.09.16) See issues #45 and #46
-#def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
-def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
+#def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
+@op_input('var', data_type=VARIABLE)
+@op(tags=['select', 'subset', 'filter', 'var'])
+def select_var(ds: xr.Dataset, var: VARIABLE_ALIAS = None) -> xr.Dataset:
     """
     Filter the dataset, by leaving only the desired variables in it. The original dataset
     information, including original coordinates, is preserved.

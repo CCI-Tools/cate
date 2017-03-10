@@ -51,7 +51,7 @@ and add the new definition to TYPES.
 
 """
 from abc import ABCMeta, abstractmethod
-from typing import Union, Any, List, Optional
+from typing import Union, Any, List
 
 from cate.util.misc import to_list
 
@@ -155,7 +155,7 @@ _TYPES = {POLYGON: _Polygon,
 
 def is_type(value: Any, maybe_type: Any) -> bool:
     """
-    Replacement for the built in isinstance() that works with custom Cate
+    Replacement for the built-in isinstance() that works with custom Cate
     types.
 
     :param value: Value to check
@@ -186,6 +186,3 @@ def to_op_object(value: Any, typ: Any) -> Any:
     :param typ: Complex type
     """
     return _TYPES[typ]._to_op_object(value)
-
-print(is_type(0.45, VARIABLE))
-print(to_op_object('aa,bb,cc', VARIABLE))
