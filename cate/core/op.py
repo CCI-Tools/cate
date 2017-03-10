@@ -560,7 +560,7 @@ def op_return(data_type=None,
 
 def _update_properties(old_properties: dict, new_properties: dict):
     for name, value in new_properties.items():
-        if value is not None and (name not in old_properties or old_properties[name] is None):
+        if value is not None:
             old_properties[name] = value
 
 
