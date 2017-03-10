@@ -62,5 +62,7 @@ setup(
                       'pandas >= 0.18',
                       'jdcal >= 1.3',
                       'geopandas >= 0.2',
+                      'fiona >= 1.7',
+                      'pyproj >= 1.9',
                       ],
 )
