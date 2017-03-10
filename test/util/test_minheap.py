@@ -63,7 +63,7 @@ class MinHeapTest(TestCase):
         self.assertEqual(h.get(2)[1], h.get_value(2))
 
     def test_add(self):
-        h = MinHeap(np.empty(6, dtype=np.float), values=None, size=0)
+        h = MinHeap(np.zeros(6, dtype=np.float), values=None, size=0)
 
         h.add(4., 0)
         self.assertEqual(h.size, 1)
