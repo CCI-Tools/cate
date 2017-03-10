@@ -320,10 +320,15 @@ class OpMetaInfo:
             # TODO (forman, 20160907): perform more elaborated input type checking here (issue #46)
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if data_type and not (is_type(value, data_type) or is_float_type):
+                try:
+                    dt_name = data_type.__name__
+                except AttributeError:
+                    # data_type is Cate complex type, which is defined by a str
+                    dt_name = data_type
                 raise ValueError(
                     "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
-                        name, self.qualified_name, str(data_type),
-                        str(type(value))))
+                        name, self.qualified_name, dt_name,
+                        type(value).__name__))
             value_set = input_properties.get('value_set', None)
             if value_set and (value not in value_set):
                 raise ValueError(
