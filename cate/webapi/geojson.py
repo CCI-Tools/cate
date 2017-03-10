@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import heapq
 import json
 from typing import Tuple, List, Callable, Union
 
@@ -26,9 +27,6 @@ import fiona
 import numba
 import numpy as np
 import pyproj
-
-import cate.util.minheap as minheap
-import heapq
 
 Point = Tuple[float, float]
 LineString = List[Point]
@@ -39,46 +37,72 @@ MultiLineString = List[LineString]
 MultiPolygon = List[Polygon]
 Geometry = Union[Point, LineString, Ring, Polygon, MultiPoint, MultiLineString, MultiPolygon]
 GeometryCollection = List[Geometry]
-GeometryTransform = Callable[[pyproj.Proj, pyproj.Proj, Geometry], Geometry]
+GeometryTransform = Callable[[pyproj.Proj, pyproj.Proj, float, Geometry], Geometry]
 
 
-def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj, point: Point) -> Point:
-    return pyproj.transform(source_prj, target_prj, point[0], point[1])
+# noinspection PyUnusedLocal simp_ratio
+def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
+                     simp_ratio: float, point: Point) -> Point:
+    shall_proj = source_prj is not None
+    if shall_proj:
+        return pyproj.transform(source_prj, target_prj, point[0], point[1])
+    return point
 
 
-def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj, line_string: LineString) -> LineString:
-    x = np.array([coord[0] for coord in line_string])
-    y = np.array([coord[1] for coord in line_string])
-    x, y = pyproj.transform(source_prj, target_prj, x, y)
-    return [(float(x), float(y)) for x, y in zip(x, y)]
+def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
+                           simp_ratio: float, line_string: LineString) -> LineString:
+    shall_proj = source_prj is not None
+    shall_simp = 0.0 <= simp_ratio < 1.0
+    if shall_proj or shall_simp:
+        x = np.array([coord[0] for coord in line_string])
+        y = np.array([coord[1] for coord in line_string])
+        if shall_simp:
+            x, y = simplify_geometry(x, y, simp_ratio)
+        if shall_proj:
+            x, y = pyproj.transform(source_prj, target_prj, x, y)
+        return [(float(x), float(y)) for x, y in zip(x, y)]
+    return line_string
 
 
-def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj, polygon: Polygon) -> Polygon:
-    transformed_polygon = []
-    for ring in polygon:
-        x = np.array([coord[0] for coord in ring])
-        y = np.array([coord[1] for coord in ring])
-        x, y = pyproj.transform(source_prj, target_prj, x, y)
-        transformed_polygon.append([(float(x), float(y)) for x, y in zip(x, y)])
-    return transformed_polygon
+def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
+                       simp_ratio: float, polygon: Polygon) -> Polygon:
+    shall_proj = source_prj is not None
+    shall_simp = 0.0 <= simp_ratio < 1.0
+    if shall_proj or shall_simp:
+        transformed_polygon = []
+        for ring in polygon:
+            x = np.array([coord[0] for coord in ring])
+            y = np.array([coord[1] for coord in ring])
+            if shall_simp:
+                x, y = simplify_geometry(x, y, simp_ratio)
+            if shall_proj:
+                x, y = pyproj.transform(source_prj, target_prj, x, y)
+            transformed_polygon.append([(float(x), float(y)) for x, y in zip(x, y)])
+        return transformed_polygon
+    return polygon
 
 
-def _transform_multi_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj, multi_point: MultiPoint) -> MultiPoint:
-    return _transform_line_string(source_prj, target_prj, multi_point)
+def _transform_multi_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
+                           simp_ratio: float, multi_point: MultiPoint) -> MultiPoint:
+    return _transform_line_string(source_prj, target_prj, simp_ratio, multi_point)
 
 
 def _transform_multi_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                                 multi_line_string: MultiLineString) -> MultiLineString:
-    return _transform_polygon(source_prj, target_prj, multi_line_string)
+                                 simp_ratio: float, multi_line_string: MultiLineString) -> MultiLineString:
+    return _transform_polygon(source_prj, target_prj, simp_ratio, multi_line_string)
 
 
 def _transform_multi_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                             multi_polygon: MultiPolygon) -> MultiPolygon:
-    transformed_multi_polygon = []
-    for polygon in multi_polygon:
-        transformed_polygon = _transform_polygon(source_prj, target_prj, polygon)
-        transformed_multi_polygon.append(transformed_polygon)
-    return transformed_multi_polygon
+                             simp_ratio: float, multi_polygon: MultiPolygon) -> MultiPolygon:
+    shall_proj = source_prj is not None
+    shall_simp = 0.0 <= simp_ratio < 1.0
+    if shall_proj or shall_simp:
+        transformed_multi_polygon = []
+        for polygon in multi_polygon:
+            transformed_polygon = _transform_polygon(source_prj, target_prj, simp_ratio, polygon)
+            transformed_multi_polygon.append(transformed_polygon)
+        return transformed_multi_polygon
+    return multi_polygon
 
 
 _GEOMETRY_TRANSFORMS = dict(Point=_transform_point,
@@ -108,7 +132,7 @@ def get_geometry_transform(type_name: str) -> GeometryTransform:
     return _GEOMETRY_TRANSFORMS.get(type_name)
 
 
-def write_feature_collection(collection: fiona.Collection, io):
+def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float = 1.0):
     geometry_transform = None
     source_prj = target_prj = None
 
@@ -124,10 +148,10 @@ def write_feature_collection(collection: fiona.Collection, io):
     for feature in collection:
         if 'geometry' in feature:
             geometry = feature['geometry']
-            if not geometry_transform and source_prj:
+            if not geometry_transform:
                 geometry_transform = get_geometry_transform(geometry['type'])
             if geometry_transform:
-                coordinates = geometry_transform(source_prj, target_prj, geometry['coordinates'])
+                coordinates = geometry_transform(source_prj, target_prj, simp_ratio, geometry['coordinates'])
                 geometry['coordinates'] = coordinates
         if feature_count > 0:
             io.write(',\n')
@@ -142,9 +166,9 @@ def write_feature_collection(collection: fiona.Collection, io):
 
 
 @numba.jit(nopython=True)
-def compute_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: int) -> float:
+def triangle_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: int) -> float:
     """
-    Compute area between 3 points given by their coordinates *x_data* and *y_data* and their
+    Compute area of triangle given by 3 points given by their coordinates *x_data* and *y_data*, and their
     indices *i0*, *i1*, *i2*.
     """
     x0 = x_data[i0]
@@ -157,45 +181,43 @@ def compute_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: i
 
 
 @numba.jit()
-def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, old_n: int, new_n: int) -> int:
+def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, simp_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *old_n* points to
-    *new_n* points. A ring is detected by same start and end points. The first and last coordinates will always be
+    Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *x_data.size* points to
+    int(*simp_ratio* * *x_data*.size + 0.5) points.
+    A ring is detected by same start and end points. The first and last coordinates will always be
     maintained therefore the minimum number of resulting points is 3 for rings and 2 for line-strings.
 
-    :param x_data: The x coordinates. Will be changed in place.
-    :param y_data: The x coordinates. Will be changed in place.
-    :param old_n: The existing number of points.
-    :param new_n: The desired number of points.
-    :return: The actual number of points after simplification.
+    :param x_data: The x coordinates.
+    :param y_data: The x coordinates.
+    :param simp_ratio: The simplification ratio, 0 <= *simp_ratio* <= 1.0.
+    :return: A pair comprising the simplified *x_data* and *y_data*.
     """
     is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
-    min_new_n =  3 if is_ring else 2
-    if new_n < min_new_n:
-        new_n = min_new_n
-    if old_n < 0:
-        old_n = x_data.size
-    if old_n <= min_new_n:
-        return old_n
+    old_point_count = x_data.size
+    new_point_count = int(simp_ratio * old_point_count + 0.5)
+    min_point_count = 4 if is_ring else 2
+    if new_point_count < min_point_count:
+        new_point_count = min_point_count
+    if old_point_count <= new_point_count:
+        return x_data, y_data
 
     point_heap = PointHeap(x_data, y_data)
-    while point_heap.size > new_n:
+    while point_heap.size > new_point_count:
         point_heap.pop()
 
-    x_copy = np.zeros(new_n, dtype=x_data.dtype)
-    y_copy = np.zeros(new_n, dtype=y_data.dtype)
+    new_x_data = np.zeros(new_point_count, dtype=x_data.dtype)
+    new_y_data = np.zeros(new_point_count, dtype=y_data.dtype)
     point = point_heap.first_point
     i = 0
     while point is not None:
         index = point[1]
-        x_copy[i] = x_data[index]
-        y_copy[i] = y_data[index]
+        new_x_data[i] = x_data[index]
+        new_y_data[i] = y_data[index]
         point = point[3]
         i += 1
 
-    x_data[:new_n] = x_copy[:]
-    y_data[:new_n] = y_copy[:]
-    return new_n
+    return new_x_data, new_y_data
 
 
 # TODO (forman): Optimize me!
@@ -233,7 +255,7 @@ class PointHeap:
             else:
                 prev_point[3] = curr_point
             if 0 < i < size - 1:
-                curr_point[0] = compute_area(x_data, y_data, i, i - 1, i + 1)
+                curr_point[0] = triangle_area(x_data, y_data, i, i - 1, i + 1)
                 self._push(curr_point)
             prev_point = curr_point
 
@@ -278,10 +300,10 @@ class PointHeap:
         next_point = point[3]
         if prev_point is not None and next_point is not None:
             index = point[1]
-            self._counter += 1 # Generate a unique, invalid index
+            self._counter += 1  # Generate a unique, invalid index
             point[1] = self._counter
             point[2] = point[3] = None  # Mark point as removed / invalid
-            area = compute_area(self._x_data, self._y_data, index, prev_point[1], next_point[1])
+            area = triangle_area(self._x_data, self._y_data, index, prev_point[1], next_point[1])
             new_point = [area, index, prev_point, next_point]
             if prev_point is not None:
                 prev_point[3] = new_point
