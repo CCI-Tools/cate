@@ -40,7 +40,9 @@ def some_op(file: PathLike.TYPE) -> bool:
 """
 
 from abc import abstractclassmethod, ABCMeta
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, List, Union
+
+from cate.util.misc import to_list
 
 T = TypeVar('T')
 
@@ -87,3 +89,27 @@ class Like(Generic[T], metaclass=ABCMeta):
 
 
 # TODO (gailis, forman): add Like-derived types here...
+class Variable(Like[List[str]]):
+    """
+    Type class for Variable selection objects
+    """
+    TYPE = Union[List[str], str]
+
+    @classmethod
+    def convert(cls, value: Any) -> List[str]:
+        """
+        Convert the given value to a list of variable name patterns.
+        """
+        if isinstance(value, str):
+            return(to_list(value))
+
+        if not isinstance(value, list):
+            raise ValueError('Variable name pattern can only be a string or a'
+                            ' list of strings.')
+
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError('Variable name pattern can only be a string'
+                                 ' or a list of strings.')
+
+        return value

@@ -3,7 +3,7 @@ from typing import Union, Tuple
 from unittest import TestCase
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like
+from cate.core.types import Like, Variable
 from cate.util import object_to_qualified_name
 
 # 'Point' is an example type which may come from Cate API or other required API.
@@ -83,3 +83,26 @@ class PointLikeTest(TestCase):
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
+
+
+class VariableTest(TestCase):
+    """
+    Test the Variable type
+    """
+    def test_variable_type(self):
+        self.assertTrue(Variable.accepts('aa'))
+        self.assertTrue(Variable.accepts('aa,bb,cc'))
+        self.assertTrue(Variable.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(Variable.accepts(1.0))
+        self.assertFalse(Variable.accepts([1, 2, 4]))
+        self.assertFalse(Variable.accepts(['aa', 2, 'bb']))
+
+        expected = ['aa', 'b*', 'cc']
+        actual = Variable.convert('aa,b*,cc')
+        self.assertEqual(actual, expected)
+
+        # This should throw an exception
+        with self.assertRaises(ValueError) as err:
+            Variable.convert(['aa', 1, 'bb'])
+        print(str(err))
+        self.assertTrue('string or a list' in str(err.exception))
