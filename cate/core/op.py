@@ -108,10 +108,10 @@ from collections import OrderedDict
 from inspect import isclass
 from typing import Tuple, List, Union, Callable
 
-from cate.util import OpMetaInfo, object_to_qualified_name, Monitor
-from cate import __version__
-
 import xarray as xr
+
+from cate import __version__
+from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED
 
 
 class OpRegistration:
@@ -176,11 +176,11 @@ class OpRegistration:
                              ' operation that does not have a version defined.'
                              'Operation: {}'.format(op_name))
 
-        stamp = '\nModified with Cate v' + __version__ + ' ' +\
-                op_name + ' v' +\
-                op_version +\
-                ' \nDefault input values: ' +\
-                str(self.op_meta_info.input) + '\nProvided input values: ' +\
+        stamp = '\nModified with Cate v' + __version__ + ' ' + \
+                op_name + ' v' + \
+                op_version + \
+                ' \nDefault input values: ' + \
+                str(self.op_meta_info.input) + '\nProvided input values: ' + \
                 str(input_str) + '\n'
 
         # Append the stamp to existing history information or create history
@@ -242,7 +242,7 @@ class OpRegistration:
                 try:
                     if props['add_history']:
                         return_value[name] = \
-                        self._add_history(return_value[name], input_values)
+                            self._add_history(return_value[name], input_values)
                 except KeyError:
                     # @op_output doesn't have an 'add_history' key
                     continue
@@ -260,7 +260,7 @@ class OpRegistration:
                 properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
                 if properties['add_history']:
                     return_value = self._add_history(return_value,
-                                                      input_values)
+                                                     input_values)
             except KeyError:
                 # @op_return doesn't have an 'add_history' key
                 pass
@@ -386,20 +386,18 @@ def op(registry=OP_REGISTRY, **properties):
 
     def decorator(func_or_class):
         op_registration = registry.add_op(func_or_class, fail_if_exists=False)
-        header = op_registration.op_meta_info.header
-        new_header = dict(**properties)
-        _update_properties(header, new_header)
+        op_registration.op_meta_info.header.update({k: v for k, v in properties.items() if v is not UNDEFINED})
         return func_or_class
 
     return decorator
 
 
 def op_input(input_name: str,
-             default_value=None,
-             position=None,
-             data_type=None,
-             value_set=None,
-             value_range=None,
+             default_value=UNDEFINED,
+             position=UNDEFINED,
+             data_type=UNDEFINED,
+             value_set=UNDEFINED,
+             value_range=UNDEFINED,
              registry=OP_REGISTRY,
              **properties):
     """
@@ -441,20 +439,19 @@ def op_input(input_name: str,
         input_namespace = op_registration.op_meta_info.input
         if input_name not in input_namespace:
             input_namespace[input_name] = dict()
-        input_properties = input_namespace[input_name]
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
                               position=position,
                               value_set=value_set,
                               value_range=value_range, **properties)
-        _update_properties(input_properties, new_properties)
+        input_namespace[input_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
         return func_or_class
 
     return decorator
 
 
 def op_output(output_name: str,
-              data_type=None,
+              data_type=UNDEFINED,
               registry=OP_REGISTRY,
               **properties):
     """
@@ -501,15 +498,14 @@ def op_output(output_name: str,
             output_namespace[output_name] = output_properties
         elif output_name not in output_namespace:
             output_namespace[output_name] = dict()
-        output_properties = output_namespace[output_name]
         new_properties = dict(data_type=data_type, **properties)
-        _update_properties(output_properties, new_properties)
+        output_namespace[output_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
         return func_or_class
 
     return decorator
 
 
-def op_return(data_type=None,
+def op_return(data_type=UNDEFINED,
               registry=OP_REGISTRY,
               **properties):
     """
@@ -556,12 +552,6 @@ def op_return(data_type=None,
                      data_type=data_type,
                      registry=registry,
                      **properties)
-
-
-def _update_properties(old_properties: dict, new_properties: dict):
-    for name, value in new_properties.items():
-        if value is not None and (name not in old_properties or old_properties[name] is None):
-            old_properties[name] = value
 
 
 def parse_op_args(raw_args: List[str], namespace: dict = None,

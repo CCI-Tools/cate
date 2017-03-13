@@ -1,39 +1,10 @@
-from abc import abstractclassmethod
 from collections import namedtuple
-from typing import Union, Tuple, Any, Generic, TypeVar
+from typing import Union, Tuple
 from unittest import TestCase
 
-# Note, this is experimental code!
-
-T = TypeVar('T')
-
-
-class Like(Generic[T]):
-    TYPE = None
-
-    def __init__(self):
-        raise NotImplementedError('%s cannot be instantiated' % self.__class__)
-
-    @classmethod
-    def name(cls) -> str:
-        return cls.__name__
-
-    @classmethod
-    def accepts(cls, value: Any) -> bool:
-        try:
-            cls.convert(value)
-            return True
-        except ValueError:
-            return False
-
-    @abstractclassmethod
-    def convert(cls, value: Any) -> T:
-        pass
-
-    @classmethod
-    def format(cls, value: T) -> str:
-        return str(value)
-
+from cate.core.op import op_input, OpRegistry
+from cate.core.types import Like
+from cate.util import object_to_qualified_name
 
 # 'Point' is an example type which may come from Cate API or other required API.
 Point = namedtuple('Point', ['x', 'y'])
@@ -70,6 +41,10 @@ class PointLike(Like[Point]):
 
 # 'scale_point' is an example operation that makes use of the PointLike type for argument point_like
 
+_OP_REGISTRY = OpRegistry()
+
+
+@op_input("point_like", data_type=PointLike, registry=_OP_REGISTRY)
 def scale_point(point_like: PointLike.TYPE, factor: float) -> Point:
     point = PointLike.convert(point_like)
     return Point(factor * point.x, factor * point.y)
@@ -90,10 +65,10 @@ class PointLikeTest(TestCase):
             scale_point(25.1, 0.5)
         self.assertEqual(str(e.exception), "cannot convert value <25.1> to PointLike")
 
-    def test_new(self):
-        with self.assertRaises(NotImplementedError) as e:
-            PointLike()
-        self.assertEqual(str(e.exception), "test.core.test_types.PointLike cannot be instantiated")
+    def test_registered_op(self):
+        registered_op = _OP_REGISTRY.get_op(object_to_qualified_name(scale_point))
+        point = registered_op(point_like="2.4, 4.8", factor=0.5)
+        self.assertEqual(point, Point(1.2, 2.4))
 
     def test_name(self):
         self.assertEqual(PointLike.name(), "PointLike")
