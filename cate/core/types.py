@@ -33,7 +33,7 @@ For example::
 
 @op
 @op_input('file', data_type=PathLike)
-def some_op(name1: PathLike.TYPE) -> bool:
+def some_op(file: PathLike.TYPE) -> bool:
     # Do something useful
     pass
 
