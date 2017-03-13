@@ -2,7 +2,8 @@ import os.path
 import shutil
 import unittest
 
-from cate.util.web.serviceinfo import is_service_compatible, write_service_info, read_service_info
+from cate.util.web.serviceinfo import is_service_compatible, write_service_info, read_service_info, find_free_port, \
+    is_service_running
 
 
 class IsServiceCompatibleTest(unittest.TestCase):
@@ -15,6 +16,13 @@ class IsServiceCompatibleTest(unittest.TestCase):
         service_info2 = read_service_info(file)
         self.assertEqual(service_info2, service_info)
         shutil.rmtree(file, ignore_errors=True)
+
+    def test_find_free_port(self):
+        port = find_free_port()
+        self.assertTrue(port > 0)
+
+    def test_is_service_running(self):
+        self.assertFalse(is_service_running(port=9999, address='localhost', timeout=100))
 
     def test_is_service_compatible_true(self):
         self.assertTrue(is_service_compatible(None, None, None,
