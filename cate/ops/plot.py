@@ -57,7 +57,7 @@ svgz, tif, tiff
 import matplotlib
 import xarray as xr
 
-matplotlib.use('Qt5Agg')
+matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
 from cate.core.op import op, op_input

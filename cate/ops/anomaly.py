@@ -30,7 +30,7 @@ Functions
 """
 
 from cate.core.op import op
-from cate.ops import subset_spatial, subset_temporal
+from cate.ops.subset import subset_spatial, subset_temporal
 import xarray as xr
 
 

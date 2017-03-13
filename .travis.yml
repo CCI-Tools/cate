@@ -4,9 +4,6 @@
 #
 
 language: generic
-env:
-  global:
-    - CONDA_PY=3.5
 
 # disabled, because osx takes very long
 #os:
@@ -27,16 +24,16 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda create -q -n test-environment python=$CONDA_PY pytest pytest-cov
-  - source activate test-environment
-  - conda install -c conda-forge -c defaults pyqt matplotlib xarray dask numpy scipy numba netcdf4 cartopy jdcal geopandas pillow
+  - conda env create --file environment.yml
+  - source activate cate
+  - conda list
   - python setup.py install
 
 script:
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - export NUMBA_DISABLE_JIT=1
   # Uncomment following line if web testing on travis breaks our build
-  # - export CATE_DISABLE_WEB_TESTS=1
+  - export CATE_DISABLE_WEB_TESTS=1
   - export CATE_DISABLE_PLOT_TESTS=1
   - py.test -v --cov=cate test
 

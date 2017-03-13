@@ -35,7 +35,8 @@ import xarray as xr
 
 from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 from cate.core.op import op, op_input
-from cate.ops import select_var, save_dataset
+from cate.ops.select import select_var
+from cate.ops.io import save_dataset
 from cate.util import to_datetime_range, to_datetime
 from cate.util.monitor import Monitor
 
