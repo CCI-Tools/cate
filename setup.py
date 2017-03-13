@@ -22,14 +22,18 @@
 # SOFTWARE.
 
 
-from setuptools import setup, find_packages
 import os
+
+from setuptools import setup, find_packages
+
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # in alphabetical oder
     install_requires = [
+        # Commented out for READTHEDOCS, using mock
         # 'cartopy',
         'dask >= 0.14',
+        # Commented out for READTHEDOCS, using mock
         # 'geopandas >= 0.2',
         'jdcal >= 1.3',
         'matplotlib >= 1.5,<2',
@@ -37,6 +41,7 @@ if on_rtd:
         'numba >= 0.26',
         'numpy >= 1.7',
         'pandas >= 0.18',
+        # Commented out for READTHEDOCS, using mock
         # 'pillow >= 4.0',
         # "pyqt >= 4.0, < 5",
         'scipy >= 0.17',
@@ -56,7 +61,7 @@ else:
         'numpy >= 1.7',
         'pandas >= 0.18',
         'pillow >= 4.0',
-        #"PyQt4 >= 4.0, < 5",
+        # "PyQt4 >= 4.0, < 5",
         'scipy >= 0.17',
         'tornado >= 4.4',
         'xarray >= 0.9.1',
