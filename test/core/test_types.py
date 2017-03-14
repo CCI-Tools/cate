@@ -3,10 +3,11 @@ from typing import Union, Tuple
 from unittest import TestCase
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, Variable, PointLike, PolygonLike
+from cate.core.types import Like, Variable, PointLike, PolygonLike, DateRange
 from cate.util import object_to_qualified_name
 
 from shapely.geometry import Point, Polygon
+from datetime import datetime, date
 
 # 'TestPoint' is an example type which may come from Cate API or other required API.
 TestPoint = namedtuple('TestPoint', ['x', 'y'])
@@ -189,3 +190,33 @@ class PolygonLikeTest(TestCase):
         pol = PolygonLike.convert(coords)
         self.assertTrue('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))' ==
                         PolygonLike.format(pol))
+
+
+class DateRangeTest(TestCase):
+    """
+    Test the DateRange type
+    """
+    def test_accepts(self):
+        self.assertTrue(DateRange.accepts(('2001-01-01', '2002-02-01')))
+        self.assertTrue(DateRange.accepts((datetime(2001, 1, 1), datetime(2002, 2, 1))))
+        self.assertTrue(DateRange.accepts((date(2001, 1, 1), date(2002, 1, 1))))
+        self.assertTrue(DateRange.accepts('2001-01-01,2002-02-01'))
+        self.assertTrue(DateRange.accepts('2001-01-01, 2002-02-01'))
+
+        self.assertFalse(DateRange.accepts('2001-01-01'))
+        self.assertFalse(DateRange.accepts([datetime(2001, 1, 1)]))
+        self.assertFalse(DateRange.accepts('2002-01-01, 2001-01-01'))
+
+    def test_convert(self):
+        expected = (datetime(2001,1,1), datetime(2002,1,1,23,59,59))
+        actual = DateRange.convert('2001-01-01, 2002-01-01')
+        self.assertTrue(actual == expected)
+
+        with self.assertRaises(ValueError) as err:
+            DateRange.convert('2002-01-01, 2001-01-01')
+        self.assertTrue('cannot convert' in str(err.exception))
+
+    def test_format(self):
+        expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
+        actual = DateRange.format((datetime(2001,1,1), datetime(2002,1,1)))
+        self.assertTrue(expected, actual)

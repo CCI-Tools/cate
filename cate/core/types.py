@@ -44,8 +44,9 @@ from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from shapely.geometry import Point, Polygon, box
 from shapely.wkt import loads
+from datetime import datetime, date
 
-from cate.util.misc import to_list
+from cate.util.misc import to_list, to_datetime_range
 
 T = TypeVar('T')
 
@@ -196,3 +197,41 @@ class PolygonLike(Like[Polygon]):
     @classmethod
     def format(cls, value: Polygon) -> str:
         return value.wkt
+
+
+class DateRange(Like[Tuple[datetime, datetime]]):
+    """
+    Type class for temporal selection objects
+
+    Accepts:
+        1. a tuple of start/end time datetime strings ('YYYY-MM-DD', 'YYYY-MM-DD')
+        2. a string of datetime string start/end dates 'YYYY-MM-DD,YYYY-MM-DD'
+        3. a tuple of start/end datetime datetime objects
+        4. a tuple of start/end datetime date objects
+
+    Converts to a tuple of datetime objects
+    """
+    TYPE = Union[Tuple[str, str], Tuple[datetime, datetime], Tuple[date, date], str]
+
+    @classmethod
+    def convert(cls, value: Any) -> Tuple[str]:
+        try:
+            if isinstance(value, tuple):
+                _range = to_datetime_range(value[0], value[1])
+            elif isinstance(value, str):
+                val = [x.strip() for x in value.split(',')]
+                _range = to_datetime_range(val[0], val[1])
+            if _range:
+                # Check if start date is before end date
+                if _range[0] < _range[1]:
+                    return _range
+        except Exception:
+            raise ValueError('cannot convert {} to a'
+                             ' valid {}'.format(value, cls.name()))
+
+        raise ValueError('cannot convert {} to a valid'
+                         ' {}'.format(value, cls.name()))
+
+    @classmethod
+    def format(cls, value: Tuple[datetime, datetime]) -> str:
+        return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
