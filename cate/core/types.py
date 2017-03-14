@@ -40,7 +40,9 @@ def some_op(file: PathLike.TYPE) -> bool:
 """
 
 from abc import abstractclassmethod, ABCMeta
-from typing import Any, Generic, TypeVar, List, Union
+from typing import Any, Generic, TypeVar, List, Union, Tuple
+
+from shapely.geometry import Point, Polygon
 
 from cate.util.misc import to_list
 
@@ -88,7 +90,7 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
-# TODO (gailis, forman): add Like-derived types here...
+# ===== Like-derived types below =====
 class Variable(Like[List[str]]):
     """
     Type class for Variable selection objects
@@ -113,3 +115,27 @@ class Variable(Like[List[str]]):
                                  ' or a list of strings.')
 
         return value
+
+
+class PointLike(Like[Point]):
+    """
+    Type class for geometric Point objects
+    """
+    TYPE = Union[Point, str, Tuple[float, float]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Point:
+        try:
+            if isinstance(value, Point):
+                return value
+            if isinstance(value, str):
+                pair = value.split(',')
+                return Point(float(pair[0]), float(pair[1]))
+            return Point(value[0], value[1])
+        except Exception:
+            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+
+    @classmethod
+    def format(cls, value: Point) -> str:
+        return "%s, %s" % (value.x, value.y)
+
