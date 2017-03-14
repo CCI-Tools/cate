@@ -3,36 +3,38 @@ from typing import Union, Tuple
 from unittest import TestCase
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, Variable, PointLike
+from cate.core.types import Like, Variable, PointLike, PolygonLike
 from cate.util import object_to_qualified_name
 
-# 'Point' is an example type which may come from Cate API or other required API.
-Point = namedtuple('Point', ['x', 'y'])
+from shapely.geometry import Point, Polygon
+
+# 'TestPoint' is an example type which may come from Cate API or other required API.
+TestPoint = namedtuple('TestPoint', ['x', 'y'])
 
 
-# 'TestType' represents a type to be used for values that should actually be a 'Point' but
+# 'TestType' represents a type to be used for values that should actually be a 'TestPoint' but
 # also have a representation as a `str` such as "2.1,4.3", ar a tuple of two floats (2.1,4.3).
 # The "typing type" for this is given by TestType.TYPE.
 
-class TestType(Like[Point]):
+class TestType(Like[TestPoint]):
     # The "typing type"
 
-    TYPE = Union[Point, Tuple[float, float], str]
+    TYPE = Union[TestPoint, Tuple[float, float], str]
 
     @classmethod
-    def convert(cls, value) -> Point:
+    def convert(cls, value) -> TestPoint:
         try:
-            if isinstance(value, Point):
+            if isinstance(value, TestPoint):
                 return value
             if isinstance(value, str):
                 pair = value.split(',')
-                return Point(float(pair[0]), float(pair[1]))
-            return Point(value[0], value[1])
+                return TestPoint(float(pair[0]), float(pair[1]))
+            return TestPoint(value[0], value[1])
         except Exception:
             raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
 
     @classmethod
-    def format(cls, value: Point) -> str:
+    def format(cls, value: TestPoint) -> str:
         return "%s, %s" % (value.x, value.y)
 
 
@@ -45,16 +47,16 @@ _OP_REGISTRY = OpRegistry()
 
 
 @op_input("point_like", data_type=TestType, registry=_OP_REGISTRY)
-def scale_point(point_like: TestType.TYPE, factor: float) -> Point:
+def scale_point(point_like: TestType.TYPE, factor: float) -> TestPoint:
     point = TestType.convert(point_like)
-    return Point(factor * point.x, factor * point.y)
+    return TestPoint(factor * point.x, factor * point.y)
 
 
 class TestTypeTest(TestCase):
     def test_use(self):
-        self.assertEqual(scale_point("2.4, 4.8", 0.5), Point(1.2, 2.4))
-        self.assertEqual(scale_point((2.4, 4.8), 0.5), Point(1.2, 2.4))
-        self.assertEqual(scale_point(Point(2.4, 4.8), 0.5), Point(1.2, 2.4))
+        self.assertEqual(scale_point("2.4, 4.8", 0.5), TestPoint(1.2, 2.4))
+        self.assertEqual(scale_point((2.4, 4.8), 0.5), TestPoint(1.2, 2.4))
+        self.assertEqual(scale_point(TestPoint(2.4, 4.8), 0.5), TestPoint(1.2, 2.4))
 
     def test_abuse(self):
         with self.assertRaises(ValueError) as e:
@@ -68,7 +70,7 @@ class TestTypeTest(TestCase):
     def test_registered_op(self):
         registered_op = _OP_REGISTRY.get_op(object_to_qualified_name(scale_point))
         point = registered_op(point_like="2.4, 4.8", factor=0.5)
-        self.assertEqual(point, Point(1.2, 2.4))
+        self.assertEqual(point, TestPoint(1.2, 2.4))
 
     def test_name(self):
         self.assertEqual(TestType.name(), "TestType")
@@ -77,12 +79,12 @@ class TestTypeTest(TestCase):
         self.assertTrue(TestType.accepts("2.4, 4.8"))
         self.assertTrue(TestType.accepts((2.4, 4.8)))
         self.assertTrue(TestType.accepts([2.4, 4.8]))
-        self.assertTrue(TestType.accepts(Point(2.4, 4.8)))
+        self.assertTrue(TestType.accepts(TestPoint(2.4, 4.8)))
         self.assertFalse(TestType.accepts("A, 4.8"))
         self.assertFalse(TestType.accepts(25.1))
 
     def test_format(self):
-        self.assertEqual(TestType.format(Point(2.4, 4.8)), "2.4, 4.8")
+        self.assertEqual(TestType.format(TestPoint(2.4, 4.8)), "2.4, 4.8")
 
 
 class VariableTest(TestCase):
@@ -116,7 +118,6 @@ class PointLikeTest(TestCase):
     """
     Test the PointLike type
     """
-    from shapely.geometry import Point
 
     def test_accepts(self):
         self.assertTrue(PointLike.accepts("2.4, 4.8"))
@@ -137,3 +138,54 @@ class PointLikeTest(TestCase):
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
+
+
+class PolygonLikeTest(TestCase):
+    """
+    Test the PolygonLike type
+    """
+    def test_accepts(self):
+        self.assertTrue(PolygonLike.accepts("0.0,0.0,1.1,1.1"))
+        self.assertTrue(PolygonLike.accepts("0.0, 0.0, 1.1, 1.1"))
+
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        pol = Polygon(coords)
+        self.assertTrue(PolygonLike.accepts(coords))
+        self.assertTrue(PolygonLike.accepts(pol))
+        self.assertTrue(PolygonLike.accepts(pol.wkt))
+
+        self.assertFalse(PolygonLike.accepts("0.0,aaa,1.1,1.1"))
+        self.assertFalse(PolygonLike.accepts("0.0, aaa, 1.1, 1.1"))
+
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
+        self.assertFalse(PolygonLike.accepts(coords))
+
+        coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
+        self.assertFalse(PolygonLike.accepts(coords))
+
+        invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
+        self.assertFalse(PolygonLike.accepts(invalid))
+
+        wkt = 'MULTIPOLYGON()'
+        self.assertFalse(PolygonLike.accepts(wkt))
+
+        invalid = 'Something_something_in_the_month_of_May'
+        self.assertFalse(PolygonLike.accepts(invalid))
+
+        self.assertFalse(PolygonLike.accepts(1.0))
+
+    def test_convert(self):
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        expected = Polygon(coords)
+        actual = PolygonLike.convert(coords)
+        self.assertTrue(actual, expected)
+
+        with self.assertRaises(ValueError) as err:
+            PolygonLike.convert('aaa')
+        self.assertTrue('cannot convert' in str(err.exception))
+
+    def test_format(self):
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        pol = PolygonLike.convert(coords)
+        self.assertTrue('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))' ==
+                        PolygonLike.format(pol))

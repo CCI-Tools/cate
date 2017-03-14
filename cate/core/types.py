@@ -42,7 +42,8 @@ def some_op(file: PathLike.TYPE) -> bool:
 from abc import abstractclassmethod, ABCMeta
 from typing import Any, Generic, TypeVar, List, Union, Tuple
 
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, box
+from shapely.wkt import loads
 
 from cate.util.misc import to_list
 
@@ -94,6 +95,12 @@ class Like(Generic[T], metaclass=ABCMeta):
 class Variable(Like[List[str]]):
     """
     Type class for Variable selection objects
+
+    Accepts:
+        1. a string 'pattern1, pattern2, pattern3'
+        2. a list ['pattern1', 'pattern2', 'pattern3']
+
+    Converts to a list of strings
     """
     TYPE = Union[List[str], str]
 
@@ -120,6 +127,13 @@ class Variable(Like[List[str]]):
 class PointLike(Like[Point]):
     """
     Type class for geometric Point objects
+
+    Accepts:
+        1. a Shapely Point
+        2. a string 'lon,lat'
+        3. a tuple (lon, lat)
+
+    Converts to a Shapely point
     """
     TYPE = Union[Point, str, Tuple[float, float]]
 
@@ -139,3 +153,46 @@ class PointLike(Like[Point]):
     def format(cls, value: Point) -> str:
         return "%s, %s" % (value.x, value.y)
 
+class PolygonLike(Like[Polygon]):
+    """
+    Type class for geometric Polygon objects
+
+    Accepts:
+        1. a Shapely Polygon
+        2. a string 'min_lon, min_lat, max_lon, max_lat'
+        3. a WKT string 'POLYGON ...'
+        4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
+
+    Converts to a valid shapely Polygon.
+    """
+    TYPE = Union[Polygon, str, List[Tuple[float, float]]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Polygon:
+        try:
+            if isinstance(value, Polygon):
+                if value.is_valid:
+                    return value
+            if isinstance(value, list):
+                polygon = Polygon(value)
+                if polygon.is_valid:
+                    return polygon
+            if isinstance(value, str):
+                value = value.lstrip()
+                if value[:7] == 'POLYGON':
+                    polygon = loads(value)
+                else:
+                    val = [float(x) for x in value.split(',')]
+                    polygon = box(val[0], val[1], val[2], val[3])
+                if polygon.is_valid:
+                    return polygon
+        except Exception:
+            raise ValueError('cannot convert {} to a valid'
+                             ' shapely Polygon'.format(value))
+
+        raise ValueError('cannot convert {} to a valid'
+                         ' shapely Polygon'.format(value))
+
+    @classmethod
+    def format(cls, value: Polygon) -> str:
+        return value.wkt
