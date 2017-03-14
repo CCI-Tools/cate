@@ -172,8 +172,8 @@ class DataSource(metaclass=ABCMeta):
              monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
         """
         Allows to synchronize remote data with locally stored data.
-        Availability of synchornization feature depends on protocol type and
-        datasource implementation.
+        Availability of synchronization feature depends on protocol type and
+        data source implementation.
         The default implementation does nothing.
 
         :param time_range: An optional tuple comprising a start and end date,
