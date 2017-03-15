@@ -41,6 +41,7 @@ requirements = [
     'pillow >= 4.0',
     'pyproj >= 1.9',
     'scipy >= 0.17',
+    'shapely >= 1.5',
     'tornado >= 4.4',
     'xarray >= 0.9.1',
 ]
