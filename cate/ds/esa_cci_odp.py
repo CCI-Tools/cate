@@ -49,12 +49,11 @@ import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Sequence, Tuple, Optional
-
-import xarray as xr
+from typing import Sequence, Tuple, Optional, Any
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util.monitor import Monitor
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
@@ -543,8 +542,20 @@ class EsaCciOdpDataSource(DataSource):
             selected_file_list = self._file_list
         return selected_file_list
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime]=None,
-                     protocol: str=None) -> xr.Dataset:
+    def open_dataset(self,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        # TODO (kbernat): support region constraint here
+        if region:
+            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
+                                      'does not yet support the "region" constraint')
+        # TODO (kbernat): support var_names constraint here
+        if var_names:
+            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
+                                      'does not yet support the "var_names" constraint')
         if protocol is None:
             protocol = _ODP_PROTOCOL_HTTP
         if protocol not in self.protocols:
@@ -555,7 +566,7 @@ class EsaCciOdpDataSource(DataSource):
         if not selected_file_list:
             msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
             if time_range is not None:
-                msg += ' in given time range {} to {}'.format(time_range[0], time_range[1])
+                msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
             raise IOError(msg)
 
         files = []
@@ -572,6 +583,17 @@ class EsaCciOdpDataSource(DataSource):
             return open_xarray_dataset(files)
         except OSError as e:
             raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
+
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+        # TODO (kbernat): implement me! see sync()
+        raise NotImplementedError('EsaCciOdpDataSource.make_local() '
+                                  'is not yet implemented')
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:

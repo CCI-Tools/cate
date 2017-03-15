@@ -42,16 +42,16 @@ Components
 import json
 from collections import OrderedDict
 from datetime import datetime
-from dateutil import parser
 from glob import glob
 from os import listdir, makedirs, environ
 from os.path import join, isfile
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union, Any
 
-import xarray as xr
+from dateutil import parser
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util.misc import to_list
 from cate.util.monitor import Monitor
 
@@ -62,11 +62,11 @@ def get_data_store_path():
 
 
 def add_to_data_store_registry():
-    data_store = LocalFilePatternDataStore('local', get_data_store_path())
+    data_store = LocalDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
 
-class LocalFilePatternDataSource(DataSource):
+class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], _data_store: DataStore):
         self._name = name
         if isinstance(files, Sequence):
@@ -75,8 +75,20 @@ class LocalFilePatternDataSource(DataSource):
             self._files = files
         self._data_store = _data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None,
-                     protocol: str = None) -> xr.Dataset:
+    def open_dataset(self,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        # TODO (kbernat): support region constraint here
+        if region:
+            raise NotImplementedError('LocalFilePatternDataSource.open_dataset() '
+                                      'does not yet support the "region" constraint')
+        # TODO (kbernat): support var_names constraint here
+        if var_names:
+            raise NotImplementedError('LocalFilePatternDataSource.open_dataset() '
+                                      'does not yet support the "var_names" constraint')
         paths = []
         if time_range:
             time_series = list(self._files.values())
@@ -93,16 +105,26 @@ class LocalFilePatternDataSource(DataSource):
         else:
             return None
 
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+        # TODO (kbernat): implement me!
+        raise NotImplementedError('LocalFilePatternDataSource.make_local() '
+                                  'is not yet implemented')
+
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
         if update or list(self._files.keys()).count(file) == 0:
             self._files[file] = time_stamp.replace(microsecond=0) if time_stamp else None
-        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None
-                                         else datetime.max))
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
 
     def save(self):
         self._data_store.save_data_source(self)
 
-    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[int, int]]:
+    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[Tuple[int, int]]:
         if self._files:
             cover_min = min(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max)[1]
             cover_max = max(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.min)[1]
@@ -141,21 +163,21 @@ class LocalFilePatternDataSource(DataSource):
         return fsds_dict
 
     @classmethod
-    def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> 'LocalFilePatternDataSource':
+    def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> 'LocalDataSource':
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
         if name and isinstance(files, list):
             if len(files) > 0:
                 if isinstance(files[0], list):
                     files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
-                                         if item[1] is not None else None) for item in files)
+                    if item[1] is not None else None) for item in files)
             else:
                 files = OrderedDict()
-            return LocalFilePatternDataSource(name, files, data_store)
+            return LocalDataSource(name, files, data_store)
         return None
 
 
-class LocalFilePatternDataStore(DataStore):
+class LocalDataStore(DataStore):
     def __init__(self, name: str, store_dir: str):
         super().__init__(name)
         self._store_dir = store_dir
@@ -171,12 +193,12 @@ class LocalFilePatternDataStore(DataStore):
             if ds.name == name:
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
-        data_source = LocalFilePatternDataSource(name, files, self)
+        data_source = LocalDataSource(name, files, self)
         self._data_sources.append(data_source)
         self._save_data_source(data_source)
         return name
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalFilePatternDataSource]:
+    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalDataSource]:
         self._init_data_sources()
         if name:
             result = [ds for ds in self._data_sources if ds.matches_filter(name)]
@@ -214,7 +236,7 @@ class LocalFilePatternDataStore(DataStore):
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
         if json_dict:
-            return LocalFilePatternDataSource.from_json_dict(json_dict, self)
+            return LocalDataSource.from_json_dict(json_dict, self)
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()

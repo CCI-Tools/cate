@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Any
 from unittest import TestCase, skipIf
 import os.path as op
 import os
@@ -6,6 +6,7 @@ import os
 import xarray as xr
 
 import cate.core.ds as ds
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util import Monitor
 
 _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
@@ -40,7 +41,20 @@ class SimpleDataSource(ds.DataSource):
     def name(self) -> str:
         return self._name
 
-    def open_dataset(self, time_range=None, protocol: str = None):
+    def open_dataset(self,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
+        return None
+
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> ds.DataSource:
         return None
 
     def __repr__(self):
@@ -55,7 +69,11 @@ class InMemoryDataSource(SimpleDataSource):
         super(InMemoryDataSource, self).__init__("in_memory")
         self._data = data
 
-    def open_dataset(self, time_range=None, protocol: str = None) -> xr.Dataset:
+    def open_dataset(self,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
         return xr.Dataset({'a': self._data})
 
     def __repr__(self):

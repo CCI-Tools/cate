@@ -44,6 +44,7 @@ from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from shapely.geometry import Point, Polygon, box
+from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
 
 from cate.util.misc import to_list, to_datetime_range
@@ -201,6 +202,34 @@ class PolygonLike(Like[Polygon]):
 
     @classmethod
     def format(cls, value: Polygon) -> str:
+        return value.wkt
+
+
+class GeometryLike(Like[BaseGeometry]):
+    """
+    Type class for arbitrary geometry objects
+
+    Accepts:
+        1. any Shapely geometry (of type ``shapely.geometry.base.BaseGeometry``);
+        2. a string 'lon, lat' (a point), or 'min_lon, min_lat, max_lon, max_lat' (a box);
+        3. a Geometry WKT string starting with 'POINT', 'POLYGON', etc;
+        4. a coordinate tuple (lon, lat), a list of coordinates [(lon, lat), (lon, lat), ...], or
+           a list of lists of coordinates [[(lon, lat), (lon, lat), ...], [(lon, lat), (lon, lat), ...], ...].
+
+    Converts to a valid shapely Polygon.
+    """
+    TYPE = Union[BaseGeometry, str, Tuple[float, float], List[Tuple[float, float]], List[List[Tuple[float, float]]]]
+
+    @classmethod
+    def convert(cls, value: Any) -> BaseGeometry:
+        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
+        try:
+            return PolygonLike.convert(value)
+        except ValueError:
+            return PointLike.convert(value)
+
+    @classmethod
+    def format(cls, value: BaseGeometry) -> str:
         return value.wkt
 
 

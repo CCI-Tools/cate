@@ -79,19 +79,19 @@ and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` fo
 Components
 ==========
 """
-import os.path
 import glob
-from math import ceil, sqrt
+import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
-from typing import Sequence, Optional
-from typing import Union, Tuple
+from math import ceil, sqrt
+from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
 
-from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.conf import get_config_path
+from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util.misc import to_datetime_range
 from cate.util.monitor import Monitor
 
@@ -122,7 +122,7 @@ class DataSource(metaclass=ABCMeta):
         """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
         return None
 
-    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[datetime, datetime]]:
+    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[Tuple[datetime, datetime]]:
         """
         The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
 
@@ -130,6 +130,14 @@ class DataSource(metaclass=ABCMeta):
         :return A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
         """
         return None
+
+    @property
+    def protocols(self) -> []:
+        """
+        The list of available protocols.
+
+        """
+        return [None]
 
     @property
     @abstractmethod
@@ -144,33 +152,68 @@ class DataSource(metaclass=ABCMeta):
 
     @abstractmethod
     def open_dataset(self,
-                     time_range: Tuple[datetime, datetime]=None,
-                     protocol: str=None) -> xr.Dataset:
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
         """
-        Open a dataset for the given *time_range*.
+        Open a dataset from this data source.
 
 
-        :param time_range: An optional tuple comprising a start and end date,
-                which must be ``datetime.datetime`` objects.
-        :param protocol: Protocol name, if None selected default protocol
-                will be used to access data
-        :return: A dataset instance or ``None`` if no data is available in *time_range*.
+        :param time_range: An optional time constraint comprising start and end date.
+                If given, it must be a :py:class:`TimeRangeLike`.
+        :param region: An optional region constraint.
+                If given, it must be a :py:class:`GeometryLike`.
+        :param var_names: Optional names of variables to be included.
+                If given, it must be a :py:class:`VariableNamesLike`.
+        :param protocol: **Deprecated.** Protocol name, if None selected default protocol
+                will be used to access data.
+        :return: A dataset instance or ``None`` if no data is available for the given constraints.
         """
 
-    @property
-    def protocols(self) -> []:
+    @abstractmethod
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
         """
-        The list of available protocols.
+        Turns this (likely remote) data source into a local data source given a name and a number of
+        optional constraints.
 
+        If this is a remote data source, data will be downloaded and turned into a local data source which will
+        be added to the data store named "local".
+
+        If this is already a local data source, a new local data source will be created by copying
+        required data or data subsets.
+
+        The method returns the newly create local data source.
+
+        :param local_name: A human readable name for the new local data store.
+        :param local_id: A unique ID to be used for the new local data store.
+               If not given, a new ID will be generated.
+        :param time_range: An optional time constraint comprising start and end date.
+               If given, it must be a :py:class:`TimeRangeLike`.
+        :param region: An optional region constraint.
+               If given, it must be a :py:class:`GeometryLike`.
+        :param var_names: Optional names of variables to be included.
+               If given, it must be a :py:class:`VariableNamesLike`.
+        :param protocol: Optional name of a supported protocol to be used for downloading data. Typical values are
+               "HTTPServer" or "OPeNDAP".
+        :param monitor: a progress monitor.
+        :return: the new local data source
         """
-        return [None]
+        pass
 
     # noinspection PyMethodMayBeStatic
     def sync(self,
-             time_range: Tuple[datetime, datetime]=None,
-             protocol: str=None,
-             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
+             time_range: TimeRangeLike.TYPE = None,
+             protocol: str = None,
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
         """
+        **Deprecated. Use :py:meth:`make_local` instead.**
         Allows to synchronize remote data with locally stored data.
         Availability of synchronization feature depends on protocol type and
         data source implementation.
@@ -276,9 +319,9 @@ class DataSource(metaclass=ABCMeta):
         info_lines = []
         for date_from, date_to in sorted(cache_coverage.items()):
             info_lines.append('{date_from} to {date_to}'
-                              .format(
-                                date_from=date_from.strftime('%Y-%m-%d'),
-                                date_to=date_to.strftime('%Y-%m-%d')))
+                .format(
+                date_from=date_from.strftime('%Y-%m-%d'),
+                date_to=date_to.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 
@@ -292,8 +335,6 @@ class DataSource(metaclass=ABCMeta):
 
 class DataStore(metaclass=ABCMeta):
     """Represents a data store of data sources."""
-
-    # Check Iris "Constraint" class to implement user-friendly, efficient filters (mzuehlke, forman, 20160603)
 
     def __init__(self, name: str):
         self._name = name
@@ -399,7 +440,7 @@ def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,
                  sync: bool = False,
-                 protocol: str=None,
+                 protocol: str = None,
                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source.
@@ -513,6 +554,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                          "data source. Are lat/lon coordinates divisible by "
                          "{}?".format(divisor))
 
-    chunks = {lat: n_lat//divisor, lon: n_lon//divisor}
+    chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
     return xr.open_mfdataset(paths, concat_dim=concat_dim, chunks=chunks, **kwargs)
