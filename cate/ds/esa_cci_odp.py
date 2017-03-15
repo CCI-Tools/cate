@@ -47,14 +47,19 @@ import os.path
 import re
 import urllib.parse
 import urllib.request
+import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Sequence, Tuple, Optional, Any
+from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
 from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util.monitor import Monitor
+
+
+
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
@@ -591,9 +596,74 @@ class EsaCciOdpDataSource(DataSource):
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
-        # TODO (kbernat): implement me! see sync()
-        raise NotImplementedError('EsaCciOdpDataSource.make_local() '
-                                  'is not yet implemented')
+        if not local_name or len(local_name) == 0:
+            raise ValueError('Missing local_name')
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        region = GeometryLike.convert(region) if region else None
+        var_names = VariableNamesLike.convert(var_names) if var_names else None
+
+        compression_enabled = True
+        compression_level = 9
+        if compression_enabled:
+            encoding_update = {'zlib': True}
+            if compression_level:
+                encoding_update.setdefault('complevel', compression_level)
+
+        if not region and not var_names:
+            protocol = _ODP_PROTOCOL_HTTP
+        else:
+            protocol = _ODP_PROTOCOL_OPENDAP
+
+        if protocol == _ODP_PROTOCOL_OPENDAP:
+
+            local_path = os.pathself.join( get_data_store_path(), local_name)
+
+            selected_file_list = self._find_files(time_range)
+            files = [file_rec[4][protocol].replace('.html', '') for file_rec in selected_file_list]
+            for dataset_uri in files:
+                child_monitor = monitor.child(work=1)
+
+                file_name = dataset_uri.rsplit('/', 1)[1]
+                local_filepath = os.path.join(local_path, file_name)
+
+                remote_netcdf = NetCDF4DataStore(dataset_uri)
+                local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
+
+                local_netcdf.set_attributes(remote_netcdf.get_attrs())
+
+                child_monitor.start(label=file_name, total_work=len(var_names))
+
+                if not var_names:
+                    var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+
+                remote_dataset = xr.Dataset.load_store(remote_netcdf)
+
+                if region:
+                    remote_dataset = remote_dataset.sel(drop=False,
+                                                        lat=slice(region.bounds[0], region.bounds[0]),
+                                                        lon=slice(region.bounds[2], region.bounds[3]))
+
+                for sel_var_name in var_names:
+                    var_dataset = remote_dataset.drop(
+                        [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
+                    if compression_enabled:
+                        var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                    local_netcdf.store_dataset(var_dataset)
+                    child_monitor.progress(work=1, msg=sel_var_name)
+
+                local_netcdf.sync()
+                remote_netcdf.close()
+
+                local_netcdf.close()
+                child_monitor.done()
+
+            monitor.done()
+
+        else:
+            # TODO (kbernat): implement me! see sync()
+            raise NotImplementedError('EsaCciOdpDataSource.make_local() '
+                                      'HTTP download is not yet implemented')
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:
