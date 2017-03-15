@@ -208,7 +208,7 @@ class TimeRangeLikeTest(TestCase):
         self.assertFalse(TimeRangeLike.accepts('2002-01-01, 2001-01-01'))
 
     def test_convert(self):
-        expected = (datetime(2001,1,1), datetime(2002,1,1,23,59,59))
+        expected = (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59))
         actual = TimeRangeLike.convert('2001-01-01, 2002-01-01')
         self.assertTrue(actual == expected)
 
@@ -218,5 +218,5 @@ class TimeRangeLikeTest(TestCase):
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
-        actual = TimeRangeLike.format((datetime(2001,1,1), datetime(2002,1,1)))
+        actual = TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1)))
         self.assertTrue(expected, actual)

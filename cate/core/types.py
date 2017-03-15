@@ -111,11 +111,11 @@ class VariableNamesLike(Like[List[str]]):
         Convert the given value to a list of variable name patterns.
         """
         if isinstance(value, str):
-            return(to_list(value))
+            return to_list(value)
 
         if not isinstance(value, list):
             raise ValueError('Variable name pattern can only be a string or a'
-                            ' list of strings.')
+                             ' list of strings.')
 
         for item in value:
             if not isinstance(item, str):
@@ -153,6 +153,7 @@ class PointLike(Like[Point]):
     @classmethod
     def format(cls, value: Point) -> str:
         return "%s, %s" % (value.x, value.y)
+
 
 class PolygonLike(Like[Polygon]):
     """
