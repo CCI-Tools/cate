@@ -3,7 +3,7 @@ from typing import Union, Tuple
 from unittest import TestCase
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, Variable, PointLike, PolygonLike, DateRange
+from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike
 from cate.util import object_to_qualified_name
 
 from shapely.geometry import Point, Polygon
@@ -88,30 +88,30 @@ class TestTypeTest(TestCase):
         self.assertEqual(TestType.format(TestPoint(2.4, 4.8)), "2.4, 4.8")
 
 
-class VariableTest(TestCase):
+class VariableNamesLikeTest(TestCase):
     """
-    Test the Variable type
+    Test the VariableNamesLike type
     """
     def test_accepts(self):
-        self.assertTrue(Variable.accepts('aa'))
-        self.assertTrue(Variable.accepts('aa,bb,cc'))
-        self.assertTrue(Variable.accepts(['aa', 'bb', 'cc']))
-        self.assertFalse(Variable.accepts(1.0))
-        self.assertFalse(Variable.accepts([1, 2, 4]))
-        self.assertFalse(Variable.accepts(['aa', 2, 'bb']))
+        self.assertTrue(VariableNamesLike.accepts('aa'))
+        self.assertTrue(VariableNamesLike.accepts('aa,bb,cc'))
+        self.assertTrue(VariableNamesLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VariableNamesLike.accepts(1.0))
+        self.assertFalse(VariableNamesLike.accepts([1, 2, 4]))
+        self.assertFalse(VariableNamesLike.accepts(['aa', 2, 'bb']))
 
     def test_convert(self):
         expected = ['aa', 'b*', 'cc']
-        actual = Variable.convert('aa,b*,cc')
+        actual = VariableNamesLike.convert('aa,b*,cc')
         self.assertEqual(actual, expected)
 
         with self.assertRaises(ValueError) as err:
-            Variable.convert(['aa', 1, 'bb'])
+            VariableNamesLike.convert(['aa', 1, 'bb'])
         print(str(err))
         self.assertTrue('string or a list' in str(err.exception))
 
     def teset_format(self):
-        self.assertEqual(Variable.format(['aa', 'bb', 'cc']),
+        self.assertEqual(VariableNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
 
 
@@ -192,31 +192,31 @@ class PolygonLikeTest(TestCase):
                         PolygonLike.format(pol))
 
 
-class DateRangeTest(TestCase):
+class TimeRangeLikeTest(TestCase):
     """
-    Test the DateRange type
+    Test the TimeRangeLike type
     """
     def test_accepts(self):
-        self.assertTrue(DateRange.accepts(('2001-01-01', '2002-02-01')))
-        self.assertTrue(DateRange.accepts((datetime(2001, 1, 1), datetime(2002, 2, 1))))
-        self.assertTrue(DateRange.accepts((date(2001, 1, 1), date(2002, 1, 1))))
-        self.assertTrue(DateRange.accepts('2001-01-01,2002-02-01'))
-        self.assertTrue(DateRange.accepts('2001-01-01, 2002-02-01'))
+        self.assertTrue(TimeRangeLike.accepts(('2001-01-01', '2002-02-01')))
+        self.assertTrue(TimeRangeLike.accepts((datetime(2001, 1, 1), datetime(2002, 2, 1))))
+        self.assertTrue(TimeRangeLike.accepts((date(2001, 1, 1), date(2002, 1, 1))))
+        self.assertTrue(TimeRangeLike.accepts('2001-01-01,2002-02-01'))
+        self.assertTrue(TimeRangeLike.accepts('2001-01-01, 2002-02-01'))
 
-        self.assertFalse(DateRange.accepts('2001-01-01'))
-        self.assertFalse(DateRange.accepts([datetime(2001, 1, 1)]))
-        self.assertFalse(DateRange.accepts('2002-01-01, 2001-01-01'))
+        self.assertFalse(TimeRangeLike.accepts('2001-01-01'))
+        self.assertFalse(TimeRangeLike.accepts([datetime(2001, 1, 1)]))
+        self.assertFalse(TimeRangeLike.accepts('2002-01-01, 2001-01-01'))
 
     def test_convert(self):
         expected = (datetime(2001,1,1), datetime(2002,1,1,23,59,59))
-        actual = DateRange.convert('2001-01-01, 2002-01-01')
+        actual = TimeRangeLike.convert('2001-01-01, 2002-01-01')
         self.assertTrue(actual == expected)
 
         with self.assertRaises(ValueError) as err:
-            DateRange.convert('2002-01-01, 2001-01-01')
+            TimeRangeLike.convert('2002-01-01, 2001-01-01')
         self.assertTrue('cannot convert' in str(err.exception))
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
-        actual = DateRange.format((datetime(2001,1,1), datetime(2002,1,1)))
+        actual = TimeRangeLike.format((datetime(2001,1,1), datetime(2002,1,1)))
         self.assertTrue(expected, actual)

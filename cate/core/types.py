@@ -93,7 +93,7 @@ class Like(Generic[T], metaclass=ABCMeta):
 
 
 # ===== Like-derived types below =====
-class Variable(Like[List[str]]):
+class VariableNamesLike(Like[List[str]]):
     """
     Type class for Variable selection objects
 
@@ -180,7 +180,7 @@ class PolygonLike(Like[Polygon]):
                     return polygon
             if isinstance(value, str):
                 value = value.lstrip()
-                if value[:7] == 'POLYGON':
+                if value[:7].lower() == 'polygon':
                     polygon = loads(value)
                 else:
                     val = [float(x) for x in value.split(',')]
@@ -189,17 +189,17 @@ class PolygonLike(Like[Polygon]):
                     return polygon
         except Exception:
             raise ValueError('cannot convert {} to a valid'
-                             ' shapely Polygon'.format(value))
+                             ' Polygon'.format(value))
 
         raise ValueError('cannot convert {} to a valid'
-                         ' shapely Polygon'.format(value))
+                         ' Polygon'.format(value))
 
     @classmethod
     def format(cls, value: Polygon) -> str:
         return value.wkt
 
 
-class DateRange(Like[Tuple[datetime, datetime]]):
+class TimeRangeLike(Like[Tuple[datetime, datetime]]):
     """
     Type class for temporal selection objects
 
@@ -214,7 +214,7 @@ class DateRange(Like[Tuple[datetime, datetime]]):
     TYPE = Union[Tuple[str, str], Tuple[datetime, datetime], Tuple[date, date], str]
 
     @classmethod
-    def convert(cls, value: Any) -> Tuple[str]:
+    def convert(cls, value: Any) -> Tuple[datetime, datetime]:
         try:
             if isinstance(value, tuple):
                 _range = to_datetime_range(value[0], value[1])
