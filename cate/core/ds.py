@@ -122,12 +122,12 @@ class DataSource(metaclass=ABCMeta):
         """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
         return None
 
-    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[int, int]]:
+    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[Tuple[datetime, datetime]]:
         """
-        The temporal coverage as tuple (*start*, *end*) where *start* and *and* are ``datetime`` instances.
+        The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
 
         :param monitor: a progress monitor.
-        :return ``None`` if the temporal coverage is unknown.
+        :return A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
         """
         return None
 
