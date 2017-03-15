@@ -40,11 +40,11 @@ def some_op(file: PathLike.TYPE) -> bool:
 """
 
 from abc import abstractclassmethod, ABCMeta
+from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from shapely.geometry import Point, Polygon, box
 from shapely.wkt import loads
-from datetime import datetime, date
 
 from cate.util.misc import to_list, to_datetime_range
 
@@ -92,8 +92,12 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
+VariableNames = List[str]
+
+
 # ===== Like-derived types below =====
-class VariableNamesLike(Like[List[str]]):
+
+class VariableNamesLike(Like[VariableNames]):
     """
     Type class for Variable selection objects
 
@@ -103,10 +107,10 @@ class VariableNamesLike(Like[List[str]]):
 
     Converts to a list of strings
     """
-    TYPE = Union[List[str], str]
+    TYPE = Union[VariableNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> List[str]:
+    def convert(cls, value: Any) -> VariableNames:
         """
         Convert the given value to a list of variable name patterns.
         """
@@ -200,7 +204,10 @@ class PolygonLike(Like[Polygon]):
         return value.wkt
 
 
-class TimeRangeLike(Like[Tuple[datetime, datetime]]):
+TimeRange = Tuple[datetime, datetime]
+
+
+class TimeRangeLike(Like[TimeRange]):
     """
     Type class for temporal selection objects
 
@@ -212,11 +219,12 @@ class TimeRangeLike(Like[Tuple[datetime, datetime]]):
 
     Converts to a tuple of datetime objects
     """
-    TYPE = Union[Tuple[str, str], Tuple[datetime, datetime], Tuple[date, date], str]
+    TYPE = Union[Tuple[str, str], TimeRange, Tuple[date, date], str]
 
     @classmethod
-    def convert(cls, value: Any) -> Tuple[datetime, datetime]:
+    def convert(cls, value: Any) -> TimeRange:
         try:
+            _range = None
             if isinstance(value, tuple):
                 _range = to_datetime_range(value[0], value[1])
             elif isinstance(value, str):
@@ -234,5 +242,5 @@ class TimeRangeLike(Like[Tuple[datetime, datetime]]):
                          ' {}'.format(value, cls.name()))
 
     @classmethod
-    def format(cls, value: Tuple[datetime, datetime]) -> str:
+    def format(cls, value: TimeRange) -> str:
         return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
