@@ -36,7 +36,7 @@ setup(
     author='Cate Development Team',
     packages=['cate', 'cate.util', 'cate.util.im', 'cate.util.web'],
     install_requires=[
-        'matplotlib >= 1.5,<2',
+        'matplotlib 1.5*',
         'numpy >= 1.7',
         'tornado >= 4.4',
         'pillow >= 4.0'
