@@ -36,7 +36,7 @@ if on_rtd:
         # Commented out for READTHEDOCS, using mock
         # 'geopandas >= 0.2',
         'jdcal >= 1.3',
-        'matplotlib 1.5*',
+        'matplotlib >= 1.5,<2',
         'netcdf4 >= 1.2',
         'numba >= 0.26',
         'numpy >= 1.7',
@@ -55,7 +55,7 @@ else:
         'dask >= 0.14',
         'geopandas >= 0.2',
         'jdcal >= 1.3',
-        'matplotlib 1.5*',
+        'matplotlib >= 1.5,<2',
         'netcdf4 >= 1.2',
         'numba >= 0.26',
         'numpy >= 1.7',
