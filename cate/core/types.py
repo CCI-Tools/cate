@@ -40,7 +40,13 @@ def some_op(file: PathLike.TYPE) -> bool:
 """
 
 from abc import abstractclassmethod, ABCMeta
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, List, Union, Tuple
+
+from shapely.geometry import Point, Polygon, box
+from shapely.wkt import loads
+from datetime import datetime, date
+
+from cate.util.misc import to_list, to_datetime_range
 
 T = TypeVar('T')
 
@@ -86,4 +92,147 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
-# TODO (gailis, forman): add Like-derived types here...
+# ===== Like-derived types below =====
+class VariableNamesLike(Like[List[str]]):
+    """
+    Type class for Variable selection objects
+
+    Accepts:
+        1. a string 'pattern1, pattern2, pattern3'
+        2. a list ['pattern1', 'pattern2', 'pattern3']
+
+    Converts to a list of strings
+    """
+    TYPE = Union[List[str], str]
+
+    @classmethod
+    def convert(cls, value: Any) -> List[str]:
+        """
+        Convert the given value to a list of variable name patterns.
+        """
+        if isinstance(value, str):
+            return to_list(value)
+
+        if not isinstance(value, list):
+            raise ValueError('Variable name pattern can only be a string or a'
+                             ' list of strings.')
+
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError('Variable name pattern can only be a string'
+                                 ' or a list of strings.')
+
+        return value
+
+
+class PointLike(Like[Point]):
+    """
+    Type class for geometric Point objects
+
+    Accepts:
+        1. a Shapely Point
+        2. a string 'lon,lat'
+        3. a tuple (lon, lat)
+
+    Converts to a Shapely point
+    """
+    TYPE = Union[Point, str, Tuple[float, float]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Point:
+        try:
+            if isinstance(value, Point):
+                return value
+            if isinstance(value, str):
+                pair = value.split(',')
+                return Point(float(pair[0]), float(pair[1]))
+            return Point(value[0], value[1])
+        except Exception:
+            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+
+    @classmethod
+    def format(cls, value: Point) -> str:
+        return "%s, %s" % (value.x, value.y)
+
+
+class PolygonLike(Like[Polygon]):
+    """
+    Type class for geometric Polygon objects
+
+    Accepts:
+        1. a Shapely Polygon
+        2. a string 'min_lon, min_lat, max_lon, max_lat'
+        3. a WKT string 'POLYGON ...'
+        4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
+
+    Converts to a valid shapely Polygon.
+    """
+    TYPE = Union[Polygon, str, List[Tuple[float, float]]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Polygon:
+        try:
+            if isinstance(value, Polygon):
+                if value.is_valid:
+                    return value
+            if isinstance(value, list):
+                polygon = Polygon(value)
+                if polygon.is_valid:
+                    return polygon
+            if isinstance(value, str):
+                value = value.lstrip()
+                if value[:7].lower() == 'polygon':
+                    polygon = loads(value)
+                else:
+                    val = [float(x) for x in value.split(',')]
+                    polygon = box(val[0], val[1], val[2], val[3])
+                if polygon.is_valid:
+                    return polygon
+        except Exception:
+            raise ValueError('cannot convert {} to a valid'
+                             ' Polygon'.format(value))
+
+        raise ValueError('cannot convert {} to a valid'
+                         ' Polygon'.format(value))
+
+    @classmethod
+    def format(cls, value: Polygon) -> str:
+        return value.wkt
+
+
+class TimeRangeLike(Like[Tuple[datetime, datetime]]):
+    """
+    Type class for temporal selection objects
+
+    Accepts:
+        1. a tuple of start/end time datetime strings ('YYYY-MM-DD', 'YYYY-MM-DD')
+        2. a string of datetime string start/end dates 'YYYY-MM-DD,YYYY-MM-DD'
+        3. a tuple of start/end datetime datetime objects
+        4. a tuple of start/end datetime date objects
+
+    Converts to a tuple of datetime objects
+    """
+    TYPE = Union[Tuple[str, str], Tuple[datetime, datetime], Tuple[date, date], str]
+
+    @classmethod
+    def convert(cls, value: Any) -> Tuple[datetime, datetime]:
+        try:
+            if isinstance(value, tuple):
+                _range = to_datetime_range(value[0], value[1])
+            elif isinstance(value, str):
+                val = [x.strip() for x in value.split(',')]
+                _range = to_datetime_range(val[0], val[1])
+            if _range:
+                # Check if start date is before end date
+                if _range[0] < _range[1]:
+                    return _range
+        except Exception:
+            raise ValueError('cannot convert {} to a'
+                             ' valid {}'.format(value, cls.name()))
+
+        raise ValueError('cannot convert {} to a valid'
+                         ' {}'.format(value, cls.name()))
+
+    @classmethod
+    def format(cls, value: Tuple[datetime, datetime]) -> str:
+        return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
