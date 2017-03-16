@@ -82,7 +82,7 @@ def subset_spatial(ds: xr.Dataset,
     # all values falling in the region or on its boundary are denoted with True
     # and all the rest with False
     lonm, latm = np.meshgrid(ds.lon.values, ds.lat.values)
-    mask = np.array([Point(lon, lat).intersects(region) for lon, lat in\
+    mask = np.array([Point(lon, lat).intersects(region) for lon, lat in
                      zip(lonm.ravel(), latm.ravel())], dtype=bool)
     mask = xr.DataArray(mask.reshape(lonm.shape),
                         coords={'lon': ds.lon, 'lat': ds.lat},
