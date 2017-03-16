@@ -4,14 +4,14 @@ import os.path
 import tempfile
 import unittest
 import datetime
-from cate.ds.local import LocalFilePatternDataStore, LocalFilePatternDataSource
+from cate.ds.local import LocalDataStore, LocalDataSource
 from collections import OrderedDict
 
 
 class LocalFilePatternDataStoreTest(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
-        self.data_store = LocalFilePatternDataStore('test', self.tmp_dir)
+        self.data_store = LocalDataStore('test', self.tmp_dir)
         self.assertTrue(os.path.isdir(self.tmp_dir))
         self.assertEqual(0, len(os.listdir(self.tmp_dir)))
         self.data_store.add_pattern("ozone", "/DATA/ozone/*/*.nc")
@@ -42,13 +42,13 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(524, len(html))
 
     def test_init(self):
-        data_store2 = LocalFilePatternDataStore('test', self.tmp_dir)
+        data_store2 = LocalDataStore('test', self.tmp_dir)
         data_sources = data_store2.query()
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
 
     def test_query(self):
-        local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
+        local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
                                                                      'resources/datasources/local/'))
         data_sources = local_data_store.query()
         self.assertEqual(len(data_sources), 2)
@@ -66,31 +66,31 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
 class LocalFilePatternSourceTest(unittest.TestCase):
     def setUp(self):
-        self._dummy_store = LocalFilePatternDataStore('dummy', 'dummy')
+        self._dummy_store = LocalDataStore('dummy', 'dummy')
 
-        self._local_data_store = LocalFilePatternDataStore('test', os.path.join(os.path.dirname(__file__),
+        self._local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
                                                                                 'resources/datasources/local/'))
 
-        self.ds1 = LocalFilePatternDataSource("ozone",
-                                              ["/DATA/ozone/*/*.nc"],
-                                              self._dummy_store)
-        self.ds2 = LocalFilePatternDataSource("aerosol",
-                                              ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"],
-                                              self._dummy_store)
+        self.ds1 = LocalDataSource("ozone",
+                                   ["/DATA/ozone/*/*.nc"],
+                                   self._dummy_store)
+        self.ds2 = LocalDataSource("aerosol",
+                                   ["/DATA/aerosol/*/A*.nc", "/DATA/aerosol/*/B*.nc"],
+                                   self._dummy_store)
 
-        self.empty_ds = LocalFilePatternDataSource("empty",
-                                              [],
-                                              self._dummy_store)
+        self.empty_ds = LocalDataSource("empty",
+                                        [],
+                                        self._dummy_store)
 
-        self.ds3 = LocalFilePatternDataSource("w_temporal_1",
-                                              OrderedDict([
+        self.ds3 = LocalDataSource("w_temporal_1",
+                                   OrderedDict([
                                                   ("/DATA/file1.nc", datetime.datetime(2017, 2, 27, 0, 0)),
                                                   ("/DATA/file2.nc", datetime.datetime(2017, 2, 28, 0, 0))]),
-                                              self._dummy_store)
+                                   self._dummy_store)
 
-        self.ds4 = LocalFilePatternDataSource("w_temporal_2",
-                                              OrderedDict(),
-                                              self._dummy_store)
+        self.ds4 = LocalDataSource("w_temporal_2",
+                                   OrderedDict(),
+                                   self._dummy_store)
 
         self.assertIsNotNone(self.ds1)
         self.assertIsNotNone(self.ds2)
