@@ -111,7 +111,7 @@ class VariableNamesLikeTest(TestCase):
         print(str(err))
         self.assertTrue('string or a list' in str(err.exception))
 
-    def teset_format(self):
+    def test_format(self):
         self.assertEqual(VariableNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
 
@@ -212,11 +212,11 @@ class GeometryLikeTest(TestCase):
         self.assertFalse(GeometryLike.accepts("0.0,aaa,1.1,1.1"))
         self.assertFalse(GeometryLike.accepts("0.0, aaa, 1.1, 1.1"))
 
-        #coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
-        #self.assertFalse(GeometryLike.accepts(coords))
+        # coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
+        # self.assertFalse(GeometryLike.accepts(coords))
 
-        #coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
-        #self.assertFalse(GeometryLike.accepts(coords))
+        # coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
+        # self.assertFalse(GeometryLike.accepts(coords))
 
         invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
         self.assertFalse(GeometryLike.accepts(invalid))
