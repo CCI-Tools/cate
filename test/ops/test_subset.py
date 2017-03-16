@@ -12,6 +12,13 @@ from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
 
 
+def assert_dataset_equal(expected, actual):
+    # this method is functionally equivalent to
+    # `assert expected == actual`, but it checks each aspect
+    # of equality separately for easier debugging
+    assert expected.equals(actual), (expected, actual)
+
+
 class TestSubsetSpatial(TestCase):
     def test_nominal(self):
         """
@@ -28,7 +35,7 @@ class TestSubsetSpatial(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
             'lat': np.linspace(-9.5, 9.5, 20),
             'lon': np.linspace(-19.5, 19.5, 40)})
-        self.assertDatasetEqual(expected, actual)
+        assert_dataset_equal(expected, actual)
 
     def test_inverted_dims(self):
         """
@@ -45,7 +52,7 @@ class TestSubsetSpatial(TestCase):
             'second': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
             'lat': np.linspace(-9.5, 9.5, 20),
             'lon': np.linspace(-19.5, 19.5, 40)})
-        self.assertDatasetEqual(expected, actual)
+        assert_dataset_equal(expected, actual)
 
     def test_generic_masked(self):
         """
@@ -53,12 +60,12 @@ class TestSubsetSpatial(TestCase):
         """
         # Africa
         a = str('POLYGON((-10.8984375 35.60371874069731,-19.16015625 '
-        '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
-        '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
-        '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
-        '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
-        '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
-        '35.88905007936091,-10.8984375 35.60371874069731))')
+                '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
+                '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
+                '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
+                '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
+                '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
+                '35.88905007936091,-10.8984375 35.60371874069731))')
 
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
@@ -67,9 +74,9 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, a)
         # Gulf of Guinea
-        self.assertTrue(np.nan == actual.sel('nearest', {'lon':1.2, 'lat':-1.4}))
+        self.assertTrue(np.nan == actual.sel('nearest', {'lon': 1.2, 'lat': -1.4}))
         # Africa
-        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat':6.15}))
+        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat': 6.15}))
 
     def test_generic_not_masked(self):
         """
@@ -77,12 +84,12 @@ class TestSubsetSpatial(TestCase):
         """
         # Africa
         a = str('POLYGON((-10.8984375 35.60371874069731,-19.16015625 '
-        '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
-        '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
-        '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
-        '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
-        '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
-        '35.88905007936091,-10.8984375 35.60371874069731))')
+                '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
+                '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
+                '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
+                '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
+                '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
+                '35.88905007936091,-10.8984375 35.60371874069731))')
 
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
@@ -91,9 +98,9 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, a, mask=False)
         # Gulf of Guinea
-        self.assertTrue(1 == actual.sel('nearest', {'lon':1.2, 'lat':-1.4}))
+        self.assertTrue(1 == actual.sel('nearest', {'lon': 1.2, 'lat': -1.4}))
         # Africa
-        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat':6.15}))
+        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat': 6.15}))
 
     def test_registered(self):
         """
@@ -111,15 +118,7 @@ class TestSubsetSpatial(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
             'lat': np.linspace(-9.5, 9.5, 20),
             'lon': np.linspace(-19.5, 19.5, 40)})
-        self.assertDatasetEqual(expected, actual)
-
-
-
-    def assertDatasetEqual(self, expected, actual):
-        # this method is functionally equivalent to
-        # `assert expected == actual`, but it checks each aspect
-        # of equality separately for easier debugging
-        assert expected.equals(actual), (expected, actual)
+        assert_dataset_equal(expected, actual)
 
 
 class TestSubsetTemporal(TestCase):
@@ -143,7 +142,7 @@ class TestSubsetTemporal(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': ['2000-02-01', '2000-03-01', '2000-04-01']})
-        self.assertDatasetEqual(expected, actual)
+        assert_dataset_equal(expected, actual)
 
     def test_subset_temporal_mjd(self):
         # Test subsetting for MJD timed datsets
@@ -165,7 +164,7 @@ class TestSubsetTemporal(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': [2451575.5, 2451604.5, 2451635.5]})
-        self.assertDatasetEqual(expected, actual)
+        assert_dataset_equal(expected, actual)
 
     def test_subset_temporal_index(self):
         # Test general functionality
@@ -187,10 +186,4 @@ class TestSubsetTemporal(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': ['2000-03-01', '2000-04-01', '2000-05-01']})
-        self.assertDatasetEqual(expected, actual)
-
-    def assertDatasetEqual(self, expected, actual):
-        # this method is functionally equivalent to
-        # `assert expected == actual`, but it checks each aspect
-        # of equality separately for easier debugging
-        assert expected.equals(actual), (expected, actual)
+        assert_dataset_equal(expected, actual)
