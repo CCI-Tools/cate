@@ -39,7 +39,7 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
-from abc import abstractclassmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple
 
@@ -76,7 +76,8 @@ class Like(Generic[T], metaclass=ABCMeta):
         except ValueError:
             return False
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def convert(cls, value: Any) -> T:
         """
         Convert the given source value (of type ``Like.TYPE``) into an instance of type *T*.
