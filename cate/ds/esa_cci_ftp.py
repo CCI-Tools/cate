@@ -56,10 +56,9 @@ from io import StringIO, IOBase
 from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
-import xarray as xr
-
 from cate.core.cdm import Schema
 from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 from cate.util import to_datetime, Monitor
 
 Time = Union[str, datetime]
@@ -125,14 +124,27 @@ class FileSetDataSource(DataSource):
     def data_store(self) -> 'FileSetDataStore':
         return self._file_set_data_store
 
-    def open_dataset(self, time_range: Tuple[datetime, datetime] = None,
-                     protocol: str = None) -> xr.Dataset:
-        paths = self.resolve_paths(time_range)
+    def open_dataset(self,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: GeometryLike.TYPE = None,
+                     var_names: VariableNamesLike.TYPE = None,
+                     protocol: str = None) -> Any:
+        paths = self.resolve_paths(TimeRangeLike.convert(time_range) if time_range else (None, None))
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
         return open_xarray_dataset(existing_paths)
+
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+        raise NotImplementedError('FileSetDataSource.make_local() '
+                                  'is not yet implemented')
 
     def to_json_dict(self):
         """

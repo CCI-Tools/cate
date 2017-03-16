@@ -116,8 +116,8 @@ def create_application():
         (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
-        (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
-        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_name}}'), ResVarGeoJSONHandler),
+        (url_pattern('/ws/countries/{{zoom}}'), CountriesGeoJSONHandler),
+        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_name}}/{{zoom}}'), ResVarGeoJSONHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
     ])

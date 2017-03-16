@@ -24,7 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import re
 from collections import OrderedDict
 from inspect import isclass
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Any
 
 from cate.util import object_to_qualified_name, qualified_name_to_object
 
@@ -316,12 +316,18 @@ class OpMetaInfo:
                         "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
                 continue
             data_type = input_properties.get('data_type', None)
-            # TODO (forman, 20160907): perform more elaborated input type checking here (issue #46)
-            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-            if data_type and not (isinstance(value, data_type) or is_float_type):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
-                        name, self.qualified_name, data_type.__name__, type(value).__name__))
+            if self.has_accepts(data_type):
+                accepted = data_type.accepts(value)
+                if not accepted:
+                    raise ValueError(
+                        "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
+                            name, self.qualified_name, data_type.__name__, type(value).__name__))
+            else:
+                is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+                if data_type and not (isinstance(value, data_type) or is_float_type):
+                    raise ValueError(
+                        "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
+                            name, self.qualified_name, data_type.__name__, type(value).__name__))
             value_set = input_properties.get('value_set', None)
             if value_set and (value not in value_set):
                 raise ValueError(
@@ -347,11 +353,21 @@ class OpMetaInfo:
             output_properties = outputs[name]
             if value is not None:
                 data_type = output_properties.get('data_type', None)
-                # TODO (forman, 20160907): perform more elaborated output type checking here (issue #46)
-                if data_type and not isinstance(value, data_type):
-                    raise ValueError(
-                        "output '%s' for operation '%s' must be of type %s" % (
-                            name, self.qualified_name, data_type))
+                if data_type:
+                    if self.has_accepts(data_type):
+                        accepted = data_type.accepts(value)
+                        if not accepted:
+                            raise ValueError(
+                                "output '%s' for operation '%s' must be of type %s" % (
+                                    name, self.qualified_name, data_type))
+                    elif not isinstance(value, data_type):
+                        raise ValueError(
+                            "output '%s' for operation '%s' must be of type %s" % (
+                                name, self.qualified_name, data_type))
+
+    @classmethod
+    def has_accepts(cls, data_type: Any) -> bool:
+        return hasattr(data_type, 'accepts') and callable(data_type.accepts)
 
     @classmethod
     def _parse_docstring(cls, docstring):

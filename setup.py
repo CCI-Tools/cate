@@ -22,7 +22,39 @@
 # SOFTWARE.
 
 
+import os
+
 from setuptools import setup, find_packages
+
+# in alphabetical oder
+requirements = [
+    'cartopy',
+    'dask >= 0.14',
+    'geopandas >= 0.2',
+    'fiona >= 1.7',
+    'jdcal >= 1.3',
+    'matplotlib >= 1.5,<2',
+    'netcdf4 >= 1.2',
+    'numba >= 0.26',
+    'numpy >= 1.7',
+    'pandas >= 0.18',
+    'pillow >= 4.0',
+    'pyproj >= 1.9',
+    'scipy >= 0.17',
+    'shapely >= 1.5',
+    'tornado >= 4.4',
+    'xarray >= 0.9.1',
+]
+
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    import itertools
+
+    mocked_packages = ['cartopy', 'geopandas', 'pillow']
+    # On READTHEDOCS, filter out all requirements that start with one of the names in mocked_packages
+    # These are mocked, see doc/source/conf.py
+    requirements = itertools.filterfalse(lambda req: any(req.startswith(mp) for mp in mocked_packages),
+                                         requirements)
 
 packages = find_packages(exclude=["test", "test.*"])
 
@@ -49,18 +81,5 @@ setup(
             'cate_ds = cate.ds:cate_init',
         ],
     },
-    install_requires=[
-                      'matplotlib >= 1.5',
-                      'xarray >= 0.9',
-                      'netcdf4 >= 1.2',
-                      'dask >= 0.14',
-                      'tornado >= 4.4',
-                      'numba >= 0.26',
-                      'numpy >= 1.7',
-                      'scipy >= 0.17',
-                      'pillow >= 4.0',
-                      'pandas >= 0.18',
-                      'jdcal >= 1.3',
-                      'geopandas >= 0.2',
-                      ],
+    install_requires=requirements,
 )
