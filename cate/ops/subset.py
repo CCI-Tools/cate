@@ -30,34 +30,66 @@ Components
 """
 
 import xarray as xr
-from cate.core.op import op, op_input
+import numpy as np
 import jdcal
+from shapely.geometry import Point, box
+
+from cate.core.op import op, op_input
+from cate.core.types import PolygonLike
 
 
 @op(tags=['geometric', 'subset', 'spatial', 'geom'])
-@op_input('lat_min', units='degrees', value_range=[-90, 90])
-@op_input('lat_max', units='degrees', value_range=[-90, 90])
-@op_input('lon_min', units='degrees', value_range=[-180, 180])
-@op_input('lon_max', units='degrees', value_range=[-180, 180])
+@op_input('region', data_type=PolygonLike)
 def subset_spatial(ds: xr.Dataset,
-                   lat_min: float,
-                   lat_max: float,
-                   lon_min: float,
-                   lon_max: float) -> xr.Dataset:
+                   region: PolygonLike.TYPE,
+                   mask: bool = True) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
     :param ds: Dataset to subset
-    :param lat_min: Minimum latitude value
-    :param lat_max: Maximum latitude value
-    :param lon_min: Minimum longitude value
-    :param lon_max: Maximum longitude value
+    :param region: Spatial region to subset
+    :param mask: Should values falling in the bounding box of the polygon but
+    not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
-    lat_slice = slice(lat_min, lat_max)
-    lon_slice = slice(lon_min, lon_max)
-    indexers = {'lat': lat_slice, 'lon': lon_slice}
-    return ds.sel(**indexers)
+    # Get the bounding box
+    region = PolygonLike.convert(region)
+    lon_min, lat_min, lon_max, lat_max = region.bounds
+
+    # Validate the bounding box
+    if (not (-90 <= lat_min <= 90)) or\
+       (not (-90 <= lat_max <= 90)) or\
+       (not (-180 <= lon_min <= 180)) or\
+       (not (-180 <= lon_max <= 180)):
+        raise ValueError('Provided polygon extends outside of geospatial'
+                         ' bounds: latitude [-90;90], longitude [-180;180]')
+
+    simple_polygon = False
+    if region.equals(box(lon_min, lat_min, lon_max, lat_max)):
+        # Don't do the computationally intensive masking if the provided
+        # region is a simple box-polygon, for which there will be nothing to
+        # mask.
+        simple_polygon = True
+
+    if not mask or simple_polygon:
+        # Slice
+        lat_slice = slice(lat_min, lat_max)
+        lon_slice = slice(lon_min, lon_max)
+        indexers = {'lat': lat_slice, 'lon': lon_slice}
+        return ds.sel(**indexers)
+
+    # Create the mask array. The result of this is a lon/lat DataArray where
+    # all values falling in the region or on its boundary are denoted with True
+    # and all the rest with False
+    lonm, latm = np.meshgrid(ds.lon.values, ds.lat.values)
+    mask = np.array([Point(lon, lat).intersects(region) for lon, lat in
+                     zip(lonm.ravel(), latm.ravel())], dtype=bool)
+    mask = xr.DataArray(mask.reshape(lonm.shape),
+                        coords={'lon': ds.lon, 'lat': ds.lat},
+                        dims=['lat', 'lon'])
+
+    # Mask values outside the polygon with NaN, crop the dataset
+    return ds.where(mask, drop=True)
 
 
 @op(tags=['subset', 'temporal'])
