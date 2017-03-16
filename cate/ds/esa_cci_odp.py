@@ -506,14 +506,10 @@ class EsaCciOdpDataSource(DataSource):
                      var_names: VariableNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        # TODO (kbernat): support region constraint here
         if region:
-            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
-                                      'does not yet support the "region" constraint')
-        # TODO (kbernat): support var_names constraint here
+            region = GeometryLike.convert(region)
         if var_names:
-            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
-                                      'does not yet support the "var_names" constraint')
+            var_names = VariableNamesLike.convert(var_names)
         if protocol is None:
             protocol = _ODP_PROTOCOL_HTTP
         if protocol not in self.protocols:
@@ -536,9 +532,15 @@ class EsaCciOdpDataSource(DataSource):
             for file in files:
                 if not os.path.exists(file):
                     raise IOError('Missing local data files, consider synchronizing the dataset first.')
-
         try:
-            return open_xarray_dataset(files)
+            ds = open_xarray_dataset(files)
+            if region:
+                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
+            if var_names:
+                ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
+            return ds
+
         except OSError as e:
             raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
 
@@ -564,7 +566,7 @@ class EsaCciOdpDataSource(DataSource):
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None
+        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: List
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
