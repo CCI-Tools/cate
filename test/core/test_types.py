@@ -1,13 +1,13 @@
 from collections import namedtuple
+from datetime import datetime, date
 from typing import Union, Tuple
 from unittest import TestCase
 
-from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike
-from cate.util import object_to_qualified_name
-
 from shapely.geometry import Point, Polygon
-from datetime import datetime, date
+
+from cate.core.op import op_input, OpRegistry
+from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.util import object_to_qualified_name
 
 # 'TestPoint' is an example type which may come from Cate API or other required API.
 TestPoint = namedtuple('TestPoint', ['x', 'y'])
@@ -92,6 +92,7 @@ class VariableNamesLikeTest(TestCase):
     """
     Test the VariableNamesLike type
     """
+
     def test_accepts(self):
         self.assertTrue(VariableNamesLike.accepts('aa'))
         self.assertTrue(VariableNamesLike.accepts('aa,bb,cc'))
@@ -145,6 +146,7 @@ class PolygonLikeTest(TestCase):
     """
     Test the PolygonLike type
     """
+
     def test_accepts(self):
         self.assertTrue(PolygonLike.accepts("0.0,0.0,1.1,1.1"))
         self.assertTrue(PolygonLike.accepts("0.0, 0.0, 1.1, 1.1"))
@@ -192,10 +194,63 @@ class PolygonLikeTest(TestCase):
                         PolygonLike.format(pol))
 
 
+class GeometryLikeTest(TestCase):
+    """
+    Test the PolygonLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(GeometryLike.accepts("0.0,0.0,1.1,1.1"))
+        self.assertTrue(GeometryLike.accepts("0.0, 0.0, 1.1, 1.1"))
+
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        pol = Polygon(coords)
+        self.assertTrue(GeometryLike.accepts(coords))
+        self.assertTrue(GeometryLike.accepts(pol))
+        self.assertTrue(GeometryLike.accepts(pol.wkt))
+
+        self.assertFalse(GeometryLike.accepts("0.0,aaa,1.1,1.1"))
+        self.assertFalse(GeometryLike.accepts("0.0, aaa, 1.1, 1.1"))
+
+        #coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
+        #self.assertFalse(GeometryLike.accepts(coords))
+
+        #coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
+        #self.assertFalse(GeometryLike.accepts(coords))
+
+        invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
+        self.assertFalse(GeometryLike.accepts(invalid))
+
+        wkt = 'MULTIPOLYGON()'
+        self.assertFalse(GeometryLike.accepts(wkt))
+
+        invalid = 'Something_something_in_the_month_of_May'
+        self.assertFalse(GeometryLike.accepts(invalid))
+
+        self.assertFalse(GeometryLike.accepts(1.0))
+
+    def test_convert(self):
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        expected = Polygon(coords)
+        actual = GeometryLike.convert(coords)
+        self.assertTrue(actual, expected)
+
+        with self.assertRaises(ValueError) as err:
+            GeometryLike.convert('aaa')
+        self.assertTrue('cannot convert' in str(err.exception))
+
+    def test_format(self):
+        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        pol = GeometryLike.convert(coords)
+        self.assertTrue('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))' ==
+                        GeometryLike.format(pol))
+
+
 class TimeRangeLikeTest(TestCase):
     """
     Test the TimeRangeLike type
     """
+
     def test_accepts(self):
         self.assertTrue(TimeRangeLike.accepts(('2001-01-01', '2002-02-01')))
         self.assertTrue(TimeRangeLike.accepts((datetime(2001, 1, 1), datetime(2002, 2, 1))))
@@ -208,7 +263,7 @@ class TimeRangeLikeTest(TestCase):
         self.assertFalse(TimeRangeLike.accepts('2002-01-01, 2001-01-01'))
 
     def test_convert(self):
-        expected = (datetime(2001,1,1), datetime(2002,1,1,23,59,59))
+        expected = (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59))
         actual = TimeRangeLike.convert('2001-01-01, 2002-01-01')
         self.assertTrue(actual == expected)
 
@@ -218,5 +273,5 @@ class TimeRangeLikeTest(TestCase):
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
-        actual = TimeRangeLike.format((datetime(2001,1,1), datetime(2002,1,1)))
+        actual = TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1)))
         self.assertTrue(expected, actual)

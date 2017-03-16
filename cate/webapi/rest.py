@@ -466,14 +466,15 @@ class GeoJSONHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def get(self):
-        print('GeoJSONHandler: shapefile_path:', self._shapefile_path)
+    def get(self, zoom):
+        zoom = int(zoom)
+        print('GeoJSONHandler: shapefile_path:', self._shapefile_path, zoom)
         collection = fiona.open(self._shapefile_path)
         print('GeoJSONHandler: collection:', collection)
         print('GeoJSONHandler: collection CRS:', collection.crs)
         try:
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self, 2 ** -zoom)]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -493,9 +494,11 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def get(self, base_dir, res_name):
+    def get(self, base_dir, res_name, zoom):
 
-        print('ResVarGeoJSONHandler:', base_dir, res_name)
+        print('ResVarGeoJSONHandler:', base_dir, res_name, zoom)
+
+        zoom = int(zoom)
 
         var_name = self.get_query_argument('var')
         var_index = self.get_query_argument('index', default=None)
@@ -522,7 +525,7 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
 
         try:
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self)]
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self, 2 ** -zoom)]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)

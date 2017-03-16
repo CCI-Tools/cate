@@ -40,11 +40,12 @@ def some_op(file: PathLike.TYPE) -> bool:
 """
 
 from abc import abstractclassmethod, ABCMeta
+from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from shapely.geometry import Point, Polygon, box
+from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
-from datetime import datetime, date
 
 from cate.util.misc import to_list, to_datetime_range
 
@@ -92,8 +93,12 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
+VariableNames = List[str]
+
+
 # ===== Like-derived types below =====
-class VariableNamesLike(Like[List[str]]):
+
+class VariableNamesLike(Like[VariableNames]):
     """
     Type class for Variable selection objects
 
@@ -103,19 +108,19 @@ class VariableNamesLike(Like[List[str]]):
 
     Converts to a list of strings
     """
-    TYPE = Union[List[str], str]
+    TYPE = Union[VariableNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> List[str]:
+    def convert(cls, value: Any) -> VariableNames:
         """
         Convert the given value to a list of variable name patterns.
         """
         if isinstance(value, str):
-            return(to_list(value))
+            return to_list(value)
 
         if not isinstance(value, list):
             raise ValueError('Variable name pattern can only be a string or a'
-                            ' list of strings.')
+                             ' list of strings.')
 
         for item in value:
             if not isinstance(item, str):
@@ -153,6 +158,7 @@ class PointLike(Like[Point]):
     @classmethod
     def format(cls, value: Point) -> str:
         return "%s, %s" % (value.x, value.y)
+
 
 class PolygonLike(Like[Polygon]):
     """
@@ -199,7 +205,43 @@ class PolygonLike(Like[Polygon]):
         return value.wkt
 
 
-class TimeRangeLike(Like[Tuple[datetime, datetime]]):
+class GeometryLike(Like[BaseGeometry]):
+    """
+    Type class for arbitrary geometry objects
+
+    Accepts:
+        1. any Shapely geometry (of type ``shapely.geometry.base.BaseGeometry``);
+        2. a string 'lon, lat' (a point), or 'min_lon, min_lat, max_lon, max_lat' (a box);
+        3. a Geometry WKT string starting with 'POINT', 'POLYGON', etc;
+        4. a coordinate tuple (lon, lat), a list of coordinates [(lon, lat), (lon, lat), ...], or
+           a list of lists of coordinates [[(lon, lat), (lon, lat), ...], [(lon, lat), (lon, lat), ...], ...].
+
+    Converts to a valid shapely Polygon.
+    """
+    TYPE = Union[BaseGeometry, str, Tuple[float, float], List[Tuple[float, float]], List[List[Tuple[float, float]]]]
+
+    @classmethod
+    def convert(cls, value: Any) -> BaseGeometry:
+        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
+        try:
+            return PolygonLike.convert(value)
+        except ValueError:
+            return PointLike.convert(value)
+
+    @classmethod
+    def accepts(cls, value: Any) -> bool:
+        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
+        return PolygonLike.accepts(value) or PointLike.accepts(value)
+
+    @classmethod
+    def format(cls, value: BaseGeometry) -> str:
+        return value.wkt
+
+
+TimeRange = Tuple[datetime, datetime]
+
+
+class TimeRangeLike(Like[TimeRange]):
     """
     Type class for temporal selection objects
 
@@ -211,11 +253,12 @@ class TimeRangeLike(Like[Tuple[datetime, datetime]]):
 
     Converts to a tuple of datetime objects
     """
-    TYPE = Union[Tuple[str, str], Tuple[datetime, datetime], Tuple[date, date], str]
+    TYPE = Union[Tuple[str, str], TimeRange, Tuple[date, date], str]
 
     @classmethod
-    def convert(cls, value: Any) -> Tuple[datetime, datetime]:
+    def convert(cls, value: Any) -> TimeRange:
         try:
+            _range = None
             if isinstance(value, tuple):
                 _range = to_datetime_range(value[0], value[1])
             elif isinstance(value, str):
@@ -233,5 +276,5 @@ class TimeRangeLike(Like[Tuple[datetime, datetime]]):
                          ' {}'.format(value, cls.name()))
 
     @classmethod
-    def format(cls, value: Tuple[datetime, datetime]) -> str:
+    def format(cls, value: TimeRange) -> str:
         return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
