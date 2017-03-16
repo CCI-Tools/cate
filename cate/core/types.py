@@ -229,6 +229,11 @@ class GeometryLike(Like[BaseGeometry]):
             return PointLike.convert(value)
 
     @classmethod
+    def accepts(cls, value: Any) -> bool:
+        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
+        return PolygonLike.accepts(value) or PointLike.accepts(value)
+
+    @classmethod
     def format(cls, value: BaseGeometry) -> str:
         return value.wkt
 

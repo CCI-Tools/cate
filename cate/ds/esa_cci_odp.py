@@ -55,7 +55,7 @@ from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.util.monitor import Monitor
 
 
@@ -364,7 +364,7 @@ class EsaCciOdpDataSource(DataSource):
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
-    def temporal_coverage(self, monitor: Monitor=Monitor.NONE):
+    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
             self.update_file_list(monitor)
         return self._temporal_coverage
@@ -718,17 +718,18 @@ class _DownloadStatistics:
         self.bytes_done = 0
         self.startTime = datetime.now()
 
-    def handle_chunk(self, bytes):
-        self.bytes_done += bytes
+    def handle_chunk(self, chunk):
+        self.bytes_done += chunk
 
-    def asMB(self, bytes):
-        return bytes / (1024 * 1024)
+    @staticmethod
+    def _to_mibs(bytes_count):
+        return bytes_count / (1024 * 1024)
 
     def __str__(self):
         seconds = (datetime.now() - self.startTime).seconds
         if seconds > 0:
-            mb_per_sec = self.asMB(self.bytes_done) / seconds
+            mb_per_sec = self._to_mibs(self.bytes_done) / seconds
         else:
             mb_per_sec = 0
         return "%d of %d MB, speed %.3f MB/s" % \
-               (self.asMB(self.bytes_done), self.asMB(self.bytes_total), mb_per_sec)
+               (self._to_mibs(self.bytes_done), self._to_mibs(self.bytes_total), mb_per_sec)

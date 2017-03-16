@@ -91,7 +91,7 @@ import xarray as xr
 from cate.conf import get_config_path
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.util.misc import to_datetime_range
 from cate.util.monitor import Monitor
 
@@ -122,7 +122,7 @@ class DataSource(metaclass=ABCMeta):
         """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
         return None
 
-    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[Tuple[datetime, datetime]]:
+    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         """
         The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
 
@@ -200,8 +200,6 @@ class DataSource(metaclass=ABCMeta):
                If given, it must be a :py:class:`GeometryLike`.
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VariableNamesLike`.
-        :param protocol: Optional name of a supported protocol to be used for downloading data. Typical values are
-               "HTTPServer" or "OPeNDAP".
         :param monitor: a progress monitor.
         :return: the new local data source
         """
@@ -319,9 +317,8 @@ class DataSource(metaclass=ABCMeta):
         info_lines = []
         for date_from, date_to in sorted(cache_coverage.items()):
             info_lines.append('{date_from} to {date_to}'
-                .format(
-                date_from=date_from.strftime('%Y-%m-%d'),
-                date_to=date_to.strftime('%Y-%m-%d')))
+                              .format(date_from=date_from.strftime('%Y-%m-%d'),
+                                      date_to=date_to.strftime('%Y-%m-%d')))
 
         return '\n'.join(info_lines)
 
@@ -384,7 +381,7 @@ class DataStoreRegistry:
         return self._data_stores.get(name, None)
 
     def get_data_stores(self) -> Sequence[DataStore]:
-        return self._data_stores.values()
+        return list(self._data_stores.values())
 
     def add_data_store(self, data_store: DataStore):
         self._data_stores[data_store.name] = data_store
@@ -441,7 +438,7 @@ def open_dataset(data_source: Union[DataSource, str],
                  end_date: Union[None, str, date] = None,
                  sync: bool = False,
                  protocol: str = None,
-                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+                 monitor: Monitor = Monitor.NONE) -> Any:
     """
     Open a dataset from a data source.
 
@@ -528,8 +525,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     if n_chunks == 1:
         # The file size is fine
         return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
-
-    divisor = sqrt(n_chunks)
 
     # lat/lon names are not yet known
     lat = get_lat_dim_name(temp_ds)

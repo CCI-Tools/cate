@@ -51,7 +51,7 @@ from dateutil import parser
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.util.misc import to_list
 from cate.util.monitor import Monitor
 
@@ -83,11 +83,11 @@ class LocalDataSource(DataSource):
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         # TODO (kbernat): support region constraint here
         if region:
-            raise NotImplementedError('LocalFilePatternDataSource.open_dataset() '
+            raise NotImplementedError('LocalDataSource.open_dataset() '
                                       'does not yet support the "region" constraint')
         # TODO (kbernat): support var_names constraint here
         if var_names:
-            raise NotImplementedError('LocalFilePatternDataSource.open_dataset() '
+            raise NotImplementedError('LocalDataSource.open_dataset() '
                                       'does not yet support the "var_names" constraint')
         paths = []
         if time_range:
@@ -113,7 +113,7 @@ class LocalDataSource(DataSource):
                    var_names: VariableNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         # TODO (kbernat): implement me!
-        raise NotImplementedError('LocalFilePatternDataSource.make_local() '
+        raise NotImplementedError('LocalDataSource.make_local() '
                                   'is not yet implemented')
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
@@ -124,7 +124,7 @@ class LocalDataSource(DataSource):
     def save(self):
         self._data_store.save_data_source(self)
 
-    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[Tuple[int, int]]:
+    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if self._files:
             cover_min = min(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max)[1]
             cover_max = max(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.min)[1]
@@ -163,7 +163,7 @@ class LocalDataSource(DataSource):
         return fsds_dict
 
     @classmethod
-    def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> 'LocalDataSource':
+    def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> Optional['LocalDataSource']:
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
         if name and isinstance(files, list):
