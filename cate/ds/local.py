@@ -257,3 +257,4 @@ class LocalDataStore(DataStore):
         if isinstance(obj, datetime):
             return obj.replace(microsecond=0).isoformat()
         raise TypeError('Not sure how to serialize %s' % (obj,))
+
