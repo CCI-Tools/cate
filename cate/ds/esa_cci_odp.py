@@ -53,6 +53,8 @@ from datetime import datetime, timedelta
 from typing import Sequence, Tuple, Optional, Any
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 
+from cate.conf import get_config_value
+from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
@@ -603,12 +605,12 @@ class EsaCciOdpDataSource(DataSource):
         region = GeometryLike.convert(region) if region else None
         var_names = VariableNamesLike.convert(var_names) if var_names else None
 
-        compression_enabled = True
-        compression_level = 9
+        compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
+        compression_enabled = True if compression_level > 0 else False
+
+        encoding_update = dict()
         if compression_enabled:
-            encoding_update = {'zlib': True}
-            if compression_level:
-                encoding_update.setdefault('complevel', compression_level)
+            encoding_update += {'zlib': True, 'complevel': compression_level}
 
         if not region and not var_names:
             protocol = _ODP_PROTOCOL_HTTP
@@ -617,14 +619,14 @@ class EsaCciOdpDataSource(DataSource):
 
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
-            local_path = os.pathself.join( get_data_store_path(), local_name)
+            local_path = os.path.join(get_data_store_path(), local_name)
 
             selected_file_list = self._find_files(time_range)
             files = [file_rec[4][protocol].replace('.html', '') for file_rec in selected_file_list]
             for dataset_uri in files:
                 child_monitor = monitor.child(work=1)
 
-                file_name = dataset_uri.rsplit('/', 1)[1]
+                file_name = os.path.basename(dataset_uri)
                 local_filepath = os.path.join(local_path, file_name)
 
                 remote_netcdf = NetCDF4DataStore(dataset_uri)
