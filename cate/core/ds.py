@@ -432,7 +432,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         results.extend(data_store.query(name))
     return results
 
-
+# TODO (kbernat): remove sync and protocol arg, use signature of DataSource.open_dataset()
 def open_dataset(data_source: Union[DataSource, str],
                  start_date: Union[None, str, date] = None,
                  end_date: Union[None, str, date] = None,
@@ -454,6 +454,9 @@ def open_dataset(data_source: Union[DataSource, str],
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
+        # TODO (kbernat): idea: as we follow the "convention" that data source names should start with the data store
+        #                 name, we should search such data stores first. E.g. a data source with name "local.<more ...>"
+        #                 should be searched in data store "local" first.
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
