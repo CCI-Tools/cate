@@ -42,7 +42,8 @@ from cate.core.types import PolygonLike
 @op_input('region', data_type=PolygonLike)
 def subset_spatial(ds: xr.Dataset,
                    region: PolygonLike.TYPE,
-                   mask: bool = True) -> xr.Dataset:
+                   mask: bool = True,
+                   crosses_antimeridian: bool = False) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -50,6 +51,8 @@ def subset_spatial(ds: xr.Dataset,
     :param region: Spatial region to subset
     :param mask: Should values falling in the bounding box of the polygon but
     not the polygon itself be masked with NaN.
+    :param crosses_antimeridian: Set True if the provided region crosses the
+    antimeridian line (longitude 180 deg).
     :return: Subset dataset
     """
     # Get the bounding box
@@ -71,8 +74,35 @@ def subset_spatial(ds: xr.Dataset,
         # mask.
         simple_polygon = True
 
+    if crosses_antimeridian and not simple_polygon:
+        raise NotImplementedError('Spatial subset over the International Date'
+                                  ' Line is currently implemented for simple,'
+                                  ' rectangular polygons only.')
+
+    if crosses_antimeridian:
+        # Shapely messes up longitudes if the polygon crosses the antimeridian
+        lon_min, lon_max = lon_max, lon_min
+
+        # Can't perform a simple selection with slice, hence we have to
+        # construct an appropriate longitude indexer for selection
+        lon_left_of_idl = slice(lon_min, 180)
+        lon_right_of_idl = slice(-180, lon_max)
+        lon_index = xr.concat((ds.lon.sel(lon=lon_right_of_idl),
+                              ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
+        indexers = {'lon': lon_index, 'lat': slice(lat_min, lat_max)}
+        retset = ds.sel(**indexers)
+
+        if mask:
+            # Preserve the original longitude dimension, masking elements that
+            # do not belong to the polygon with NaN.
+            return retset.reindex_like(ds.lon)
+        else:
+            # Return the dataset with no NaNs and with a disjoint longitude
+            # dimension
+            return retset
+
     if not mask or simple_polygon:
-        # Slice
+        # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
         lat_slice = slice(lat_min, lat_max)
         lon_slice = slice(lon_min, lon_max)
         indexers = {'lat': lat_slice, 'lon': lon_slice}

@@ -120,6 +120,30 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-19.5, 19.5, 40)})
         assert_dataset_equal(expected, actual)
 
+    def test_antimeridian_simple(self):
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+        lon_slice = slice(170, 180)
+        indexers = {'lon': lon_slice}
+        lon_slice1 = slice(-180, -170)
+        indexers1 = {'lon': lon_slice1}
+        lon_index = xr.concat((dataset.lon.sel(**indexers1),
+                        dataset.lon.sel(**indexers)), dim='lon')
+        lat_slice = slice(-5, 5)
+        indexers = {'lon': lon_index, 'lat': lat_slice}
+        a = '170, -5, -170, 5'
+        actual = subset.subset_spatial(dataset, a, crosses_antimeridian=True)
+        indexers = {'lon': 0, 'lat': 0}
+        print(actual)
+        print(actual.lon)
+        pass
+
+    def test_antimeridian_arbitrary(self):
+        pass
+
 
 class TestSubsetTemporal(TestCase):
     def test_subset_temporal(self):
