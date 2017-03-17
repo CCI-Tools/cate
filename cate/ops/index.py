@@ -39,7 +39,7 @@ import xarray as xr
 @op(tags=['index', 'nino34'])
 def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     """
-    Calculate nino34 index, which is defined as five month running mean of
+    Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
 
     :param ds: A monthly SST dataset
@@ -56,6 +56,7 @@ def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     ds = select_var(ds, var)
     ref = xr.open_dataset(file)
     ref = select_var(ref, var)
+    n34 = ''
     n34 = [-5, 5, 120, 170]
     ds_n34 = subset_spatial(ds, n34[0], n34[1], n34[2], n34[3])
     ref_n34 = subset_spatial(ref, n34[0], n34[1], n34[2], n34[3])
@@ -86,13 +87,13 @@ def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
 
 
 @op(tags=['index'])
-@op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4'])
+@op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4', 'custom'])
 @op_input('custom_region', cate_type='polygon')
 def enso_index(ds: xr.Dataset,
                var: str,
                file: str,
                region: str='n34',
-               custom_region=None,
+               custom_region: PolygonLike.TYPE=None,
                threshold: float=False):
     """
     Calculate ENSO index, which is defined as a five month running mean of
@@ -111,6 +112,13 @@ def enso_index(ds: xr.Dataset,
     threshold indicates La Nina.
     :return: A dataset that contains the index timeseries.
     """
+    regions = {'n1+2': '',
+               'n3': '',
+               'n34': '',
+               'n4': '',
+               'custom': custom_region}
+
+    region = PolygonLike.convert(regions[region])
     pass
 
 
