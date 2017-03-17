@@ -573,7 +573,7 @@ class EsaCciOdpDataSource(DataSource):
 
         encoding_update = dict()
         if compression_enabled:
-            encoding_update += {'zlib': True, 'complevel': compression_level}
+            encoding_update.update({'zlib': True, 'complevel': compression_level})
 
         if not region and not var_names:
             protocol = _ODP_PROTOCOL_HTTP
