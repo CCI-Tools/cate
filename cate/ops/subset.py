@@ -33,7 +33,7 @@ import xarray as xr
 import numpy as np
 import jdcal
 from shapely.geometry import Point, box, LineString
-from shapely.wkt import loads
+from shapely.wkt import loads, dumps
 
 from cate.core.op import op, op_input
 from cate.core.types import PolygonLike
@@ -75,6 +75,7 @@ def subset_spatial(ds: xr.Dataset,
     crosses_antimeridian = _crosses_antimeridian(region)
 
     if crosses_antimeridian and not simple_polygon:
+        # Unlikely but plausible
         raise NotImplementedError('Spatial subset over the International Date'
                                   ' Line is currently implemented for simple,'
                                   ' rectangular polygons only.')
@@ -138,7 +139,7 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
     new_wkt = 'POLYGON (('
 
     # [10:-2] gets rid of POLYGON (( and ))
-    for point in region.to_wkt()[10:-2].split(','):
+    for point in dumps(region)[10:-2].split(','):
         point = point.strip()
         lon, lat = point.split(' ')
         lon = float(lon)
@@ -148,9 +149,28 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
     new_wkt = new_wkt[:-2] + '))'
 
     converted = loads(new_wkt)
-    test_line = LineString([(180, -90), (180, 90)])
 
-    return test_line.crosses(converted)
+    # There's a problem at this point. Any polygon crossed by the zeroth
+    # meridian can in principle convert to an inverted polygon that is crossed
+    # by the antimeridian.
+
+    if not converted.is_valid:
+        # The polygon 'became' invalid upon conversion => probably the original
+        # polygon is what we want
+        return False
+
+    test_line = LineString([(180, -90), (180, 90)])
+    if test_line.crosses(converted):
+        # The converted polygon seems to be valid and crossed by the
+        # antimeridian. At this point there's no 'perfect' way how to tell if
+        # we wanted the converted polygon or the original one.
+
+        # A simple heuristic is to check for size. The smaller one is quite
+        # likely the desired one
+        if converted.area < region.area:
+            return True
+        else:
+            return False
 
 
 @op(tags=['subset', 'temporal'])

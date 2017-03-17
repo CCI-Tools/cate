@@ -126,23 +126,29 @@ class TestSubsetSpatial(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
-        lon_slice = slice(170, 180)
-        indexers = {'lon': lon_slice}
-        lon_slice1 = slice(-180, -170)
-        indexers1 = {'lon': lon_slice1}
-        lon_index = xr.concat((dataset.lon.sel(**indexers1),
-                        dataset.lon.sel(**indexers)), dim='lon')
-        lat_slice = slice(-5, 5)
-        indexers = {'lon': lon_index, 'lat': lat_slice}
-        a = '170, -5, -170, 5'
-        actual = subset.subset_spatial(dataset, a, crosses_antimeridian=True)
-        indexers = {'lon': 0, 'lat': 0}
-        print(actual)
-        print(actual.lon)
-        pass
+
+        # With masking
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5')
+        self.assertTrue(np.nan == actual.sel('nearest', {'lon': 0, 'lat': 0}))
+
+        # With dropping
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
+        self.assertTrue(20 == len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
-        pass
+        pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
+                  '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
+                  '12.897489183755905,161.89453125 26.745610382199025,162.0703125'
+                  '39.639537564366705))')
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+
+        with self.assertRaises(Exception) as err:
+            subset.subset_spatial(dataset, pol)
+
 
 
 class TestSubsetTemporal(TestCase):
