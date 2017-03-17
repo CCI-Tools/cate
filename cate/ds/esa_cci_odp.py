@@ -225,7 +225,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
         filename = doc.get('title', None)
         file_size = doc.get('size', -1)
         if not filename:
-            filename = os.path.basename(urllib.parse.urlparse(url)[2])
+            filename = os.path.basename(urllib.parse.urlparse(urls[_ODP_PROTOCOL_HTTP])[2])
         if filename in file_list:
             raise ValueError('filename {} already seen in dataset {}'
                              .format(filename, dataset_id))
