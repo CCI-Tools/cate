@@ -32,7 +32,8 @@ Components
 import xarray as xr
 import numpy as np
 import jdcal
-from shapely.geometry import Point, box
+from shapely.geometry import Point, box, LineString
+from shapely.wkt import loads
 
 from cate.core.op import op, op_input
 from cate.core.types import PolygonLike
@@ -42,8 +43,7 @@ from cate.core.types import PolygonLike
 @op_input('region', data_type=PolygonLike)
 def subset_spatial(ds: xr.Dataset,
                    region: PolygonLike.TYPE,
-                   mask: bool = True,
-                   crosses_antimeridian: bool = False) -> xr.Dataset:
+                   mask: bool = True) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -51,8 +51,6 @@ def subset_spatial(ds: xr.Dataset,
     :param region: Spatial region to subset
     :param mask: Should values falling in the bounding box of the polygon but
     not the polygon itself be masked with NaN.
-    :param crosses_antimeridian: Set True if the provided region crosses the
-    antimeridian line (longitude 180 deg).
     :return: Subset dataset
     """
     # Get the bounding box
@@ -73,6 +71,8 @@ def subset_spatial(ds: xr.Dataset,
         # region is a simple box-polygon, for which there will be nothing to
         # mask.
         simple_polygon = True
+
+    crosses_antimeridian = _crosses_antimeridian(region)
 
     if crosses_antimeridian and not simple_polygon:
         raise NotImplementedError('Spatial subset over the International Date'
@@ -120,6 +120,37 @@ def subset_spatial(ds: xr.Dataset,
 
     # Mask values outside the polygon with NaN, crop the dataset
     return ds.where(mask, drop=True)
+
+def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
+    """
+    Determine if the given region crosses the Antimeridian line, by converting
+    the given Polygon from -180;180 to 0;360 and checking if the antimeridian
+    line crosses it.
+
+    This only works with Polygons without holes
+
+    :param region: PolygonLike to test
+    """
+    region = PolygonLike.convert(region)
+
+    # Retrieving the points of the Polygon are a bit troublesome, parsing WKT
+    # is more straightforward and probably faster
+    new_wkt = 'POLYGON (('
+
+    # [10:-2] gets rid of POLYGON (( and ))
+    for point in region.to_wkt()[10:-2].split(','):
+        point = point.strip()
+        lon, lat = point.split(' ')
+        lon = float(lon)
+        if -180 <= lon < 0:
+            lon = lon + 360
+        new_wkt = new_wkt + '{} {}, '.format(lon, lat)
+    new_wkt = new_wkt[:-2] + '))'
+
+    converted = loads(new_wkt)
+    test_line = LineString([(180, -90), (180, 90)])
+
+    return test_line.crosses(converted)
 
 
 @op(tags=['subset', 'temporal'])
