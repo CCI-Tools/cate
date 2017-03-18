@@ -56,10 +56,9 @@ def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     ds = select_var(ds, var)
     ref = xr.open_dataset(file)
     ref = select_var(ref, var)
-    n34 = ''
-    n34 = [-5, 5, 120, 170]
-    ds_n34 = subset_spatial(ds, n34[0], n34[1], n34[2], n34[3])
-    ref_n34 = subset_spatial(ref, n34[0], n34[1], n34[2], n34[3])
+    n34 = '-170, -5, -120, 5'
+    ds_n34 = subset_spatial(ds, n34)
+    ref_n34 = subset_spatial(ref, n34)
     n34_anom = ds_n34 - ref_n34
     n34_ts = n34_anom.mean(dim=['lat', 'lon'])
     windows = {'time':5}
