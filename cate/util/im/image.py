@@ -23,7 +23,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import io
 import uuid
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from typing import Tuple, Sequence, Union, Any, Callable
 
 import matplotlib.cm as cm
@@ -72,7 +72,8 @@ class TiledImage(metaclass=ABCMeta):
     The interface for tiled images.
     """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def id(self) -> str:
         """
         Return a unique image identifier.
@@ -80,7 +81,8 @@ class TiledImage(metaclass=ABCMeta):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def format(self) -> str:
         """
         Return a format string such as 'PNG', 'JPG', 'RAW', etc, or None according to PIL.
@@ -88,7 +90,8 @@ class TiledImage(metaclass=ABCMeta):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def mode(self) -> str:
         """
         Return the image mode string such as 'RGBA', 'RGB', 'L', etc, or None according to PIL.
@@ -97,21 +100,24 @@ class TiledImage(metaclass=ABCMeta):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def size(self) -> Size2D:
         """
         :return: The size of the image as a (width, height) tuple
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def tile_size(self) -> Size2D:
         """
         :return: The size of the image as a (tile_width, tile_height) tuple
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def num_tiles(self) -> Size2D:
         """
         :return: The number of tiles as a (num_tiles_x, num_tiles_y) tuple
