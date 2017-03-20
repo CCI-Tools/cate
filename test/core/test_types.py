@@ -9,33 +9,33 @@ from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
 from cate.util import object_to_qualified_name
 
-# 'TestPoint' is an example type which may come from Cate API or other required API.
-TestPoint = namedtuple('TestPoint', ['x', 'y'])
+# 'ExamplePoint' is an example type which may come from Cate API or other required API.
+ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])
 
 
-# 'TestType' represents a type to be used for values that should actually be a 'TestPoint' but
+# 'ExampleType' represents a type to be used for values that should actually be a 'ExampleType' but
 # also have a representation as a `str` such as "2.1,4.3", ar a tuple of two floats (2.1,4.3).
-# The "typing type" for this is given by TestType.TYPE.
+# The "typing type" for this is given by ExampleType.TYPE.
 
-class TestType(Like[TestPoint]):
+class ExampleType(Like[ExamplePoint]):
     # The "typing type"
 
-    TYPE = Union[TestPoint, Tuple[float, float], str]
+    TYPE = Union[ExamplePoint, Tuple[float, float], str]
 
     @classmethod
-    def convert(cls, value) -> TestPoint:
+    def convert(cls, value) -> ExamplePoint:
         try:
-            if isinstance(value, TestPoint):
+            if isinstance(value, ExamplePoint):
                 return value
             if isinstance(value, str):
                 pair = value.split(',')
-                return TestPoint(float(pair[0]), float(pair[1]))
-            return TestPoint(value[0], value[1])
+                return ExamplePoint(float(pair[0]), float(pair[1]))
+            return ExamplePoint(value[0], value[1])
         except Exception:
             raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
 
     @classmethod
-    def format(cls, value: TestPoint) -> str:
+    def format(cls, value: ExamplePoint) -> str:
         return "%s, %s" % (value.x, value.y)
 
 
@@ -47,45 +47,45 @@ class TestType(Like[TestPoint]):
 _OP_REGISTRY = OpRegistry()
 
 
-@op_input("point_like", data_type=TestType, registry=_OP_REGISTRY)
-def scale_point(point_like: TestType.TYPE, factor: float) -> TestPoint:
-    point = TestType.convert(point_like)
-    return TestPoint(factor * point.x, factor * point.y)
+@op_input("point_like", data_type=ExampleType, registry=_OP_REGISTRY)
+def scale_point(point_like: ExampleType.TYPE, factor: float) -> ExamplePoint:
+    point = ExampleType.convert(point_like)
+    return ExamplePoint(factor * point.x, factor * point.y)
 
 
-class TestTypeTest(TestCase):
+class ExampleTypeTest(TestCase):
     def test_use(self):
-        self.assertEqual(scale_point("2.4, 4.8", 0.5), TestPoint(1.2, 2.4))
-        self.assertEqual(scale_point((2.4, 4.8), 0.5), TestPoint(1.2, 2.4))
-        self.assertEqual(scale_point(TestPoint(2.4, 4.8), 0.5), TestPoint(1.2, 2.4))
+        self.assertEqual(scale_point("2.4, 4.8", 0.5), ExamplePoint(1.2, 2.4))
+        self.assertEqual(scale_point((2.4, 4.8), 0.5), ExamplePoint(1.2, 2.4))
+        self.assertEqual(scale_point(ExamplePoint(2.4, 4.8), 0.5), ExamplePoint(1.2, 2.4))
 
     def test_abuse(self):
         with self.assertRaises(ValueError) as e:
             scale_point("A, 4.8", 0.5)
-        self.assertEqual(str(e.exception), "cannot convert value <A, 4.8> to TestType")
+        self.assertEqual(str(e.exception), "cannot convert value <A, 4.8> to ExampleType")
 
         with self.assertRaises(ValueError) as e:
             scale_point(25.1, 0.5)
-        self.assertEqual(str(e.exception), "cannot convert value <25.1> to TestType")
+        self.assertEqual(str(e.exception), "cannot convert value <25.1> to ExampleType")
 
     def test_registered_op(self):
         registered_op = _OP_REGISTRY.get_op(object_to_qualified_name(scale_point))
         point = registered_op(point_like="2.4, 4.8", factor=0.5)
-        self.assertEqual(point, TestPoint(1.2, 2.4))
+        self.assertEqual(point, ExamplePoint(1.2, 2.4))
 
     def test_name(self):
-        self.assertEqual(TestType.name(), "TestType")
+        self.assertEqual(ExampleType.name(), "ExampleType")
 
     def test_accepts(self):
-        self.assertTrue(TestType.accepts("2.4, 4.8"))
-        self.assertTrue(TestType.accepts((2.4, 4.8)))
-        self.assertTrue(TestType.accepts([2.4, 4.8]))
-        self.assertTrue(TestType.accepts(TestPoint(2.4, 4.8)))
-        self.assertFalse(TestType.accepts("A, 4.8"))
-        self.assertFalse(TestType.accepts(25.1))
+        self.assertTrue(ExampleType.accepts("2.4, 4.8"))
+        self.assertTrue(ExampleType.accepts((2.4, 4.8)))
+        self.assertTrue(ExampleType.accepts([2.4, 4.8]))
+        self.assertTrue(ExampleType.accepts(ExamplePoint(2.4, 4.8)))
+        self.assertFalse(ExampleType.accepts("A, 4.8"))
+        self.assertFalse(ExampleType.accepts(25.1))
 
     def test_format(self):
-        self.assertEqual(TestType.format(TestPoint(2.4, 4.8)), "2.4, 4.8")
+        self.assertEqual(ExampleType.format(ExamplePoint(2.4, 4.8)), "2.4, 4.8")
 
 
 class VariableNamesLikeTest(TestCase):
@@ -185,7 +185,7 @@ class PolygonLikeTest(TestCase):
 
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
-        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual('cannot convert geometry to a valid Polygon: aaa', str(err.exception))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]

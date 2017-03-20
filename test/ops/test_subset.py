@@ -148,7 +148,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as err:
             subset.subset_spatial(dataset, pol)
-
+        self.assertEqual('cannot convert geometry to a valid Polygon: ' + pol, str(err.exception))
 
 
 class TestSubsetTemporal(TestCase):

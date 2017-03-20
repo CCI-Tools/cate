@@ -58,10 +58,10 @@ def subset_spatial(ds: xr.Dataset,
     lon_min, lat_min, lon_max, lat_max = region.bounds
 
     # Validate the bounding box
-    if (not (-90 <= lat_min <= 90)) or\
-       (not (-90 <= lat_max <= 90)) or\
-       (not (-180 <= lon_min <= 180)) or\
-       (not (-180 <= lon_max <= 180)):
+    if (not (-90 <= lat_min <= 90)) or \
+            (not (-90 <= lat_max <= 90)) or \
+            (not (-180 <= lon_min <= 180)) or \
+            (not (-180 <= lon_max <= 180)):
         raise ValueError('Provided polygon extends outside of geospatial'
                          ' bounds: latitude [-90;90], longitude [-180;180]')
 
@@ -89,7 +89,7 @@ def subset_spatial(ds: xr.Dataset,
         lon_left_of_idl = slice(lon_min, 180)
         lon_right_of_idl = slice(-180, lon_max)
         lon_index = xr.concat((ds.lon.sel(lon=lon_right_of_idl),
-                              ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
+                               ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
         indexers = {'lon': lon_index, 'lat': slice(lat_min, lat_max)}
         retset = ds.sel(**indexers)
 
@@ -122,6 +122,7 @@ def subset_spatial(ds: xr.Dataset,
     # Mask values outside the polygon with NaN, crop the dataset
     return ds.where(mask, drop=True)
 
+
 def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
     """
     Determine if the given region crosses the Antimeridian line, by converting
@@ -144,8 +145,8 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
         lon, lat = point.split(' ')
         lon = float(lon)
         if -180 <= lon < 0:
-            lon = lon + 360
-        new_wkt = new_wkt + '{} {}, '.format(lon, lat)
+            lon += 360
+        new_wkt += '{} {}, '.format(lon, lat)
     new_wkt = new_wkt[:-2] + '))'
 
     converted = loads(new_wkt)
