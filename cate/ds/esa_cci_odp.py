@@ -43,9 +43,7 @@ Components
 """
 import json
 import os
-import os.path
 import re
-
 import urllib.parse
 import urllib.request
 import xarray as xr
@@ -89,7 +87,7 @@ _ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
 
 
 def get_data_store_path():
-    return os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
+    return os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
                           os.path.join(get_data_stores_path(), 'local'))
 
 
@@ -591,13 +589,9 @@ class EsaCciOdpDataSource(DataSource):
         else:
             protocol = _ODP_PROTOCOL_OPENDAP
 
-        if not os.path.exists(get_data_store_path()):
-            os.mkdir(get_data_store_path())
-
         local_path = os.path.join(get_data_store_path(), local_name)
-
         if not os.path.exists(local_path):
-            os.mkdir(local_path)
+            os.makedirs(local_path)
 
         selected_file_list = self._find_files(time_range)
 
