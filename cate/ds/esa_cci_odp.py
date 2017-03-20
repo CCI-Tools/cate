@@ -636,6 +636,7 @@ class EsaCciOdpDataSource(DataSource):
                         lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
                         lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
 
+                        # TODO (kbernat): check why dataset.sel fails!
                         remote_dataset = remote_dataset.isel(drop=False,
                                                              lat=slice(lat_min, lat_max),
                                                              lon=slice(lon_min, lon_max))
