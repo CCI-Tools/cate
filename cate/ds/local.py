@@ -40,14 +40,18 @@ Components
 """
 
 import json
+import os
+import shutil
+import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
+from dateutil import parser
 from glob import glob
+from math import ceil, floor
 from os import listdir, makedirs, environ
 from os.path import join, isfile
 from typing import Optional, Sequence, Tuple, Union, Any
-
-from dateutil import parser
+from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
@@ -119,9 +123,74 @@ class LocalDataSource(DataSource):
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
-        # TODO (kbernat): implement me!
-        raise NotImplementedError('LocalDataSource.make_local() '
-                                  'is not yet implemented')
+        if not local_name:
+            raise ValueError('local_name is required')
+        elif len(local_name) == 0:
+            raise ValueError('local_name cannot be empty')
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        region = GeometryLike.convert(region) if region else None
+        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
+
+        local_path = os.path.join(get_data_store_path(), local_name)
+        if not os.path.exists(local_path):
+            os.makedirs(local_path)
+
+        paths = []
+        for file in self._files.items():
+            paths.extend(glob(file[0]))
+        paths = sorted(set(paths))
+        monitor.start(total_work=len(paths))
+        if paths:
+            for path in paths:
+                child_monitor = monitor.child(work=1)
+
+                remote_netcdf = NetCDF4DataStore(path)
+
+                start_date = parser.parse(remote_netcdf.attrs['start_date'])
+                stop_date = parser.parse(remote_netcdf.attrs['stop_date'])
+                if time_range[0] >= start_date and time_range[1] <= stop_date:
+
+                    remote_dataset = xr.Dataset.load_store(remote_netcdf)
+
+                    local_netcdf = None
+
+                    file_name = os.path.basename(path)
+
+                    if region or var_names:
+                        try:
+                            local_filepath = os.path.join(local_path, file_name)
+
+                            local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
+                            local_netcdf.set_attributes(remote_netcdf.get_attrs())
+
+                            if region:
+                                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                                remote_dataset = remote_dataset.sel(drop=False,
+                                                                    lat=slice(lat_min, lat_max),
+                                                                    lon=slice(lon_min, lon_max))
+                            if not var_names:
+                                var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+                            var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
+                                              if coord_name not in var_names])
+
+                            child_monitor.start(label=file_name, total_work=len(var_names))
+                            for sel_var_name in var_names:
+                                var_dataset = remote_dataset.drop(
+                                    [var_name for var_name in var_names if var_name != sel_var_name])
+                                local_netcdf.store_dataset(var_dataset)
+                                child_monitor.progress(work=1, msg=sel_var_name)
+                        except:
+                            raise
+                        finally:
+                            if remote_netcdf:
+                                remote_netcdf.close()
+                            if local_netcdf:
+                                local_netcdf.close()
+                    else:
+                        local_filepath = shutil.copy(src=path, dst=local_path)
+                child_monitor.done()
+            monitor.done()
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
         if update or list(self._files.keys()).count(file) == 0:
