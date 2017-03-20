@@ -621,18 +621,26 @@ class EsaCciOdpDataSource(DataSource):
                     remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
                     geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
+                    geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
                     geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
+                    geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
 
-                    geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
-                    geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
-
-                    [lat_min, lon_min, lat_max, lon_max] = region.bounds
-                    lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
-                    lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
-                    lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
-                    lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+                    lat_min = geo_lat_min
+                    lat_max = geo_lat_max
+                    lon_min = geo_lon_min
+                    lon_max = geo_lon_max
 
                     if region:
+                        geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
+                        geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
+
+                        [lat_min, lon_min, lat_max, lon_max] = region.bounds
+
+                        lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
+                        lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
+                        lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
+                        lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+
                         remote_dataset = remote_dataset.isel(drop=False,
                                                              lat=slice(lat_min, lat_max),
                                                              lon=slice(lon_min, lon_max))
