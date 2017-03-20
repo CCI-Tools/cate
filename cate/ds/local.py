@@ -81,14 +81,12 @@ class LocalDataSource(DataSource):
                      var_names: VariableNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        # TODO (kbernat): support region constraint here
         if region:
-            raise NotImplementedError('LocalDataSource.open_dataset() '
-                                      'does not yet support the "region" constraint')
-        # TODO (kbernat): support var_names constraint here
+            region = GeometryLike.convert(region)
         if var_names:
-            raise NotImplementedError('LocalDataSource.open_dataset() '
-                                      'does not yet support the "var_names" constraint')
+            var_names = VariableNamesLike.convert(var_names)
+        if protocol:
+            raise ValueError("Protocol '{}' is not recognized, use None for default")
         paths = []
         if time_range:
             time_series = list(self._files.values())
@@ -101,7 +99,16 @@ class LocalDataSource(DataSource):
                 paths.extend(glob(file[0]))
             paths = sorted(set(paths))
         if paths:
-            return open_xarray_dataset(paths)
+            try:
+                ds = open_xarray_dataset(paths)
+                if region:
+                    [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                    ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
+                if var_names:
+                    ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
+                return ds
+            except OSError as e:
+                raise IOError("Files: {} caused:\nOSError({}): {}".format(paths, e.errno, e.strerror))
         else:
             return None
 
