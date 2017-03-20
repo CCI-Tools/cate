@@ -625,11 +625,6 @@ class EsaCciOdpDataSource(DataSource):
                     geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
                     geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
 
-                    lat_min = geo_lat_min
-                    lat_max = geo_lat_max
-                    lon_min = geo_lon_min
-                    lon_max = geo_lon_max
-
                     if region:
                         geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
                         geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
@@ -644,6 +639,11 @@ class EsaCciOdpDataSource(DataSource):
                         remote_dataset = remote_dataset.isel(drop=False,
                                                              lat=slice(lat_min, lat_max),
                                                              lon=slice(lon_min, lon_max))
+
+                        geo_lat_min += lat_min * geo_lat_res
+                        geo_lat_max += lat_max * geo_lat_res
+                        geo_lon_min += lon_min * geo_lon_res
+                        geo_lon_max += lon_max * geo_lon_res
 
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -660,10 +660,10 @@ class EsaCciOdpDataSource(DataSource):
                         child_monitor.progress(work=1, msg=sel_var_name)
 
                     if region:
-                        local_netcdf.set_attribute('geospatial_lat_min', lat_min * geo_lat_res + geo_lat_min)
-                        local_netcdf.set_attribute('geospatial_lat_max', lat_max * geo_lat_res + geo_lat_min)
-                        local_netcdf.set_attribute('geospatial_lon_min', lon_min * geo_lon_res + geo_lon_min)
-                        local_netcdf.set_attribute('geospatial_lon_max', lon_max * geo_lon_res + geo_lon_min)
+                        local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
+                        local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
+                        local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
+                        local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
                 except:
                     raise
                 finally:
