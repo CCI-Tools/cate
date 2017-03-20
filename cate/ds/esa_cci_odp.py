@@ -570,8 +570,10 @@ class EsaCciOdpDataSource(DataSource):
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
-        if not local_name or len(local_name) == 0:
-            raise ValueError('Missing local_name')
+        if not local_name:
+            raise ValueError('local_name is required')
+        elif len(local_name) == 0:
+            raise ValueError('local_name cannot be empty')
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
