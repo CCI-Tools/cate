@@ -120,6 +120,36 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-19.5, 19.5, 40)})
         assert_dataset_equal(expected, actual)
 
+    def test_antimeridian_simple(self):
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+
+        # With masking
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5')
+        self.assertTrue(np.nan == actual.sel('nearest', {'lon': 0, 'lat': 0}))
+
+        # With dropping
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
+        self.assertTrue(20 == len(actual.lon))
+
+    def test_antimeridian_arbitrary(self):
+        pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
+                  '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
+                  '12.897489183755905,161.89453125 26.745610382199025,162.0703125'
+                  '39.639537564366705))')
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+
+        with self.assertRaises(Exception) as err:
+            subset.subset_spatial(dataset, pol)
+        self.assertEqual('cannot convert geometry to a valid Polygon: ' + pol, str(err.exception))
+
 
 class TestSubsetTemporal(TestCase):
     def test_subset_temporal(self):

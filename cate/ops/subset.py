@@ -32,7 +32,8 @@ Components
 import xarray as xr
 import numpy as np
 import jdcal
-from shapely.geometry import Point, box
+from shapely.geometry import Point, box, LineString
+from shapely.wkt import loads, dumps
 
 from cate.core.op import op, op_input
 from cate.core.types import PolygonLike
@@ -57,10 +58,10 @@ def subset_spatial(ds: xr.Dataset,
     lon_min, lat_min, lon_max, lat_max = region.bounds
 
     # Validate the bounding box
-    if (not (-90 <= lat_min <= 90)) or\
-       (not (-90 <= lat_max <= 90)) or\
-       (not (-180 <= lon_min <= 180)) or\
-       (not (-180 <= lon_max <= 180)):
+    if (not (-90 <= lat_min <= 90)) or \
+            (not (-90 <= lat_max <= 90)) or \
+            (not (-180 <= lon_min <= 180)) or \
+            (not (-180 <= lon_max <= 180)):
         raise ValueError('Provided polygon extends outside of geospatial'
                          ' bounds: latitude [-90;90], longitude [-180;180]')
 
@@ -71,8 +72,38 @@ def subset_spatial(ds: xr.Dataset,
         # mask.
         simple_polygon = True
 
+    crosses_antimeridian = _crosses_antimeridian(region)
+
+    if crosses_antimeridian and not simple_polygon:
+        # Unlikely but plausible
+        raise NotImplementedError('Spatial subset over the International Date'
+                                  ' Line is currently implemented for simple,'
+                                  ' rectangular polygons only.')
+
+    if crosses_antimeridian:
+        # Shapely messes up longitudes if the polygon crosses the antimeridian
+        lon_min, lon_max = lon_max, lon_min
+
+        # Can't perform a simple selection with slice, hence we have to
+        # construct an appropriate longitude indexer for selection
+        lon_left_of_idl = slice(lon_min, 180)
+        lon_right_of_idl = slice(-180, lon_max)
+        lon_index = xr.concat((ds.lon.sel(lon=lon_right_of_idl),
+                               ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
+        indexers = {'lon': lon_index, 'lat': slice(lat_min, lat_max)}
+        retset = ds.sel(**indexers)
+
+        if mask:
+            # Preserve the original longitude dimension, masking elements that
+            # do not belong to the polygon with NaN.
+            return retset.reindex_like(ds.lon)
+        else:
+            # Return the dataset with no NaNs and with a disjoint longitude
+            # dimension
+            return retset
+
     if not mask or simple_polygon:
-        # Slice
+        # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
         lat_slice = slice(lat_min, lat_max)
         lon_slice = slice(lon_min, lon_max)
         indexers = {'lat': lat_slice, 'lon': lon_slice}
@@ -90,6 +121,57 @@ def subset_spatial(ds: xr.Dataset,
 
     # Mask values outside the polygon with NaN, crop the dataset
     return ds.where(mask, drop=True)
+
+
+def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
+    """
+    Determine if the given region crosses the Antimeridian line, by converting
+    the given Polygon from -180;180 to 0;360 and checking if the antimeridian
+    line crosses it.
+
+    This only works with Polygons without holes
+
+    :param region: PolygonLike to test
+    """
+    region = PolygonLike.convert(region)
+
+    # Retrieving the points of the Polygon are a bit troublesome, parsing WKT
+    # is more straightforward and probably faster
+    new_wkt = 'POLYGON (('
+
+    # [10:-2] gets rid of POLYGON (( and ))
+    for point in dumps(region)[10:-2].split(','):
+        point = point.strip()
+        lon, lat = point.split(' ')
+        lon = float(lon)
+        if -180 <= lon < 0:
+            lon += 360
+        new_wkt += '{} {}, '.format(lon, lat)
+    new_wkt = new_wkt[:-2] + '))'
+
+    converted = loads(new_wkt)
+
+    # There's a problem at this point. Any polygon crossed by the zeroth
+    # meridian can in principle convert to an inverted polygon that is crossed
+    # by the antimeridian.
+
+    if not converted.is_valid:
+        # The polygon 'became' invalid upon conversion => probably the original
+        # polygon is what we want
+        return False
+
+    test_line = LineString([(180, -90), (180, 90)])
+    if test_line.crosses(converted):
+        # The converted polygon seems to be valid and crossed by the
+        # antimeridian. At this point there's no 'perfect' way how to tell if
+        # we wanted the converted polygon or the original one.
+
+        # A simple heuristic is to check for size. The smaller one is quite
+        # likely the desired one
+        if converted.area < region.area:
+            return True
+        else:
+            return False
 
 
 @op(tags=['subset', 'temporal'])
