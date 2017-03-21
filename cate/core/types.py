@@ -195,11 +195,11 @@ class PolygonLike(Like[Polygon]):
                 if polygon.is_valid:
                     return polygon
         except Exception:
-            raise ValueError('cannot convert {} to a valid'
-                             ' Polygon'.format(value))
+            raise ValueError('cannot convert geometry to a valid'
+                             ' Polygon: {}'.format(value))
 
-        raise ValueError('cannot convert {} to a valid'
-                         ' Polygon'.format(value))
+        raise ValueError('cannot convert geometry to a valid'
+                         ' Polygon: {}'.format(value))
 
     @classmethod
     def format(cls, value: Polygon) -> str:

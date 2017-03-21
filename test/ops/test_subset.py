@@ -74,9 +74,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, a)
         # Gulf of Guinea
-        self.assertTrue(np.nan == actual.sel('nearest', {'lon': 1.2, 'lat': -1.4}))
+        gog = actual.sel(method='nearest', **{'lon': 1.2, 'lat': -1.4})
+        self.assertTrue(np.isnan(gog['first']).all())
         # Africa
-        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat': 6.15}))
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 20.7, 'lat': 6.15}))
 
     def test_generic_not_masked(self):
         """
@@ -98,9 +99,9 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, a, mask=False)
         # Gulf of Guinea
-        self.assertTrue(1 == actual.sel('nearest', {'lon': 1.2, 'lat': -1.4}))
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 1.2, 'lat': -1.4}))
         # Africa
-        self.assertTrue(1 == actual.sel('nearest', {'lon': 20.7, 'lat': 6.15}))
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 20.7, 'lat': 6.15}))
 
     def test_registered(self):
         """
@@ -128,12 +129,13 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
 
         # With masking
-        actual = subset.subset_spatial(dataset, '170, -5, -170, 5')
-        self.assertTrue(np.nan == actual.sel('nearest', {'lon': 0, 'lat': 0}))
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=True)
+        masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
+        self.assertTrue(np.isnan(masked['first']).all())
 
         # With dropping
         actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertTrue(20 == len(actual.lon))
+        self.assertEquals(20, len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
         pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
@@ -148,7 +150,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as err:
             subset.subset_spatial(dataset, pol)
-
+        self.assertEqual('cannot convert geometry to a valid Polygon: ' + pol, str(err.exception))
 
 
 class TestSubsetTemporal(TestCase):
