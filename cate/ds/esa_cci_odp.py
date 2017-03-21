@@ -272,6 +272,10 @@ class EsaCciOdpDataStore(DataStore):
     def index_cache_expiration_days(self):
         return self._index_cache_expiration_days
 
+    @property
+    def data_store_path(self) -> str:
+        return get_metadata_store_path()
+
     def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         with monitor.starting('Updating indices', 100):
             self._init_data_sources()

@@ -538,6 +538,10 @@ class FileSetDataStore(DataStore):
         return self._root_dir
 
     @property
+    def data_store_path(self) -> str:
+        return self._root_dir
+
+    @property
     def remote_url(self) -> str:
         """Optional URL of the data store's remote service."""
         return self._remote_url

@@ -40,7 +40,6 @@ Components
 """
 
 import json
-import os
 import shutil
 import xarray as xr
 from collections import OrderedDict
@@ -49,7 +48,7 @@ from dateutil import parser
 from glob import glob
 from math import ceil, floor
 from os import listdir, makedirs, environ
-from os.path import join, isfile
+from os.path import basename, exists, isfile, join
 from typing import Optional, Sequence, Tuple, Union, Any
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 
@@ -69,15 +68,84 @@ def add_to_data_store_registry():
     data_store = LocalDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
+from abc import ABCMeta, abstractmethod
+from enum import Enum
+
+
+class LocalDataSourceType(Enum):
+    NONE = 0
+    FILE_PATTERN = 1
+    OPENDAP = 2
+
+
+class LocalDataSourceConfiguration(metaclass=ABCMeta):
+
+    def __init__(self, name: str, source: str, config_type: str,
+                 data_store: DataStore):
+
+        self._name = "{}.{}".format(data_store.name, name)
+        self._source = source
+        self._config_type = config_type
+        self._files = OrderedDict()
+        self._data_store = data_store
+
+    def add_file(self, path: str, time_range: TimeRangeLike.TYPE = None, update: bool = False):
+
+        is_disjoint = self._files.keys().isdisjoint([path])
+        if not update and not is_disjoint:
+            raise ValueError("Config already contains file `{}`".format(path))
+
+        self._files[path] = time_range
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
+
+    @abstractmethod
+    def check_type(self, config_json: dict):
+        return False
+
+    @abstractmethod
+    def save(self, path=None):
+        pass
+
+
+class FilePatternDataSourceConfiguration(LocalDataSourceConfiguration):
+
+    def __init__(self, name: str, source: str, data_store: DataStore):
+        super().__init__(name=name, source=source, config_type='FILE_PATTERN',
+                         data_store=data_store)
+
+    def check_type(self, config_json: dict):
+        return self._config_type.lower() == config_json.get('type', 'unknown').lower()
+
+    def save(self):
+        config = OrderedDict()
+        config['name'] = self._name
+        config['type'] = self._config_type
+        config['source'] = self._source
+        config['files'] = [[item[0], item[1][0],item[1][1]] for item in self._files.items()]
+
+        dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
+        file_name = join(self._data_store.data_store_path, self._name + '.json')
+        with open(file_name, 'w') as fp:
+            json.dump(config, fp, **dump_kwargs)
+
+    @staticmethod
+    def _json_default_serializer(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError('Not sure how to serialize %s' % (obj,))
+
 
 class LocalDataSource(DataSource):
-    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], _data_store: DataStore):
+    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
+                 config: LocalDataSourceConfiguration = None):
         self._name = name
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
         else:
             self._files = files
-        self._data_store = _data_store
+        self._data_store = data_store
+        self._config = config if config else \
+            FilePatternDataSourceConfiguration(name=name, source=None, data_store=data_store)
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -132,73 +200,82 @@ class LocalDataSource(DataSource):
         region = GeometryLike.convert(region) if region else None
         var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
-        local_path = os.path.join(get_data_store_path(), local_name)
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
+        local_path = join(get_data_store_path(), local_name)
+
+        makedirs(local_path, exist_ok=True)
 
         paths = []
         for file in self._files.items():
             paths.extend(glob(file[0]))
         paths = sorted(set(paths))
-        monitor.start(total_work=len(paths))
-        if paths:
-            for path in paths:
-                child_monitor = monitor.child(work=1)
+        monitor.start("make local", total_work=len(paths))
+        if not paths:
+            raise ValueError("Cannot make local copy of empty DataStore")
 
-                remote_netcdf = NetCDF4DataStore(path)
+        config = FilePatternDataSourceConfiguration(
+            name=local_name,
+            source=self._name,
+            data_store=self._data_store)
 
-                start_date = parser.parse(remote_netcdf.attrs['start_date'])
-                stop_date = parser.parse(remote_netcdf.attrs['stop_date'])
-                if time_range[0] >= start_date and time_range[1] <= stop_date:
+        for path in paths:
+            child_monitor = monitor.child(work=1)
 
-                    remote_dataset = xr.Dataset.load_store(remote_netcdf)
+            remote_netcdf = NetCDF4DataStore(path)
+            start_date = parser.parse(remote_netcdf.attrs['start_date'])
+            stop_date = parser.parse(remote_netcdf.attrs['stop_date'])
+            if start_date >= time_range[0] and stop_date <= time_range[1]:
 
-                    local_netcdf = None
+                remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                    file_name = os.path.basename(path)
+                local_netcdf = None
 
-                    if region or var_names:
-                        try:
-                            local_filepath = os.path.join(local_path, file_name)
+                file_name = basename(path)
 
-                            local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
-                            local_netcdf.set_attributes(remote_netcdf.get_attrs())
+                if region or var_names:
+                    try:
+                        local_filepath = join(local_path, file_name)
 
-                            if region:
-                                [lat_min, lon_min, lat_max, lon_max] = region.bounds
-                                remote_dataset = remote_dataset.sel(drop=False,
-                                                                    lat=slice(lat_min, lat_max),
-                                                                    lon=slice(lon_min, lon_max))
-                            if not var_names:
-                                var_names = [var_name for var_name in remote_netcdf.variables.keys()]
-                            var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
-                                              if coord_name not in var_names])
+                        local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
+                        local_netcdf.set_attributes(remote_netcdf.get_attrs())
 
-                            child_monitor.start(label=file_name, total_work=len(var_names))
-                            for sel_var_name in var_names:
-                                var_dataset = remote_dataset.drop(
-                                    [var_name for var_name in var_names if var_name != sel_var_name])
-                                local_netcdf.store_dataset(var_dataset)
-                                child_monitor.progress(work=1, msg=sel_var_name)
-                        except:
-                            raise
-                        finally:
-                            if remote_netcdf:
-                                remote_netcdf.close()
-                            if local_netcdf:
-                                local_netcdf.close()
-                    else:
-                        local_filepath = shutil.copy(src=path, dst=local_path)
-                child_monitor.done()
-            monitor.done()
+                        if region:
+                            [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                            remote_dataset = remote_dataset.sel(drop=False,
+                                                                lat=slice(lat_min, lat_max),
+                                                                lon=slice(lon_min, lon_max))
+                        if not var_names:
+                            var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+                        var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
+                                          if coord_name not in var_names])
+
+                        child_monitor.start(label=file_name, total_work=len(var_names))
+                        for sel_var_name in var_names:
+                            var_dataset = remote_dataset.drop(
+                                [var_name for var_name in var_names if var_name != sel_var_name])
+                            local_netcdf.store_dataset(var_dataset)
+                            child_monitor.progress(work=1, msg=sel_var_name)
+                    except:
+                        raise
+                    finally:
+                        if remote_netcdf:
+                            remote_netcdf.close()
+                        if local_netcdf:
+                            local_netcdf.close()
+                else:
+                    local_filepath = shutil.copy(src=path, dst=local_path)
+                config.add_file(local_filepath, (start_date, stop_date))
+            child_monitor.done()
+        config.save()
+        monitor.done()
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
-        if update or list(self._files.keys()).count(file) == 0:
+
+        if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_stamp.replace(microsecond=0) if time_stamp else None
         self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
 
     def save(self):
-        self._data_store.save_data_source(self)
+        self._config.save()
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if self._files:
@@ -270,9 +347,15 @@ class LocalDataStore(DataStore):
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
         data_source = LocalDataSource(name, files, self)
+        data_source.save()
+
         self._data_sources.append(data_source)
-        self._save_data_source(data_source)
+
         return name
+
+    @property
+    def data_store_path(self):
+        return self._store_dir
 
     def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalDataSource]:
         self._init_data_sources()
@@ -281,9 +364,6 @@ class LocalDataStore(DataStore):
         else:
             result = self._data_sources
         return result
-
-    def save_data_source(self, data_source):
-        self._save_data_source(data_source)
 
     def __repr__(self):
         return "LocalFilePatternDataStore(%s)" % repr(self.name)
@@ -314,23 +394,9 @@ class LocalDataStore(DataStore):
         if json_dict:
             return LocalDataSource.from_json_dict(json_dict, self)
 
-    def _save_data_source(self, data_source):
-        json_dict = data_source.to_json_dict()
-        dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
-        file_name = join(self._store_dir, data_source.name + '.json')
-        with open(file_name, 'w') as fp:
-            json.dump(json_dict, fp, **dump_kwargs)
-
     @staticmethod
     def _load_json_file(json_path: str):
         if isfile(json_path):
             with open(json_path) as fp:
                 return json.load(fp=fp) or {}
         return None
-
-    @staticmethod
-    def _json_default_serializer(obj):
-        if isinstance(obj, datetime):
-            return obj.replace(microsecond=0).isoformat()
-        raise TypeError('Not sure how to serialize %s' % (obj,))
-

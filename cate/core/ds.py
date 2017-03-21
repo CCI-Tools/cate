@@ -339,9 +339,16 @@ class DataStore(metaclass=ABCMeta):
     @property
     def name(self) -> str:
         """
-        Return he name of this data store.
+        Return the name of this data store.
         """
         return self._name
+
+    @property
+    def data_store_path(self) -> str:
+        """
+        Returns path to data store
+        """
+        return None
 
     @abstractmethod
     def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
