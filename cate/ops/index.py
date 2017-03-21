@@ -30,14 +30,22 @@ Functions
 =========
 """
 
-from cate.core.op import op
+from cate.core.op import op, op_input
 from cate.ops.select import select_var
 from cate.ops.subset import subset_spatial
-import xarray as xr
+from cate.core.types import PolygonLike
 
+import xarray as xr
+import pandas as pd
+
+
+_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 @op(tags=['index', 'nino34'])
-def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
+                                                         extensions=['nc']),
+                                                         _ALL_FILE_FILTER])
+def enso_nino34(ds: xr.Dataset, var:str, file: str, threshold: float=False):
     """
     Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
@@ -56,36 +64,25 @@ def enso_nino34(ds: xr.Dataset, file: str, var: str, threshold: float=False):
     ds = select_var(ds, var)
     ref = xr.open_dataset(file)
     ref = select_var(ref, var)
+    ref.load()
     n34 = '-170, -5, -120, 5'
     ds_n34 = subset_spatial(ds, n34)
     ref_n34 = subset_spatial(ref, n34)
+    print(ds_n34)
+    print(ref_n34)
     n34_anom = ds_n34 - ref_n34
+    print(n34_anom)
     n34_ts = n34_anom.mean(dim=['lat', 'lon'])
-    windows = {'time':5}
-    i = True
-    for item in n34_ts[var].rolling(**windows):
-        # After the mean I probably have to give 'time' dimension
-        # back to the item, so that the rolling means can then be concatenated
-        # into a timeseries.
-        if i:
-            retset = item[0].mean()
-            i = False
-        print('====')
-        print(item[0])
-        print(item[1])
-        print('====')
-        retset = xr.concat([retset, item[0].mean()])
-    print(retset)
-    #n34_running_mean = pd.rolling_mean(n34_ts[var].values, 5)
-    # Should this be a pd.Dataframe instead? Does it make sense to have it in
-    # an xarray dataset? Norman assumes that those can be plotted on the globe,
-    # if this is an actual 'index' table, it should be a dataframe instead.
-    # It could of course be converted to xr.Dataset if needed, say, for
-    # correlation.
-    #return xr.Dataset(n34_running_mean)
+    n34_data_frame = pd.DataFrame(data=n34_ts[var].values, columns=['Index'],
+                                  index=n34_ts.time)
+    n34_running_mean = pd.rolling_mean(n34_data_frame, 5)
+    return n34_running_mean
 
 
 @op(tags=['index'])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
+                                                         extensions=['nc']),
+                                                         _ALL_FILE_FILTER])
 @op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4', 'custom'])
 @op_input('custom_region', cate_type='polygon')
 def enso_index(ds: xr.Dataset,
@@ -111,10 +108,10 @@ def enso_index(ds: xr.Dataset,
     threshold indicates La Nina.
     :return: A dataset that contains the index timeseries.
     """
-    regions = {'n1+2': '',
-               'n3': '',
-               'n34': '',
-               'n4': '',
+    regions = {'n1+2': '-90, -10, -80, 0',
+               'n3': '-150, -5, -90, 5',
+               'n34': '-170, -5, -120, 5',
+               'n4': '160, -5, -150, 5',
                'custom': custom_region}
 
     region = PolygonLike.convert(regions[region])
@@ -122,6 +119,9 @@ def enso_index(ds: xr.Dataset,
 
 
 @op(tags=['index'])
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
+                                                         extensions=['nc']),
+                                                         _ALL_FILE_FILTER])
 def oni_index(ds: xr.Dataset, var: str, file: str):
     """
     Calculate ONI index, which is defined as a three month running mean of
