@@ -51,6 +51,26 @@ class TestDsArithmetics(TestCase):
             arithmetics.ds_arithmetics(dataset, 'not')
         self.assertTrue('not implemented' in str(err.exception))
 
+    def test_registered(self):
+        """
+        Test the operation when invoked through the OP_REGISTRY
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.ds_arithmetics))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        actual = reg_op(ds=dataset, op='+2, -2, *3, /3, *4')
+        assert_dataset_equal(expected*4, actual)
+
 
 
 class TestDiff(TestCase):
@@ -158,3 +178,22 @@ class TestDiff(TestCase):
             'time': [datetime(2001,1,1)]})
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(expected, actual)
+
+    def test_registered(self):
+        """
+        Test the operation when invoked from the OP_REGISTRY
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.diff))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+        actual = reg_op(ds=dataset, ds2=dataset*2)
+        assert_dataset_equal(expected*-1, actual)
