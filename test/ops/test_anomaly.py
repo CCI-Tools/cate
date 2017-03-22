@@ -144,6 +144,8 @@ class TestExternal(TestCase):
         ds.to_netcdf(self._TEMP_DS)
         # This makes ds a dask dataset in xarray backend
         ds = xr.open_dataset(self._TEMP_DS, chunks={})
+        # Test that it is indeed the case
+        self.assertFalse(not ds.chunks)
 
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
