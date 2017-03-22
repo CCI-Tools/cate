@@ -62,14 +62,15 @@ def ds_arithmetics(ds: xr.Dataset,
     """
     retset = ds
     for item in op.split(','):
+        item = item.strip()
         if item[0] == '+':
-            retset = retset + item[1:]
+            retset = retset + float(item[1:])
         elif item[0] == '-':
-            retset = retset - item[1:]
+            retset = retset - float(item[1:])
         elif item[0] == '*':
-            retset = retset * item[1:]
+            retset = retset * float(item[1:])
         elif item[0] == '/':
-            retset = retset / item[1:]
+            retset = retset / float(item[1:])
         elif item[:] == 'log':
             retset = xu.log(retset)
         elif item[:] == 'log10':
@@ -82,6 +83,20 @@ def ds_arithmetics(ds: xr.Dataset,
             retset = xu.exp(retset)
         else:
             raise ValueError('Arithmetic operation {} not'
-                             'implemented.'.format(item[0]))
+                             ' implemented.'.format(item[0]))
 
-        return retset
+    return retset
+
+
+@op(tags=['arithmetic'])
+def diff(ds: xr.Dataset, ds2:xr.Dataset):
+    """
+    Calculate the difference of two datasets (ds - ds2). This is done by
+    broadcasting variables with matching names in the two datasets against each
+    other and taking the difference.
+
+    :param ds: The minuend dataset
+    :param ds2: The subtrahend dataset
+    :return: The difference dataset
+    """
+    return ds - ds2
