@@ -31,6 +31,7 @@ Functions
 
 from cate.core.op import op
 from cate.ops.subset import subset_spatial, subset_temporal
+from cate.ops.arithmetics import diff
 import xarray as xr
 
 
@@ -59,7 +60,28 @@ def anomaly_external(ds: xr.Dataset,
     :return: The anomaly dataset
     """
     clim = xr.open_dataset(file)
-    return ds - clim
+    # Group by months, subtract the appropriate slice from the reference
+    # Note that this requires that 'time' coordinate labels are of type
+    # datetime64[ns]
+    ret = ds.groupby(ds['time.month']).apply(_group_anomaly, **{'ref': clim})
+
+    # Running groupby results in a redundant 'month' variable being added to
+    # the dataset
+    ret =  ret.drop('month')
+    return ret
+
+
+def _group_anomaly(group: xr.Dataset, ref: xr.Dataset):
+    """
+    Calculate anomaly for the given group.
+
+    :param group: Result of a groupby('time.month') operation
+    :param ref: Reference dataset
+    :return: Group dataset with anomaly calculation applied
+    """
+    # Retrieve the month of the current group
+    month = group['time.month'][0].values
+    return diff(group, ref.isel(time=month-1))
 
 
 @op(tags=['anomaly'])
