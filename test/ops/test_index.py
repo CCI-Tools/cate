@@ -4,6 +4,7 @@ Tests for index operations
 
 from unittest import TestCase
 
+import os
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -25,6 +26,8 @@ class TestIndices(TestCase):
         """
         Test ENSO index calculation using Nino34 region
         """
+        tmp_path = 'temp_lta.nc'
+
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -47,10 +50,12 @@ class TestIndices(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1,13)]})
-        lta.to_netcdf('temp_lta.nc')
-        ret = index.enso_nino34(dataset, 'first', 'temp_lta.nc')
+        lta = 2*lta
+        lta.to_netcdf(tmp_path)
+        ret = index.enso_nino34(dataset, 'first', tmp_path)
+
         try:
-            os.remove('temp_lta.nc')
+            os.remove(tmp_path)
         except OSError:
             # Doesn't exist
             pass

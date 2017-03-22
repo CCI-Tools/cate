@@ -29,17 +29,17 @@ Index calculation operations
 Functions
 =========
 """
+import xarray as xr
+import pandas as pd
 
 from cate.core.op import op, op_input
 from cate.ops.select import select_var
 from cate.ops.subset import subset_spatial
 from cate.core.types import PolygonLike
 
-import xarray as xr
-import pandas as pd
-
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
+
 
 @op(tags=['index', 'nino34'])
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
@@ -65,13 +65,12 @@ def enso_nino34(ds: xr.Dataset, var:str, file: str, threshold: float=False):
     ref = xr.open_dataset(file)
     ref = select_var(ref, var)
     ref.load()
+    print(ref-ds)
+    print(ds-ref)
     n34 = '-170, -5, -120, 5'
     ds_n34 = subset_spatial(ds, n34)
     ref_n34 = subset_spatial(ref, n34)
-    print(ds_n34)
-    print(ref_n34)
     n34_anom = ds_n34 - ref_n34
-    print(n34_anom)
     n34_ts = n34_anom.mean(dim=['lat', 'lon'])
     n34_data_frame = pd.DataFrame(data=n34_ts[var].values, columns=['Index'],
                                   index=n34_ts.time)
