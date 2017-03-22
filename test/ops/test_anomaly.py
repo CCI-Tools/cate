@@ -74,6 +74,38 @@ class TestExternal(TestCase):
         assert_dataset_equal(actual, expected)
         self.cleanup()
 
+    def test_transform(self):
+        # Test applying a transformation before doing the anomaly
+        ref = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1,13)]+\
+                    [datetime(2001, x, 1) for x in range(1,13)]})
+
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1,13)]+\
+                    [datetime(2001, x, 1) for x in range(1,13)]})
+
+        ds = ds*10
+        expected = expected + 3
+        ref.to_netcdf(self._TEMP)
+        actual = anomaly.anomaly_external(ds,
+                                          self._TEMP,
+                                          transform='log10, +3')
+        assert_dataset_equal(actual, expected)
+
     def test_registered(self):
         reg_op = OP_REGISTRY.get_op(object_to_qualified_name(anomaly.anomaly_external))
         ref = xr.Dataset({
