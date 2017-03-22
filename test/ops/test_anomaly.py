@@ -20,4 +20,17 @@ def assert_dataset_equal(expected, actual):
     assert expected.equals(actual), (expected, actual)
 
 
-class Test
+class TestExternal(TestCase):
+    """
+    Test anomaly calculation with external reference
+    """
+    def test_nominal(self):
+        pass
+
+
+class TestInternal(TestCase):
+    """
+    Test anomaly calculation with internal reference
+    """
+    def test_nominal(self):
+        pass

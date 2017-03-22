@@ -35,19 +35,27 @@ import xarray as xr
 
 
 @op(tags=['anomaly', 'climatology'])
-def anomaly_climatology(ds: xr.Dataset,
-                        file: str) -> xr.Dataset:
+def anomaly_external(ds: xr.Dataset,
+                     file: str,
+                     log: bool = False) -> xr.Dataset:
     """
-    Calculate anomaly with a given climatology as reference data. The given
-    climatology dataset is expected to consist of 12 time slices and contain
-    the same number of data arrays with the same names as for data arrays in
-    the given dataset.
+    Calculate anomaly with external reference data, for example, a climatology.
+    The given reference dataset is expected to consist of 12 time slices, one
+    for each month.
 
-    The calculated anomaly will be against the corresponding month of the
-    reference data. E.g. January against January, etc.
+    The returned dataset will contain the variable names found in both - the
+    reference and the given dataset. Names found in the given dataset, but not in
+    the reference, will be dropped from the resulting dataset. The calculated
+    anomaly will be against the corresponding month of the reference data.
+    E.g. January against January, etc.
+
+    In case spatial extents differ between the reference and the given dataset,
+    the anomaly will be calculated on the intersection.
 
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
+    :param log: If True, log transformation will be applied to the data before
+    the anomaly calculation
     :return: The anomaly dataset
     """
     clim = xr.open_dataset(file)
