@@ -121,6 +121,10 @@ class TestExternal(TestCase):
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
 
+    def test_monitor(self):
+        # Test if the monitor is integrated correctly
+        pass
+
     def test_transform(self):
         # Test applying a transformation before doing the anomaly
         ref = xr.Dataset({

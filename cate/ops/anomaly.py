@@ -30,6 +30,7 @@ Functions
 """
 
 from cate.core.op import op, op_return
+from cate.util.monitor import Monitor
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
 import xarray as xr
@@ -39,7 +40,8 @@ import xarray as xr
 @op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,
                      file: str,
-                     transform: str = None) -> xr.Dataset:
+                     transform: str = None,
+                     monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Calculate anomaly with external reference data, for example, a climatology.
     The given reference dataset is expected to consist of 12 time slices, one
@@ -67,7 +69,14 @@ def anomaly_external(ds: xr.Dataset,
     # Group by months, subtract the appropriate slice from the reference
     # Note that this requires that 'time' coordinate labels are of type
     # datetime64[ns]
-    ret = ret.groupby(ds['time.month']).apply(_group_anomaly, **{'ref': clim})
+    total_work = 100
+    step = 100/12
+
+    with monitor.starting('Anomaly', total_work=total_work):
+        monitor.progress(work=0)
+        kwargs = {'ref': clim, 'monitor': monitor, 'step': step}
+        ret = ret.groupby(ds['time.month']).apply(_group_anomaly,
+                                                  **kwargs)
 
     # Running groupby results in a redundant 'month' variable being added to
     # the dataset
@@ -75,17 +84,24 @@ def anomaly_external(ds: xr.Dataset,
     return ret
 
 
-def _group_anomaly(group: xr.Dataset, ref: xr.Dataset):
+def _group_anomaly(group: xr.Dataset,
+                   ref: xr.Dataset,
+                   monitor: Monitor = Monitor.NONE,
+                   step: float = None):
     """
     Calculate anomaly for the given group.
 
     :param group: Result of a groupby('time.month') operation
     :param ref: Reference dataset
+    :param monitor: Monitor of the parent method
+    :param step: Step to add to monitor progress
     :return: Group dataset with anomaly calculation applied
     """
     # Retrieve the month of the current group
     month = group['time.month'][0].values
-    return diff(group, ref.isel(time=month-1))
+    ret = diff(group, ref.isel(time=month-1))
+    monitor.progress(work=step)
+    return ret
 
 
 @op(tags=['anomaly'])
