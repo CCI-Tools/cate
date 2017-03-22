@@ -178,7 +178,7 @@ class DataSource(metaclass=ABCMeta):
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> str:
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
         optional constraints.
@@ -191,8 +191,8 @@ class DataSource(metaclass=ABCMeta):
 
         The method returns the newly create local data source.
 
-        :param local_name: A human readable name for the new local data store.
-        :param local_id: A unique ID to be used for the new local data store.
+        :param local_name: A human readable name for the new local data source.
+        :param local_id: A unique ID to be used for the new local data source.
                If not given, a new ID will be generated.
         :param time_range: An optional time constraint comprising start and end date.
                If given, it must be a :py:class:`TimeRangeLike`.
@@ -201,9 +201,23 @@ class DataSource(metaclass=ABCMeta):
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VariableNamesLike`.
         :param monitor: a progress monitor.
-        :return: the new local data source
+        :return: A unique ID of newly created local data source.
         """
         pass
+
+    def update_local(self,
+                     local_id: str,
+                     time_range: Tuple[datetime, datetime]) -> bool:
+        """
+        Update locally stored data.
+        The default implementation does nothing.
+
+        :param time_range: An optional tuple comprising a start and end date, which must be
+               ``datetime.datetime`` objects.
+        :param local_id: A unique ID of local data source.
+        :return: If any update has been performed returns True, otherwise False
+        """
+        return False
 
     # noinspection PyMethodMayBeStatic
     def sync(self,
@@ -229,6 +243,7 @@ class DataSource(metaclass=ABCMeta):
     def delete_local(self,
                      time_range: Tuple[datetime, datetime]) -> int:
         """
+        **Deprecated. Use :py:meth:`update_local` instead.**
         Delete locally stored data.
         The default implementation does nothing.
 
@@ -344,7 +359,7 @@ class DataStore(metaclass=ABCMeta):
         return self._name
 
     @property
-    def data_store_path(self) -> str:
+    def data_store_path(self) -> Optional[str]:
         """
         Returns path to data store
         """

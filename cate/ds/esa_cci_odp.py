@@ -58,6 +58,7 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
                          open_xarray_dataset, get_data_stores_path
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.ds.local import LocalDataSourceConfiguration
 from cate.util.monitor import Monitor
 
 
@@ -465,24 +466,49 @@ class EsaCciOdpDataSource(DataSource):
             self.make_local(self._master_id(), None, time_range, None, None, monitor)
         return 0, 0
 
+    def update_local(self,
+                     local_id: str,
+                     time_range: Tuple[datetime, datetime]) -> bool:
+
+        config_path = os.path.join(get_data_store_path(), local_id + ".json")
+        config = LocalDataSourceConfiguration.load(config_path)
+
+        to_remove = []
+        to_add = []
+        if time_range[1] > time_range[0]:
+
+            if time_range[0] > config.temporal_coverage[0]:
+                to_remove.append(self._find_files(
+                    (config.temporal_coverage[0], time_range[0])))
+            else:
+                to_add.append((time_range[0], config.temporal_coverage[0]))
+
+            if time_range[1] < config.temporal_coverage[1]:
+                to_remove.append(self._find_files(
+                    (time_range[1], config.temporal_coverage[1])))
+            else:
+                to_add.append((config.temporal_coverage[1], time_range[1]))
+        else:
+            to_remove = self._find_files()
+
+        if to_remove:
+            dataset_dir = self.local_dataset_dir()
+            for filename, _, _, _, _ in to_remove:
+                dataset_file = os.path.join(dataset_dir, filename)
+                try:
+                    os.remove(dataset_file)
+                except OSError:
+                    # File busy on Windows, move on
+                    pass
+
     def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            return 0
 
-        dataset_dir = self.local_dataset_dir()
-        removed_count = 0
-
-        for filename, _, _, _, _ in selected_file_list:
-            dataset_file = os.path.join(dataset_dir, filename)
-            try:
-                os.remove(dataset_file)
-                removed_count += 1
-            except:
-                # File busy on Windows, move on
-                pass
-
-        return removed_count
+        if time_range[0] >= self._temporal_coverage[0] \
+                and time_range[1] <= self._temporal_coverage[1]:
+            if time_range[0] == self._temporal_coverage[0] \
+                    or time_range[1] == self._temporal_coverage[1]:
+                return self.update_local(self._master_id, time_range)
+        return 0
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)

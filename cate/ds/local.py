@@ -42,14 +42,14 @@ Components
 import json
 import shutil
 import xarray as xr
+from abc import ABCMeta
 from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
 from glob import glob
-from math import ceil, floor
 from os import listdir, makedirs, environ
-from os.path import basename, exists, isfile, join
-from typing import Optional, Sequence, Tuple, Union, Any
+from os.path import basename, isfile, join
+from typing import Optional, Sequence, Union, Any
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
@@ -57,6 +57,8 @@ from cate.core.ds import get_data_stores_path
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.util.misc import to_list
 from cate.util.monitor import Monitor
+
+_REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
 
 def get_data_store_path():
@@ -68,21 +70,10 @@ def add_to_data_store_registry():
     data_store = LocalDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
-from abc import ABCMeta, abstractmethod
-from enum import Enum
-
-
-class LocalDataSourceType(Enum):
-    NONE = 0
-    FILE_PATTERN = 1
-    OPENDAP = 2
-
 
 class LocalDataSourceConfiguration(metaclass=ABCMeta):
 
-    def __init__(self, name: str, source: str, config_type: str,
-                 data_store: DataStore):
-
+    def __init__(self, name: str, data_store: DataStore, config_type: str, source: str = None):
         self._name = "{}.{}".format(data_store.name, name)
         self._source = source
         self._config_type = config_type
@@ -98,41 +89,38 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
         self._files[path] = time_range
         self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
 
-    @abstractmethod
-    def check_type(self, config_json: dict):
-        return False
+    def remove_file(self, path: str):
+        is_disjoint = self._files.keys().isdisjoint([path])
+        if is_disjoint:
+            raise ValueError("Config does not contains file `{}`".format(path))
 
-    @abstractmethod
-    def save(self, path=None):
-        pass
-
-
-class FilePatternDataSourceConfiguration(LocalDataSourceConfiguration):
-
-    def __init__(self, name: str, source: str, data_store: DataStore):
-        super().__init__(name=name, source=source, config_type='FILE_PATTERN',
-                         data_store=data_store)
-
-    def check_type(self, config_json: dict):
-        return self._config_type.lower() == config_json.get('type', 'unknown').lower()
+        self._files.pop(path)
 
     def save(self):
-        config = OrderedDict()
-        config['name'] = self._name
-        config['type'] = self._config_type
-        config['source'] = self._source
-        config['files'] = [[item[0], item[1][0],item[1][1]] for item in self._files.items()]
-
+        config = OrderedDict({
+            'name': self._name,
+            'type': self._config_type,
+            'source': self._source,
+            'files': [[item[0], item[1][0], item[1][1]] for item in self._files.items()]
+        })
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
         file_name = join(self._data_store.data_store_path, self._name + '.json')
         with open(file_name, 'w') as fp:
             json.dump(config, fp, **dump_kwargs)
 
     @staticmethod
+    def load(path: str):
+        pass
+
+    @staticmethod
     def _json_default_serializer(obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
         raise TypeError('Not sure how to serialize %s' % (obj,))
+
+    @staticmethod
+    def check_type(config_json: dict, expected_type: str):
+        return expected_type.lower() == config_json.get('type', 'unknown').lower()
 
 
 class LocalDataSource(DataSource):
@@ -145,7 +133,8 @@ class LocalDataSource(DataSource):
             self._files = files
         self._data_store = data_store
         self._config = config if config else \
-            FilePatternDataSourceConfiguration(name=name, source=None, data_store=data_store)
+            LocalDataSourceConfiguration(name=name, data_store=data_store, config_type=_REFERENCE_DATA_SOURCE_TYPE,
+                                         source=None)
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -190,20 +179,23 @@ class LocalDataSource(DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> str:
         if not local_name:
             raise ValueError('local_name is required')
         elif len(local_name) == 0:
             raise ValueError('local_name cannot be empty')
+        local_path = join(get_data_store_path(), local_name)
+        try:
+            makedirs(local_path, exist_ok=False)
+        except FileExistsError:
+            raise ValueError("Local data source with such name already exists", local_name)
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
         var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
-        local_path = join(get_data_store_path(), local_name)
-
-        makedirs(local_path, exist_ok=True)
-
+        config = LocalDataSourceConfiguration(name=local_name, data_store=self._data_store,
+                                              config_type=_REFERENCE_DATA_SOURCE_TYPE, source=self._name)
         paths = []
         for file in self._files.items():
             paths.extend(glob(file[0]))
@@ -211,12 +203,6 @@ class LocalDataSource(DataSource):
         monitor.start("make local", total_work=len(paths))
         if not paths:
             raise ValueError("Cannot make local copy of empty DataStore")
-
-        config = FilePatternDataSourceConfiguration(
-            name=local_name,
-            source=self._name,
-            data_store=self._data_store)
-
         for path in paths:
             child_monitor = monitor.child(work=1)
 
@@ -267,6 +253,8 @@ class LocalDataSource(DataSource):
             child_monitor.done()
         config.save()
         monitor.done()
+
+        return local_name
 
     def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
 
@@ -323,7 +311,7 @@ class LocalDataSource(DataSource):
             if len(files) > 0:
                 if isinstance(files[0], list):
                     files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
-                    if item[1] is not None else None) for item in files)
+                                        if item[1] is not None else None) for item in files)
             else:
                 files = OrderedDict()
             return LocalDataSource(name, files, data_store)
