@@ -13,6 +13,7 @@ from cate.ops import anomaly
 from cate.ops import subset_spatial
 from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
+from cate.util.monitor import ConsoleMonitor
 
 
 def assert_dataset_equal(expected, actual):
@@ -120,10 +121,28 @@ class TestExternal(TestCase):
                     [datetime(2001, x, 1) for x in range(1,13)]})
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
+        self.cleanup()
 
     def test_monitor(self):
         # Test if the monitor is integrated correctly
-        pass
+        ref = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1,13)]+\
+                    [datetime(2001, x, 1) for x in range(1,13)]})
+
+        ref.to_netcdf(self._TEMP)
+        m = ConsoleMonitor()
+        anomaly.anomaly_external(ds, self._TEMP, monitor=m)
+        self.cleanup()
+        self.assertEqual(m._percentage, 100)
 
     def test_transform(self):
         # Test applying a transformation before doing the anomaly
