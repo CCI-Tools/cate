@@ -29,6 +29,8 @@ Functions
 =========
 """
 
+import sys
+
 from cate.core.op import op
 from xarray import ufuncs as xu
 import xarray as xr
@@ -130,5 +132,12 @@ def diff(ds: xr.Dataset, ds2:xr.Dataset):
     except AttributeError:
         # Doesn't have a time dimension already
         pass
+    except TypeError as e:
+        if 'unsized object' in str(e):
+            # The 'time' variable is a scalar
+            pass
+        else:
+            raise TypeError(str(e))
+
 
     return ds - ds2

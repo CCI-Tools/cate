@@ -179,6 +179,11 @@ class TestDiff(TestCase):
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(expected, actual)
 
+        ds1 = ds1.squeeze('time')
+        ds1['time'] = 1
+        actual = arithmetics.diff(ds, ds1)
+        assert_dataset_equal(expected, actual)
+
     def test_registered(self):
         """
         Test the operation when invoked from the OP_REGISTRY
