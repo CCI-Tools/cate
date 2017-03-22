@@ -29,13 +29,14 @@ Functions
 =========
 """
 
-from cate.core.op import op
+from cate.core.op import op, op_return
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
 import xarray as xr
 
 
-@op(tags=['anomaly', 'climatology'])
+@op(tags=['anomaly', 'climatology'], version='1.0')
+@op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,
                      file: str,
                      transform: str = None) -> xr.Dataset:
@@ -88,6 +89,7 @@ def _group_anomaly(group: xr.Dataset, ref: xr.Dataset):
 
 
 @op(tags=['anomaly'])
+@op_return(add_history=True)
 def anomaly_internal(ds: xr.Dataset,
                      start_date: str = None,
                      end_date: str = None,
