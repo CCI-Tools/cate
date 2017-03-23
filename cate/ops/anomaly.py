@@ -121,6 +121,8 @@ def _group_anomaly(group: xr.Dataset,
 
 
 @op(tags=['anomaly'], version='1.0')
+@op_input('time_range', data_type=TimeRangeLike)
+@op_input('region', data_type=PolygonLike)
 @op_return(add_history=True)
 def anomaly_internal(ds: xr.Dataset,
                      time_range: TimeRangeLike.TYPE = None,

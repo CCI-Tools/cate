@@ -300,8 +300,47 @@ class TestInternal(TestCase):
     Test anomaly calculation with internal reference
     """
     def test_nominal(self):
-        pass
+        """
+        Test nominal execution
+        """
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        actual = anomaly.anomaly_internal(ds,
+                                          '2000-01-01, 2000-04-01',
+                                          '-50, -50, 50, 50')
+        assert_dataset_equal(expected, actual)
+
+        actual = anomaly.anomaly_internal(ds)
+        assert_dataset_equal(expected, actual)
 
     def test_registered(self):
+        """
+        Test nominal execution through the operations registry.
+        """
         reg_op = OP_REGISTRY.get_op(object_to_qualified_name(anomaly.anomaly_internal))
-        pass
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        actual = reg_op(ds=ds,
+                        time_range='2000-01-01, 2000-04-01',
+                        region='-50, -50, 50, 50')
+        assert_dataset_equal(expected, actual)
