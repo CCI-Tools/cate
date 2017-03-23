@@ -11,6 +11,7 @@ from datetime import datetime
 import tempfile
 import shutil
 from contextlib import contextmanager
+import itertools
 
 from cate.ops import anomaly
 from cate.ops import subset_spatial
@@ -25,11 +26,12 @@ def assert_dataset_equal(expected, actual):
     # of equality separately for easier debugging
     assert expected.equals(actual), (expected, actual)
 
+_counter = itertools.count()
 
 @contextmanager
 def create_tmp_file():
     tmp_dir = tempfile.mkdtemp()
-    path = os.path.join(tmp_dir, 'tmp_file.nc')
+    path = os.path.join(tmp_dir, 'tmp_file_{}.nc'.format(next(_counter)))
     try:
         yield path
     finally:
