@@ -56,7 +56,7 @@ from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .xarray import sel
 from .average import long_term_average, temporal_agg
-from .arithmetics import ds_arithmetics
+from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import nino34
 from .ident import *
@@ -96,6 +96,7 @@ __all__ = [
     'temporal_agg',
     # .arithmetics
     'ds_arithmetics',
+    'diff',
     # .anomaly
     'anomaly_internal',
     'anomaly_external',

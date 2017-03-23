@@ -64,6 +64,8 @@ from cate.core.op import op, op_input
 
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
+@op_input('ds')
+@op_input('var',value_set_source='ds')
 @op_input('lat_min', units='degrees', value_range=[-90, 90])
 @op_input('lat_max', units='degrees', value_range=[-90, 90])
 @op_input('lon_min', units='degrees', value_range=[-180, 180])

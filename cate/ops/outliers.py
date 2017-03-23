@@ -32,12 +32,14 @@ import fnmatch
 import xarray as xr
 import numpy as np
 
-from cate.core.op import op, op_return
+from cate.core.op import op, op_input, op_return
 from cate.util import to_list
 from cate import __version__
 
 
 @op(version='1.0')
+@op_input('ds')
+@op_input('var', value_set_source='ds')
 @op_return(add_history=True)
 def detect_outliers(ds: xr.Dataset,
                     var: str,
