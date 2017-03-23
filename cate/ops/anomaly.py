@@ -29,14 +29,18 @@ Functions
 =========
 """
 
-from cate.core.op import op, op_return
+from cate.core.op import op, op_return, op_input
 from cate.util.monitor import Monitor
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
 import xarray as xr
 
 
+_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
+
+
 @op(tags=['anomaly', 'climatology'], version='1.0')
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,
                      file: str,
