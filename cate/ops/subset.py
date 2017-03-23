@@ -35,12 +35,13 @@ import jdcal
 from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads, dumps
 
-from cate.core.op import op, op_input
-from cate.core.types import PolygonLike
+from cate.core.op import op, op_input, op_return
+from cate.core.types import PolygonLike, TimeRangeLike
 
 
-@op(tags=['geometric', 'subset', 'spatial', 'geom'])
+@op(tags=['geometric', 'subset', 'spatial', 'geom'], version='1.0')
 @op_input('region', data_type=PolygonLike)
+@op_return(add_history=True)
 def subset_spatial(ds: xr.Dataset,
                    region: PolygonLike.TYPE,
                    mask: bool = True) -> xr.Dataset:
@@ -174,52 +175,33 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
             return False
 
 
-@op(tags=['subset', 'temporal'])
+@op(tags=['subset', 'temporal'], version='1.0')
+@op_input('time_range', data_type=TimeRangeLike)
+@op_return(add_history=True)
 def subset_temporal(ds: xr.Dataset,
-                    time_min: str,
-                    time_max: str) -> xr.Dataset:
+                    time_range: TimeRangeLike.TYPE) -> xr.Dataset:
     """
-    Do a temporal subset of the dataset. When using this operation on the
-    command line, it is neccessary to enclose the times in quotes, or in
-    escaped quotes when on Linux.
-
-    Windows time_min='YYYY-MM-DD'
-    Linux(bash) time_min=\\'YYYY-MM-DD\\'
+    Do a temporal subset of the dataset.
 
     :param ds: Dataset to subset
-    :param time_min: Minimum time 'YYYY-MM-DD'
-    :param time_max: Maximum time 'YYYY-MM-DD'
+    :param time_range: Time range to select
     :return: Subset dataset
     """
+    time_range = TimeRangeLike.convert(time_range)
     # If it can be selected, go ahead
     try:
-        time_slice = slice(time_min, time_max)
+        time_slice = slice(time_range[0], time_range[1])
         indexers = {'time': time_slice}
         return ds.sel(**indexers)
     except TypeError:
-        # Couldn't select because of unexpected time format but we're going to
-        # try more
-        pass
-
-    # Handle Julian Day time format
-    start = dict()
-    end = dict()
-
-    start['y'], start['m'], start['d'] = time_min.split('-')
-    end['y'], end['m'], end['d'] = time_max.split('-')
-
-    start_jd1, start_jd2 = jdcal.gcal2jd(start['y'], start['m'], start['d'])
-    start_jd = start_jd1 + start_jd2
-
-    end_jd1, end_jd2 = jdcal.gcal2jd(end['y'], end['m'], end['d'])
-    end_jd = end_jd1 + end_jd2
-
-    time_slice = slice(start_jd, end_jd)
-    indexers = {'time': time_slice}
-    return ds.sel(**indexers)
+        raise ValueError('Time subset operation expects a dataset with the'
+                         ' time coordinate of type datetime64[ns], but received'
+                         ' {}. Running the harmonization operation on this'
+                         ' dataset may help'.format(ds.time.dtype))
 
 
-@op(tags=['subset', 'temporal'])
+@op(tags=['subset', 'temporal'], version='1.0')
+@op_return(add_history=True)
 def subset_temporal_index(ds: xr.Dataset,
                           time_ind_min: int,
                           time_ind_max: int) -> xr.Dataset:
