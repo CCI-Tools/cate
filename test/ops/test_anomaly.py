@@ -5,6 +5,7 @@ Tests for anomaly operations
 from unittest import TestCase
 
 import os
+import sys
 import numpy as np
 import xarray as xr
 from datetime import datetime
@@ -27,6 +28,7 @@ def assert_dataset_equal(expected, actual):
     assert expected.equals(actual), (expected, actual)
 
 _counter = itertools.count()
+ON_WIN = sys.platform == 'win32'
 
 @contextmanager
 def create_tmp_file():
@@ -35,7 +37,12 @@ def create_tmp_file():
     try:
         yield path
     finally:
-        shutil.rmtree(tmp_dir)
+        try:
+            shutil.rmtree(tmp_dir)
+        except OSError:
+            if not ON_WIN:
+                raise
+
 
 
 class TestExternal(TestCase):
