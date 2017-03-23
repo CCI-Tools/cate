@@ -192,7 +192,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 
 
 @op(tags=['input'])
-@op_input('file')
+@op_input('file', file_open_mode='r', file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
 def read_csv(file: str, **kwargs) -> pd.DataFrame:
     """
     Read comma-separated values from plain text csv file into Pandas DataFrame

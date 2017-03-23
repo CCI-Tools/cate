@@ -7,6 +7,8 @@ from unittest import TestCase
 import numpy as np
 import xarray as xr
 
+from datetime import datetime
+
 from cate.ops import subset
 from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
@@ -135,7 +137,7 @@ class TestSubsetSpatial(TestCase):
 
         # With dropping
         actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertEquals(20, len(actual.lon))
+        self.assertEqual(20, len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
         pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
@@ -161,23 +163,18 @@ class TestSubsetTemporal(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
-            'time': ['2000-01-01',
-                     '2000-02-01',
-                     '2000-03-01',
-                     '2000-04-01',
-                     '2000-05-01',
-                     '2000-06-01']})
-        actual = subset.subset_temporal(dataset, '2000-01-10', '2000-04-01')
+            'time': [datetime(2000, x, 1) for x in range(1, 7)]})
+        actual = subset.subset_temporal(dataset, '2000-01-10, 2000-04-01')
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
-            'time': ['2000-02-01', '2000-03-01', '2000-04-01']})
+            'time': [datetime(2000, x, 1) for x in range(2, 5)]})
         assert_dataset_equal(expected, actual)
 
-    def test_subset_temporal_mjd(self):
-        # Test subsetting for MJD timed datsets
+    def test_invalid_dtype(self):
+        # Test passing in a MJD dataset
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
@@ -189,15 +186,33 @@ class TestSubsetTemporal(TestCase):
                      2451635.5,
                      2451665.5,
                      2451696.5]})
-        actual = subset.subset_temporal(dataset, '2000-01-10', '2000-04-01')
+        with self.assertRaises(ValueError) as err:
+            subset.subset_temporal(dataset, '2000-01-10, 2000-04-01')
+        self.assertIn('type datetime', str(err.exception))
+
+    def test_registered(self):
+        """
+        Test if it runs as an operation registered in the op registry.
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(subset.subset_temporal))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': [datetime(2000, x, 1) for x in range(1, 7)]})
+        actual = reg_op(ds=dataset, time_range='2000-01-10, 2000-04-01')
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
-            'time': [2451575.5, 2451604.5, 2451635.5]})
+            'time': [datetime(2000, x, 1) for x in range(2, 5)]})
         assert_dataset_equal(expected, actual)
 
+
+
+class TestSubsetTemporalIndex(TestCase):
     def test_subset_temporal_index(self):
         # Test general functionality
         dataset = xr.Dataset({
@@ -212,6 +227,31 @@ class TestSubsetTemporal(TestCase):
                      '2000-05-01',
                      '2000-06-01']})
         actual = subset.subset_temporal_index(dataset, 2, 4)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': ['2000-03-01', '2000-04-01', '2000-05-01']})
+        assert_dataset_equal(expected, actual)
+
+    def test_registered(self):
+        """
+        Test if it runs as an operation registered in the op registry.
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(subset.subset_temporal_index))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': ['2000-01-01',
+                     '2000-02-01',
+                     '2000-03-01',
+                     '2000-04-01',
+                     '2000-05-01',
+                     '2000-06-01']})
+        actual = reg_op(ds=dataset, time_ind_min=2, time_ind_max=4)
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
