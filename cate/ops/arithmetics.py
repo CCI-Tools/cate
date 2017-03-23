@@ -62,14 +62,15 @@ def ds_arithmetics(ds: xr.Dataset,
     """
     retset = ds
     for item in op.split(','):
+        item = item.strip()
         if item[0] == '+':
-            retset = retset + item[1:]
+            retset = retset + float(item[1:])
         elif item[0] == '-':
-            retset = retset - item[1:]
+            retset = retset - float(item[1:])
         elif item[0] == '*':
-            retset = retset * item[1:]
+            retset = retset * float(item[1:])
         elif item[0] == '/':
-            retset = retset / item[1:]
+            retset = retset / float(item[1:])
         elif item[:] == 'log':
             retset = xu.log(retset)
         elif item[:] == 'log10':
@@ -82,6 +83,52 @@ def ds_arithmetics(ds: xr.Dataset,
             retset = xu.exp(retset)
         else:
             raise ValueError('Arithmetic operation {} not'
-                             'implemented.'.format(item[0]))
+                             ' implemented.'.format(item[0]))
 
-        return retset
+    return retset
+
+
+@op(tags=['arithmetic'])
+def diff(ds: xr.Dataset, ds2:xr.Dataset):
+    """
+    Calculate the difference of two datasets (ds - ds2). This is done by
+    matching variable names in the two datasets against each other and taking
+    the difference of matching variables.
+
+    If lat/lon/time extents differ between the datasets, the default behavior
+    is to take the intersection of the datasets and run subtraction on that.
+    However, broadcasting is possible. E.g. ds(lat/lon/time) - ds(lat/lon) is
+    valid. In this case the subtrahend will be stretched to the size of
+    ds(lat/lon/time) so that it can be subtracted. This also works if the
+    subtrahend is a single time slice of arbitrary temporal position. In this
+    case, the time dimension will be squeezed out leaving a lat/lon dataset.
+
+    :param ds: The minuend dataset
+    :param ds2: The subtrahend dataset
+    :return: The difference dataset
+    """
+    try:
+        # Times do not intersect
+        if 0 == len(ds.time - ds2.time) and\
+           len(ds.time) == len(ds2.time): # Times are the same length
+            # If the datasets don't intersect in time dimension, a naive difference
+            # would return empty data variables. Hence, the time coordinate has to
+            # be dropped beforehand
+            ds = ds.drop('time')
+            ds2 = ds2.drop('time')
+            return ds - ds2
+    except AttributeError:
+        # It is likely that the one operand is a lat/lon array that can be
+        # broadcast against the other operand
+        pass
+
+    try:
+        if 1 ==  len(ds2.time):
+            # The subtrahend is a single time-slice -> squeeze 'time' dimension to
+            # be able to broadcast is along minuend
+            ds2 = ds2.squeeze('time', drop=True)
+    except AttributeError:
+        # Doesn't have a time dimension already
+        pass
+
+    return ds - ds2
