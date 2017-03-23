@@ -8,6 +8,9 @@ import os
 import numpy as np
 import xarray as xr
 from datetime import datetime
+import tempfile
+import shutil
+from contextlib import contextmanager
 
 from cate.ops import anomaly
 from cate.ops import subset_spatial
@@ -23,29 +26,20 @@ def assert_dataset_equal(expected, actual):
     assert expected.equals(actual), (expected, actual)
 
 
+@contextmanager
+def create_tmp_file():
+    tmp_dir = tempfile.mkdtemp()
+    path = os.path.join(tmp_dir, 'tmp_file.nc')
+    try:
+        yield path
+    finally:
+        shutil.rmtree(tmp_dir)
+
+
 class TestExternal(TestCase):
     """
     Test anomaly calculation with external reference
     """
-    def setUp(self):
-        self._TEMP = 'temp_ref.nc'
-        self._TEMP_DS = 'temp_ds.nc'
-
-    def tearDown(self):
-        self.cleanup()
-
-    def cleanup(self):
-        try:
-            os.remove(self._TEMP)
-        except:
-            pass
-
-        try:
-            os.remove(self._TEMP_DS)
-        except:
-            pass
-
-
     def test_nominal(self):
         """
         Nominal execution test
@@ -73,17 +67,17 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP, mode='w')
-        actual = anomaly.anomaly_external(ds, self._TEMP)
-        assert_dataset_equal(actual, expected)
-        self.cleanup()
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            actual = anomaly.anomaly_external(ds, tmp_file)
+            assert_dataset_equal(actual, expected)
 
         # Test with reference data with a labeled time coordinate
         ref['time'] = [datetime(1700, x, 1) for x in range(1,13)]
-        ref.to_netcdf(self._TEMP, mode='w')
-        actual = anomaly.anomaly_external(ds, self._TEMP)
-        assert_dataset_equal(actual, expected)
-        self.cleanup()
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            actual = anomaly.anomaly_external(ds, tmp_file)
+            assert_dataset_equal(actual, expected)
 
     def test_partial(self):
         """
@@ -111,21 +105,21 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP, mode='w')
-        actual = anomaly.anomaly_external(ds, self._TEMP)
-        assert_dataset_equal(actual, expected)
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            actual = anomaly.anomaly_external(ds, tmp_file)
+            assert_dataset_equal(actual, expected)
 
-        # Test differing spatial extents
-        ds = subset_spatial(ds, '-50, -50, 50, 50')
-        expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.zeros([25, 26, 24])),
-            'lat': np.linspace(-48, 48, 25),
-            'lon': np.linspace(-50, 50, 26),
-            'time': [datetime(2000, x, 1) for x in range(1,13)]+\
-                    [datetime(2001, x, 1) for x in range(1,13)]})
-        actual = anomaly.anomaly_external(ds, self._TEMP)
-        assert_dataset_equal(actual, expected)
-        self.cleanup()
+            # Test differing spatial extents
+            ds = subset_spatial(ds, '-50, -50, 50, 50')
+            expected = xr.Dataset({
+                'first': (['lat', 'lon', 'time'], np.zeros([25, 26, 24])),
+                'lat': np.linspace(-48, 48, 25),
+                'lon': np.linspace(-50, 50, 26),
+                'time': [datetime(2000, x, 1) for x in range(1,13)]+\
+                        [datetime(2001, x, 1) for x in range(1,13)]})
+            actual = anomaly.anomaly_external(ds, tmp_file)
+            assert_dataset_equal(actual, expected)
 
     def test_monitor(self):
         """
@@ -144,11 +138,11 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP, mode='w')
-        m = ConsoleMonitor()
-        anomaly.anomaly_external(ds, self._TEMP, monitor=m)
-        self.cleanup()
-        self.assertEqual(m._percentage, 100)
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            m = ConsoleMonitor()
+            anomaly.anomaly_external(ds, tmp_file, monitor=m)
+            self.assertEqual(m._percentage, 100)
 
     def test_transform(self):
         """
@@ -179,12 +173,12 @@ class TestExternal(TestCase):
 
         ds = ds*10
         expected = expected + 3
-        ref.to_netcdf(self._TEMP, mode='w')
-        actual = anomaly.anomaly_external(ds,
-                                          self._TEMP,
-                                          transform='log10, +3')
-        assert_dataset_equal(actual, expected)
-        self.cleanup()
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            actual = anomaly.anomaly_external(ds,
+                                              tmp_file,
+                                              transform='log10, +3')
+            assert_dataset_equal(actual, expected)
 
     def test_dask(self):
         """
@@ -215,18 +209,19 @@ class TestExternal(TestCase):
 
         # Test that ds is not a dask array
         self.assertTrue(not ds.chunks)
-        ref.to_netcdf(self._TEMP, mode='w')
-        ds.to_netcdf(self._TEMP_DS, mode='w')
-        # This makes ds a dask dataset in xarray backend
-        ds = xr.open_dataset(self._TEMP_DS, chunks={})
-        # Test that it is indeed the case
-        self.assertFalse(not ds.chunks)
+        with create_tmp_file() as tmp1:
+            ref.to_netcdf(tmp1, 'w')
+            with create_tmp_file() as tmp2:
+                ds.to_netcdf(tmp2, 'w')
+                # This makes ds a dask dataset in xarray backend
+                ds = xr.open_dataset(tmp2, chunks={})
+                # Test that it is indeed the case
+                self.assertFalse(not ds.chunks)
 
-        actual = anomaly.anomaly_external(ds, self._TEMP)
-        assert_dataset_equal(actual, expected)
-        # Test that actual is also a dask array, based on ds
-        self.assertEqual(actual.chunks, ds.chunks)
-        self.cleanup()
+                actual = anomaly.anomaly_external(ds, tmp1)
+                assert_dataset_equal(actual, expected)
+                # Test that actual is also a dask array, based on ds
+                self.assertEqual(actual.chunks, ds.chunks)
 
     def test_registered(self):
         """
@@ -255,10 +250,10 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP, mode='w')
-        actual = reg_op(ds=ds, file=self._TEMP)
-        assert_dataset_equal(actual, expected)
-        self.cleanup()
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            actual = reg_op(ds=ds, file=tmp_file)
+            assert_dataset_equal(actual, expected)
 
     def test_validation(self):
         """
@@ -278,21 +273,21 @@ class TestExternal(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(0, 24)]})
 
-        ref.to_netcdf(self._TEMP, mode='w')
-        with self.assertRaises(ValueError) as err:
-            anomaly.anomaly_external(ds, self._TEMP)
-        self.assertIn('dtype datetime', str(err.exception))
+        with create_tmp_file() as tmp_file:
+            ref.to_netcdf(tmp_file, 'w')
+            with self.assertRaises(ValueError) as err:
+                anomaly.anomaly_external(ds, tmp_file)
+            self.assertIn('dtype datetime', str(err.exception))
 
-        # Test missing time coordinate
-        ds = xr.Dataset({
-            'first': (['lat', 'lon'], np.ones([45, 90])),
-            'second': (['lat', 'lon'], np.ones([45, 90])),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90)})
-        with self.assertRaises(ValueError) as err:
-            anomaly.anomaly_external(ds, self._TEMP)
-        self.assertIn('time coordinate.', str(err.exception))
-        self.cleanup()
+            # Test missing time coordinate
+            ds = xr.Dataset({
+                'first': (['lat', 'lon'], np.ones([45, 90])),
+                'second': (['lat', 'lon'], np.ones([45, 90])),
+                'lat': np.linspace(-88, 88, 45),
+                'lon': np.linspace(-178, 178, 90)})
+            with self.assertRaises(ValueError) as err:
+                anomaly.anomaly_external(ds, tmp_file)
+            self.assertIn('time coordinate.', str(err.exception))
 
 
 class TestInternal(TestCase):
