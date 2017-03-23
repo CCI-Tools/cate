@@ -73,14 +73,14 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
         self.cleanup()
 
         # Test with reference data with a labeled time coordinate
         ref['time'] = [datetime(1700, x, 1) for x in range(1,13)]
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
         self.cleanup()
@@ -111,7 +111,7 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         actual = anomaly.anomaly_external(ds, self._TEMP)
         assert_dataset_equal(actual, expected)
 
@@ -144,7 +144,7 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         m = ConsoleMonitor()
         anomaly.anomaly_external(ds, self._TEMP, monitor=m)
         self.cleanup()
@@ -179,7 +179,7 @@ class TestExternal(TestCase):
 
         ds = ds*10
         expected = expected + 3
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         actual = anomaly.anomaly_external(ds,
                                           self._TEMP,
                                           transform='log10, +3')
@@ -215,8 +215,8 @@ class TestExternal(TestCase):
 
         # Test that ds is not a dask array
         self.assertTrue(not ds.chunks)
-        ref.to_netcdf(self._TEMP)
-        ds.to_netcdf(self._TEMP_DS)
+        ref.to_netcdf(self._TEMP, mode='w')
+        ds.to_netcdf(self._TEMP_DS, mode='w')
         # This makes ds a dask dataset in xarray backend
         ds = xr.open_dataset(self._TEMP_DS, chunks={})
         # Test that it is indeed the case
@@ -255,7 +255,7 @@ class TestExternal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1,13)]+\
                     [datetime(2001, x, 1) for x in range(1,13)]})
 
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         actual = reg_op(ds=ds, file=self._TEMP)
         assert_dataset_equal(actual, expected)
         self.cleanup()
@@ -278,7 +278,7 @@ class TestExternal(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(0, 24)]})
 
-        ref.to_netcdf(self._TEMP)
+        ref.to_netcdf(self._TEMP, mode='w')
         with self.assertRaises(ValueError) as err:
             anomaly.anomaly_external(ds, self._TEMP)
         self.assertIn('dtype datetime', str(err.exception))
