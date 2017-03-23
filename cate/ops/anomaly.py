@@ -66,6 +66,17 @@ def anomaly_external(ds: xr.Dataset,
     For supported operations see help on 'ds_arithmetics' operation.
     :return: The anomaly dataset
     """
+    # Check if the time coordinate is of dtype datetime
+    try:
+        if ds.time.dtype != 'datetime64[ns]':
+            raise ValueError('The dataset provided for anomaly calculation'
+                             ' is required to have the time coordinate of'
+                             ' dtype datetime64[ns]. Running the harmonization'
+                             ' operation on this dataset might help.')
+    except AttributeError:
+        raise ValueError('The dataset provided for anomaly calculation'
+                         ' is required to have a time coordinate.')
+
     clim = xr.open_dataset(file)
     ret = ds.copy()
     if transform:
