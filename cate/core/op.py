@@ -396,6 +396,7 @@ def op_input(input_name: str,
              default_value=UNDEFINED,
              position=UNDEFINED,
              data_type=UNDEFINED,
+             value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
              registry=OP_REGISTRY,
@@ -427,6 +428,7 @@ def op_input(input_name: str,
     :param position: The position of a positional input (not supported yet).
     :param default_value: A default value.
     :param data_type: The data type of the input values.
+    :param value_set_source: The name of an input, which can be used to generate a dynamic value set.
     :param value_set: A sequence of the valid values. Note that all values in this sequence
                       must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
@@ -442,6 +444,7 @@ def op_input(input_name: str,
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
                               position=position,
+                              value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range, **properties)
         input_namespace[input_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})

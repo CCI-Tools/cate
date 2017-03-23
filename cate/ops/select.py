@@ -34,11 +34,13 @@ import fnmatch
 import geopandas as gpd
 import xarray as xr
 
-from cate.core.op import op
+from cate.core.op import op, op_input
 from cate.util import to_list
 
 
 @op(tags=['select', 'subset', 'filter', 'var'])
+@op_input('ds')
+@op_input('var', value_set_source='ds')
 # TODO (Gailis, 27.09.16) See issues #45 and #46
 #def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
 def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
