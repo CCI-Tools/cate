@@ -47,6 +47,9 @@ class TestExternal(TestCase):
 
 
     def test_nominal(self):
+        """
+        Nominal execution test
+        """
         # Test nominal
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -83,10 +86,11 @@ class TestExternal(TestCase):
         self.cleanup()
 
     def test_partial(self):
-        # Test situations where the given dataset does not correspond perfectly
-        # to the reference dataset
-
-        # Teset mismatching variable names
+        """
+        Test situations where the given dataset does not correspond perfectly
+        to the reference dataset.
+        """
+        # Test mismatching variable names
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -124,7 +128,9 @@ class TestExternal(TestCase):
         self.cleanup()
 
     def test_monitor(self):
-        # Test if the monitor is integrated correctly
+        """
+        Test monitor integration
+        """
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -145,7 +151,10 @@ class TestExternal(TestCase):
         self.assertEqual(m._percentage, 100)
 
     def test_transform(self):
-        # Test applying a transformation before doing the anomaly
+        """
+        Test the application of an arithmetic transormation to the dataset, as
+        part of the anomaly calculation.
+        """
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -178,9 +187,10 @@ class TestExternal(TestCase):
         self.cleanup()
 
     def test_dask(self):
-        # Test if the operation works with xarray datasets with dask as the
-        # backend.
-        pass
+        """
+        Test if the operation works with xarray datasets with dask as the
+        backend.
+        """
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -219,6 +229,9 @@ class TestExternal(TestCase):
         self.cleanup()
 
     def test_registered(self):
+        """
+        Test the operation when it is invoked through the operation registry
+        """
         reg_op = OP_REGISTRY.get_op(object_to_qualified_name(anomaly.anomaly_external))
         ref = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -245,6 +258,40 @@ class TestExternal(TestCase):
         ref.to_netcdf(self._TEMP)
         actual = reg_op(ds=ds, file=self._TEMP)
         assert_dataset_equal(actual, expected)
+        self.cleanup()
+
+    def test_validation(self):
+        """
+        Test input validation
+        """
+        # Test wrong dtype
+        ref = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [x for x in range(0, 24)]})
+
+        ref.to_netcdf(self._TEMP)
+        with self.assertRaises(ValueError) as err:
+            anomaly.anomaly_external(ds, self._TEMP)
+        self.assertIn('dtype datetime', str(err.exception))
+
+        # Test missing time coordinate
+        ds = xr.Dataset({
+            'first': (['lat', 'lon'], np.ones([45, 90])),
+            'second': (['lat', 'lon'], np.ones([45, 90])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+        with self.assertRaises(ValueError) as err:
+            anomaly.anomaly_external(ds, self._TEMP)
+        self.assertIn('time coordinate.', str(err.exception))
         self.cleanup()
 
 
