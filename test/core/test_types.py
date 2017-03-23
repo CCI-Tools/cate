@@ -282,6 +282,8 @@ class TypeMappingTest(TestCase):
     def test_simple_type_names(self):
         self.assertEqual(SIMPLE_TYPE_NAMES.get('Dataset'), 'xarray.core.dataset.Dataset')
         self.assertEqual(SIMPLE_TYPE_NAMES.get('DataArray'), 'xarray.core.dataarray.DataArray')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoDataFrame'), 'geopandas.geodataframe.GeoDataFrame')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoSeries'), 'geopandas.geoseries.GeoSeries')
         self.assertEqual(SIMPLE_TYPE_NAMES.get('DataFrame'), 'pandas.core.frame.DataFrame')
         self.assertEqual(SIMPLE_TYPE_NAMES.get('Series'), 'pandas.core.series.Series')
         self.assertEqual(SIMPLE_TYPE_NAMES.get('Point'),
