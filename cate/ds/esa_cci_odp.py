@@ -464,6 +464,8 @@ class EsaCciOdpDataSource(DataSource):
 
         if protocol == _ODP_PROTOCOL_HTTP:
             self.make_local(self._master_id(), None, time_range, None, None, monitor)
+        else:
+            raise ValueError('Unsupported protocol', protocol)
         return 0, 0
 
     def update_local(self,
@@ -492,14 +494,24 @@ class EsaCciOdpDataSource(DataSource):
             to_remove = self._find_files()
 
         if to_remove:
-            dataset_dir = self.local_dataset_dir()
             for filename, _, _, _, _ in to_remove:
-                dataset_file = os.path.join(dataset_dir, filename)
+                relative_path = os.path.join('local', filename)
+                dataset_file = os.path.join(get_data_stores_path(), relative_path)
                 try:
                     os.remove(dataset_file)
                 except OSError:
                     # File busy on Windows, move on
                     pass
+                finally:
+                    config.remove_file(relative_path)
+        if to_add:
+            for time_range_to_add in to_add:
+
+                files_to_add = self._find_files(time_range_to_add)
+                for filename, _, _, _, _ in files_to_add:
+                    pass
+
+        config.save()
 
     def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
 
@@ -591,17 +603,13 @@ class EsaCciOdpDataSource(DataSource):
         """
         return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
 
-    def make_local(self,
-                   local_name: str,
-                   local_id: str = None,
-                   time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
-        if not local_name:
-            raise ValueError('local_name is required')
-        elif len(local_name) == 0:
-            raise ValueError('local_name cannot be empty')
+    def _make_local(self,
+                    local_name: str,
+                    local_id: str = None,
+                    time_range: TimeRangeLike.TYPE = None,
+                    region: GeometryLike.TYPE = None,
+                    var_names: VariableNamesLike.TYPE = None,
+                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
@@ -696,11 +704,8 @@ class EsaCciOdpDataSource(DataSource):
                         remote_netcdf.close()
                     if local_netcdf:
                         local_netcdf.close()
-
                 child_monitor.done()
-
             monitor.done()
-
         else:
             outdated_file_list = []
             for file_rec in selected_file_list:
@@ -738,6 +743,25 @@ class EsaCciOdpDataSource(DataSource):
                     with sub_monitor.starting(sub_monitor_msg, file_size):
                         urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                     file_number += 1
+            monitor.done()
+
+    def make_local(self,
+                   local_name: str,
+                   local_id: str = None,
+                   time_range: TimeRangeLike.TYPE = None,
+                   region: GeometryLike.TYPE = None,
+                   var_names: VariableNamesLike.TYPE = None,
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+        if not local_name:
+            raise ValueError('local_name is required')
+        elif len(local_name) == 0:
+            raise ValueError('local_name cannot be empty')
+        local_path = os.path.join(get_data_store_path(), local_name)
+        try:
+            os.makedirs(local_path, exist_ok=False)
+        except FileExistsError:
+            raise ValueError("Local data source with such name already exists", local_name)
+        self._make_local(local_name, local_id, time_range, region, var_names, monitor)
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:
