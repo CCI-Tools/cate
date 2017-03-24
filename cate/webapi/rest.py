@@ -21,6 +21,7 @@
 
 from cate.util import ConsoleMonitor
 from cate.util import Monitor
+import datetime
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -519,18 +520,19 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         collection = workspace.resource_cache[res_name]
         print('ResVarGeoJSONHandler: collection:', collection)
         print('ResVarGeoJSONHandler: collection CRS:', collection.crs)
+        print('ResVarGeoJSONHandler: streaming started at ', datetime.datetime.now())
         if not isinstance(collection, fiona.Collection):
             self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
             return
-
         try:
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, collection, self, 2 ** -zoom)]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
-        self.finish()
 
+        print('ResVarGeoJSONHandler: streaming done at ', datetime.datetime.now())
+        self.finish()
 
 
 def _new_monitor() -> Monitor:
