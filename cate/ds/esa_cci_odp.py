@@ -21,7 +21,7 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespacio VEGA UK Inc.)"
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -65,6 +65,8 @@ from cate.util.monitor import Monitor
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+_REFERENCE_DATA_SOURCE_TYPE = "OPEN_DATA_PORTAL"
 
 _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(12 * '\\d'), '%Y%m%d%H%M'),
@@ -611,9 +613,14 @@ class EsaCciOdpDataSource(DataSource):
                     var_names: VariableNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE) -> 'DataSource':
 
+        if not local_id:
+            local_id = local_name
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
         var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
+
+        config = LocalDataSourceConfiguration(name=local_id, data_store=self._data_store,
+                                              config_type=_REFERENCE_DATA_SOURCE_TYPE, source=self._name)
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -627,7 +634,7 @@ class EsaCciOdpDataSource(DataSource):
         else:
             protocol = _ODP_PROTOCOL_OPENDAP
 
-        local_path = os.path.join(get_data_store_path(), local_name)
+        local_path = os.path.join(get_data_store_path(), local_id)
         if not os.path.exists(local_path):
             os.makedirs(local_path)
 
@@ -697,15 +704,15 @@ class EsaCciOdpDataSource(DataSource):
                         local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
                         local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
                         local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
-                except:
-                    raise
+
                 finally:
                     if remote_netcdf:
                         remote_netcdf.close()
                     if local_netcdf:
                         local_netcdf.close()
+                        config.add_file(file_name)
+
                 child_monitor.done()
-            monitor.done()
         else:
             outdated_file_list = []
             for file_rec in selected_file_list:
@@ -717,33 +724,33 @@ class EsaCciOdpDataSource(DataSource):
                 if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
                     outdated_file_list.append(file_rec)
 
-            if not outdated_file_list:
-                return  # No sync needed
+            if outdated_file_list:
+                with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                    bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                    dl_stat = _DownloadStatistics(bytes_to_download)
 
-            with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
-                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                dl_stat = _DownloadStatistics(bytes_to_download)
+                    file_number = 1
 
-                file_number = 1
-
-                for filename, _, _, file_size, url in outdated_file_list:
-                    if monitor.is_cancelled():
-                        raise InterruptedError
-                    dataset_file = os.path.join(local_path, filename)
-                    sub_monitor = monitor.child(work=1.0)
-
-                    # noinspection PyUnusedLocal
-                    def reporthook(block_number, read_size, total_file_size):
-                        dl_stat.handle_chunk(read_size)
+                    for filename, _, _, file_size, url in outdated_file_list:
                         if monitor.is_cancelled():
                             raise InterruptedError
-                        sub_monitor.progress(work=read_size, msg=str(dl_stat))
+                        dataset_file = os.path.join(local_path, filename)
+                        sub_monitor = monitor.child(work=1.0)
 
-                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                    with sub_monitor.starting(sub_monitor_msg, file_size):
-                        urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
-                    file_number += 1
-            monitor.done()
+                        # noinspection PyUnusedLocal
+                        def reporthook(block_number, read_size, total_file_size):
+                            dl_stat.handle_chunk(read_size)
+                            if monitor.is_cancelled():
+                                raise InterruptedError
+                            sub_monitor.progress(work=read_size, msg=str(dl_stat))
+
+                        sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                        with sub_monitor.starting(sub_monitor_msg, file_size):
+                            urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                        file_number += 1
+                        config.add_file(filename)
+        config.save()
+        monitor.done()
 
     def make_local(self,
                    local_name: str,

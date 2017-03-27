@@ -19,7 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Marco Zühlke (Brockmann Consult GmbH)"
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -92,7 +94,6 @@ from cate.conf import get_config_path
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
-from cate.util.misc import to_datetime_range
 from cate.util.monitor import Monitor
 
 
@@ -454,21 +455,22 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         results.extend(data_store.query(name))
     return results
 
-# TODO (kbernat): remove sync and protocol arg, use signature of DataSource.open_dataset()
+
 def open_dataset(data_source: Union[DataSource, str],
-                 start_date: Union[None, str, date] = None,
-                 end_date: Union[None, str, date] = None,
-                 sync: bool = False,
-                 protocol: str = None,
+                 time_range: TimeRangeLike.TYPE = None,
+                 region: GeometryLike.TYPE = None,
+                 var_names: VariableNamesLike.TYPE = None,
                  monitor: Monitor = Monitor.NONE) -> Any:
     """
     Open a dataset from a data source.
 
     :param data_source: Strings are interpreted as the identifier of an ECV dataset.
-    :param start_date: Optional start date of the requested dataset
-    :param end_date: Optional end date of the requested dataset
-    :param sync: Whether to synchronize local and remote data files before opening the dataset
-    :param protocol: Name of protocol used to access dataset
+    :param time_range: An optional time constraint comprising start and end date.
+            If given, it must be a :py:class:`TimeRangeLike`.
+    :param region: An optional region constraint.
+            If given, it must be a :py:class:`GeometryLike`.
+    :param var_names: Optional names of variables to be included.
+            If given, it must be a :py:class:`VariableNamesLike`.
     :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """
@@ -476,10 +478,14 @@ def open_dataset(data_source: Union[DataSource, str],
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        # TODO (kbernat): idea: as we follow the "convention" that data source names should start with the data store
-        #                 name, we should search such data stores first. E.g. a data source with name "local.<more ...>"
-        #                 should be searched in data store "local" first.
-        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+        data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
+        primary_data_store = None
+        if data_source.find('.') >= 0:
+            data_store_name, data_source_name = data_source.split('.', 1)
+            primary_data_store = DATA_STORE_REGISTRY.get_data_store(data_store_name)
+        if primary_data_store:
+            data_store_list.insert(0, primary_data_store)
+            data_store_list = sorted(set(data_store_list), key=data_store_list.index)
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term '%s'" % data_source)
@@ -487,12 +493,7 @@ def open_dataset(data_source: Union[DataSource, str],
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
 
-    time_range = to_datetime_range(start_date, end_date)
-
-    if sync:
-        data_source.sync(time_range, monitor=monitor, protocol=protocol)
-
-    return data_source.open_dataset(time_range, protocol=protocol)
+    return data_source.open_dataset(time_range, region, var_names, monitor)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
