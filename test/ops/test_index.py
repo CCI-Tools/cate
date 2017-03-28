@@ -42,8 +42,8 @@ def create_tmp_file():
                 raise
 
 
-class TestIndices(TestCase):
-    def test_n34(self):
+class TestEnsoNino34(TestCase):
+    def test_nominal(self):
         """
         Test ENSO index calculation using Nino34 region
         """
@@ -75,21 +75,32 @@ class TestIndices(TestCase):
             lta.to_netcdf(tmp_file)
             ret = index.enso_nino34(dataset, 'first', tmp_file)
             print(ret)
-
-    def test_preset_region(self):
-        """
-        Test ENSO index calculation using a pre-defined region
-        """
         pass
 
-    def test_custom(self):
-        """
-        Test ENSO index calculation using a user-supplied region
-        """
+    def test_threshold(self):
         pass
 
-    def test_oni(self):
-        """
-        Test ONI index calculation.
-        """
+    def test_registered(self):
+        pass
+
+
+class TestEnso(TestCase):
+    def test_nominal(self):
+        pass
+
+    def test_antimeridian(self):
+        pass
+
+    def test_custom_region(self):
+        pass
+
+    def test_registered(self):
+        pass
+
+
+class TestOni(TestCase):
+    def test_nominal(self):
+        pass
+
+    def test_registered(self):
         pass
