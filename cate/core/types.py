@@ -120,6 +120,10 @@ class VarNamesLike(Like[VarNames]):
         """
         Convert the given value to a list of variable name patterns.
         """
+        # Can be optional
+        if not var:
+            return None
+
         if isinstance(value, str):
             return to_list(value)
 
@@ -151,6 +155,10 @@ class VarName(Like[str]):
         """
         Convert the given value to a variable name
         """
+        # Can be optional
+        if not var:
+            return None
+
         if not isinstance(value, str):
             raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
 
@@ -172,6 +180,10 @@ class PointLike(Like[Point]):
 
     @classmethod
     def convert(cls, value: Any) -> Point:
+        # Can be optional
+        if not var:
+            return None
+
         try:
             if isinstance(value, Point):
                 return value
@@ -203,6 +215,10 @@ class PolygonLike(Like[Polygon]):
 
     @classmethod
     def convert(cls, value: Any) -> Polygon:
+        # Can be optional
+        if not var:
+            return None
+
         try:
             if isinstance(value, Polygon):
                 if value.is_valid:
@@ -249,6 +265,10 @@ class GeometryLike(Like[BaseGeometry]):
 
     @classmethod
     def convert(cls, value: Any) -> BaseGeometry:
+        # Can be optional
+        if not var:
+            return None
+
         # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
         try:
             return PolygonLike.convert(value)
@@ -284,6 +304,10 @@ class TimeRangeLike(Like[TimeRange]):
 
     @classmethod
     def convert(cls, value: Any) -> TimeRange:
+        # Can be optional
+        if not var:
+            return None
+
         try:
             _range = None
             if isinstance(value, tuple):
