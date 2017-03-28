@@ -110,6 +110,7 @@ class VarNamesLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             VarNamesLike.convert(['aa', 1, 'bb'])
         self.assertTrue('string or a list' in str(err.exception))
+        self.assertEqual(None, VarNamesLike.convert(None))
 
     def test_format(self):
         self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
@@ -134,6 +135,7 @@ class VarNameTest(TestCase):
         with self.assertRaises(ValueError) as err:
             a = VarName.convert(['aa', 'bb', 'cc'])
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, VarName.convert(None))
 
     def test_format(self):
         self.assertEqual('aa', VarName.format('aa'))
@@ -160,6 +162,7 @@ class PointLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, PointLike.convert(None))
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
@@ -209,6 +212,7 @@ class PolygonLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
         self.assertEqual('cannot convert geometry to a valid Polygon: aaa', str(err.exception))
+        self.assertEqual(None, PolygonLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -261,6 +265,7 @@ class GeometryLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             GeometryLike.convert('aaa')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, GeometryLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -293,6 +298,7 @@ class TimeRangeLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             TimeRangeLike.convert('2002-01-01, 2001-01-01')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, TimeRangeLike.convert(None))
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
