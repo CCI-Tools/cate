@@ -116,7 +116,7 @@ def enso(ds: xr.Dataset,
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
-def oni(ds: xr.Dataset, var: VarName.TYPE, file: str):
+def oni(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=None):
     """
     Calculate ONI index, which is defined as a three month running mean of
     anomalies of monthly means of SST data in the Nino3.4 region.
@@ -124,6 +124,11 @@ def oni(ds: xr.Dataset, var: VarName.TYPE, file: str):
     :param ds: A monthly SST dataset
     :param file: Path to the reference data file
     :param var: Dataset variable to use for index calculation
+    :param threshold: If given, boolean El Nino/La Nina timeseries will be
+    calculated and added to the output dataset, according to the given
+    threshold. Where anomaly larger than then positive value of the threshold
+    indicates El Nino and anomaly smaller than the negative of the given
+    threshold indicates La Nina.
     """
     n34 = '-170, -5, -120, 5'
     name = 'ONI Index'

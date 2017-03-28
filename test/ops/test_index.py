@@ -134,6 +134,10 @@ class TestEnsoNino34(TestCase):
 
 class TestEnso(TestCase):
     def test_nominal(self):
+        """
+        Test nominal execution of the generic ENSO Index calculation operation
+        """
+
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -159,6 +163,10 @@ class TestEnso(TestCase):
             self.assertTrue(expected.equals(actual))
 
     def test_antimeridian(self):
+        """
+        Test execution with N4 region that crosses the antimeridian
+        """
+
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -184,6 +192,10 @@ class TestEnso(TestCase):
             self.assertTrue(expected.equals(actual))
 
     def test_custom_region(self):
+        """
+        Test execution with a generic WKT poygon
+        """
+
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -218,7 +230,16 @@ class TestEnso(TestCase):
                                 custom_region=region)
             self.assertTrue(expected.equals(actual))
 
+        # Test a situation where the user forgets to provide the custom region
+        with self.assertRaises(ValueError) as err:
+            ret = index.enso(dataset, 'first', 'dummy/file.nc', region='custom')
+        self.assertIn('No region', str(err.exception))
+
     def test_registered(self):
+        """
+        Test execution as a registered operation.
+        """
+
         reg_op = OP_REGISTRY.get_op(object_to_qualified_name(index.enso))
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -258,15 +279,6 @@ class TestOni(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
                      [datetime(2002, x, 1) for x in range(1, 13)])})
-        actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
-        expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([5, 10, 24])),
-            'second': (['lat', 'lon', 'time'], np.ones([5, 10, 24])),
-            'lat': np.linspace(-8, 8, 5),
-            'lon': np.linspace(-18, 18, 10),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
-        assert_dataset_equal(expected, actual)
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -274,14 +286,14 @@ class TestOni(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1,13)]})
         lta = 2*lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
-        expected = pd.DataFrame(data=(np.ones([20])*-1),
-                                columns=['ENSO N3.4 Index'],
+        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)] +
+                         [datetime(2002, x, 1) for x in range(1, 12)])
+        expected = pd.DataFrame(data=(np.ones([22])*-1),
+                                columns=['ONI Index'],
                                 index=expected_time)
         with create_tmp_file() as tmp_file:
             lta.to_netcdf(tmp_file)
-            actual = index.enso_nino34(dataset, 'first', tmp_file)
+            actual = index.oni(dataset, 'first', tmp_file)
             self.assertTrue(expected.equals(actual))
 
     def test_registered(self):
@@ -289,4 +301,28 @@ class TestOni(TestCase):
         Test nominal execution of ONI Index calculation, as a registered
         operation.
         """
-        pass
+
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(index.oni))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
+                     [datetime(2002, x, 1) for x in range(1, 13)])})
+        lta = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [x for x in range(1,13)]})
+        lta = 2*lta
+        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)] +
+                         [datetime(2002, x, 1) for x in range(1, 12)])
+        expected = pd.DataFrame(data=(np.ones([22])*-1),
+                                columns=['ONI Index'],
+                                index=expected_time)
+        with create_tmp_file() as tmp_file:
+            lta.to_netcdf(tmp_file)
+            actual = reg_op(ds=dataset, var='first', file=tmp_file)
+            self.assertTrue(expected.equals(actual))
