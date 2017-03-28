@@ -28,60 +28,123 @@ Anomaly calculation operations
 Functions
 =========
 """
-
-from cate.core.op import op
-from cate.ops.subset import subset_spatial, subset_temporal
 import xarray as xr
 
+from cate.core.op import op, op_return, op_input
+from cate.util.monitor import Monitor
+from cate.ops.subset import subset_spatial, subset_temporal
+from cate.ops.arithmetics import diff, ds_arithmetics
+from cate.core.types import TimeRangeLike, PolygonLike
 
-@op(tags=['anomaly', 'climatology'])
-def anomaly_climatology(ds: xr.Dataset,
-                        file: str) -> xr.Dataset:
+
+_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
+
+
+@op(tags=['anomaly', 'climatology'], version='1.0')
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_return(add_history=True)
+def anomaly_external(ds: xr.Dataset,
+                     file: str,
+                     transform: str = None,
+                     monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
-    Calculate anomaly with a given climatology as reference data. The given
-    climatology dataset is expected to consist of 12 time slices and contain
-    the same number of data arrays with the same names as for data arrays in
-    the given dataset.
+    Calculate anomaly with external reference data, for example, a climatology.
+    The given reference dataset is expected to consist of 12 time slices, one
+    for each month.
 
-    The calculated anomaly will be against the corresponding month of the
-    reference data. E.g. January against January, etc.
+    The returned dataset will contain the variable names found in both - the
+    reference and the given dataset. Names found in the given dataset, but not in
+    the reference, will be dropped from the resulting dataset. The calculated
+    anomaly will be against the corresponding month of the reference data.
+    E.g. January against January, etc.
+
+    In case spatial extents differ between the reference and the given dataset,
+    the anomaly will be calculated on the intersection.
 
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
+    :param str: Apply the given transformation before calculating the anomaly.
+    For supported operations see help on 'ds_arithmetics' operation.
     :return: The anomaly dataset
     """
+    # Check if the time coordinate is of dtype datetime
+    try:
+        if ds.time.dtype != 'datetime64[ns]':
+            raise ValueError('The dataset provided for anomaly calculation'
+                             ' is required to have a time coordinate of'
+                             ' dtype datetime64[ns]. Running the harmonization'
+                             ' operation on this dataset might help.')
+    except AttributeError:
+        raise ValueError('The dataset provided for anomaly calculation'
+                         ' is required to have a time coordinate.')
+
     clim = xr.open_dataset(file)
-    return ds - clim
+    ret = ds.copy()
+    if transform:
+        ret = ds_arithmetics(ds, transform)
+    # Group by months, subtract the appropriate slice from the reference
+    # Note that this requires that 'time' coordinate labels are of type
+    # datetime64[ns]
+    total_work = 100
+    step = 100/12
+
+    with monitor.starting('Anomaly', total_work=total_work):
+        monitor.progress(work=0)
+        kwargs = {'ref': clim, 'monitor': monitor, 'step': step}
+        ret = ret.groupby(ds['time.month']).apply(_group_anomaly,
+                                                  **kwargs)
+
+    # Running groupby results in a redundant 'month' variable being added to
+    # the dataset
+    ret =  ret.drop('month')
+    return ret
 
 
-@op(tags=['anomaly'])
-def anomaly_internal(ds: xr.Dataset,
-                     start_date: str = None,
-                     end_date: str = None,
-                     lat_min: float = None,
-                     lat_max: float = None,
-                     lon_min: float = None,
-                     lon_max: float = None) -> xr.Dataset:
+def _group_anomaly(group: xr.Dataset,
+                   ref: xr.Dataset,
+                   monitor: Monitor = Monitor.NONE,
+                   step: float = None):
     """
-    Calculate anomaly using as reference data an optional region and time slice
-    from the given dataset. If no time slice/spatial region is given, the
-    operation will calculate anomaly using the mean of the whole dataset
-    as the reference.
+    Calculate anomaly for the given group.
+
+    :param group: Result of a groupby('time.month') operation
+    :param ref: Reference dataset
+    :param monitor: Monitor of the parent method
+    :param step: Step to add to monitor progress
+    :return: Group dataset with anomaly calculation applied
+    """
+    # Retrieve the month of the current group
+    month = group['time.month'][0].values
+    ret = diff(group, ref.isel(time=month-1))
+    monitor.progress(work=step)
+    return ret
+
+
+@op(tags=['anomaly'], version='1.0')
+@op_input('time_range', data_type=TimeRangeLike)
+@op_input('region', data_type=PolygonLike)
+@op_return(add_history=True)
+def anomaly_internal(ds: xr.Dataset,
+                     time_range: TimeRangeLike.TYPE = None,
+                     region: PolygonLike.TYPE = None) -> xr.Dataset:
+    """
+    Calculate anomaly using as reference data the mean of an optional region
+    and time slice from the given dataset. If no time slice/spatial region is
+    given, the operation will calculate anomaly using the mean of the whole
+    dataset as the reference.
 
     This is done for each data array in the dataset.
     :param ds: The dataset to calculate anomalies from
-    :param start_date: Reference data start date
-    :param end_date: Reference data end date
-    :param lat_min: Reference data minimum latitude
-    :param lat_max: Reference data maximum latitude
-    :param lon_min: Reference data minimum latitude
-    :param lon_max: Reference data maximum latitude
+    :param time_range: Time range to use for reference data
+    :param region: Spatial region to use for reference data
     :return: The anomaly dataset
     """
-    ref = ds
-    if start_date and end_date:
-        ref = subset_temporal(ref, start_date, end_date)
-    if lat_min and lat_max and lon_min and lon_max:
-        ref = subset_spatial(ref, lat_min, lat_max, lon_min, lon_max)
+    ref = ds.copy()
+    if time_range:
+        time_range = TimeRangeLike.convert(time_range)
+        ref = subset_temporal(ref, time_range)
+    if region:
+        region = PolygonLike.convert(region)
+        ref = subset_spatial(ref, region)
     ref = ref.mean(keep_attrs=True, skipna=True)
     return ds - ref
