@@ -84,7 +84,7 @@ def enso_nino34(ds: xr.Dataset, var:str, file: str, threshold: float=False):
                                                          _ALL_FILE_FILTER])
 @op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4', 'custom'])
 @op_input('custom_region', cate_type='polygon')
-def enso_index(ds: xr.Dataset,
+def enso(ds: xr.Dataset,
                var: str,
                file: str,
                region: str='n34',
@@ -121,7 +121,7 @@ def enso_index(ds: xr.Dataset,
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
                                                          extensions=['nc']),
                                                          _ALL_FILE_FILTER])
-def oni_index(ds: xr.Dataset, var: str, file: str):
+def oni(ds: xr.Dataset, var: str, file: str):
     """
     Calculate ONI index, which is defined as a three month running mean of
     anomalies of monthly means of SST data in the Nino3.4 region.
