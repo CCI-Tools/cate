@@ -38,7 +38,7 @@ import xarray as xr
 
 @op(tags=['arithmetic'])
 def ds_arithmetics(ds: xr.Dataset,
-                op: str) -> xr.Dataset:
+                   op: str) -> xr.Dataset:
     """
     Do arithmetic operations on the given dataset by providing a list of
     arithmetic operations and the corresponding constant. The operations will

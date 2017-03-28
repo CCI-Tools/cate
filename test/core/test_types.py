@@ -6,7 +6,7 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike
 from cate.core.types import SIMPLE_TYPE_NAMES, FULLY_QUALIFIED_TYPE_NAMES
 from cate.util import object_to_qualified_name
 
@@ -89,32 +89,56 @@ class ExampleTypeTest(TestCase):
         self.assertEqual(ExampleType.format(ExamplePoint(2.4, 4.8)), "2.4, 4.8")
 
 
-class VariableNamesLikeTest(TestCase):
+class VarNamesLikeTest(TestCase):
     """
-    Test the VariableNamesLike type
+    Test the VarNamesLike type
     """
 
     def test_accepts(self):
-        self.assertTrue(VariableNamesLike.accepts('aa'))
-        self.assertTrue(VariableNamesLike.accepts('aa,bb,cc'))
-        self.assertTrue(VariableNamesLike.accepts(['aa', 'bb', 'cc']))
-        self.assertFalse(VariableNamesLike.accepts(1.0))
-        self.assertFalse(VariableNamesLike.accepts([1, 2, 4]))
-        self.assertFalse(VariableNamesLike.accepts(['aa', 2, 'bb']))
+        self.assertTrue(VarNamesLike.accepts('aa'))
+        self.assertTrue(VarNamesLike.accepts('aa,bb,cc'))
+        self.assertTrue(VarNamesLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarNamesLike.accepts(1.0))
+        self.assertFalse(VarNamesLike.accepts([1, 2, 4]))
+        self.assertFalse(VarNamesLike.accepts(['aa', 2, 'bb']))
 
     def test_convert(self):
         expected = ['aa', 'b*', 'cc']
-        actual = VariableNamesLike.convert('aa,b*,cc')
+        actual = VarNamesLike.convert('aa,b*,cc')
         self.assertEqual(actual, expected)
 
         with self.assertRaises(ValueError) as err:
-            VariableNamesLike.convert(['aa', 1, 'bb'])
-        print(str(err))
+            VarNamesLike.convert(['aa', 1, 'bb'])
         self.assertTrue('string or a list' in str(err.exception))
+        self.assertEqual(None, VarNamesLike.convert(None))
 
     def test_format(self):
-        self.assertEqual(VariableNamesLike.format(['aa', 'bb', 'cc']),
+        self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
+
+
+class VarNameTest(TestCase):
+    """
+    Test the VarName type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(VarName.accepts('aa'))
+        self.assertFalse(VarName.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarName.accepts(1.0))
+
+    def test_convert(self):
+        expected = 'aa'
+        actual = VarName.convert('aa')
+        self.assertEqual(actual, expected)
+
+        with self.assertRaises(ValueError) as err:
+            a = VarName.convert(['aa', 'bb', 'cc'])
+        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, VarName.convert(None))
+
+    def test_format(self):
+        self.assertEqual('aa', VarName.format('aa'))
 
 
 class PointLikeTest(TestCase):
@@ -138,6 +162,7 @@ class PointLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, PointLike.convert(None))
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
@@ -187,6 +212,7 @@ class PolygonLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
         self.assertEqual('cannot convert geometry to a valid Polygon: aaa', str(err.exception))
+        self.assertEqual(None, PolygonLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -239,6 +265,7 @@ class GeometryLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             GeometryLike.convert('aaa')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, GeometryLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -271,6 +298,7 @@ class TimeRangeLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             TimeRangeLike.convert('2002-01-01, 2001-01-01')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, TimeRangeLike.convert(None))
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'

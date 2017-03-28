@@ -98,12 +98,12 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
-VariableNames = List[str]
+VarNames = List[str]
 
 
 # ===== Like-derived types below =====
 
-class VariableNamesLike(Like[VariableNames]):
+class VarNamesLike(Like[VarNames]):
     """
     Type class for Variable selection objects
 
@@ -113,13 +113,17 @@ class VariableNamesLike(Like[VariableNames]):
 
     Converts to a list of strings
     """
-    TYPE = Union[VariableNames, str]
+    TYPE = Union[VarNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> VariableNames:
+    def convert(cls, value: Any) -> VarNames:
         """
         Convert the given value to a list of variable name patterns.
         """
+        # Can be optional
+        if not value:
+            return None
+
         if isinstance(value, str):
             return to_list(value)
 
@@ -131,6 +135,32 @@ class VariableNamesLike(Like[VariableNames]):
             if not isinstance(item, str):
                 raise ValueError('Variable name pattern can only be a string'
                                  ' or a list of strings.')
+
+        return value
+
+
+class VarName(Like[str]):
+    """
+    Type class for a single Variable selection object.
+
+    Accepts:
+        1. a string
+
+    Converts to a string
+    """
+    TYPE = str
+
+    @classmethod
+    def convert(cls, value: Any) -> str:
+        """
+        Convert the given value to a variable name
+        """
+        # Can be optional
+        if not value:
+            return None
+
+        if not isinstance(value, str):
+            raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
 
         return value
 
@@ -150,6 +180,10 @@ class PointLike(Like[Point]):
 
     @classmethod
     def convert(cls, value: Any) -> Point:
+        # Can be optional
+        if not value:
+            return None
+
         try:
             if isinstance(value, Point):
                 return value
@@ -181,6 +215,10 @@ class PolygonLike(Like[Polygon]):
 
     @classmethod
     def convert(cls, value: Any) -> Polygon:
+        # Can be optional
+        if not value:
+            return None
+
         try:
             if isinstance(value, Polygon):
                 if value.is_valid:
@@ -227,6 +265,10 @@ class GeometryLike(Like[BaseGeometry]):
 
     @classmethod
     def convert(cls, value: Any) -> BaseGeometry:
+        # Can be optional
+        if not value:
+            return None
+
         # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
         try:
             return PolygonLike.convert(value)
@@ -262,6 +304,10 @@ class TimeRangeLike(Like[TimeRange]):
 
     @classmethod
     def convert(cls, value: Any) -> TimeRange:
+        # Can be optional
+        if not value:
+            return None
+
         try:
             _range = None
             if isinstance(value, tuple):
@@ -298,7 +344,8 @@ SIMPLE_TYPE_NAMES = {
 
     # Additional Cate types used by operations API
     # Note: we must use str() here instead of object_to_qualified_name()
-    'VariableNames': str(VariableNamesLike.TYPE),
+    'VarNames': str(VarNamesLike.TYPE),
+    'VarName': str(VarName.TYPE),
     'Point': str(PointLike.TYPE),
     'Polygon': str(PolygonLike.TYPE),
     'Geometry': str(GeometryLike.TYPE),
