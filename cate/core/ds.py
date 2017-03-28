@@ -488,7 +488,7 @@ def open_dataset(data_source: Union[DataSource, str],
             data_store_list = sorted(set(data_store_list), key=data_store_list.index)
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError("No data_source found for the given query term '%s'" % data_source)
+            raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]

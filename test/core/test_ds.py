@@ -159,11 +159,11 @@ class IOTest(TestCase):
     def test_open_dataset(self):
         with self.assertRaises(ValueError) as cm:
             ds.open_dataset(None)
-        self.assertEqual('No data_source given', str(cm.exception))
+        self.assertTupleEqual(tuple(['No data_source given']), cm.exception.args)
 
         with self.assertRaises(ValueError) as cm:
             ds.open_dataset('foo')
-        self.assertEqual("No data_source found for the given query term 'foo'", str(cm.exception))
+        self.assertEqual(("No data_source found for the given query term", 'foo'), cm.exception.args)
 
         inmem_data_source = InMemoryDataSource(42)
         dataset1 = ds.open_dataset(inmem_data_source)
@@ -176,7 +176,7 @@ class IOTest(TestCase):
         self.assertEqual(42, dataset2.a.values)
 
     # @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
-    @unittest.skip(reason='Test has to be fixed, user shouldn\'t be able to add two ds with the same name')
+    @unittest.skip(reason="Test has to be fixed, user shouldn't be able to add two ds with the same name")
     def test_open_dataset_duplicated_names(self):
         try:
             ds_a1 = SimpleDataSource('duplicate')
