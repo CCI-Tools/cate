@@ -98,12 +98,12 @@ class Like(Generic[T], metaclass=ABCMeta):
         return str(value)
 
 
-VariableNames = List[str]
+VarNames = List[str]
 
 
 # ===== Like-derived types below =====
 
-class VariableNamesLike(Like[VariableNames]):
+class VarNamesLike(Like[VarNames]):
     """
     Type class for Variable selection objects
 
@@ -113,10 +113,10 @@ class VariableNamesLike(Like[VariableNames]):
 
     Converts to a list of strings
     """
-    TYPE = Union[VariableNames, str]
+    TYPE = Union[VarNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> VariableNames:
+    def convert(cls, value: Any) -> VarNames:
         """
         Convert the given value to a list of variable name patterns.
         """
@@ -298,7 +298,7 @@ SIMPLE_TYPE_NAMES = {
 
     # Additional Cate types used by operations API
     # Note: we must use str() here instead of object_to_qualified_name()
-    'VariableNames': str(VariableNamesLike.TYPE),
+    'VarNames': str(VarNamesLike.TYPE),
     'Point': str(PointLike.TYPE),
     'Polygon': str(PolygonLike.TYPE),
     'Geometry': str(GeometryLike.TYPE),

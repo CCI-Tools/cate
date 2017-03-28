@@ -6,7 +6,7 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.core.types import Like, VarNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
 from cate.core.types import SIMPLE_TYPE_NAMES, FULLY_QUALIFIED_TYPE_NAMES
 from cate.util import object_to_qualified_name
 
@@ -89,31 +89,31 @@ class ExampleTypeTest(TestCase):
         self.assertEqual(ExampleType.format(ExamplePoint(2.4, 4.8)), "2.4, 4.8")
 
 
-class VariableNamesLikeTest(TestCase):
+class VarNamesLikeTest(TestCase):
     """
-    Test the VariableNamesLike type
+    Test the VarNamesLike type
     """
 
     def test_accepts(self):
-        self.assertTrue(VariableNamesLike.accepts('aa'))
-        self.assertTrue(VariableNamesLike.accepts('aa,bb,cc'))
-        self.assertTrue(VariableNamesLike.accepts(['aa', 'bb', 'cc']))
-        self.assertFalse(VariableNamesLike.accepts(1.0))
-        self.assertFalse(VariableNamesLike.accepts([1, 2, 4]))
-        self.assertFalse(VariableNamesLike.accepts(['aa', 2, 'bb']))
+        self.assertTrue(VarNamesLike.accepts('aa'))
+        self.assertTrue(VarNamesLike.accepts('aa,bb,cc'))
+        self.assertTrue(VarNamesLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarNamesLike.accepts(1.0))
+        self.assertFalse(VarNamesLike.accepts([1, 2, 4]))
+        self.assertFalse(VarNamesLike.accepts(['aa', 2, 'bb']))
 
     def test_convert(self):
         expected = ['aa', 'b*', 'cc']
-        actual = VariableNamesLike.convert('aa,b*,cc')
+        actual = VarNamesLike.convert('aa,b*,cc')
         self.assertEqual(actual, expected)
 
         with self.assertRaises(ValueError) as err:
-            VariableNamesLike.convert(['aa', 1, 'bb'])
+            VarNamesLike.convert(['aa', 1, 'bb'])
         print(str(err))
         self.assertTrue('string or a list' in str(err.exception))
 
     def test_format(self):
-        self.assertEqual(VariableNamesLike.format(['aa', 'bb', 'cc']),
+        self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
 
 

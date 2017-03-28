@@ -53,7 +53,7 @@ from typing import Sequence, Tuple, Optional, Any
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
@@ -545,7 +545,7 @@ class EsaCciOdpDataSource(DataSource):
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: GeometryLike.TYPE = None,
-                     var_names: VariableNamesLike.TYPE = None,
+                     var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         # TODO (kbernat): support region constraint here
@@ -589,7 +589,7 @@ class EsaCciOdpDataSource(DataSource):
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
+                   var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         # TODO (kbernat): implement me! see sync()
         raise NotImplementedError('EsaCciOdpDataSource.make_local() '
