@@ -30,6 +30,7 @@ import pandas as pd
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
+from cate.core.types import  VarNamesLike
 from cate.util.monitor import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -236,12 +237,12 @@ def read_geo_data_collection(file: str) -> fiona.Collection:
 
 @op(tags=['input'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
-@op_input('drop_variables')
+@op_input('drop_variables', data_type=VarNamesLike)
 @op_input('decode_cf')
 @op_input('decode_times')
 @op_input('engine')
 def read_netcdf(file: str,
-                drop_variables: str = None,
+                drop_variables: VarNamesLike.TYPE = None,
                 decode_cf: bool = True, decode_times: bool = True,
                 engine: str = None) -> xr.Dataset:
     """
@@ -253,6 +254,7 @@ def read_netcdf(file: str,
     :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
     :param engine: Optional netCDF engine name.
     """
+    drop_variables = VarNamesLike.convert(drop_variables)
     return xr.open_dataset(file, drop_variables=drop_variables,
                            decode_cf=decode_cf, decode_times=decode_times, engine=engine)
 
