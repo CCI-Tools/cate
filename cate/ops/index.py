@@ -35,17 +35,17 @@ import pandas as pd
 from cate.core.op import op, op_input
 from cate.ops.select import select_var
 from cate.ops.subset import subset_spatial
-from cate.core.types import PolygonLike
+from cate.ops.anomaly import anomaly_external
+from cate.core.types import PolygonLike, VarName
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['index', 'nino34'])
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
-                                                         extensions=['nc']),
-                                                         _ALL_FILE_FILTER])
-def enso_nino34(ds: xr.Dataset, var:str, file: str, threshold: float=False):
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('var', value_set_source='ds', data_type=VarName)
+def enso_nino34(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=False):
     """
     Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
@@ -61,31 +61,18 @@ def enso_nino34(ds: xr.Dataset, var:str, file: str, threshold: float=False):
     threshold indicates La Nina.
     :return: A dataset that contains the index timeseries.
     """
-    ds = select_var(ds, var)
-    ref = xr.open_dataset(file)
-    ref = select_var(ref, var)
-    ref.load()
-    print(ref-ds)
-    print(ds-ref)
     n34 = '-170, -5, -120, 5'
-    ds_n34 = subset_spatial(ds, n34)
-    ref_n34 = subset_spatial(ref, n34)
-    n34_anom = ds_n34 - ref_n34
-    n34_ts = n34_anom.mean(dim=['lat', 'lon'])
-    n34_data_frame = pd.DataFrame(data=n34_ts[var].values, columns=['Index'],
-                                  index=n34_ts.time)
-    n34_running_mean = pd.rolling_mean(n34_data_frame, 5)
-    return n34_running_mean
+    name = 'ENSO N3.4 Index'
+    return _generic_index_calculation(ds, var, n34, 5, file, name, threshold)
 
 
 @op(tags=['index'])
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
-                                                         extensions=['nc']),
-                                                         _ALL_FILE_FILTER])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4', 'custom'])
-@op_input('custom_region', cate_type='polygon')
+@op_input('custom_region', data_type=PolygonLike)
 def enso(ds: xr.Dataset,
-               var: str,
+               var: VarName.TYPE,
                file: str,
                region: str='n34',
                custom_region: PolygonLike.TYPE=None,
@@ -107,21 +94,26 @@ def enso(ds: xr.Dataset,
     threshold indicates La Nina.
     :return: A dataset that contains the index timeseries.
     """
-    regions = {'n1+2': '-90, -10, -80, 0',
-               'n3': '-150, -5, -90, 5',
-               'n34': '-170, -5, -120, 5',
-               'n4': '160, -5, -150, 5',
+    regions = {'N1+2': '-90, -10, -80, 0',
+               'N3': '-150, -5, -90, 5',
+               'N3.4': '-170, -5, -120, 5',
+               'N4': '160, -5, -150, 5',
                'custom': custom_region}
+    converted_region = PolygonLike.convert(regions[region])
+    if not converted_region:
+        raise ValueError('No region has been provided to ENSO index calculation')
 
-    region = PolygonLike.convert(regions[region])
-    pass
+    name = 'ENSO ' + region + ' Index'
+    if 'custom' == region:
+        name = 'ENSO Index over ' + PolygonLike.format(converted_region)
+
+    return _generic_index_calculation(ds, var, converted_region, 5, file, name, threshold)
 
 
 @op(tags=['index'])
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF',
-                                                         extensions=['nc']),
-                                                         _ALL_FILE_FILTER])
-def oni(ds: xr.Dataset, var: str, file: str):
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+def oni(ds: xr.Dataset, var: VarName.TYPE, file: str):
     """
     Calculate ONI index, which is defined as a three month running mean of
     anomalies of monthly means of SST data in the Nino3.4 region.
@@ -130,4 +122,37 @@ def oni(ds: xr.Dataset, var: str, file: str):
     :param file: Path to the reference data file
     :param var: Dataset variable to use for index calculation
     """
-    pass
+    n34 = '-170, -5, -120, 5'
+    name = 'ONI Index'
+    return _generic_index_calculation(ds, var, n34, 3, file, name, threshold)
+
+
+def _generic_index_calculation(ds: xr.Dataset,
+                               var: VarName.TYPE,
+                               region: PolygonLike.TYPE,
+                               window: int,
+                               file: str,
+                               name: str,
+                               threshold: float = None):
+    """
+    A generic index calculation. Where an index is defined as an anomaly
+    against the given reference of a moving average of the given window size of
+    the given given region of the given variable of the given dataset.
+
+    :param ds: Dataset from which to calculate the index
+    :param var: Variable from which to calculate index
+    :param region: Spatial subset from which to calculate the index
+    :param window: Window size for the moving average
+    :param file: Path to the reference file
+    :param threshold: Absolute threshold that indicates an ENSO event
+    :param name: Name of the index
+    """
+    var = VarName.convert(var)
+    region = PolygonLike.convert(region)
+
+    ds = select_var(ds, var)
+    ds_subset = subset_spatial(ds, region)
+    anom = anomaly_external(ds_subset, file)
+    ts = anom.mean(dim=['lat', 'lon'])
+    df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time)
+    return df.rolling(window=window, center=True).mean().dropna()

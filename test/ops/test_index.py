@@ -53,6 +53,7 @@ class TestIndices(TestCase):
         lta = 2*lta
         lta.to_netcdf(tmp_path)
         ret = index.enso_nino34(dataset, 'first', tmp_path)
+        print(ret)
 
         try:
             os.remove(tmp_path)
