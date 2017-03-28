@@ -151,11 +151,10 @@ class VarName(Like[str]):
         """
         Convert the given value to a variable name
         """
-        try:
-            if isinstance(value, str):
-                return value
-        except:
+        if not isinstance(value, str):
             raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
+
+        return value
 
 
 class PointLike(Like[Point]):

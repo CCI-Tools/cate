@@ -6,7 +6,7 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VarNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike
 from cate.core.types import SIMPLE_TYPE_NAMES, FULLY_QUALIFIED_TYPE_NAMES
 from cate.util import object_to_qualified_name
 
@@ -109,12 +109,34 @@ class VarNamesLikeTest(TestCase):
 
         with self.assertRaises(ValueError) as err:
             VarNamesLike.convert(['aa', 1, 'bb'])
-        print(str(err))
         self.assertTrue('string or a list' in str(err.exception))
 
     def test_format(self):
         self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
+
+
+class VarNameTest(TestCase):
+    """
+    Test the VarName type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(VarName.accepts('aa'))
+        self.assertFalse(VarName.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarName.accepts(1.0))
+
+    def test_convert(self):
+        expected = 'aa'
+        actual = VarName.convert('aa')
+        self.assertEqual(actual, expected)
+
+        with self.assertRaises(ValueError) as err:
+            a = VarName.convert(['aa', 'bb', 'cc'])
+        self.assertTrue('cannot convert' in str(err.exception))
+
+    def test_format(self):
+        self.assertEqual('aa', VarName.format('aa'))
 
 
 class PointLikeTest(TestCase):
