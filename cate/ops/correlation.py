@@ -29,18 +29,22 @@ Functions
 =========
 """
 
-from cate.core.op import op, op_input
 import xarray as xr
 import numpy as np
 from scipy.stats import pearsonr
 
+from cate.core.op import op, op_input
+from cate.core.types import VarName
+
 
 @op(tags=['correlation'])
 @op_input('corr_type', value_set=['pixel_by_pixel'])
+@op_input('var_x', value_set_source='ds_x', data_type=VarName)
+@op_input('var_y', value_set_source='ds_y', data_type=VarName)
 def pearson_correlation(ds_x: xr.Dataset,
                         ds_y: xr.Dataset,
-                        var_x: str,
-                        var_y: str,
+                        var_x: VarName.TYPE,
+                        var_y: VarName.TYPE,
                         file: str = None,
                         corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
     """
@@ -76,6 +80,9 @@ def pearson_correlation(ds_x: xr.Dataset,
     :param file: Filepath variable. If given, this is where the results will be saved in a text file.
     :param corr_type: Correlation type to use for 3D time/lat/lon variables.
     """
+    var_x = VarName.convert(var_x)
+    var_y = VarName.convert(var_y)
+
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
