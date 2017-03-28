@@ -6,14 +6,15 @@ from unittest import TestCase
 
 import os
 import sys
-import xarray as xr
-import pandas as pd
-import numpy as np
 from datetime import datetime
 import tempfile
 import shutil
 from contextlib import contextmanager
 import itertools
+
+import xarray as xr
+import pandas as pd
+import numpy as np
 
 from cate.ops import index
 from cate.ops import subset
@@ -71,11 +72,15 @@ class TestEnsoNino34(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1,13)]})
         lta = 2*lta
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
+                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected = pd.DataFrame(data=(np.ones([20])*-1),
+                                columns=['ENSO N3.4 Index'],
+                                index=expected_time)
         with create_tmp_file() as tmp_file:
             lta.to_netcdf(tmp_file)
-            ret = index.enso_nino34(dataset, 'first', tmp_file)
-            print(ret)
-        pass
+            actual = index.enso_nino34(dataset, 'first', tmp_file)
+            self.assertTrue(expected.equals(actual))
 
     def test_threshold(self):
         pass
