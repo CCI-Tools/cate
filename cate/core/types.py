@@ -135,6 +135,29 @@ class VarNamesLike(Like[VarNames]):
         return value
 
 
+class VarName(Like[str]):
+    """
+    Type class for a single Variable selection object.
+
+    Accepts:
+        1. a string
+
+    Converts to a string
+    """
+    TYPE = str
+
+    @classmethod
+    def convert(cls, value: Any) -> str:
+        """
+        Convert the given value to a variable name
+        """
+        try:
+            if isinstance(value, str):
+                return value
+        except:
+            raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
+
+
 class PointLike(Like[Point]):
     """
     Type class for geometric Point objects
@@ -299,6 +322,7 @@ SIMPLE_TYPE_NAMES = {
     # Additional Cate types used by operations API
     # Note: we must use str() here instead of object_to_qualified_name()
     'VarNames': str(VarNamesLike.TYPE),
+    'VarName': str(VarName.TYPE),
     'Point': str(PointLike.TYPE),
     'Polygon': str(PolygonLike.TYPE),
     'Geometry': str(GeometryLike.TYPE),
