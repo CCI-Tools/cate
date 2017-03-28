@@ -134,7 +134,7 @@ class LocalDataSource(DataSource):
             local_id = local_name
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
+        var_names = VariableNamesLike.convert(var_names) if var_names else None
 
         local_path = os.path.join(get_data_store_path(), local_id)
 

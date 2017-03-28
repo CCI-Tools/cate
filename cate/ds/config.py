@@ -45,25 +45,49 @@ from abc import ABCMeta
 from typing import Optional, Union
 from collections import OrderedDict
 from datetime import datetime
+from dateutil import parser
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore
-from cate.core.types import TimeRangeLike
+from cate.core.types import GeometryLike, TimeRangeLike, VariableNamesLike
 
 
 class LocalDataSourceConfiguration(metaclass=ABCMeta):
 
-    def __init__(self, name: str, data_store: Union[DataStore, str], config_type: str, source: str = None):
+    def __init__(self, name: str, data_store: Union[DataStore, str], config_type: str, source: str = None,
+                 temporal_coverage: TimeRangeLike.TYPE = None, region: GeometryLike.TYPE = None,
+                 var_names: VariableNamesLike.TYPE = None,
+                 last_update: datetime = None, last_source_update: datetime=None):
+
+        temporal_coverage = TimeRangeLike.convert(temporal_coverage) if temporal_coverage else None
+        region = GeometryLike.convert(region) if region else None
+        var_names = VariableNamesLike.convert(var_names) if var_names else None
+
         self._name = name
         self._source = source
         self._config_type = config_type
         self._files = OrderedDict()
-        self._filename = "{}.{}".format(data_store, name)
-        self._data_store = data_store if isinstance(data_store, DataStore) else \
-            DATA_STORE_REGISTRY.get_data_store(data_store)
+        if isinstance(data_store, DataStore):
+            self._filename = "{}.{}".format(data_store.name, name)
+            self._data_store = data_store
+        else:
+            self._filename = "{}.{}".format(data_store, name)
+            self._data_store = DATA_STORE_REGISTRY.get_data_store(data_store)
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def type(self):
+        return self._config_type
+
+    @property
+    def source(self):
+        return self._source
+
+    @property
+    def files(self):
+        return self._files
 
     def add_file(self, path: str, time_range: TimeRangeLike.TYPE = None, update: bool = False):
 
@@ -108,16 +132,21 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
                 config = json.load(fp=fp) or None
         if config:
             datasource_name = config.get('name')
+            files = OrderedDict([(item[0], TimeRangeLike.convert(item[1]+", "+item[2])
+                                 if item[1] and item[2] else None) for item in config.get('files', [])])
             meta_data = config.get('meta_data', {})
+            config_type = meta_data.get('type')
             datastore_name = meta_data.get('data_store')
-            temporal_coverage = meta_data.get('temporal_coverage', None)
+            initial_temporal_coverage = meta_data.get('temporal_coverage', None)
             spatial_coverage = meta_data.get('spatial_coverage', None)
             variables = meta_data.get('variables', [])
             source = meta_data.get('source', None)
             last_update = meta_data.get('last_update', None)
             last_source_update = meta_data.get('last_source_update', None)
 
-            return LocalDataSourceConfiguration(datasource_name, datastore_name, source)
+            return LocalDataSourceConfiguration(datasource_name, datastore_name, config_type, source,
+                                                initial_temporal_coverage, spatial_coverage, variables, last_update,
+                                                last_source_update)
         return None
 
     @staticmethod
