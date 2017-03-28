@@ -45,7 +45,10 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op(tags=['index', 'nino34'])
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('var', value_set_source='ds', data_type=VarName)
-def enso_nino34(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=False):
+def enso_nino34(ds: xr.Dataset,
+                var: VarName.TYPE,
+                file: str,
+                threshold: float=None):
     """
     Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
@@ -72,11 +75,11 @@ def enso_nino34(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=F
 @op_input('region', value_set=['n1+2', 'n3', 'n34', 'n4', 'custom'])
 @op_input('custom_region', data_type=PolygonLike)
 def enso(ds: xr.Dataset,
-               var: VarName.TYPE,
-               file: str,
-               region: str='n34',
-               custom_region: PolygonLike.TYPE=None,
-               threshold: float=False):
+         var: VarName.TYPE,
+         file: str,
+         region: str='n34',
+         custom_region: PolygonLike.TYPE=None,
+         threshold: float=None):
     """
     Calculate ENSO index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in the given region.
@@ -159,3 +162,9 @@ def _generic_index_calculation(ds: xr.Dataset,
 
     if threshold is None:
         return retval
+
+    retval['El Nino'] = pd.Series((retval[name] > threshold),
+                                  index=retval.index)
+    retval['La Nina'] = pd.Series((retval[name] < threshold),
+                                   index=retval.index)
+    return retval
