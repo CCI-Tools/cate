@@ -5,10 +5,15 @@ Tests for index operations
 from unittest import TestCase
 
 import os
+import sys
 import xarray as xr
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import tempfile
+import shutil
+from contextlib import contextmanager
+import itertools
 
 from cate.ops import index
 from cate.ops import subset
@@ -20,13 +25,28 @@ def assert_dataset_equal(expected, actual):
     # of equality separately for easier debugging
     assert expected.equals(actual), (expected, actual)
 
+_counter = itertools.count()
+ON_WIN = sys.platform == 'win32'
+
+@contextmanager
+def create_tmp_file():
+    tmp_dir = tempfile.mkdtemp()
+    path = os.path.join(tmp_dir, 'tmp_file_{}.nc'.format(next(_counter)))
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(tmp_dir)
+        except OSError:
+            if not ON_WIN:
+                raise
+
 
 class TestIndices(TestCase):
     def test_n34(self):
         """
         Test ENSO index calculation using Nino34 region
         """
-        tmp_path = 'temp_lta.nc'
 
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -51,15 +71,10 @@ class TestIndices(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1,13)]})
         lta = 2*lta
-        lta.to_netcdf(tmp_path)
-        ret = index.enso_nino34(dataset, 'first', tmp_path)
-        print(ret)
-
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            # Doesn't exist
-            pass
+        with create_tmp_file() as tmp_file:
+            lta.to_netcdf(tmp_file)
+            ret = index.enso_nino34(dataset, 'first', tmp_file)
+            print(ret)
 
     def test_preset_region(self):
         """
