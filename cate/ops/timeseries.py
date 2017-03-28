@@ -79,6 +79,8 @@ def tseries_point(ds: xr.Dataset,
 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
+@op_input('ds')
+@op_input('var', value_set_source='ds')
 # TODO (Gailis, 27.09.16) See issues #45 and #46
 # def timeseries_mean(ds: xr.Dataset,
 #           var: Union[None, str, List[str]] = None) -> xr.Dataset:

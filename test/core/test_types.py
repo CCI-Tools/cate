@@ -7,6 +7,7 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.core.types import SIMPLE_TYPE_NAMES, FULLY_QUALIFIED_TYPE_NAMES
 from cate.util import object_to_qualified_name
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
@@ -275,3 +276,22 @@ class TimeRangeLikeTest(TestCase):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
         actual = TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1)))
         self.assertTrue(expected, actual)
+
+
+class TypeMappingTest(TestCase):
+    def test_simple_type_names(self):
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('Dataset'), 'xarray.core.dataset.Dataset')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('DataArray'), 'xarray.core.dataarray.DataArray')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoDataFrame'), 'geopandas.geodataframe.GeoDataFrame')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoSeries'), 'geopandas.geoseries.GeoSeries')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('DataFrame'), 'pandas.core.frame.DataFrame')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('Series'), 'pandas.core.series.Series')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('Point'),
+                         'typing.Union[shapely.geometry.point.Point, str, typing.Tuple[float, float]]')
+        self.assertEqual(SIMPLE_TYPE_NAMES.get('TimeRange'),
+                         'typing.Union[typing.Tuple[str, str], typing.Tuple[datetime.datetime, datetime.datetime], typing.Tuple[datetime.date, datetime.date], str]')
+
+    def test_fully_qualified_type_names(self):
+        self.assertEqual(FULLY_QUALIFIED_TYPE_NAMES.get('xarray.core.dataset.Dataset'), 'Dataset')
+        self.assertEqual(FULLY_QUALIFIED_TYPE_NAMES.get(
+            'typing.Union[shapely.geometry.point.Point, str, typing.Tuple[float, float]]'), 'Point')
