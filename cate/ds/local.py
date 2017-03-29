@@ -51,7 +51,7 @@ from dateutil import parser
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.misc import to_list
 from cate.util.monitor import Monitor
 
@@ -78,7 +78,7 @@ class LocalDataSource(DataSource):
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: GeometryLike.TYPE = None,
-                     var_names: VariableNamesLike.TYPE = None,
+                     var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         # TODO (kbernat): support region constraint here
@@ -110,7 +110,7 @@ class LocalDataSource(DataSource):
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
+                   var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         # TODO (kbernat): implement me!
         raise NotImplementedError('LocalDataSource.make_local() '

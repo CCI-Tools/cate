@@ -33,16 +33,16 @@ import xarray as xr
 import numpy as np
 
 from cate.core.op import op, op_input, op_return
-from cate.util import to_list
+from cate.core.types import VarNamesLike
 from cate import __version__
 
 
 @op(version='1.0')
 @op_input('ds')
-@op_input('var', value_set_source='ds')
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
 def detect_outliers(ds: xr.Dataset,
-                    var: str,
+                    var: VarNamesLike.TYPE,
                     threshold_low: float=0.05,
                     threshold_high: float=0.95,
                     quantiles: bool=True,
@@ -70,7 +70,7 @@ def detect_outliers(ds: xr.Dataset,
     """
     # Create a list of variable names on which to perform outlier detection
     # based on the input comma separated list that can contain wildcards
-    var_patterns = to_list(var, name='var')
+    var_patterns = VarNamesLike.convert(var)
     all_vars = list(ds.data_vars.keys())
     variables = list()
     for pattern in var_patterns:
