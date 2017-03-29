@@ -48,7 +48,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 def enso_nino34(ds: xr.Dataset,
                 var: VarName.TYPE,
                 file: str,
-                threshold: float=None):
+                threshold: float=None) -> pd.DataFrame:
     """
     Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region.
@@ -79,7 +79,7 @@ def enso(ds: xr.Dataset,
          file: str,
          region: str='n34',
          custom_region: PolygonLike.TYPE=None,
-         threshold: float=None):
+         threshold: float=None) -> pd.DataFrame:
     """
     Calculate ENSO index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in the given region.
@@ -116,7 +116,7 @@ def enso(ds: xr.Dataset,
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
-def oni(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=None):
+def oni(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=None) -> pd.DataFrame:
     """
     Calculate ONI index, which is defined as a three month running mean of
     anomalies of monthly means of SST data in the Nino3.4 region.
@@ -141,7 +141,7 @@ def _generic_index_calculation(ds: xr.Dataset,
                                window: int,
                                file: str,
                                name: str,
-                               threshold: float = None):
+                               threshold: float = None) -> pd.DataFrame:
     """
     A generic index calculation. Where an index is defined as an anomaly
     against the given reference of a moving average of the given window size of
