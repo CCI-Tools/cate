@@ -41,15 +41,11 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
-from typing import Any, Generic, TypeVar, List, Union, Tuple
-
-import xarray as xr
-import pandas as pd
-import geopandas as gpd
 
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
+from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from cate.util.misc import to_list, to_datetime_range
 
@@ -329,28 +325,3 @@ class TimeRangeLike(Like[TimeRange]):
     @classmethod
     def format(cls, value: TimeRange) -> str:
         return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
-
-from cate.util import object_to_qualified_name
-#: A mapping from simple type names appropriate for CLI/GUI to fully qualified type names used in the API.
-SIMPLE_TYPE_NAMES = {
-
-    # Cate Common Data Model (CDM) types
-    'Dataset': object_to_qualified_name(xr.Dataset),
-    'DataArray': object_to_qualified_name(xr.DataArray),
-    'DataFrame': object_to_qualified_name(pd.DataFrame),
-    'Series': object_to_qualified_name(pd.Series),
-    'GeoDataFrame': object_to_qualified_name(gpd.GeoDataFrame),
-    'GeoSeries': object_to_qualified_name(gpd.GeoSeries),
-
-    # Additional Cate types used by operations API
-    # Note: we must use str() here instead of object_to_qualified_name()
-    'VarNames': str(VarNamesLike.TYPE),
-    'VarName': str(VarName.TYPE),
-    'Point': str(PointLike.TYPE),
-    'Polygon': str(PolygonLike.TYPE),
-    'Geometry': str(GeometryLike.TYPE),
-    'TimeRange': str(TimeRangeLike.TYPE),
-}
-
-#: A mapping from fully qualified type names used in the API to simple type names appropriate for CLI/GUI.
-FULLY_QUALIFIED_TYPE_NAMES = {v: k for k, v in SIMPLE_TYPE_NAMES.items()}

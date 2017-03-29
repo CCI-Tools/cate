@@ -7,8 +7,13 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike
-from cate.core.types import SIMPLE_TYPE_NAMES, FULLY_QUALIFIED_TYPE_NAMES
 from cate.util import object_to_qualified_name
+
+import xarray as xr
+import pandas as pd
+import geopandas as gpd
+import numpy as np
+
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
 ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])
@@ -306,20 +311,42 @@ class TimeRangeLikeTest(TestCase):
         self.assertTrue(expected, actual)
 
 
-class TypeMappingTest(TestCase):
-    def test_simple_type_names(self):
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('Dataset'), 'xarray.core.dataset.Dataset')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('DataArray'), 'xarray.core.dataarray.DataArray')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoDataFrame'), 'geopandas.geodataframe.GeoDataFrame')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('GeoSeries'), 'geopandas.geoseries.GeoSeries')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('DataFrame'), 'pandas.core.frame.DataFrame')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('Series'), 'pandas.core.series.Series')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('Point'),
-                         'typing.Union[shapely.geometry.point.Point, str, typing.Tuple[float, float]]')
-        self.assertEqual(SIMPLE_TYPE_NAMES.get('TimeRange'),
-                         'typing.Union[typing.Tuple[str, str], typing.Tuple[datetime.datetime, datetime.datetime], typing.Tuple[datetime.date, datetime.date], str]')
+class TypeNamesTest(TestCase):
+    """
+    This test fails, if any of the expected type names change.
+    We use these type names in cate-desktop to map from type to validators and GUI editors.
+    
+    NOTE: If one of these tests fails, we have to change the cate-desktop code w.r.t. the type name change.
+    """
 
-    def test_fully_qualified_type_names(self):
-        self.assertEqual(FULLY_QUALIFIED_TYPE_NAMES.get('xarray.core.dataset.Dataset'), 'Dataset')
-        self.assertEqual(FULLY_QUALIFIED_TYPE_NAMES.get(
-            'typing.Union[shapely.geometry.point.Point, str, typing.Tuple[float, float]]'), 'Point')
+    def test_python_primitive_type_names(self):
+        """
+        Python primitive types
+        """
+        self.assertEqual(object_to_qualified_name(bool), 'bool')
+        self.assertEqual(object_to_qualified_name(int), 'int')
+        self.assertEqual(object_to_qualified_name(float), 'float')
+        self.assertEqual(object_to_qualified_name(str), 'str')
+
+    def test_cate_cdm_type_names(self):
+        """
+        Cate Common Data Model (CDM) types
+        """
+        self.assertEqual(object_to_qualified_name(np.ndarray), 'numpy.ndarray')
+        self.assertEqual(object_to_qualified_name(xr.Dataset), 'xarray.core.dataset.Dataset')
+        self.assertEqual(object_to_qualified_name(xr.DataArray), 'xarray.core.dataarray.DataArray')
+        self.assertEqual(object_to_qualified_name(gpd.GeoDataFrame), 'geopandas.geodataframe.GeoDataFrame')
+        self.assertEqual(object_to_qualified_name(gpd.GeoSeries), 'geopandas.geoseries.GeoSeries')
+        self.assertEqual(object_to_qualified_name(pd.DataFrame), 'pandas.core.frame.DataFrame')
+        self.assertEqual(object_to_qualified_name(pd.Series), 'pandas.core.series.Series')
+
+    def test_cate_op_api_type_names(self):
+        """
+        Additional Cate types used by operations API.
+        """
+        self.assertEqual(object_to_qualified_name(VarName), 'cate.core.types.VarName')
+        self.assertEqual(object_to_qualified_name(VarNamesLike), 'cate.core.types.VarNamesLike')
+        self.assertEqual(object_to_qualified_name(PointLike), 'cate.core.types.PointLike')
+        self.assertEqual(object_to_qualified_name(PolygonLike), 'cate.core.types.PolygonLike')
+        self.assertEqual(object_to_qualified_name(GeometryLike), 'cate.core.types.GeometryLike')
+        self.assertEqual(object_to_qualified_name(TimeRangeLike), 'cate.core.types.TimeRangeLike')
