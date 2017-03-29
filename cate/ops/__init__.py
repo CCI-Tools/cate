@@ -58,7 +58,7 @@ from .xarray import sel
 from .average import long_term_average, temporal_agg
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
-from .index import nino34
+from .index import enso, enso_nino34, oni
 from .ident import *
 from .outliers import detect_outliers
 
@@ -101,7 +101,9 @@ __all__ = [
     'anomaly_internal',
     'anomaly_external',
     # .index
-    #'nino34'
+    'enso_nino34',
+    'enso',
+    'oni'
     # .ident
     'ident_bool',
     'ident_int',
