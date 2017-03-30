@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from collections import OrderedDict
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -29,6 +30,8 @@ from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
 from typing import Union, Tuple
+
+import numpy as np
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
@@ -276,3 +279,41 @@ def cwd(path: str):
         yield os.getcwd()
     finally:
         os.chdir(old_dir)
+
+
+def to_json(v):
+    if v is None:
+        return v
+
+    t = type(v)
+    if t in {bool, int, float, str}:
+        return v
+    if t == complex:
+        return [v.real, v.imag]
+
+    if isinstance(v, type):
+        return object_to_qualified_name(v)
+
+    try:
+        return np.asscalar(v)
+    except (AttributeError, ValueError):
+        pass
+
+    try:
+        d = OrderedDict()
+        for ki, vi in v.items():
+            d[str(ki)] = to_json(vi)
+        return d
+    except AttributeError:
+        pass
+
+    try:
+        l = []
+        for vi in v:
+            l.append(to_json(vi))
+        return l
+    except TypeError:
+        pass
+
+    return str(v)
+

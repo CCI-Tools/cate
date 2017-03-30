@@ -29,18 +29,18 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
-from typing import List
 
 import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
+from typing import List, Tuple, Any
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY, parse_op_args
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -184,13 +184,16 @@ class Workspace:
 
     def _get_resource_descriptor(self, res_name: str, resource):
         variable_descriptors = []
+        data_type_name = object_to_qualified_name(type(resource))
         if isinstance(resource, xr.Dataset):
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
                 variable = resource.data_vars[var_name]
                 variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
             return dict(name=res_name,
-                        dataType=object_to_qualified_name(type(resource)),
+                        dataType=data_type_name,
+                        dims=to_json(resource.dims),
+                        attrs=self._get_dataset_attr_list(resource.attrs),
                         variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
@@ -198,7 +201,7 @@ class Workspace:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
             return dict(name=res_name,
-                        dataType=object_to_qualified_name(type(resource)),
+                        dataType=data_type_name,
                         variables=variable_descriptors)
         elif isinstance(resource, fiona.Collection):
             num_features = len(resource)
@@ -212,10 +215,17 @@ class Workspace:
                     })
             geometry = resource.schema.get('geometry')
             return dict(name=res_name,
-                        dataType=object_to_qualified_name(type(resource)),
+                        dataType=data_type_name,
                         variables=variable_descriptors,
                         geometry=geometry,
                         numFeatures=num_features)
+        return dict(name=res_name, dataType=data_type_name)
+
+    def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
+        attr_list = []
+        for name, value in attrs.items():
+            attr_list.append([name, to_json(value)])
+        return attr_list
 
     def _get_pandas_variable_descriptor(self, variable: pd.Series):
         return {
