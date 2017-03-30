@@ -56,16 +56,17 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
     def __init__(self, name: str, data_store: Union[DataStore, str], config_type: str, source: str = None,
                  temporal_coverage: TimeRangeLike.TYPE = None, region: GeometryLike.TYPE = None,
                  var_names: VariableNamesLike.TYPE = None,
-                 last_update: datetime = None, last_source_update: datetime=None):
+                 last_update: datetime = None, files: OrderedDict = OrderedDict()):
 
-        temporal_coverage = TimeRangeLike.convert(temporal_coverage) if temporal_coverage else None
-        region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None
+        self._temporal_coverage = TimeRangeLike.convert(temporal_coverage) if temporal_coverage else None
+        self._region = GeometryLike.convert(region) if region else None
+        self._var_names = VariableNamesLike.convert(var_names) if var_names else None
 
         self._name = name
         self._source = source
         self._config_type = config_type
-        self._files = OrderedDict()
+        self._last_update = last_update
+        self._files = files
         if isinstance(data_store, DataStore):
             self._filename = "{}.{}".format(data_store.name, name)
             self._data_store = data_store
@@ -84,6 +85,18 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
     @property
     def source(self):
         return self._source
+
+    @property
+    def temporal_coverage(self):
+        return self._temporal_coverage
+
+    @property
+    def region(self):
+        return self._region
+
+    @property
+    def var_names(self):
+        return self._var_names
 
     @property
     def files(self):
@@ -114,8 +127,7 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
                 'spatial_coverage': None,
                 'variables': [],
                 'source': self._source,
-                'last_update': None,
-                'last_source_update': None
+                'last_update': None
             },
             'files': [[item[0], item[1][0], item[1][1]] for item in self._files.items()]
         })
@@ -142,11 +154,10 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
             variables = meta_data.get('variables', [])
             source = meta_data.get('source', None)
             last_update = meta_data.get('last_update', None)
-            last_source_update = meta_data.get('last_source_update', None)
 
             return LocalDataSourceConfiguration(datasource_name, datastore_name, config_type, source,
                                                 initial_temporal_coverage, spatial_coverage, variables, last_update,
-                                                last_source_update)
+                                                files)
         return None
 
     @staticmethod
