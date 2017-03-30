@@ -109,7 +109,16 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
             raise ValueError("Config already contains file `{}`".format(path))
 
         self._files[path] = time_range
-        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
+        if time_range:
+            if self._temporal_coverage:
+                if time_range[0] >= self._temporal_coverage[1]:
+                    self._temporal_coverage = tuple([self._temporal_coverage[0], time_range[1]])
+                elif time_range[1] <= self._temporal_coverage[0]:
+                    self._temporal_coverage = tuple([time_range[0], self._temporal_coverage[1]])
+            else:
+                self._temporal_coverage = time_range
+
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f and f[1] else datetime.max))
 
     def remove_file(self, path: str):
         is_disjoint = self._files.keys().isdisjoint([path])

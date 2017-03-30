@@ -49,7 +49,7 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
 from glob import glob
-from typing import Optional, Sequence, Union, Any
+from typing import Optional, Sequence, Union, Any, Tuple
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.conf import get_config_value
@@ -82,9 +82,21 @@ class LocalDataSource(DataSource):
         else:
             self._files = files
         self._data_store = data_store
+
+        initial_temporal_coverage = None
+        files_number = len(self._files.items())
+        if files_number > 0:
+            files_range = list(self._files.values())
+            if files_range:
+                if isinstance(files_range[0], Tuple):
+                    initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0][0],
+                                                                             files_range[files_number-1][1]]))
+                elif isinstance(files_range[0], datetime):
+                    initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0],
+                                                                             files_range[files_number-1]]))
         self._config = config if config else \
             LocalDataSourceConfiguration(name=name, data_store=data_store, config_type=_REFERENCE_DATA_SOURCE_TYPE,
-                                         source=None)
+                                         source=None, temporal_coverage=initial_temporal_coverage)
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -225,18 +237,14 @@ class LocalDataSource(DataSource):
 
         if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_stamp.replace(microsecond=0) if time_stamp else None
+            self._config.add_file(file, tuple([time_stamp, time_stamp]))
         self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
 
     def save(self):
         self._config.save()
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-        if self._files:
-            cover_min = min(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max)[1]
-            cover_max = max(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.min)[1]
-            if cover_min and cover_max:
-                return cover_min, cover_max
-        return None
+        return self._config.temporal_coverage
 
     @property
     def info_string(self):
