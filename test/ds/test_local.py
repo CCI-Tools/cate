@@ -3,6 +3,7 @@ import os
 import os.path
 import tempfile
 import unittest
+import unittest.mock
 import datetime
 from cate.ds.local import LocalDataStore, LocalDataSource
 from collections import OrderedDict
@@ -49,7 +50,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
     def test_query(self):
         local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
-                                                                     'resources/datasources/local/'))
+                                                               'resources/datasources/local/'))
         data_sources = local_data_store.query()
         self.assertEqual(len(data_sources), 2)
 
@@ -67,7 +68,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self._dummy_store = LocalDataStore('dummy', 'dummy')
 
         self._local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
-                                                                                'resources/datasources/local/'))
+                                                                     'resources/datasources/local/'))
 
         self.ds1 = LocalDataSource("ozone",
                                    ["/DATA/ozone/*/*.nc"],
@@ -181,21 +182,28 @@ class LocalFilePatternSourceTest(unittest.TestCase):
     def test_open_dataset(self):
         ds = self._local_data_store.query('local')[0]
 
-        xr = ds.open_dataset()
+        def get_temp_data_store_path():
+            return os.path.join(os.path.dirname(__file__), 'resources/files/')
+
+        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+            xr = ds.open_dataset()
         self.assertIsNotNone(xr)
         self.assertEquals(xr.coords.dims.get('time'), 3)
 
-        xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
-                                         datetime.datetime(1978, 11, 15)))
+        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+            xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
+                                             datetime.datetime(1978, 11, 15)))
         self.assertIsNone(xr)
 
         ds = self._local_data_store.query('local_w_temporal')[0]
 
-        xr = ds.open_dataset()
+        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+            xr = ds.open_dataset()
         self.assertIsNotNone(xr)
         self.assertEquals(xr.coords.dims.get('time'), 3)
 
-        xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
-                                         datetime.datetime(1978, 11, 15)))
+        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+            xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
+                                             datetime.datetime(1978, 11, 15)))
         self.assertIsNotNone(xr)
         self.assertEquals(xr.coords.dims.get('time'), 1)

@@ -1,8 +1,12 @@
+import datetime
 import json
 import os
 import os.path
+import tempfile
 import unittest
+import unittest.mock
 
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
 
 
@@ -23,7 +27,9 @@ def _create_test_data_store():
         json_text = fp.read()
     json_dict = json.loads(json_text)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    DATA_STORE_REGISTRY.add_data_store(data_store)
+    return data_store
 
 
 class EsaCciOdpDataStoreTest(unittest.TestCase):
@@ -41,7 +47,6 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 20)
 
 
-@unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
@@ -49,6 +54,74 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertIsNotNone(data_sources[0])
         self.data_source = data_sources[0]
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def test_make_local_and_update(self):
+
+        def get_temp_data_store_path():
+            return self.tmp_dir
+
+        def find_files_mock(_, time_range):
+            reference_path = os.path.join(os.path.dirname(__file__), 'resources/files/')
+
+            def build_file_item(file_name: str, date_from: datetime, date_to: datetime, size: int):
+                return [file_name, date_from, date_to, size,
+                        {'OPENDAP': 'file:'+os.path.join(reference_path, file_name),
+                         'HTTPServer': 'file:'+os.path.join(reference_path, file_name)}]
+
+            reference_files = {
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 14, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 14, 23, 59),
+                    'size': 21511378
+                },
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781115000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 15, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 15, 23, 59),
+                    'size': 21511378
+                },
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781116000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 16, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 16, 23, 59),
+                    'size': 21511378
+                }
+            }
+
+            reference_files_list = []
+
+            for reference_file in reference_files.items():
+                file_name = reference_file[0]
+                file_date_from = reference_file[1].get('date_from')
+                file_date_to = reference_file[1].get('date_to')
+                file_size = reference_file[1].get('size')
+                if time_range:
+                    if file_date_from >= time_range[0] and file_date_to <= time_range[1]:
+                        reference_files_list.append(build_file_item(file_name,
+                                                                    file_date_from,
+                                                                    file_date_to,
+                                                                    file_size))
+                else:
+                    reference_files_list.append(build_file_item(file_name,
+                                                                file_date_from,
+                                                                file_date_to,
+                                                                file_size))
+            return reference_files_list
+
+        with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
+            with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                new_ds = self.data_source.make_local('local_ds_test', None,
+                                                     (datetime.datetime(1978, 11, 14, 0, 0),
+                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+        self.assertEqual(new_ds.name, 'local_ds_test')
+        self.assertEqual(new_ds.temporal_coverage(),
+                         (datetime.datetime(1978, 11, 14, 0, 0), datetime.datetime(1978, 11, 15, 23, 59)))
+
+        with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
+            with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                            datetime.datetime(1978, 11, 16, 23, 59)))
+        # self.assertEqual(new_ds.temporal_coverage(),
+        #                 (datetime.datetime(1978, 11, 15, 0, 0), datetime.datetime(1978, 11, 16, 23, 59)))
 
     def test_data_store(self):
         self.assertIs(self.data_source.data_store,
@@ -63,19 +136,18 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                          None)
 
     def test_info_string(self):
-        # print(self.data_source.info_string)
         self.assertIn('product_string:          MERGED\n',
                       self.data_source.info_string)
 
     def test_variables_info_string(self):
-        # print(self.data_source.variables_info_string)
         self.assertIn('kd_490 (m-1):\n',
                       self.data_source.variables_info_string)
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
                       self.data_source.variables_info_string)
 
     def test_temporal_coverage(self):
-        self.assertEqual(self.data_source.temporal_coverage(), None)
+        self.assertEqual(self.data_source.temporal_coverage(),
+                         (datetime.datetime(1997, 9, 4, 0, 0), datetime.datetime(2000, 6, 24, 0, 0)))
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)

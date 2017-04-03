@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
@@ -82,7 +81,6 @@ class LocalDataSource(DataSource):
         else:
             self._files = files
         self._data_store = data_store
-
         initial_temporal_coverage = None
         files_number = len(self._files.items())
         if files_number > 0:
@@ -92,8 +90,8 @@ class LocalDataSource(DataSource):
                     initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0][0],
                                                                              files_range[files_number-1][1]]))
                 elif isinstance(files_range[0], datetime):
-                    initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0],
-                                                                             files_range[files_number-1]]))
+                    initial_temporal_coverage = TimeRangeLike.convert((files_range[0],
+                                                                       files_range[files_number-1]))
         self._config = config if config else \
             LocalDataSourceConfiguration(name=name, data_store=data_store, config_type=_REFERENCE_DATA_SOURCE_TYPE,
                                          source=None, temporal_coverage=initial_temporal_coverage)
@@ -108,18 +106,22 @@ class LocalDataSource(DataSource):
             region = GeometryLike.convert(region)
         if var_names:
             var_names = VariableNamesLike.convert(var_names)
-        if protocol:
-            raise ValueError("Protocol '{}' is not recognized, use None for default")
         paths = []
         if time_range:
             time_series = list(self._files.values())
             file_paths = list(self._files.keys())
             for i in range(len(time_series)):
-                if time_series[i] and time_range[0] <= time_series[i] < time_range[1]:
-                    paths.extend(glob(file_paths[i]))
+                if time_series[i]:
+                    if isinstance(time_series[i], Tuple) and \
+                            time_series[i][0] >= time_range[0] and \
+                            time_series[i][1] <= time_range[1]:
+                        paths.extend(glob(os.path.join(get_data_store_path(), file_paths[i])))
+                    elif isinstance(time_series[i], datetime) and \
+                            time_range[0] <= time_series[i] < time_range[1]:
+                        paths.extend(glob(os.path.join(get_data_store_path(), file_paths[i])))
         else:
             for file in self._files.items():
-                paths.extend(glob(file[0]))
+                paths.extend(glob(os.path.join(get_data_store_path(), file[0])))
             paths = sorted(set(paths))
         if paths:
             try:
@@ -278,13 +280,20 @@ class LocalDataSource(DataSource):
 
     @classmethod
     def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> Optional['LocalDataSource']:
+
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
         if name and isinstance(files, list):
             if len(files) > 0:
                 if isinstance(files[0], list):
-                    files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
-                                        if item[1] is not None else None) for item in files)
+                    file_details_length = len(files[0])
+                    if file_details_length > 2:
+                        files = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
+                                             parser.parse(item[2]).replace(microsecond=0))
+                                             if item[1] and item[2] else None) for item in files)
+                    else:
+                        files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
+                                             if item[1] is not None else None) for item in files)
             else:
                 files = OrderedDict()
             return LocalDataSource(name, files, data_store)

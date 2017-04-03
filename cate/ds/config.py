@@ -42,7 +42,7 @@ Components
 import json
 import os
 from abc import ABCMeta
-from typing import Optional, Union
+from typing import Optional, Union, Sequence
 from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
@@ -58,11 +58,11 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
                  var_names: VariableNamesLike.TYPE = None,
                  last_update: datetime = None, files: OrderedDict = OrderedDict()):
 
+        self._name = name
         self._temporal_coverage = TimeRangeLike.convert(temporal_coverage) if temporal_coverage else None
         self._region = GeometryLike.convert(region) if region else None
         self._var_names = VariableNamesLike.convert(var_names) if var_names else None
 
-        self._name = name
         self._source = source
         self._config_type = config_type
         self._last_update = last_update
@@ -73,6 +73,8 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
         else:
             self._filename = "{}.{}".format(data_store, name)
             self._data_store = DATA_STORE_REGISTRY.get_data_store(data_store)
+
+
 
     @property
     def name(self):
@@ -124,7 +126,13 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
         is_disjoint = self._files.keys().isdisjoint([path])
         if is_disjoint:
             raise ValueError("Config does not contains file `{}`".format(path))
-        self._files.pop(path)
+        item = self._files.pop(path)
+        values = list(self._files.values())
+        if item and self._temporal_coverage:
+            if item[0] == self._temporal_coverage[0]:
+                self._temporal_coverage = tuple([values[0][0], self._temporal_coverage[1]])
+            if item[1] == self._temporal_coverage[1]:
+                self._temporal_coverage = tuple([self._temporal_coverage[0], values[len(values)-1][1]])
 
     def save(self):
         config = OrderedDict({
@@ -132,29 +140,62 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
             'meta_data': {
                 'type': self._config_type,
                 'data_store': self._data_store.name,
-                'temporal_coverage': None,
-                'spatial_coverage': None,
-                'variables': [],
+                'temporal_coverage': self._temporal_coverage,
+                'spatial_coverage': self._region,
+                'variables': self._var_names,
                 'source': self._source,
                 'last_update': None
             },
             'files': [[item[0], item[1][0], item[1][1]] for item in self._files.items()]
         })
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
-        file_name = os.path.join(self._data_store.data_store_path, self._name + '.json')
+        file_name = os.path.join(self._data_store.data_store_path,
+                                 "{}.{}.json".format(self._data_store.name, self.name))
         with open(file_name, 'w') as fp:
             json.dump(config, fp, **dump_kwargs)
 
     @staticmethod
-    def load(json_path: str) -> Optional['LocalDataSourceConfiguration']:
+    def load(json_file: Union[str, dict], data_store: Union[str, DataStore] = 'local') -> Optional['LocalDataSourceConfiguration']:
+
         config = None
-        if os.path.isfile(json_path):
-            with open(json_path) as fp:
-                config = json.load(fp=fp) or None
+
+        if isinstance(data_store, str):
+            data_store = DATA_STORE_REGISTRY.get_data_store(data_store)
+
+        if isinstance(json_file, str):
+            json_file_name = json_file
+            if json_file_name.count('.') > 0:
+
+                primary_data_store_name, _ = json_file_name.split('.', 1)
+                data_store = DATA_STORE_REGISTRY.get_data_store(primary_data_store_name)
+
+            if data_store:
+                json_file = os.path.join(data_store.data_store_path,
+                                         "{}.{}.json".format(data_store.name, json_file))
+                if os.path.isfile(json_file):
+                    with open(json_file) as fp:
+                        config = json.load(fp=fp) or None
+        elif isinstance(json_file, dict):
+            config = json_file
         if config:
             datasource_name = config.get('name')
-            files = OrderedDict([(item[0], TimeRangeLike.convert(item[1]+", "+item[2])
-                                 if item[1] and item[2] else None) for item in config.get('files', [])])
+            files = config.get('files', [])
+            if files:
+                if isinstance(files[0], str):
+                    files = OrderedDict([(item, None) for item in files])
+                elif isinstance(files[0], Sequence):
+                    file_sequence_length = len(files[0])
+                    if file_sequence_length > 2:
+                        files = OrderedDict([(item[0], TimeRangeLike.convert(item[1] + ", " + item[2])
+                                if item[1] and item[2] else None) for item in config.get('files', [])])
+                    elif file_sequence_length > 1:
+                        files = OrderedDict([(item[0], TimeRangeLike.convert(item[1] + ", " + item[1])
+                        if item[1] else None) for item in config.get('files', [])])
+                    elif file_sequence_length > 0:
+                        files = OrderedDict([(item[0], None) for item in config.get('files', [])])
+                else:
+                    raise ValueError("cannot extract files from config")
+
             meta_data = config.get('meta_data', {})
             config_type = meta_data.get('type')
             datastore_name = meta_data.get('data_store')
@@ -163,6 +204,8 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
             variables = meta_data.get('variables', [])
             source = meta_data.get('source', None)
             last_update = meta_data.get('last_update', None)
+            if initial_temporal_coverage and not isinstance(initial_temporal_coverage, str):
+                initial_temporal_coverage = tuple(initial_temporal_coverage)
 
             return LocalDataSourceConfiguration(datasource_name, datastore_name, config_type, source,
                                                 initial_temporal_coverage, spatial_coverage, variables, last_update,

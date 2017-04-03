@@ -179,7 +179,7 @@ class DataSource(metaclass=ABCMeta):
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> str:
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
         optional constraints.
@@ -202,7 +202,7 @@ class DataSource(metaclass=ABCMeta):
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VariableNamesLike`.
         :param monitor: a progress monitor.
-        :return: A unique ID of newly created local data source.
+        :return: A newly created local data source.
         """
         pass
 
@@ -449,6 +449,16 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         data_store_list = [data_stores]
     else:
         data_store_list = data_stores
+
+    if name and name.count('.') > 0:
+        primary_data_store_index = None
+        primary_data_store_name, data_source_name = name.split('.', 1)
+        for idx, data_store in enumerate(data_store_list):
+            if data_store.name == primary_data_store_name:
+                primary_data_store_index = idx
+        if primary_data_store_index:
+            data_store_list.insert(0, data_store_list.pop(primary_data_store_index))
+            name = data_source_name
     results = []
     # noinspection PyTypeChecker
     for data_store in data_store_list:
@@ -479,13 +489,6 @@ def open_dataset(data_source: Union[DataSource, str],
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        primary_data_store = None
-        if data_source.find('.') >= 0:
-            data_store_name, data_source_name = data_source.split('.', 1)
-            primary_data_store = DATA_STORE_REGISTRY.get_data_store(data_store_name)
-        if primary_data_store:
-            data_store_list.insert(0, primary_data_store)
-            data_store_list = sorted(set(data_store_list), key=data_store_list.index)
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term", data_source)

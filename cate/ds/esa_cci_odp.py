@@ -56,7 +56,7 @@ from xarray.backends.netCDF4_ import NetCDF4DataStore
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-                         open_xarray_dataset, get_data_stores_path
+                         open_xarray_dataset, get_data_stores_path, query_data_sources
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.ds.local import LocalDataSourceConfiguration
 from cate.util.monitor import Monitor
@@ -472,23 +472,26 @@ class EsaCciOdpDataSource(DataSource):
 
     def update_local(self,
                      local_id: str,
-                     time_range: Tuple[datetime, datetime]) -> bool:
+                     time_range: Tuple[datetime, datetime],
+                     monitor: Monitor = Monitor.NONE) -> bool:
 
-        config_path = os.path.join(get_data_store_path(), local_id + ".json")
-        config = LocalDataSourceConfiguration.load(config_path)
+        config = LocalDataSourceConfiguration.load(local_id, 'local')
+
+        if not config:
+            raise ValueError("Couldn't find local DataSource", local_id)
 
         to_remove = []
         to_add = []
         if time_range[1] > time_range[0]:
 
             if time_range[0] > config.temporal_coverage[0]:
-                to_remove.append(self._find_files(
+                to_remove.extend(self._find_files(
                     (config.temporal_coverage[0], time_range[0])))
             else:
                 to_add.append((time_range[0], config.temporal_coverage[0]))
 
             if time_range[1] < config.temporal_coverage[1]:
-                to_remove.append(self._find_files(
+                to_remove.extend(self._find_files(
                     (time_range[1], config.temporal_coverage[1])))
             else:
                 to_add.append((config.temporal_coverage[1], time_range[1]))
@@ -497,8 +500,8 @@ class EsaCciOdpDataSource(DataSource):
 
         if to_remove:
             for filename, _, _, _, _ in to_remove:
-                relative_path = os.path.join('local', filename)
-                dataset_file = os.path.join(get_data_stores_path(), relative_path)
+                relative_path = os.path.join(local_id, filename)
+                dataset_file = os.path.join(get_data_store_path(), relative_path)
                 try:
                     os.remove(dataset_file)
                 except OSError:
@@ -508,11 +511,7 @@ class EsaCciOdpDataSource(DataSource):
                     config.remove_file(relative_path)
         if to_add:
             for time_range_to_add in to_add:
-
-                files_to_add = self._find_files(time_range_to_add)
-                for filename, _, _, _, _ in files_to_add:
-                    pass
-
+                self._make_local(config, time_range_to_add, monitor)
         config.save()
 
     def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
@@ -606,21 +605,19 @@ class EsaCciOdpDataSource(DataSource):
         return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
 
     def _make_local(self,
-                    local_name: str,
-                    local_id: str = None,
+                    config: LocalDataSourceConfiguration,
                     time_range: TimeRangeLike.TYPE = None,
-                    region: GeometryLike.TYPE = None,
-                    var_names: VariableNamesLike.TYPE = None,
-                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                    monitor: Monitor = Monitor.NONE):
 
-        if not local_id:
-            local_id = local_name
+        local_name = config.name
+        local_id = config.name
+
+        region = config.region
+        var_names = config.var_names
+
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
         var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
-
-        config = LocalDataSourceConfiguration(name=local_id, data_store=self._data_store,
-                                              config_type=_REFERENCE_DATA_SOURCE_TYPE, source=self._name)
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -710,7 +707,7 @@ class EsaCciOdpDataSource(DataSource):
                         remote_netcdf.close()
                     if local_netcdf:
                         local_netcdf.close()
-                        config.add_file(file_name)
+                        config.add_file(os.path.join(local_id, file_name))
 
                 child_monitor.done()
         else:
@@ -731,7 +728,7 @@ class EsaCciOdpDataSource(DataSource):
 
                     file_number = 1
 
-                    for filename, _, _, file_size, url in outdated_file_list:
+                    for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
                         if monitor.is_cancelled():
                             raise InterruptedError
                         dataset_file = os.path.join(local_path, filename)
@@ -748,7 +745,7 @@ class EsaCciOdpDataSource(DataSource):
                         with sub_monitor.starting(sub_monitor_msg, file_size):
                             urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                         file_number += 1
-                        config.add_file(filename)
+                        config.add_file(os.path.join(local_id, filename), (coverage_from, coverage_to))
         config.save()
         monitor.done()
 
@@ -763,12 +760,13 @@ class EsaCciOdpDataSource(DataSource):
             raise ValueError('local_name is required')
         elif len(local_name) == 0:
             raise ValueError('local_name cannot be empty')
-        local_path = os.path.join(get_data_store_path(), local_name)
-        try:
-            os.makedirs(local_path, exist_ok=False)
-        except FileExistsError:
-            raise ValueError("Local data source with such name already exists", local_name)
-        self._make_local(local_name, local_id, time_range, region, var_names, monitor)
+
+        config = LocalDataSourceConfiguration(name=local_name, data_store='local',
+                                              config_type=_REFERENCE_DATA_SOURCE_TYPE, source=self.name)
+
+        self._make_local(config, time_range, monitor)
+
+        return query_data_sources(None, local_name)[0]
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:

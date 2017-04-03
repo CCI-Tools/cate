@@ -29,14 +29,14 @@ class LocalDataSourceConfigurationTest(unittest.TestCase):
             'meta_data': {
                 'type': "FILE_PATTERN",
                 'data_store': 'local',
-                'temporal_coverage': "2001-01-01,2001-01-31",
+                'temporal_coverage': "2001-01-01 00:00:00,2001-01-31 23:59:59",
                 'spatial_coverage': "0,10,20,30",
                 'variables': ['var_test_1', 'var_test_2'],
                 'source': 'local.previous_test',
                 'last_update': None
             },
-            'files': [['file_1', '2002-02-01', '2002-02-01'],
-                      ['file_2', '2002-03-01', '2002-03-01']]
+            'files': [['file_1', '2002-02-01 00:00:00', '2002-02-01 23:59:59'],
+                      ['file_2', '2002-03-01 00:00:00', '2002-03-01 23:59:59']]
         }
 
         with unittest.mock.patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(test_data))):
