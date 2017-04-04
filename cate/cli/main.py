@@ -1087,8 +1087,8 @@ class DataSourceCommand(SubCommandCommand):
 
         ds_name = command_args.ds_name
         files = command_args.file
-        name = local_store.add_pattern(ds_name, files)
-        print("Local data source with name '%s' added." % name)
+        ds = local_store.add_pattern(ds_name, files)
+        print("Local data source with name '%s' added." % ds.name)
 
 
 class PluginCommand(SubCommandCommand):

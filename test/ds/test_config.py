@@ -41,7 +41,7 @@ class LocalDataSourceConfigurationTest(unittest.TestCase):
 
         with unittest.mock.patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(test_data))):
             with unittest.mock.patch('os.path.isfile', return_value=True):
-                config = LocalDataSourceConfiguration.load('test.test_name')
+                config = LocalDataSourceConfiguration.load('local.test_name')
 
         self.assertEqual(test_data.get('name'), config.name)
         self.assertEqual(test_data.get('meta_data').get('type'), config.type)

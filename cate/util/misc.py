@@ -172,7 +172,8 @@ def to_datetime(datetime_or_str: Union[datetime, date, str, None], upper_bound=F
     if datetime_or_str is None or datetime_or_str == '':
         return default
     elif isinstance(datetime_or_str, str):
-        format_to_timedelta = [("%Y-%m-%d %H:%M:%S", timedelta()),
+        format_to_timedelta = [("%Y-%m-%dT%H:%M:%S", timedelta()),
+                               ("%Y-%m-%d %H:%M:%S", timedelta()),
                                ("%Y-%m-%d", timedelta(hours=24, seconds=-1)),
                                ("%Y-%m", timedelta(weeks=4, seconds=-1)),
                                ("%Y", timedelta(days=365, seconds=-1)),

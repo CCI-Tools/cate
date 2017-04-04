@@ -74,7 +74,7 @@ def add_to_data_store_registry():
 
 class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
-                 config: LocalDataSourceConfiguration = None):
+                 config: LocalDataSourceConfiguration = None, reference_type: str = None, reference_name: str = None):
         self._name = name
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
@@ -93,8 +93,9 @@ class LocalDataSource(DataSource):
                     initial_temporal_coverage = TimeRangeLike.convert((files_range[0],
                                                                        files_range[files_number-1]))
         self._config = config if config else \
-            LocalDataSourceConfiguration(name=name, data_store=data_store, config_type=_REFERENCE_DATA_SOURCE_TYPE,
-                                         source=None, temporal_coverage=initial_temporal_coverage)
+            LocalDataSourceConfiguration(name=name, data_store=data_store,
+                                         config_type=reference_type if reference_type else _REFERENCE_DATA_SOURCE_TYPE,
+                                         source=reference_name, temporal_coverage=initial_temporal_coverage)
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -121,7 +122,7 @@ class LocalDataSource(DataSource):
                         paths.extend(glob(os.path.join(get_data_store_path(), file_paths[i])))
         else:
             for file in self._files.items():
-                paths.extend(glob(os.path.join(get_data_store_path(), file[0])))
+                paths.extend(glob(os.path.join(self._data_store.data_store_path, file[0])))
             paths = sorted(set(paths))
         if paths:
             try:
@@ -235,18 +236,35 @@ class LocalDataSource(DataSource):
             raise ValueError("Local data source with such name already exists", local_name)
         return self._make_local(local_name, local_id, time_range, region, var_names, monitor)
 
-    def add_dataset(self, file, time_stamp: datetime = None, update: bool = False):
-
+    def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
         if update or self._files.keys().isdisjoint([file]):
-            self._files[file] = time_stamp.replace(microsecond=0) if time_stamp else None
-            self._config.add_file(file, tuple([time_stamp, time_stamp]))
-        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f[1] is not None else datetime.max))
+            self._files[file] = time_coverage
+            self._config.add_file(file, time_coverage)
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if isinstance(f, Tuple) and f[1]
+                                                                            else datetime.max))
+
+    def remove_time_range(self, time_coverage: TimeRangeLike.TYPE):
+        files_to_remove = []
+        for file, time_range in self._files.items():
+            if time_coverage[0] <= time_range[0] <= time_coverage[1] \
+                    and time_coverage[0] <= time_range[1] <= time_coverage[1]:
+                files_to_remove.append(file)
+                self._config.remove_file(file)
+        for file in files_to_remove:
+            del self._files[file]
 
     def save(self):
         self._config.save()
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         return self._config.temporal_coverage
+
+    def spatial_coverage(self):
+        return self._config.region
+
+    @property
+    def variables_info(self):
+        return self._config.var_names
 
     @property
     def info_string(self):
@@ -292,8 +310,8 @@ class LocalDataSource(DataSource):
                                              parser.parse(item[2]).replace(microsecond=0))
                                              if item[1] and item[2] else None) for item in files)
                     else:
-                        files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0)
-                                             if item[1] is not None else None) for item in files)
+                        files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
+                                            if len(item) > 1 else (item[0], None) for item in files)
             else:
                 files = OrderedDict()
             return LocalDataSource(name, files, data_store)
@@ -306,22 +324,27 @@ class LocalDataStore(DataStore):
         self._store_dir = store_dir
         self._data_sources = None
 
-    def add_pattern(self, name: str, files: Union[str, Sequence[str]]):
-        self._init_data_sources()
-        files = to_list(files, csv=False)
+    def add_pattern(self, name: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
+        data_source = self.create_data_source(name)
+        if isinstance(files, str):
+            files = [files]
+        for file in files:
+            data_source.add_dataset(file)
+        return data_source
 
+    def create_data_source(self, name: str, reference_type: str = None, reference_name: str = None):
+        self._init_data_sources()
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
         for ds in self._data_sources:
             if ds.name == name:
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
-        data_source = LocalDataSource(name, files, self)
+        data_source = LocalDataSource(name, files=[], data_store=self, config=None, reference_type=reference_type,
+                                      reference_name=reference_name)
         data_source.save()
-
         self._data_sources.append(data_source)
-
-        return name
+        return data_source
 
     @property
     def data_store_path(self):

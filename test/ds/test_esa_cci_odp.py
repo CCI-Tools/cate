@@ -61,12 +61,15 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         def get_temp_data_store_path():
             return self.tmp_dir
 
+        def load_data_source_mock(*_):
+            return None
+
         def find_files_mock(_, time_range):
             reference_path = os.path.join(os.path.dirname(__file__), 'resources/files/')
 
             def build_file_item(file_name: str, date_from: datetime, date_to: datetime, size: int):
                 return [file_name, date_from, date_to, size,
-                        {'OPENDAP': 'file:'+os.path.join(reference_path, file_name),
+                        {'OPENDAP': ''+os.path.join(reference_path, file_name),
                          'HTTPServer': 'file:'+os.path.join(reference_path, file_name)}]
 
             reference_files = {
@@ -107,21 +110,41 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                 file_size))
             return reference_files_list
 
-        with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
-            with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
-                new_ds = self.data_source.make_local('local_ds_test', None,
-                                                     (datetime.datetime(1978, 11, 14, 0, 0),
-                                                      datetime.datetime(1978, 11, 15, 23, 59)))
-        self.assertEqual(new_ds.name, 'local_ds_test')
+
+
+        with unittest.mock.patch('cate.ds.local.LocalDataStore._load_data_source', load_data_source_mock):
+            with unittest.mock.patch('cate.core.ds.get_data_stores_path', get_temp_data_store_path):
+                with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+                    with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
+                        with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                            new_ds = self.data_source.make_local('local_ds_test', None,
+                                                                 (datetime.datetime(1978, 11, 14, 0, 0),
+                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
+        self.assertEqual(new_ds.name, 'local.local_ds_test')
         self.assertEqual(new_ds.temporal_coverage(),
                          (datetime.datetime(1978, 11, 14, 0, 0), datetime.datetime(1978, 11, 15, 23, 59)))
 
         with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
-            with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
-                self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                            datetime.datetime(1978, 11, 16, 23, 59)))
-        # self.assertEqual(new_ds.temporal_coverage(),
-        #                 (datetime.datetime(1978, 11, 15, 0, 0), datetime.datetime(1978, 11, 16, 23, 59)))
+            with unittest.mock.patch('cate.core.ds.get_data_stores_path', get_temp_data_store_path):
+                with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+                    with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                        self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                    datetime.datetime(1978, 11, 16, 23, 59)))
+        self.assertEqual(new_ds.temporal_coverage(),
+                         (datetime.datetime(1978, 11, 15, 0, 0), datetime.datetime(1978, 11, 16, 23, 59)))
+
+        with unittest.mock.patch('cate.ds.local.LocalDataStore._load_data_source', load_data_source_mock):
+            with unittest.mock.patch('cate.core.ds.get_data_stores_path', get_temp_data_store_path):
+                with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+                    with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
+                        with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                            new_ds_w_one_variable = self.data_source.make_local('local_ds_test_2', None,
+                                                                                (datetime.datetime(1978, 11, 14, 0, 0),
+                                                                                 datetime.datetime(1978, 11, 15, 23, 59)),
+                                                                                None, ['sm'])
+        self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
+        ds = new_ds_w_one_variable.open_dataset()
+        self.assertSetEqual(set(ds.variables), set(['sm', 'lat', 'lon', 'time']))
 
     def test_data_store(self):
         self.assertIs(self.data_source.data_store,

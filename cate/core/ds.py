@@ -458,7 +458,6 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
                 primary_data_store_index = idx
         if primary_data_store_index:
             data_store_list.insert(0, data_store_list.pop(primary_data_store_index))
-            name = data_source_name
     results = []
     # noinspection PyTypeChecker
     for data_store in data_store_list:

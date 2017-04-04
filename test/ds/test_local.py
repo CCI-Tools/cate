@@ -24,8 +24,8 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
 
-        inserted_name = self.data_store.add_pattern("a_name", "a_pat")
-        self.assertEqual('test.a_name', inserted_name)
+        new_ds = self.data_store.add_pattern("a_name", "a_pat")
+        self.assertEqual('test.a_name', new_ds.name)
 
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)

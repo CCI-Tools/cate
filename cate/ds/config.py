@@ -42,7 +42,7 @@ Components
 import json
 import os
 from abc import ABCMeta
-from typing import Optional, Union, Sequence
+from typing import Optional, Union, Sequence, Tuple
 from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
@@ -106,10 +106,6 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
 
     def add_file(self, path: str, time_range: TimeRangeLike.TYPE = None, update: bool = False):
 
-        is_disjoint = self._files.keys().isdisjoint([path])
-        if not update and not is_disjoint:
-            raise ValueError("Config already contains file `{}`".format(path))
-
         self._files[path] = time_range
         if time_range:
             if self._temporal_coverage:
@@ -119,8 +115,7 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
                     self._temporal_coverage = tuple([time_range[0], self._temporal_coverage[1]])
             else:
                 self._temporal_coverage = time_range
-
-        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if f and f[1] else datetime.max))
+        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if isinstance(f, Tuple) and f[1] else datetime.max))
 
     def remove_file(self, path: str):
         is_disjoint = self._files.keys().isdisjoint([path])
@@ -146,7 +141,7 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
                 'source': self._source,
                 'last_update': None
             },
-            'files': [[item[0], item[1][0], item[1][1]] for item in self._files.items()]
+            'files': [[item[0], item[1][0], item[1][1]] if item[1] else [item[0]] for item in self._files.items()]
         })
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
         file_name = os.path.join(self._data_store.data_store_path,
@@ -155,10 +150,9 @@ class LocalDataSourceConfiguration(metaclass=ABCMeta):
             json.dump(config, fp, **dump_kwargs)
 
     @staticmethod
-    def load(json_file: Union[str, dict], data_store: Union[str, DataStore] = 'local') -> Optional['LocalDataSourceConfiguration']:
-
+    def load(json_file: Union[str, dict], data_store: Union[str, DataStore] = 'local') \
+            -> Optional['LocalDataSourceConfiguration']:
         config = None
-
         if isinstance(data_store, str):
             data_store = DATA_STORE_REGISTRY.get_data_store(data_store)
 
