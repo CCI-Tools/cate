@@ -56,9 +56,7 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
-from cate.util.misc import to_list
 from cate.util.monitor import Monitor
-from cate.ds.config import LocalDataSourceConfiguration
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
 
@@ -74,28 +72,37 @@ def add_to_data_store_registry():
 
 class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
-                 config: LocalDataSourceConfiguration = None, reference_type: str = None, reference_name: str = None):
+                 temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: GeometryLike.TYPE = None,
+                 variables: VariableNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
         self._name = name
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
         else:
             self._files = files
         self._data_store = data_store
-        initial_temporal_coverage = None
-        files_number = len(self._files.items())
-        if files_number > 0:
-            files_range = list(self._files.values())
-            if files_range:
-                if isinstance(files_range[0], Tuple):
-                    initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0][0],
-                                                                             files_range[files_number-1][1]]))
-                elif isinstance(files_range[0], datetime):
-                    initial_temporal_coverage = TimeRangeLike.convert((files_range[0],
-                                                                       files_range[files_number-1]))
-        self._config = config if config else \
-            LocalDataSourceConfiguration(name=name, data_store=data_store,
-                                         config_type=reference_type if reference_type else _REFERENCE_DATA_SOURCE_TYPE,
-                                         source=reference_name, temporal_coverage=initial_temporal_coverage)
+
+        initial_temporal_coverage = TimeRangeLike.convert(temporal_coverage) if temporal_coverage else None
+        if not initial_temporal_coverage:
+            files_number = len(self._files.items())
+            if files_number > 0:
+                files_range = list(self._files.values())
+                if files_range:
+                    if isinstance(files_range[0], Tuple):
+                        initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0][0],
+                                                                                 files_range[files_number-1][1]]))
+                    elif isinstance(files_range[0], datetime):
+                        initial_temporal_coverage = TimeRangeLike.convert((files_range[0],
+                                                                           files_range[files_number-1]))
+
+        self._temporal_coverage = initial_temporal_coverage
+        self._spatial_coverage = GeometryLike.convert(spatial_coverage) if spatial_coverage else None
+        self._variables = VariableNamesLike.convert(variables) if variables else None
+
+        self._reference_type = reference_type if reference_type else None
+        self._reference_name = reference_name
+
+    def _resolve_file_path(self, path) ->Sequence:
+        return glob(os.path.join(self._data_store.data_store_path, path))
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -116,15 +123,15 @@ class LocalDataSource(DataSource):
                     if isinstance(time_series[i], Tuple) and \
                             time_series[i][0] >= time_range[0] and \
                             time_series[i][1] <= time_range[1]:
-                        paths.extend(glob(os.path.join(get_data_store_path(), file_paths[i])))
+                        paths.extend(self._resolve_file_path(file_paths[i]))
                     elif isinstance(time_series[i], datetime) and \
                             time_range[0] <= time_series[i] < time_range[1]:
-                        paths.extend(glob(os.path.join(get_data_store_path(), file_paths[i])))
+                        paths.extend(self._resolve_file_path(file_paths[i]))
         else:
             for file in self._files.items():
-                paths.extend(glob(os.path.join(self._data_store.data_store_path, file[0])))
-            paths = sorted(set(paths))
+                paths.extend(self._resolve_file_path(file[0]))
         if paths:
+            paths = sorted(set(paths))
             try:
                 ds = open_xarray_dataset(paths)
                 if region:
@@ -152,9 +159,6 @@ class LocalDataSource(DataSource):
         var_names = VariableNamesLike.convert(var_names) if var_names else None
 
         local_path = os.path.join(get_data_store_path(), local_id)
-
-        config = LocalDataSourceConfiguration(name=local_id, data_store=self._data_store,
-                                              config_type=_REFERENCE_DATA_SOURCE_TYPE, source=self._name)
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -211,9 +215,9 @@ class LocalDataSource(DataSource):
                             local_netcdf.close()
                 else:
                     local_filepath = shutil.copy(src=remote_path, dst=local_path)
-                config.add_file(local_filepath, (start_date, stop_date))
+
             child_monitor.done()
-        config.save()
+
         monitor.done()
 
         return local_id
@@ -239,32 +243,74 @@ class LocalDataSource(DataSource):
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
         if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_coverage
-            self._config.add_file(file, time_coverage)
-        self._files = OrderedDict(sorted(self._files.items(), key=lambda f: f[1] if isinstance(f, Tuple) and f[1]
-                                                                            else datetime.max))
+            if time_coverage:
+                self._extend_temporal_coverage(time_coverage)
+        self._files = OrderedDict(sorted(self._files.items(),
+                                         key=lambda f: f[1] if isinstance(f, Tuple) and f[1] else datetime.max))
+        self.save()
 
-    def remove_time_range(self, time_coverage: TimeRangeLike.TYPE):
+    def _extend_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
+        """
+
+        :param time_range: Time range to be added to data source temporal coverage
+        :return:
+        """
+        if not time_range:
+            return
+        if self._temporal_coverage:
+            if time_range[0] >= self._temporal_coverage[1]:
+                self._temporal_coverage = tuple([self._temporal_coverage[0], time_range[1]])
+            elif time_range[1] <= self._temporal_coverage[0]:
+                self._temporal_coverage = tuple([time_range[0], self._temporal_coverage[1]])
+        else:
+            self._temporal_coverage = time_range
+
+    def _reduce_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
+        """
+
+        :param time_range:Time range to be removed from data source temporal coverage
+        :return:
+        """
+        if not time_range or not self._temporal_coverage:
+            return
+        if time_range[0] > self._temporal_coverage[0] and time_range[1] == self._temporal_coverage[1]:
+            self._temporal_coverage = (self._temporal_coverage[0], time_range[0])
+        if time_range[1] < self._temporal_coverage[1] and time_range[0] == self._temporal_coverage[0]:
+            self._temporal_coverage = (time_range[1], self._temporal_coverage[1])
+
+    def reduce_temporal_coverage(self, time_coverage: TimeRangeLike.TYPE):
         files_to_remove = []
+        time_range_to_be_removed = None
         for file, time_range in self._files.items():
             if time_coverage[0] <= time_range[0] <= time_coverage[1] \
                     and time_coverage[0] <= time_range[1] <= time_coverage[1]:
                 files_to_remove.append(file)
-                self._config.remove_file(file)
+                if not time_range_to_be_removed and isinstance(time_range, Tuple):
+                    time_range_to_be_removed = time_range
+                else:
+                    time_range_to_be_removed = (time_range_to_be_removed[0], time_range[1])
+            elif time_coverage[0] <= time_range[0] <= time_coverage[1]:
+                time_range_to_be_removed = (time_range_to_be_removed[0], time_range[0])
+            elif time_coverage[0] <= time_range[1] <= time_coverage[1]:
+                time_range_to_be_removed = time_range[1], time_coverage[1]
         for file in files_to_remove:
+            os.remove(os.path.join(self._data_store.data_store_path, file))
             del self._files[file]
+        if time_range_to_be_removed:
+            self._reduce_temporal_coverage(time_range_to_be_removed)
 
     def save(self):
-        self._config.save()
+        self._data_store.save_data_source(self)
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-        return self._config.temporal_coverage
+        return self._temporal_coverage
 
     def spatial_coverage(self):
-        return self._config.region
+        return self._spatial_coverage
 
     @property
     def variables_info(self):
-        return self._config.var_names
+        return self._variables
 
     @property
     def info_string(self):
@@ -291,16 +337,34 @@ class LocalDataSource(DataSource):
 
         :return: A JSON-serializable dictionary
         """
-        fsds_dict = OrderedDict()
-        fsds_dict['name'] = self.name
-        fsds_dict['files'] = list(self._files.items())
-        return fsds_dict
+        config = OrderedDict({
+            'name': self._name,
+            'meta_data': {
+                'temporal_coverage': self._temporal_coverage,
+                'spatial_coverage': self._spatial_coverage,
+                'variables': self._variables,
+
+                'reference_type': self._reference_type,
+                'reference_name': self._reference_name
+            },
+            'files': [[item[0], item[1][0], item[1][1]] if item[1] else [item[0]] for item in self._files.items()]
+        })
+        return config
 
     @classmethod
     def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> Optional['LocalDataSource']:
 
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
+        meta_data = json_dicts.get('meta_data', {})
+
+        temporal_coverage = meta_data.get('temporal_coverage', None)
+        spatial_coverage = meta_data.get('spatial_coverage', None)
+        variables = meta_data.get('variables', None)
+
+        reference_type = meta_data.get('reference_type', None)
+        reference_name = meta_data.get('reference_name', None)
+
         if name and isinstance(files, list):
             if len(files) > 0:
                 if isinstance(files[0], list):
@@ -314,7 +378,10 @@ class LocalDataSource(DataSource):
                                             if len(item) > 1 else (item[0], None) for item in files)
             else:
                 files = OrderedDict()
-            return LocalDataSource(name, files, data_store)
+
+            print (name, files, data_store.name, temporal_coverage, spatial_coverage, variables, reference_type, reference_name)
+            return LocalDataSource(name, files, data_store, temporal_coverage, spatial_coverage, variables,
+                                   reference_type, reference_name)
         return None
 
 
@@ -340,9 +407,9 @@ class LocalDataStore(DataStore):
             if ds.name == name:
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
-        data_source = LocalDataSource(name, files=[], data_store=self, config=None, reference_type=reference_type,
+        data_source = LocalDataSource(name, files=[], data_store=self, reference_type=reference_type,
                                       reference_name=reference_name)
-        data_source.save()
+        self._save_data_source(data_source)
         self._data_sources.append(data_source)
         return data_source
 
@@ -383,6 +450,16 @@ class LocalDataStore(DataStore):
             if data_source:
                 self._data_sources.append(data_source)
 
+    def save_data_source(self, data_source):
+        self._save_data_source(data_source)
+
+    def _save_data_source(self, data_source):
+        json_dict = data_source.to_json_dict()
+        dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
+        file_name = os.path.join(self._store_dir, data_source.name + '.json')
+        with open(file_name, 'w') as fp:
+            json.dump(json_dict, fp, **dump_kwargs)
+
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
         if json_dict:
@@ -394,3 +471,9 @@ class LocalDataStore(DataStore):
             with open(json_path) as fp:
                 return json.load(fp=fp) or {}
         return None
+
+    @staticmethod
+    def _json_default_serializer(obj):
+        if isinstance(obj, datetime):
+            return obj.replace(microsecond=0).isoformat()
+        raise TypeError('Not sure how to serialize %s' % (obj,))

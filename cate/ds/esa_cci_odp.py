@@ -59,7 +59,6 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
                          open_xarray_dataset, get_data_stores_path, query_data_sources
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
-from cate.ds.local import LocalDataSourceConfiguration
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
 
@@ -479,7 +478,7 @@ class EsaCciOdpDataSource(DataSource):
 
         data_sources = query_data_sources(None, local_id)
         if not data_sources or data_sources[0].name != local_id:
-            raise ValueError("Couldn't find local DataSource", (local_id,data_sources))
+            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
         data_source = data_sources[0]
 
         to_remove = []
@@ -499,7 +498,7 @@ class EsaCciOdpDataSource(DataSource):
                                    time_range[1]))
         if to_remove:
             for time_range_to_remove in to_remove:
-                data_source.remove_time_range(time_range_to_remove)
+                data_source.reduce_temporal_coverage(time_range_to_remove)
         if to_add:
 
             for time_range_to_add in to_add:
