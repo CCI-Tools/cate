@@ -21,7 +21,7 @@ class TimeSeriesTest(TestCase):
             'time': ['2000-01-01', '2000-02-01', '2000-03-01', '2000-04-01',
                      '2000-05-01', '2000-06-01']})
 
-        actual = tseries_point(dataset, lat=5, lon=10, var='*bs')
+        actual = tseries_point(dataset, point='10, 5', var='*bs')
         expected = xr.Dataset({
             'abs': (['time'], np.ones(6)),
             'bbs': (['time'], np.ones(6)),
@@ -32,7 +32,7 @@ class TimeSeriesTest(TestCase):
         expected = expected.set_coords(['lat', 'lon'])
         self.assertDatasetEqual(expected, actual)
 
-        actual = tseries_point(dataset, lat=5, lon=10, var='')
+        actual = tseries_point(dataset, point=(10, 5), var='')
         self.assertDatasetEqual(expected, actual)
 
     def test_tseries_mean(self):
