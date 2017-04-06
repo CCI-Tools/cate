@@ -58,6 +58,10 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
 
+        reference_path = os.path.join(os.path.dirname(__file__), 'resources/datasources/local/files/')
+        print('reference_path', reference_path)
+        print('listdir', os.listdir(reference_path))
+
         def get_temp_data_store_path():
             return self.tmp_dir
 
@@ -65,10 +69,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
             return None
 
         def find_files_mock(_, time_range):
-            reference_path = os.path.join(os.path.dirname(__file__), 'resources/datasources/local/files/')
-            print(reference_path)
-            print(os.listdir(reference_path))
-            
+
             def build_file_item(item_name: str, date_from: datetime, date_to: datetime, size: int):
                 return [item_name, date_from, date_to, size,
                         {'OPENDAP': ''+os.path.join(reference_path, item_name),
@@ -118,9 +119,13 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
                         with unittest.mock.patch(
                                 'cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
-                            new_ds = self.data_source.make_local('local_ds_test', None,
-                                                                 (datetime.datetime(1978, 11, 14, 0, 0),
-                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
+                            try:
+                                new_ds = self.data_source.make_local('local_ds_test', None,
+                                                                     (datetime.datetime(1978, 11, 14, 0, 0),
+                                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+                            except:
+                                raise ValueError(reference_path, os.listdir(reference_path))
+
                             self.assertEqual(new_ds.name, 'local.local_ds_test')
                             self.assertEqual(new_ds.temporal_coverage(),
                                              (datetime.datetime(1978, 11, 14, 0, 0),
