@@ -54,7 +54,7 @@ from xarray.backends.netCDF4_ import NetCDF4DataStore
 
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset, query_data_sources
 from cate.core.ds import get_data_stores_path
 from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
 from cate.util.monitor import Monitor
@@ -279,6 +279,40 @@ class LocalDataSource(DataSource):
         local_ds = local_store.create_data_source(local_name, _REFERENCE_DATA_SOURCE_TYPE, self.name)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
+
+
+    def update_local(self,
+                     local_id: str,
+                     time_range: Tuple[datetime, datetime],
+                     monitor: Monitor = Monitor.NONE) -> bool:
+
+        data_sources = query_data_sources(None, local_id)
+        if not data_sources or data_sources[0].name != local_id:
+            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
+        data_source = data_sources[0]
+
+        to_remove = []
+        to_add = []
+        if time_range and time_range[1] > time_range[0]:
+            if time_range[0] != data_source.temporal_coverage()[0]:
+                if time_range[0] > data_source.temporal_coverage()[0]:
+                    to_remove.append((data_source.temporal_coverage()[0], time_range[0]))
+                else:
+                    to_add.append((time_range[0], data_source.temporal_coverage()[0]))
+
+            if time_range[1] != data_source.temporal_coverage()[1]:
+                if time_range[1] < data_source.temporal_coverage()[1]:
+                    to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
+                else:
+                    to_add.append((data_source.temporal_coverage()[1],
+                                   time_range[1]))
+        if to_remove:
+            for time_range_to_remove in to_remove:
+                data_source.reduce_temporal_coverage(time_range_to_remove)
+        if to_add:
+
+            for time_range_to_add in to_add:
+                self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
 
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
         if update or self._files.keys().isdisjoint([file]):

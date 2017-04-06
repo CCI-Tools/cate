@@ -494,7 +494,7 @@ class EsaCciOdpDataSource(DataSource):
                 if time_range[1] < data_source.temporal_coverage()[1]:
                     to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
                 else:
-                    to_add.append((data_source.temporal_coverage()[1] + timedelta(seconds=1),
+                    to_add.append((data_source.temporal_coverage()[1],
                                    time_range[1]))
         if to_remove:
             for time_range_to_remove in to_remove:
