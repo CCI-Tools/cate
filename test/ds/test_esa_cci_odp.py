@@ -61,8 +61,6 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
         reference_path = os.path.join(os.path.dirname(__file__),
                                       os.path.normpath('resources/datasources/local/files/'))
-        print('reference_path', reference_path)
-        print('listdir', os.listdir(reference_path))
 
         def get_temp_data_store_path():
             return self.tmp_dir

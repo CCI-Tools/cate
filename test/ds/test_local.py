@@ -47,7 +47,6 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_store2 = LocalDataStore('test', self.tmp_dir)
         data_sources = data_store2.query()
         self.assertIsNotNone(data_sources)
-        print(data_sources)
         #self.assertEqual(len(data_sources), 2)
 
     def test_query(self):

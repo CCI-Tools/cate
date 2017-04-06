@@ -192,8 +192,7 @@ class IOTest(TestCase):
     def test_autochunking(self):
         path_large = op.join(_TEST_DATA_PATH, 'large', '*.nc')
         path_small = op.join(_TEST_DATA_PATH, 'small', '*.nc')
-        print(path_large)
-        print(path_small)
+
         ds_large = ds.open_xarray_dataset(path_large)
         ds_small = ds.open_xarray_dataset(path_small)
         large_expected = {'lat': (1800, 1800), 'time': (1,), 'bnds': (2,),
