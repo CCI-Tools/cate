@@ -32,8 +32,6 @@ coregister - coregister two datasets that are defined on global, pixel-registere
 equidistant in lat/lon coordinates.
 
 """
-# TODO (Gailis, 20160623, Migrate this to using routines that handle downsampling better (resampling.py))
-
 from typing import Tuple
 
 import numpy as np
@@ -41,7 +39,6 @@ import xarray as xr
 
 from cate.core.op import op_input, op
 
-# This imports ops/resampling.py, instead of a name from ops.__init__
 from cate.ops import resampling
 
 
