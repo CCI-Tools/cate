@@ -1,4 +1,3 @@
-import json
 import os
 import os.path
 import tempfile
@@ -6,6 +5,7 @@ import unittest
 import unittest.mock
 import datetime
 import shutil
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.ds.local import LocalDataStore, LocalDataSource
 from collections import OrderedDict
 
@@ -19,6 +19,13 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.data_store.add_pattern("ozone", "/DATA/ozone/*/*.nc")
         self.data_store.add_pattern("aerosol", ["/DATA/aerosol/*/*/AERO_V1*.nc", "/DATA/aerosol/*/*/AERO_V2*.nc"])
         self.assertEqual(2, len(os.listdir(self.tmp_dir)))
+
+        self._existing_local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
+
+    def tearDown(self):
+        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        shutil.rmtree(self.tmp_dir)
 
     def test_add_pattern(self):
         data_sources = self.data_store.query()
@@ -120,6 +127,13 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.assertIsNotNone(self.empty_ds)
         self.assertIsNotNone(self.ds3)
         self.assertIsNotNone(self.ds4)
+
+        self._existing_local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
+
+    def tearDown(self):
+        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        shutil.rmtree(self.tmp_dir)
 
     def test_data_store(self):
         self.assertIs(self.ds1.data_store, self._dummy_store)
@@ -229,30 +243,27 @@ class LocalFilePatternSourceTest(unittest.TestCase):
 
     def test_make_local(self):
 
-        def get_temp_data_store_path():
-            return self.tmp_dir
+        data_source = self._local_data_store.query('local_w_temporal')[0]
 
-        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
-            data_source = self._local_data_store.query('local_w_temporal')[0]
+        new_ds = data_source.make_local('from_local_to_local', None,
+                                        (datetime.datetime(1978, 11, 14, 0, 0),
+                                         datetime.datetime(1978, 11, 15, 23, 59)))
+        self.assertEqual(new_ds.name, 'local.from_local_to_local')
+        self.assertEqual(new_ds.temporal_coverage(),
+                         (datetime.datetime(1978, 11, 14, 0, 0),
+                          datetime.datetime(1978, 11, 15, 23, 59)))
 
-            new_ds = data_source.make_local('from_local_to_local', None,
-                                            (datetime.datetime(1978, 11, 14, 0, 0),
-                                             datetime.datetime(1978, 11, 15, 23, 59)))
-            self.assertEqual(new_ds.name, 'local.from_local_to_local')
-            self.assertEqual(new_ds.temporal_coverage(),
-                             (datetime.datetime(1978, 11, 14, 0, 0),
-                              datetime.datetime(1978, 11, 15, 23, 59)))
+        data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                               datetime.datetime(1978, 11, 16, 23, 59)))
+        self.assertEqual(new_ds.temporal_coverage(),
+                         (datetime.datetime(1978, 11, 15, 0, 0),
+                          datetime.datetime(1978, 11, 16, 23, 59)))
 
-            data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                   datetime.datetime(1978, 11, 16, 23, 59)))
-            self.assertEqual(new_ds.temporal_coverage(),
-                             (datetime.datetime(1978, 11, 15, 0, 0),
-                              datetime.datetime(1978, 11, 16, 23, 59)))
+        new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
+                                                       (datetime.datetime(1978, 11, 14, 0, 0),
+                                                        datetime.datetime(1978, 11, 15, 23, 59)),
+                                                       None, ['sm'])
+        self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
+        data_set = new_ds_w_one_variable.open_dataset()
+        self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))
 
-            new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
-                                                           (datetime.datetime(1978, 11, 14, 0, 0),
-                                                            datetime.datetime(1978, 11, 15, 23, 59)),
-                                                           None, ['sm'])
-            self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
-            data_set = new_ds_w_one_variable.open_dataset()
-            self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))

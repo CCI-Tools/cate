@@ -6,9 +6,11 @@ import tempfile
 import unittest
 import unittest.mock
 import urllib.request
+import shutil
 
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
+from cate.ds.local import LocalDataStore
 
 
 @unittest.skip(reason='Because it writes a lot of files')
@@ -57,16 +59,17 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.data_source = data_sources[0]
         self.tmp_dir = tempfile.mkdtemp()
 
+        self._existing_local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
+
+    def tearDown(self):
+        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        shutil.rmtree(self.tmp_dir)
+
     def test_make_local_and_update(self):
 
         reference_path = os.path.join(os.path.dirname(__file__),
                                       os.path.normpath('resources/datasources/local/files/'))
-
-        def get_temp_data_store_path():
-            return self.tmp_dir
-
-        def load_data_source_mock(*_):
-            return None
 
         def find_files_mock(_, time_range):
 
@@ -114,43 +117,39 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                 file_size))
             return reference_files_list
 
-        with unittest.mock.patch('cate.ds.local.LocalDataStore._load_data_source', load_data_source_mock):
-            with unittest.mock.patch('cate.core.ds.get_data_stores_path', get_temp_data_store_path):
-                with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
-                    with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
-                        with unittest.mock.patch(
-                                'cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
-                            try:
-                                new_ds = self.data_source.make_local('local_ds_test', None,
-                                                                     (datetime.datetime(1978, 11, 14, 0, 0),
-                                                                      datetime.datetime(1978, 11, 15, 23, 59)))
-                            except:
-                                raise ValueError(reference_path, os.listdir(reference_path))
+        with unittest.mock.patch(
+                'cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+            try:
+                new_ds = self.data_source.make_local('local_ds_test', None,
+                                                     (datetime.datetime(1978, 11, 14, 0, 0),
+                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+            except:
+                raise ValueError(reference_path, os.listdir(reference_path))
 
-                            self.assertEqual(new_ds.name, 'local.local_ds_test')
-                            self.assertEqual(new_ds.temporal_coverage(),
-                                             (datetime.datetime(1978, 11, 14, 0, 0),
-                                              datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertEqual(new_ds.name, 'local.local_ds_test')
+            self.assertEqual(new_ds.temporal_coverage(),
+                             (datetime.datetime(1978, 11, 14, 0, 0),
+                              datetime.datetime(1978, 11, 15, 23, 59)))
 
-                            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                        datetime.datetime(1978, 11, 16, 23, 59)))
-                            self.assertEqual(new_ds.temporal_coverage(),
-                                             (datetime.datetime(1978, 11, 15, 0, 0),
-                                              datetime.datetime(1978, 11, 16, 23, 59)))
+            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                        datetime.datetime(1978, 11, 16, 23, 59)))
+            self.assertEqual(new_ds.temporal_coverage(),
+                             (datetime.datetime(1978, 11, 15, 0, 0),
+                              datetime.datetime(1978, 11, 16, 23, 59)))
 
-                            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 14, 00, 00),
-                                                                        datetime.datetime(1978, 11, 15, 23, 59)))
-                            self.assertEqual(new_ds.temporal_coverage(),
-                                             (datetime.datetime(1978, 11, 14, 0, 0),
-                                              datetime.datetime(1978, 11, 15, 23, 59)))
+            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 14, 00, 00),
+                                                        datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertEqual(new_ds.temporal_coverage(),
+                             (datetime.datetime(1978, 11, 14, 0, 0),
+                              datetime.datetime(1978, 11, 15, 23, 59)))
 
-                            new_ds_w_one_variable = self.data_source.make_local(
-                                'local_ds_test_2', None,(datetime.datetime(1978, 11, 14, 0, 0),
-                                                         datetime.datetime(1978, 11, 15, 23, 59)),
-                                None, ['sm'])
-                            self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
-                            ds = new_ds_w_one_variable.open_dataset()
-                            self.assertSetEqual(set(ds.variables), set(['sm', 'lat', 'lon', 'time']))
+            new_ds_w_one_variable = self.data_source.make_local(
+                'local_ds_test_2', None,(datetime.datetime(1978, 11, 14, 0, 0),
+                                         datetime.datetime(1978, 11, 15, 23, 59)),
+                None, ['sm'])
+            self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
+            ds = new_ds_w_one_variable.open_dataset()
+            self.assertSetEqual(set(ds.variables), set(['sm', 'lat', 'lon', 'time']))
 
     def test_data_store(self):
         self.assertIs(self.data_source.data_store,
