@@ -114,7 +114,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
             with unittest.mock.patch('cate.core.ds.get_data_stores_path', get_temp_data_store_path):
                 with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
                     with unittest.mock.patch('cate.ds.esa_cci_odp.get_data_store_path', get_temp_data_store_path):
-                        with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+                        with unittest.mock.patch(
+                                'cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
                             new_ds = self.data_source.make_local('local_ds_test', None,
                                                                  (datetime.datetime(1978, 11, 14, 0, 0),
                                                                   datetime.datetime(1978, 11, 15, 23, 59)))
@@ -135,10 +136,10 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                              (datetime.datetime(1978, 11, 14, 0, 0),
                                               datetime.datetime(1978, 11, 15, 23, 59)))
 
-                            new_ds_w_one_variable = self.data_source.make_local('local_ds_test_2', None,
-                                                                                (datetime.datetime(1978, 11, 14, 0, 0),
-                                                                                 datetime.datetime(1978, 11, 15, 23, 59)),
-                                                                                None, ['sm'])
+                            new_ds_w_one_variable = self.data_source.make_local(
+                                'local_ds_test_2', None,(datetime.datetime(1978, 11, 14, 0, 0),
+                                                         datetime.datetime(1978, 11, 15, 23, 59)),
+                                None, ['sm'])
                             self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
                             ds = new_ds_w_one_variable.open_dataset()
                             self.assertSetEqual(set(ds.variables), set(['sm', 'lat', 'lon', 'time']))
