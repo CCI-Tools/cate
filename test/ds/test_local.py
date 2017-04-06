@@ -25,7 +25,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
     def tearDown(self):
         DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
-        shutil.rmtree(self.tmp_dir)
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def test_add_pattern(self):
         data_sources = self.data_store.query()
@@ -133,7 +133,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
 
     def tearDown(self):
         DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
-        shutil.rmtree(self.tmp_dir)
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def test_data_store(self):
         self.assertIs(self.ds1.data_store, self._dummy_store)
