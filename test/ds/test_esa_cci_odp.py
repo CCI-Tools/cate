@@ -5,6 +5,7 @@ import os.path
 import tempfile
 import unittest
 import unittest.mock
+import urllib.request
 
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
@@ -75,7 +76,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 return [item_name, date_from, date_to, size,
                         {'OPENDAP': os.path.join(reference_path, item_name),
-                         'HTTPServer': os.path.join(reference_path, item_name)}]
+                         'HTTPServer': 'file:' + urllib.request.pathname2url(os.path.join(reference_path, item_name))}]
 
             reference_files = {
                 'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc': {
