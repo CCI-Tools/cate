@@ -2,9 +2,10 @@ from collections import OrderedDict
 from datetime import datetime, date
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
+
 from numpy import dtype
 
-from cate.util.misc import encode_url_path
+from cate.util.misc import encode_url_path, to_json
 from cate.util.misc import object_to_qualified_name, qualified_name_to_object
 from cate.util.misc import to_datetime, to_datetime_range
 from cate.util.misc import to_list
@@ -142,6 +143,37 @@ class ToListTest(TestCase):
         self.assertEqual(to_list([1, 2, 3], dtype=int), [1, 2, 3])
         self.assertEqual(to_list((1, 2, 3), dtype=int), [1, 2, 3])
         self.assertEqual(to_list(['1', '2', '3'], dtype=int), [1, 2, 3])
+
+
+class ToJsonTest(TestCase):
+    def test_none_and_empty(self):
+        self.assertEqual(to_json(None), None)
+        self.assertEqual(to_json([]), [])
+        self.assertEqual(to_json({}), {})
+        self.assertEqual(to_json(''), '')
+
+    def test_numpy(self):
+        import numpy as np
+        self.assertEqual(to_json(np.array([])), [])
+        self.assertEqual(to_json(np.array([1])), 1)
+        self.assertEqual(to_json(np.array([1, 2, 3])), [1, 2, 3])
+        self.assertEqual(to_json(np.array([[1, 2], [3, 4]])), [[1, 2], [3, 4]])
+        self.assertEqual(to_json(np.ndarray), 'numpy.ndarray')
+
+    def test_types(self):
+        self.assertEqual(to_json(str), "str")
+        self.assertEqual(to_json(OrderedDict), "collections.OrderedDict")
+
+    def test_scalar_values(self):
+        self.assertEqual(to_json(True), True)
+        self.assertEqual(to_json(False), False)
+        self.assertEqual(to_json('ohoh'), 'ohoh')
+        self.assertEqual(to_json(234), 234)
+        self.assertEqual(to_json(4.6), 4.6)
+
+    def test_composite_values(self):
+        self.assertEqual(to_json([1, 'no!', 3]), [1, 'no!', 3])
+        self.assertEqual(to_json({"a": [1, 2, 3], 6: 'b'}), {"a": [1, 2, 3], "6": 'b'})
 
 
 class StrConstantTest(TestCase):

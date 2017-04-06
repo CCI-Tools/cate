@@ -61,15 +61,18 @@ matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
 from cate.core.op import op, op_input
+from cate.core.types import VarName
 
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
+@op_input('ds')
+@op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('lat_min', units='degrees', value_range=[-90, 90])
 @op_input('lat_max', units='degrees', value_range=[-90, 90])
 @op_input('lon_min', units='degrees', value_range=[-180, 180])
 @op_input('lon_max', units='degrees', value_range=[-180, 180])
 def plot_map(ds: xr.Dataset,
-             var: str = None,
+             var: VarName.TYPE = None,
              time=None,
              lat_min: float = None,
              lat_max: float = None,
@@ -105,6 +108,8 @@ def plot_map(ds: xr.Dataset,
         for key in ds.data_vars.keys():
             var = key
             break
+    else:
+        var = VarName.convert(var)
 
     if not time:
         time = 0
@@ -149,7 +154,8 @@ def plot_map(ds: xr.Dataset,
 
 
 @op(tags=['graphical', 'plot', '1D'], no_cache=True)
-def plot_1D(ds: xr.Dataset, var: str, file: str = None) -> None:
+@op_input('var', value_set_source='ds', data_type=VarName)
+def plot_1D(ds: xr.Dataset, var: VarName.TYPE, file: str = None) -> None:
     """
     Plot a 1 dimensional variable, optionally save the figure in a file.
 
@@ -162,6 +168,7 @@ def plot_1D(ds: xr.Dataset, var: str, file: str = None) -> None:
     :param var: Variable to plot
     :param file: Filepath where to save the plot
     """
+    var = VarName.convert(var)
     fig = plt.figure(figsize=(16, 8))
     ds[var].plot()
 

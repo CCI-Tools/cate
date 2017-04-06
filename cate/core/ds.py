@@ -93,7 +93,7 @@ import xarray as xr
 from cate.conf import get_config_path
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 
 
@@ -155,7 +155,7 @@ class DataSource(metaclass=ABCMeta):
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: GeometryLike.TYPE = None,
-                     var_names: VariableNamesLike.TYPE = None,
+                     var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         """
         Open a dataset from this data source.
@@ -166,7 +166,7 @@ class DataSource(metaclass=ABCMeta):
         :param region: An optional region constraint.
                 If given, it must be a :py:class:`GeometryLike`.
         :param var_names: Optional names of variables to be included.
-                If given, it must be a :py:class:`VariableNamesLike`.
+                If given, it must be a :py:class:`VarNamesLike`.
         :param protocol: **Deprecated.** Protocol name, if None selected default protocol
                 will be used to access data.
         :return: A dataset instance or ``None`` if no data is available for the given constraints.
@@ -178,7 +178,7 @@ class DataSource(metaclass=ABCMeta):
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
+                   var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
@@ -200,9 +200,9 @@ class DataSource(metaclass=ABCMeta):
         :param region: An optional region constraint.
                If given, it must be a :py:class:`GeometryLike`.
         :param var_names: Optional names of variables to be included.
-               If given, it must be a :py:class:`VariableNamesLike`.
+               If given, it must be a :py:class:`VarNamesLike`.
         :param monitor: a progress monitor.
-        :return: A newly created local data source.
+        :return: the new local data source
         """
         pass
 
@@ -468,7 +468,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
 def open_dataset(data_source: Union[DataSource, str],
                  time_range: TimeRangeLike.TYPE = None,
                  region: GeometryLike.TYPE = None,
-                 var_names: VariableNamesLike.TYPE = None,
+                 var_names: VarNamesLike.TYPE = None,
                  monitor: Monitor = Monitor.NONE) -> Any:
     """
     Open a dataset from a data source.
@@ -479,7 +479,7 @@ def open_dataset(data_source: Union[DataSource, str],
     :param region: An optional region constraint.
             If given, it must be a :py:class:`GeometryLike`.
     :param var_names: Optional names of variables to be included.
-            If given, it must be a :py:class:`VariableNamesLike`.
+            If given, it must be a :py:class:`VarNamesLike`.
     :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """

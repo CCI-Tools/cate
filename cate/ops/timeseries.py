@@ -33,22 +33,18 @@ import xarray as xr
 
 from cate.core.op import op_input, op
 from cate.ops.select import select_var
+from cate.core.types import VarNamesLike
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
 @op_input('lat', units='degrees', value_range=[-90, 90])
 @op_input('lon', units='degrees', value_range=[-180, 180])
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
-# TODO (Gailis, 27.09.16) See issues #45 and #46
-# def tseries_point(ds: xr.Dataset,
-#                   lat: float,
-#                   lon: float,
-#                   var: Union[str, List[str],
-#                   None], method: str = 'nearest') -> xr.Dataset:
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
 def tseries_point(ds: xr.Dataset,
                   lat: float,
                   lon: float,
-                  var: str = None,
+                  var: VarNamesLike.TYPE = None,
                   method: str = 'nearest') -> xr.Dataset:
     """
     Extract time-series from *ds* at given *lat*, *lon* position using
@@ -79,11 +75,10 @@ def tseries_point(ds: xr.Dataset,
 
 
 @op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
-# TODO (Gailis, 27.09.16) See issues #45 and #46
-# def timeseries_mean(ds: xr.Dataset,
-#           var: Union[None, str, List[str]] = None) -> xr.Dataset:
+@op_input('ds')
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
 def tseries_mean(ds: xr.Dataset,
-                 var: str,
+                 var: VarNamesLike.TYPE,
                  std_suffix: str = '_std',
                  calculate_std: bool = True) -> xr.Dataset:
     """

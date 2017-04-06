@@ -39,14 +39,16 @@ from cate.ops.select import select_var
 from cate.ops.io import save_dataset
 from cate.util import to_datetime_range, to_datetime
 from cate.util.monitor import Monitor
+from cate.core.types import VarNamesLike
 
 
 @op(tags=['temporal', 'mean', 'average', 'long_running'])
+@op_input('var', data_type=VarNamesLike)
 def long_term_average(source: str,
                       year_min: int,
                       year_max: int,
                       file: str,
-                      var: str = None,
+                      var: VarNamesLike.TYPE = None,
                       save: bool = False,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
@@ -71,6 +73,8 @@ def long_term_average(source: str,
     :param monitor: A progress monitor to use
     :return: The Long Term Average dataset.
     """
+    var = VarNamesLike.convert(var)
+
     n_years = year_max - year_min + 1
     res = 0
     total_work = 100
@@ -158,10 +162,11 @@ def long_term_average(source: str,
 @op(tags=['temporal', 'mean', 'aggregation', 'long_running'])
 @op_input('level', value_set=['mon'])
 @op_input('method', value_set=['mean'])
+@op_input('var', data_type=VarNamesLike)
 def temporal_agg(source: str,
                  start_date: str = None,
                  end_date: str = None,
-                 var: str = None,
+                 var: VarNamesLike.TYPE = None,
                  level: str = 'mon',
                  method: str = 'mean',
                  save_data: bool = False,
@@ -196,6 +201,8 @@ def temporal_agg(source: str,
     """
     # Raise not implemented, while not finished
     raise ValueError("Operation is not implemented.")
+
+    var = VarNamesLike.convert(var)
 
     # Select the appropriate data source
     data_store_list = DATA_STORE_REGISTRY.get_data_stores()

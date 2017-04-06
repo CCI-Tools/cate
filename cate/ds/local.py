@@ -56,7 +56,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset, query_data_sources
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
@@ -74,7 +74,7 @@ def add_to_data_store_registry():
 class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
                  temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: GeometryLike.TYPE = None,
-                 variables: VariableNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
+                 variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
         self._name = name
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
@@ -97,7 +97,7 @@ class LocalDataSource(DataSource):
 
         self._temporal_coverage = initial_temporal_coverage
         self._spatial_coverage = GeometryLike.convert(spatial_coverage) if spatial_coverage else None
-        self._variables = VariableNamesLike.convert(variables) if variables else None
+        self._variables = VarNamesLike.convert(variables) if variables else None
 
         self._reference_type = reference_type if reference_type else None
         self._reference_name = reference_name
@@ -108,13 +108,13 @@ class LocalDataSource(DataSource):
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: GeometryLike.TYPE = None,
-                     var_names: VariableNamesLike.TYPE = None,
+                     var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         if region:
             region = GeometryLike.convert(region)
         if var_names:
-            var_names = VariableNamesLike.convert(var_names)
+            var_names = VarNamesLike.convert(var_names)
         paths = []
         if time_range:
             time_series = list(self._files.values())
@@ -150,7 +150,7 @@ class LocalDataSource(DataSource):
                     local_ds: 'LocalDataSource',
                     time_range: TimeRangeLike.TYPE = None,
                     region: GeometryLike.TYPE = None,
-                    var_names: VariableNamesLike.TYPE = None,
+                    var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
         local_name = local_ds.name
@@ -158,7 +158,7 @@ class LocalDataSource(DataSource):
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
+        var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -262,7 +262,7 @@ class LocalDataSource(DataSource):
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
+                   var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         if not local_name:
             raise ValueError('local_name is required')

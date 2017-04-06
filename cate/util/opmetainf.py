@@ -124,26 +124,25 @@ class OpMetaInfo:
     def can_cache(self) -> bool:
         return not self._header.get('no_cache', False)
 
-    def to_json_dict(self):
+    def to_json_dict(self, data_type_to_json=None) -> dict:
         """
         Return a JSON-serializable dictionary representation of this object. E.g. values of the `data_type``
         property are converted from Python types to their string representation.
 
         :return: A JSON-serializable dictionary
         """
-
         json_dict = OrderedDict()
         json_dict['qualified_name'] = self.qualified_name
         if self.has_monitor:
             json_dict['has_monitor'] = True
         if self.header:
             json_dict['header'] = dict(self.header)
-        json_dict['input'] = self.object_dict_to_json_dict(self.input)
-        json_dict['output'] = self.object_dict_to_json_dict(self.output)
+        json_dict['input'] = self.object_dict_to_json_dict(self.input, data_type_to_json)
+        json_dict['output'] = self.object_dict_to_json_dict(self.output, data_type_to_json)
         return json_dict
 
     @classmethod
-    def from_json_dict(cls, json_dict, **kwargs):
+    def from_json_dict(cls, json_dict, json_to_data_type=None, **kwargs) -> 'OpMetaInfo':
         qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
         header_obj = json_dict.get('header', kwargs.get('header', None))
         has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))
@@ -152,25 +151,29 @@ class OpMetaInfo:
         return OpMetaInfo(qualified_name,
                           header_dict=header_obj,
                           has_monitor=has_monitor,
-                          input_dict=cls.json_dict_to_object_dict(input_dict),
-                          output_dict=cls.json_dict_to_object_dict(output_dict))
+                          input_dict=cls.json_dict_to_object_dict(input_dict, json_to_data_type),
+                          output_dict=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
 
     @classmethod
-    def object_dict_to_json_dict(cls, obj_dict):
+    def object_dict_to_json_dict(cls, obj_dict, data_type_to_json = None):
+        if not data_type_to_json:
+            data_type_to_json = object_to_qualified_name
         json_dict = OrderedDict()
         for name, properties in obj_dict.items():
             json_dict[name] = dict(properties)
             if 'data_type' in properties:
-                json_dict[name]['data_type'] = object_to_qualified_name(properties['data_type'])
+                json_dict[name]['data_type'] = data_type_to_json(properties['data_type'])
         return json_dict
 
     @classmethod
-    def json_dict_to_object_dict(cls, json_dict):
+    def json_dict_to_object_dict(cls, json_dict, json_to_data_type=None):
+        if not json_to_data_type:
+            json_to_data_type = qualified_name_to_object
         obj_dict = OrderedDict()
         for name, properties in json_dict.items():
             obj_dict[name] = dict(properties)
             if 'data_type' in properties:
-                obj_dict[name]['data_type'] = qualified_name_to_object(properties['data_type'])
+                obj_dict[name]['data_type'] = json_to_data_type(properties['data_type'])
         return obj_dict
 
     def __str__(self):

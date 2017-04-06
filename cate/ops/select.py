@@ -34,14 +34,14 @@ import fnmatch
 import geopandas as gpd
 import xarray as xr
 
-from cate.core.op import op
-from cate.util import to_list
+from cate.core.op import op, op_input
+from cate.core.types import VarNamesLike
 
 
 @op(tags=['select', 'subset', 'filter', 'var'])
-# TODO (Gailis, 27.09.16) See issues #45 and #46
-#def select_var(ds: xr.Dataset, var: Union[None, str, List[str]] = None) -> xr.Dataset:
-def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
+@op_input('ds')
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
+def select_var(ds: xr.Dataset, var: VarNamesLike.TYPE = None) -> xr.Dataset:
     """
     Filter the dataset, by leaving only the desired variables in it. The original dataset
     information, including original coordinates, is preserved.
@@ -57,7 +57,7 @@ def select_var(ds: xr.Dataset, var: str = None) -> xr.Dataset:
     if not var:
         return ds
 
-    var_names = to_list(var, name='var')
+    var_names = VarNamesLike.convert(var)
     dropped_var_names = list(ds.data_vars.keys())
 
     for pattern in var_names:

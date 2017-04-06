@@ -58,7 +58,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
                          open_xarray_dataset, get_data_stores_path, query_data_sources
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VariableNamesLike
+from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
 
@@ -543,13 +543,13 @@ class EsaCciOdpDataSource(DataSource):
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: GeometryLike.TYPE = None,
-                     var_names: VariableNamesLike.TYPE = None,
+                     var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         if region:
             region = GeometryLike.convert(region)
         if var_names:
-            var_names = VariableNamesLike.convert(var_names)
+            var_names = VarNamesLike.convert(var_names)
         if protocol is None:
             protocol = _ODP_PROTOCOL_HTTP
         if protocol not in self.protocols:
@@ -598,7 +598,7 @@ class EsaCciOdpDataSource(DataSource):
                     local_ds: LocalDataSource,
                     time_range: TimeRangeLike.TYPE = None,
                     region: GeometryLike.TYPE = None,
-                    var_names: VariableNamesLike.TYPE = None,
+                    var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
         local_name = local_ds.name
@@ -606,7 +606,7 @@ class EsaCciOdpDataSource(DataSource):
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
+        var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -744,7 +744,7 @@ class EsaCciOdpDataSource(DataSource):
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
-                   var_names: VariableNamesLike.TYPE = None,
+                   var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         if not local_name:
             raise ValueError('local_name is required')

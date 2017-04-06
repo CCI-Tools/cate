@@ -6,8 +6,14 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VariableNamesLike, PointLike, PolygonLike, TimeRangeLike, GeometryLike
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike
 from cate.util import object_to_qualified_name
+
+import xarray as xr
+import pandas as pd
+import geopandas as gpd
+import numpy as np
+
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
 ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])
@@ -88,32 +94,56 @@ class ExampleTypeTest(TestCase):
         self.assertEqual(ExampleType.format(ExamplePoint(2.4, 4.8)), "2.4, 4.8")
 
 
-class VariableNamesLikeTest(TestCase):
+class VarNamesLikeTest(TestCase):
     """
-    Test the VariableNamesLike type
+    Test the VarNamesLike type
     """
 
     def test_accepts(self):
-        self.assertTrue(VariableNamesLike.accepts('aa'))
-        self.assertTrue(VariableNamesLike.accepts('aa,bb,cc'))
-        self.assertTrue(VariableNamesLike.accepts(['aa', 'bb', 'cc']))
-        self.assertFalse(VariableNamesLike.accepts(1.0))
-        self.assertFalse(VariableNamesLike.accepts([1, 2, 4]))
-        self.assertFalse(VariableNamesLike.accepts(['aa', 2, 'bb']))
+        self.assertTrue(VarNamesLike.accepts('aa'))
+        self.assertTrue(VarNamesLike.accepts('aa,bb,cc'))
+        self.assertTrue(VarNamesLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarNamesLike.accepts(1.0))
+        self.assertFalse(VarNamesLike.accepts([1, 2, 4]))
+        self.assertFalse(VarNamesLike.accepts(['aa', 2, 'bb']))
 
     def test_convert(self):
         expected = ['aa', 'b*', 'cc']
-        actual = VariableNamesLike.convert('aa,b*,cc')
+        actual = VarNamesLike.convert('aa,b*,cc')
         self.assertEqual(actual, expected)
 
         with self.assertRaises(ValueError) as err:
-            VariableNamesLike.convert(['aa', 1, 'bb'])
-        print(str(err))
+            VarNamesLike.convert(['aa', 1, 'bb'])
         self.assertTrue('string or a list' in str(err.exception))
+        self.assertEqual(None, VarNamesLike.convert(None))
 
     def test_format(self):
-        self.assertEqual(VariableNamesLike.format(['aa', 'bb', 'cc']),
+        self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
                          "['aa', 'bb', 'cc']")
+
+
+class VarNameTest(TestCase):
+    """
+    Test the VarName type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(VarName.accepts('aa'))
+        self.assertFalse(VarName.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(VarName.accepts(1.0))
+
+    def test_convert(self):
+        expected = 'aa'
+        actual = VarName.convert('aa')
+        self.assertEqual(actual, expected)
+
+        with self.assertRaises(ValueError) as err:
+            a = VarName.convert(['aa', 'bb', 'cc'])
+        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, VarName.convert(None))
+
+    def test_format(self):
+        self.assertEqual('aa', VarName.format('aa'))
 
 
 class PointLikeTest(TestCase):
@@ -137,6 +167,7 @@ class PointLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, PointLike.convert(None))
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
@@ -186,6 +217,7 @@ class PolygonLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
         self.assertEqual('cannot convert geometry to a valid Polygon: aaa', str(err.exception))
+        self.assertEqual(None, PolygonLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -238,6 +270,7 @@ class GeometryLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             GeometryLike.convert('aaa')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, GeometryLike.convert(None))
 
     def test_format(self):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
@@ -270,8 +303,50 @@ class TimeRangeLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             TimeRangeLike.convert('2002-01-01, 2001-01-01')
         self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(None, TimeRangeLike.convert(None))
 
     def test_format(self):
         expected = '2001-01-01T00:00:00 2002-01-01T00:00:00'
         actual = TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1)))
         self.assertTrue(expected, actual)
+
+
+class TypeNamesTest(TestCase):
+    """
+    This test fails, if any of the expected type names change.
+    We use these type names in cate-desktop to map from type to validators and GUI editors.
+    
+    NOTE: If one of these tests fails, we have to change the cate-desktop code w.r.t. the type name change.
+    """
+
+    def test_python_primitive_type_names(self):
+        """
+        Python primitive types
+        """
+        self.assertEqual(object_to_qualified_name(bool), 'bool')
+        self.assertEqual(object_to_qualified_name(int), 'int')
+        self.assertEqual(object_to_qualified_name(float), 'float')
+        self.assertEqual(object_to_qualified_name(str), 'str')
+
+    def test_cate_cdm_type_names(self):
+        """
+        Cate Common Data Model (CDM) types
+        """
+        self.assertEqual(object_to_qualified_name(np.ndarray), 'numpy.ndarray')
+        self.assertEqual(object_to_qualified_name(xr.Dataset), 'xarray.core.dataset.Dataset')
+        self.assertEqual(object_to_qualified_name(xr.DataArray), 'xarray.core.dataarray.DataArray')
+        self.assertEqual(object_to_qualified_name(gpd.GeoDataFrame), 'geopandas.geodataframe.GeoDataFrame')
+        self.assertEqual(object_to_qualified_name(gpd.GeoSeries), 'geopandas.geoseries.GeoSeries')
+        self.assertEqual(object_to_qualified_name(pd.DataFrame), 'pandas.core.frame.DataFrame')
+        self.assertEqual(object_to_qualified_name(pd.Series), 'pandas.core.series.Series')
+
+    def test_cate_op_api_type_names(self):
+        """
+        Additional Cate types used by operations API.
+        """
+        self.assertEqual(object_to_qualified_name(VarName), 'cate.core.types.VarName')
+        self.assertEqual(object_to_qualified_name(VarNamesLike), 'cate.core.types.VarNamesLike')
+        self.assertEqual(object_to_qualified_name(PointLike), 'cate.core.types.PointLike')
+        self.assertEqual(object_to_qualified_name(PolygonLike), 'cate.core.types.PolygonLike')
+        self.assertEqual(object_to_qualified_name(GeometryLike), 'cate.core.types.GeometryLike')
+        self.assertEqual(object_to_qualified_name(TimeRangeLike), 'cate.core.types.TimeRangeLike')

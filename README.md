@@ -17,14 +17,52 @@ The Python core of the ESA CCI Toolbox (Cate).
 * `test/` - test package and test code
 * `doc/` - documentation in Sphinx/RST format
 
-## Installation
+## Installation from Sources
 
-Cate relies on latest Python language features and therefore requires Python 3.5+.
+We recommend installing Cate into an isolated Python 3 environment, because this
+approach avoids clashes with existing versions of Cate's 3rd-party Python package requirements. 
+For example, using ([Miniconda](http://conda.pydata.org/miniconda.html) 
+or [Anaconda](https://www.continuum.io/downloads)) which will usually also avoid platform-specific 
+issues caused by module native binaries.
 
-Check out latest Cate code 
+The first step is to clone latest Cate code and step into the check out directory: 
 
     $ git clone https://github.com/CCI-Tools/cate-core.git
     $ cd cate-core
+
+
+### Using Conda
+
+[Conda](https://conda.io/docs/intro.html) is the package manager used by the Miniconda or 
+Anaconda Python distributions.
+
+Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
+GB on Windows. To create a new Conda environment `cate` in your Anaconda/Miniconda installation directory, type:
+
+    $ conda env create --file environment.yml
+
+If you want the environment to be installed in another location, e.g. due to disk space limitations, type:
+
+    $ conda env create --file environment.yml --prefix some/other/location/for/cate
+
+Next step is to activate the new environment. On Linux/Darwin type:
+
+    $ source activate cate
+
+In case you used another location use it instead of the name `cate`.
+Windows users can omit the `source` command and just type
+
+    > activate cate
+
+You can now safely install Cate sources into the new `cate` environment.
+    
+    (cate) $ python setup.py install
+    
+### Using Standard Python 
+
+If you run it with the [standard CPython](https://www.python.org/downloads/) installation,
+make sure you use a 64-bit version. Cate relies on new Python language features and therefore 
+requires Python 3.5+.
 
 Cate can be run from sources directly, once the following module requirements are resolved:
 
@@ -41,40 +79,7 @@ Cate can be run from sources directly, once the following module requirements ar
 * `tornado`
 * `xarray`
 
-The most up-to-date list of module requirements is found in the project's `setup.py` file. Do not install now, please read further first.
-
-As stated above, we recommend installing Cate into an isolated Python 3 environment, because this approach avoids clashes 
-with existing versions of Cate's 3rd-party module requirements. We recommend using Conda 
-([Miniconda](http://conda.pydata.org/miniconda.html) or [Anaconda](https://www.continuum.io/downloads)) 
-which will usually also avoid platform-specific issues caused by module native binaries.
-
-Note, after installing Miniconda or Anaconda on Unix and Mac OS you'll need to close and re-open your terminal window for the changes to take effect.
-
-### Installation into a new Conda environment 
-
-Using Conda, you can create a isolated environment for Cate and add all required packages like so
-
-    $ conda env create --file environment.yml
-
-Some packages are not available on Anaconda default channels and we have to find them on
-another channel (option `-c CHANNEL`). IN the `environment.yml` file we use the channel `conda-forge`.
-
-Then you activate the new environment `cate`:
-     
-    $ source activate cate
-    
-Windows users can omit the `source` command and just type 
-
-    $ activate cate
-
-You can now safely install Cate into the `cate` environment.
-    
-    (cate) $ python setup.py install
-    
-### Installation into an existing Python 3 environment 
-
-If you run it with the [standard CPython](https://www.python.org/downloads/) installation,
-make sure you use a 64-bit version.
+The most up-to-date list of module requirements is found in the project's `environment.yml` file.
 
 To install Cate into an existing Python 3.5+ environment just for the current user, use
 
