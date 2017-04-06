@@ -58,7 +58,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
 
-        reference_path = os.path.join(os.path.dirname(__file__), 'resources/datasources/local/files/')
+        reference_path = os.path.join(os.path.dirname(__file__), 'resources\\datasources\\local\\files\\')
         print('reference_path', reference_path)
         print('listdir', os.listdir(reference_path))
 
