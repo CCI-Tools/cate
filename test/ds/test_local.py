@@ -5,6 +5,7 @@ import tempfile
 import unittest
 import unittest.mock
 import datetime
+import shutil
 from cate.ds.local import LocalDataStore, LocalDataSource
 from collections import OrderedDict
 
@@ -84,6 +85,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
 class LocalFilePatternSourceTest(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
         self._dummy_store = LocalDataStore('dummy', 'dummy')
 
         self._local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
@@ -225,3 +227,27 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                          datetime.datetime(1978, 11, 15)))
         self.assertIsNotNone(xr)
         self.assertEquals(xr.coords.dims.get('time'), 1)
+
+    def test_make_local(self):
+
+        def get_temp_data_store_path():
+            return self.tmp_dir
+
+        with unittest.mock.patch('cate.ds.local.get_data_store_path', get_temp_data_store_path):
+            data_source = self._local_data_store.query('local_w_temporal')[0]
+
+            new_ds = data_source.make_local('from_local_to_local', None,
+                                            (datetime.datetime(1978, 11, 14, 0, 0),
+                                             datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertEqual(new_ds.name, 'local.from_local_to_local')
+            self.assertEqual(new_ds.temporal_coverage(),
+                             (datetime.datetime(1978, 11, 14, 0, 0),
+                              datetime.datetime(1978, 11, 15, 23, 59)))
+
+            new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
+                                                           (datetime.datetime(1978, 11, 14, 0, 0),
+                                                            datetime.datetime(1978, 11, 15, 23, 59)),
+                                                           None, ['sm'])
+            self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
+            data_set = new_ds_w_one_variable.open_dataset()
+            self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))

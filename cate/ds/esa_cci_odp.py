@@ -615,10 +615,10 @@ class EsaCciOdpDataSource(DataSource):
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
 
-        if not region and not var_names:
-            protocol = _ODP_PROTOCOL_HTTP
-        else:
+        if region or var_names:
             protocol = _ODP_PROTOCOL_OPENDAP
+        else:
+            protocol = _ODP_PROTOCOL_HTTP
 
         local_path = os.path.join(local_ds.data_store.data_store_path, local_id)
         if not os.path.exists(local_path):
@@ -635,6 +635,9 @@ class EsaCciOdpDataSource(DataSource):
                 file_name = os.path.basename(dataset_uri)
                 local_filepath = os.path.join(local_path, file_name)
 
+                time_coverage_start = selected_file_list[idx][1]
+                time_coverage_end = selected_file_list[idx][2]
+
                 remote_netcdf = None
                 local_netcdf = None
                 try:
@@ -644,9 +647,6 @@ class EsaCciOdpDataSource(DataSource):
                     local_netcdf.set_attributes(remote_netcdf.get_attrs())
 
                     remote_dataset = xr.Dataset.load_store(remote_netcdf)
-
-                    time_coverage_start = selected_file_list[idx][1]
-                    time_coverage_end = selected_file_list[idx][2]
 
                     geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
                     geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
@@ -751,7 +751,7 @@ class EsaCciOdpDataSource(DataSource):
         elif len(local_name) == 0:
             raise ValueError('local_name cannot be empty')
 
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')  # type: LocalDataStore
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
             add_to_data_store_registry()
             local_store = DATA_STORE_REGISTRY.get_data_store('local')

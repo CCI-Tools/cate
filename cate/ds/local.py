@@ -48,6 +48,7 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
 from glob import glob
+from math import ceil, floor
 from typing import Optional, Sequence, Union, Any, Tuple
 from xarray.backends.netCDF4_ import NetCDF4DataStore
 
@@ -146,19 +147,18 @@ class LocalDataSource(DataSource):
             return None
 
     def _make_local(self,
-                    local_name: str,
-                    local_id: str = None,
+                    local_ds: 'LocalDataSource',
                     time_range: TimeRangeLike.TYPE = None,
                     region: GeometryLike.TYPE = None,
                     var_names: VariableNamesLike.TYPE = None,
-                    monitor: Monitor = Monitor.NONE) -> str:
-        if not local_id:
-            local_id = local_name
+                    monitor: Monitor = Monitor.NONE):
+
+        local_name = local_ds.name
+        local_id = local_ds.name
+
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = GeometryLike.convert(region) if region else None
-        var_names = VariableNamesLike.convert(var_names) if var_names else None
-
-        local_path = os.path.join(get_data_store_path(), local_id)
+        var_names = VariableNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -167,59 +167,94 @@ class LocalDataSource(DataSource):
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
 
-        remote_paths = [glob(file[0] for file in self._files.items())]
-        if not remote_paths:
-            raise ValueError("Cannot make local copy of empty DataStore")
-        monitor.start("make local", total_work=len(remote_paths))
-        for remote_path in sorted(set(remote_paths)):
+        local_path = os.path.join(local_ds.data_store.data_store_path, local_id)
+        data_store_path = local_ds.data_store.data_store_path
+        if not os.path.exists(local_path):
+            os.makedirs(local_path)
+
+        monitor.start("make local", total_work=len(self._files.items()))
+        for remote_relative_filepath, coverage in self._files.items():
             child_monitor = monitor.child(work=1)
 
-            remote_netcdf = NetCDF4DataStore(remote_path)
-            start_date = parser.parse(remote_netcdf.attrs['start_date'])
-            stop_date = parser.parse(remote_netcdf.attrs['stop_date'])
-            if start_date >= time_range[0] and stop_date <= time_range[1]:
+            file_name = os.path.basename(remote_relative_filepath)
+            local_relative_filepath = os.path.join(local_id, file_name)
+            local_absolute_filepath = os.path.join(data_store_path, local_relative_filepath)
 
-                remote_dataset = xr.Dataset.load_store(remote_netcdf)
+            remote_absolute_filepath = os.path.join(self._data_store.data_store_path, remote_relative_filepath)
 
+            if isinstance(coverage, Tuple):
+
+                time_coverage_start = coverage[0]
+                time_coverage_end = coverage[1]
+
+                remote_netcdf = None
                 local_netcdf = None
+                if not time_range or time_coverage_start >= time_range[0] and time_coverage_end <= time_range[1]:
+                    if region or var_names:
+                        try:
+                            remote_netcdf = NetCDF4DataStore(remote_absolute_filepath)
 
-                file_name = os.path.basename(remote_path)
+                            local_netcdf = NetCDF4DataStore(local_absolute_filepath, mode='w', persist=True)
+                            local_netcdf.set_attributes(remote_netcdf.get_attrs())
 
-                if region or var_names:
-                    try:
-                        local_filepath = os.path.join(local_path, file_name)
+                            remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                        local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
-                        local_netcdf.set_attributes(remote_netcdf.get_attrs())
+                            geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
+                            geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
+                            geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
+                            geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
 
-                        if region:
-                            [lat_min, lon_min, lat_max, lon_max] = region.bounds
-                            remote_dataset = remote_dataset.sel(drop=False,
-                                                                lat=slice(lat_min, lat_max),
-                                                                lon=slice(lon_min, lon_max))
-                        if not var_names:
-                            var_names = [var_name for var_name in remote_netcdf.variables.keys()]
-                        var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
-                                          if coord_name not in var_names])
+                            if region:
+                                geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
+                                geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
 
-                        child_monitor.start(label=file_name, total_work=len(var_names))
-                        for sel_var_name in var_names:
-                            var_dataset = remote_dataset.drop(
-                                [var_name for var_name in var_names if var_name != sel_var_name])
-                            local_netcdf.store_dataset(var_dataset)
-                            child_monitor.progress(work=1, msg=sel_var_name)
-                    finally:
-                        if remote_netcdf:
-                            remote_netcdf.close()
-                        if local_netcdf:
-                            local_netcdf.close()
-                else:
-                    local_filepath = shutil.copy(src=remote_path, dst=local_path)
+                                [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
-            child_monitor.done()
+                                lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
+                                lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
+                                lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
+                                lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
 
+                                # TODO (kbernat): check why dataset.sel fails!
+                                remote_dataset = remote_dataset.isel(drop=False,
+                                                                     lat=slice(lat_min, lat_max),
+                                                                     lon=slice(lon_min, lon_max))
+
+                                geo_lat_min += lat_min * geo_lat_res
+                                geo_lat_max += lat_max * geo_lat_res
+                                geo_lon_min += lon_min * geo_lon_res
+                                geo_lon_max += lon_max * geo_lon_res
+
+                            if not var_names:
+                                var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+                            var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
+                                              if coord_name not in var_names])
+                            child_monitor.start(label=file_name, total_work=len(var_names))
+                            for sel_var_name in var_names:
+                                var_dataset = remote_dataset.drop(
+                                    [var_name for var_name in remote_dataset.variables.keys() if
+                                     var_name != sel_var_name])
+                                if compression_enabled:
+                                    var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                                local_netcdf.store_dataset(var_dataset)
+                                child_monitor.progress(work=1, msg=sel_var_name)
+                            if region:
+                                local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
+                                local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
+                                local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
+                                local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
+                        finally:
+                            if remote_netcdf:
+                                remote_netcdf.close()
+                            if local_netcdf:
+                                local_netcdf.close()
+                                local_ds.add_dataset(local_relative_filepath, (time_coverage_start, time_coverage_end))
+                        child_monitor.done()
+                    else:
+                        shutil.copy(remote_absolute_filepath, local_absolute_filepath)
+                        local_ds.add_dataset(local_relative_filepath, (time_coverage_start, time_coverage_end))
+                        child_monitor.done()
         monitor.done()
-
         return local_id
 
     def make_local(self,
@@ -228,17 +263,22 @@ class LocalDataSource(DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: GeometryLike.TYPE = None,
                    var_names: VariableNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> str:
+                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
         if not local_name:
             raise ValueError('local_name is required')
         elif len(local_name) == 0:
             raise ValueError('local_name cannot be empty')
-        local_path = os.path.join(get_data_store_path(), local_name)
-        try:
-            os.makedirs(local_path, exist_ok=False)
-        except FileExistsError:
-            raise ValueError("Local data source with such name already exists", local_name)
-        return self._make_local(local_name, local_id, time_range, region, var_names, monitor)
+
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            add_to_data_store_registry()
+            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            raise ValueError('Cannot initialize `local` DataStore')
+
+        local_ds = local_store.create_data_source(local_name, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        self._make_local(local_ds, time_range, region, var_names, monitor)
+        return local_ds
 
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
         if update or self._files.keys().isdisjoint([file]):
@@ -359,6 +399,9 @@ class LocalDataSource(DataSource):
         meta_data = json_dicts.get('meta_data', {})
 
         temporal_coverage = meta_data.get('temporal_coverage', None)
+        if temporal_coverage and isinstance(temporal_coverage, Sequence):
+            temporal_coverage = tuple(temporal_coverage)
+
         spatial_coverage = meta_data.get('spatial_coverage', None)
         variables = meta_data.get('variables', None)
 
@@ -378,8 +421,6 @@ class LocalDataSource(DataSource):
                                             if len(item) > 1 else (item[0], None) for item in files)
             else:
                 files = OrderedDict()
-
-            print (name, files, data_store.name, temporal_coverage, spatial_coverage, variables, reference_type, reference_name)
             return LocalDataSource(name, files, data_store, temporal_coverage, spatial_coverage, variables,
                                    reference_type, reference_name)
         return None
