@@ -66,11 +66,13 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
         def find_files_mock(_, time_range):
             reference_path = os.path.join(os.path.dirname(__file__), 'resources/datasources/local/files/')
-
-            def build_file_item(file_name: str, date_from: datetime, date_to: datetime, size: int):
-                return [file_name, date_from, date_to, size,
-                        {'OPENDAP': ''+os.path.join(reference_path, file_name),
-                         'HTTPServer': 'file://'+os.path.join(reference_path, file_name)}]
+            print(reference_path)
+            print(os.listdir(reference_path))
+            
+            def build_file_item(item_name: str, date_from: datetime, date_to: datetime, size: int):
+                return [item_name, date_from, date_to, size,
+                        {'OPENDAP': ''+os.path.join(reference_path, item_name),
+                         'HTTPServer': 'file://'+os.path.join(reference_path, item_name)}]
 
             reference_files = {
                 'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc': {
