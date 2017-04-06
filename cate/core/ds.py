@@ -443,25 +443,30 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
     :param name:  The name of a data source.
     :return: All data sources matching the given constrains.
     """
+    results = []
+    primary_data_store = None
+    data_store_list = []
     if data_stores is None:
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
     elif isinstance(data_stores, DataStore):
-        data_store_list = [data_stores]
+        primary_data_store = data_stores
     else:
         data_store_list = data_stores
-
-    if name and name.count('.') > 0:
-        primary_data_store_index = None
+    if not primary_data_store and name and name.count('.') > 0:
+        primary_data_store_index = -1
         primary_data_store_name, data_source_name = name.split('.', 1)
         for idx, data_store in enumerate(data_store_list):
             if data_store.name == primary_data_store_name:
                 primary_data_store_index = idx
-        if primary_data_store_index:
-            data_store_list.insert(0, data_store_list.pop(primary_data_store_index))
-    results = []
-    # noinspection PyTypeChecker
-    for data_store in data_store_list:
-        results.extend(data_store.query(name))
+        if primary_data_store_index >= 0:
+            primary_data_store = data_store_list.pop(primary_data_store_index)
+
+    if primary_data_store:
+        results.extend(primary_data_store.query(name))
+    if not results:
+        # noinspection PyTypeChecker
+        for data_store in data_store_list:
+            results.extend(data_store.query(name))
     return results
 
 
