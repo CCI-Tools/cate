@@ -11,7 +11,7 @@ import shutil
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
-from cate.ds.local import LocalDataStore
+from cate.ds.local import LocalDataStore, LocalDataSource
 
 
 @unittest.skip(reason='Because it writes a lot of files')
@@ -149,18 +149,16 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                           datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
             self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
             ds = new_ds_w_one_variable.open_dataset()
-            self.assertSetEqual(set(ds.variables), set(['sm', 'lat', 'lon', 'time']))
+            self.assertSetEqual(set(ds.variables), {'sm', 'lat', 'lon', 'time'})
 
             new_ds_w_region = self.data_source.make_local(
                 'from_local_to_local_region', None, (datetime.datetime(1978, 11, 14, 0, 0),
-                                                     datetime.datetime(1978, 11, 15, 23, 59)), "10,10,20,20", ['sm'])
+                                                     datetime.datetime(1978, 11, 15, 23, 59)),
+                "10,10,20,20", ['sm'])  # type: LocalDataSource
             self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
             self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
             data_set = new_ds_w_region.open_dataset()
-            self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))
-
-
-
+            self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
     def test_data_store(self):
         self.assertIs(self.data_source.data_store,
