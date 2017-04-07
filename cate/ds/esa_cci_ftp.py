@@ -58,7 +58,7 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 from cate.core.cdm import Schema
 from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
-from cate.core.types import GeometryLike, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util import to_datetime, Monitor
 
 Time = Union[str, datetime]
@@ -126,7 +126,7 @@ class FileSetDataSource(DataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         paths = self.resolve_paths(TimeRangeLike.convert(time_range) if time_range else (None, None))
@@ -140,7 +140,7 @@ class FileSetDataSource(DataSource):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         raise NotImplementedError('FileSetDataSource.make_local() '

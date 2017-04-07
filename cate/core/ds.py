@@ -93,7 +93,7 @@ import xarray as xr
 from cate.conf import get_config_path
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 
 
@@ -154,7 +154,7 @@ class DataSource(metaclass=ABCMeta):
     @abstractmethod
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         """
@@ -164,7 +164,7 @@ class DataSource(metaclass=ABCMeta):
         :param time_range: An optional time constraint comprising start and end date.
                 If given, it must be a :py:class:`TimeRangeLike`.
         :param region: An optional region constraint.
-                If given, it must be a :py:class:`GeometryLike`.
+                If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                 If given, it must be a :py:class:`VarNamesLike`.
         :param protocol: **Deprecated.** Protocol name, if None selected default protocol
@@ -177,7 +177,7 @@ class DataSource(metaclass=ABCMeta):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         """
@@ -198,7 +198,7 @@ class DataSource(metaclass=ABCMeta):
         :param time_range: An optional time constraint comprising start and end date.
                If given, it must be a :py:class:`TimeRangeLike`.
         :param region: An optional region constraint.
-               If given, it must be a :py:class:`GeometryLike`.
+               If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VarNamesLike`.
         :param monitor: a progress monitor.
@@ -472,7 +472,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
 
 def open_dataset(data_source: Union[DataSource, str],
                  time_range: TimeRangeLike.TYPE = None,
-                 region: GeometryLike.TYPE = None,
+                 region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
                  monitor: Monitor = Monitor.NONE) -> Any:
     """
@@ -482,7 +482,7 @@ def open_dataset(data_source: Union[DataSource, str],
     :param time_range: An optional time constraint comprising start and end date.
             If given, it must be a :py:class:`TimeRangeLike`.
     :param region: An optional region constraint.
-            If given, it must be a :py:class:`GeometryLike`.
+            If given, it must be a :py:class:`PolygonLike`.
     :param var_names: Optional names of variables to be included.
             If given, it must be a :py:class:`VarNamesLike`.
     :param monitor: a progress monitor, used only if *sync* is ``True``

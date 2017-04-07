@@ -6,6 +6,7 @@ import unittest.mock
 import datetime
 import shutil
 from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.types import PolygonLike, TimeRangeLike
 from cate.ds.local import LocalDataStore, LocalDataSource
 from collections import OrderedDict
 
@@ -249,15 +250,15 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                         (datetime.datetime(1978, 11, 14, 0, 0),
                                          datetime.datetime(1978, 11, 15, 23, 59)))
         self.assertEqual(new_ds.name, 'local.from_local_to_local')
-        self.assertEqual(new_ds.temporal_coverage(),
+        self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                          (datetime.datetime(1978, 11, 14, 0, 0),
-                          datetime.datetime(1978, 11, 15, 23, 59)))
+                          datetime.datetime(1978, 11, 15, 23, 59))))
 
         data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
                                                datetime.datetime(1978, 11, 16, 23, 59)))
-        self.assertEqual(new_ds.temporal_coverage(),
+        self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                          (datetime.datetime(1978, 11, 15, 0, 0),
-                          datetime.datetime(1978, 11, 16, 23, 59)))
+                          datetime.datetime(1978, 11, 16, 23, 59))))
 
         new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
                                                        (datetime.datetime(1978, 11, 14, 0, 0),
@@ -265,5 +266,14 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                        None, ['sm'])
         self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
         data_set = new_ds_w_one_variable.open_dataset()
+        self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))
+
+        new_ds_w_region = data_source.make_local('from_local_to_local_region', None,
+                                                 (datetime.datetime(1978, 11, 14, 0, 0),
+                                                  datetime.datetime(1978, 11, 15, 23, 59)),
+                                                 "10,10,20,20", ['sm'])
+        self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
+        self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
+        data_set = new_ds_w_region.open_dataset()
         self.assertSetEqual(set(data_set.variables), set(['sm', 'lat', 'lon', 'time']))
 

@@ -7,7 +7,7 @@ import unittest
 import xarray as xr
 
 import cate.core.ds as ds
-from cate.core.types import GeometryLike, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util import Monitor
 
 _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
@@ -44,7 +44,7 @@ class SimpleDataSource(ds.DataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         return None
@@ -53,7 +53,7 @@ class SimpleDataSource(ds.DataSource):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> ds.DataSource:
         return None
@@ -72,7 +72,7 @@ class InMemoryDataSource(SimpleDataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         return xr.Dataset({'a': self._data})

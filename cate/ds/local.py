@@ -56,7 +56,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset, query_data_sources
 from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
@@ -73,7 +73,7 @@ def add_to_data_store_registry():
 
 class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
-                 temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: GeometryLike.TYPE = None,
+                 temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
         self._name = name
         if isinstance(files, Sequence):
@@ -96,7 +96,7 @@ class LocalDataSource(DataSource):
                                                                            files_range[files_number-1]))
 
         self._temporal_coverage = initial_temporal_coverage
-        self._spatial_coverage = GeometryLike.convert(spatial_coverage) if spatial_coverage else None
+        self._spatial_coverage = PolygonLike.convert(spatial_coverage) if spatial_coverage else None
         self._variables = VarNamesLike.convert(variables) if variables else None
 
         self._reference_type = reference_type if reference_type else None
@@ -107,12 +107,12 @@ class LocalDataSource(DataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         if region:
-            region = GeometryLike.convert(region)
+            region = PolygonLike.convert(region)
         if var_names:
             var_names = VarNamesLike.convert(var_names)
         paths = []
@@ -149,7 +149,7 @@ class LocalDataSource(DataSource):
     def _make_local(self,
                     local_ds: 'LocalDataSource',
                     time_range: TimeRangeLike.TYPE = None,
-                    region: GeometryLike.TYPE = None,
+                    region: PolygonLike.TYPE = None,
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
@@ -157,7 +157,7 @@ class LocalDataSource(DataSource):
         local_id = local_ds.name
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = GeometryLike.convert(region) if region else None
+        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
@@ -205,8 +205,10 @@ class LocalDataSource(DataSource):
                             geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
 
                             if region:
-                                geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
-                                geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
+                                geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
+                                                                        .strip('degrees'))
+                                geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
+                                                                        .strip('degrees'))
 
                                 [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
@@ -220,10 +222,10 @@ class LocalDataSource(DataSource):
                                                                      lat=slice(lat_min, lat_max),
                                                                      lon=slice(lon_min, lon_max))
 
+                                geo_lat_max = lat_max * geo_lat_res + geo_lat_min
                                 geo_lat_min += lat_min * geo_lat_res
-                                geo_lat_max += lat_max * geo_lat_res
+                                geo_lon_max = lon_max * geo_lon_res + geo_lon_min
                                 geo_lon_min += lon_min * geo_lon_res
-                                geo_lon_max += lon_max * geo_lon_res
 
                             if not var_names:
                                 var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -261,7 +263,7 @@ class LocalDataSource(DataSource):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         if not local_name:
@@ -276,7 +278,7 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 
@@ -415,9 +417,9 @@ class LocalDataSource(DataSource):
         config = OrderedDict({
             'name': self._name,
             'meta_data': {
-                'temporal_coverage': self._temporal_coverage,
-                'spatial_coverage': self._spatial_coverage,
-                'variables': self._variables,
+                'temporal_coverage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
+                'spatial_coverage': PolygonLike.format(self._spatial_coverage) if self._spatial_coverage else None,
+                'variables': VarNamesLike.format(self._variables) if self._variables else None,
 
                 'reference_type': self._reference_type,
                 'reference_name': self._reference_name
@@ -475,7 +477,8 @@ class LocalDataStore(DataStore):
             data_source.add_dataset(file)
         return data_source
 
-    def create_data_source(self, name: str, reference_type: str = None, reference_name: str = None):
+    def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
+                           reference_type: str = None, reference_name: str = None):
         self._init_data_sources()
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
@@ -483,8 +486,8 @@ class LocalDataStore(DataStore):
             if ds.name == name:
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
-        data_source = LocalDataSource(name, files=[], data_store=self, reference_type=reference_type,
-                                      reference_name=reference_name)
+        data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
+                                      reference_type=reference_type, reference_name=reference_name)
         self._save_data_source(data_source)
         self._data_sources.append(data_source)
         return data_source
@@ -552,4 +555,6 @@ class LocalDataStore(DataStore):
     def _json_default_serializer(obj):
         if isinstance(obj, datetime):
             return obj.replace(microsecond=0).isoformat()
+        # if isinstance(obj, Polygon):
+        #    return str(obj.bounds).replace(' ', '').replace('(', '\"').replace(')', '\"'))
         raise TypeError('Not sure how to serialize %s' % (obj,))

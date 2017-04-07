@@ -41,7 +41,6 @@ and may be executed using
 Components
 ==========
 """
-import dateutil.parser
 import json
 import os
 import re
@@ -58,8 +57,8 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
                          open_xarray_dataset, get_data_stores_path, query_data_sources
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
-from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
 
 
@@ -544,12 +543,12 @@ class EsaCciOdpDataSource(DataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         if region:
-            region = GeometryLike.convert(region)
+            region = PolygonLike.convert(region)
         if var_names:
             var_names = VarNamesLike.convert(var_names)
         if protocol is None:
@@ -599,7 +598,7 @@ class EsaCciOdpDataSource(DataSource):
     def _make_local(self,
                     local_ds: LocalDataSource,
                     time_range: TimeRangeLike.TYPE = None,
-                    region: GeometryLike.TYPE = None,
+                    region: PolygonLike.TYPE = None,
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
@@ -607,7 +606,7 @@ class EsaCciOdpDataSource(DataSource):
         local_id = local_ds.name
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = GeometryLike.convert(region) if region else None
+        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
@@ -656,8 +655,10 @@ class EsaCciOdpDataSource(DataSource):
                     geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
 
                     if region:
-                        geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution'))
-                        geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution'))
+                        geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
+                                            .strip('degrees'))
+                        geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
+                                            .strip('degrees'))
 
                         [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
@@ -671,10 +672,10 @@ class EsaCciOdpDataSource(DataSource):
                                                              lat=slice(lat_min, lat_max),
                                                              lon=slice(lon_min, lon_max))
 
+                        geo_lat_max = lat_max * geo_lat_res + geo_lat_min
                         geo_lat_min += lat_min * geo_lat_res
-                        geo_lat_max += lat_max * geo_lat_res
+                        geo_lon_max = lon_max * geo_lon_res + geo_lon_min
                         geo_lon_min += lon_min * geo_lon_res
-                        geo_lon_max += lon_max * geo_lon_res
 
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -745,7 +746,7 @@ class EsaCciOdpDataSource(DataSource):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         if not local_name:
@@ -760,7 +761,7 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 
