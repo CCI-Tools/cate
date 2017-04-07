@@ -473,13 +473,15 @@ class EsaCciOdpDataSource(DataSource):
 
     def update_local(self,
                      local_id: str,
-                     time_range: Tuple[datetime, datetime],
+                     time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
         data_sources = query_data_sources(None, local_id)
         if not data_sources or data_sources[0].name != local_id:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
         data_source = data_sources[0]
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
 
         to_remove = []
         to_add = []
