@@ -208,14 +208,16 @@ class DataSource(metaclass=ABCMeta):
 
     def update_local(self,
                      local_id: str,
-                     time_range: Tuple[datetime, datetime]) -> bool:
+                     time_range: TimeRangeLike.TYPE,
+                     monitor: Monitor = Monitor.NONE) -> bool:
         """
         Update locally stored data.
         The default implementation does nothing.
 
         :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
+               a :py:class:`TimeRangeLike`.
         :param local_id: A unique ID of local data source.
+        :param monitor: a progress monitor.
         :return: If any update has been performed returns True, otherwise False
         """
         return False
@@ -242,7 +244,7 @@ class DataSource(metaclass=ABCMeta):
         return 0, 0
 
     def delete_local(self,
-                     time_range: Tuple[datetime, datetime]) -> int:
+                     time_range: TimeRangeLike.TYPE) -> int:
         """
         **Deprecated. Use :py:meth:`update_local` instead.**
         Delete locally stored data.
