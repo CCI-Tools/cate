@@ -17,11 +17,11 @@ dependencies:
   #- dask >=0.14
   #- fiona >=1.7 (excluded for rtd, mocked instead)
   #- geopandas>=0.2 (excluded for rtd, mocked instead)
-  - jdcal >=1.3
+  #- jdcal >=1.3 (excluded for rtd, mocked instead)
   #- matplotlib=1.5* (excluded for rtd, mocked instead)
   #- netcdf4 >=1.2 (excluded for rtd, mocked instead)
   #- numba >=0.26 (excluded for rtd, mocked instead)
-  - numpy >=1.7
+  #- numpy >=1.7 (excluded for rtd, mocked instead)
   #- pandas >=0.18 (excluded for rtd, mocked instead)
   # readthedocs has a hard dependency on pillow 3.0.0
   # https://github.com/rtfd/readthedocs.org/issues/2594
@@ -30,7 +30,7 @@ dependencies:
   #- pyqt=4* (excluded for rtd, mocked instead)
   #- scipy >=0.17 (excluded for rtd, mocked instead)
   #- shapely >=1.5 (excluded for rtd, mocked instead)
-  - tornado >=4.4
+  - tornado
   #- xarray >=0.9.1 (excluded for rtd, mocked instead)
   #
   # for these packages specific version are needed, lower minor version have errors
@@ -43,7 +43,7 @@ dependencies:
   # for mocking all libraries we DON'T want/cant require
   - mock
   # sphinx
-  - sphinx>=1.4
+  - sphinx
   - sphinx_rtd_theme
   - sphinx-argparse
   - pip:
