@@ -72,7 +72,7 @@ def add_to_data_store_registry():
 
 
 class LocalDataSource(DataSource):
-    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: DataStore,
+    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: 'LocalDataStore',
                  temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
         self._name = name
@@ -290,7 +290,7 @@ class LocalDataSource(DataSource):
         data_sources = query_data_sources(None, local_id)
         if not data_sources or data_sources[0].name != local_id:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-        data_source = data_sources[0]
+        data_source = data_sources[0]  # type: LocalDataSource
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
 
@@ -313,9 +313,9 @@ class LocalDataSource(DataSource):
             for time_range_to_remove in to_remove:
                 data_source.reduce_temporal_coverage(time_range_to_remove)
         if to_add:
-
             for time_range_to_add in to_add:
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+        return bool(to_remove or to_add)
 
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
         if update or self._files.keys().isdisjoint([file]):
@@ -429,7 +429,7 @@ class LocalDataSource(DataSource):
         return config
 
     @classmethod
-    def from_json_dict(cls, json_dicts: dict, data_store: DataStore) -> Optional['LocalDataSource']:
+    def from_json_dict(cls, json_dicts: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
 
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
