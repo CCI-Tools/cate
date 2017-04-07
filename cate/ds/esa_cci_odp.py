@@ -460,7 +460,7 @@ class EsaCciOdpDataSource(DataSource):
         self._init_file_list(monitor)
 
     def sync(self,
-             time_range: Tuple[datetime, datetime]=None,
+             time_range: TimeRangeLike.TYPE=None,
              protocol: str=None,
              monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
 
@@ -505,7 +505,7 @@ class EsaCciOdpDataSource(DataSource):
             for time_range_to_add in to_add:
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
 
-    def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
+    def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
 
         if time_range[0] >= self._temporal_coverage[0] \
                 and time_range[1] <= self._temporal_coverage[1]:
