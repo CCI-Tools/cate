@@ -55,6 +55,7 @@ if on_rtd:
     # These are mocked, see doc/source/conf.py
     requirements = itertools.filterfalse(lambda req: any(req.startswith(mp) for mp in mocked_packages),
                                          requirements)
+    print("RDT requirements", str(requirements))
 
 packages = find_packages(exclude=["test", "test.*"])
 
