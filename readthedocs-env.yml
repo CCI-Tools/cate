@@ -41,10 +41,10 @@ dependencies:
   # readthedocs specific
   #
   # for mocking all libraries we DON'T want/cant require
-  - mock
+  #- mock
   # sphinx
-  - sphinx
-  - sphinx_rtd_theme
+  #- sphinx
+  #- sphinx_rtd_theme
   - sphinx-argparse
   - pip:
     - sphinx_autodoc_annotation
