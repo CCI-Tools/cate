@@ -31,6 +31,9 @@ Components
 
 import xarray as xr
 
+from jdcal import jd2gcal, MJD_0
+from datetime import datetime
+
 from cate.core.op import op
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 
@@ -59,7 +62,7 @@ def harmonize(ds: xr.Dataset) -> xr.Dataset:
     # Handle Julian Day Time
     try:
         if ds.time.long_name.lower().strip() == 'time in julian days':
-            return _mjd2datetime(ds)
+            return _jd2datetime(ds)
     except AttributeError:
         pass
 
@@ -73,4 +76,13 @@ def _jd2datetime(ds: xr.Dataset) -> xr.Dataset:
 
     :param ds: Dataset on which to run conversion
     """
-    pass
+    ds = ds.copy()
+    # Decode JD time
+    tuples = [jd2gcal(x-MJD_0, MJD_0) for x in ds.time.values]
+    # Replace JD time with datetime
+    ds.time.values = [datetime(x[0], x[1], x[2]) for x in tuples]
+    # Adjust attributes
+    ds.time.attrs['long_name'] = 'time'
+    ds.time.attrs['calendar'] = 'standard'
+
+    return ds
