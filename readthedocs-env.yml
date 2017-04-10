@@ -45,6 +45,6 @@ dependencies:
   # sphinx
   #- sphinx
   #- sphinx_rtd_theme
-  - sphinx-argparse
+  #- sphinx-argparse
   - pip:
     - sphinx_autodoc_annotation

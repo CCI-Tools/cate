@@ -53,7 +53,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx_autodoc_annotation',
 
-    'sphinxarg.ext',
+    #'sphinxarg.ext',
 
     # 'sphinxcontrib.plantuml',
 ]
