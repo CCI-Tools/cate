@@ -475,10 +475,11 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = query_data_sources(None, local_id)
-        if not data_sources or data_sources[0].name != local_id:
+        data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
+        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource)
+                            and ds.name == local_id), None)  # type: LocalDataSource
+        if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-        data_source = data_sources[0]
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
 
