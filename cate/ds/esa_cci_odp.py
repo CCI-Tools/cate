@@ -475,10 +475,11 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = query_data_sources(None, local_id)
-        if not data_sources or data_sources[0].name != local_id:
+        data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
+        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource)
+                            and ds.name == local_id), None)  # type: LocalDataSource
+        if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-        data_source = data_sources[0]
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
 
@@ -547,15 +548,8 @@ class EsaCciOdpDataSource(DataSource):
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        if region:
-            region = PolygonLike.convert(region)
-        if var_names:
-            var_names = VarNamesLike.convert(var_names)
-        if protocol is None:
-            protocol = _ODP_PROTOCOL_HTTP
-        if protocol not in self.protocols:
-            raise ValueError('Protocol \'{}\' is not supported.'
-                             .format(protocol))
+        region = PolygonLike.convert(region) if region else None
+        var_names = VarNamesLike.convert(var_names) if var_names else None
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
@@ -564,15 +558,7 @@ class EsaCciOdpDataSource(DataSource):
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
             raise IOError(msg)
 
-        files = []
-        if protocol == _ODP_PROTOCOL_OPENDAP:
-            files = [file_rec[4][protocol].replace('.html', '') for file_rec in selected_file_list]
-        elif protocol == _ODP_PROTOCOL_HTTP:
-            dataset_dir = self.local_dataset_dir()
-            files = [os.path.join(dataset_dir, file_rec[0]) for file_rec in selected_file_list]
-            for file in files:
-                if not os.path.exists(file):
-                    raise IOError('Missing local data files, consider synchronizing the dataset first.')
+        files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
             ds = open_xarray_dataset(files)
             if region:
