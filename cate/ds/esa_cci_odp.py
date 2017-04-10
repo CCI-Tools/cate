@@ -21,7 +21,7 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespacio VEGA UK Inc.)"
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -43,22 +43,30 @@ Components
 """
 import json
 import os
-import os.path
 import re
 import urllib.parse
 import urllib.request
+import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from math import ceil, floor
 from typing import Sequence, Tuple, Optional, Any
+from xarray.backends.netCDF4_ import NetCDF4DataStore
 
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
-from cate.core.ds import get_data_stores_path
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.conf import get_config_value
+from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
+                         open_xarray_dataset, get_data_stores_path, query_data_sources
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
+
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+_REFERENCE_DATA_SOURCE_TYPE = "OPEN_DATA_PORTAL"
 
 _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(12 * '\\d'), '%Y%m%d%H%M'),
@@ -82,6 +90,11 @@ _ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
 
 
 def get_data_store_path():
+    return os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
+                          os.path.join(get_data_stores_path(), 'local'))
+
+
+def get_metadata_store_path():
     return os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
                           os.path.join(get_data_stores_path(), 'esa_cci_odp'))
 
@@ -219,7 +232,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
         filename = doc.get('title', None)
         file_size = doc.get('size', -1)
         if not filename:
-            filename = os.path.basename(urllib.parse.urlparse(url)[2])
+            filename = os.path.basename(urllib.parse.urlparse(urls[_ODP_PROTOCOL_HTTP])[2])
         if filename in file_list:
             raise ValueError('filename {} already seen in dataset {}'
                              .format(filename, dataset_id))
@@ -261,6 +274,10 @@ class EsaCciOdpDataStore(DataStore):
     @property
     def index_cache_expiration_days(self):
         return self._index_cache_expiration_days
+
+    @property
+    def data_store_path(self) -> str:
+        return get_metadata_store_path()
 
     def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         with monitor.starting('Updating indices', 100):
@@ -313,7 +330,7 @@ class EsaCciOdpDataStore(DataStore):
                                                              latest='true',
                                                              project='esacci')],
                                                     cache_used=self._index_cache_used,
-                                                    cache_dir=get_data_store_path(),
+                                                    cache_dir=get_metadata_store_path(),
                                                     cache_json_filename='dataset-list.json',
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days)
@@ -443,83 +460,65 @@ class EsaCciOdpDataSource(DataSource):
         self._init_file_list(monitor)
 
     def sync(self,
-             time_range: Tuple[datetime, datetime]=None,
+             time_range: TimeRangeLike.TYPE=None,
              protocol: str=None,
              monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            return 0, 0
-
-        if protocol is None:
-            protocol = _ODP_PROTOCOL_HTTP
 
         if protocol == _ODP_PROTOCOL_HTTP:
-            dataset_dir = self.local_dataset_dir()
-
-            # Find outdated files
-            outdated_file_list = []
-            for file_rec in selected_file_list:
-                filename, _, _, file_size, url = file_rec
-                dataset_file = os.path.join(dataset_dir, filename)
-                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-                # ... outdated or incomplete or corrupted.
-                # JSON also includes "checksum" and "checksum_type" fields.
-                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                    outdated_file_list.append(file_rec)
-
-            if not outdated_file_list:
-                # No sync needed
-                return 0, len(selected_file_list)
-
-            with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
-                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                dl_stat = _DownloadStatistics(bytes_to_download)
-
-                file_number = 1
-                dataset_dir = self.local_dataset_dir()
-                for filename, _, _, file_size, url in outdated_file_list:
-                    if monitor.is_cancelled():
-                        raise InterruptedError
-                    dataset_file = os.path.join(dataset_dir, filename)
-                    sub_monitor = monitor.child(work=1.0)
-
-                    # noinspection PyUnusedLocal
-                    def reporthook(block_number, read_size, total_file_size):
-                        dl_stat.handle_chunk(read_size)
-                        if monitor.is_cancelled():
-                            raise InterruptedError
-                        sub_monitor.progress(work=read_size, msg=str(dl_stat))
-
-                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                    with sub_monitor.starting(sub_monitor_msg, file_size):
-                        urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
-                    file_number += 1
-
-            return len(outdated_file_list), len(selected_file_list)
+            self.make_local(self._master_id(), None, time_range, None, None, monitor)
         else:
-            return 0, 0
+            raise ValueError('Unsupported protocol', protocol)
+        return 0, 0
 
-    def delete_local(self, time_range: Tuple[datetime, datetime]) -> int:
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            return 0
+    def update_local(self,
+                     local_id: str,
+                     time_range: TimeRangeLike.TYPE,
+                     monitor: Monitor = Monitor.NONE) -> bool:
 
-        dataset_dir = self.local_dataset_dir()
-        removed_count = 0
+        data_sources = query_data_sources(None, local_id)
+        if not data_sources or data_sources[0].name != local_id:
+            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
+        data_source = data_sources[0]
 
-        for filename, _, _, _, _ in selected_file_list:
-            dataset_file = os.path.join(dataset_dir, filename)
-            try:
-                os.remove(dataset_file)
-                removed_count += 1
-            except:
-                # File busy on Windows, move on
-                pass
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
 
-        return removed_count
+        to_remove = []
+        to_add = []
+        if time_range and time_range[1] > time_range[0]:
+            if time_range[0] != data_source.temporal_coverage()[0]:
+                if time_range[0] > data_source.temporal_coverage()[0]:
+                    to_remove.append((data_source.temporal_coverage()[0], time_range[0]))
+                else:
+                    to_add.append((time_range[0], data_source.temporal_coverage()[0]))
+
+            if time_range[1] != data_source.temporal_coverage()[1]:
+                if time_range[1] < data_source.temporal_coverage()[1]:
+                    to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
+                else:
+                    to_add.append((data_source.temporal_coverage()[1],
+                                   time_range[1]))
+        if to_remove:
+            for time_range_to_remove in to_remove:
+                data_source.reduce_temporal_coverage(time_range_to_remove)
+        if to_add:
+
+            for time_range_to_add in to_add:
+                self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+
+    def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
+
+        if time_range[0] >= self._temporal_coverage[0] \
+                and time_range[1] <= self._temporal_coverage[1]:
+            if time_range[0] == self._temporal_coverage[0] \
+                    or time_range[1] == self._temporal_coverage[1]:
+                return self.update_local(self._master_id, time_range)
+        return 0
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
+
+    def local_metadata_dataset_dir(self):
+        return os.path.join(get_metadata_store_path(), self._master_id)
 
     def _find_files(self, time_range):
         requested_start_date, requested_end_date = time_range if time_range else (None, None)
@@ -544,18 +543,14 @@ class EsaCciOdpDataSource(DataSource):
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        # TODO (kbernat): support region constraint here
         if region:
-            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
-                                      'does not yet support the "region" constraint')
-        # TODO (kbernat): support var_names constraint here
+            region = PolygonLike.convert(region)
         if var_names:
-            raise NotImplementedError('EsaCciOdpDataSource.open_dataset() '
-                                      'does not yet support the "var_names" constraint')
+            var_names = VarNamesLike.convert(var_names)
         if protocol is None:
             protocol = _ODP_PROTOCOL_HTTP
         if protocol not in self.protocols:
@@ -578,22 +573,197 @@ class EsaCciOdpDataSource(DataSource):
             for file in files:
                 if not os.path.exists(file):
                     raise IOError('Missing local data files, consider synchronizing the dataset first.')
-
         try:
-            return open_xarray_dataset(files)
+            ds = open_xarray_dataset(files)
+            if region:
+                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
+            if var_names:
+                ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
+            return ds
+
         except OSError as e:
             raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
+
+    @staticmethod
+    def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
+        """
+        Returns urls list extracted from reference esgf specific files description json list
+        :param files_description_list:
+        :param protocol:
+        :return:
+        """
+        return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
+
+    def _make_local(self,
+                    local_ds: LocalDataSource,
+                    time_range: TimeRangeLike.TYPE = None,
+                    region: PolygonLike.TYPE = None,
+                    var_names: VarNamesLike.TYPE = None,
+                    monitor: Monitor = Monitor.NONE):
+
+        local_name = local_ds.name
+        local_id = local_ds.name
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        region = PolygonLike.convert(region) if region else None
+        var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
+
+        compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
+        compression_enabled = True if compression_level > 0 else False
+
+        encoding_update = dict()
+        if compression_enabled:
+            encoding_update.update({'zlib': True, 'complevel': compression_level})
+
+        if region or var_names:
+            protocol = _ODP_PROTOCOL_OPENDAP
+        else:
+            protocol = _ODP_PROTOCOL_HTTP
+
+        local_path = os.path.join(local_ds.data_store.data_store_path, local_id)
+        if not os.path.exists(local_path):
+            os.makedirs(local_path)
+
+        selected_file_list = self._find_files(time_range)
+
+        if protocol == _ODP_PROTOCOL_OPENDAP:
+
+            files = self._get_urls_list(selected_file_list, protocol)
+            for idx, dataset_uri in enumerate(files):
+                child_monitor = monitor.child(work=1)
+
+                file_name = os.path.basename(dataset_uri)
+                local_filepath = os.path.join(local_path, file_name)
+
+                time_coverage_start = selected_file_list[idx][1]
+                time_coverage_end = selected_file_list[idx][2]
+
+                remote_netcdf = None
+                local_netcdf = None
+                try:
+                    remote_netcdf = NetCDF4DataStore(dataset_uri)
+
+                    local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
+                    local_netcdf.set_attributes(remote_netcdf.get_attrs())
+
+                    remote_dataset = xr.Dataset.load_store(remote_netcdf)
+
+                    geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
+                    geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
+                    geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
+                    geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
+
+                    if region:
+                        geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
+                                            .strip('degrees'))
+                        geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
+                                            .strip('degrees'))
+
+                        [lat_min, lon_min, lat_max, lon_max] = region.bounds
+
+                        lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
+                        lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
+                        lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
+                        lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+
+                        # TODO (kbernat): check why dataset.sel fails!
+                        remote_dataset = remote_dataset.isel(drop=False,
+                                                             lat=slice(lat_min, lat_max),
+                                                             lon=slice(lon_min, lon_max))
+
+                        geo_lat_max = lat_max * geo_lat_res + geo_lat_min
+                        geo_lat_min += lat_min * geo_lat_res
+                        geo_lon_max = lon_max * geo_lon_res + geo_lon_min
+                        geo_lon_min += lon_min * geo_lon_res
+
+                    if not var_names:
+                        var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+                    var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
+                                      if coord_name not in var_names])
+                    child_monitor.start(label=file_name, total_work=len(var_names))
+                    for sel_var_name in var_names:
+                        var_dataset = remote_dataset.drop(
+                            [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
+                        if compression_enabled:
+                            var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                        local_netcdf.store_dataset(var_dataset)
+                        child_monitor.progress(work=1, msg=sel_var_name)
+                    if region:
+                        local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
+                        local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
+                        local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
+                        local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
+
+                finally:
+                    if remote_netcdf:
+                        remote_netcdf.close()
+                    if local_netcdf:
+                        local_netcdf.close()
+                        local_ds.add_dataset(os.path.join(local_id, file_name), (time_coverage_start, time_coverage_end))
+
+                child_monitor.done()
+        else:
+            outdated_file_list = []
+            for file_rec in selected_file_list:
+                filename, _, _, file_size, url = file_rec
+                dataset_file = os.path.join(local_path, filename)
+                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+                # ... outdated or incomplete or corrupted.
+                # JSON also includes "checksum" and "checksum_type" fields.
+                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                    outdated_file_list.append(file_rec)
+
+            if outdated_file_list:
+                with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                    bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                    dl_stat = _DownloadStatistics(bytes_to_download)
+
+                    file_number = 1
+
+                    for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
+                        if monitor.is_cancelled():
+                            raise InterruptedError
+                        dataset_file = os.path.join(local_path, filename)
+                        sub_monitor = monitor.child(work=1.0)
+
+                        # noinspection PyUnusedLocal
+                        def reporthook(block_number, read_size, total_file_size):
+                            dl_stat.handle_chunk(read_size)
+                            if monitor.is_cancelled():
+                                raise InterruptedError
+                            sub_monitor.progress(work=read_size, msg=str(dl_stat))
+
+                        sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                        with sub_monitor.starting(sub_monitor_msg, file_size):
+                            urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                        file_number += 1
+                        local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
+        local_ds.save()
+        monitor.done()
 
     def make_local(self,
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
-        # TODO (kbernat): implement me! see sync()
-        raise NotImplementedError('EsaCciOdpDataSource.make_local() '
-                                  'is not yet implemented')
+        if not local_name:
+            raise ValueError('local_name is required')
+        elif len(local_name) == 0:
+            raise ValueError('local_name cannot be empty')
+
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            add_to_data_store_registry()
+            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            raise ValueError('Cannot initialize `local` DataStore')
+
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        self._make_local(local_ds, time_range, region, var_names, monitor)
+        return local_ds
 
     def _init_file_list(self, monitor: Monitor=Monitor.NONE):
         if self._file_list:
@@ -603,7 +773,7 @@ class EsaCciOdpDataSource(DataSource):
                                         fetch_json_args=[self._master_id, self._dataset_id],
                                         fetch_json_kwargs=dict(monitor=monitor),
                                         cache_used=self._data_store.index_cache_used,
-                                        cache_dir=self.local_dataset_dir(),
+                                        cache_dir=self.local_metadata_dataset_dir(),
                                         cache_json_filename='file-list.json',
                                         cache_timestamp_filename='file-list-timestamp.txt',
                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
