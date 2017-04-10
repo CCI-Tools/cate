@@ -32,6 +32,7 @@ from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import  VarNamesLike
 from cate.util.monitor import Monitor
+from cate.ops.harmonize import harmonize
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
@@ -47,7 +48,8 @@ def open_dataset(ds_name: str,
                  end_date: str = None,
                  sync: bool = False,
                  protocol: str = None,
-                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+                 monitor: Monitor = Monitor.NONE,
+                 harmonize: bool = True) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 
@@ -60,8 +62,12 @@ def open_dataset(ds_name: str,
     :return: An new dataset instance.
     """
     import cate.core.ds
-    return cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
-                                     protocol=protocol, sync=sync, monitor=monitor)
+    ds = cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
+                                   protocol=protocol, sync=sync, monitor=monitor)
+    if harmonize:
+        return harmonize(ds)
+
+    return ds
 
 
 # noinspection PyShadowingBuiltins

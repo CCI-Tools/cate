@@ -38,8 +38,8 @@ from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 @op(tags=['harmonize'])
 def harmonize(ds: xr.Dataset) -> xr.Dataset:
     """
-    Harmonize the given dataset. E.g., rename latitude and longitude names to
-    lat and lon, if it is not already the case.
+    Harmonize the given dataset. Rename latitude and longitude names to
+    lat and lon, if it is not already the case. Decode time if neccessary
 
     :param ds: The dataset to harmonize
     :return: The harmonized dataset
@@ -54,4 +54,23 @@ def harmonize(ds: xr.Dataset) -> xr.Dataset:
     if lon_name:
         name_dict[lon_name] = 'lon'
 
-    return ds.rename(name_dict)
+    ds = ds.rename(name_dict)
+
+    # Handle Julian Day Time
+    try:
+        if ds.time.long_name.lower().strip() == 'time in julian days':
+            return _mjd2datetime(ds)
+    except AttributeError:
+        pass
+
+    return ds
+
+
+def _jd2datetime(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Convert the time dimension of the given dataset from Julian date to
+    datetime.
+
+    :param ds: Dataset on which to run conversion
+    """
+    pass
