@@ -1,9 +1,17 @@
+import datetime
 import json
 import os
 import os.path
+import tempfile
 import unittest
+import unittest.mock
+import urllib.request
+import shutil
 
+from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.types import PolygonLike, TimeRangeLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
+from cate.ds.local import LocalDataStore, LocalDataSource
 
 
 @unittest.skip(reason='Because it writes a lot of files')
@@ -23,7 +31,9 @@ def _create_test_data_store():
         json_text = fp.read()
     json_dict = json.loads(json_text)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    DATA_STORE_REGISTRY.add_data_store(data_store)
+    return data_store
 
 
 class EsaCciOdpDataStoreTest(unittest.TestCase):
@@ -41,7 +51,6 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 20)
 
 
-@unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
@@ -49,6 +58,107 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertIsNotNone(data_sources[0])
         self.data_source = data_sources[0]
+        self.tmp_dir = tempfile.mkdtemp()
+
+        self._existing_local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
+
+    def tearDown(self):
+        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        shutil.rmtree(self.tmp_dir, ignore_errors=True)
+
+    def test_make_local_and_update(self):
+
+        reference_path = os.path.join(os.path.dirname(__file__),
+                                      os.path.normpath('resources/datasources/local/files/'))
+
+        def find_files_mock(_, time_range):
+
+            def build_file_item(item_name: str, date_from: datetime, date_to: datetime, size: int):
+
+                return [item_name, date_from, date_to, size,
+                        {'OPENDAP': os.path.join(reference_path, item_name),
+                         'HTTPServer': 'file:' + urllib.request.pathname2url(os.path.join(reference_path, item_name))}]
+
+            reference_files = {
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781114000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 14, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 14, 23, 59),
+                    'size': 21511378
+                },
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781115000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 15, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 15, 23, 59),
+                    'size': 21511378
+                },
+                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19781116000000-fv02.2.nc': {
+                    'date_from': datetime.datetime(1978, 11, 16, 0, 0),
+                    'date_to': datetime.datetime(1978, 11, 16, 23, 59),
+                    'size': 21511378
+                }
+            }
+
+            reference_files_list = []
+
+            for reference_file in reference_files.items():
+                file_name = reference_file[0]
+                file_date_from = reference_file[1].get('date_from')
+                file_date_to = reference_file[1].get('date_to')
+                file_size = reference_file[1].get('size')
+                if time_range:
+                    if file_date_from >= time_range[0] and file_date_to <= time_range[1]:
+                        reference_files_list.append(build_file_item(file_name,
+                                                                    file_date_from,
+                                                                    file_date_to,
+                                                                    file_size))
+                else:
+                    reference_files_list.append(build_file_item(file_name,
+                                                                file_date_from,
+                                                                file_date_to,
+                                                                file_size))
+            return reference_files_list
+
+        with unittest.mock.patch(
+                'cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
+            try:
+                new_ds = self.data_source.make_local('local_ds_test', None,
+                                                     (datetime.datetime(1978, 11, 14, 0, 0),
+                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+            except:
+                raise ValueError(reference_path, os.listdir(reference_path))
+
+            self.assertEqual(new_ds.name, 'local.local_ds_test')
+            self.assertEqual(new_ds.temporal_coverage(),
+                             (datetime.datetime(1978, 11, 14, 0, 0),
+                              datetime.datetime(1978, 11, 15, 23, 59)))
+
+            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                        datetime.datetime(1978, 11, 16, 23, 59)))
+            self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
+                             (datetime.datetime(1978, 11, 15, 0, 0),
+                              datetime.datetime(1978, 11, 16, 23, 59))))
+
+            self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 14, 00, 00),
+                                                        datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
+                             (datetime.datetime(1978, 11, 14, 0, 0),
+                              datetime.datetime(1978, 11, 15, 23, 59))))
+
+            new_ds_w_one_variable = self.data_source.make_local(
+                'local_ds_test_2', None, (datetime.datetime(1978, 11, 14, 0, 0),
+                                          datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
+            self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
+            ds = new_ds_w_one_variable.open_dataset()
+            self.assertSetEqual(set(ds.variables), {'sm', 'lat', 'lon', 'time'})
+
+            new_ds_w_region = self.data_source.make_local(
+                'from_local_to_local_region', None, (datetime.datetime(1978, 11, 14, 0, 0),
+                                                     datetime.datetime(1978, 11, 15, 23, 59)),
+                "10,10,20,20", ['sm'])  # type: LocalDataSource
+            self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
+            self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
+            data_set = new_ds_w_region.open_dataset()
+            self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
     def test_data_store(self):
         self.assertIs(self.data_source.data_store,
@@ -63,19 +173,19 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                          None)
 
     def test_info_string(self):
-        # print(self.data_source.info_string)
         self.assertIn('product_string:          MERGED\n',
                       self.data_source.info_string)
 
     def test_variables_info_string(self):
-        # print(self.data_source.variables_info_string)
         self.assertIn('kd_490 (m-1):\n',
                       self.data_source.variables_info_string)
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
                       self.data_source.variables_info_string)
 
+    @unittest.skip(reason='ssl error on windows')
     def test_temporal_coverage(self):
-        self.assertEqual(self.data_source.temporal_coverage(), None)
+        self.assertEqual(self.data_source.temporal_coverage(),
+                         (datetime.datetime(1997, 9, 4, 0, 0), datetime.datetime(2000, 6, 24, 0, 0)))
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)

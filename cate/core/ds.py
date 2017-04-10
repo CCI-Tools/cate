@@ -19,7 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Marco Zühlke (Brockmann Consult GmbH)"
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -91,8 +93,7 @@ import xarray as xr
 from cate.conf import get_config_path
 from cate.conf.defaults import DEFAULT_DATA_PATH
 from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import GeometryLike, TimeRange, TimeRangeLike, VarNamesLike
-from cate.util.misc import to_datetime_range
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 
 
@@ -153,7 +154,7 @@ class DataSource(metaclass=ABCMeta):
     @abstractmethod
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: GeometryLike.TYPE = None,
+                     region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         """
@@ -163,7 +164,7 @@ class DataSource(metaclass=ABCMeta):
         :param time_range: An optional time constraint comprising start and end date.
                 If given, it must be a :py:class:`TimeRangeLike`.
         :param region: An optional region constraint.
-                If given, it must be a :py:class:`GeometryLike`.
+                If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                 If given, it must be a :py:class:`VarNamesLike`.
         :param protocol: **Deprecated.** Protocol name, if None selected default protocol
@@ -176,7 +177,7 @@ class DataSource(metaclass=ABCMeta):
                    local_name: str,
                    local_id: str = None,
                    time_range: TimeRangeLike.TYPE = None,
-                   region: GeometryLike.TYPE = None,
+                   region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> 'DataSource':
         """
@@ -191,19 +192,35 @@ class DataSource(metaclass=ABCMeta):
 
         The method returns the newly create local data source.
 
-        :param local_name: A human readable name for the new local data store.
-        :param local_id: A unique ID to be used for the new local data store.
+        :param local_name: A human readable name for the new local data source.
+        :param local_id: A unique ID to be used for the new local data source.
                If not given, a new ID will be generated.
         :param time_range: An optional time constraint comprising start and end date.
                If given, it must be a :py:class:`TimeRangeLike`.
         :param region: An optional region constraint.
-               If given, it must be a :py:class:`GeometryLike`.
+               If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VarNamesLike`.
         :param monitor: a progress monitor.
         :return: the new local data source
         """
         pass
+
+    def update_local(self,
+                     local_id: str,
+                     time_range: TimeRangeLike.TYPE,
+                     monitor: Monitor = Monitor.NONE) -> bool:
+        """
+        Update locally stored data.
+        The default implementation does nothing.
+
+        :param time_range: An optional tuple comprising a start and end date, which must be
+               a :py:class:`TimeRangeLike`.
+        :param local_id: A unique ID of local data source.
+        :param monitor: a progress monitor.
+        :return: If any update has been performed returns True, otherwise False
+        """
+        return False
 
     # noinspection PyMethodMayBeStatic
     def sync(self,
@@ -227,8 +244,9 @@ class DataSource(metaclass=ABCMeta):
         return 0, 0
 
     def delete_local(self,
-                     time_range: Tuple[datetime, datetime]) -> int:
+                     time_range: TimeRangeLike.TYPE) -> int:
         """
+        **Deprecated. Use :py:meth:`update_local` instead.**
         Delete locally stored data.
         The default implementation does nothing.
 
@@ -339,9 +357,16 @@ class DataStore(metaclass=ABCMeta):
     @property
     def name(self) -> str:
         """
-        Return he name of this data store.
+        Return the name of this data store.
         """
         return self._name
+
+    @property
+    def data_store_path(self) -> Optional[str]:
+        """
+        Returns path to data store
+        """
+        return None
 
     @abstractmethod
     def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
@@ -420,33 +445,48 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
     :param name:  The name of a data source.
     :return: All data sources matching the given constrains.
     """
+    results = []
+    primary_data_store = None
+    data_store_list = []
     if data_stores is None:
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()
     elif isinstance(data_stores, DataStore):
-        data_store_list = [data_stores]
+        primary_data_store = data_stores
     else:
         data_store_list = data_stores
-    results = []
-    # noinspection PyTypeChecker
-    for data_store in data_store_list:
-        results.extend(data_store.query(name))
+    if not primary_data_store and name and name.count('.') > 0:
+        primary_data_store_index = -1
+        primary_data_store_name, data_source_name = name.split('.', 1)
+        for idx, data_store in enumerate(data_store_list):
+            if data_store.name == primary_data_store_name:
+                primary_data_store_index = idx
+        if primary_data_store_index >= 0:
+            primary_data_store = data_store_list.pop(primary_data_store_index)
+
+    if primary_data_store:
+        results.extend(primary_data_store.query(name))
+    if not results:
+        # noinspection PyTypeChecker
+        for data_store in data_store_list:
+            results.extend(data_store.query(name))
     return results
 
-# TODO (kbernat): remove sync and protocol arg, use signature of DataSource.open_dataset()
+
 def open_dataset(data_source: Union[DataSource, str],
-                 start_date: Union[None, str, date] = None,
-                 end_date: Union[None, str, date] = None,
-                 sync: bool = False,
-                 protocol: str = None,
+                 time_range: TimeRangeLike.TYPE = None,
+                 region: PolygonLike.TYPE = None,
+                 var_names: VarNamesLike.TYPE = None,
                  monitor: Monitor = Monitor.NONE) -> Any:
     """
     Open a dataset from a data source.
 
     :param data_source: Strings are interpreted as the identifier of an ECV dataset.
-    :param start_date: Optional start date of the requested dataset
-    :param end_date: Optional end date of the requested dataset
-    :param sync: Whether to synchronize local and remote data files before opening the dataset
-    :param protocol: Name of protocol used to access dataset
+    :param time_range: An optional time constraint comprising start and end date.
+            If given, it must be a :py:class:`TimeRangeLike`.
+    :param region: An optional region constraint.
+            If given, it must be a :py:class:`PolygonLike`.
+    :param var_names: Optional names of variables to be included.
+            If given, it must be a :py:class:`VarNamesLike`.
     :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """
@@ -454,23 +494,15 @@ def open_dataset(data_source: Union[DataSource, str],
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
-        # TODO (kbernat): idea: as we follow the "convention" that data source names should start with the data store
-        #                 name, we should search such data stores first. E.g. a data source with name "local.<more ...>"
-        #                 should be searched in data store "local" first.
-        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+        data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
         data_sources = query_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
-            raise ValueError("No data_source found for the given query term '%s'" % data_source)
+            raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
 
-    time_range = to_datetime_range(start_date, end_date)
-
-    if sync:
-        data_source.sync(time_range, monitor=monitor, protocol=protocol)
-
-    return data_source.open_dataset(time_range, protocol=protocol)
+    return data_source.open_dataset(time_range, region, var_names, monitor)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
