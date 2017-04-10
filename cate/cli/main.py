@@ -103,7 +103,7 @@ import os
 import os.path
 import pprint
 import sys
-from typing import Tuple, Union
+from typing import Tuple, Union, Sequence
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
@@ -1145,6 +1145,10 @@ def _trim_error_message(message: str) -> str:
     else:
         return message
 
+# use by 'sphinxarg' to generate the documentation
+def _make_cate_parser():
+    from cate.util.cli import _make_parser
+    return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE, docs_url=_DOCS_URL)
 
 def main(args=None) -> int:
     return run_main(CLI_NAME,
