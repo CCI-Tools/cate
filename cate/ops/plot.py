@@ -61,23 +61,17 @@ matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName
+from cate.core.types import VarName, PolygonLike
 
 
 @op(tags=['graphical', 'plot', 'map'], no_cache=True)
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('lat_min', units='degrees', value_range=[-90, 90])
-@op_input('lat_max', units='degrees', value_range=[-90, 90])
-@op_input('lon_min', units='degrees', value_range=[-180, 180])
-@op_input('lon_max', units='degrees', value_range=[-180, 180])
+@op_input('region', data_type=PolygonLike)
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              time=None,
-             lat_min: float = None,
-             lat_max: float = None,
-             lon_min: float = None,
-             lon_max: float = None,
+             region: PolygonLike.TYPE = None,
              file: str = None) -> None:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
@@ -94,10 +88,8 @@ def plot_map(ds: xr.Dataset,
     :param ds: xr.Dataset to plot
     :param var: variable name in the dataset to plot
     :param time: time slice index to plot
-    :param lat_min: minimum latitude extent to plot
-    :param lat_max: maximum latitude extent to plot
-    :param lon_min: minimum longitude extent to plot
-    :param lon_max: maximum longitude extent to plot
+    :param region: Region to plot. If the region is not rectangular, it's
+    bounding box will be used.
     :param file: filepath where to save the plot
     """
     if not isinstance(ds, xr.Dataset):
@@ -114,18 +106,14 @@ def plot_map(ds: xr.Dataset,
     if not time:
         time = 0
 
-    # Sanity check
-    if lat_min is None:
+    if region is None:
         lat_min = -90.0
-
-    if lat_max is None:
         lat_max = 90.0
-
-    if lon_min is None:
         lon_min = -180.0
-
-    if lon_max is None:
         lon_max = 180.0
+    else:
+        region = PolygonLike.convert(region)
+        lon_min, lat_min, lon_max, lat_max = region.bounds
 
     if not _extents_sane(lat_min, lat_max, lon_min, lon_max):
         raise ValueError('Provided plot extents do not form a valid bounding box '
@@ -147,10 +135,6 @@ def plot_map(ds: xr.Dataset,
 
     if file:
         fig.savefig(file)
-
-        # TODO (Gailis, 03.10.16) Returning a figure results in two plots in
-        # Jupyter
-        # return fig
 
 
 @op(tags=['graphical', 'plot', '1D'], no_cache=True)

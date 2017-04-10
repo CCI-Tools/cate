@@ -36,10 +36,7 @@ class TestPlot(TestCase):
         # Test if extents can be used
         plot.plot_map(dataset,
                       var='second',
-                      lat_min=-20.0,
-                      lat_max=60.0,
-                      lon_min=-40.0,
-                      lon_max=50.0,
+                      region = '-40.0, -20.0, 50.0, 60.0',
                       file='remove_me.pdf')
         self.assertTrue(os.path.isfile('remove_me.pdf'))
         os.remove('remove_me.pdf')
@@ -59,22 +56,28 @@ class TestPlot(TestCase):
             'lon': np.linspace(-179.5, 179.5, 4)})
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_min=-95.0)
+            region = '-40.0, -95.0, 50.0, 60.0',
+            plot.plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_max=95.0)
+            region = '-40.0, -20.0, 50.0, 95.0',
+            plot.plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_min=-181.0)
+            region = '-181.0, -20.0, 50.0, 60.0',
+            plot.plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_max=181.0)
+            region = '-40.0, -20.0, 181.0, 60.0',
+            plot.plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_min=-20.0, lat_max=-25.0)
+            region = '-40.0, -20.0, 50.0, -25.0',
+            plot.plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_min=-20.0, lon_max=-25.0)
+            region = '-20.0, -20.0, -25.0, 60.0',
+            plot.plot_map(dataset, region=region)
 
     def test_plot_1D(self):
         # Test plot_1D
