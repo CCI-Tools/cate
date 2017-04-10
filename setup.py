@@ -53,8 +53,8 @@ if on_rtd:
     mocked_packages = ['cartopy', 'geopandas', 'pillow']
     # On READTHEDOCS, filter out all requirements that start with one of the names in mocked_packages
     # These are mocked, see doc/source/conf.py
-    requirements = itertools.filterfalse(lambda req: any(req.startswith(mp) for mp in mocked_packages),
-                                         requirements)
+    requirements = list(itertools.filterfalse(lambda req: any(req.startswith(mp) for mp in mocked_packages),
+                                         requirements))
     print("RDT requirements", str(requirements))
 
 packages = find_packages(exclude=["test", "test.*"])
