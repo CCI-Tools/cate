@@ -31,7 +31,7 @@ Components
 
 import xarray as xr
 
-from jdcal import jd2gcal, MJD_0
+from jdcal import jd2gcal
 from datetime import datetime
 
 from cate.core.op import op
@@ -78,7 +78,7 @@ def _jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = ds.copy()
     # Decode JD time
-    tuples = [jd2gcal(x-MJD_0, MJD_0) for x in ds.time.values]
+    tuples = [jd2gcal(x, 0) for x in ds.time.values]
     # Replace JD time with datetime
     ds.time.values = [datetime(x[0], x[1], x[2]) for x in tuples]
     # Adjust attributes
