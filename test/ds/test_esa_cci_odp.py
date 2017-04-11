@@ -144,6 +144,11 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                              (datetime.datetime(1978, 11, 14, 0, 0),
                               datetime.datetime(1978, 11, 15, 23, 59))))
 
+            with self.assertRaises(ValueError) as context:
+                self.data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                datetime.datetime(1978, 11, 16, 23, 59)))
+            self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
+
             new_ds_w_one_variable = self.data_source.make_local(
                 'local_ds_test_2', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                           datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
