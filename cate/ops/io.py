@@ -40,8 +40,8 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op(tags=['input'])
 @op_input('ds_name')
 @op_input('time_range', data_type=TimeRangeLike)
-@op_input('sync')
-@op_input('protocol')
+@op_input('region', data_type=PolygonLike)
+@op_input('var_names', data_type=VarNamesLike)
 def open_dataset(ds_name: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
