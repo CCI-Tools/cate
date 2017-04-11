@@ -30,38 +30,43 @@ import pandas as pd
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import VarNamesLike
+from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike
 from cate.util.monitor import Monitor
+from cate.ops.harmonize import harmonize as harmonize_op
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['input'])
 @op_input('ds_name')
-@op_input('start_date')
-@op_input('end_date')
-@op_input('sync')
-@op_input('protocol')
+@op_input('time_range', data_type=TimeRangeLike)
+@op_input('region', data_type=PolygonLike)
+@op_input('var_names', data_type=VarNamesLike)
 def open_dataset(ds_name: str,
-                 start_date: str = None,
-                 end_date: str = None,
-                 sync: bool = False,
-                 protocol: str = None,
-                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+                 time_range: TimeRangeLike.TYPE = None,
+                 region: PolygonLike.TYPE = None,
+                 var_names: VarNamesLike.TYPE = None,
+                 monitor: Monitor = Monitor.NONE,
+                 harmonize: bool = True) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 
     :param ds_name: The name of data source.
-    :param start_date: Optional start date of the requested dataset.
-    :param end_date: Optional end date of the requested dataset.
-    :param sync: Whether to synchronize local and remote data files before opening the dataset.
-    :param protocol: Name of protocol used to access dataset
+    :param time_range: Optional time range of the requested dataset
+    :param region: Optional spatial region of the requested dataset
+    :param var_names: Optional names of variables of the requested dataset
     :param monitor: a progress monitor, used only if *sync* is ``True``.
+    :param harmonize: Whether to harmonize the dataset upon opening
     :return: An new dataset instance.
     """
     import cate.core.ds
-    return cate.core.ds.open_dataset(ds_name, start_date=start_date, end_date=end_date,
-                                     protocol=protocol, sync=sync, monitor=monitor)
+    ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
+                                   var_names=var_names, region=region,
+                                   monitor=monitor)
+    if harmonize:
+        return harmonize_op(ds)
+
+    return ds
 
 
 # noinspection PyShadowingBuiltins
