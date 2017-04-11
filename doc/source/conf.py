@@ -28,7 +28,7 @@ import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
                 'matplotlib', 'matplotlib.cm', 'matplotlib.pyplot', 'pyproj', 'scipy', 'scipy.stats',
-                'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray',
+                'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
                 'numpy', 'jdcal', 'dateutil']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
