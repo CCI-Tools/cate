@@ -31,7 +31,6 @@ import pandas as pd
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike
-from cate.util.monitor import Monitor
 from cate.ops.harmonize import harmonize as harmonize_op
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -46,7 +45,6 @@ def open_dataset(ds_name: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
-                 monitor: Monitor = Monitor.NONE,
                  harmonize: bool = True) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
@@ -61,8 +59,7 @@ def open_dataset(ds_name: str,
     """
     import cate.core.ds
     ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
-                                   var_names=var_names, region=region,
-                                   monitor=monitor)
+                                   var_names=var_names, region=region)
     if harmonize:
         return harmonize_op(ds)
 
