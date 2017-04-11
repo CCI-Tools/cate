@@ -14,11 +14,11 @@ class NamespaceTest(TestCase):
         self.assertFalse('a' in namespace)
         self.assertEqual(list(namespace), [])
         with self.assertRaisesRegex(KeyError, "'a'"):
-            v = namespace['a']
+            namespace['a']
         with self.assertRaisesRegex(AttributeError, "attribute 'a' not found"):
-            v = namespace.a
+            namespace.a
         with self.assertRaisesRegex(IndexError, "list index out of range"):
-            v = namespace[0]
+            namespace[0]
         with self.assertRaisesRegex(IndexError, "list index out of range"):
             namespace[0] = True
 

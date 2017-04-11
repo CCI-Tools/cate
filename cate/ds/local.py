@@ -50,7 +50,7 @@ from dateutil import parser
 from glob import glob
 from math import ceil, floor
 from typing import Optional, Sequence, Union, Any, Tuple
-from xarray.backends.netCDF4_ import NetCDF4DataStore
+from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
@@ -58,6 +58,7 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray
 from cate.core.ds import get_data_stores_path
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
+
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
 
@@ -90,10 +91,10 @@ class LocalDataSource(DataSource):
                 if files_range:
                     if isinstance(files_range[0], Tuple):
                         initial_temporal_coverage = TimeRangeLike.convert(tuple([files_range[0][0],
-                                                                                 files_range[files_number-1][1]]))
+                                                                                 files_range[files_number - 1][1]]))
                     elif isinstance(files_range[0], datetime):
                         initial_temporal_coverage = TimeRangeLike.convert((files_range[0],
-                                                                           files_range[files_number-1]))
+                                                                           files_range[files_number - 1]))
 
         self._temporal_coverage = initial_temporal_coverage
         self._spatial_coverage = PolygonLike.convert(spatial_coverage) if spatial_coverage else None
@@ -102,7 +103,7 @@ class LocalDataSource(DataSource):
         self._reference_type = reference_type if reference_type else None
         self._reference_name = reference_name
 
-    def _resolve_file_path(self, path) ->Sequence:
+    def _resolve_file_path(self, path) -> Sequence:
         return glob(os.path.join(self._data_store.data_store_path, path))
 
     def open_dataset(self,
@@ -153,7 +154,7 @@ class LocalDataSource(DataSource):
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
-        local_name = local_ds.name
+        # local_name = local_ds.name
         local_id = local_ds.name
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
@@ -206,9 +207,9 @@ class LocalDataSource(DataSource):
 
                             if region:
                                 geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
-                                                                        .strip('degrees'))
+                                                    .strip('degrees'))
                                 geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
-                                                                        .strip('degrees'))
+                                                    .strip('degrees'))
 
                                 [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
@@ -288,8 +289,8 @@ class LocalDataSource(DataSource):
                      monitor: Monitor = Monitor.NONE) -> bool:
 
         data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
-        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource)
-                            and ds.name == local_id), None)  # type: LocalDataSource
+        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
+                            ds.name == local_id), None)  # type: LocalDataSource
         if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
 

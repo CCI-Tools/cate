@@ -18,7 +18,7 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', ["ds=X", "var=precipitation"])
         self.assertEqual(ws.resource_cache, {})
 
-        value = ws.execute_workflow('Y')
+        ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
@@ -26,7 +26,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
         self.assertNotIn('Y', ws.resource_cache)
 
-        value = ws.execute_workflow('Y')
+        ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
@@ -34,7 +34,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertNotIn('X', ws.resource_cache)
         self.assertNotIn('Y', ws.resource_cache)
 
-        value = ws.execute_workflow('Y')
+        ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
@@ -96,7 +96,6 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('A'), 5)
         self.assertEqual(ws.resource_cache.get('Y'), 5)
         self.assertEqual(ws.resource_cache.get('Z'), 5)
-
 
     def test_example(self):
         expected_json_text = """{

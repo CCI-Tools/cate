@@ -28,7 +28,7 @@ import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
                 'matplotlib', 'matplotlib.cm', 'matplotlib.pyplot', 'pyproj', 'scipy', 'scipy.stats',
-                'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray',
+                'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
                 'numpy', 'jdcal', 'dateutil']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
@@ -249,11 +249,13 @@ htmlhelp_basename = software_name + '-doc'
 # fix to prevent tables from horizontal scrolling. Taken from:
 # https://github.com/snide/sphinx_rtd_theme/issues/117#issuecomment-153083280
 
+
 def setup(app):
     # overrides for wide tables in RTD theme
     app.add_stylesheet('theme_overrides.css')
 
 # -- Options for LaTeX output ---------------------------------------------
+
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').

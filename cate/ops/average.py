@@ -100,11 +100,11 @@ def long_term_average(source: str,
     with monitor.starting('LTA', total_work=total_work):
         # Set up the monitor
         monitor.progress(work=0)
-        step = total_work*0.9/n_years
+        step = total_work * 0.9 / n_years
 
         # Process the data source year by year
         year = year_min
-        while year != year_max+1:
+        while year != year_max + 1:
 
             tmin = "{}-01-01".format(year)
             tmax = "{}-12-31".format(year)
@@ -121,9 +121,9 @@ def long_term_average(source: str,
                     break
 
             worked = monitor._worked
-            data_source.sync(dt_range, monitor=monitor.child(work=step*0.9))
+            data_source.sync(dt_range, monitor=monitor.child(work=step * 0.9))
             if worked == monitor._worked:
-                monitor.progress(work=step*0.9)
+                monitor.progress(work=step * 0.9)
 
             ds = data_source.open_dataset(dt_range)
 
@@ -132,11 +132,11 @@ def long_term_average(source: str,
 
             try:
                 if res == 0:
-                    res = ds/n_years
+                    res = ds / n_years
                 else:
                     # Xarray doesn't do automatic alignment for in place
                     # operations, hence we have to do it manually
-                    res = res + ds.reindex_like(res)/n_years
+                    res = res + ds.reindex_like(res) / n_years
             except TypeError:
                 raise TypeError('One or more data arrays feature a dtype that\
                                 can not be divided. Consider using the var\
@@ -148,13 +148,13 @@ def long_term_average(source: str,
             if (not save) and (not was_already_downloaded):
                 data_source.delete_local(dt_range)
 
-            monitor.progress(work=step*0.1)
+            monitor.progress(work=step * 0.1)
 
             year = year + 1
 
         monitor.progress(msg='Saving the LTA dataset')
         save_dataset(res, file)
-        monitor.progress(total_work*0.1)
+        monitor.progress(total_work * 0.1)
 
     return res
 
@@ -243,10 +243,10 @@ def temporal_agg(source: str,
     # month
     if start_date.day != 1:
         try:
-            start_date = datetime(start_date.year, start_date.month+1, 1)
+            start_date = datetime(start_date.year, start_date.month + 1, 1)
         except ValueError:
             # We have tried to set the month to 13
-            start_date = datetime(start_date.year+1, 1, 1)
+            start_date = datetime(start_date.year + 1, 1, 1)
 
     if not end_date:
         end_date = data_source.meta_info['temporal_coverage_end']
@@ -255,10 +255,10 @@ def temporal_agg(source: str,
     # previous month
     if not _is_end_of_month(end_date):
         try:
-            end_date = datetime(end_date.year, end_date.month-1, 27)
+            end_date = datetime(end_date.year, end_date.month - 1, 27)
         except ValueError:
             # We have tried to set the month to 0
-            end_date = datetime(end_date.year-1, 12, 31)
+            end_date = datetime(end_date.year - 1, 12, 31)
 
     end_date = _end_of_month(end_date.year, end_date.month)
 
@@ -275,7 +275,7 @@ def temporal_agg(source: str,
     total_work = 100
     with monitor.starting('Aggregate', total_work=total_work):
         monitor.progress(work=0)
-        step = total_work*0.9/n_periods
+        step = total_work * 0.9 / n_periods
 
         # Process the data source period by period
         tmin = start_date
@@ -294,9 +294,9 @@ def temporal_agg(source: str,
                     break
 
             worked = monitor._worked
-            data_source.sync(dt_range, monitor=monitor.child(work=step*0.9))
+            data_source.sync(dt_range, monitor=monitor.child(work=step * 0.9))
             if worked == monitor._worked:
-                monitor.progress(work=step*0.9)
+                monitor.progress(work=step * 0.9)
 
             ds = data_source.open_dataset(dt_range)
 
@@ -314,17 +314,17 @@ def temporal_agg(source: str,
             if (not save_data) and (not was_already_downloaded):
                 data_source.delete_local(dt_range)
 
-            monitor.progress(work=step*0.1)
+            monitor.progress(work=step * 0.1)
 
             # tmin for next iteration
             try:
-                tmin = datetime(tmin.year, tmin.month+1, 1)
+                tmin = datetime(tmin.year, tmin.month + 1, 1)
             except ValueError:
                 # Couldn't add a month -> end of year
-                tmin = datetime(tmin.year+1, 1, 1)
+                tmin = datetime(tmin.year + 1, 1, 1)
             pass
 
-    monitor.progress(work=step*0.1)
+    monitor.progress(work=step * 0.1)
 
     # Return the local data source id
     return None
@@ -339,7 +339,7 @@ def _is_end_of_month(date: datetime) -> bool:
     :return: Whether this is the last day of the month
     """
     try:
-        datetime(date.year, date.month, date.day+1)
+        datetime(date.year, date.month, date.day + 1)
         return False
     except ValueError:
         # Couldn't add a day -> end of month

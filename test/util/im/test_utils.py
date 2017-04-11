@@ -69,7 +69,7 @@ class TileSizeTest(TestCase):
         for s in range(270, 64 * 270, 270):
             ts = utils.compute_tile_size(s, int_div=True)
             n = utils.cardinal_div_round(s, ts)
-            l2 = utils.cardinal_log2(n * ts)
+            utils.cardinal_log2(n * ts)
             # print(s, ts, n, n * ts - s, l2)
 
     def test_num_levels_min(self):
@@ -77,7 +77,7 @@ class TileSizeTest(TestCase):
         for s in range(270, 64 * 270, 270):
             ts = utils.compute_tile_size(s, num_levels_min=2)
             n = utils.cardinal_div_round(s, ts)
-            l2 = utils.cardinal_log2(n * ts)
+            utils.cardinal_log2(n * ts)
             # print(s, ts, n, n * ts - s, l2)
 
     def test_chunk_size(self):
@@ -85,7 +85,7 @@ class TileSizeTest(TestCase):
         for s in range(270, 64 * 270, 270):
             ts = utils.compute_tile_size(s, chunk_size=256)
             n = utils.cardinal_div_round(s, ts)
-            l2 = utils.cardinal_log2(n * ts)
+            utils.cardinal_log2(n * ts)
             # print(s, ts, n, n * ts - s, l2)
 
 

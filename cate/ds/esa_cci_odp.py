@@ -51,16 +51,15 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil, floor
 from typing import Sequence, Tuple, Optional, Any
-from xarray.backends.netCDF4_ import NetCDF4DataStore
+from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-                         open_xarray_dataset, get_data_stores_path, query_data_sources
+    open_xarray_dataset, get_data_stores_path, query_data_sources
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
-
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
@@ -118,7 +117,7 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
     return None, -1, -1
 
 
-def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, monitor: Monitor=Monitor.NONE):
+def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, monitor: Monitor = Monitor.NONE):
     """
     Return JSON value read from paginated Solr web-service.
     """
@@ -206,7 +205,7 @@ def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monitor=Monitor.NONE):
+def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monitor = Monitor.NONE):
     file_index_json_dict = _fetch_solr_json(_ESGF_CEDA_URL,
                                             dict(type='File',
                                                  fields='url,title,size',
@@ -376,7 +375,7 @@ class EsaCciOdpDataSource(DataSource):
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
-    def temporal_coverage(self, monitor: Monitor=Monitor.NONE) -> Optional[TimeRange]:
+    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
             self.update_file_list(monitor)
         return self._temporal_coverage
@@ -455,14 +454,14 @@ class EsaCciOdpDataSource(DataSource):
                     return url
         return None
 
-    def update_file_list(self, monitor: Monitor=Monitor.NONE) -> None:
+    def update_file_list(self, monitor: Monitor = Monitor.NONE) -> None:
         self._file_list = None
         self._init_file_list(monitor)
 
     def sync(self,
-             time_range: TimeRangeLike.TYPE=None,
-             protocol: str=None,
-             monitor: Monitor=Monitor.NONE) -> Tuple[int, int]:
+             time_range: TimeRangeLike.TYPE = None,
+             protocol: str = None,
+             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
 
         if protocol == _ODP_PROTOCOL_HTTP:
             self.make_local(self._master_id(), None, time_range, None, None, monitor)
@@ -476,8 +475,8 @@ class EsaCciOdpDataSource(DataSource):
                      monitor: Monitor = Monitor.NONE) -> bool:
 
         data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
-        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource)
-                            and ds.name == local_id), None)  # type: LocalDataSource
+        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
+                            ds.name == local_id), None)  # type: LocalDataSource
         if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
 
@@ -588,7 +587,7 @@ class EsaCciOdpDataSource(DataSource):
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
-        local_name = local_ds.name
+        # local_name = local_ds.name
         local_id = local_ds.name
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
@@ -686,7 +685,8 @@ class EsaCciOdpDataSource(DataSource):
                         remote_netcdf.close()
                     if local_netcdf:
                         local_netcdf.close()
-                        local_ds.add_dataset(os.path.join(local_id, file_name), (time_coverage_start, time_coverage_end))
+                        local_ds.add_dataset(os.path.join(local_id, file_name),
+                                             (time_coverage_start, time_coverage_end))
 
                 child_monitor.done()
         else:
@@ -751,7 +751,7 @@ class EsaCciOdpDataSource(DataSource):
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 
-    def _init_file_list(self, monitor: Monitor=Monitor.NONE):
+    def _init_file_list(self, monitor: Monitor = Monitor.NONE):
         if self._file_list:
             return
 

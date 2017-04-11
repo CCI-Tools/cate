@@ -11,7 +11,7 @@ import shutil
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
-from cate.ds.local import LocalDataStore, LocalDataSource
+from cate.ds.local import LocalDataStore
 
 
 @unittest.skip(reason='Because it writes a lot of files')

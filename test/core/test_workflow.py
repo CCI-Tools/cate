@@ -852,7 +852,7 @@ class NoOpStepTest(TestCase):
         self.assertEqual(step.output.c._source_ref, ('op3', 'b'))
         self.assertEqual(step.output.d._source_ref, ('op3', 'a'))
 
-        json_dict_2 = step.to_json_dict()
+        # json_dict_2 = step.to_json_dict()
         # self.assertEqual(json_dict, json_dict_2)
 
 
@@ -908,7 +908,7 @@ class SubProcessStepTest(TestCase):
         self.assertIn('return', step.output)
         self.assertEqual(step.input.dir.value, '.')
 
-        json_dict_2 = step.to_json_dict()
+        # json_dict_2 = step.to_json_dict()
         # self.assertEqual(json_dict, json_dict_2)
 
 

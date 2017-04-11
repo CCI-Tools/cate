@@ -24,6 +24,7 @@ class TestDsArithmetics(TestCase):
     """
     Test dataset arithmetic operations
     """
+
     def test_nominal(self):
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
@@ -38,14 +39,14 @@ class TestDsArithmetics(TestCase):
             'lon': np.linspace(-178, 178, 90)})
 
         actual = arithmetics.ds_arithmetics(dataset, '+2, -2, *3, /3, *4')
-        assert_dataset_equal(expected*4, actual)
+        assert_dataset_equal(expected * 4, actual)
 
         actual = arithmetics.ds_arithmetics(dataset,
                                             'exp, log, *10, log10, *2, log2, +1.5')
-        assert_dataset_equal(expected*2.5, actual)
+        assert_dataset_equal(expected * 2.5, actual)
 
         actual = arithmetics.ds_arithmetics(dataset, 'exp, -1, log1p, +3')
-        assert_dataset_equal(expected*4, actual)
+        assert_dataset_equal(expected * 4, actual)
 
         with self.assertRaises(ValueError) as err:
             arithmetics.ds_arithmetics(dataset, 'not')
@@ -69,14 +70,14 @@ class TestDsArithmetics(TestCase):
             'lon': np.linspace(-178, 178, 90)})
 
         actual = reg_op(ds=dataset, op='+2, -2, *3, /3, *4')
-        assert_dataset_equal(expected*4, actual)
-
+        assert_dataset_equal(expected * 4, actual)
 
 
 class TestDiff(TestCase):
     """
     Test taking the difference between two datasets
     """
+
     def test_diff(self):
         # Test nominal
         dataset = xr.Dataset({
@@ -90,8 +91,8 @@ class TestDiff(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90)})
-        actual = arithmetics.diff(dataset, dataset*2)
-        assert_dataset_equal(expected*-1, actual)
+        actual = arithmetics.diff(dataset, dataset * 2)
+        assert_dataset_equal(expected * -1, actual)
 
         # Test variable mismatch
         ds = xr.Dataset({
@@ -141,7 +142,7 @@ class TestDiff(TestCase):
         assert_dataset_equal(actual, expected)
 
         actual = arithmetics.diff(ds, ds1.drop('time'))
-        expected['time'] = [datetime(2000, x, 1) for x in range(1,13)]
+        expected['time'] = [datetime(2000, x, 1) for x in range(1, 13)]
         assert_dataset_equal(actual, expected)
 
         # Test broadcasting
@@ -165,8 +166,8 @@ class TestDiff(TestCase):
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(expected, actual)
 
-        ds['time'] = [datetime(2000, x, 1) for x in range(1,4)]
-        expected['time'] = [datetime(2000, x, 1) for x in range(1,4)]
+        ds['time'] = [datetime(2000, x, 1) for x in range(1, 4)]
+        expected['time'] = [datetime(2000, x, 1) for x in range(1, 4)]
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(expected, actual)
 
@@ -175,7 +176,7 @@ class TestDiff(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 1])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2001,1,1)]})
+            'time': [datetime(2001, 1, 1)]})
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(expected, actual)
 
@@ -200,5 +201,5 @@ class TestDiff(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 3])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90)})
-        actual = reg_op(ds=dataset, ds2=dataset*2)
-        assert_dataset_equal(expected*-1, actual)
+        actual = reg_op(ds=dataset, ds2=dataset * 2)
+        assert_dataset_equal(expected * -1, actual)

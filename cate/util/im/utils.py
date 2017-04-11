@@ -21,6 +21,9 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+import numpy as np
+
+
 def aggregate_ndarray_first(a1, a2, a3, a4):
     return a1
 

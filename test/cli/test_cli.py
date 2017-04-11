@@ -199,7 +199,6 @@ class ResourceCommandTest(CliTestCase):
 
     def test_res_read_rename(self):
         input_file = NETCDF_TEST_FILE
-        output_file = '_timeseries_.nc'
 
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
@@ -210,7 +209,6 @@ class ResourceCommandTest(CliTestCase):
 
     def test_res_read_rename_unique(self):
         input_file = NETCDF_TEST_FILE
-        output_file = '_timeseries_.nc'
 
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
@@ -233,26 +231,26 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
-                         expected_stdout=
-                         ['Workspace resources:',
-                          '  ds1 = cate.ops.io.read_object('
-                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ds2 = cate.ops.io.read_object('
-                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ts = cate.ops.timeseries.tseries_mean('
-                          'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                         expected_stdout=[
+                             'Workspace resources:',
+                             '  ds1 = cate.ops.io.read_object('
+                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             '  ds2 = cate.ops.io.read_object('
+                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             '  ts = cate.ops.timeseries.tseries_mean('
+                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
-                         expected_stdout=
-                         ['Workspace resources:',
-                          '  ds1 = cate.ops.io.read_object('
-                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ds2 = cate.ops.io.read_object('
-                          'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
-                          '  ts = cate.ops.timeseries.tseries_mean('
-                          'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                         expected_stdout=[
+                             'Workspace resources:',
+                             '  ds1 = cate.ops.io.read_object('
+                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             '  ds2 = cate.ops.io.read_object('
+                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             '  ts = cate.ops.timeseries.tseries_mean('
+                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts',
                           'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point="XYZ"',

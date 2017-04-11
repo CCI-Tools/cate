@@ -155,7 +155,7 @@ class OpMetaInfo:
                           output_dict=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
 
     @classmethod
-    def object_dict_to_json_dict(cls, obj_dict, data_type_to_json = None):
+    def object_dict_to_json_dict(cls, obj_dict, data_type_to_json=None):
         if not data_type_to_json:
             data_type_to_json = object_to_qualified_name
         json_dict = OrderedDict()

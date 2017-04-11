@@ -86,7 +86,7 @@ def anomaly_external(ds: xr.Dataset,
     # Note that this requires that 'time' coordinate labels are of type
     # datetime64[ns]
     total_work = 100
-    step = 100/12
+    step = 100 / 12
 
     with monitor.starting('Anomaly', total_work=total_work):
         monitor.progress(work=0)
@@ -96,7 +96,7 @@ def anomaly_external(ds: xr.Dataset,
 
     # Running groupby results in a redundant 'month' variable being added to
     # the dataset
-    ret =  ret.drop('month')
+    ret = ret.drop('month')
     return ret
 
 
@@ -115,7 +115,7 @@ def _group_anomaly(group: xr.Dataset,
     """
     # Retrieve the month of the current group
     month = group['time.month'][0].values
-    ret = diff(group, ref.isel(time=month-1))
+    ret = diff(group, ref.isel(time=month - 1))
     monitor.progress(work=step)
     return ret
 
