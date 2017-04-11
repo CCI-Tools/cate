@@ -50,7 +50,7 @@ from dateutil import parser
 from glob import glob
 from math import ceil, floor
 from typing import Optional, Sequence, Union, Any, Tuple
-from xarray.backends.netCDF4_ import NetCDF4DataStore
+from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
