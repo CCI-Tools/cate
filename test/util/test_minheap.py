@@ -104,37 +104,37 @@ class MinHeapTest(TestCase):
         removed_entry = h.remove(4)
         self.assertEqual(removed_entry, (5., 4))
         self.assertEqual(h.size, 5)
-        assert_almost_equal(h.keys, [1.,  2.,  4.,  3.,  6.,  5.])
+        assert_almost_equal(h.keys, [1., 2., 4., 3., 6., 5.])
         assert_almost_equal(h.values, [0, 1, 2, 3, 5, 4])
 
         removed_entry = h.remove(3)
         self.assertEqual(removed_entry, (3., 3))
         self.assertEqual(h.size, 4)
-        assert_almost_equal(h.keys, [1.,  2.,  4.,  6.,  3.,  5.])
+        assert_almost_equal(h.keys, [1., 2., 4., 6., 3., 5.])
         assert_almost_equal(h.values, [0, 1, 2, 5, 3, 4])
 
         removed_entry = h.remove(0)
         self.assertEqual(removed_entry, (1., 0))
         self.assertEqual(h.size, 3)
-        assert_almost_equal(h.keys, [2.,  6.,  4.,  1.,  3.,  5.])
+        assert_almost_equal(h.keys, [2., 6., 4., 1., 3., 5.])
         assert_almost_equal(h.values, [1, 5, 2, 0, 3, 4])
 
         removed_entry = h.remove(2)
         self.assertEqual(removed_entry, (4., 2))
         self.assertEqual(h.size, 2)
-        assert_almost_equal(h.keys, [2.,  6.,  4.,  1.,  3.,  5.])
+        assert_almost_equal(h.keys, [2., 6., 4., 1., 3., 5.])
         assert_almost_equal(h.values, [1, 5, 2, 0, 3, 4])
 
         removed_entry = h.remove(1)
         self.assertEqual(removed_entry, (6.0, 5))
         self.assertEqual(h.size, 1)
-        assert_almost_equal(h.keys, [2.,  6.,  4.,  1.,  3.,  5.])
+        assert_almost_equal(h.keys, [2., 6., 4., 1., 3., 5.])
         assert_almost_equal(h.values, [1, 5, 2, 0, 3, 4])
 
         removed_entry = h.remove(0)
         self.assertEqual(removed_entry, (2., 1))
         self.assertEqual(h.size, 0)
-        assert_almost_equal(h.keys, [2.,  6.,  4.,  1.,  3.,  5.])
+        assert_almost_equal(h.keys, [2., 6., 4., 1., 3., 5.])
         assert_almost_equal(h.values, [1, 5, 2, 0, 3, 4])
 
     def test_remove_min(self):
@@ -146,7 +146,5 @@ class MinHeapTest(TestCase):
         removed_entry = h.remove_min()
         self.assertEqual(removed_entry, (1., 0))
         self.assertEqual(h.size, 6)
-        assert_almost_equal(h.keys, [2.,  3.,  4.,  7.,  5.,  6.,  1.])
+        assert_almost_equal(h.keys, [2., 3., 4., 7., 5., 6., 1.])
         assert_almost_equal(h.values, [1, 3, 2, 6, 4, 5, 0])
-
-

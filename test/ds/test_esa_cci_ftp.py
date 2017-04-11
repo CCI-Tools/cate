@@ -1,6 +1,5 @@
 import os
 import os.path
-import os.path
 from datetime import datetime
 from unittest import TestCase
 

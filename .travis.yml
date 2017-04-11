@@ -40,3 +40,4 @@ script:
 after_success:
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
+  - flake8 --exit-zero

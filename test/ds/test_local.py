@@ -55,7 +55,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_store2 = LocalDataStore('test', self.tmp_dir)
         data_sources = data_store2.query()
         self.assertIsNotNone(data_sources)
-        #self.assertEqual(len(data_sources), 2)
+        # self.assertEqual(len(data_sources), 2)
 
     def test_query(self):
         local_data_store = LocalDataStore('test', os.path.join(os.path.dirname(__file__),
@@ -72,8 +72,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
     def test_load_datasource_from_json_dict(self):
-
-        test_data = {
+        test_data = {  # noqa
             'name': 'local.test_name',
             'meta_data': {
                 'type': "FILE_PATTERN",
@@ -111,12 +110,12 @@ class LocalFilePatternSourceTest(unittest.TestCase):
 
         self.ds3 = LocalDataSource("w_temporal_1",
                                    OrderedDict([
-                                                  ("/DATA/file1.nc",
-                                                   (datetime.datetime(2017, 1, 27, 0, 0),
-                                                    datetime.datetime(2017, 1, 28, 0, 0))),
-                                                  ("/DATA/file2.nc",
-                                                   (datetime.datetime(2017, 1, 28, 0, 0),
-                                                    datetime.datetime(2017, 1, 29, 0, 0)))]),
+                                       ("/DATA/file1.nc",
+                                        (datetime.datetime(2017, 1, 27, 0, 0),
+                                         datetime.datetime(2017, 1, 28, 0, 0))),
+                                       ("/DATA/file2.nc",
+                                        (datetime.datetime(2017, 1, 28, 0, 0),
+                                         datetime.datetime(2017, 1, 29, 0, 0)))]),
                                    self._dummy_store)
 
         self.ds4 = LocalDataSource("w_temporal_2",
@@ -243,7 +242,6 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         self.assertEquals(xr.coords.dims.get('time'), 1)
 
     def test_make_local(self):
-
         data_source = self._local_data_store.query('local_w_temporal')[0]
 
         new_ds = data_source.make_local('from_local_to_local', None,
@@ -251,14 +249,14 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                          datetime.datetime(1978, 11, 15, 23, 59)))
         self.assertEqual(new_ds.name, 'local.from_local_to_local')
         self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-                         (datetime.datetime(1978, 11, 14, 0, 0),
-                          datetime.datetime(1978, 11, 15, 23, 59))))
+            (datetime.datetime(1978, 11, 14, 0, 0),
+             datetime.datetime(1978, 11, 15, 23, 59))))
 
         data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
                                                datetime.datetime(1978, 11, 16, 23, 59)))
         self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-                         (datetime.datetime(1978, 11, 15, 0, 0),
-                          datetime.datetime(1978, 11, 16, 23, 59))))
+            (datetime.datetime(1978, 11, 15, 0, 0),
+             datetime.datetime(1978, 11, 16, 23, 59))))
 
         with self.assertRaises(ValueError) as context:
             data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),

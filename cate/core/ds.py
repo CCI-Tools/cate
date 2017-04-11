@@ -84,7 +84,6 @@ Components
 import glob
 import os.path
 from abc import ABCMeta, abstractmethod
-from datetime import datetime, date
 from math import ceil, sqrt
 from typing import Sequence, Optional, Union, Tuple, Any
 
@@ -509,7 +508,7 @@ def open_dataset(data_source: Union[DataSource, str],
 def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     """
     Open multiple files as a single dataset. This uses dask. If each individual file
-    of the dataset is small, one dask chunk will coincide with one temporal slice, 
+    of the dataset is small, one dask chunk will coincide with one temporal slice,
     e.g. the whole array in the file. Otherwise smaller dask chunks will be used
     to split the dataset.
 
@@ -526,7 +525,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     #
     # netCDF files can also feature a significant level of compression rendering
     # the known file size on disk useless to determine if the default dask chunk
-    # will be small enough that a few of them ccould comfortably fit in memory for 
+    # will be small enough that a few of them ccould comfortably fit in memory for
     # parallel processing.
     #
     # Hence we open the first file of the dataset, find out its uncompressed size

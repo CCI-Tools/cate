@@ -171,5 +171,5 @@ def _generic_index_calculation(ds: xr.Dataset,
     retval['El Nino'] = pd.Series((retval[name] > threshold),
                                   index=retval.index)
     retval['La Nina'] = pd.Series((retval[name] < threshold),
-                                   index=retval.index)
+                                  index=retval.index)
     return retval

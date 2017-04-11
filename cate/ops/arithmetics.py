@@ -29,8 +29,6 @@ Functions
 =========
 """
 
-import sys
-
 from cate.core.op import op
 from xarray import ufuncs as xu
 import xarray as xr
@@ -91,7 +89,7 @@ def ds_arithmetics(ds: xr.Dataset,
 
 
 @op(tags=['arithmetic'])
-def diff(ds: xr.Dataset, ds2:xr.Dataset):
+def diff(ds: xr.Dataset, ds2: xr.Dataset):
     """
     Calculate the difference of two datasets (ds - ds2). This is done by
     matching variable names in the two datasets against each other and taking
@@ -112,7 +110,7 @@ def diff(ds: xr.Dataset, ds2:xr.Dataset):
     try:
         # Times do not intersect
         if 0 == len(ds.time - ds2.time) and\
-           len(ds.time) == len(ds2.time): # Times are the same length
+           len(ds.time) == len(ds2.time):  # Times are the same length
             # If the datasets don't intersect in time dimension, a naive difference
             # would return empty data variables. Hence, the time coordinate has to
             # be dropped beforehand
@@ -125,7 +123,7 @@ def diff(ds: xr.Dataset, ds2:xr.Dataset):
         pass
 
     try:
-        if 1 ==  len(ds2.time):
+        if 1 == len(ds2.time):
             # The subtrahend is a single time-slice -> squeeze 'time' dimension to
             # be able to broadcast is along minuend
             ds2 = ds2.squeeze('time', drop=True)
@@ -138,6 +136,5 @@ def diff(ds: xr.Dataset, ds2:xr.Dataset):
             pass
         else:
             raise TypeError(str(e))
-
 
     return ds - ds2

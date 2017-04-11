@@ -138,7 +138,7 @@ class VarNameTest(TestCase):
         self.assertEqual(actual, expected)
 
         with self.assertRaises(ValueError) as err:
-            a = VarName.convert(['aa', 'bb', 'cc'])
+            VarName.convert(['aa', 'bb', 'cc'])
         self.assertTrue('cannot convert' in str(err.exception))
         self.assertEqual(None, VarName.convert(None))
 
@@ -315,7 +315,7 @@ class TypeNamesTest(TestCase):
     """
     This test fails, if any of the expected type names change.
     We use these type names in cate-desktop to map from type to validators and GUI editors.
-    
+
     NOTE: If one of these tests fails, we have to change the cate-desktop code w.r.t. the type name change.
     """
 

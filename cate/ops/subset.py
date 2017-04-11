@@ -31,7 +31,6 @@ Components
 
 import xarray as xr
 import numpy as np
-import jdcal
 from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads, dumps
 

@@ -6,7 +6,6 @@ import os
 import unittest
 from unittest import TestCase
 from io import StringIO
-import pandas as pd
 
 from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_collection, read_geo_data_frame
 

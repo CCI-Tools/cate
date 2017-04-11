@@ -249,11 +249,13 @@ htmlhelp_basename = software_name + '-doc'
 # fix to prevent tables from horizontal scrolling. Taken from:
 # https://github.com/snide/sphinx_rtd_theme/issues/117#issuecomment-153083280
 
+
 def setup(app):
     # overrides for wide tables in RTD theme
     app.add_stylesheet('theme_overrides.css')
 
 # -- Options for LaTeX output ---------------------------------------------
+
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').

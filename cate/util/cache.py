@@ -284,7 +284,7 @@ class Cache:
     def __init__(self, store=MemoryCacheStore(), capacity=1000, threshold=0.75, policy=POLICY_LRU, parent_cache=None):
         """
         Constructor.
-    
+
         :param store: the cache store, see CacheStore interface
         :param capacity: the size capacity in units used by the store's store() method
         :param threshold: a number greater than zero and less than one

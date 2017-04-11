@@ -9,6 +9,7 @@ dependencies:
   #
   - pytest
   - pytest-cov
+  - flake8
   #
   # dependencies (in alphabetical order)
   #

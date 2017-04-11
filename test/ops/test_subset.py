@@ -211,7 +211,6 @@ class TestSubsetTemporal(TestCase):
         assert_dataset_equal(expected, actual)
 
 
-
 class TestSubsetTemporalIndex(TestCase):
     def test_subset_temporal_index(self):
         # Test general functionality

@@ -30,7 +30,7 @@ import pandas as pd
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import  VarNamesLike
+from cate.core.types import VarNamesLike
 from cate.util.monitor import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])

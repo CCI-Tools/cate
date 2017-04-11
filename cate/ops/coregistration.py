@@ -62,7 +62,7 @@ def coregister(ds_master: xr.Dataset,
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
     define the middle of a pixel and pixels have the same size across the dataset.
 
-    This operation will resample all variables in a dataset, as the lat/lon grid is 
+    This operation will resample all variables in a dataset, as the lat/lon grid is
     defined per dataset. It works only if all variables in the dataset have (time/lat/lon)
     dimensions.
 
@@ -105,7 +105,7 @@ def coregister(ds_master: xr.Dataset,
 def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
     """
     Check if the given 1D array is equidistant within the given bounds. E.g. the
-    distance between the lower boundary and the first element of the array should 
+    distance between the lower boundary and the first element of the array should
     be equal to the distance between every element and it's neighbours, as well as
     between the last element of the array and the upper boundary.
 
@@ -174,7 +174,7 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     Resample slave onto the grid of the master.
     This does spatial resampling the whole dataset, e.g., all
     variables in the slave dataset.
-    This method works only if both datasets have (time, lat, lon) dimensions. 
+    This method works only if both datasets have (time, lat, lon) dimensions.
 
     Note that dataset attributes are not propagated due to currently undecided CDM attributes' set.
 

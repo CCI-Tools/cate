@@ -35,7 +35,6 @@ from typing import List
 import numpy as np
 import xarray as xr
 import fiona
-import pyproj
 import tornado.web
 import tornado.gen
 import concurrent.futures
