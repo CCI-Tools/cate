@@ -8,6 +8,7 @@ import shutil
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike
 from cate.ds.local import LocalDataStore, LocalDataSource
+from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from collections import OrderedDict
 
 
@@ -244,38 +245,39 @@ class LocalFilePatternSourceTest(unittest.TestCase):
     def test_make_local(self):
         data_source = self._local_data_store.query('local_w_temporal')[0]
 
-        new_ds = data_source.make_local('from_local_to_local', None,
-                                        (datetime.datetime(1978, 11, 14, 0, 0),
-                                         datetime.datetime(1978, 11, 15, 23, 59)))
-        self.assertEqual(new_ds.name, 'local.from_local_to_local')
-        self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-            (datetime.datetime(1978, 11, 14, 0, 0),
-             datetime.datetime(1978, 11, 15, 23, 59))))
+        with unittest.mock.patch.object(EsaCciOdpDataStore, 'query', return_value=[]):
+            new_ds = data_source.make_local('from_local_to_local', None,
+                                            (datetime.datetime(1978, 11, 14, 0, 0),
+                                             datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertEqual(new_ds.name, 'local.from_local_to_local')
+            self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
+                (datetime.datetime(1978, 11, 14, 0, 0),
+                 datetime.datetime(1978, 11, 15, 23, 59))))
 
-        data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
-                                               datetime.datetime(1978, 11, 16, 23, 59)))
-        self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-            (datetime.datetime(1978, 11, 15, 0, 0),
-             datetime.datetime(1978, 11, 16, 23, 59))))
+            data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                   datetime.datetime(1978, 11, 16, 23, 59)))
+            self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
+                (datetime.datetime(1978, 11, 15, 0, 0),
+                 datetime.datetime(1978, 11, 16, 23, 59))))
 
-        with self.assertRaises(ValueError) as context:
-            data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
-                                                       datetime.datetime(1978, 11, 16, 23, 59)))
-        self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
+            with self.assertRaises(ValueError) as context:
+                data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
+                                                           datetime.datetime(1978, 11, 16, 23, 59)))
+            self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
 
-        new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
-                                                       (datetime.datetime(1978, 11, 14, 0, 0),
-                                                        datetime.datetime(1978, 11, 15, 23, 59)),
-                                                       None, ['sm'])
-        self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
-        data_set = new_ds_w_one_variable.open_dataset()
-        self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
+            new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
+                                                           (datetime.datetime(1978, 11, 14, 0, 0),
+                                                            datetime.datetime(1978, 11, 15, 23, 59)),
+                                                           None, ['sm'])
+            self.assertEqual(new_ds_w_one_variable.name, 'local.from_local_to_local_var')
+            data_set = new_ds_w_one_variable.open_dataset()
+            self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
-        new_ds_w_region = data_source.make_local('from_local_to_local_region', None,
-                                                 (datetime.datetime(1978, 11, 14, 0, 0),
-                                                  datetime.datetime(1978, 11, 15, 23, 59)),
-                                                 "10,10,20,20", ['sm'])  # type: LocalDataSource
-        self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
-        self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
-        data_set = new_ds_w_region.open_dataset()
-        self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
+            new_ds_w_region = data_source.make_local('from_local_to_local_region', None,
+                                                     (datetime.datetime(1978, 11, 14, 0, 0),
+                                                      datetime.datetime(1978, 11, 15, 23, 59)),
+                                                     "10,10,20,20", ['sm'])  # type: LocalDataSource
+            self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
+            self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
+            data_set = new_ds_w_region.open_dataset()
+            self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
