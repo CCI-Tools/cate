@@ -480,6 +480,17 @@ class LocalDataStore(DataStore):
             data_source.add_dataset(file)
         return data_source
 
+    def remove_data_source(self, name: str, remove_files: bool = True):
+        data_sources = self.query(name)
+        if not data_sources or len(data_sources) != 1:
+            return
+        data_source = data_sources[0]
+        file_name = os.path.join(self._store_dir, data_source.name + '.json')
+        os.remove(file_name)
+        if remove_files:
+            shutil.rmtree(os.path.join(self._store_dir, data_source.name))
+        self._data_sources.remove(data_source)
+
     def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
                            reference_type: str = None, reference_name: str = None):
         self._init_data_sources()
