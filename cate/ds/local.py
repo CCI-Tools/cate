@@ -48,7 +48,7 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
 from glob import glob
-from math import ceil, floor
+from math import ceil, floor, isnan
 from typing import Optional, Sequence, Union, Any, Tuple
 from xarray.backends import NetCDF4DataStore
 
@@ -147,6 +147,11 @@ class LocalDataSource(DataSource):
         else:
             return None
 
+    @staticmethod
+    def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
+        value_str = attrs.get(attr_name, 'nan')
+        return float(value_str.rstrip('degrees').rstrip('f'))
+
     def _make_local(self,
                     local_ds: 'LocalDataSource',
                     time_range: TimeRangeLike.TYPE = None,
@@ -200,33 +205,41 @@ class LocalDataSource(DataSource):
 
                             remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                            geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
-                            geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
-                            geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
-                            geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
-
+                            process_region = False
                             if region:
-                                geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
-                                                    .strip('degrees'))
-                                geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
-                                                    .strip('degrees'))
+                                geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lat_min')
+                                geo_lat_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lat_max')
+                                geo_lon_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lon_min')
+                                geo_lon_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lon_max')
 
-                                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                                geo_lat_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lon_resolution')
+                                geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                    'geospatial_lat_resolution')
+                                if not (isnan(geo_lat_min) or isnan(geo_lat_max) or isnan(geo_lon_min)
+                                        or isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                    process_region = True
 
-                                lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
-                                lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
-                                lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
-                                lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+                                    [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
-                                # TODO (kbernat): check why dataset.sel fails!
-                                remote_dataset = remote_dataset.isel(drop=False,
-                                                                     lat=slice(lat_min, lat_max),
-                                                                     lon=slice(lon_min, lon_max))
+                                    lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
+                                    lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
+                                    lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
+                                    lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
 
-                                geo_lat_max = lat_max * geo_lat_res + geo_lat_min
-                                geo_lat_min += lat_min * geo_lat_res
-                                geo_lon_max = lon_max * geo_lon_res + geo_lon_min
-                                geo_lon_min += lon_min * geo_lon_res
+                                    # TODO (kbernat): check why dataset.sel fails!
+                                    remote_dataset = remote_dataset.isel(drop=False,
+                                                                         lat=slice(lat_min, lat_max),
+                                                                         lon=slice(lon_min, lon_max))
+
+                                    geo_lat_max = lat_max * geo_lat_res + geo_lat_min
+                                    geo_lat_min += lat_min * geo_lat_res
+                                    geo_lon_max = lon_max * geo_lon_res + geo_lon_min
+                                    geo_lon_min += lon_min * geo_lon_res
 
                             if not var_names:
                                 var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -241,7 +254,7 @@ class LocalDataSource(DataSource):
                                     var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
                                 local_netcdf.store_dataset(var_dataset)
                                 child_monitor.progress(work=1, msg=sel_var_name)
-                            if region:
+                            if process_region:
                                 local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
                                 local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
                                 local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
@@ -479,6 +492,17 @@ class LocalDataStore(DataStore):
         for file in files:
             data_source.add_dataset(file)
         return data_source
+
+    def remove_data_source(self, name: str, remove_files: bool = True):
+        data_sources = self.query(name)
+        if not data_sources or len(data_sources) != 1:
+            return
+        data_source = data_sources[0]
+        file_name = os.path.join(self._store_dir, data_source.name + '.json')
+        os.remove(file_name)
+        if remove_files:
+            shutil.rmtree(os.path.join(self._store_dir, data_source.name))
+        self._data_sources.remove(data_source)
 
     def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
                            reference_type: str = None, reference_name: str = None):
