@@ -29,7 +29,7 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import DEFAULT_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, query_data_sources
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd, to_str_constant, is_str_constant
@@ -158,6 +158,45 @@ class WebSocketService:
             meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
         # TODO mz add available data information
         return meta_info
+
+    def make_ds_local(self,
+                      data_source_name: str,
+                      local_name: str,
+                      args: dict,
+                      monitor: Monitor = Monitor.NONE) -> list:
+        """
+        Turns a (likely remote) data source into a local data source given a name and a number of
+        optional constraints.
+
+        :param data_source_name: The name of the source data source.
+        :param local_name: A human readable name for the new local data source.
+        :param args: A dict containing the constraints
+        :param monitor: a progress monitor.
+        :return: JSON-serializable list of 'local' data sources, sorted by name.
+        """
+        with monitor.starting('Making data source local', 100):
+            data_sources = query_data_sources(name=data_source_name)
+            if not data_sources:
+                raise ValueError('data source "%s" not found' % data_source_name)
+            if len(data_sources) > 1:
+                raise ValueError('Multiple data sources with the name "%s" found' % data_source_name)
+            data_source = data_sources[0]
+
+            time_range = None
+            if 'start_date' in args and 'end_date' in args:
+                time_range = (args['start_date'], args['end_date'])
+            region = None
+            if 'region' in args:
+                region = args['region']
+            var_names = None
+            if 'var' in args:
+                var_names = args['var']
+
+            local_data_source = data_source.make_local(local_name=local_name, time_range=time_range,
+                                                       region=region, var_names=var_names, monitor=monitor.child(98))
+
+            print('local_data_source', local_data_source)
+            return self.get_data_sources('local', monitor=monitor.child(2))
 
     def get_operations(self) -> List[dict]:
         """
