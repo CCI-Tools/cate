@@ -438,8 +438,9 @@ class LocalDataSource(DataSource):
         meta_data = json_dicts.get('meta_data', {})
 
         temporal_coverage = meta_data.get('temporal_coverage', None)
-        if temporal_coverage and isinstance(temporal_coverage, Sequence):
-            temporal_coverage = tuple(temporal_coverage)
+        # TODO why is this code here, doesn't work, because 'temporal_coverage' is a string
+        # if temporal_coverage and isinstance(temporal_coverage, Sequence):
+        #     temporal_coverage = tuple(temporal_coverage)
 
         spatial_coverage = meta_data.get('spatial_coverage', None)
         variables = meta_data.get('variables', None)
