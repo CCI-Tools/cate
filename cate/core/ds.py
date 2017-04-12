@@ -474,8 +474,7 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
 def open_dataset(data_source: Union[DataSource, str],
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
-                 var_names: VarNamesLike.TYPE = None,
-                 monitor: Monitor = Monitor.NONE) -> Any:
+                 var_names: VarNamesLike.TYPE = None) -> Any:
     """
     Open a dataset from a data source.
 
@@ -486,7 +485,6 @@ def open_dataset(data_source: Union[DataSource, str],
             If given, it must be a :py:class:`PolygonLike`.
     :param var_names: Optional names of variables to be included.
             If given, it must be a :py:class:`VarNamesLike`.
-    :param monitor: a progress monitor, used only if *sync* is ``True``
     :return: An new dataset instance
     """
     if data_source is None:
@@ -501,7 +499,7 @@ def open_dataset(data_source: Union[DataSource, str],
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
 
-    return data_source.open_dataset(time_range, region, var_names, monitor)
+    return data_source.open_dataset(time_range, region, var_names)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember

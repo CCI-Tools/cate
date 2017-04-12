@@ -31,10 +31,10 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertIn('open_dataset', [op['name'] for op in ops])
         open_dataset_op = [op for op in ops if op['name'] == 'open_dataset'][0]
         keys = sorted(list(open_dataset_op.keys()))
-        self.assertEqual(keys, ['has_monitor', 'header', 'input', 'name', 'output', 'qualified_name'])
+        self.assertEqual(keys, ['header', 'input', 'name', 'output', 'qualified_name'])
         keys = sorted(list(open_dataset_op['header'].keys()))
         self.assertEqual(keys, ['description', 'tags'])
         names = [props['name'] for props in open_dataset_op['input']]
-        self.assertEqual(names, ['ds_name', 'start_date', 'end_date', 'sync', 'protocol'])
+        self.assertEqual(names, ['ds_name', 'time_range', 'region', 'var_names', 'harmonize'])
         names = [props['name'] for props in open_dataset_op['output']]
         self.assertEqual(names, ['return'])
