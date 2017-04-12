@@ -162,6 +162,7 @@ def _load_or_fetch_json(fetch_json_function,
     Return (JSON) value of fetch_json_function or return value of a cached JSON file.
     """
     json_obj = None
+    cache_json_file = None
 
     if cache_used:
         if cache_dir is None:
@@ -192,15 +193,23 @@ def _load_or_fetch_json(fetch_json_function,
 
     if json_obj is None:
         # noinspection PyArgumentList
-        json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
-        if cache_used:
-            os.makedirs(cache_dir, exist_ok=True)
-            # noinspection PyUnboundLocalVariable
-            with open(cache_json_file, 'w') as fp:
-                fp.write(json.dumps(json_obj, indent='  '))
-            # noinspection PyUnboundLocalVariable
-            with open(cache_timestamp_file, 'w') as fp:
-                fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        try:
+            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+            if cache_used:
+                os.makedirs(cache_dir, exist_ok=True)
+                # noinspection PyUnboundLocalVariable
+                with open(cache_json_file, 'w') as fp:
+                    fp.write(json.dumps(json_obj, indent='  '))
+                # noinspection PyUnboundLocalVariable
+                with open(cache_timestamp_file, 'w') as fp:
+                    fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        except Exception as e:
+            if cache_json_file and os.path.exists(cache_json_file):
+                with open(cache_json_file) as fp:
+                    json_text = fp.read()
+                    json_obj = json.loads(json_text)
+            else:
+                raise e
 
     return json_obj
 
