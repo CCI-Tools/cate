@@ -198,6 +198,20 @@ class WebSocketService:
             print('local_data_source', local_data_source)
             return self.get_data_sources('local', monitor=monitor.child(2))
 
+    def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
+        """
+        Removes the datasource (and optionally the giles belonging  to it) from the local data store.
+
+        :param data_source_name: The name of the local data source.
+        :param remove_files: Wether to remove the files belonging to this data source.
+        :return: JSON-serializable list of 'local' data sources, sorted by name.
+        """
+        data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % 'local')
+        data_store.remove_data_source(data_source_name, remove_files)
+        return self.get_data_sources('local', monitor=Monitor.NONE)
+
     def get_operations(self) -> List[dict]:
         """
         Get registered operations.
