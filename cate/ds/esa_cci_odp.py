@@ -631,6 +631,7 @@ class EsaCciOdpDataSource(DataSource):
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
             files = self._get_urls_list(selected_file_list, protocol)
+            monitor.start('Sync ' + self.name, total_work=len(files))
             for idx, dataset_uri in enumerate(files):
                 child_monitor = monitor.child(work=1)
 
