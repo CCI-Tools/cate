@@ -1140,7 +1140,9 @@ class DataSourceCommand(SubCommandCommand):
 
         new_name = command_args.new_ds
 
-        time_range = (command_args.start_date, command_args.end_date)
+        time_range = None
+        if command_args.start_date and command_args.end_date:
+            time_range = (command_args.start_date, command_args.end_date)
         region = command_args.region
         var_names = command_args.var_names
 
