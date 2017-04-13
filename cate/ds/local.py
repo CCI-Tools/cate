@@ -180,7 +180,7 @@ class LocalDataSource(DataSource):
         if not os.path.exists(local_path):
             os.makedirs(local_path)
 
-        monitor.start("make local", total_work=len(self._files.items()))
+        monitor.start("Sync "+self.name, total_work=len(self._files.items()))
         for remote_relative_filepath, coverage in self._files.items():
             child_monitor = monitor.child(work=1)
 
