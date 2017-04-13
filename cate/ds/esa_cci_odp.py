@@ -591,8 +591,10 @@ class EsaCciOdpDataSource(DataSource):
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
-        value_str = attrs.get(attr_name, 'nan')
-        return float(value_str.rstrip('degrees').rstrip('f'))
+        value = attrs.get(attr_name, 'nan')
+        if isinstance(value, str):
+            return float(value.rstrip('degrees').rstrip('f'))
+        return value
 
     def _make_local(self,
                     local_ds: LocalDataSource,
