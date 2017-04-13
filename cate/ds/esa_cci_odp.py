@@ -659,8 +659,9 @@ class EsaCciOdpDataSource(DataSource):
                                                                             'geospatial_lon_resolution')
                         geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
                                                                             'geospatial_lat_resolution')
-                        if not (isnan(geo_lat_min) or isnan(geo_lat_max) or isnan(geo_lon_min) or isnan(geo_lon_max)
-                                or isnan(geo_lat_res) or isnan(geo_lon_res)):
+                        if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
+                                isnan(geo_lon_min) or isnan(geo_lon_max) or
+                                isnan(geo_lat_res) or isnan(geo_lon_res)):
                             process_region = True
 
                             [lat_min, lon_min, lat_max, lon_max] = region.bounds

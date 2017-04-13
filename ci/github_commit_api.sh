@@ -18,3 +18,7 @@ curl "https://api.github.com/repos/${REPO}/statuses/${SHA}?access_token=${GITHUB
   -H "Content-Type: application/json" \
   -X POST \
   -d "{\"state\": \"${STATUS}\", \"context\": \"${CONTEXT}\", \"description\": \"${TEXT}\", \"target_url\": \"${LOG_URL}\"}"
+
+# reference:
+# https://gist.github.com/justincampbell/5066394
+# https://developer.github.com/v3/repos/statuses/
