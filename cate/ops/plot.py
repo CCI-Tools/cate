@@ -62,7 +62,7 @@ import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
 
-from typing import Optional
+from typing import Optional, Union
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike
@@ -84,12 +84,12 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
                                    'NorthPolarStereo', 'SouthPolarStereo'])
-@op_input('central_lon')
+@op_input('central_lon', units='degrees', value_range=[-180, 180])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
-             time: Optional[str, int] = None,
+             time: Union[str, int] = None,
              lat_min: float = None,
              lat_max: float = None,
              lon_min: float = None,
@@ -147,6 +147,13 @@ def plot_map(ds: xr.Dataset,
         if not index:
             index = dict()
         index['time'] = time
+
+    for dim_name in var.dims:
+        if dim_name not in ('lat', 'lon'):
+            if not index:
+                index = dict()
+            if dim_name not in index:
+                index[dim_name] = 0
 
     extents = None
     if not (lat_min is None and lat_max is None and lon_min is None and lon_max is None):
