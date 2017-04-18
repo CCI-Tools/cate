@@ -9,7 +9,7 @@ from unittest import TestCase
 import numpy as np
 import xarray as xr
 
-from cate.ops import plot, plot_map
+from cate.ops.plot import plot, plot_map
 
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
@@ -35,9 +35,9 @@ class TestPlot(TestCase):
 
         # Test if extents can be used
         plot_map(dataset,
-                      var='second',
-                      region = '-40.0, -20.0, 50.0, 60.0',
-                      file='remove_me.pdf')
+                 var='second',
+                 region='-40.0, -20.0, 50.0, 60.0',
+                 file='remove_me.pdf')
         self.assertTrue(os.path.isfile('remove_me.pdf'))
         os.remove('remove_me.pdf')
 
@@ -56,46 +56,28 @@ class TestPlot(TestCase):
             'lon': np.linspace(-179.5, 179.5, 4)})
 
         with self.assertRaises(ValueError):
-#<<<<<<< HEAD
-#            region = '-40.0, -95.0, 50.0, 60.0',
-#            plot.plot_map(dataset, region=region)
-#
-#        with self.assertRaises(ValueError):
-#            region = '-40.0, -20.0, 50.0, 95.0',
-#            plot.plot_map(dataset, region=region)
-#
-#        with self.assertRaises(ValueError):
-#            region = '-181.0, -20.0, 50.0, 60.0',
-#            plot.plot_map(dataset, region=region)
-#
-#        with self.assertRaises(ValueError):
-#            region = '-40.0, -20.0, 181.0, 60.0',
-#            plot.plot_map(dataset, region=region)
-#
-#        with self.assertRaises(ValueError):
-#            region = '-40.0, -20.0, 50.0, -25.0',
-#            plot.plot_map(dataset, region=region)
-#
-#        with self.assertRaises(ValueError):
-#            region = '-20.0, -20.0, -25.0, 60.0',
-#            plot.plot_map(dataset, region=region)
-#=======
-            plot_map(dataset, lat_min=-95.0)
+            region = '-40.0, -95.0, 50.0, 60.0',
+            plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot_map(dataset, lat_max=95.0)
+            region = '-40.0, -20.0, 50.0, 95.0',
+            plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot_map(dataset, lon_min=-181.0)
+            region = '-181.0, -20.0, 50.0, 60.0',
+            plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot_map(dataset, lon_max=181.0)
+            region = '-40.0, -20.0, 181.0, 60.0',
+            plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot_map(dataset, lat_min=-20.0, lat_max=-25.0)
+            region = '-40.0, -20.0, 50.0, -25.0',
+            plot_map(dataset, region=region)
 
         with self.assertRaises(ValueError):
-            plot_map(dataset, lon_min=-20.0, lon_max=-25.0)
+            region = '-20.0, -20.0, -25.0, 60.0',
+            plot_map(dataset, region=region)
 
     def test_plot(self):
         # Test plot
