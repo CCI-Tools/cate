@@ -987,18 +987,6 @@ class DataSourceCommand(SubCommandCommand):
         #                               "The comparison is case insensitive.")
         list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        sync_parser = subparsers.add_parser('sync',
-                                            help='Synchronise a remote data source with its local version.')
-        sync_parser.add_argument('ds_name', metavar='DS',
-                                 help='A data source name. '
-                                      'Type "cate ds list" to show all possible data source names.')
-        sync_parser.add_argument('start_date', metavar='START', nargs='?',
-                                 help='Start date with format YYYY[-MM[-DD]].')
-        sync_parser.add_argument('end_date', metavar='END', nargs='?',
-                                 help='End date with format YYYY[-MM[-DD]]. '
-                                      'END date must be greater than START date.')
-        sync_parser.set_defaults(sub_command_function=cls._execute_sync)
-
         info_parser = subparsers.add_parser('info', help='Display information about a data source.')
         info_parser.add_argument('ds_name', metavar='DS',
                                  help='A data source name. '
@@ -1024,22 +1012,22 @@ class DataSourceCommand(SubCommandCommand):
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        make_local_parser = subparsers.add_parser('make_local',
-                                                  help='Makes a new local data source basing on other data source. '
-                                                       'New data source may be adjusted by selecting time range and/or '
-                                                       'region and/or variables name.')
-        make_local_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
-        make_local_parser.add_argument('new_ds', metavar='NEW_DS', help='A name for new data source.')
-        make_local_parser.add_argument('start_date', metavar='START', nargs='?',
-                                       help='Start date with format YYYY[-MM[-DD]].')
-        make_local_parser.add_argument('end_date', metavar='END', nargs='?',
-                                       help='End date with format YYYY[-MM[-DD]]. '
-                                            'END date must be greater than START date.')
-        make_local_parser.add_argument('region', metavar='REGION', nargs='?',
-                                       help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
-        make_local_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
-                                       help="Names of variables to be included. Use format 'pattern1, pattern2'")
-        make_local_parser.set_defaults(sub_command_function=cls._execute_make_local)
+        copy_parser = subparsers.add_parser('copy',
+                                            help='Makes a new local data source basing on other (remote or local) data '
+                                                 'source. New data source may be adjusted by selecting time range '
+                                                 'and/or region and/or variables name.')
+        copy_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
+        copy_parser.add_argument('new_ds', metavar='NEW_DS', nargs='?', help='A name for new data source.')
+        copy_parser.add_argument('start_date', metavar='START', nargs='?',
+                                 help='Start date with format YYYY[-MM[-DD]].')
+        copy_parser.add_argument('end_date', metavar='END', nargs='?',
+                                 help='End date with format YYYY[-MM[-DD]]. '
+                                      'END date must be greater than START date.')
+        copy_parser.add_argument('region', metavar='REGION', nargs='?',
+                                 help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
+        copy_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
+                                 help="Names of variables to be included. Use format 'pattern1, pattern2'")
+        copy_parser.set_defaults(sub_command_function=cls._execute_copy)
 
     @classmethod
     def _execute_list(cls, command_args):
@@ -1074,31 +1062,6 @@ class DataSourceCommand(SubCommandCommand):
             print(data_source.variables_info_string)
 
     @classmethod
-    def _execute_sync(cls, command_args):
-        ds_name = command_args.ds_name
-        data_sources = query_data_sources(name=ds_name)
-        if not data_sources:
-            raise CommandError('data source "%s" not found' % ds_name)
-
-        data_source = data_sources[0]
-        if command_args.start_date:
-            try:
-                time_range = to_datetime_range(command_args.start_date, command_args.end_date)
-            except ValueError:
-                raise CommandError('invalid START and/or END date')
-        else:
-            time_range = None
-
-        num_sync, num_total = data_source.sync(time_range=time_range,
-                                               monitor=cls.new_monitor())
-        if num_total == 0:
-            print('No files to synchronize.')
-        elif num_sync == 0:
-            print('All files (%d) synchronized.' % num_total)
-        else:
-            print('%d of %d file(s) synchronized.' % (num_sync, num_total))
-
-    @classmethod
     def _execute_add(cls, command_args):
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
@@ -1126,7 +1089,7 @@ class DataSourceCommand(SubCommandCommand):
             print("Local data source with name '%s' removed." % ds.name)
 
     @classmethod
-    def _execute_make_local(cls, command_args):
+    def _execute_copy(cls, command_args):
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no local data store found')
