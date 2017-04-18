@@ -49,7 +49,7 @@ import urllib.request
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from math import ceil, floor
+from math import ceil, floor, isnan
 from typing import Sequence, Tuple, Optional, Any
 from xarray.backends import NetCDF4DataStore
 
@@ -162,6 +162,7 @@ def _load_or_fetch_json(fetch_json_function,
     Return (JSON) value of fetch_json_function or return value of a cached JSON file.
     """
     json_obj = None
+    cache_json_file = None
 
     if cache_used:
         if cache_dir is None:
@@ -192,15 +193,23 @@ def _load_or_fetch_json(fetch_json_function,
 
     if json_obj is None:
         # noinspection PyArgumentList
-        json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
-        if cache_used:
-            os.makedirs(cache_dir, exist_ok=True)
-            # noinspection PyUnboundLocalVariable
-            with open(cache_json_file, 'w') as fp:
-                fp.write(json.dumps(json_obj, indent='  '))
-            # noinspection PyUnboundLocalVariable
-            with open(cache_timestamp_file, 'w') as fp:
-                fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        try:
+            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+            if cache_used:
+                os.makedirs(cache_dir, exist_ok=True)
+                # noinspection PyUnboundLocalVariable
+                with open(cache_json_file, 'w') as fp:
+                    fp.write(json.dumps(json_obj, indent='  '))
+                # noinspection PyUnboundLocalVariable
+                with open(cache_timestamp_file, 'w') as fp:
+                    fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        except Exception as e:
+            if cache_json_file and os.path.exists(cache_json_file):
+                with open(cache_json_file) as fp:
+                    json_text = fp.read()
+                    json_obj = json.loads(json_text)
+            else:
+                raise e
 
     return json_obj
 
@@ -580,6 +589,13 @@ class EsaCciOdpDataSource(DataSource):
         """
         return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
 
+    @staticmethod
+    def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
+        value = attrs.get(attr_name, 'nan')
+        if isinstance(value, str):
+            return float(value.rstrip('degrees').rstrip('f'))
+        return value
+
     def _make_local(self,
                     local_ds: LocalDataSource,
                     time_range: TimeRangeLike.TYPE = None,
@@ -615,6 +631,7 @@ class EsaCciOdpDataSource(DataSource):
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
             files = self._get_urls_list(selected_file_list, protocol)
+            monitor.start('Sync ' + self.name, total_work=len(files))
             for idx, dataset_uri in enumerate(files):
                 child_monitor = monitor.child(work=1)
 
@@ -634,33 +651,38 @@ class EsaCciOdpDataSource(DataSource):
 
                     remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                    geo_lat_min = float(remote_dataset.attrs.get('geospatial_lat_min'))
-                    geo_lat_max = float(remote_dataset.attrs.get('geospatial_lat_max'))
-                    geo_lon_min = float(remote_dataset.attrs.get('geospatial_lon_min'))
-                    geo_lon_max = float(remote_dataset.attrs.get('geospatial_lon_max'))
-
+                    process_region = False
                     if region:
-                        geo_lat_res = float(remote_dataset.attrs.get('geospatial_lon_resolution')
-                                            .strip('degrees'))
-                        geo_lon_res = float(remote_dataset.attrs.get('geospatial_lat_resolution')
-                                            .strip('degrees'))
+                        geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lat_min')
+                        geo_lat_max = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lat_max')
+                        geo_lon_min = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lon_min')
+                        geo_lon_max = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lon_max')
 
-                        [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                        geo_lat_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                            'geospatial_lon_resolution')
+                        geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                            'geospatial_lat_resolution')
+                        if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
+                                isnan(geo_lon_min) or isnan(geo_lon_max) or
+                                isnan(geo_lat_res) or isnan(geo_lon_res)):
+                            process_region = True
 
-                        lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
-                        lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
-                        lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
-                        lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+                            [lat_min, lon_min, lat_max, lon_max] = region.bounds
 
-                        # TODO (kbernat): check why dataset.sel fails!
-                        remote_dataset = remote_dataset.isel(drop=False,
-                                                             lat=slice(lat_min, lat_max),
-                                                             lon=slice(lon_min, lon_max))
+                            lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
+                            lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
+                            lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
+                            lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
 
-                        geo_lat_max = lat_max * geo_lat_res + geo_lat_min
-                        geo_lat_min += lat_min * geo_lat_res
-                        geo_lon_max = lon_max * geo_lon_res + geo_lon_min
-                        geo_lon_min += lon_min * geo_lon_res
+                            # TODO (kbernat): check why dataset.sel fails!
+                            remote_dataset = remote_dataset.isel(drop=False,
+                                                                 lat=slice(lat_min, lat_max),
+                                                                 lon=slice(lon_min, lon_max))
+
+                            geo_lat_max = lat_max * geo_lat_res + geo_lat_min
+                            geo_lat_min += lat_min * geo_lat_res
+                            geo_lon_max = lon_max * geo_lon_res + geo_lon_min
+                            geo_lon_min += lon_min * geo_lon_res
 
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -674,7 +696,7 @@ class EsaCciOdpDataSource(DataSource):
                             var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
                         local_netcdf.store_dataset(var_dataset)
                         child_monitor.progress(work=1, msg=sel_var_name)
-                    if region:
+                    if process_region:
                         local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
                         local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
                         local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)

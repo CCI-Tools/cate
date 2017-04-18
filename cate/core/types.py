@@ -324,4 +324,4 @@ class TimeRangeLike(Like[TimeRange]):
 
     @classmethod
     def format(cls, value: TimeRange) -> str:
-        return '{} {}'.format(value[0].isoformat(), value[1].isoformat())
+        return '{}, {}'.format(value[0].isoformat(), value[1].isoformat())

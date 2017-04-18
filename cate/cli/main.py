@@ -381,11 +381,7 @@ class RunCommand(Command):
                     monitor = self.new_monitor()
                 else:
                     monitor = Monitor.NONE
-                namespace[res_name] = open_dataset(ds_name,
-                                                   start_date=start_date,
-                                                   end_date=end_date,
-                                                   sync=True,
-                                                   monitor=monitor)
+                namespace[res_name] = open_dataset(ds_name, time_range=(start_date, end_date), monitor=monitor)
 
         if command_args.read_args:
             read_args = list(map(_parse_read_arg, command_args.read_args))
@@ -716,10 +712,10 @@ class ResourceCommand(SubCommandCommand):
                                  help='Start date. Use format YYYY[-MM[-DD]].')
         open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format YYYY[-MM[-DD]].')
-        open_parser.add_argument('protocol', metavar='PROTOCOL', nargs='?',
-                                 help='Name of protocol used to access data source.'
-                                      ' Type "cate ds info [DS]" to list available '
-                                      'protocols.')
+        open_parser.add_argument('region', metavar='REGION', nargs='?',
+                                 help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
+        open_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
+                                 help="Names of variables to be included. Use format 'pattern1, pattern2, pattern3'")
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
@@ -806,13 +802,13 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         ds_name = command_args.ds_name
         op_args = ['ds_name=%s' % to_str_constant(ds_name)]
-        if command_args.start_date:
-            op_args.append('start_date=%s' % to_str_constant(command_args.start_date))
-        if command_args.end_date:
-            op_args.append('end_date=%s' % to_str_constant(command_args.end_date))
-        op_args.append('sync=True')
-        if command_args.protocol:
-            op_args.append('protocol={}'.format(to_str_constant(command_args.protocol)))
+        if command_args.var_names:
+            op_args.append('var_names=%s' % to_str_constant(command_args.var_names))
+        if command_args.region:
+            op_args.append('region=%s' % to_str_constant(command_args.region))
+        if command_args.start_date and command_args.end_date:
+            op_args.append('time_range="%s"' %
+                           (to_str_constant(command_args.start_date), to_str_constant(command_args.start_date)))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.open_dataset',
@@ -1015,12 +1011,37 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display temporal coverage of cached datasets.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        def_parser = subparsers.add_parser('def', help='Define a local data source using a file pattern.')
-        def_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
-        def_parser.add_argument('file', metavar='FILE', nargs="+",
+        add_parser = subparsers.add_parser('add', help='Define a local data source using a file pattern.')
+        add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '
                                      'The files can contain the wildcard characters "*" and "?".')
-        def_parser.set_defaults(sub_command_function=cls._execute_def)
+        add_parser.set_defaults(sub_command_function=cls._execute_add)
+
+        del_parser = subparsers.add_parser('del', help='Removes a data source from local data store.')
+        del_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        del_parser.add_argument('-k', '--keep_files', dest='keep_files', action='store_true', default=False,
+                                help='Do not ask for confirmation.')
+        del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                                help='Do not ask for confirmation.')
+        del_parser.set_defaults(sub_command_function=cls._execute_del)
+
+        make_local_parser = subparsers.add_parser('make_local',
+                                                  help='Makes a new local data source basing on other data source. '
+                                                       'New data source may be adjusted by selecting time range and/or '
+                                                       'region and/or variables name.')
+        make_local_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
+        make_local_parser.add_argument('new_ds', metavar='NEW_DS', help='A name for new data source.')
+        make_local_parser.add_argument('start_date', metavar='START', nargs='?',
+                                       help='Start date with format YYYY[-MM[-DD]].')
+        make_local_parser.add_argument('end_date', metavar='END', nargs='?',
+                                       help='End date with format YYYY[-MM[-DD]]. '
+                                            'END date must be greater than START date.')
+        make_local_parser.add_argument('region', metavar='REGION', nargs='?',
+                                       help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
+        make_local_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
+                                       help="Names of variables to be included. Use format 'pattern1, pattern2'")
+        make_local_parser.set_defaults(sub_command_function=cls._execute_make_local)
 
     @classmethod
     def _execute_list(cls, command_args):
@@ -1080,7 +1101,7 @@ class DataSourceCommand(SubCommandCommand):
             print('%d of %d file(s) synchronized.' % (num_sync, num_total))
 
     @classmethod
-    def _execute_def(cls, command_args):
+    def _execute_add(cls, command_args):
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no local data store found')
@@ -1089,6 +1110,45 @@ class DataSourceCommand(SubCommandCommand):
         files = command_args.file
         ds = local_store.add_pattern(ds_name, files)
         print("Local data source with name '%s' added." % ds.name)
+
+    @classmethod
+    def _execute_del(cls, command_args):
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if local_store is None:
+            raise RuntimeError('internal error: no local data store found')
+        ds_name = command_args.ds_name
+        if command_args.yes:
+            answer = 'y'
+        else:
+            prompt = 'Do you really want to delete local data source "%s" ([y]/n)? ' % ds_name
+            answer = input(prompt)
+        if not answer or answer.lower() == 'y':
+            keep_files = command_args.keep_files
+            ds = local_store.remove_data_source(ds_name, not keep_files)
+            print("Local data source with name '%s' removed." % ds.name)
+
+    @classmethod
+    def _execute_make_local(cls, command_args):
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if local_store is None:
+            raise RuntimeError('internal error: no local data store found')
+
+        ds_name = command_args.ref_ds
+        data_source = next(iter(query_data_sources(None, ds_name)), None)
+        if data_source is None:
+            raise RuntimeError('internal error: no local data source found: %s' % ds_name)
+
+        new_name = command_args.new_ds
+
+        time_range = None
+        if command_args.start_date and command_args.end_date:
+            time_range = (command_args.start_date, command_args.end_date)
+        region = command_args.region
+        var_names = command_args.var_names
+
+        ds = data_source.make_local(new_name, None, time_range=time_range, region=region, var_names=var_names,
+                                    monitor=cls.new_monitor())
+        print("Local data source with name '%s' has been created." % ds.name)
 
 
 class PluginCommand(SubCommandCommand):
