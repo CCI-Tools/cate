@@ -110,9 +110,9 @@ def plot_map(ds: xr.Dataset,
     :param var: variable name in the dataset to plot
     :param index: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
-                  e.g. "lat=12.4, time='2012-05-02'". 
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
     :param time: time slice index to plot
     :param region: Region to plot
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
@@ -229,9 +229,9 @@ def plot(ds: xr.Dataset,
     :param var: The name of the variable to plot
     :param index: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
-                  e.g. "lat=12.4, time='2012-05-02'". 
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
     :param file: path to a file in which to save the plot
     """
 

@@ -42,7 +42,6 @@ def some_op(file: PathLike.TYPE) -> bool:
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
-import json
 
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
