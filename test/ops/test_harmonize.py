@@ -67,7 +67,7 @@ class TestHarmonize(TestCase):
             'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [x[0]+x[1] for x in tuples]})
+            'time': [x[0] + x[1] for x in tuples]})
         ds.time.attrs['long_name'] = 'time in julian days'
 
         expected = xr.Dataset({
