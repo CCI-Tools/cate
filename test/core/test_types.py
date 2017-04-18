@@ -6,8 +6,8 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike
-from cate.util import object_to_qualified_name
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike
+from cate.util import object_to_qualified_name, OrderedDict
 
 import xarray as xr
 import pandas as pd
@@ -144,6 +144,35 @@ class VarNameTest(TestCase):
 
     def test_format(self):
         self.assertEqual('aa', VarName.format('aa'))
+
+
+class DictLikeTest(TestCase):
+    """
+    Test the DictLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(DictLike.accepts(None))
+        self.assertTrue(DictLike.accepts(''))
+        self.assertTrue(DictLike.accepts('a=6, b=5.3, c=True, d="Hello"'))
+        self.assertFalse(DictLike.accepts('{a=True}'))
+        self.assertFalse(DictLike.accepts('a=true'))
+        self.assertFalse(DictLike.accepts('{a, b}'))
+        self.assertFalse(DictLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(DictLike.accepts(1.0))
+
+    def test_convert(self):
+        self.assertEqual(DictLike.convert(None), None)
+        self.assertEqual(DictLike.convert('  '), None)
+        self.assertEqual(DictLike.convert('name="bibo", thres=0.5, drop=False'), dict(name="bibo", thres=0.5, drop=False))
+
+        with self.assertRaises(ValueError) as err:
+            DictLike.convert('{a=8, b}')
+        self.assertTrue('cannot convert' in str(err.exception))
+
+    def test_format(self):
+        self.assertEqual(DictLike.format(OrderedDict([('name', 'bibo'), ('thres', 0.5), ('drop', True)])),
+                         "name='bibo', thres=0.5, drop=True")
 
 
 class PointLikeTest(TestCase):

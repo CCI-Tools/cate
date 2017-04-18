@@ -41,11 +41,12 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
+from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
+import json
 
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
-from typing import Any, Generic, TypeVar, List, Union, Tuple
 
 from cate.util.misc import to_list, to_datetime_range
 
@@ -159,6 +160,43 @@ class VarName(Like[str]):
             raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
 
         return value
+
+
+class DictLike(Like[dict]):
+    """
+    Type class for dictionary objects
+
+    Accepts:
+        1. a dictionary string
+        2. a dict object
+
+    Converts to a dict object
+    """
+
+    TYPE = Union[str, dict]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[dict]:
+
+        # Can be optional
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            return value
+
+        try:
+            if isinstance(value, str):
+                if value.strip() == '':
+                    return None
+                return eval('dict(%s)' % value, None, None)
+            raise ValueError()
+        except Exception:
+            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+
+    @classmethod
+    def format(cls, value: dict) -> str:
+        return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()])
 
 
 class PointLike(Like[Point]):

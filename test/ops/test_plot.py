@@ -9,7 +9,7 @@ from unittest import TestCase
 import numpy as np
 import xarray as xr
 
-from cate.ops import plot
+from cate.ops import plot, plot_map
 
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
@@ -24,17 +24,17 @@ class TestPlot(TestCase):
             'lat': np.linspace(-89.5, 89.5, 5),
             'lon': np.linspace(-179.5, 179.5, 10)})
 
-        plot.plot_map(dataset, file='remove_me.png')
+        plot_map(dataset, file='remove_me.png')
         self.assertTrue(os.path.isfile('remove_me.png'))
         os.remove('remove_me.png')
 
         # Test if an error is raised when an unsupported format is passed
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, file='remove_me.pgm')
+            plot_map(dataset, file='remove_me.pgm')
         self.assertFalse(os.path.isfile('remove_me.pgm'))
 
         # Test if extents can be used
-        plot.plot_map(dataset,
+        plot_map(dataset,
                       var='second',
                       lat_min=-20.0,
                       lat_max=60.0,
@@ -49,7 +49,7 @@ class TestPlot(TestCase):
 
         # Test value error is raised when passing an unexpected dataset type
         with self.assertRaises(NotImplementedError):
-            plot.plot_map([1, 2, 4], file='remove_me.jpeg')
+            plot_map([1, 2, 4], file='remove_me.jpeg')
         self.assertFalse(os.path.isfile('remove_me.jpg'))
 
         # Test the extensions bound checking
@@ -59,28 +59,28 @@ class TestPlot(TestCase):
             'lon': np.linspace(-179.5, 179.5, 4)})
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_min=-95.0)
+            plot_map(dataset, lat_min=-95.0)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_max=95.0)
+            plot_map(dataset, lat_max=95.0)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_min=-181.0)
+            plot_map(dataset, lon_min=-181.0)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_max=181.0)
+            plot_map(dataset, lon_max=181.0)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lat_min=-20.0, lat_max=-25.0)
+            plot_map(dataset, lat_min=-20.0, lat_max=-25.0)
 
         with self.assertRaises(ValueError):
-            plot.plot_map(dataset, lon_min=-20.0, lon_max=-25.0)
+            plot_map(dataset, lon_min=-20.0, lon_max=-25.0)
 
-    def test_plot_1D(self):
-        # Test plot_1D
+    def test_plot(self):
+        # Test plot
         dataset = xr.Dataset({
             'first': np.random.rand(10)})
 
-        plot.plot_1D(dataset, 'first', file='remove_me.jpg')
+        plot(dataset, 'first', file='remove_me.jpg')
         self.assertTrue(os.path.isfile('remove_me.jpg'))
         os.remove('remove_me.jpg')

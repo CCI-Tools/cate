@@ -317,13 +317,13 @@ This creates datasets that contain mean and std variables for both time-series.
 Time Series Plot
 ----------------
 
-To plot the time-series and save the ``plot_1D`` operation can be used together with ``cate ws run`` operation:
+To plot the time-series and save the ``plot`` operation can be used together with ``cate ws run`` operation:
 
 .. code-block:: console
 
-    $ cate ws run plot_1D ds=cc_africa_ts var=cc_total file=fig6.png
-    Running operation 'plot_1D': Executing 11 workflow step(s)
-    Operation 'plot_1D' executed.
+    $ cate ws run plot ds=cc_africa_ts var=cc_total file=fig6.png
+    Running operation 'plot': Executing 11 workflow step(s)
+    Operation 'plot' executed.
 
 .. figure:: _static/quick_start/fig6.png
    :scale: 100 %
@@ -331,9 +331,9 @@ To plot the time-series and save the ``plot_1D`` operation can be used together 
 
 .. code-block:: console
 
-    $ cate ws run plot_1D ds=oz_africa_ts var=O3_du_tot file=fig7.png
-    Running operation 'plot_1D': Executing 11 workflow step(s)
-    Operation 'plot_1D' executed.
+    $ cate ws run plot ds=oz_africa_ts var=O3_du_tot file=fig7.png
+    Running operation 'plot': Executing 11 workflow step(s)
+    Operation 'plot' executed.
 
 .. figure:: _static/quick_start/fig7.png
    :scale: 100 %
