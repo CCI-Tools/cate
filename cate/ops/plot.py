@@ -111,12 +111,19 @@ def plot_map(ds: xr.Dataset,
 
     :param ds: xr.Dataset to plot
     :param var: variable name in the dataset to plot
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
+                  that maps the variable's dimension names to constant labels. For example,
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
+                  e.g. "lat=12.4, time='2012-05-02'". 
     :param time: time slice index to plot
     :param lat_min: minimum latitude extent to plot
     :param lat_max: maximum latitude extent to plot
     :param lon_min: minimum longitude extent to plot
     :param lon_max: maximum longitude extent to plot
-    :param file: filepath where to save the plot
+    :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
+    :param central_lon: central longitude of the projection in degrees
+    :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently '
@@ -155,7 +162,6 @@ def plot_map(ds: xr.Dataset,
             raise ValueError('Provided plot extents do not form a valid bounding box '
                              'within [-180.0,+180.0,-90.0,+90.0]')
         extents = [lon_min, lon_max, lat_min, lat_max]
-
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -224,12 +230,12 @@ def plot(ds: xr.Dataset,
 
     :param ds: Dataset that contains the variable named by *var*.
     :param var: The name of the variable to plot
-    :param index: Optional index into the variable's data array. The index is a dictionary
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
                   e.g. "lat=12.4, time='2012-05-02'". 
-    :param file: Path to a file in which to save the plot
+    :param file: path to a file in which to save the plot
     """
 
     var = VarName.convert(var)
