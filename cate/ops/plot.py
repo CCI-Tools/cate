@@ -134,7 +134,8 @@ def plot_map(ds: xr.Dataset,
     var = ds[var_name]
     index = DictLike.convert(index)
 
-    if time and isinstance(time, int) and 'time' in var.coords:
+    # 0 is a valid index, hence test if time is None
+    if time is not None and isinstance(time, int) and 'time' in var.coords:
         time = var.coords['time'][time]
 
     if time:
