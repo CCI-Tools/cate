@@ -60,18 +60,42 @@ import xarray as xr
 matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
+import cartopy.crs as ccrs
+
+from typing import Union
+
 from cate.core.op import op, op_input
-from cate.core.types import VarName, PolygonLike
+from cate.core.types import VarName, DictLike
+
+PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
+                        'png', 'ps', 'raw', 'rgba', 'svg',
+                        'svgz', 'tif', 'tiff']
+PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
 
-@op(tags=['graphical', 'plot', 'map'], no_cache=True)
+@op(tags=['plot', 'map'], no_cache=True)
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('region', data_type=PolygonLike)
+@op_input('index', data_type=DictLike)
+@op_input('lat_min', units='degrees', value_range=[-90, 90])
+@op_input('lat_max', units='degrees', value_range=[-90, 90])
+@op_input('lon_min', units='degrees', value_range=[-180, 180])
+@op_input('lon_max', units='degrees', value_range=[-180, 180])
+@op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
+                                   'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
+                                   'NorthPolarStereo', 'SouthPolarStereo'])
+@op_input('central_lon', units='degrees', value_range=[-180, 180])
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
-             time=None,
-             region: PolygonLike.TYPE = None,
+             index: DictLike.TYPE = None,
+             time: Union[str, int] = None,
+             lat_min: float = None,
+             lat_max: float = None,
+             lon_min: float = None,
+             lon_max: float = None,
+             projection: str = 'PlateCarree',
+             central_lon: float = 0.0,
              file: str = None) -> None:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
@@ -87,83 +111,159 @@ def plot_map(ds: xr.Dataset,
 
     :param ds: xr.Dataset to plot
     :param var: variable name in the dataset to plot
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
+                  that maps the variable's dimension names to constant labels. For example,
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
+                  e.g. "lat=12.4, time='2012-05-02'". 
     :param time: time slice index to plot
-    :param region: Region to plot. If the region is not rectangular, it's
-    bounding box will be used.
-    :param file: filepath where to save the plot
+    :param lat_min: minimum latitude extent to plot
+    :param lat_max: maximum latitude extent to plot
+    :param lon_min: minimum longitude extent to plot
+    :param lon_max: maximum longitude extent to plot
+    :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
+    :param central_lon: central longitude of the projection in degrees
+    :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently '
                                   'supported')
 
+    var_name = None
     if not var:
         for key in ds.data_vars.keys():
-            var = key
+            var_name = key
             break
     else:
-        var = VarName.convert(var)
+        var_name = VarName.convert(var)
 
-    if not time:
-        time = 0
+    var = ds[var_name]
+    index = DictLike.convert(index)
 
-    if region is None:
-        lat_min = -90.0
-        lat_max = 90.0
-        lon_min = -180.0
-        lon_max = 180.0
+    if time and isinstance(time, int) and 'time' in var.coords:
+        time = var.coords['time'][time]
+
+    if time:
+        if not index:
+            index = dict()
+        index['time'] = time
+
+    for dim_name in var.dims:
+        if dim_name not in ('lat', 'lon'):
+            if not index:
+                index = dict()
+            if dim_name not in index:
+                index[dim_name] = 0
+
+    extents = None
+    if not (lat_min is None and lat_max is None and lon_min is None and lon_max is None):
+        if lat_min is None:
+            lat_min = -90.0
+        if lat_max is None:
+            lat_max = 90.0
+        if lon_min is None:
+            lon_min = -180.0
+        if lon_max is None:
+            lon_max = 180.0
+        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+            raise ValueError('Provided plot extents do not form a valid bounding box '
+                             'within [-180.0,+180.0,-90.0,+90.0]')
+        extents = [lon_min, lon_max, lat_min, lat_max]
+
+    # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
+    if projection == 'PlateCarree':
+        proj = ccrs.PlateCarree(central_longitude=central_lon)
+    elif projection == 'LambertCylindrical':
+        proj = ccrs.LambertCylindrical(central_longitude=central_lon)
+    elif projection == 'Mercator':
+        proj = ccrs.Mercator(central_longitude=central_lon)
+    elif projection == 'Miller':
+        proj = ccrs.Miller(central_longitude=central_lon)
+    elif projection == 'Mollweide':
+        proj = ccrs.Mollweide(central_longitude=central_lon)
+    elif projection == 'Orthographic':
+        proj = ccrs.Orthographic(central_longitude=central_lon)
+    elif projection == 'Robinson':
+        proj = ccrs.Robinson(central_longitude=central_lon)
+    elif projection == 'Sinusoidal':
+        proj = ccrs.Sinusoidal(central_longitude=central_lon)
+    elif projection == 'NorthPolarStereo':
+        proj = ccrs.NorthPolarStereo(central_longitude=central_lon)
+    elif projection == 'SouthPolarStereo':
+        proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
     else:
-        region = PolygonLike.convert(region)
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-
-    if not _extents_sane(lat_min, lat_max, lon_min, lon_max):
-        raise ValueError('Provided plot extents do not form a valid bounding box '
-                         'within [-90.0,90.0,-180.0,180.0]')
-
-    extents = [lon_min, lon_max, lat_min, lat_max]
+        raise ValueError('illegal projection')
 
     try:
-        array_slice = ds[var].isel(time=time)
+        if index:
+            var_data = var.sel(**index)
+        else:
+            var_data = var
     except ValueError:
-        array_slice = ds[var]
+        var_data = var
+
     fig = plt.figure(figsize=(16, 8))
-    import cartopy.crs as ccrs
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent(extents, ccrs.PlateCarree())
+    ax = plt.axes(projection=proj)
+    if extents:
+        ax.set_extent(extents)
+    else:
+        ax.set_global()
 
     ax.coastlines()
-    array_slice.plot.contourf(ax=ax, transform=ccrs.PlateCarree())
-
+    var_data.plot.contourf(ax=ax, transform=proj)
     if file:
         fig.savefig(file)
 
 
-@op(tags=['graphical', 'plot', '1D'], no_cache=True)
+@op(tags=['plot'], no_cache=True)
 @op_input('var', value_set_source='ds', data_type=VarName)
-def plot_1D(ds: xr.Dataset, var: VarName.TYPE, file: str = None) -> None:
+@op_input('index', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot(ds: xr.Dataset,
+         var: VarName.TYPE,
+         index: DictLike.TYPE = None,
+         file: str = None) -> None:
     """
-    Plot a 1 dimensional variable, optionally save the figure in a file.
+    Plot a variable, optionally save the figure in a file.
 
     The plot can either be shown using pyplot functionality, or saved,
     if a path is given. The following file formats for saving the plot
     are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
     svgz, tif, tiff
 
-    :param ds: Datase from which to create a plot
-    :param var: Variable to plot
-    :param file: Filepath where to save the plot
+    :param ds: Dataset that contains the variable named by *var*.
+    :param var: The name of the variable to plot
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
+                  that maps the variable's dimension names to constant labels. For example,
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
+                  e.g. "lat=12.4, time='2012-05-02'". 
+    :param file: path to a file in which to save the plot
     """
-    var = VarName.convert(var)
-    fig = plt.figure(figsize=(16, 8))
-    ds[var].plot()
 
+    var = VarName.convert(var)
+    var = ds[var]
+
+    index = DictLike.convert(index)
+
+    try:
+        if index:
+            var_data = var.sel(**index)
+        else:
+            var_data = var
+    except ValueError:
+        var_data = var
+
+    fig = plt.figure(figsize=(16, 8))
+    var_data.plot()
     if file:
         fig.savefig(file)
 
 
-def _extents_sane(lat_min: float,
-                  lat_max: float,
-                  lon_min: float,
-                  lon_max: float) -> bool:
+def _check_bounding_box(lat_min: float,
+                        lat_max: float,
+                        lon_min: float,
+                        lon_max: float) -> bool:
     """
     Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
     are sane.

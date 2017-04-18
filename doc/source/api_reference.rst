@@ -78,7 +78,7 @@ Data visualization
 
 .. autofunction:: cate.ops.plot_map
 
-.. autofunction:: cate.ops.plot_1D
+.. autofunction:: cate.ops.plot
 
 
 Resampling

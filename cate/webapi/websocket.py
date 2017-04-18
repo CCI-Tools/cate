@@ -198,6 +198,21 @@ class WebSocketService:
             print('local_data_source', local_data_source)
             return self.get_data_sources('local', monitor=monitor.child(2))
 
+    def add_local_datasource(self, data_source_name: str, filePathPattern: str, monitor: Monitor):
+        """
+        Adds a local datas ource made up of the specified files.
+
+        :param data_source_name: The name of the local data source.
+        :param filePattern: The files path containing wildcards.
+        :return: JSON-serializable list of 'local' data sources, sorted by name.
+        """
+        data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % 'local')
+        with monitor.starting('Making data source local', 100):
+            data_store.add_pattern(data_source_name, filePathPattern)  # TODO use monitor, while extracting metadata
+            return self.get_data_sources('local', monitor=monitor.child(100))
+
     def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
         """
         Removes the datasource (and optionally the giles belonging  to it) from the local data store.
