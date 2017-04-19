@@ -252,12 +252,13 @@ class ResourceCommandTest(CliTestCase):
                              '  ts = cate.ops.timeseries.tseries_mean('
                              'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
+        self.assert_main(['res', 'set', 'ts',
+                          'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point="XYZ"',
                           'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
-                             "cate res: error: input 'lat' for operation 'cate.ops.timeseries.tseries_point' "
-                             "must be of type 'float', but got type 'str'"])
+                             "cate res: error: input 'point' for operation 'cate.ops.timeseries.tseries_point' "
+                             "must be of type 'PointLike', but got type 'str'"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 

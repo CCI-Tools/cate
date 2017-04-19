@@ -62,10 +62,10 @@ import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
 
-from typing import Optional, Union
+from typing import Union
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike
+from cate.core.types import VarName, DictLike, PolygonLike
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -90,10 +90,7 @@ def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
              time: Union[str, int] = None,
-             lat_min: float = None,
-             lat_max: float = None,
-             lon_min: float = None,
-             lon_max: float = None,
+             region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
              file: str = None) -> None:
@@ -113,14 +110,11 @@ def plot_map(ds: xr.Dataset,
     :param var: variable name in the dataset to plot
     :param index: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
-                  e.g. "lat=12.4, time='2012-05-02'". 
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
     :param time: time slice index to plot
-    :param lat_min: minimum latitude extent to plot
-    :param lat_max: maximum latitude extent to plot
-    :param lon_min: minimum longitude extent to plot
-    :param lon_max: maximum longitude extent to plot
+    :param region: Region to plot
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param file: path to a file in which to save the plot
@@ -140,7 +134,8 @@ def plot_map(ds: xr.Dataset,
     var = ds[var_name]
     index = DictLike.convert(index)
 
-    if time and isinstance(time, int) and 'time' in var.coords:
+    # 0 is a valid index, hence test if time is None
+    if time is not None and isinstance(time, int) and 'time' in var.coords:
         time = var.coords['time'][time]
 
     if time:
@@ -155,20 +150,19 @@ def plot_map(ds: xr.Dataset,
             if dim_name not in index:
                 index[dim_name] = 0
 
-    extents = None
-    if not (lat_min is None and lat_max is None and lon_min is None and lon_max is None):
-        if lat_min is None:
-            lat_min = -90.0
-        if lat_max is None:
-            lat_max = 90.0
-        if lon_min is None:
-            lon_min = -180.0
-        if lon_max is None:
-            lon_max = 180.0
-        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
-        extents = [lon_min, lon_max, lat_min, lat_max]
+    if region is None:
+        lat_min = -90.0
+        lat_max = 90.0
+        lon_min = -180.0
+        lon_max = 180.0
+    else:
+        region = PolygonLike.convert(region)
+        lon_min, lat_min, lon_max, lat_max = region.bounds
+
+    if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+        raise ValueError('Provided plot extents do not form a valid bounding box '
+                         'within [-180.0,+180.0,-90.0,+90.0]')
+    extents = [lon_min, lon_max, lat_min, lat_max]
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -214,10 +208,6 @@ def plot_map(ds: xr.Dataset,
     if file:
         fig.savefig(file)
 
-        # TODO (Gailis, 03.10.16) Returning a figure results in two plots in
-        # Jupyter
-        # return fig
-
 
 @op(tags=['plot'], no_cache=True)
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -239,9 +229,9 @@ def plot(ds: xr.Dataset,
     :param var: The name of the variable to plot
     :param index: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as 
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs, 
-                  e.g. "lat=12.4, time='2012-05-02'". 
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
     :param file: path to a file in which to save the plot
     """
 
