@@ -173,4 +173,5 @@ Example
 
 	#anomaly
 	var(year, month)=var(year,month)-longtermmean
-	
+
+::
