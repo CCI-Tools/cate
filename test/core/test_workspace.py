@@ -130,7 +130,7 @@ class WorkspaceTest(unittest.TestCase):
                             "source": "p.return"
                         },
                         "var": {
-                          "value": ["precipitation"]
+                          "value": "precipitation"
                         },
                         "std_suffix": {},
                         "calculate_std": {}

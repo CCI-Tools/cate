@@ -119,7 +119,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
 from io import IOBase
 from itertools import chain
-from typing import Sequence, Optional, Union, List, Dict
+from typing import Sequence, Optional, Union, List, Dict, Callable, Any
 
 from cate.util import Namespace, UNDEFINED
 from cate.util.monitor import Monitor
@@ -368,13 +368,26 @@ class Node(metaclass=ABCMeta):
             if port.source:
                 port_assignments.append('%s=%s' % (port.name, str(port.source)))
             elif port.has_value:
-                port_assignments.append('%s=%s' % (port.name, repr(port.value)))
+                port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
                 default_value = self.op_meta_info.input[port.name].get('default_value', None)
-                port_assignments.append('%s=%s' % (port.name, repr(default_value)))
+                port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, default_value)))
             else:
                 port_assignments.append('%s' % port.name)
         return ', '.join(port_assignments)
+
+    @staticmethod
+    def _format_port_value(port: 'NodePort', is_input: bool, value: any):
+        op_meta_info = port.node.op_meta_info
+        props = (op_meta_info.input if is_input else op_meta_info.output).get(port.name)
+        if props:
+            data_type = props.get('data_type')
+            if data_type:
+                try:
+                    return data_type.format(value)
+                except:
+                    pass
+        return repr(value)
 
     def __str__(self):
         """String representation."""
@@ -1320,7 +1333,7 @@ class NodePort:
             elif 'value' in port_json_dict:
                 # Care: constant may be converted to a real Python value here
                 # Must add converter callback, or so.
-                self.value = port_json_dict['value']
+                self.value = self._from_json_value(port_json_dict['value'])
                 return
             else:
                 return
@@ -1348,11 +1361,41 @@ class NodePort:
         if self.source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
         elif self.has_value:
-            # TODO (forman, 20160927): do not serialize output values, they may not be JSON-serializable (hack!)
-            write_value = self._name not in self._node.op_meta_info.output
-            if write_value:
-                json_dict['value'] = self._value
+            # Do not serialize output values, tey are temporary and may not be JSON-serializable
+            is_output = self._name in self._node.op_meta_info.output
+            if not is_output:
+                json_dict['value'] = self._to_json_value(self._value)
         return json_dict
+
+    # noinspection PyBroadException
+    def _to_json_value(self, value):
+        input_props = self._node.op_meta_info.input.get(self._name)
+        if input_props:
+            data_type = input_props.get('data_type')
+            if data_type:
+                try:
+                    return data_type.to_json(value)
+                except Exception:
+                    try:
+                        return data_type.to_json_dict(value)
+                    except Exception:
+                        pass
+        return value
+
+    # noinspection PyBroadException
+    def _from_json_value(self, json_value):
+        input_props = self._node.op_meta_info.input.get(self._name)
+        if input_props:
+            data_type = input_props.get('data_type')
+            if data_type:
+                try:
+                    return data_type.from_json(json_value)
+                except Exception:
+                    try:
+                        return data_type.from_json_dict(json_value)
+                    except Exception:
+                        pass
+        return json_value
 
     def __str__(self):
         if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:

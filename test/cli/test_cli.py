@@ -234,11 +234,11 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=[
                              'Workspace resources:',
                              '  ds1 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ds2 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=[\'temperature\'], std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
@@ -246,11 +246,11 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=[
                              'Workspace resources:',
                              '  ds1 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ds2 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=[\'temperature\'], std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts',
                           'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point="XYZ"',

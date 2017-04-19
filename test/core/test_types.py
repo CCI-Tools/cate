@@ -6,7 +6,8 @@ from unittest import TestCase
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
+    TimeLike
 from cate.util import object_to_qualified_name, OrderedDict
 
 import xarray as xr
@@ -118,8 +119,10 @@ class VarNamesLikeTest(TestCase):
         self.assertEqual(None, VarNamesLike.convert(None))
 
     def test_format(self):
-        self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']),
-                         "['aa', 'bb', 'cc']")
+        self.assertEqual(VarNamesLike.format(['aa', 'bb', 'cc']), "aa, bb, cc")
+        self.assertEqual(VarNamesLike.format(['aa']), "aa")
+        self.assertEqual(VarNamesLike.format([]), "")
+        self.assertEqual(VarNamesLike.format(None), "")
 
 
 class VarNameTest(TestCase):
@@ -308,6 +311,35 @@ class GeometryLikeTest(TestCase):
                         GeometryLike.format(pol))
 
 
+class TimeLikeTest(TestCase):
+    """
+    Test the TimeLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(TimeLike.accepts(None))
+        self.assertTrue(TimeLike.accepts('2001-01-01'))
+        self.assertTrue(TimeLike.accepts(datetime(2001, 1, 1)))
+        self.assertTrue(TimeLike.accepts(date(2001, 1, 1)))
+
+        self.assertFalse(TimeLike.accepts('4.3'))
+        self.assertFalse(TimeLike.accepts('2001-01-01,2001-02-01,'))
+        self.assertFalse(TimeLike.accepts([datetime(2001, 1, 1)]))
+
+    def test_convert(self):
+        self.assertEqual(TimeLike.convert('2017-04-19'), datetime(2017, 4, 19))
+        self.assertEqual(TimeLike.convert(datetime(2017, 4, 19)), datetime(2017, 4, 19))
+        self.assertEqual(TimeLike.convert(date(2017, 4, 19)), datetime(2017, 4, 19, 12))
+        self.assertEqual(TimeLike.convert(None), None)
+
+    def test_format(self):
+        self.assertEqual(TimeLike.format(datetime(2017, 4, 19)), '2017-04-19')
+
+    def test_json(self):
+        self.assertEqual(TimeLike.to_json(datetime(2017, 4, 19)), '2017-04-19')
+        self.assertEqual(TimeLike.from_json('2017-04-19'), datetime(2017, 4, 19))
+
+
 class TimeRangeLikeTest(TestCase):
     """
     Test the TimeRangeLike type
@@ -325,21 +357,21 @@ class TimeRangeLikeTest(TestCase):
         self.assertFalse(TimeRangeLike.accepts('2002-01-01, 2001-01-01'))
 
     def test_convert(self):
-        expected = (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59))
-        actual = TimeRangeLike.convert('2001-01-01, 2002-01-01')
-        self.assertTrue(actual == expected)
+        self.assertEqual(TimeRangeLike.convert(None), None)
+        self.assertEqual(TimeRangeLike.convert(''), None)
+        self.assertEqual(TimeRangeLike.convert('2001-01-01, 2002-01-01'),
+                         (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59)))
 
         with self.assertRaises(ValueError) as err:
             TimeRangeLike.convert('2002-01-01, 2001-01-01')
         self.assertTrue('cannot convert' in str(err.exception))
-        self.assertEqual(None, TimeRangeLike.convert(None))
 
     def test_format(self):
-        expected = '2001-01-01T00:00:00, 2002-01-01T00:00:00'
-        actual = TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1)))
-        self.assertTrue(expected, actual)
-        converted = TimeRangeLike.convert(actual)
-        self.assertTrue(converted, expected)
+        self.assertEqual(TimeRangeLike.format(None), '')
+        self.assertEqual(TimeRangeLike.format((datetime(2001, 1, 1), datetime(2002, 1, 1))),
+                         '2001-01-01, 2002-01-01')
+        self.assertEqual(TimeRangeLike.format((datetime(2001, 1, 1, 12), datetime(2002, 1, 1, 9, 30, 2))),
+                         '2001-01-01T12:00:00, 2002-01-01T09:30:02')
 
 
 class TypeNamesTest(TestCase):

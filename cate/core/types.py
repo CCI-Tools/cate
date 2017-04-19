@@ -47,7 +47,7 @@ from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
 
-from cate.util.misc import to_list, to_datetime_range
+from cate.util.misc import to_list, to_datetime_range, to_datetime
 
 T = TypeVar('T')
 
@@ -82,9 +82,9 @@ class Like(Generic[T], metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def convert(cls, value: Any) -> T:
+    def convert(cls, value: Any) -> Optional[T]:
         """
-        Convert the given source value (of type ``Like.TYPE``) into an instance of type *T*.
+        Convert the given source value (of type ``Like.TYPE``) into an optional instance of type *T*.
 
         The general contract prescribes that values of type ``str`` shall always be allowed. In particular,
         the ``str`` values returned by the :py:meth:`format` method should always be a valid *value*.
@@ -94,15 +94,35 @@ class Like(Generic[T], metaclass=ABCMeta):
         pass
 
     @classmethod
-    def format(cls, value: T) -> str:
+    def format(cls, value: Optional[T]) -> str:
         """
-        Convert the given source value of type *T* into a string.
+        Convert the given optional source value of type *T* into a string.
 
         The general contract prescribes that the value returned shall be a valid input to :py:meth:`convert`.
 
         @:raises ValueError if the conversion fails.
         """
         return str(value)
+
+    @classmethod
+    def from_json(cls, value: Any) -> Optional[T]:
+        """
+        Deserialize the given JSON value into a value of target type *T*.
+        
+        :param value: a JSON value
+        :return: a optional value of target type *T*
+        """
+        return cls.convert(value)
+
+    @classmethod
+    def to_json(cls, value: Optional[T]) -> Any:
+        """
+        Serialize the given value of type *T* into a JSON value.
+
+        :param value: an optional value of target type *T*
+        :return: a JSON value
+        """
+        return cls.format(value)
 
 
 VarNames = List[str]
@@ -144,6 +164,14 @@ class VarNamesLike(Like[VarNames]):
                                  ' or a list of strings.')
 
         return value
+
+    @classmethod
+    def format(cls, value: Optional[VarNames]) -> str:
+        if not value:
+            return ''
+        if len(value) == 1:
+            return value[0]
+        return ', '.join(value)
 
 
 class VarName(Like[str]):
@@ -329,6 +357,51 @@ class GeometryLike(Like[BaseGeometry]):
         return value.wkt
 
 
+class TimeLike(Like[datetime]):
+    """
+    Type class for a time-like object.
+
+    Accepts:
+        2. a string with format 'YYYY-MM-DD'
+        3. a datetime object
+        4. a date object
+
+    """
+    TYPE = Union[str, datetime, date]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[datetime]:
+        # Can be optional
+        if value is None or isinstance(value, datetime):
+            return value
+        if value == '':
+            return None
+        if isinstance(value, date) or isinstance(value, str):
+            try:
+                return to_datetime(value)
+            except Exception:
+                raise ValueError('cannot convert {} to a'
+                                 ' valid {}'.format(value, cls.name()))
+        raise ValueError('cannot convert {} to a valid'
+                         ' {}'.format(value, cls.name()))
+
+    @classmethod
+    def format(cls, value: datetime) -> str:
+        return _to_isoformat(value)
+
+
+_ZERO_ISO_TIME_PART = 'T00:00:00'
+
+
+def _to_isoformat(value: datetime) -> str:
+    if not value:
+        return ''
+    text = value.isoformat()
+    if text.endswith(_ZERO_ISO_TIME_PART):
+        return text[0:-len(_ZERO_ISO_TIME_PART)]
+    return text
+
+
 TimeRange = Tuple[datetime, datetime]
 
 
@@ -349,7 +422,7 @@ class TimeRangeLike(Like[TimeRange]):
     @classmethod
     def convert(cls, value: Any) -> Optional[TimeRange]:
         # Can be optional
-        if value is None:
+        if value is None or value == '':
             return None
 
         try:
@@ -371,5 +444,7 @@ class TimeRangeLike(Like[TimeRange]):
                          ' {}'.format(value, cls.name()))
 
     @classmethod
-    def format(cls, value: TimeRange) -> str:
-        return '{}, {}'.format(value[0].isoformat(), value[1].isoformat())
+    def format(cls, value: Optional[TimeRange]) -> str:
+        if not value:
+            return ''
+        return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
