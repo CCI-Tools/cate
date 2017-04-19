@@ -110,7 +110,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
-            self._job_start[method_id] = time.clock()
+            self._job_start[method_id] = time.time()
             future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
             self._active_futures[method_id] = future
 
@@ -135,7 +135,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                 self._active_futures[job_id].cancel()
                 del self._active_futures[job_id]
             if job_id in self._job_start:
-                delta_t = time.clock() - self._job_start[job_id]
+                delta_t = time.time() - self._job_start[job_id]
                 del self._job_start[job_id]
                 print('Cancelled job', job_id, 'after', delta_t, 'seconds')
             response = dict(jsonrpc='2.0', id=method_id)
@@ -158,7 +158,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
             if method_id in self._active_futures:
                 del self._active_futures[method_id]
             if method_id in self._job_start:
-                delta_t = time.clock() - self._job_start[method_id]
+                delta_t = time.time() - self._job_start[method_id]
                 del self._job_start[method_id]
                 print('Finished job', method_id, 'after', delta_t, 'seconds')
         except (concurrent.futures.CancelledError, InterruptedError):
