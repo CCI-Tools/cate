@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+# used the Github commit API to add a comment to that commit that triggered this travis job
+#
+# reference:
+# https://gist.github.com/justincampbell/5066394
+# https://developer.github.com/v3/repos/statuses/
+#
+
 STATUS="$1"
 TEXT="$2"
 
@@ -19,6 +26,3 @@ curl "https://api.github.com/repos/${REPO}/statuses/${SHA}?access_token=${GITHUB
   -X POST \
   -d "{\"state\": \"${STATUS}\", \"context\": \"${CONTEXT}\", \"description\": \"${TEXT}\", \"target_url\": \"${LOG_URL}\"}"
 
-# reference:
-# https://gist.github.com/justincampbell/5066394
-# https://developer.github.com/v3/repos/statuses/
