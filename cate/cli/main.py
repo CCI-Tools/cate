@@ -1014,20 +1014,17 @@ class DataSourceCommand(SubCommandCommand):
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        copy_parser = subparsers.add_parser('copy',
-                                            help='Makes a new local data source basing on other (remote or local) data '
-                                                 'source. New data source may be adjusted by selecting time range '
-                                                 'and/or region and/or variables name.')
+        copy_parser = subparsers.add_parser('copy', help='Makes a local copy of any other data source. '
+                                                         'New data source may be adjusted by specifying the temporal '
+                                                         'coverage and/or spatial coverage and/or variables name.')
         copy_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
-        copy_parser.add_argument('new_ds', metavar='NEW_DS', nargs='?', help='A name for new data source.')
-        copy_parser.add_argument('start_date', metavar='START', nargs='?',
-                                 help='Start date with format YYYY[-MM[-DD]].')
-        copy_parser.add_argument('end_date', metavar='END', nargs='?',
-                                 help='End date with format YYYY[-MM[-DD]]. '
-                                      'END date must be greater than START date.')
-        copy_parser.add_argument('region', metavar='REGION', nargs='?',
+        copy_parser.add_argument('--name', '-n', metavar='NAME',
+                                 help='A name for new data source.')
+        copy_parser.add_argument('--time', '-t', metavar='TIME',
+                                 help='Time range in format `YYYY-MM-DD,YYYY-MM-DD`.')
+        copy_parser.add_argument('--region', '-r', metavar='REG',
                                  help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
-        copy_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
+        copy_parser.add_argument('--vars', '-v', metavar='VARS',
                                  help="Names of variables to be included. Use format 'pattern1, pattern2'")
         copy_parser.set_defaults(sub_command_function=cls._execute_copy)
 
@@ -1101,15 +1098,13 @@ class DataSourceCommand(SubCommandCommand):
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 
-        new_name = command_args.new_ds
+        local_name = command_args.name if command_args.name else ds_name
 
-        time_range = None
-        if command_args.start_date and command_args.end_date:
-            time_range = (command_args.start_date, command_args.end_date)
+        time_range = command_args.time
         region = command_args.region
-        var_names = command_args.var_names
+        var_names = command_args.vars
 
-        ds = data_source.make_local(new_name, None, time_range=time_range, region=region, var_names=var_names,
+        ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
         print("Local data source with name '%s' has been created." % ds.name)
 
