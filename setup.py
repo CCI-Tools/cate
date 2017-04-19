@@ -43,7 +43,7 @@ requirements = [
     'scipy >= 0.17',
     'shapely >= 1.5',
     'tornado >= 4.4',
-    'xarray >= 0.9.1',
+    'xarray >= 0.9.5',
 ]
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'

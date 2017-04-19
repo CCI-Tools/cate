@@ -31,7 +31,7 @@ dependencies:
   - scipy >=0.17
   - shapely >=1.5
   - tornado >=4.4
-  - xarray >=0.9.1
+  - xarray >=0.9.5
   #
   # for these packages specific version are needed, lower minor version have errors
   # they often get downgraded if not required explicitly

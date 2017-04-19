@@ -556,7 +556,12 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     if n_chunks == 1:
         # The file size is fine
-        return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
+        # autoclose ensures that we can open datasets consisting of a number of
+        # files that exceeds OS open file limit.
+        return xr.open_mfdataset(paths,
+                                 concat_dim=concat_dim,
+                                 autoclose=True,
+                                 **kwargs)
 
     # lat/lon names are not yet known
     lat = get_lat_dim_name(temp_ds)
@@ -569,7 +574,10 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     if n_chunks == 1:
         # The file size is fine
-        return xr.open_mfdataset(paths, concat_dim=concat_dim, **kwargs)
+        return xr.open_mfdataset(paths,
+                                 concat_dim=concat_dim,
+                                 autoclose=True,
+                                 **kwargs)
 
     divisor = sqrt(n_chunks)
 
@@ -583,4 +591,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
-    return xr.open_mfdataset(paths, concat_dim=concat_dim, chunks=chunks, **kwargs)
+    return xr.open_mfdataset(paths,
+                             concat_dim=concat_dim,
+                             chunks=chunks,
+                             autoclose=True,
+                             **kwargs)
