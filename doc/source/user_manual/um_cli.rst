@@ -95,7 +95,7 @@ Make sure it is there::
 
 To make a temporal subset ECV dataset locally available, i.e. avoid remote data access during its usage::
 
-    cate ds sync esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2006 2007
+    cate ds copy esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 -t 2006-01-01,2007-12-31
 
 The section :doc:`um_config` describes, how to configure the directory where ``cate`` stores such synchronised
 data.
