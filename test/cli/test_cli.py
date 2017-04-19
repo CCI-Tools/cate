@@ -308,13 +308,14 @@ class DataSourceCommandTest(CliTestCase):
                          expected_stdout=['14 data sources found'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
-    def test_ds_sync(self):
-        self.assert_main(['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])
+    def test_ds_copy(self):
+        self.assert_main(['ds', 'copy', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
-    def test_ds_sync_with_period(self):
+    def test_ds_copy_with_period(self):
         self.assert_main(
-            ['ds', 'sync', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '2007-12'])
+            ['ds', 'copy', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1',
+             't=2007-12-01,2007-12-31'])
 
     def test_ds(self):
         self.assert_main(['ds'],
