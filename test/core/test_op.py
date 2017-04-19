@@ -1,9 +1,12 @@
 from collections import OrderedDict
 from unittest import TestCase
 
+from shapely.geometry import Point
+
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY, parse_op_args
+from cate.core.types import PointLike, TimeRangeLike
 from cate.util.opmetainf import OpMetaInfo
-from cate.util.misc import object_to_qualified_name
+from cate.util.misc import object_to_qualified_name, to_datetime_range
 from cate.util.monitor import Monitor
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
@@ -491,6 +494,31 @@ class ParseOpArgsTest(TestCase):
         self.assertEqual(parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
                          ([ds, m.pi], OrderedDict([('b', 238.0), ('u', m.cos(m.pi))])))
 
+    def test_with_input_props(self):
+        class Dataset:
+            pass
+
+        ds = Dataset()
+        ds.sst = 237.8
+
+        input_props = dict(a=dict(data_type=PointLike),
+                           b=dict(data_type=TimeRangeLike),
+                           c=dict(data_type=int))
+
+        self.assertEqual(parse_op_args(['a = 11.3, 52.9',
+                                        'b = 2001-01-01, 2004-05-06',
+                                        'c=8.3',
+                                        'd="Bibo"',
+                                        'e=ds.sst'],
+                                       input_props=input_props,
+                                       namespace=dict(ds=ds)),
+                         ([], OrderedDict([('a', Point(11.3, 52.9)),
+                                           ('b', to_datetime_range('2001-01-01', '2004-05-06')),
+                                           ('c', 8.3),
+                                           ('d', 'Bibo'),
+                                           ('e', 237.8)]))
+                         )
+
     def test_errors(self):
         with self.assertRaises(ValueError) as cm:
             parse_op_args(['=9'])
@@ -498,11 +526,11 @@ class ParseOpArgsTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             parse_op_args(['8=9'])
-        self.assertEqual(str(cm.exception), "'8' is not a valid input name")
+        self.assertEqual(str(cm.exception), '"8" is not a valid input name')
 
         with self.assertRaises(ValueError) as cm:
-            parse_op_args(["fp=open('info.txt')"], ignore_eval_errors=False)
-        self.assertEqual(str(cm.exception), 'failed to evaluate expression "open(\'info.txt\')"')
+            parse_op_args(["fp=open('info.txt')"], ignore_parse_errors=False)
+        self.assertEqual(str(cm.exception), 'failed to convert "open(\'info.txt\')" into a value for input "fp"')
 
 
 class DefaultOpRegistryTest(TestCase):

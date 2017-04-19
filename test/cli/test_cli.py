@@ -238,7 +238,7 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=[\'temperature\'], std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
@@ -250,7 +250,7 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=[\'temperature\'], std_suffix=\'_std\', calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts',
                           'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point="XYZ"',
@@ -356,7 +356,7 @@ class RunCommandTest(CliTestCase):
             # Run with invalid keyword
             self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'],
                              expected_status=1,
-                             expected_stderr=["cate run: error: 'l*t' is not a valid input name"],
+                             expected_stderr=['cate run: error: "l*t" is not a valid input name'],
                              expected_stdout='')
 
         finally:

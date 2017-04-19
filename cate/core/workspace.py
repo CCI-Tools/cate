@@ -478,7 +478,7 @@ class Workspace:
     def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
         try:
             # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
-            op_args, op_kwargs = parse_op_args(raw_op_args, namespace=namespace)
+            op_args, op_kwargs = parse_op_args(raw_op_args, input_props=op.op_meta_info.input, namespace=namespace)
         except ValueError as e:
             raise WorkspaceError(e)
         if op_args:
