@@ -3,7 +3,7 @@ Comparison (Subcategory)
 ========================
 
 Operation Subcategory
-===========================
+=====================
 
 :Operation Subcategory name: Comparison
 :Description: This Operation Subcategory encompasses different operations for the internal comparison of data.
@@ -13,7 +13,7 @@ Operation Subcategory
 
 
 Operations
-========================
+==========
 
 .. :Operation name: Relative Values 
 .. :Operation description: calculates values relative to a reference (temporal, spatial mean; reference period, reference region)

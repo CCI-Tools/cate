@@ -3,7 +3,7 @@ Univariate Descriptive Statistics (Category)
 ============================================
 
 Operation Category
-===========================
+==================
 
 :Operation Category name: Univariate Descriptive Statistics
 :Description: This Operation Category encompasses different operations for the internal analysis and manipulation of a data product.
@@ -13,7 +13,7 @@ Operation Category
 
 
 Operation Subcategories
-========================
+=======================
 
 .. :Operation Subcategory name: Probabilities
 .. :Operation Subcategory description:

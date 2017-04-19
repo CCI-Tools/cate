@@ -17,7 +17,7 @@ Operation
 --------------------------
 
 Options
-========================
+=======
 
 .. *Describe options regarding the use of the Operation.*
 
@@ -213,3 +213,5 @@ Example
           enddo !y
         enddo !t
   c-----------------------------------------------------------
+
+::
