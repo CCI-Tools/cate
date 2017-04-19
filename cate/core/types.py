@@ -56,10 +56,14 @@ class Like(Generic[T], metaclass=ABCMeta):
     """
     Base class for complex types which can convert a value of varying source types into a target type *T*.
     The varying source types are therefore *like* the target type *T*.
+
+    Subclasses shall adhere to the rule that :py:meth:`convert` shall always be able to convert from
+    the ``str`` values returned from :py:meth:`format`.
     """
 
     #: A type that represents the varying source types. This is usually a ``typing.Union`` instance which
-    #: combines the varying source types.
+    #: combines the varying source types. The ``str`` type shall always be among them so that textual value
+    #: representations are supported.
     TYPE = None
 
     @classmethod
@@ -81,6 +85,10 @@ class Like(Generic[T], metaclass=ABCMeta):
     def convert(cls, value: Any) -> T:
         """
         Convert the given source value (of type ``Like.TYPE``) into an instance of type *T*.
+
+        The general contract prescribes that values of type ``str`` shall always be allowed. In particular,
+        the ``str`` values returned by the :py:meth:`format` method should always be a valid *value*.
+
         @:raises ValueError if the conversion fails.
         """
         pass
@@ -89,6 +97,9 @@ class Like(Generic[T], metaclass=ABCMeta):
     def format(cls, value: T) -> str:
         """
         Convert the given source value of type *T* into a string.
+
+        The general contract prescribes that the value returned shall be a valid input to :py:meth:`convert`.
+
         @:raises ValueError if the conversion fails.
         """
         return str(value)
@@ -112,7 +123,7 @@ class VarNamesLike(Like[VarNames]):
     TYPE = Union[VarNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> VarNames:
+    def convert(cls, value: Any) -> Optional[VarNames]:
         """
         Convert the given value to a list of variable name patterns.
         """
@@ -147,7 +158,7 @@ class VarName(Like[str]):
     TYPE = str
 
     @classmethod
-    def convert(cls, value: Any) -> str:
+    def convert(cls, value: Any) -> Optional[str]:
         """
         Convert the given value to a variable name
         """
@@ -212,7 +223,7 @@ class PointLike(Like[Point]):
     TYPE = Union[Point, str, Tuple[float, float]]
 
     @classmethod
-    def convert(cls, value: Any) -> Point:
+    def convert(cls, value: Any) -> Optional[Point]:
         # Can be optional
         if value is None:
             return None
@@ -247,7 +258,7 @@ class PolygonLike(Like[Polygon]):
     TYPE = Union[Polygon, str, List[Tuple[float, float]]]
 
     @classmethod
-    def convert(cls, value: Any) -> Polygon:
+    def convert(cls, value: Any) -> Optional[Polygon]:
         # Can be optional
         if value is None:
             return None
@@ -297,7 +308,7 @@ class GeometryLike(Like[BaseGeometry]):
     TYPE = Union[BaseGeometry, str, Tuple[float, float], List[Tuple[float, float]], List[List[Tuple[float, float]]]]
 
     @classmethod
-    def convert(cls, value: Any) -> BaseGeometry:
+    def convert(cls, value: Any) -> Optional[BaseGeometry]:
         # Can be optional
         if value is None:
             return None
@@ -336,7 +347,7 @@ class TimeRangeLike(Like[TimeRange]):
     TYPE = Union[Tuple[str, str], TimeRange, Tuple[date, date], str]
 
     @classmethod
-    def convert(cls, value: Any) -> TimeRange:
+    def convert(cls, value: Any) -> Optional[TimeRange]:
         # Can be optional
         if value is None:
             return None
