@@ -3,7 +3,7 @@ Filtering (Subcategory)
 =======================
 
 Operation Subcategory
-===========================
+=====================
 
 :Operation Subcategory name: Filtering
 :Description: This Operation Subcategory encompasses different operations for the filtering of data.
@@ -13,7 +13,7 @@ Operation Subcategory
 
 
 Operations
-========================
+==========
 
 :Operation name: Detection of Outliers
 :Operation description: Detect outliers within a sample.

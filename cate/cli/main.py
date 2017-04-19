@@ -392,17 +392,17 @@ class RunCommand(Command):
                     raise CommandError('ambiguous NAME "%s" in --read option' % res_name)
                 namespace[res_name], _ = read_object(file, format_name=format_name)
 
-        op_args, op_kwargs = parse_op_args(command_args.op_args, namespace)
-
         if is_workflow:
-            if op_args:
-                raise CommandError("can't run workflow with positional arguments %s, "
-                                   "please provide keyword=value pairs only" % op_args)
             op = Workflow.load(command_args.op_name)
         else:
             op = OP_REGISTRY.get_op(command_args.op_name)
             if op is None:
                 raise CommandError('unknown operation "%s"' % op_name)
+
+        op_args, op_kwargs = parse_op_args(command_args.op_args, input_props=op.op_meta_info.input, namespace=namespace)
+        if op_args and is_workflow:
+            raise CommandError("can't run workflow with positional arguments %s, "
+                               "please provide keyword=value pairs only" % op_args)
 
         write_args = None
         if command_args.write_args:

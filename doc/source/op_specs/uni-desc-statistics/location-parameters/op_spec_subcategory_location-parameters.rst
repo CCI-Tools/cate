@@ -3,7 +3,7 @@ Location Parameters (Subcategory)
 =================================
 
 Operation Subcategory
-===========================
+=====================
 
 :Operation Subcategory name: Location Parameters
 :Description: This Operation Subcategory encompasses different operations for the calculations of measures to describe the location of elements with respect to the sample.
@@ -13,7 +13,7 @@ Operation Subcategory
 
 
 Operations
-========================
+==========
  
 :Operation name: Arithmetic Mean
 :Operation description: calculates the artihmetic mean 

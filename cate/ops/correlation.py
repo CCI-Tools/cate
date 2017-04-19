@@ -37,10 +37,14 @@ from cate.core.op import op, op_input
 from cate.core.types import VarName
 
 
+_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
+
+
 @op(tags=['correlation'])
 @op_input('corr_type', value_set=['pixel_by_pixel'])
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
+@op_input('file', file_open_mode='w', file_filters=[_ALL_FILE_FILTER])
 def pearson_correlation(ds_x: xr.Dataset,
                         ds_y: xr.Dataset,
                         var_x: VarName.TYPE,

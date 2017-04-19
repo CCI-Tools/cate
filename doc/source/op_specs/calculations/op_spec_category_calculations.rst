@@ -3,7 +3,7 @@ Calculations (Category)
 =======================
 
 Operation Category
-===========================
+==================
 
 :Operation Category name:  Calculations
 :Description: This Operation Category encompasses different operations for the ... of data.
@@ -13,7 +13,7 @@ Operation Category
 
 
 Operations
-========================
+==========
 
 :Operation name: Seasonal Values
 :Operation description: calculates seasonal values

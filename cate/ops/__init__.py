@@ -40,6 +40,8 @@ Functions
 """
 # We need cate_init being accessible to use by the plugin registering logic
 # before any attempt to import any of the submodules is made. See Issue #148
+
+
 def cate_init():
     # Plugin initializer.
     # Left empty because operations are registered automatically via decorators.
@@ -49,8 +51,9 @@ from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation
 from .harmonize import harmonize
-from .io import open_dataset, save_dataset
-from .plot import plot_map, plot_1D
+from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
+    read_csv, read_geo_data_frame, read_geo_data_collection, read_netcdf, write_netcdf3, write_netcdf4
+from .plot import plot_map, plot
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
@@ -85,10 +88,22 @@ __all__ = [
     'person_correlation',
     # .plot
     'plot_map'
-    'plot_1D'
+    'plot'
     # .io
     'open_dataset',
     'save_dataset',
+    'read_object',
+    'write_object',
+    'read_text',
+    'write_text',
+    'read_json',
+    'write_json',
+    'read_csv',
+    'read_geo_data_frame',
+    'read_geo_data_collection',
+    'read_netcdf',
+    'write_netcdf3',
+    'write_netcdf4',
     # .xarray
     'sel',
     # .average

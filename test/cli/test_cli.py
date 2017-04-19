@@ -234,11 +234,11 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=[
                              'Workspace resources:',
                              '  ds1 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ds2 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
@@ -246,18 +246,19 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=[
                              'Workspace resources:',
                              '  ds1 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ds2 = cate.ops.io.read_object('
-                             'file=\'%s\', format=None) [OpStep]' % NETCDF_TEST_FILE.replace('\\', '\\\\'),
+                             'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=\'temperature\', std_suffix=\'_std\', calculate_std=True) [OpStep]'])
+                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_point', 'ds=ds2', 'lat="XYZ"', 'lon=50.1',
+        self.assert_main(['res', 'set', 'ts',
+                          'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point="XYZ"',
                           'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
-                             "cate res: error: input 'lat' for operation 'cate.ops.timeseries.tseries_point' "
-                             "must be of type 'float', but got type 'str'"])
+                             "cate res: error: input 'point' for operation 'cate.ops.timeseries.tseries_point' "
+                             "must be of type 'PointLike', but got type 'str'"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 
@@ -355,7 +356,7 @@ class RunCommandTest(CliTestCase):
             # Run with invalid keyword
             self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'l*t=13.2', 'lon=52.9'],
                              expected_status=1,
-                             expected_stderr=["cate run: error: 'l*t' is not a valid input name"],
+                             expected_stderr=['cate run: error: "l*t" is not a valid input name'],
                              expected_stdout='')
 
         finally:

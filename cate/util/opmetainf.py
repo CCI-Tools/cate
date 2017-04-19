@@ -80,14 +80,14 @@ class OpMetaInfo:
         return self._qualified_name
 
     @property
-    def header(self) -> dict:
+    def header(self) -> Dict[str, Any]:
         """
         :return: Operation header attributes.
         """
         return self._header
 
     @property
-    def input(self) -> OrderedDict:
+    def input(self) -> Dict[str, Dict[str, Any]]:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
@@ -96,7 +96,7 @@ class OpMetaInfo:
         return self._input
 
     @property
-    def output(self) -> OrderedDict:
+    def output(self) -> Dict[str, Dict[str, Any]]:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
@@ -124,7 +124,7 @@ class OpMetaInfo:
     def can_cache(self) -> bool:
         return not self._header.get('no_cache', False)
 
-    def to_json_dict(self, data_type_to_json=None) -> dict:
+    def to_json_dict(self, data_type_to_json=None) -> Dict[str, Any]:
         """
         Return a JSON-serializable dictionary representation of this object. E.g. values of the `data_type``
         property are converted from Python types to their string representation.
@@ -142,7 +142,7 @@ class OpMetaInfo:
         return json_dict
 
     @classmethod
-    def from_json_dict(cls, json_dict, json_to_data_type=None, **kwargs) -> 'OpMetaInfo':
+    def from_json_dict(cls, json_dict: Dict[str, Any], json_to_data_type=None, **kwargs) -> 'OpMetaInfo':
         qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
         header_obj = json_dict.get('header', kwargs.get('header', None))
         has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))

@@ -41,13 +41,13 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
+from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.wkt import loads
-from typing import Any, Generic, TypeVar, List, Union, Tuple
 
-from cate.util.misc import to_list, to_datetime_range
+from cate.util.misc import to_list, to_datetime_range, to_datetime
 
 T = TypeVar('T')
 
@@ -56,10 +56,14 @@ class Like(Generic[T], metaclass=ABCMeta):
     """
     Base class for complex types which can convert a value of varying source types into a target type *T*.
     The varying source types are therefore *like* the target type *T*.
+
+    Subclasses shall adhere to the rule that :py:meth:`convert` shall always be able to convert from
+    the ``str`` values returned from :py:meth:`format`.
     """
 
     #: A type that represents the varying source types. This is usually a ``typing.Union`` instance which
-    #: combines the varying source types.
+    #: combines the varying source types. The ``str`` type shall always be among them so that textual value
+    #: representations are supported.
     TYPE = None
 
     @classmethod
@@ -78,20 +82,47 @@ class Like(Generic[T], metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def convert(cls, value: Any) -> T:
+    def convert(cls, value: Any) -> Optional[T]:
         """
-        Convert the given source value (of type ``Like.TYPE``) into an instance of type *T*.
+        Convert the given source value (of type ``Like.TYPE``) into an optional instance of type *T*.
+
+        The general contract prescribes that values of type ``str`` shall always be allowed. In particular,
+        the ``str`` values returned by the :py:meth:`format` method should always be a valid *value*.
+
         @:raises ValueError if the conversion fails.
         """
         pass
 
     @classmethod
-    def format(cls, value: T) -> str:
+    def format(cls, value: Optional[T]) -> str:
         """
-        Convert the given source value of type *T* into a string.
+        Convert the given optional source value of type *T* into a string.
+
+        The general contract prescribes that the value returned shall be a valid input to :py:meth:`convert`.
+
         @:raises ValueError if the conversion fails.
         """
         return str(value)
+
+    @classmethod
+    def from_json(cls, value: Any) -> Optional[T]:
+        """
+        Deserialize the given JSON value into a value of target type *T*.
+        
+        :param value: a JSON value
+        :return: a optional value of target type *T*
+        """
+        return cls.convert(value)
+
+    @classmethod
+    def to_json(cls, value: Optional[T]) -> Any:
+        """
+        Serialize the given value of type *T* into a JSON value.
+
+        :param value: an optional value of target type *T*
+        :return: a JSON value
+        """
+        return cls.format(value)
 
 
 VarNames = List[str]
@@ -112,7 +143,7 @@ class VarNamesLike(Like[VarNames]):
     TYPE = Union[VarNames, str]
 
     @classmethod
-    def convert(cls, value: Any) -> VarNames:
+    def convert(cls, value: Any) -> Optional[VarNames]:
         """
         Convert the given value to a list of variable name patterns.
         """
@@ -134,6 +165,14 @@ class VarNamesLike(Like[VarNames]):
 
         return value
 
+    @classmethod
+    def format(cls, value: Optional[VarNames]) -> str:
+        if not value:
+            return ''
+        if len(value) == 1:
+            return value[0]
+        return ', '.join(value)
+
 
 class VarName(Like[str]):
     """
@@ -147,7 +186,7 @@ class VarName(Like[str]):
     TYPE = str
 
     @classmethod
-    def convert(cls, value: Any) -> str:
+    def convert(cls, value: Any) -> Optional[str]:
         """
         Convert the given value to a variable name
         """
@@ -159,6 +198,43 @@ class VarName(Like[str]):
             raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
 
         return value
+
+
+class DictLike(Like[dict]):
+    """
+    Type class for dictionary objects
+
+    Accepts:
+        1. a dictionary string
+        2. a dict object
+
+    Converts to a dict object
+    """
+
+    TYPE = Union[str, dict]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[dict]:
+
+        # Can be optional
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            return value
+
+        try:
+            if isinstance(value, str):
+                if value.strip() == '':
+                    return None
+                return eval('dict(%s)' % value, None, None)
+            raise ValueError()
+        except Exception:
+            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+
+    @classmethod
+    def format(cls, value: dict) -> str:
+        return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()])
 
 
 class PointLike(Like[Point]):
@@ -175,7 +251,7 @@ class PointLike(Like[Point]):
     TYPE = Union[Point, str, Tuple[float, float]]
 
     @classmethod
-    def convert(cls, value: Any) -> Point:
+    def convert(cls, value: Any) -> Optional[Point]:
         # Can be optional
         if value is None:
             return None
@@ -210,7 +286,7 @@ class PolygonLike(Like[Polygon]):
     TYPE = Union[Polygon, str, List[Tuple[float, float]]]
 
     @classmethod
-    def convert(cls, value: Any) -> Polygon:
+    def convert(cls, value: Any) -> Optional[Polygon]:
         # Can be optional
         if value is None:
             return None
@@ -260,7 +336,7 @@ class GeometryLike(Like[BaseGeometry]):
     TYPE = Union[BaseGeometry, str, Tuple[float, float], List[Tuple[float, float]], List[List[Tuple[float, float]]]]
 
     @classmethod
-    def convert(cls, value: Any) -> BaseGeometry:
+    def convert(cls, value: Any) -> Optional[BaseGeometry]:
         # Can be optional
         if value is None:
             return None
@@ -281,6 +357,51 @@ class GeometryLike(Like[BaseGeometry]):
         return value.wkt
 
 
+class TimeLike(Like[datetime]):
+    """
+    Type class for a time-like object.
+
+    Accepts:
+        2. a string with format 'YYYY-MM-DD'
+        3. a datetime object
+        4. a date object
+
+    """
+    TYPE = Union[str, datetime, date]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[datetime]:
+        # Can be optional
+        if value is None or isinstance(value, datetime):
+            return value
+        if value == '':
+            return None
+        if isinstance(value, date) or isinstance(value, str):
+            try:
+                return to_datetime(value)
+            except Exception:
+                raise ValueError('cannot convert {} to a'
+                                 ' valid {}'.format(value, cls.name()))
+        raise ValueError('cannot convert {} to a valid'
+                         ' {}'.format(value, cls.name()))
+
+    @classmethod
+    def format(cls, value: datetime) -> str:
+        return _to_isoformat(value)
+
+
+_ZERO_ISO_TIME_PART = 'T00:00:00'
+
+
+def _to_isoformat(value: datetime) -> str:
+    if not value:
+        return ''
+    text = value.isoformat()
+    if text.endswith(_ZERO_ISO_TIME_PART):
+        return text[0:-len(_ZERO_ISO_TIME_PART)]
+    return text
+
+
 TimeRange = Tuple[datetime, datetime]
 
 
@@ -299,9 +420,9 @@ class TimeRangeLike(Like[TimeRange]):
     TYPE = Union[Tuple[str, str], TimeRange, Tuple[date, date], str]
 
     @classmethod
-    def convert(cls, value: Any) -> TimeRange:
+    def convert(cls, value: Any) -> Optional[TimeRange]:
         # Can be optional
-        if value is None:
+        if value is None or value == '':
             return None
 
         try:
@@ -323,5 +444,7 @@ class TimeRangeLike(Like[TimeRange]):
                          ' {}'.format(value, cls.name()))
 
     @classmethod
-    def format(cls, value: TimeRange) -> str:
-        return '{}, {}'.format(value[0].isoformat(), value[1].isoformat())
+    def format(cls, value: Optional[TimeRange]) -> str:
+        if not value:
+            return ''
+        return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))

@@ -1,6 +1,6 @@
-==============
+=====================
 Detection of Outliers
-==============
+=====================
 
 Operation
 =========
@@ -18,7 +18,7 @@ Operation
 --------------------------
 
 Options
-========================
+=======
 
 .. *Describe options regarding the use of the Operation.*
 
@@ -251,3 +251,5 @@ Example
 		print(new_sampl.shape)
 
 	## - Write to Output - ## e.g. .csv or other
+
+::

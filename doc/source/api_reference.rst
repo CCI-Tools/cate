@@ -18,7 +18,7 @@ Anomaly calculation
 
 .. autofunction:: cate.ops.anomaly_internal
 
-.. autofunction:: cate.ops.anomaly_climatology
+.. autofunction:: cate.ops.anomaly_external
 
 
 Arithmetic
@@ -66,6 +66,12 @@ Input / Output
 
 .. autofunction:: cate.ops.write_json
 
+.. autofunction:: cate.ops.read_csv
+
+.. autofunction:: cate.ops.read_geo_data_frame
+
+.. autofunction:: cate.ops.read_geo_data_collection
+
 .. autofunction:: cate.ops.read_netcdf
 
 .. autofunction:: cate.ops.write_netcdf3
@@ -78,7 +84,7 @@ Data visualization
 
 .. autofunction:: cate.ops.plot_map
 
-.. autofunction:: cate.ops.plot_1D
+.. autofunction:: cate.ops.plot
 
 
 Resampling
@@ -123,10 +129,10 @@ Misc
 Data Stores and Data Sources API
 ================================
 
-.. autoclass:: cate.DataStore
+.. autoclass:: cate.core.DataStore
     :members:
 
-.. autoclass:: cate.DataSource
+.. autoclass:: cate.core.DataSource
     :members:
 
 

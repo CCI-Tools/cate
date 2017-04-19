@@ -33,17 +33,15 @@ import xarray as xr
 
 from cate.core.op import op_input, op
 from cate.ops.select import select_var
-from cate.core.types import VarNamesLike
+from cate.core.types import VarNamesLike, PointLike
 
 
 @op(tags=['timeseries', 'temporal', 'point'])
-@op_input('lat', units='degrees', value_range=[-90, 90])
-@op_input('lon', units='degrees', value_range=[-180, 180])
+@op_input('point', data_type=PointLike)
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 def tseries_point(ds: xr.Dataset,
-                  lat: float,
-                  lon: float,
+                  point: PointLike.TYPE,
                   var: VarNamesLike.TYPE = None,
                   method: str = 'nearest') -> xr.Dataset:
     """
@@ -59,13 +57,16 @@ def tseries_point(ds: xr.Dataset,
     variable will preserve all other dimensions except for lat/lon.
 
     :param ds: The dataset from which to perform timeseries extraction.
-    :param lat: Latitude of the point to extract.
-    :param lon: Longitude of the point to extract.
+    :param point: Point to extract
     :param var: Variable(s) for which to perform the timeseries selection
                 if none is given, all variables in the dataset will be used.
     :param method: Interpolation method to use.
     :return: A timeseries dataset
     """
+    point = PointLike.convert(point)
+    lon = point.x
+    lat = point.y
+
     if not var:
         var = '*'
 

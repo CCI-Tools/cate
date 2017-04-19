@@ -1,6 +1,6 @@
-==============
+=========
 Anomalies
-==============
+=========
 
 Operation
 =========
@@ -18,7 +18,7 @@ Operation
 --------------------------
 
 Options
-========================
+=======
 
 .. *Describe options regarding the use of the Operation.*
 
