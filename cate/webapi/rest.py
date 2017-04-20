@@ -534,6 +534,41 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         self.finish()
 
 
+# noinspection PyAbstractClass
+class ResVarCsvHandler(WebAPIRequestHandler):
+    def get(self, base_dir, res_name):
+
+        print('ResVarCsvHandler:', base_dir, res_name)
+
+        var_name = self.get_query_argument('var')
+        var_index = self.get_query_argument('index', default=None)
+        var_index = tuple(map(int, var_index.split(','))) if var_index else []
+
+        print('ResVarCsvHandler:', var_name, var_index)
+
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir)
+
+        if res_name not in workspace.resource_cache:
+            self.write_status_error(message='Unknown resource named "%s"' % res_name)
+            return
+
+        resource = workspace.resource_cache[res_name]
+        if resource is None:
+            self.write_status_error(message='Resource "%s" is None' % res_name)
+            return
+
+        try:
+            csv = resource.to_csv()
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
+            return
+
+        self.set_header('Content-Type', 'text/csv')
+        self.write(csv)
+        self.finish()
+
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 
