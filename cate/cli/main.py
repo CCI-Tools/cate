@@ -113,7 +113,7 @@ from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import to_datetime_range, to_list, to_str_constant, Monitor
+from cate.util import to_list, to_str_constant, Monitor
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
