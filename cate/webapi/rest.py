@@ -134,7 +134,9 @@ class WorkspaceCloseAllHandler(WebAPIRequestHandler):
         do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
         workspace_manager = self.application.workspace_manager
         try:
-            workspace_manager.close_all_workspaces(do_save)
+            if do_save:
+                workspace_manager.save_all_workspaces()
+            workspace_manager.close_all_workspaces()
             _on_workspace_closed(self.application)
             self.write_status_ok()
         except Exception as e:
