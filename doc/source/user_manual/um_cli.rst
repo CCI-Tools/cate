@@ -166,7 +166,7 @@ The following subsections provide detailed information about the ``cate`` comman
 .. _cli_cate_ds:
 
 ``cate ds`` - Dataset Management
-===============================
+================================
 
 .. argparse::
    :module: cate.cli.main
@@ -179,7 +179,7 @@ The following subsections provide detailed information about the ``cate`` comman
 .. _cli_cate_op:
 
 ``cate op`` - Operation Management
-=================================
+==================================
 
 
 .. argparse::
@@ -191,7 +191,7 @@ The following subsections provide detailed information about the ``cate`` comman
 .. _cli_cate_run:
 
 ``cate run`` - Running Operations and Workflows
-==============================================
+===============================================
 
 .. argparse::
    :module: cate.cli.main
@@ -202,7 +202,7 @@ The following subsections provide detailed information about the ``cate`` comman
 .. _cli_cate_ws:
 
 ``cate ws``: Workspace Management
-================================
+=================================
 
 .. argparse::
    :module: cate.cli.main
@@ -213,7 +213,7 @@ The following subsections provide detailed information about the ``cate`` comman
 .. _cli_cate_res:
 
 ``cate res`` - Workspace Resources Management
-============================================
+=============================================
 
 
 .. argparse::

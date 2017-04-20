@@ -77,10 +77,7 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
-@op_input('lat_min', units='degrees', value_range=[-90, 90])
-@op_input('lat_max', units='degrees', value_range=[-90, 90])
-@op_input('lon_min', units='degrees', value_range=[-180, 180])
-@op_input('lon_max', units='degrees', value_range=[-180, 180])
+@op_input('region', data_type=PolygonLike)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
                                    'NorthPolarStereo', 'SouthPolarStereo'])
@@ -120,8 +117,7 @@ def plot_map(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are currently '
-                                  'supported')
+        raise NotImplementedError('Only raster datasets are currently supported')
 
     var_name = None
     if not var:
@@ -134,14 +130,11 @@ def plot_map(ds: xr.Dataset,
     var = ds[var_name]
     index = DictLike.convert(index)
 
-    # 0 is a valid index, hence test if time is None
-    if time is not None and isinstance(time, int) and 'time' in var.coords:
-        time = var.coords['time'][time]
-
-    if time:
-        if not index:
-            index = dict()
-        index['time'] = time
+    sel_method = None
+    if time is not None and not isinstance(time, int):
+        if 'time' not in var.coords:
+            raise ValueError('"time" is not a coordinate variable')
+        sel_method = 'nearest'
 
     for dim_name in var.dims:
         if dim_name not in ('lat', 'lon'):
@@ -150,19 +143,14 @@ def plot_map(ds: xr.Dataset,
             if dim_name not in index:
                 index[dim_name] = 0
 
-    if region is None:
-        lat_min = -90.0
-        lat_max = 90.0
-        lon_min = -180.0
-        lon_max = 180.0
-    else:
-        region = PolygonLike.convert(region)
+    extents = None
+    region = PolygonLike.convert(region)
+    if region:
         lon_min, lat_min, lon_max, lat_max = region.bounds
-
-    if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-        raise ValueError('Provided plot extents do not form a valid bounding box '
-                         'within [-180.0,+180.0,-90.0,+90.0]')
-    extents = [lon_min, lon_max, lat_min, lat_max]
+        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+            raise ValueError('Provided plot extents do not form a valid bounding box '
+                             'within [-180.0,+180.0,-90.0,+90.0]')
+        extents = [lon_min, lon_max, lat_min, lat_max]
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -186,14 +174,15 @@ def plot_map(ds: xr.Dataset,
     elif projection == 'SouthPolarStereo':
         proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
     else:
-        raise ValueError('illegal projection')
+        raise ValueError('illegal projection: "%s"' % projection)
 
     try:
         if index:
-            var_data = var.sel(**index)
+            var_data = var.sel(method=sel_method, **index)
         else:
             var_data = var
-    except ValueError:
+    except ValueError as e:
+        print(e)
         var_data = var
 
     fig = plt.figure(figsize=(16, 8))
@@ -242,7 +231,7 @@ def plot(ds: xr.Dataset,
 
     try:
         if index:
-            var_data = var.sel(**index)
+            var_data = var.sel(method='nearest', **index)
         else:
             var_data = var
     except ValueError:

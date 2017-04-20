@@ -51,7 +51,7 @@ after_success:
   - flake8 --exit-zero|tee flake8_report.txt
   - FLAKE8_COUNT=$(cat flake8_report.txt | wc -l)
   - if [ ${FLAKE8_COUNT} -eq 0 ]; then
-      ./ci/github_commit_api.sh "success" "flake8 text succeeded";
+      ./ci/github_commit_api.sh "success" "flake8 test succeeded";
     else
       ./ci/github_commit_api.sh "failure" "flake8 test found ${FLAKE8_COUNT} problems";
     fi

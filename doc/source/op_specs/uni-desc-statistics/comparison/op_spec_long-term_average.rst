@@ -18,7 +18,7 @@ Operation
 --------------------------
 
 Options
-========================
+=======
 
 .. *Describe options regarding the use of the Operation.*
 
@@ -173,4 +173,5 @@ Example
 
 	#anomaly
 	var(year, month)=var(year,month)-longtermmean
-	
+
+::

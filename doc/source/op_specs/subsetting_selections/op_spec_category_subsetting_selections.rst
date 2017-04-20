@@ -13,7 +13,7 @@ Operation Category
 
 
 Operations
-========================
+==========
 
 :Operation name: Spatial Subsetting
 :Operation description: creates spatial subsets
