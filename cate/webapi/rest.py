@@ -571,6 +571,7 @@ class ResVarCsvHandler(WebAPIRequestHandler):
         self.write(csv)
         self.finish()
 
+
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 

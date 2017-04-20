@@ -108,7 +108,7 @@ class Like(Generic[T], metaclass=ABCMeta):
     def from_json(cls, value: Any) -> Optional[T]:
         """
         Deserialize the given JSON value into a value of target type *T*.
-        
+
         :param value: a JSON value
         :return: a optional value of target type *T*
         """
