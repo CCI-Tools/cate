@@ -377,11 +377,7 @@ class RunCommand(Command):
                     raise CommandError("missing NAME in --open option")
                 if res_name in namespace:
                     raise CommandError("ambiguous NAME in --open option")
-                if command_args.monitor:
-                    monitor = self.new_monitor()
-                else:
-                    monitor = Monitor.NONE
-                namespace[res_name] = open_dataset(ds_name, time_range=(start_date, end_date), monitor=monitor)
+                namespace[res_name] = open_dataset(ds_name, time_range=(start_date, end_date))
 
         if command_args.read_args:
             read_args = list(map(_parse_read_arg, command_args.read_args))
@@ -660,7 +656,9 @@ class WorkspaceCommand(SubCommandCommand):
             answer = input('Do you really want to exit interactive mode ([y]/n)? ')
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
-            workspace_manager.close_all_workspaces(do_save=command_args.save_all)
+            if command_args.save_all:
+                workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
+            workspace_manager.close_all_workspaces()
             WebAPI.stop_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
@@ -807,7 +805,7 @@ class ResourceCommand(SubCommandCommand):
         if command_args.region:
             op_args.append('region=%s' % to_str_constant(command_args.region))
         if command_args.start_date and command_args.end_date:
-            op_args.append('time_range="%s"' %
+            op_args.append('time_range="%s - %s"' %
                            (to_str_constant(command_args.start_date), to_str_constant(command_args.start_date)))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,

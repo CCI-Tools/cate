@@ -282,6 +282,8 @@ class ConsoleMonitor(Monitor):
         progress_bar_str = ''
 
         term_size = get_terminal_size().columns
+        if sys.platform == 'win32':
+            term_size = term_size - 1
         if term_size is not self._term_size:
             self._term_size = term_size
             self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size \

@@ -119,7 +119,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
 from io import IOBase
 from itertools import chain
-from typing import Sequence, Optional, Union, List, Dict, Callable, Any
+from typing import Sequence, Optional, Union, List, Dict
 
 from cate.util import Namespace, UNDEFINED
 from cate.util.monitor import Monitor
@@ -1236,7 +1236,7 @@ class NodePort:
         of input and output ports from *old_node_id* to *node.id*.
 
         :param node: The node whose identifier changed.
-        :param new_node_id: The former node identifier.
+        :param old_node_id: The former node identifier.
         """
         if self._source_ref and self._source_ref.node_id == old_node_id:
             port_name = self._source_ref.port_name

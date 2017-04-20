@@ -62,7 +62,7 @@ from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, Workspace
     WorkspaceSaveAllHandler, WorkspaceSaveAsHandler, WorkspaceSaveHandler, \
     ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
     ResourcePrintHandler, ResourceWriteHandler, CountriesGeoJSONHandler, \
-    ResVarTileHandler, ResVarGeoJSONHandler, NE2Handler
+    ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
 from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
@@ -118,6 +118,7 @@ def create_application():
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/countries/{{zoom}}'), CountriesGeoJSONHandler),
         (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_name}}/{{zoom}}'), ResVarGeoJSONHandler),
+        (url_pattern('/ws/res/csv/{{base_dir}}/{{res_name}}'), ResVarCsvHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
     ])

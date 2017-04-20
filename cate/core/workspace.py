@@ -233,7 +233,6 @@ class Workspace:
             'dataType': object_to_qualified_name(variable.dtype),
             'ndim': variable.ndim,
             'shape': variable.shape,
-            'dimensions': variable.dims,
         }
 
     def _get_xarray_variable_descriptor(self, variable: xr.DataArray):
