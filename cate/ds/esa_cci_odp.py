@@ -667,7 +667,7 @@ class EsaCciOdpDataSource(DataSource):
                                 isnan(geo_lat_res) or isnan(geo_lon_res)):
                             process_region = True
 
-                            [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                            [lon_min, lat_min, lon_max, lat_max] = region.bounds
 
                             lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
                             lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
