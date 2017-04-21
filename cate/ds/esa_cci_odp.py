@@ -691,14 +691,23 @@ class EsaCciOdpDataSource(DataSource):
                             lat_max = ceil(lat_max / geo_lat_res)
                             lon_min = floor(lon_min / geo_lon_res)
                             lon_max = ceil(lon_max / geo_lon_res)
+
                             remote_dataset = remote_dataset.isel(drop=False,
                                                                  lat=slice(lat_min, lat_max),
                                                                  lon=slice(lon_min, lon_max))
+                            if 'lat' not in descending_data_order:
+                                geo_lat_min = lat_min * geo_lat_res + geo_lat_min
+                                geo_lat_max = lat_max * geo_lat_res + geo_lat_min
+                            else:
+                                geo_lat_min = lat_max * geo_lat_res + geo_lat_min
+                                geo_lat_max = lat_min * geo_lat_res + geo_lat_min
 
-                            geo_lat_max = lat_max * geo_lat_res + geo_lat_min
-                            geo_lat_min = lat_min * geo_lat_res + geo_lat_min
-                            geo_lon_max = lon_max * geo_lon_res + geo_lon_min
-                            geo_lon_min = lon_min * geo_lon_res + geo_lon_min
+                            if 'lon' not in descending_data_order:
+                                geo_lon_min = lon_min * geo_lon_res + geo_lon_min
+                                geo_lon_max = lon_max * geo_lon_res + geo_lon_min
+                            else:
+                                geo_lon_min = lon_max * geo_lon_res + geo_lon_min
+                                geo_lon_max = lon_min * geo_lon_res + geo_lon_min
 
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
