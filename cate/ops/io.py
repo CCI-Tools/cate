@@ -196,14 +196,41 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 
 @op(tags=['input'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
-def read_csv(file: str, **kwargs) -> pd.DataFrame:
+@op_input('delimiter', nullable=True)
+@op_input('delim_whitespace', nullable=True)
+@op_input('quotechar', nullable=True)
+@op_input('comment', nullable=True)
+def read_csv(file: str,
+             delimiter:str = ',',
+             delim_whitespace: bool = False,
+             quotechar: str = None,
+             comment: str = None,
+             **kwargs) -> pd.DataFrame:
     """
-    Read comma-separated values from plain text csv file into Pandas DataFrame
+    Read comma-separated values (CSV) from plain text file into a Pandas DataFrame.
 
-    :param file: The csv file path.
-    :param kwargs: Optional pandas.read_csv() parameters
+    :param file: The CSV file path.
+    :param delimiter: Delimiter to use. If delimiter is None, will try to automatically determine this.
+    :param delim_whitespace: Specifies whether or not whitespaces will be used as delimiter. 
+           If this option is set, nothing should be passed in for the delimiter parameter.
+    :param quotechar: The character used to denote the start and end of a quoted item. 
+           Quoted items can include the delimiter and it will be ignored.
+    :param comment: Indicates remainder of line should not be parsed.
+           If found at the beginning of a line, the line will be ignored altogether.
+           This parameter must be a single character.
+    :param kwargs: Other optional pandas.read_csv() parameters
     :return: The DataFrame object.
     """
+    # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
+    kwargs = dict(kwargs)
+    if delimiter:
+        kwargs.update(delimiter=delimiter)
+    if delim_whitespace:
+        kwargs.update(delim_whitespace=delim_whitespace)
+    if quotechar:
+        kwargs.update(quotechar=quotechar)
+    if comment:
+        kwargs.update(comment=comment)
     return pd.read_csv(file, **kwargs)
 
 
