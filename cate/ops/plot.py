@@ -62,8 +62,6 @@ import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
 
-from typing import Union
-
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike, TimeLike
 

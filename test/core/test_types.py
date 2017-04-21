@@ -291,7 +291,6 @@ class GeometryLikeTest(TestCase):
             GeometryLike.convert('aaa')
         self.assertEqual(str(err.exception), 'cannot convert value <aaa> to GeometryLike')
 
-
     def test_format(self):
         pol = GeometryLike.convert([(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)])
         self.assertTrue(GeometryLike.format(pol), 'POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
