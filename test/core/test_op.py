@@ -225,7 +225,7 @@ class OpTest(TestCase):
         with self.assertRaises(ValueError) as cm:
             result = op_reg(x=0.6, y=0.1, a=5)
         self.assertEqual(str(cm.exception),
-                         "output '%s' for operation 'test.core.test_op.f' must be of type <class 'float'>" % RETURN)
+                         "output '%s' for operation 'test.core.test_op.f' must be of type 'float', but got type 'str'" % RETURN)
 
         result = op_reg(y=3)
         self.assertEqual(result, 4 * 0.5 + 3)

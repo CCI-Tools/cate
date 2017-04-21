@@ -156,5 +156,5 @@ class WorkspaceTest(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             ws.set_resource('ts2', 'cate.ops.timeseries.tseries_point',
                             ["ds=p", "point=iih!", "var=precipitation"], validate_args=True)
-        self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point' "
-                                           "must be of type 'PointLike', but got type 'str'")
+        self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
+                                           "cannot convert value <iih!> to PointLike")
