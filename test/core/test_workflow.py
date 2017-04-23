@@ -133,7 +133,7 @@ class WorkflowTest(TestCase):
         self.assertIs(workflow.output.q.source, step3.output.w)
         self.assertIsNone(workflow.output.q.value)
 
-        self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p=None) -> (q=op3.w) [Workflow]')
+        self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p=None) -> (q=@op3.w) [Workflow]')
         self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
 
     def test_invoke(self):

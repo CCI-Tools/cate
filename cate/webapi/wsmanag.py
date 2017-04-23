@@ -27,7 +27,7 @@ import urllib.request
 from typing import List
 
 from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT, WEBAPI_PLOT_TIMEOUT
-from cate.core.workspace import Workspace, WorkspaceError
+from cate.core.workspace import Workspace, WorkspaceError, OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import encode_url_path, Monitor
 
@@ -148,7 +148,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return Workspace.from_json_dict(json_dict)
 
     def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: List[str],
+                            op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/run_op/{base_dir}',
                         path_args=dict(base_dir=base_dir))
@@ -163,7 +163,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return Workspace.from_json_dict(json_dict)
 
     def set_workspace_resource(self, base_dir: str, res_name: str,
-                               op_name: str, op_args: List[str],
+                               op_name: str, op_args: OpKwArgs,
                                monitor: Monitor = Monitor.NONE) -> Workspace:
         url = self._url('/ws/res/set/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name))

@@ -4,16 +4,21 @@ import os.path
 import shutil
 import sys
 import unittest
+from collections import OrderedDict
 from time import sleep
 from typing import Union, List
+from unittest import TestCase
+
+from shapely.geometry import Point
 
 from cate.cli import main
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
-from cate.util.misc import fetch_std_streams
+from cate.util.misc import fetch_std_streams, to_datetime_range
 from cate.util.monitor import Monitor
+from cate.core.types import PointLike, TimeRangeLike
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
@@ -188,7 +193,7 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
                          expected_stdout=['Resource "ds" set.'])
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=['Writing resource "ts"'])
@@ -228,7 +233,7 @@ class ResourceCommandTest(CliTestCase):
                          expected_stdout=['Resource "ds1" set.'])
         self.assert_main(['res', 'read', 'ds2', NETCDF_TEST_FILE],
                          expected_stdout=['Resource "ds2" set.'])
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=[
@@ -238,9 +243,9 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
+                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=[
@@ -250,15 +255,14 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
+                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts',
-                          'cate.ops.timeseries.tseries_point', 'ds=ds2', 'point=XYZ',
+                          'cate.ops.timeseries.tseries_point', 'ds=@ds2', 'point=XYZ',
                           'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
-                             "cate res: error: input 'point' for operation 'cate.ops.timeseries.tseries_point': "
-                             "cannot convert value <XYZ> to PointLike"])
+                             "cate res: error: value <XYZ> for input 'point' is not compatible with type PointLike"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 
@@ -392,6 +396,95 @@ class RunCommandTest(CliTestCase):
     def test_main_options(self):
         self.assert_main(['run', '-h'])
         self.assert_main(['run', '--help'])
+
+
+from cate.cli.main import _parse_op_args
+
+
+class ParseOpArgsTest(TestCase):
+    def test_existing_method(self):
+        op = OP_REGISTRY.get_op('cate.ops.timeseries.tseries_point', True)
+        op_args, op_kwargs = _parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
+                                            input_props=op.op_meta_info.input)
+        self.assertEqual(op_args, [])
+        self.assertEqual(op_kwargs, OrderedDict([('ds', dict(source='ds')),
+                                                 ('point', dict(value=(12.2, 54.3))),
+                                                 ('var', dict(value='temperature')),
+                                                 ('method', dict(value='bfill'))]))
+
+    def test_no_namespace(self):
+        self.assertEqual(_parse_op_args([]), ([], OrderedDict()))
+        self.assertEqual(_parse_op_args(['']), ([dict(value=None)], OrderedDict()))
+        self.assertEqual(_parse_op_args(['a=@b']), ([], OrderedDict(a=dict(source='b'))))
+        self.assertEqual(_parse_op_args(['a=@b.x']), ([], OrderedDict(a=dict(source='b.x'))))
+        self.assertEqual(_parse_op_args(['a=b']), ([], OrderedDict(a=dict(value='b'))))
+        self.assertEqual(_parse_op_args(['a="b"']), ([], OrderedDict(a=dict(value='b'))))
+        self.assertEqual(_parse_op_args(['a="C:\\\\Users"']), ([], OrderedDict(a=dict(value='C:\\Users'))))
+        self.assertEqual(_parse_op_args(['a=2', 'b=']), ([], OrderedDict([('a', dict(value=2)),
+                                                                          ('b', dict(value=None))])))
+        self.assertEqual(_parse_op_args(['a="c"']), ([], OrderedDict(a=dict(value='c'))))
+        self.assertEqual(_parse_op_args(['a=True']), ([], OrderedDict(a=dict(value=True))))
+        self.assertEqual(_parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']), ([], OrderedDict([('z', dict(value=4.6)),
+                                                                                        ('y', dict(value=1)),
+                                                                                        ('x', dict(value=(2 + 6j)))])))
+
+    def test_with_namespace(self):
+        class Dataset:
+            pass
+
+        ds = Dataset()
+        ds.sst = 237.8
+
+        import math as m
+        namespace = dict(ds=ds, m=m)
+
+        self.assertEqual(_parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
+                         ([dict(value=ds),
+                           dict(value=m.pi)],
+                          OrderedDict([('b', dict(value=238.0)),
+                                       ('u', dict(value=m.cos(m.pi)))])))
+
+    def test_with_input_props(self):
+        class Dataset:
+            pass
+
+        ds = Dataset()
+        ds.sst = 237.8
+
+        input_props = dict(a=dict(data_type=PointLike),
+                           b=dict(data_type=TimeRangeLike),
+                           c=dict(data_type=int))
+
+        self.assertEqual(_parse_op_args(['a = 11.3, 52.9',
+                                         'b = 2001-01-01, 2004-05-06',
+                                         'c=8.3',
+                                         'd="Bibo"',
+                                         'e=ds.sst'],
+                                        input_props=input_props,
+                                        namespace=dict(ds=ds)),
+                         ([], OrderedDict([('a', dict(value=(11.3, 52.9))),
+                                           ('b', dict(value='2001-01-01, 2004-05-06')),
+                                           ('c', dict(value=8.3)),
+                                           ('d', dict(value='Bibo')),
+                                           ('e', dict(value=237.8))]))
+                         )
+
+    def test_errors(self):
+        with self.assertRaises(ValueError) as cm:
+            _parse_op_args(['=9'])
+        self.assertEqual(str(cm.exception), "missing input name")
+
+        with self.assertRaises(ValueError) as cm:
+            _parse_op_args(['8=9'])
+        self.assertEqual(str(cm.exception), '"8" is not a valid input name')
+
+        with self.assertRaises(ValueError) as cm:
+            _parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=float)))
+        self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type float")
+
+        with self.assertRaises(ValueError) as cm:
+            _parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=PointLike)))
+        self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type PointLike")
 
 
 # class PluginCommandTest(CliTestCase):
