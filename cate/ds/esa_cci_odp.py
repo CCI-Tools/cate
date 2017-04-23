@@ -46,6 +46,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+import socket
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -86,6 +87,9 @@ _ODP_PROTOCOL_HTTP = 'HTTPServer'
 _ODP_PROTOCOL_OPENDAP = 'OPENDAP'
 
 _ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
+
+# by default there is no timeout
+socket.setdefaulttimeout(10)
 
 
 def get_data_store_path():
