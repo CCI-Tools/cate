@@ -549,6 +549,15 @@ class RunCommand(Command):
                     pprint.pprint(return_value)
 
 
+OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
+                        'depends on the expected data type of an OP input. It can be either a value or ' \
+                        'a reference an existing resource prefixed by the ampersand character "@". ' \
+                        'The latter connects to operation steps with each other. To provide a (constant)' \
+                        'value you can use boolean literals True and False, strings, or numeric values. ' \
+                        'Type "cate op info OP" to print information about the supported OP ' \
+                        'input names to be used as KEY and their data types to be used as VALUE. '
+
+
 class WorkspaceCommand(SubCommandCommand):
     """
     The ``ws`` command implements various operations w.r.t. *workspaces*.
@@ -608,14 +617,10 @@ class WorkspaceCommand(SubCommandCommand):
         run_parser = subparsers.add_parser('run', help='Run operation.')
         run_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         run_parser.add_argument('op_name', metavar='OP',
-                                help='Fully qualified operation name or Workflow file. '
+                                help='Operation name or Workflow file path. '
                                      'Type "cate op list" to list available operations.')
         run_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                                help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
-                                     'depends on the expected data type of an OP input. It can be a True, False, '
-                                     'a string, a numeric constant, or a workspace resource name, or a Python '
-                                     'expression. Type "cate op info OP" to print information about the supported OP '
-                                     'input names to be used as KEY and their data types to be used as VALUE.')
+                                help=OP_ARGS_RES_HELP)
         run_parser.set_defaults(sub_command_function=cls._execute_run)
 
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
@@ -858,9 +863,9 @@ class ResourceCommand(SubCommandCommand):
         set_parser.add_argument('res_name', metavar='NAME',
                                 help='Name of a new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
-                                help='Operation name.')
+                                help='Operation name. Type "cate op list" to list available operation names.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                                help='Operation arguments.')
+                                help=OP_ARGS_RES_HELP)
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
         rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
