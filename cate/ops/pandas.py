@@ -57,4 +57,13 @@ def fillna(df: pd.DataFrame,
     valid observation.
     :param limit: Maximum number of NaN values to forward/backward fill.
     """
-    return pd.fillna(value, method, limit, **kwargs)
+    # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
+    kwargs = dict(kwargs)
+    if value:
+        kwargs.update(value=value)
+    if method:
+        kwargs.update(method=method)
+    if limit:
+        kwargs.update(limit=limit)
+
+    return df.fillna(**kwargs)
