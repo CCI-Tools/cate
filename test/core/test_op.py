@@ -1,12 +1,9 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from shapely.geometry import Point
-
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
-from cate.core.types import PointLike, TimeRangeLike
 from cate.util.opmetainf import OpMetaInfo
-from cate.util.misc import object_to_qualified_name, to_datetime_range
+from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
