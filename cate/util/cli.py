@@ -114,7 +114,7 @@ class Command(metaclass=ABCMeta):
 
         :return: a new Monitor instance.
         """
-        return ConsoleMonitor(stay_in_line=True, progress_bar_size=-40)
+        return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 
 
 class SubCommandCommand(Command, metaclass=ABCMeta):
