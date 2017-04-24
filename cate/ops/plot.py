@@ -140,7 +140,10 @@ def plot_map(ds: xr.Dataset,
             if not index:
                 index = dict()
             if dim_name not in index:
-                index[dim_name] = 0
+                if dim_name in var.coords:
+                    index[dim_name] = var.coords[dim_name][0]
+                else:
+                    index[dim_name] = 0
 
     extents = None
     region = PolygonLike.convert(region)

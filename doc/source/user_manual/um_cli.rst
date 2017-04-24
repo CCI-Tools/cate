@@ -114,6 +114,10 @@ To display more details about a particular operation, e.g. ``tseries_point``, ty
 Run an operation
 ----------------
 
+The ``cate run`` command is used to execute single operations. The ``open`` and ``read`` options are used to
+ingest datasets which can then be referenced by name. A ``write`` option allows to write the operation result into a
+file.
+
 To run the ``tseries_point`` operation on a dataset, e.g. the ``local.SSTV3`` (from above), at lat=0 and lon=0, type::
 
     cate run --open ds=local.SSTV3 --write ts2.nc tseries_point ds=ds lat=0 lon=0
@@ -126,7 +130,7 @@ To run the ``tseries_point`` operation on a netCDF file, e.g. ``test/ui/precip_a
 Interactive session
 -------------------
 
-The following command sequence is a simple interactive example for a session with the Cate command-line::
+The following command sequence is a simple example for an interactive session using the Cate command-line::
 
     cate ws new
     cate res open sst local.SSTV3
@@ -143,8 +147,10 @@ The steps above explained:
    assign the opened dataset to the workspace resource ``sst``. Accordingly, ``cate res read`` could have been used to
    read from a local netCDF file.
 3. ``cate res set`` assigns the result of the ``tseries_point`` operation to workspace resource ``sst_ts``. Note the
-   ampersand prefix '@' used for the input ``ds``. This indicates that the input ``ds`` of step ``tseries_point``
-   will be connected the to the ``open`` step named ``sst``.
+   at-character "@" used as prefix for the input ``ds``. This indicates that value for input ``ds`` of
+   step ``tseries_point`` will be retrieved "at" the ``open`` step named ``sst``. It establishes a connection
+   between step ``open`` and ``tseries_point``. In fact, this is the way processing graphs are constructed using
+   the CLI.
 4. ``cate res plot`` plots the workspace resource ``sst_ts``.
 5. ``cate res write`` writes the workspace resource ``sst_ts`` to a netCDF file ``./sst_ts.nc``.
 6. ``cate ws status`` shows the current workspace status and lists all workspace resource assignments.

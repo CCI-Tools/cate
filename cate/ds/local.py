@@ -226,22 +226,54 @@ class LocalDataSource(DataSource):
                                         isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
                                     process_region = True
 
-                                    [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                                    [lon_min, lat_min, lon_max, lat_max] = region.bounds
 
-                                    lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
-                                    lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
-                                    lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
-                                    lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+                                    descending_data_order = set()
+                                    for var in remote_dataset.coords.keys():
+                                        if remote_dataset.coords[var][0] > remote_dataset.coords[var][-1]:
+                                            descending_data_order.add(var)
 
-                                    # TODO (kbernat): check why dataset.sel fails!
+                                    if 'lat' not in descending_data_order:
+                                        lat_min = lat_min - geo_lat_min
+                                        lat_max = lat_max - geo_lat_min
+                                    else:
+                                        lat_min_copy = lat_min
+                                        lat_min = geo_lat_max - lat_max
+                                        lat_max = geo_lat_max - lat_min_copy
+
+                                    if 'lon' not in descending_data_order:
+                                        lon_min = lon_min - geo_lon_min
+                                        lon_max = lon_max - geo_lon_min
+                                    else:
+                                        lon_min_copy = lon_min
+                                        lon_min = geo_lon_max - lon_max
+                                        lon_max = geo_lon_max - lon_min_copy
+
+                                    lat_min = floor(lat_min / geo_lat_res)
+                                    lat_max = ceil(lat_max / geo_lat_res)
+                                    lon_min = floor(lon_min / geo_lon_res)
+                                    lon_max = ceil(lon_max / geo_lon_res)
+
                                     remote_dataset = remote_dataset.isel(drop=False,
                                                                          lat=slice(lat_min, lat_max),
                                                                          lon=slice(lon_min, lon_max))
+                                    if 'lat' not in descending_data_order:
+                                        geo_lat_min_copy = geo_lat_min
+                                        geo_lat_min = lat_min * geo_lat_res + geo_lat_min_copy
+                                        geo_lat_max = lat_max * geo_lat_res + geo_lat_min_copy
+                                    else:
+                                        geo_lat_max_copy = geo_lat_max
+                                        geo_lat_min = geo_lat_max_copy - lat_max * geo_lat_res
+                                        geo_lat_max = geo_lat_max_copy - lat_min * geo_lat_res
 
-                                    geo_lat_max = lat_max * geo_lat_res + geo_lat_min
-                                    geo_lat_min += lat_min * geo_lat_res
-                                    geo_lon_max = lon_max * geo_lon_res + geo_lon_min
-                                    geo_lon_min += lon_min * geo_lon_res
+                                    if 'lon' not in descending_data_order:
+                                        geo_lon_min_copy = geo_lon_min
+                                        geo_lon_min = lon_min * geo_lon_res + geo_lon_min_copy
+                                        geo_lon_max = lon_max * geo_lon_res + geo_lon_min_copy
+                                    else:
+                                        geo_lon_max_copy = geo_lon_max
+                                        geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
+                                        geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
 
                             if not var_names:
                                 var_names = [var_name for var_name in remote_netcdf.variables.keys()]

@@ -164,13 +164,13 @@ class WebAPI:
                 port = service_info.get('port')
                 address = service_info.get('address') or LOCALHOST
                 if is_service_running(port, address):
-                    print('%s service already running on %s:%s, reusing it' % (self, address, port))
+                    print('%s: service already running on %s:%s, reusing it' % (self.name, address, port))
                     return service_info
                 else:
                     # Try shutting down the service, even violently
                     self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
-                print('warning: %s service info file exists: %s, removing it' % (self, service_info_file))
+                print('%s: warning: service info file exists: %s, removing it' % (self.name, service_info_file))
                 os.remove(service_info_file)
 
         import tornado.options

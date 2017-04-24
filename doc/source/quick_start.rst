@@ -95,6 +95,12 @@ To select particular geophysical quantities to work with, use the ``select_var``
     Executing 2 workflow step(s): done
     Resource "oz_tot" set.
 
+
+Note the at-character "@" in ``@cl07`` and ``@oz07``. This indicates that the input ``ds`` of the ``select_var``
+operation will be the output of the respective ``open`` steps. This establishes a permanent connection
+between step ``open`` and ``select_var``. In fact, this is the way processing graphs are constructed using
+the Cate CLI.
+
 We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console

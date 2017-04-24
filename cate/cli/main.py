@@ -551,7 +551,7 @@ class RunCommand(Command):
 
 OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
                         'depends on the expected data type of an OP input. It can be either a value or ' \
-                        'a reference an existing resource prefixed by the ampersand character "@". ' \
+                        'a reference an existing resource prefixed by the add character "@". ' \
                         'The latter connects to operation steps with each other. To provide a (constant)' \
                         'value you can use boolean literals True and False, strings, or numeric values. ' \
                         'Type "cate op info OP" to print information about the supported OP ' \
@@ -814,13 +814,13 @@ class ResourceCommand(SubCommandCommand):
         open_parser.add_argument('ds_name', metavar='DS',
                                  help='A data source named DS. Type "cate ds list" to list valid data source names.')
         open_parser.add_argument('start_date', metavar='START', nargs='?',
-                                 help='Start date. Use format YYYY[-MM[-DD]].')
+                                 help='Start date. Use format "YYYY[-MM[-DD]]".')
         open_parser.add_argument('end_date', metavar='END', nargs='?',
-                                 help='End date. Use format YYYY[-MM[-DD]].')
+                                 help='End date. Use format "YYYY[-MM[-DD]]".')
         open_parser.add_argument('region', metavar='REGION', nargs='?',
-                                 help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
+                                 help='Region constraint. Use format "min_lon,min_lat,max_lon,max_lat".')
         open_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
-                                 help="Names of variables to be included. Use format 'pattern1, pattern2, pattern3'")
+                                 help='Names of variables to be included. Use format "pattern1,pattern2,pattern3".')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
@@ -1123,17 +1123,16 @@ class DataSourceCommand(SubCommandCommand):
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
         copy_parser = subparsers.add_parser('copy', help='Makes a local copy of any other data source. '
-                                                         'New data source may be adjusted by specifying the temporal '
-                                                         'coverage and/or spatial coverage and/or variables name.')
+                                                         'The copy may be limited to a subset by optional constraints.')
         copy_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
         copy_parser.add_argument('--name', '-n', metavar='NAME',
                                  help='A name for new data source.')
         copy_parser.add_argument('--time', '-t', metavar='TIME',
-                                 help='Time range in format `YYYY-MM-DD,YYYY-MM-DD`.')
+                                 help='Time range constraint. Use format "YYYY-MM-DD,YYYY-MM-DD".')
         copy_parser.add_argument('--region', '-r', metavar='REG',
-                                 help="Region constraint, Use format 'min_lon, min_lat, max_lon, max_lat")
+                                 help='Region constraint. Use format: "min_lon,min_lat,max_lon,max_lat".')
         copy_parser.add_argument('--vars', '-v', metavar='VARS',
-                                 help="Names of variables to be included. Use format 'pattern1, pattern2'")
+                                 help='Names of variables to be included. Use format "pattern1,pattern2,..."')
         copy_parser.set_defaults(sub_command_function=cls._execute_copy)
 
     @classmethod
