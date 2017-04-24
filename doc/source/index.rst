@@ -11,6 +11,7 @@ ESA CCI Toolbox Documentation
    :numbered:
 
    introduction
+   about
    quick_start
    user_manual
    use_cases
@@ -19,6 +20,7 @@ ESA CCI Toolbox Documentation
    api_reference
    detailed_design
    rel_projects
+   support
 
 
 Indices and tables
