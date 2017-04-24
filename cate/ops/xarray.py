@@ -30,6 +30,7 @@ All operations in this module are tagged with the ``"utility"`` tag.
 """
 
 import xarray as xr
+import pandas as pd
 
 from cate.core.op import op_input, op
 
@@ -82,3 +83,19 @@ def sel(ds: xr.Dataset,
     # Filter out non-existent coordinates
     indexers = {name: value for name, value in indexers.items() if name in ds.coords}
     return ds.sel(method=method, **indexers)
+
+
+@op(tags=['utility'])
+def from_dataframe(df: pd.DataFrame) -> xr.Dataset:
+    """
+    Convert the given dataframe to an xarray dataset.
+
+    This is a wrapper for the ``xarray.from_dataframe()`` function.
+
+    For documentation refer to xarray documentation at
+    http://xarray.pydata.org/en/stable/generated/xarray.Dataset.from_dataframe.html#xarray.Dataset.from_dataframe
+
+    :param df: Dataframe to convert
+    :return: A dataset created from the given dataframe
+    """
+    return xr.Dataset.from_dataframe(df)
