@@ -127,7 +127,7 @@ class Like(Generic[T], metaclass=ABCMeta):
     @classmethod
     def assert_value_ok(cls, cond: bool, value):
         if not cond:
-            text_value = '%s' %  value
+            text_value = '%s' % value
             if len(text_value) > 37:
                 text_value = text_value[0:38] + '...'
             raise ValueError('cannot convert value <%s> to %s' % (text_value, cls.name()))
@@ -361,7 +361,6 @@ class GeometryLike(Like[BaseGeometry]):
             except ValueError:
                 pass
         cls.assert_value_ok(False, value)
-
 
     @classmethod
     def accepts(cls, value: Any) -> bool:
