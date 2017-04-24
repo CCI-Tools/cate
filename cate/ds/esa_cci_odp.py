@@ -573,7 +573,7 @@ class EsaCciOdpDataSource(DataSource):
         try:
             ds = open_xarray_dataset(files)
             if region:
-                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                [lon_min, lat_min, lon_max, lat_max] = region.bounds
                 ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
             if var_names:
                 ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
