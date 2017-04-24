@@ -54,7 +54,8 @@ class TestPlotMap(TestCase):
             'first': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
             'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
             'lat': np.linspace(-89.5, 89.5, 5),
-            'lon': np.linspace(-179.5, 179.5, 10)})
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'time': pd.date_range('2000-01-01', periods=2)})
 
         with create_tmp_file('remove_me', 'png') as tmp_file:
             plot_map(dataset, file=tmp_file)
@@ -72,6 +73,11 @@ class TestPlotMap(TestCase):
                      var='second',
                      region='-40.0, -20.0, 50.0, 60.0',
                      file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Test time slice selection
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_map(dataset, time='2000-01-01', file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
     def test_plot_map_exceptions(self):
@@ -121,7 +127,17 @@ class TestPlotMap(TestCase):
         """
         Test nominal execution of the function as a registered operation.
         """
-        pass
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_map))
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'lat': np.linspace(-89.5, 89.5, 5),
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'time': pd.date_range('2000-01-01', periods=2)})
+
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            reg_op(ds=dataset, file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
@@ -143,7 +159,14 @@ class TestPlot(TestCase):
         """
         Test nominal execution of the function as a registered operation.
         """
-        pass
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot))
+        # Test plot
+        dataset = xr.Dataset({
+            'first': np.random.rand(10)})
+
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            reg_op(ds=dataset, var='first', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
