@@ -2,13 +2,16 @@
 Test the IO operations
 """
 
-import unittest
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 from cate.ops.xarray import sel as sel_op
+from cate.ops.xarray import from_dataframe
+from cate.core.op import OP_REGISTRY
+from cate.util.misc import object_to_qualified_name
 
 
 def new_ds():
@@ -35,11 +38,16 @@ def new_ds():
     return ds
 
 
-class TestIO(unittest.TestCase):
-    def test_sel_op(self):
-        ds = new_ds()
+def assert_dataset_equal(expected, actual):
+    # this method is functionally equivalent to
+    # `assert expected == actual`, but it checks each aspect
+    # of equality separately for easier debugging
+    assert expected.equals(actual), (expected, actual)
 
-        # ds.to_netcdf('precip_and_temp.nc')
+
+class TestSel(TestCase):
+    def test_nominal(self):
+        ds = new_ds()
 
         sel_ds = sel_op(ds=ds, time='2014-09-06')
         self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
@@ -52,3 +60,66 @@ class TestIO(unittest.TestCase):
         self.assertNotIn('lon', sel_ds.dims)
         self.assertNotIn('lat', sel_ds.dims)
         self.assertEqual(sel_ds.dims['time'], 10)
+
+    def test_registered(self):
+        """
+        Test execution as a registered operation
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(sel_op))
+
+        ds = new_ds()
+
+        sel_ds = reg_op(ds=ds, time='2014-09-06')
+        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertEqual(sel_ds.dims['lon'], 4)
+        self.assertEqual(sel_ds.dims['lat'], 2)
+        self.assertNotIn('time', sel_ds.dims)
+
+        sel_ds = reg_op(ds=ds, lat=10.25, lon=34.51)
+        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertNotIn('lon', sel_ds.dims)
+        self.assertNotIn('lat', sel_ds.dims)
+        self.assertEqual(sel_ds.dims['time'], 10)
+        pass
+
+
+class TestFromDataframe(TestCase):
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        time = pd.date_range('2000-01-01', periods=10)
+        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'time': time}
+        df = pd.DataFrame(data)
+        df = df.set_index('time')
+
+        expected = xr.Dataset({
+            'A': (['time'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            'B': (['time'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            'time': time})
+
+        actual = from_dataframe(df)
+        assert_dataset_equal(expected, actual)
+
+    def test_registered(self):
+        """
+        Test nominal execution as a registered operation
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(from_dataframe))
+
+        time = pd.date_range('2000-01-01', periods=10)
+        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'time': time}
+        df = pd.DataFrame(data)
+        df = df.set_index('time')
+
+        expected = xr.Dataset({
+            'A': (['time'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            'B': (['time'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            'time': time})
+
+        actual = reg_op(df=df)
+        assert_dataset_equal(expected, actual)
