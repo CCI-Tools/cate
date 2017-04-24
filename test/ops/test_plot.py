@@ -1,9 +1,6 @@
 """
 Tests for plotting operations
 """
-# Enable matplotlilb to be used on headless environments for testing
-import matplotlib
-matplotlib.use('Agg')
 
 import os
 import sys
