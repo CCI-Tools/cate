@@ -14,7 +14,10 @@ from cate.ops.plot import plot, plot_map
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
                  reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
-class TestPlot(TestCase):
+class TestPlotMap(TestCase):
+    """
+    Test plot_map() function
+    """
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
@@ -79,6 +82,19 @@ class TestPlot(TestCase):
             region = '-20.0, -20.0, -25.0, 60.0',
             plot_map(dataset, region=region)
 
+    def test_registered(self):
+        """
+        Test nominal execution of the function as a registered operation.
+        """
+        pass
+
+
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
+class TestPlot(TestCase):
+    """
+    Test plot() function
+    """
     def test_plot(self):
         # Test plot
         dataset = xr.Dataset({
@@ -87,3 +103,28 @@ class TestPlot(TestCase):
         plot(dataset, 'first', file='remove_me.jpg')
         self.assertTrue(os.path.isfile('remove_me.jpg'))
         os.remove('remove_me.jpg')
+
+    def test_registered(self):
+        """
+        Test nominal execution of the function as a registered operation.
+        """
+        pass
+
+
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
+class TestPlotDataFrame(TestCase):
+    """
+    Test plot_dataframe() function.
+    """
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        pass
+
+    def test_registered(self):
+        """
+        Test the method when run as a registered operation
+        """
+        pass
