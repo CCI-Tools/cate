@@ -32,7 +32,8 @@ from cate.conf.defaults import DEFAULT_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_C
 from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, query_data_sources
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import Monitor, cwd, to_str_constant, is_str_constant
+from cate.core.workspace import OpKwArgs
+from cate.util import Monitor, cwd
 
 
 # noinspection PyMethodMayBeStatic
@@ -212,7 +213,8 @@ class WebSocketService:
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % 'local')
         with monitor.starting('Making data source local', 100):
-            data_store.add_pattern(name=data_source_name, files=file_path_pattern)  # TODO use monitor, while extracting metadata
+            # TODO use monitor, while extracting metadata
+            data_store.add_pattern(name=data_source_name, files=file_path_pattern)
             return self.get_data_sources('local', monitor=monitor.child(100))
 
     def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
@@ -273,30 +275,13 @@ class WebSocketService:
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
         return workspace.to_json_dict()
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: dict,
+    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: OpKwArgs,
                                monitor: Monitor) -> dict:
-        # TODO (nf): op_args come in as {"name1": {value: value1}, "name2": {source: value2}, ...}
-        # Due to the current CLI and REST API implementation we must encode this coding to distinguish
-        # constant values from workflow step IDs (= resource names).
-        # If this called from cate-desktop, op_args could already be a proper typed + validated JSON dict
-        encoded_op_args = []
-        for name, value_obj in op_args.items():
-            if 'value' in value_obj:
-                value = value_obj['value']
-                if isinstance(value, str) and not is_str_constant(value):
-                    value = to_str_constant(value)
-                encoded_op_arg = '%s=%s' % (name, value)
-            elif 'source' in value_obj:
-                source = value_obj['source']
-                encoded_op_arg = '%s=%s' % (name, source)
-            else:
-                raise ValueError('illegal operation argument: %s=%s' % (name, value_obj))
-            encoded_op_args.append(encoded_op_arg)
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource(base_dir,
                                                                       res_name,
                                                                       op_name,
-                                                                      op_args=encoded_op_args,
+                                                                      op_args,
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
