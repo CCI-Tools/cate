@@ -56,6 +56,7 @@ svgz, tif, tiff
 
 import matplotlib
 import xarray as xr
+import pandas as pd
 
 matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
@@ -129,8 +130,11 @@ def plot_map(ds: xr.Dataset,
     var = ds[var_name]
     index = DictLike.convert(index)
 
+    # Validate time
+    time = TimeLike.convert(time)
+
     sel_method = None
-    if time is not None and not isinstance(time, int):
+    if time is not None:
         if 'time' not in var.coords:
             raise ValueError('"time" is not a coordinate variable')
         sel_method = 'nearest'
@@ -197,6 +201,38 @@ def plot_map(ds: xr.Dataset,
     ax.coastlines()
     var_data.plot.contourf(ax=ax, transform=proj)
     if file:
+        fig.savefig(file)
+
+
+@op(tags=['plot'], no_cache=True)
+@op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
+                                  'area', 'pie', 'scatter', 'hexbin'])
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_dataframe(df: pd.DataFrame,
+                   plot_type: str = 'line',
+                   file: str = None,
+                   **kwargs) -> None:
+    """
+    Plot a dataframe.
+
+    This is a wrapper of pandas.DataFrame.plot() function.
+
+    For further documentation please see
+    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
+
+    :param df: A pandas dataframe to plot
+    :param plot_type: Plot type
+    :param file: path to a file in which to save the plot
+    :param kwargs: Keyword arguments to pass to the underlying
+    pandas.DataFrame.plot function
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise NotImplementedError('Only pandas dataframes are currently'
+                                  ' supported')
+
+    ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
+    if file:
+        fig = ax.get_figure()
         fig.savefig(file)
 
 
