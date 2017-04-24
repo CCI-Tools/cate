@@ -113,6 +113,10 @@ class TestPlotMap(TestCase):
             region = '-20.0, -20.0, -25.0, 60.0',
             plot_map(dataset, region=region)
 
+        # Test temporal slice validation
+        with self.assertRaises(ValueError):
+            plot_map(dataset, time=0)
+
     def test_registered(self):
         """
         Test nominal execution of the function as a registered operation.

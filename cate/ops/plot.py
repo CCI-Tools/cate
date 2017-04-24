@@ -130,8 +130,11 @@ def plot_map(ds: xr.Dataset,
     var = ds[var_name]
     index = DictLike.convert(index)
 
+    # Validate time
+    time = TimeLike.convert(time)
+
     sel_method = None
-    if time is not None and not isinstance(time, int):
+    if time is not None:
         if 'time' not in var.coords:
             raise ValueError('"time" is not a coordinate variable')
         sel_method = 'nearest'
