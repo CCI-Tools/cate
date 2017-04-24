@@ -1,9 +1,6 @@
 """
 Tests for plotting operations
 """
-# Enable matplotlilb to be used on headless environments for testing
-import matplotlib
-matplotlib.use('Agg')
 
 import os
 import sys
@@ -51,6 +48,10 @@ class TestPlotMap(TestCase):
     Test plot_map() function
     """
     def test_plot_map(self):
+        # Enable matplotlilb to be used on headless environments for testing
+        import matplotlib
+        matplotlib.use('Agg')
+
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
         dataset = xr.Dataset({
@@ -130,6 +131,10 @@ class TestPlot(TestCase):
     Test plot() function
     """
     def test_plot(self):
+        # Enable matplotlilb to be used on headless environments for testing
+        import matplotlib
+        matplotlib.use('Agg')
+
         # Test plot
         dataset = xr.Dataset({
             'first': np.random.rand(10)})
