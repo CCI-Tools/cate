@@ -36,11 +36,11 @@ from cate.core.op import op_input, op
 
 @op(tags=['utility'])
 @op_input('method', value_set=['backfill', 'bfill', 'pad', 'ffill'])
-def fillna(df: pd.DataFrame,
-           value: float=None,
-           method: str=None,
-           limit: int=None,
-           **kwargs) -> pd.DataFrame:
+def pandas_fillna(df: pd.DataFrame,
+                  value: float=None,
+                  method: str=None,
+                  limit: int=None,
+                  **kwargs) -> pd.DataFrame:
     """
     Return a new dataframe with NaN values filled according to the given value
     or method.
