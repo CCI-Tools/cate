@@ -179,10 +179,26 @@ class TestPlotDataFrame(TestCase):
         """
         Test nominal execution
         """
-        pass
+        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+        df = pd.DataFrame(data=data, index=pd.date_range('2000-01-01',
+                                                         periods=10))
+
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_dataframe(df, file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
         Test the method when run as a registered operation
         """
-        pass
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_dataframe))
+
+        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+        df = pd.DataFrame(data=data, index=pd.date_range('2000-01-01',
+                                                         periods=10))
+
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            reg_op(df=df, file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
