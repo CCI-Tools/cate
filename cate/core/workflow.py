@@ -366,7 +366,7 @@ class Node(metaclass=ABCMeta):
         port_assignments = []
         for port in namespace[:]:
             if port.source:
-                port_assignments.append('%s=%s' % (port.name, str(port.source)))
+                port_assignments.append('%s=@%s' % (port.name, str(port.source)))
             elif port.has_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:

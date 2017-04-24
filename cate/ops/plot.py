@@ -62,10 +62,8 @@ import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
 
-from typing import Union
-
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike
+from cate.core.types import VarName, DictLike, PolygonLike, TimeLike
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -77,6 +75,7 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
+@op_input('time', data_type=TimeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
@@ -86,7 +85,7 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
-             time: Union[str, int] = None,
+             time: TimeLike.TYPE = None,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,

@@ -172,9 +172,11 @@ def to_datetime_range(start_datetime_or_str: Union[datetime, date, str, None],
 
 
 def to_datetime(datetime_or_str: Union[datetime, date, str, None], upper_bound=False, default=None) -> datetime:
-    if datetime_or_str is None or datetime_or_str == '':
+    if datetime_or_str is None:
         return default
     elif isinstance(datetime_or_str, str):
+        if datetime_or_str.strip() == '':
+            return default
         format_to_timedelta = [("%Y-%m-%dT%H:%M:%S", timedelta()),
                                ("%Y-%m-%d %H:%M:%S", timedelta()),
                                ("%Y-%m-%d", timedelta(hours=24, seconds=-1)),
