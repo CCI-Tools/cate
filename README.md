@@ -136,6 +136,21 @@ We need to set environment variable `NUMBA_DISABLE_JIT` to disable JIT compilati
 coverage reaches the actual Python code. We use Numba's JIT compilation to speed up numeric Python 
 number crunching code.
 
+### Generating the Documentation
+
+We use the wonderful [Sphinx](http://www.sphinx-doc.org/en/stable/rest.html) tool to generate 
+Cate's documentation on [ReadTheDocs](http://ect-core.readthedocs.io/en/latest/?badge=latest). 
+If there is a need to build the docs locally, some 
+additional software packages are required:
+
+    $ conda install sphinx sphinx_rtd_theme mock
+    $ conda install -c conda-forge sphinx-argparse
+    $ pip install sphinx_autodoc_annotation
+
+To regenerate the HTML docs, type    
+    
+    $ cd doc
+    $ make html
 
 ## License
 
