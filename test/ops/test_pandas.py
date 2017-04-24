@@ -6,7 +6,6 @@ from unittest import TestCase
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
 
 from cate.ops import pandas_fillna
 from cate.core.op import OP_REGISTRY
