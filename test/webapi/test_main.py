@@ -55,7 +55,7 @@ class WebAPITest(AsyncHTTPTestCase):
         res_name = 'ds'
 
         file_path = NETCDF_TEST_FILE
-        op_args = ["file='%s'" % file_path.replace('\\', '\\\\')]
+        op_args = dict(file=dict(value=file_path))
         data = dict(op_name='cate.ops.io.read_netcdf', op_args=json.dumps(op_args))
         body = urllib.parse.urlencode(data)
         url = encode_url_path('/ws/res/set/{base_dir}/{res_name}',
