@@ -222,7 +222,7 @@ class ConsoleMonitor(Monitor):
 
     :param stay_in_line: If ``True``, the text written out will stay in the same line.
     :param progress_bar_size: If ``> 1``, a progress monitor of max. *progress_bar_size* characters
-        will be written to the console. 
+        will be written to the console.
     """
 
     def __init__(self, stay_in_line=False, progress_bar_size=1):

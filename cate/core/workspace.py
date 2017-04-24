@@ -28,7 +28,7 @@ This module defines the ``Workspace`` class and the ``WorkspaceError`` exception
 import os
 import shutil
 import sys
-from collections import OrderedDict, Set
+from collections import OrderedDict
 
 import fiona
 import numpy as np
@@ -59,16 +59,18 @@ OpKwArgs = Dict[str, OpArg]
 def mk_op_arg(arg) -> OpArg:
     """
     Utility function which turns an argument into an operation argument.
-    If *args* is a ``str`` and starts with "@" it is turned into a "source" vargument, 
+    If *args* is a ``str`` and starts with "@" it is turned into a "source" vargument,
     otherwise it is turned into a "value" argument.
     """
     return dict(source=arg[1:]) if isinstance(arg, str) and arg.startswith('@') else dict(value=arg)
+
 
 def mk_op_args(*args) -> OpArgs:
     """
     Utility function which converts a list into positional operation arguments.
     """
     return [mk_op_arg(arg) for arg in args]
+
 
 def mk_op_kwargs(**kwargs) -> OpKwArgs:
     """
@@ -475,7 +477,7 @@ class Workspace:
                 if requires:
                     ids_of_invalidated_steps.add(step.id)
 
-        #print(ids_of_invalidated_steps)
+        # print(ids_of_invalidated_steps)
 
         workflow = self._workflow
         # noinspection PyUnusedLocal

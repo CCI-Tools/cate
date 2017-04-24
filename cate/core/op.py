@@ -106,7 +106,7 @@ Components
 
 from collections import OrderedDict
 from inspect import isclass
-from typing import Tuple, List, Union, Callable, Dict, Any
+from typing import Union, Callable
 
 import xarray as xr
 
@@ -555,4 +555,3 @@ def op_return(data_type=UNDEFINED,
                      data_type=data_type,
                      registry=registry,
                      **properties)
-
