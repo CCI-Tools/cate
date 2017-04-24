@@ -204,11 +204,11 @@ class WorkspaceRunOpHandler(WebAPIRequestHandler):
     def post(self, base_dir):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else None
+        op_args = json.loads(op_args) if op_args else dict()
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
+                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args,
                                                                   monitor=_new_monitor())
             self.write_status_ok(content=workspace.to_json_dict())
         except Exception as e:
@@ -232,11 +232,11 @@ class ResourceSetHandler(WebAPIRequestHandler):
     def post(self, base_dir, res_name):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else None
+        op_args = json.loads(op_args) if op_args else dict()
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
+                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args,
                                                                      monitor=_new_monitor())
             self.write_status_ok(content=workspace.to_json_dict())
         except Exception as e:

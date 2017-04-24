@@ -129,10 +129,10 @@ Interactive session
 The following command sequence is a simple interactive example for a session with the Cate command-line::
 
     cate ws new
-    cate res open ds local.SSTV3
-    cate res set ts tseries_point ds=ds lat=0 lon=0
-    cate res plot ts
-    cate res write ts ts.nc
+    cate res open sst local.SSTV3
+    cate res set sst_ts tseries_point ds=@sst lat=0 lon=0
+    cate res plot sst_ts
+    cate res write sst_ts sst_ts.nc
     cate ws status
 
 The steps above explained:
@@ -140,11 +140,13 @@ The steps above explained:
 1. ``cate ws new`` is used to create a new in-memory *workspace*. A workspace can hold any number of
    named *workspace resources* which may refer to opened datasets or any other ingested or computed objects.
 2. ``cate res open`` is used to open a dataset from the available data stores and
-   assign the opened dataset to the workspace resource ``ds``. Accordingly, ``cate res read`` could have been used to
+   assign the opened dataset to the workspace resource ``sst``. Accordingly, ``cate res read`` could have been used to
    read from a local netCDF file.
-3. ``cate res set`` assign the result of the ``tseries_point`` applied to ``ds`` to workspace resource ``ts``.
-4. ``cate res plot`` plots the workspace resource ``ts``.
-5. ``cate res write`` writes the workspace resource ``ts`` to a netCDF file ``./ts.nc``.
+3. ``cate res set`` assigns the result of the ``tseries_point`` operation to workspace resource ``sst_ts``. Note the
+   ampersand prefix '@' used for the input ``ds``. This indicates that the input ``ds`` of step ``tseries_point``
+   will be connected the to the ``open`` step named ``sst``.
+4. ``cate res plot`` plots the workspace resource ``sst_ts``.
+5. ``cate res write`` writes the workspace resource ``sst_ts`` to a netCDF file ``./sst_ts.nc``.
 6. ``cate ws status`` shows the current workspace status and lists all workspace resource assignments.
 
 We could now save the current workspace state and close it::
