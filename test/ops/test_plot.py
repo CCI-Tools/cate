@@ -3,13 +3,42 @@ Tests for plotting operations
 """
 
 import os
+import sys
 import unittest
 from unittest import TestCase
 
 import numpy as np
 import xarray as xr
+import pandas as pd
+import tempfile
+import shutil
+from contextlib import contextmanager
+import itertools
 
-from cate.ops.plot import plot, plot_map
+from cate.core.op import OP_REGISTRY
+from cate.util.misc import object_to_qualified_name
+
+from cate.ops.plot import plot, plot_map, plot_dataframe
+
+
+_counter = itertools.count()
+ON_WIN = sys.platform == 'win32'
+
+
+@contextmanager
+def create_tmp_file(name, ext):
+    tmp_dir = tempfile.mkdtemp()
+    path = os.path.join(tmp_dir, '{}{}.{}'.format(name,
+                                                  next(_counter),
+                                                  ext))
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(tmp_dir)
+        except OSError:
+            if not ON_WIN:
+                raise
 
 
 @unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
@@ -27,30 +56,32 @@ class TestPlotMap(TestCase):
             'lat': np.linspace(-89.5, 89.5, 5),
             'lon': np.linspace(-179.5, 179.5, 10)})
 
-        plot_map(dataset, file='remove_me.png')
-        self.assertTrue(os.path.isfile('remove_me.png'))
-        os.remove('remove_me.png')
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_map(dataset, file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
         # Test if an error is raised when an unsupported format is passed
-        with self.assertRaises(ValueError):
-            plot_map(dataset, file='remove_me.pgm')
-        self.assertFalse(os.path.isfile('remove_me.pgm'))
+        with create_tmp_file('remove_me', 'pgm') as tmp_file:
+            with self.assertRaises(ValueError):
+                plot_map(dataset, file=tmp_file)
+            self.assertFalse(os.path.isfile(tmp_file))
 
         # Test if extents can be used
-        plot_map(dataset,
-                 var='second',
-                 region='-40.0, -20.0, 50.0, 60.0',
-                 file='remove_me.pdf')
-        self.assertTrue(os.path.isfile('remove_me.pdf'))
-        os.remove('remove_me.pdf')
+        with create_tmp_file('remove_me', 'pdf') as tmp_file:
+            plot_map(dataset,
+                     var='second',
+                     region='-40.0, -20.0, 50.0, 60.0',
+                     file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
     def test_plot_map_exceptions(self):
         # Test if the corner cases are detected without creating a plot for it.
 
         # Test value error is raised when passing an unexpected dataset type
-        with self.assertRaises(NotImplementedError):
-            plot_map([1, 2, 4], file='remove_me.jpeg')
-        self.assertFalse(os.path.isfile('remove_me.jpg'))
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            with self.assertRaises(NotImplementedError):
+                plot_map([1, 2, 4], file=tmp_file)
+            self.assertFalse(os.path.isfile(tmp_file))
 
         # Test the extensions bound checking
         dataset = xr.Dataset({
@@ -100,9 +131,9 @@ class TestPlot(TestCase):
         dataset = xr.Dataset({
             'first': np.random.rand(10)})
 
-        plot(dataset, 'first', file='remove_me.jpg')
-        self.assertTrue(os.path.isfile('remove_me.jpg'))
-        os.remove('remove_me.jpg')
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            plot(dataset, 'first', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
