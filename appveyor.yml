@@ -17,9 +17,10 @@ build_script:
   - conda list
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - set NUMBA_DISABLE_JIT=1
-  # Uncomment following line if web testing on travis breaks our build
+  # Uncomment following line if web testing on appveyor breaks our build
   - set CATE_DISABLE_WEB_TESTS=1
   # geopandas in tests break the build on appveyor (maybe the problem of gdal?)
   - set CATE_DISABLE_GEOPANDAS_TESTS=1
-  - set CATE_DISABLE_PLOT_TESTS=1
+  # Uncomment following line if plot testing on appveyour breaks our build
+  #- set CATE_DISABLE_PLOT_TESTS=1
   - py.test -v --cov=cate test
