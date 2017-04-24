@@ -843,5 +843,5 @@ class _DownloadStatistics:
             mb_per_sec = self._to_mibs(self.bytes_done) / seconds
         else:
             mb_per_sec = 0
-        return "%d of %d MB, speed %.3f MB/s" % \
+        return "%d of %d MiB @ %.3f MiB/s" % \
                (self._to_mibs(self.bytes_done), self._to_mibs(self.bytes_total), mb_per_sec)
