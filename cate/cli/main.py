@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from collections import OrderedDict
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -103,22 +104,24 @@ import os
 import os.path
 import pprint
 import sys
-from typing import Tuple, Union
+from typing import Tuple, Union, List, Dict, Any
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
+from cate.core.types import Like
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
-from cate.core.op import OP_REGISTRY, parse_op_args
+from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
-from cate.core.workspace import WorkspaceError
+from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import to_list, to_str_constant, Monitor
+from cate.util import to_list, Monitor
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from cate.version import __version__
+
 
 #: Name of the Cate CLI executable (= ``cate``).
 CLI_NAME = 'cate'
@@ -220,6 +223,95 @@ def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
     path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
     return name if name else None, path if path else None, format_name.upper() if format_name else None
+
+
+def _parse_op_args(raw_args: List[str],
+                   input_props:Dict[str, Dict[str, Any]] = None,
+                   namespace: Dict[str, Any] = None) -> Tuple[OpArgs, OpKwArgs]:
+    """
+    Convert a raw argument list *raw_args* into a (args, kwargs) tuple.
+    All elements of the raw argument list *raw_args* are expected to be textual values of either the form
+    "value" (positional argument) or "name=value" (keyword argument) where value may either be 
+    
+    1. "@name":  a reference by name to another step's port  
+    2. "<Python expression>":  a constant Python expression
+
+    :param raw_args: raw argument list of string elements
+    :param input_props: dict which maps an input name to extra properties, e.g. the "data_type" of an input
+    :param namespace: the namespace to be used when converting the raw text values into Python objects.
+    :return: a pair comprising the list of positional arguments and a dictionary holding the keyword arguments
+    :raise ValueError: if the parsing fails
+    """
+
+    op_args = []
+    op_kwargs = OrderedDict()
+    for raw_arg in raw_args:
+        name_and_value = raw_arg.split('=', maxsplit=1)
+        if len(name_and_value) == 2:
+            name, raw_value = name_and_value
+            if not name:
+                raise ValueError("missing input name")
+            name = name.strip()
+            raw_value = raw_value.strip()
+            if not name.isidentifier():
+                raise ValueError('"%s" is not a valid input name' % name)
+        else:
+            name = None
+            raw_value = raw_arg
+
+        value = None
+        source = None
+        props = input_props and input_props.get(name)
+        data_type = props and props.get('data_type')
+
+        if raw_value == '':
+            # If we have a data type, and raw_value is empty, assume None
+            value = None
+        else:
+            if raw_value.startswith('@'):
+                if len(raw_value) > 1:
+                    source = raw_value[1:]
+                else:
+                    value = raw_value
+            else:
+                # noinspection PyBroadException
+                try:
+                    # Eval with given namespace as locals
+                    value = eval(raw_value, None, namespace)
+                except Exception:
+                    value = raw_value
+
+        if source:
+            op_arg = dict(source=source)
+        else:
+            # For any non-None value and any data type we perform basic type validation:
+            if value is not None and data_type:
+                if issubclass(data_type, Like):
+                    # For XXXLike-types call accepts()
+                    compatible = data_type.accepts(value)
+                else:
+                    compatible = isinstance(value, data_type)
+                    if not compatible:
+                        if issubclass(data_type, float):
+                            # Allow assigning bool and int to a float
+                            compatible = isinstance(value, bool) or isinstance(value, int)
+                        elif issubclass(data_type, int):
+                            # Allow assigning bool and float to an int
+                            compatible = isinstance(value, bool) or isinstance(value, float)
+                        elif issubclass(data_type, bool):
+                            # Allow assigning anything to a bool
+                            compatible = True
+                if not compatible:
+                    raise ValueError("value <%s> for input '%s' is not compatible with type %s" %
+                                     (raw_value, name, data_type.__name__))
+            op_arg = dict(value=value)
+
+        if not name:
+            op_args.append(op_arg)
+        else:
+            op_kwargs[name] = op_arg
+
+    return op_args, op_kwargs
 
 
 def _list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
@@ -395,10 +487,10 @@ class RunCommand(Command):
             if op is None:
                 raise CommandError('unknown operation "%s"' % op_name)
 
-        op_args, op_kwargs = parse_op_args(command_args.op_args, input_props=op.op_meta_info.input, namespace=namespace)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args,
+                                            input_props=op.op_meta_info.input, namespace=namespace)
         if op_args and is_workflow:
-            raise CommandError("can't run workflow with positional arguments %s, "
-                               "please provide keyword=value pairs only" % op_args)
+            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
 
         write_args = None
         if command_args.write_args:
@@ -420,6 +512,12 @@ class RunCommand(Command):
             monitor = self.new_monitor()
         else:
             monitor = Monitor.NONE
+
+        op_sources = ["%s=%s" % (kw, v['source']) for kw, v in op_kwargs.items() if 'source' in v]
+        if op_sources:
+            raise CommandError('unresolved references: %s' % ', '.join(op_sources))
+
+        op_kwargs = OrderedDict([(kw, v['value']) for kw, v in op_kwargs.items() if 'value' in v])
 
         # print("Running '%s' with args=%s and kwargs=%s" % (op.op_meta_info.qualified_name, op_args, dict(op_kwargs)))
         return_value = op(monitor=monitor, **op_kwargs)
@@ -449,6 +547,15 @@ class RunCommand(Command):
                 is_void = return_type is None or issubclass(return_type, type(None))
                 if not is_void:
                     pprint.pprint(return_value)
+
+
+OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
+                        'depends on the expected data type of an OP input. It can be either a value or ' \
+                        'a reference an existing resource prefixed by the ampersand character "@". ' \
+                        'The latter connects to operation steps with each other. To provide a (constant)' \
+                        'value you can use boolean literals True and False, strings, or numeric values. ' \
+                        'Type "cate op info OP" to print information about the supported OP ' \
+                        'input names to be used as KEY and their data types to be used as VALUE. '
 
 
 class WorkspaceCommand(SubCommandCommand):
@@ -510,14 +617,10 @@ class WorkspaceCommand(SubCommandCommand):
         run_parser = subparsers.add_parser('run', help='Run operation.')
         run_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         run_parser.add_argument('op_name', metavar='OP',
-                                help='Fully qualified operation name or Workflow file. '
+                                help='Operation name or Workflow file path. '
                                      'Type "cate op list" to list available operations.')
         run_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                                help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
-                                     'depends on the expected data type of an OP input. It can be a True, False, '
-                                     'a string, a numeric constant, or a workspace resource name, or a Python '
-                                     'expression. Type "cate op info OP" to print information about the supported OP '
-                                     'input names to be used as KEY and their data types to be used as VALUE.')
+                                help=OP_ARGS_RES_HELP)
         run_parser.set_defaults(sub_command_function=cls._execute_run)
 
         del_parser = subparsers.add_parser('del', help='Delete workspace.')
@@ -619,9 +722,13 @@ class WorkspaceCommand(SubCommandCommand):
     @classmethod
     def _execute_run(cls, command_args):
         workspace_manager = _new_workspace_manager()
+        op = OP_REGISTRY.get_op(command_args.op_name, True)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        if op_args:
+            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.run_op_in_workspace(_base_dir(command_args.base_dir),
                                               command_args.op_name,
-                                              command_args.op_args,
+                                              op_kwargs,
                                               monitor=cls.new_monitor())
         print("Operation '%s' executed." % command_args.op_name)
 
@@ -756,9 +863,9 @@ class ResourceCommand(SubCommandCommand):
         set_parser.add_argument('res_name', metavar='NAME',
                                 help='Name of a new or existing target resource.')
         set_parser.add_argument('op_name', metavar='OP',
-                                help='Operation name.')
+                                help='Operation name. Type "cate op list" to list available operation names.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                                help='Operation arguments.')
+                                help=OP_ARGS_RES_HELP)
         set_parser.set_defaults(sub_command_function=cls._execute_set)
 
         rename_parser = subparsers.add_parser('rename', help='Rename a resource.')
@@ -798,40 +905,43 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def _execute_open(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        ds_name = command_args.ds_name
-        op_args = ['ds_name=%s' % to_str_constant(ds_name)]
+        op_args = dict(ds_name=command_args.ds_name)
         if command_args.var_names:
-            op_args.append('var_names=%s' % to_str_constant(command_args.var_names))
+            op_args.update(var_names=command_args.var_names)
         if command_args.region:
-            op_args.append('region=%s' % to_str_constant(command_args.region))
-        if command_args.start_date and command_args.end_date:
-            op_args.append('time_range="%s - %s"' %
-                           (to_str_constant(command_args.start_date), to_str_constant(command_args.start_date)))
+            op_args.update(region=command_args.region)
+        if command_args.start_date or command_args.end_date:
+            op_args.update(time_range="%s,%s" % (command_args.start_date or '',
+                                                 command_args.end_date or ''))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.open_dataset',
-                                                 op_args)
+                                                 mk_op_kwargs(**op_args))
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
     def _execute_read(cls, command_args):
         workspace_manager = _new_workspace_manager()
-        op_args = ['file=%s' % to_str_constant(command_args.file_path)]
+        op_args = dict(file=command_args.file_path)
         if command_args.format_name:
-            op_args.append('format=%s' % to_str_constant(command_args.format_name))
+            op_args.update(format=command_args.format_name)
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  'cate.ops.io.read_object',
-                                                 op_args)
+                                                 mk_op_kwargs(**op_args))
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
+        op = OP_REGISTRY.get_op(command_args.op_name, True)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        if op_args:
+            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
                                                  command_args.op_name,
-                                                 command_args.op_args,
+                                                 op_kwargs,
                                                  monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
 
@@ -1165,7 +1275,8 @@ def _trim_error_message(message: str) -> str:
 # use by 'sphinxarg' to generate the documentation
 def _make_cate_parser():
     from cate.util.cli import _make_parser
-    return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE, docs_url=_DOCS_URL)
+    return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE,
+                        docs_url=_DOCS_URL)
 
 
 def main(args=None) -> int:

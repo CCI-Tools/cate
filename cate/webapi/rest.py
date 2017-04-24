@@ -204,11 +204,11 @@ class WorkspaceRunOpHandler(WebAPIRequestHandler):
     def post(self, base_dir):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else None
+        op_args = json.loads(op_args) if op_args else dict()
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args=op_args,
+                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args,
                                                                   monitor=_new_monitor())
             self.write_status_ok(content=workspace.to_json_dict())
         except Exception as e:
@@ -232,11 +232,11 @@ class ResourceSetHandler(WebAPIRequestHandler):
     def post(self, base_dir, res_name):
         op_name = self.get_body_argument('op_name')
         op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else None
+        op_args = json.loads(op_args) if op_args else dict()
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args=op_args,
+                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args,
                                                                      monitor=_new_monitor())
             self.write_status_ok(content=workspace.to_json_dict())
         except Exception as e:
@@ -540,13 +540,9 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
 class ResVarCsvHandler(WebAPIRequestHandler):
     def get(self, base_dir, res_name):
 
-        print('ResVarCsvHandler:', base_dir, res_name)
+        var_name = self.get_query_argument('var', default=None)
 
-        var_name = self.get_query_argument('var')
-        var_index = self.get_query_argument('index', default=None)
-        var_index = tuple(map(int, var_index.split(','))) if var_index else []
-
-        print('ResVarCsvHandler:', var_name, var_index)
+        print('ResVarCsvHandler:', base_dir, res_name, var_name)
 
         workspace_manager = self.application.workspace_manager
         workspace = workspace_manager.get_workspace(base_dir)
@@ -560,8 +556,17 @@ class ResVarCsvHandler(WebAPIRequestHandler):
             self.write_status_error(message='Resource "%s" is None' % res_name)
             return
 
+        var_data = resource
+        if var_name:
+            try:
+                var_data = resource[var_name]
+            except Exception as e:
+                traceback.print_exc()
+                self.write_status_error(message='Internal error: %s' % e)
+                return
+
         try:
-            csv = resource.to_csv()
+            csv = var_data.to_csv()
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
