@@ -226,14 +226,14 @@ def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
 
 
 def _parse_op_args(raw_args: List[str],
-                   input_props:Dict[str, Dict[str, Any]] = None,
+                   input_props: Dict[str, Dict[str, Any]] = None,
                    namespace: Dict[str, Any] = None) -> Tuple[OpArgs, OpKwArgs]:
     """
     Convert a raw argument list *raw_args* into a (args, kwargs) tuple.
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
-    "value" (positional argument) or "name=value" (keyword argument) where value may either be 
-    
-    1. "@name":  a reference by name to another step's port  
+    "value" (positional argument) or "name=value" (keyword argument) where value may either be
+
+    1. "@name":  a reference by name to another step's port
     2. "<Python expression>":  a constant Python expression
 
     :param raw_args: raw argument list of string elements

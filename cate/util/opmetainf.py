@@ -285,7 +285,7 @@ class OpMetaInfo:
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
-    def validate_input_values(self, input_values: Dict, except_types = None):
+    def validate_input_values(self, input_values: Dict, except_types=None):
         """
         Validate given *input_values* against the operation's input properties.
 

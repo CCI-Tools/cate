@@ -27,7 +27,7 @@ import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Union, Dict, Any
+from typing import List, Union
 
 from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
