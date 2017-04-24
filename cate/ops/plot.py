@@ -230,9 +230,9 @@ def plot_dataframe(df: pd.DataFrame,
         raise NotImplementedError('Only pandas dataframes are currently'
                                   ' supported')
 
-    fig = plt.figure(figsize=(16, 8))
-    df.plot(kind=plot_type, **kwargs)
+    ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
     if file:
+        fig = ax.get_figure()
         fig.savefig(file)
 
 
