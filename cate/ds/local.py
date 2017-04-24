@@ -237,15 +237,17 @@ class LocalDataSource(DataSource):
                                         lat_min = lat_min - geo_lat_min
                                         lat_max = lat_max - geo_lat_min
                                     else:
-                                        lat_max = geo_lat_max - lat_min
+                                        lat_min_copy = lat_min
                                         lat_min = geo_lat_max - lat_max
+                                        lat_max = geo_lat_max - lat_min_copy
 
                                     if 'lon' not in descending_data_order:
                                         lon_min = lon_min - geo_lon_min
                                         lon_max = lon_max - geo_lon_min
                                     else:
-                                        lon_max = geo_lon_min - lon_min
-                                        lon_min = geo_lon_min - lon_max
+                                        lat_min_copy = lat_min
+                                        lat_min = geo_lat_max - lat_max
+                                        lat_max = geo_lat_max - lat_min_copy
 
                                     lat_min = floor(lat_min / geo_lat_res)
                                     lat_max = ceil(lat_max / geo_lat_res)
