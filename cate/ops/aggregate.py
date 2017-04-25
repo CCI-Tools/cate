@@ -65,13 +65,31 @@ def long_term_average(ds: xr.Dataset,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a monthly dataset
-    if ds.time.freqstr[0] != 'M':
+    months = ds.time['time.month'].values
+    if (months[1] - months[0]) != 1:
         raise ValueError('Long term average operation expects a monthly dataset'
                          'running temporal aggregation on this dataset'
                          'beforehand may help.')
 
     var = VarNamesLike.convert(var)
     ds = select_var(ds, var)
+
+    total_work = 100
+
+    with monitor.starting('LTA', total_work=total_work):
+        monitor.progress(work=0)
+        step = total_work / 12
+        kwargs = {'dim': 'time', 'keep_attrs': True,
+                  'monitor': monitor, 'step': step}
+        retset = ds.groupby('time.month', squeeze=False).apply(_mean, **kwargs)
+    retset = retset.rename({'month': 'time'})
+    return retset
+
+
+def _mean(x, dim, keep_attrs, monitor, step):
+    retset = x.mean(dim=dim, keep_attrs=keep_attrs)
+    monitor.progress(work=step)
+    return retset
 
 
 @op(tags=['aggregate'])
@@ -94,5 +112,6 @@ def temporal_aggregation(ds: xr.Dataset,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a daily dataset
-    if ds.time.freqstr != 'D':
+    days = ds.time['time.day'].values
+    if (days[1] - days[0]) != 1:
         raise ValueError('Long term average operation expects a daily dataset')
