@@ -15,13 +15,6 @@ from cate.util.monitor import ConsoleMonitor
 from cate.ops import long_term_average, temporal_aggregation
 
 
-def assert_dataset_equal(expected, actual):
-    # this method is functionally equivalent to
-    # `assert expected == actual`, but it checks each aspect
-    # of equality separately for easier debugging
-    assert expected.equals(actual), (expected, actual)
-
-
 class TestLTA(TestCase):
     """
     Test long term averaging
@@ -104,17 +97,65 @@ class TestTemporalAggregation(TestCase):
         Test nominal exeuction
         """
         ds = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
-            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': pd.date_range('2000-01-01', periods=24)})
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
 
         actual = temporal_aggregation(ds)
-        print(actual)
+        self.assertTrue(actual.broadcast_equals(ex))
 
     def test_registered(self):
         """
         Test registered operation execution
         """
-        pass
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(temporal_aggregation))
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+
+        actual = reg_op(ds=ds)
+        self.assertTrue(actual.broadcast_equals(ex))
+
+    def test_validation(self):
+        """
+        Test input validation
+        """
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds)
+        self.assertIn('harmonization', str(err.exception))
+
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
+
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds)
+        self.assertIn('daily dataset', str(err.exception))

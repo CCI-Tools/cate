@@ -40,7 +40,7 @@ from cate.core.types import VarNamesLike
 
 
 @op(tags=['aggregate'], version='1.0')
-@op_input('var', data_type=VarNamesLike)
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
 def long_term_average(ds: xr.Dataset,
                       var: VarNamesLike.TYPE = None,
@@ -128,8 +128,10 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
     return retset
 
 
-@op(tags=['aggregate'])
-@op_input('method', value_set=['mean', 'max'])
+@op(tags=['aggregate'], version='1.0')
+@op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
+                               'var', 'argmax', 'argmin', 'first', 'last'])
+@op_return(add_history=True)
 def temporal_aggregation(ds: xr.Dataset,
                          method: str = 'mean') -> xr.Dataset:
     """
@@ -150,4 +152,15 @@ def temporal_aggregation(ds: xr.Dataset,
     # Check if we have a daily dataset
     days = ds.time['time.day'].values
     if (days[1] - days[0]) != 1:
-        raise ValueError('Long term average operation expects a daily dataset')
+        raise ValueError('Temporal aggregation operation expects a daily dataset')
+
+    retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)
+    for var in retset.data_vars:
+        try:
+            retset[var].attrs['cell_methods'] = \
+                    retset[var].attrs['cell_methods'] + \
+                    ' time: {} within years'.format(method)
+        except KeyError:
+            retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
+
+    return retset
