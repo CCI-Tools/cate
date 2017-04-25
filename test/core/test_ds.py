@@ -153,7 +153,7 @@ class IOTest(TestCase):
 
         data_sources = ds.query_data_sources(data_stores=self.TEST_DATA_STORE, name="Z")
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
+        self.assertEqual(len(data_sources), 1)
 
     @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):

@@ -454,9 +454,6 @@ class EsaCciOdpDataSource(DataSource):
                                    if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
         return self._protocol_list
 
-    def matches_filter(self, name: str = None) -> bool:
-        return name.lower() in self.name.lower()
-
     def find_url(self, desired_service='HTTP'):
         for url_service in self._json_dict.get('url', []):
             parts = url_service.split('|')

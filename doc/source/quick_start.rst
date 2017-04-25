@@ -242,13 +242,13 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate res set oz_africa subset_spatial ds=@oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set oz_africa subset_spatial ds=@oz_tot region=-20,-40,60,40
     Executing 3 workflow step(s): done
     Resource "oz_africa" set.
 
 .. code-block:: console
 
-    $ cate res set cc_africa subset_spatial ds=@cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set cc_africa subset_spatial ds=@cc_tot_res region=-20,-40,60,40
     Executing 6 workflow step(s): done
     Resource "cc_africa" set.
 
@@ -264,7 +264,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=@cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
+    $ cate ws run plot_map ds=@cc_africa var=cc_total region=-20,-40,60,40 file=fig5.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -277,26 +277,12 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 Temporal Filtering
 ------------------
 
-To further filter the datasets to contain only a particular time-span, use ``subset_temporal`` operation
+To further filter the datasets to contain only a particular time range, use ``subset_temporal`` operation
 
 .. code-block:: console
 
-    $ cate res set oz_africa_janoct subset_temporal ds=@oz_africa time_min='2007-01-01' time_max='2007-10-30'
-    $ cate res set cc_africa_janoct subset_temporal ds=@cc_africa time_min='2007-01-01' time_max='2007-10-30'
-
-If on Linux, quotes enclosing datetime strings should be additionally escaped:
-
-.. code-block:: console
-
-    $ cate res set oz_africa_janoct subset_temporal ds=@oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-    Executing 4 workflow step(s): done
-    Resource "oz_africa_janoct" set.
-
-.. code-block:: console
-
-    $ cate res set cc_africa_janoct subset_temporal ds=@cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-    Executing 7 workflow step(s): done
-    Resource "cc_africa_janoct" set.
+    $ cate res set oz_africa_janoct subset_temporal ds=@oz_africa time_range=2007-01-01,2007-10-30
+    $ cate res set cc_africa_janoct subset_temporal ds=@cc_africa time_range=2007-01-01,2007-10-30
 
 
 -------------------
