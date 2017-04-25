@@ -23,7 +23,7 @@
 Description
 ===========
 
-This module provides averaging operations.
+This module provides aggregation operations
 
 Components
 ==========
