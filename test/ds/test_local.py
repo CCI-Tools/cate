@@ -65,7 +65,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 2)
 
         data_sources = local_data_store.query('local')
-        self.assertEqual(len(data_sources), 1)
+        self.assertEqual(len(data_sources), 2)
         self.assertIsNone(data_sources[0].temporal_coverage())
 
         data_sources = local_data_store.query('local_w_temporal')
