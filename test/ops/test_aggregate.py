@@ -37,10 +37,25 @@ class TestLTA(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
 
+        # Test monitor
         m = ConsoleMonitor()
         actual = long_term_average(ds, monitor=m)
         self.assertEqual(m._percentage, 100)
-        print(actual)
+
+        # Test CF attributes
+        self.assertEqual(actual['first'].attrs['cell_methods'],
+                         'time: mean over years')
+        self.assertEqual(actual.dims, {'time': 12,
+                                       'nv': 2,
+                                       'lat': 45,
+                                       'lon': 90})
+        self.assertEqual(actual.time.attrs['climatology'],
+                         'climatology_bounds')
+
+        # Test variable selection
+        actual = long_term_average(ds, var='first')
+        with self.assertRaises(KeyError):
+            actual['second']
 
     def test_registered(self):
         """
@@ -54,8 +69,7 @@ class TestLTA(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
 
-        actual = reg_op(ds=ds)
-        print(actual)
+        reg_op(ds=ds)
 
     def test_validation(self):
         """

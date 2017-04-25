@@ -30,6 +30,8 @@ Components
 """
 
 import xarray as xr
+import pandas as pd
+import numpy as np
 
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
@@ -73,22 +75,55 @@ def long_term_average(ds: xr.Dataset,
                          'beforehand may help.')
 
     var = VarNamesLike.convert(var)
-    ds = select_var(ds, var)
+    # Shallow
+    retset = ds.copy()
+    if var:
+        retset = select_var(retset, var)
+
+    time_min = pd.Timestamp(ds.time.values[0])
+    time_max = pd.Timestamp(ds.time.values[-1])
 
     total_work = 100
 
     with monitor.starting('LTA', total_work=total_work):
         monitor.progress(work=0)
         step = total_work / 12
-        kwargs = {'dim': 'time', 'keep_attrs': True,
-                  'monitor': monitor, 'step': step}
-        retset = ds.groupby('time.month', squeeze=False).apply(_mean, **kwargs)
+        kwargs = {'monitor': monitor, 'step': step}
+        retset = retset.groupby('time.month', squeeze=False).apply(_mean, **kwargs)
+
+    # Make the return dataset CF compliant
     retset = retset.rename({'month': 'time'})
+    retset['time'] = pd.date_range('{}-01-01'.format(time_min.year),
+                                   freq='MS',
+                                   periods=12)
+
+    climatology_bounds = xr.DataArray(data=np.tile([time_min, time_max],
+                                                   (12, 1)),
+                                      dims=['time', 'nv'],
+                                      name='climatology_bounds')
+    retset['climatology_bounds'] = climatology_bounds
+    retset.time.attrs = ds.time.attrs
+    retset.time.attrs['climatology'] = 'climatology_bounds'
+
+    for var in retset.data_vars:
+        try:
+            retset[var].attrs['cell_methods'] = \
+                    retset[var].attrs['cell_methods'] + ' time: mean over years'
+        except KeyError:
+            retset[var].attrs['cell_methods'] = 'time: mean over years'
+
     return retset
 
 
-def _mean(x, dim, keep_attrs, monitor, step):
-    retset = x.mean(dim=dim, keep_attrs=keep_attrs)
+def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
+    """
+    Calculate mean of the given dataset and update the given monitor.
+
+    :param ds: Dataset to take the mean of
+    :param monitor: Monitor to update
+    :param step: Work step
+    """
+    retset = ds.mean(dim='time', keep_attrs=True)
     monitor.progress(work=step)
     return retset
 
