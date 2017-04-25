@@ -1,6 +1,6 @@
-=================
-Desktop Interface
-=================
+===========
+Desktop GUI
+===========
 
 *Cate Desktop* is a desktop application and is intended to serve as the primary graphical user interface (GUI)
 of the CCI Toolbox. Cate Desktop has no public release yet. However, it is actively developed and a first version is
