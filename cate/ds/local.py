@@ -457,6 +457,9 @@ class LocalDataSource(DataSource):
     def name(self) -> str:
         return self._name
 
+    def matches_filter(self, name: str = None) -> bool:
+        return name.lower() in self.name.lower()
+
     def to_json_dict(self):
         """
         Return a JSON-serializable dictionary representation of this object.
