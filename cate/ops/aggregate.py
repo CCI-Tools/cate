@@ -31,14 +31,15 @@ Components
 
 import xarray as xr
 
-from cate.core.op import op, op_input
+from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
 from cate.core.types import VarNamesLike
 
 
-@op(tags=['aggregate'])
+@op(tags=['aggregate'], version='1.0')
 @op_input('var', data_type=VarNamesLike)
+@op_return(add_history=True)
 def long_term_average(ds: xr.Dataset,
                       var: VarNamesLike.TYPE = None,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:

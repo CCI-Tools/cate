@@ -39,13 +39,23 @@ class TestLTA(TestCase):
 
         m = ConsoleMonitor()
         actual = long_term_average(ds, monitor=m)
+        self.assertEqual(m._percentage, 100)
         print(actual)
 
     def test_registered(self):
         """
         Test registered operation execution
         """
-        pass
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(long_term_average))
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
+
+        actual = reg_op(ds=ds)
+        print(actual)
 
     def test_validation(self):
         """
