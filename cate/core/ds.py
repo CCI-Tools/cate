@@ -146,7 +146,7 @@ class DataSource(metaclass=ABCMeta):
 
     def matches_filter(self, name=None) -> bool:
         """Test if this data source matches the given *constraints*."""
-        if name and name != self.name:
+        if name and name.lower() not in self.name.lower():
             return False
         return True
 
