@@ -255,13 +255,14 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
         end_time = None
         if time_info:
             time_format, p1, p2 = time_info
-            start_time = datetime.strptime(filename[p1:p2], time_format)
-            # Convert back to text, so we can JSON-encode it
-            start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
+            if time_format:
+                start_time = datetime.strptime(filename[p1:p2], time_format)
+                # Convert back to text, so we can JSON-encode it
+                start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
         file_list.append([filename, start_time, end_time, file_size, urls])
 
     def pick_start_time(file_info_rec):
-        return file_info_rec[1]
+        return file_info_rec[1] if file_info_rec[1] else datetime.max
 
     return sorted(file_list, key=pick_start_time)
 
@@ -833,12 +834,13 @@ class EsaCciOdpDataSource(DataSource):
         # Compute file_end_date from 'time_frequency' field
         # Compute the data source's temporal coverage
         for file_rec in file_list:
-            file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
-            file_end_date = file_start_date + time_delta
-            data_source_start_date = min(data_source_start_date, file_start_date)
-            data_source_end_date = max(data_source_end_date, file_end_date)
-            file_rec[1] = file_start_date
-            file_rec[2] = file_end_date
+            if file_rec[1]:
+                file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+                file_end_date = file_start_date + time_delta
+                data_source_start_date = min(data_source_start_date, file_start_date)
+                data_source_end_date = max(data_source_end_date, file_end_date)
+                file_rec[1] = file_start_date
+                file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
 

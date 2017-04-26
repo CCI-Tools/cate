@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from collections import OrderedDict
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -104,10 +103,11 @@ import os
 import os.path
 import pprint
 import sys
+from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-from cate.core.types import Like
+from cate.core.types import Like, TimeRangeLike
 from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
@@ -314,7 +314,12 @@ def _parse_op_args(raw_args: List[str],
     return op_args, op_kwargs
 
 
-def _list_items(category_singular_name: str, category_plural_name: str, names, pattern: str):
+def _list_items(category_singular_name: str, category_plural_name: str,
+                names: Union[List, OrderedDict], pattern: str):
+    extra_data = names
+    extra = isinstance(names, OrderedDict)
+    if extra:
+        names = list(names.keys())
     if pattern:
         pattern = pattern.lower()
         names = [name for name in names if pattern in name.lower()]
@@ -325,10 +330,12 @@ def _list_items(category_singular_name: str, category_plural_name: str, names, p
         print('%d %s found' % (item_count, category_plural_name))
     else:
         print('No %s found' % category_plural_name)
-    no = 0
-    for item in names:
-        no += 1
-        print('%4d: %s' % (no, item))
+    for no, item in enumerate(names):
+        if extra:
+            value = extra_data.get(item)
+            print('%4d: %s [%s]' % (no, item, value if value else 'None'))
+        else:
+            print('%4d: %s' % (no, item))
 
 
 def _get_op_data_type_str(data_type: str):
@@ -1090,6 +1097,8 @@ class DataSourceCommand(SubCommandCommand):
                                  help="List only data sources named NAME or "
                                       "that have NAME in their name. "
                                       "The comparison is case insensitive.")
+        list_parser.add_argument('--coverage', '-c', action='store_true',
+                                 help="Also display temporal coverage")
         # TODO (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
@@ -1138,7 +1147,13 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def _execute_list(cls, command_args):
         ds_name = command_args.name
-        ds_names = sorted(data_source.name for data_source in query_data_sources())
+        if command_args.coverage:
+            ds_names = OrderedDict(sorted(((ds.name, TimeRangeLike.format(ds.temporal_coverage())
+                                           if ds.temporal_coverage() else None)
+                                           for ds in query_data_sources()),
+                                          key=lambda item: item[0]))
+        else:
+            ds_names = sorted(data_source.name for data_source in query_data_sources())
         _list_items('data source', 'data sources', ds_names, ds_name)
 
     @classmethod
