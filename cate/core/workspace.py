@@ -222,8 +222,9 @@ class Workspace:
         if isinstance(resource, xr.Dataset):
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
-                variable = resource.data_vars[var_name]
-                variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+                if not var_name.endswith('_bnds'):
+                    variable = resource.data_vars[var_name]
+                    variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
             return dict(name=res_name,
                         dataType=data_type_name,
                         dims=to_json(resource.dims),
