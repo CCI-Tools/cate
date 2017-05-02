@@ -446,7 +446,9 @@ class Workspace:
             input_port = new_step.input[input_name]
 
             if 'source' in input_value:
-                source = eval(input_value['source'], None, namespace)
+                source = input_value['source']
+                if source is not None:
+                    source = eval(source, None, namespace)
                 if isinstance(source, NodePort):
                     # source is an output NodePort of another step
                     input_port.source = source
