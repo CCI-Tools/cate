@@ -57,6 +57,7 @@ svgz, tif, tiff
 import matplotlib
 import xarray as xr
 import pandas as pd
+from matplotlib.figure import Figure
 
 matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
@@ -236,14 +237,15 @@ def plot_dataframe(df: pd.DataFrame,
         fig.savefig(file)
 
 
-@op(tags=['plot'], no_cache=True)
+@op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
-         file: str = None) -> None:
+         fig: Figure = None,
+         file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
 
@@ -259,6 +261,7 @@ def plot(ds: xr.Dataset,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
                   e.g. "lat=12.4, time='2012-05-02'".
+    :param fig: optional figure from a previous ``plot`` call
     :param file: path to a file in which to save the plot
     """
 
@@ -275,10 +278,12 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    fig = plt.figure(figsize=(16, 8))
+    fig = fig or plt.figure(figsize=(16, 8))
     var_data.plot()
     if file:
         fig.savefig(file)
+
+    return fig if not in_notebook() else None
 
 
 def _check_bounding_box(lat_min: float,
@@ -308,3 +313,15 @@ def _check_bounding_box(lat_min: float,
         return False
 
     return True
+
+
+
+def in_notebook():
+    """
+    Returns ``True`` if the module is running in IPython kernel,
+    ``False`` if in IPython shell or other Python shell.
+    """
+    import sys
+    ipykernel_in_sys_modules = 'ipykernel' in sys.modules
+    print('###########################################', ipykernel_in_sys_modules)
+    return ipykernel_in_sys_modules
