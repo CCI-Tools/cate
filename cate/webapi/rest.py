@@ -564,13 +564,19 @@ class ResVarCsvHandler(WebAPIRequestHandler):
                 traceback.print_exc()
                 self.write_status_error(message='Internal error: %s' % e)
                 return
-
+        print(var_data.__dict__)
         try:
             csv = var_data.to_csv()
         except Exception as e:
-            traceback.print_exc()
-            self.write_status_error(message='Internal error: %s' % e)
-            return
+            try:
+                csv = var_data.to_dataframe().to_csv()
+            except Exception as e:
+                try:
+                    csv = var_data.to_series().to_csv()
+                except Exception as e:
+                    traceback.print_exc()
+                    self.write_status_error(message='Internal error: %s' % e)
+                    return
 
         self.set_header('Content-Type', 'text/csv')
         self.write(csv)
