@@ -89,7 +89,7 @@ def ds_arithmetics(ds: xr.Dataset,
 
 
 @op(tags=['arithmetic'])
-def diff(ds: xr.Dataset, ds2: xr.Dataset):
+def diff(ds: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
     """
     Calculate the difference of two datasets (ds - ds2). This is done by
     matching variable names in the two datasets against each other and taking
