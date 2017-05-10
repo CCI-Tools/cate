@@ -393,5 +393,5 @@ Using the API
 =============
 
 A demonstration of how to apply the CCI Toolbox API to the use case described here is given in a dedicated
-`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc9.ipynb>`_ on GitHub.
+`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ on GitHub.
 
