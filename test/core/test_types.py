@@ -7,7 +7,7 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
-    TimeLike
+    TimeLike, Arbitrary, DatasetLike, DataFrameLike
 from cate.util import object_to_qualified_name, OrderedDict
 
 import xarray as xr
@@ -402,3 +402,73 @@ class TypeNamesTest(TestCase):
         self.assertEqual(object_to_qualified_name(PolygonLike), 'cate.core.types.PolygonLike')
         self.assertEqual(object_to_qualified_name(GeometryLike), 'cate.core.types.GeometryLike')
         self.assertEqual(object_to_qualified_name(TimeRangeLike), 'cate.core.types.TimeRangeLike')
+
+
+class ArbitraryTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(Arbitrary.convert('"abc"'), 'abc')
+        self.assertEqual(Arbitrary.convert('2 + 6'), 8)
+        self.assertEqual(Arbitrary.convert('(3, 5, 7)'), (3, 5, 7))
+
+        self.assertEqual(Arbitrary.convert(None), None)
+        self.assertEqual(Arbitrary.convert(434), 434)
+        self.assertEqual(Arbitrary.convert(3.4), 3.4)
+        self.assertEqual(Arbitrary.convert(True), True)
+        self.assertEqual(Arbitrary.convert((3, 5, 7)), (3, 5, 7))
+
+        with self.assertRaises(ValueError) as e:
+            self.assertEqual(Arbitrary.convert('abc'), 'abc')
+
+    def test_format(self):
+        self.assertEqual(Arbitrary.format(None), 'None')
+        self.assertEqual(Arbitrary.format(434), '434')
+        self.assertEqual(Arbitrary.format(3.4), '3.4')
+        self.assertEqual(Arbitrary.format("abc"), "'abc'")
+        self.assertEqual(Arbitrary.format(True), 'True')
+
+
+class DatasetLikeTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(DatasetLike.convert(None), None)
+
+        data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+        xr_ds = xr.Dataset(data_vars=data)
+        pd_ds = pd.DataFrame(data=data)
+        self.assertIsInstance(DatasetLike.convert(xr_ds), xr.Dataset)
+        self.assertIsInstance(DatasetLike.convert(pd_ds), xr.Dataset)
+
+        with self.assertRaises(ValueError):
+            DatasetLike.convert(42)
+
+
+    def test_format(self):
+        self.assertEqual(DatasetLike.format(None), '')
+
+        with self.assertRaises(ValueError):
+            data = {'v1': [4, 5, 6], 'v2': [6, 7, 8]}
+            DatasetLike.format(xr.Dataset(data_vars=data))
+
+
+class DataFrameLikeTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(DataFrameLike.convert(None), None)
+
+        data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+        pd_ds = pd.DataFrame(data=data)
+        xr_ds = xr.Dataset(data_vars=data)
+        self.assertIsInstance(DataFrameLike.convert(pd_ds), pd.DataFrame)
+        self.assertIsInstance(DataFrameLike.convert(xr_ds), pd.DataFrame)
+
+        with self.assertRaises(ValueError):
+            DataFrameLike.convert(42)
+
+
+    def test_format(self):
+        self.assertEqual(DataFrameLike.format(None), '')
+
+        with self.assertRaises(ValueError):
+            data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+            DataFrameLike.format(pd.DataFrame(data=data))

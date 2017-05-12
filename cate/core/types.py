@@ -39,13 +39,14 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
+import ast
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
+from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
-from shapely import wkt
 
 from cate.util.misc import to_list, to_datetime_range, to_datetime
 
@@ -136,7 +137,29 @@ class Like(Generic[T], metaclass=ABCMeta):
 VarNames = List[str]
 
 
-# ===== Like-derived types below =====
+class Arbitrary(Like[Any]):
+    """
+    Represents an arbitrary Python value.
+    """
+    TYPE = Any
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[VarNames]:
+        """
+        If **value** is a string treat it as a Python literal and return its evaluation result, 
+        otherwise return **value**.
+        """
+        if isinstance(value, str):
+            try:
+                return ast.literal_eval(value)
+            except ValueError:
+                cls.assert_value_ok(False, value)
+        return value
+
+    @classmethod
+    def format(cls, value: Any) -> str:
+        return repr(value)
+
 
 class VarNamesLike(Like[VarNames]):
     """
@@ -462,3 +485,49 @@ class TimeRangeLike(Like[TimeRange]):
         if not value:
             return ''
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
+
+
+import xarray as xr
+import pandas as pd
+
+
+class DatasetLike(Like[xr.Dataset]):
+    TYPE = Union[xr.Dataset, pd.DataFrame, None]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[xr.Dataset]:
+        # Can be optional
+        if value is None:
+            return None
+        if isinstance(value, xr.Dataset):
+            return value
+        if isinstance(value, pd.DataFrame):
+            return xr.Dataset.from_dataframe(value)
+        raise ValueError('Value must be an xr.Dataset or pd.DataFrame')
+
+    @classmethod
+    def format(cls, value: Optional[xr.Dataset]) -> str:
+        if value is None:
+            return ''
+        raise ValueError('Values of type DatasetLike cannot be converted to text')
+
+
+class DataFrameLike(Like[pd.DataFrame]):
+    TYPE = Union[pd.DataFrame, xr.Dataset, None]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[pd.DataFrame]:
+        # Can be optional
+        if value is None:
+            return None
+        if isinstance(value, pd.DataFrame):
+            return value
+        if isinstance(value, xr.Dataset):
+            return value.to_dataframe()
+        raise ValueError('Value must be a pd.DataFrame or xr.Dataset')
+
+    @classmethod
+    def format(cls, value: Optional[pd.DataFrame]) -> str:
+        if value is None:
+            return ''
+        raise ValueError('Values of type DataFrameLike cannot be converted to text')
