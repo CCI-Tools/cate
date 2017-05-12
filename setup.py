@@ -49,7 +49,7 @@ requirements = [
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # On READTHEDOCS, all dependencies are mocked (except tornado)
-    # see doc/source/conf.py and readthedocs-env.yml
+    # see doc/source/conf.py and environment-rtd.yml
     requirements = ['tornado']
 
 packages = find_packages(exclude=["test", "test.*"])
