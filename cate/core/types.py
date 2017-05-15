@@ -126,9 +126,9 @@ class Like(Generic[T], metaclass=ABCMeta):
         return cls.format(value)
 
     @classmethod
-    def assert_value_ok(cls, cond: bool, value):
+    def assert_value_ok(cls, cond: bool, value: Any):
         if not cond:
-            text_value = '%s' % value
+            text_value = str(value)
             if len(text_value) > 37:
                 text_value = text_value[0:38] + '...'
             raise ValueError('cannot convert value <%s> to %s' % (text_value, cls.name()))
@@ -144,14 +144,14 @@ class Arbitrary(Like[Any]):
     TYPE = Any
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[Any]:
+    def convert(cls, value: Any) -> Any:
         """
         Return **value**.
         """
         return value
 
     @classmethod
-    def format(cls, value:  Optional[Any]) -> str:
+    def format(cls, value: Any) -> str:
         if value is None:
             return ''
         return str(value)
@@ -164,7 +164,7 @@ class Literal(Like[Any]):
     TYPE = str
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[Any]:
+    def convert(cls, value: Any) -> Any:
         """
         If **value** is a string treat it as a Python literal and return its evaluation result, 
         otherwise return **value**.
@@ -179,7 +179,7 @@ class Literal(Like[Any]):
         return value
 
     @classmethod
-    def format(cls, value: Optional[Any]) -> str:
+    def format(cls, value: Any) -> str:
         if value is None:
             return ''
         return repr(value)
@@ -316,7 +316,7 @@ class PointLike(Like[Point]):
         try:
             if isinstance(value, Point):
                 return value
-            if isinstance(value, str):
+            elif isinstance(value, str):
                 value = value.strip()
                 if value == '':
                     return None
@@ -336,14 +336,16 @@ class PolygonLike(Like[Polygon]):
     Type class for geometric Polygon objects
 
     Accepts:
-        1. a Shapely Polygon
-        2. a string 'min_lon, min_lat, max_lon, max_lat'
-        3. a WKT string 'POLYGON ...'
+        1. a ``shapely.geometry.Polygon`` object
+        2. a string "min_lon, min_lat, max_lon, max_lat"
+        3. a WKT string "POLYGON ((RING))" or "POLYGON ((OUTER-RING), (INNER-RING), ...)"
         4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
+        5. a list or tuple [min_lon, min_lat, max_lon, max_lat]
 
-    Converts to a valid shapely Polygon.
+    Converts to a valid Shapely Polygon.
     """
-    TYPE = Union[Polygon, str, List[Tuple[float, float]]]
+    TYPE = Union[Polygon, List[Tuple[float, float]],
+                 str, Tuple[float, float, float, float]]
 
     @classmethod
     def convert(cls, value: Any) -> Optional[Polygon]:
@@ -354,11 +356,7 @@ class PolygonLike(Like[Polygon]):
             if isinstance(value, Polygon):
                 if value.is_valid:
                     return value
-            if isinstance(value, list):
-                polygon = Polygon(value)
-                if polygon.is_valid:
-                    return polygon
-            if isinstance(value, str):
+            elif isinstance(value, str):
                 value = value.strip()
                 if value == '':
                     return None
@@ -369,6 +367,14 @@ class PolygonLike(Like[Polygon]):
                     polygon = box(val[0], val[1], val[2], val[3])
                 if polygon.is_valid:
                     return polygon
+            else:
+                try:
+                    polygon = Polygon(value)
+                    if polygon.is_valid:
+                        return polygon
+                except Exception:
+                    return box(float(value[0]), float(value[1]),
+                               float(value[2]), float(value[3]))
         except Exception:
             pass
 

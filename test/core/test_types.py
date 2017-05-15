@@ -218,11 +218,12 @@ class PolygonLikeTest(TestCase):
         self.assertTrue(PolygonLike.accepts("0.0,0.0,1.1,1.1"))
         self.assertTrue(PolygonLike.accepts("0.0, 0.0, 1.1, 1.1"))
 
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
         pol = Polygon(coords)
         self.assertTrue(PolygonLike.accepts(coords))
         self.assertTrue(PolygonLike.accepts(pol))
         self.assertTrue(PolygonLike.accepts(pol.wkt))
+        self.assertTrue(PolygonLike.accepts(pol.bounds))
 
         self.assertFalse(PolygonLike.accepts("0.0,aaa,1.1,1.1"))
         self.assertFalse(PolygonLike.accepts("0.0, aaa, 1.1, 1.1"))
@@ -236,8 +237,9 @@ class PolygonLikeTest(TestCase):
     def test_convert(self):
         self.assertEqual(PolygonLike.convert(None), None)
         self.assertEqual(PolygonLike.convert(''), None)
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
         self.assertTrue(PolygonLike.convert(coords), Polygon(coords))
+        self.assertTrue(PolygonLike.convert([10.4, 20.2, 30.8, 40.8]), Polygon(coords))
 
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
@@ -245,9 +247,9 @@ class PolygonLikeTest(TestCase):
 
     def test_format(self):
         self.assertEqual(PolygonLike.format(None), '')
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
         pol = PolygonLike.convert(coords)
-        self.assertEqual(PolygonLike.format(pol), 'POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
+        self.assertEqual(PolygonLike.format(pol), 'POLYGON ((10.4 20.2, 30.8 20.2, 30.8 40.8, 10.4 40.8, 10.4 20.2))')
 
 
 class GeometryLikeTest(TestCase):
