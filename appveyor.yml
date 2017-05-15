@@ -1,4 +1,4 @@
-version: '0.0.0.dev0.{build}'
+version: '{build}'
 # version here is only relevant for the appveyor CI, no need to adjust
 
 environment:
