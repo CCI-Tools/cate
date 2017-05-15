@@ -8,9 +8,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from cate.ops.xarray import sel as sel_op
-from cate.ops.xarray import from_dataframe
 from cate.core.op import OP_REGISTRY
+from cate.ops.utility import sel, from_dataframe, identity, literal
 from cate.util.misc import object_to_qualified_name
 
 
@@ -49,13 +48,13 @@ class TestSel(TestCase):
     def test_nominal(self):
         ds = new_ds()
 
-        sel_ds = sel_op(ds=ds, time='2014-09-06')
+        sel_ds = sel(ds=ds, time='2014-09-06')
         self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
         self.assertEqual(sel_ds.dims['lon'], 4)
         self.assertEqual(sel_ds.dims['lat'], 2)
         self.assertNotIn('time', sel_ds.dims)
 
-        sel_ds = sel_op(ds=ds, lat=10.25, lon=34.51)
+        sel_ds = sel(ds=ds, point=(34.51, 10.25))
         self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
         self.assertNotIn('lon', sel_ds.dims)
         self.assertNotIn('lat', sel_ds.dims)
@@ -65,7 +64,7 @@ class TestSel(TestCase):
         """
         Test execution as a registered operation
         """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(sel_op))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(sel))
 
         ds = new_ds()
 
@@ -75,12 +74,11 @@ class TestSel(TestCase):
         self.assertEqual(sel_ds.dims['lat'], 2)
         self.assertNotIn('time', sel_ds.dims)
 
-        sel_ds = reg_op(ds=ds, lat=10.25, lon=34.51)
+        sel_ds = reg_op(ds=ds, point=(34.51, 10.25))
         self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
         self.assertNotIn('lon', sel_ds.dims)
         self.assertNotIn('lat', sel_ds.dims)
         self.assertEqual(sel_ds.dims['time'], 10)
-        pass
 
 
 class TestFromDataframe(TestCase):
@@ -123,3 +121,49 @@ class TestFromDataframe(TestCase):
 
         actual = reg_op(df=df)
         assert_dataset_equal(expected, actual)
+
+
+class TestIdentity(TestCase):
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        self.assertEqual(identity(True), True)
+        self.assertEqual(identity(42), 42)
+        self.assertEqual(identity(3.14), 3.14)
+        self.assertEqual(identity('ha'), 'ha')
+        self.assertEqual(identity([3, 4, 5]), [3, 4, 5])
+
+    def test_registered(self):
+        """
+        Test nominal execution as a registered operation
+        """
+        op = OP_REGISTRY.get_op(object_to_qualified_name(identity))
+        self.assertEqual(op(value=True), True)
+        self.assertEqual(op(value=42), 42)
+        self.assertEqual(op(value=3.14), 3.14)
+        self.assertEqual(op(value='ha'), 'ha')
+        self.assertEqual(op(value=[3, 4, 5]), [3, 4, 5])
+
+
+class TestLiteral(TestCase):
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        self.assertEqual(literal('True'), True)
+        self.assertEqual(literal('42'), 42)
+        self.assertEqual(literal('3.14'), 3.14)
+        self.assertEqual(literal('"ha"'), 'ha')
+        self.assertEqual(literal('[3,4,5]'), [3, 4, 5])
+
+    def test_registered(self):
+        """
+        Test nominal execution as a registered operation
+        """
+        op = OP_REGISTRY.get_op(object_to_qualified_name(literal))
+        self.assertEqual(op(value='True'), True)
+        self.assertEqual(op(value='42'), 42)
+        self.assertEqual(op(value='3.14'), 3.14)
+        self.assertEqual(op(value='"ha"'), 'ha')
+        self.assertEqual(op(value='[3,4,5]'), [3, 4, 5])

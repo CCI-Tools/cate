@@ -7,7 +7,7 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
-    TimeLike, Arbitrary, DatasetLike, DataFrameLike
+    TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike
 from cate.util import object_to_qualified_name, OrderedDict
 
 import xarray as xr
@@ -407,25 +407,45 @@ class TypeNamesTest(TestCase):
 class ArbitraryTest(TestCase):
 
     def test_convert(self):
-        self.assertEqual(Arbitrary.convert('"abc"'), 'abc')
-        self.assertEqual(Arbitrary.convert('2 + 6'), 8)
-        self.assertEqual(Arbitrary.convert('(3, 5, 7)'), (3, 5, 7))
-
         self.assertEqual(Arbitrary.convert(None), None)
         self.assertEqual(Arbitrary.convert(434), 434)
         self.assertEqual(Arbitrary.convert(3.4), 3.4)
         self.assertEqual(Arbitrary.convert(True), True)
         self.assertEqual(Arbitrary.convert((3, 5, 7)), (3, 5, 7))
-
-        with self.assertRaises(ValueError) as e:
-            self.assertEqual(Arbitrary.convert('abc'), 'abc')
+        self.assertEqual(Arbitrary.convert('abc'), 'abc')
 
     def test_format(self):
-        self.assertEqual(Arbitrary.format(None), 'None')
+        self.assertEqual(Arbitrary.format(None), '')
         self.assertEqual(Arbitrary.format(434), '434')
         self.assertEqual(Arbitrary.format(3.4), '3.4')
-        self.assertEqual(Arbitrary.format("abc"), "'abc'")
+        self.assertEqual(Arbitrary.format("abc"), "abc")
         self.assertEqual(Arbitrary.format(True), 'True')
+
+
+class LiteralTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(Literal.convert(''), None)
+        self.assertEqual(Literal.convert('None'), None)
+        self.assertEqual(Literal.convert('434'), 434)
+        self.assertEqual(Literal.convert('3.4'), 3.4)
+        self.assertEqual(Literal.convert('True'), True)
+        self.assertEqual(Literal.convert('"abc"'), 'abc')
+        self.assertEqual(Literal.convert('2 + 6'), 8)
+        self.assertEqual(Literal.convert('(3, 5, 7)'), (3, 5, 7))
+
+        with self.assertRaises(ValueError) as e:
+            Literal.convert('[1,2')
+        with self.assertRaises(ValueError) as e:
+            Literal.convert('abc')
+
+    def test_format(self):
+        self.assertEqual(Literal.format(None), '')
+        self.assertEqual(Literal.format(434), '434')
+        self.assertEqual(Literal.format(3.4), '3.4')
+        self.assertEqual(Literal.format("abc"), "'abc'")
+        self.assertEqual(Literal.format(True), 'True')
+        self.assertEqual(Literal.format([1,2,3]), '[1, 2, 3]')
 
 
 class DatasetLikeTest(TestCase):

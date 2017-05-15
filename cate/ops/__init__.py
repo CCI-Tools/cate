@@ -57,12 +57,11 @@ from .plot import plot_map, plot, plot_dataframe
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
-from .xarray import sel, from_dataframe
+from .utility import sel, from_dataframe, identity, literal
 from .aggregate import long_term_average, temporal_aggregation
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
-from .ident import *
 from .outliers import detect_outliers
 from .pandas import pandas_fillna
 
@@ -106,9 +105,11 @@ __all__ = [
     'read_netcdf',
     'write_netcdf3',
     'write_netcdf4',
-    # .xarray
+    # .utility
     'sel',
     'from_dataframe',
+    'identity',
+    'literal',
     # .aggregate
     'long_term_average',
     'temporal_aggregation',
@@ -122,11 +123,6 @@ __all__ = [
     'enso_nino34',
     'enso',
     'oni',
-    # .ident
-    'ident_bool',
-    'ident_int',
-    'ident_float',
-    'ident_str',
     # .outliers
     'detect_outliers',
     # .pandas

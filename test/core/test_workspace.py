@@ -41,9 +41,9 @@ class WorkspaceTest(unittest.TestCase):
     def test_set_and_rename_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
 
-        ws.set_resource('X', 'cate.ops.ident.ident_int', mk_op_kwargs(value=1))
-        ws.set_resource('Y', 'cate.ops.ident.ident_int', mk_op_kwargs(value="@X"))
-        ws.set_resource('Z', 'cate.ops.ident.ident_int', mk_op_kwargs(value="@X"))
+        ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=1))
+        ws.set_resource('Y', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
+        ws.set_resource('Z', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache, {})
 
@@ -62,7 +62,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Z'), 1)
 
         print('----X------------------------------')
-        ws.set_resource('X', 'cate.ops.ident.ident_int', mk_op_kwargs(value=9), overwrite=True)
+        ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=9), overwrite=True)
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache.get('X'), None)
         self.assertEqual(ws.resource_cache.get('Y'), None)
@@ -84,7 +84,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Z'), 9)
 
         print('----------------------------------')
-        ws.set_resource('A', 'cate.ops.ident.ident_int', mk_op_kwargs(value=5), overwrite=True)
+        ws.set_resource('A', 'cate.ops.utility.identity', mk_op_kwargs(value=5), overwrite=True)
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
         self.assertEqual(ws.resource_cache.get('A'), None)
         self.assertEqual(ws.resource_cache.get('Y'), None)

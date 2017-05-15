@@ -144,20 +144,44 @@ class Arbitrary(Like[Any]):
     TYPE = Any
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[VarNames]:
+    def convert(cls, value: Any) -> Optional[Any]:
+        """
+        Return **value**.
+        """
+        return value
+
+    @classmethod
+    def format(cls, value:  Optional[Any]) -> str:
+        if value is None:
+            return ''
+        return str(value)
+
+
+class Literal(Like[Any]):
+    """
+    Represents an arbitrary Python literal.
+    """
+    TYPE = str
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[Any]:
         """
         If **value** is a string treat it as a Python literal and return its evaluation result, 
         otherwise return **value**.
         """
+        if value == '':
+            return None
         if isinstance(value, str):
             try:
                 return ast.literal_eval(value)
-            except ValueError:
+            except (SyntaxError, ValueError):
                 cls.assert_value_ok(False, value)
         return value
 
     @classmethod
-    def format(cls, value: Any) -> str:
+    def format(cls, value: Optional[Any]) -> str:
+        if value is None:
+            return ''
         return repr(value)
 
 

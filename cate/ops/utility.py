@@ -29,25 +29,23 @@ All operations in this module are tagged with the ``"utility"`` tag.
 
 """
 
-import xarray as xr
 import pandas as pd
+import xarray as xr
 
-from cate.core.op import op_input, op
+from cate.core.op import op, op_input, op_return
+from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal
 
 
-@op(tags=['internal', 'utility'])
-@op_input('ds')
-@op_input('lat', units='degree', value_range=[-90, 90])
-@op_input('lon', units='degree', value_range=[-180, 180])
-@op_input('time')
-@op_input('indexers')
+@op(tags=['utility', 'internal'])
+@op_input('ds', data_type=DatasetLike)
+@op_input('point', data_type=PointLike, units='degree')
+@op_input('time', data_type=TimeLike)
+@op_input('indexers', data_type=DictLike)
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
-@op_input('indexers')
-def sel(ds: xr.Dataset,
-        lat: float = None,
-        lon: float = None,
-        time: str = None,
-        indexers: dict = None,
+def sel(ds: DatasetLike.TYPE,
+        point: PointLike.TYPE = None,
+        time: TimeLike.TYPE = None,
+        indexers: DictLike.TYPE = None,
         method: str = 'nearest') -> xr.Dataset:
     """
     Return a new dataset with each array indexed by tick labels along the specified dimension(s).
@@ -58,9 +56,8 @@ def sel(ds: xr.Dataset,
     http://xarray.pydata.org/en/stable/generated/xarray.Dataset.sel.html#xarray.Dataset.sel
 
     :param ds: The dataset from which to select.
-    :param lat: Latitude value or range.
-    :param lon: Longitude value or range.
-    :param time: Time value or range.
+    :param point: Optional geographic point given by longitude and latitude
+    :param time: Optional time
     :param indexers: Keyword arguments with names matching dimensions and values given by scalars,
            slices or arrays of tick labels. For dimensions with multi-index, the indexer may also be
            a dict-like object with keys matching index level names.
@@ -73,11 +70,14 @@ def sel(ds: xr.Dataset,
              is indexed by the appropriate indexers. In general, each variable's data will be a view of the
              variable's data in this dataset.
     """
-    indexers = dict(indexers) if indexers is not None else {}
-    if lat is not None:
-        indexers.setdefault('lat', lat)
-    if lon is not None:
-        indexers.setdefault('lon', lon)
+    ds = DatasetLike.convert(ds)
+    point = PointLike.convert(point)
+    time = TimeLike.convert(time)
+    indexers = DictLike.convert(indexers)
+    indexers = dict(indexers or {})
+    if point is not None:
+        indexers.setdefault('lon', point.x)
+        indexers.setdefault('lat', point.y)
     if time is not None:
         indexers.setdefault('time', time)
     # Filter out non-existent coordinates
@@ -99,3 +99,29 @@ def from_dataframe(df: pd.DataFrame) -> xr.Dataset:
     :return: A dataset created from the given dataframe
     """
     return xr.Dataset.from_dataframe(df)
+
+
+@op(tags=['utility'])
+@op_input('value', data_type=Arbitrary)
+@op_return(data_type=Arbitrary)
+def identity(value: Arbitrary.TYPE) -> Arbitrary.TYPE:
+    """
+    Return the given value.
+    This operation can be useful to create constant resources to be used as input for other operations.
+
+    :param value: An arbitrary (Python) value.
+    """
+    return value
+
+
+@op(tags=['utility'])
+@op_input('value', data_type=Literal)
+@op_return(data_type=Arbitrary)
+def literal(value: Literal.TYPE) -> Arbitrary.TYPE:
+    """
+    Return the given value.
+    This operation can be useful to create constant resources to be used as input for other operations.
+
+    :param value: An arbitrary (Python) literal.
+    """
+    return Literal.convert(value)
