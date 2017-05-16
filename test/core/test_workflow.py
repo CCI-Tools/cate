@@ -9,6 +9,7 @@ from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprSte
 from cate.util.misc import object_to_qualified_name
 from cate.util import UNDEFINED
 
+
 @op_input('x')
 @op_output('y')
 class Op1:

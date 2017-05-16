@@ -166,7 +166,7 @@ class Literal(Like[Any]):
     @classmethod
     def convert(cls, value: Any) -> Any:
         """
-        If **value** is a string treat it as a Python literal and return its evaluation result, 
+        If **value** is a string treat it as a Python literal and return its evaluation result,
         otherwise return **value**.
         """
         if value == '':

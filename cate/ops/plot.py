@@ -315,7 +315,6 @@ def _check_bounding_box(lat_min: float,
     return True
 
 
-
 def in_notebook():
     """
     Returns ``True`` if the module is running in IPython kernel,

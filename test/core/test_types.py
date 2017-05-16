@@ -436,9 +436,9 @@ class LiteralTest(TestCase):
         self.assertEqual(Literal.convert('2 + 6'), 8)
         self.assertEqual(Literal.convert('(3, 5, 7)'), (3, 5, 7))
 
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             Literal.convert('[1,2')
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             Literal.convert('abc')
 
     def test_format(self):
@@ -447,7 +447,7 @@ class LiteralTest(TestCase):
         self.assertEqual(Literal.format(3.4), '3.4')
         self.assertEqual(Literal.format("abc"), "'abc'")
         self.assertEqual(Literal.format(True), 'True')
-        self.assertEqual(Literal.format([1,2,3]), '[1, 2, 3]')
+        self.assertEqual(Literal.format([1, 2, 3]), '[1, 2, 3]')
 
 
 class DatasetLikeTest(TestCase):
@@ -463,7 +463,6 @@ class DatasetLikeTest(TestCase):
 
         with self.assertRaises(ValueError):
             DatasetLike.convert(42)
-
 
     def test_format(self):
         self.assertEqual(DatasetLike.format(None), '')
@@ -486,7 +485,6 @@ class DataFrameLikeTest(TestCase):
 
         with self.assertRaises(ValueError):
             DataFrameLike.convert(42)
-
 
     def test_format(self):
         self.assertEqual(DataFrameLike.format(None), '')
