@@ -28,6 +28,7 @@ which will create a new Conda environment named `cate`.
 To run any script on **Linux** and **OS X**:
  
     $ source activate cate
+    $ python setup.py develop
     $ cd scripts
     
     $ source ./<script-1>.sh
@@ -37,6 +38,7 @@ To run any script on **Linux** and **OS X**:
 You don't need to source on **Windows**:
 
     > activate cate
+    > python setup.py develop
     > cd scripts
     
     > <script-1>.bat
