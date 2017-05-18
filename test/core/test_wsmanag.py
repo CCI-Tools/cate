@@ -3,6 +3,7 @@ import shutil
 import unittest
 
 from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
+from cate.core.workspace import mk_op_kwargs
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
@@ -69,7 +70,7 @@ class WorkspaceManagerTestMixin:
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',
-                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
+                                                 op_args=mk_op_kwargs(file=NETCDF_TEST_FILE))
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
@@ -88,7 +89,7 @@ class WorkspaceManagerTestMixin:
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir, res_name='SST',
                                                  op_name='cate.ops.io.read_netcdf',
-                                                 op_args=['file=%s' % NETCDF_TEST_FILE])
+                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)

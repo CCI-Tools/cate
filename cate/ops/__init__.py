@@ -53,23 +53,23 @@ from .correlation import pearson_correlation
 from .harmonize import harmonize
 from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
     read_csv, read_geo_data_frame, read_geo_data_collection, read_netcdf, write_netcdf3, write_netcdf4
-from .plot import plot_map, plot
+from .plot import plot_map, plot, plot_dataframe
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
-from .xarray import sel
-from .average import long_term_average, temporal_agg
+from .utility import sel, from_dataframe, identity, literal
+from .aggregate import long_term_average, temporal_aggregation
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
-from .ident import *
 from .outliers import detect_outliers
+from .pandas import pandas_fillna
 
 
 __all__ = [
     # .timeseries
     'tseries_point',
-    'tseries_mean'
+    'tseries_mean',
     # .resampling
     'resample_2d',
     'downsample_2d',
@@ -87,8 +87,9 @@ __all__ = [
     # .correlation
     'person_correlation',
     # .plot
-    'plot_map'
-    'plot'
+    'plot_map',
+    'plot',
+    'plot_dataframe',
     # .io
     'open_dataset',
     'save_dataset',
@@ -104,11 +105,14 @@ __all__ = [
     'read_netcdf',
     'write_netcdf3',
     'write_netcdf4',
-    # .xarray
+    # .utility
     'sel',
-    # .average
+    'from_dataframe',
+    'identity',
+    'literal',
+    # .aggregate
     'long_term_average',
-    'temporal_agg',
+    'temporal_aggregation',
     # .arithmetics
     'ds_arithmetics',
     'diff',
@@ -118,12 +122,9 @@ __all__ = [
     # .index
     'enso_nino34',
     'enso',
-    'oni'
-    # .ident
-    'ident_bool',
-    'ident_int',
-    'ident_float',
-    'ident_str',
+    'oni',
     # .outliers
     'detect_outliers',
+    # .pandas
+    'pandas_fillna'
 ]

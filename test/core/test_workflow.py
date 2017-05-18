@@ -7,6 +7,7 @@ from cate.core.op import op_input, op_output, OpRegistration
 from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
 from cate.util.misc import object_to_qualified_name
+from cate.util import UNDEFINED
 
 
 @op_input('x')
@@ -133,7 +134,7 @@ class WorkflowTest(TestCase):
         self.assertIs(workflow.output.q.source, step3.output.w)
         self.assertIsNone(workflow.output.q.value)
 
-        self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p=None) -> (q=op3.w) [Workflow]')
+        self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p=None) -> (q=@op3.w) [Workflow]')
         self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
 
     def test_invoke(self):
@@ -954,46 +955,46 @@ class NodePortTest(TestCase):
         port2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1.y" is a shorthand for {"source": "myop1.y"}
         port2.from_json_dict(json.loads('{"a": "myop1.y"}'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         port2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         # ".x" is a shorthand for {"source": ".x"}
         port2.from_json_dict(json.loads('{"a": ".y"}'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1" is a shorthand for {"source": "myop1"}
         port2.from_json_dict(json.loads('{"a": "myop1"}'))
         self.assertEqual(port2._source_ref, ('myop1', None))
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is defined, but neither "source" nor "value" is given, it will neither have a source nor a value
         port2.from_json_dict(json.loads('{"a": {}}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
         port2.from_json_dict(json.loads('{"a": null}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is not defined at all, it will neither have a source nor a value
         port2.from_json_dict(json.loads('{}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
-        self.assertEqual(port2._value, None)
+        self.assertEqual(port2._value, UNDEFINED)
 
         with self.assertRaises(ValueError) as cm:
             port2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))

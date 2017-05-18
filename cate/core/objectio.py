@@ -75,6 +75,8 @@ def read_object(file, format_name=None, **kwargs):
     :param kwargs: additional read parameters
     :return: A tuple (*obj*, *reader*), where *obj* is the object read and *reader* is the reader used to read it.
     """
+    if not os.path.exists(file):
+        raise FileNotFoundError('file not found: %s' % file)
     reader = find_reader(file, format_name=format_name, **kwargs)
     if not reader:
         raise ValueError("no reader found for format '%s'" % format_name if format_name else "no reader found")

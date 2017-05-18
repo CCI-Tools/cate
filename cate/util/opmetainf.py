@@ -24,7 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import re
 from collections import OrderedDict
 from inspect import isclass
-from typing import Tuple, Dict, List, Any
+from typing import Tuple, Dict, List, Any, Optional
 
 from cate.util import object_to_qualified_name, qualified_name_to_object
 
@@ -285,7 +285,7 @@ class OpMetaInfo:
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
-    def validate_input_values(self, input_values: Dict, except_types: set = None):
+    def validate_input_values(self, input_values: Dict, except_types=None):
         """
         Validate given *input_values* against the operation's input properties.
 
@@ -309,6 +309,7 @@ class OpMetaInfo:
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
+            data_type = input_properties.get('data_type', None)
             if value is None:
                 default_is_none = input_properties.get('default_value', 1) is None
                 value_set = input_properties.get('value_set', None)
@@ -318,19 +319,8 @@ class OpMetaInfo:
                     raise ValueError(
                         "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
                 continue
-            data_type = input_properties.get('data_type', None)
-            if self.has_accepts(data_type):
-                accepted = data_type.accepts(value)
-                if not accepted:
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
-                            name, self.qualified_name, data_type.__name__, type(value).__name__))
-            else:
-                is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-                if data_type and not (isinstance(value, data_type) or is_float_type):
-                    raise ValueError(
-                        "input '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
-                            name, self.qualified_name, data_type.__name__, type(value).__name__))
+            if data_type:
+                self._validate_value_against_data_type(data_type, value, self.qualified_name, "input", name)
             value_set = input_properties.get('value_set', None)
             if value_set and (value not in value_set):
                 raise ValueError(
@@ -357,20 +347,30 @@ class OpMetaInfo:
             if value is not None:
                 data_type = output_properties.get('data_type', None)
                 if data_type:
-                    if self.has_accepts(data_type):
-                        accepted = data_type.accepts(value)
-                        if not accepted:
-                            raise ValueError(
-                                "output '%s' for operation '%s' must be of type %s" % (
-                                    name, self.qualified_name, data_type))
-                    elif not isinstance(value, data_type):
-                        raise ValueError(
-                            "output '%s' for operation '%s' must be of type %s" % (
-                                name, self.qualified_name, data_type))
+                    self._validate_value_against_data_type(data_type, value, self.qualified_name, "output", name)
 
     @classmethod
-    def has_accepts(cls, data_type: Any) -> bool:
-        return hasattr(data_type, 'accepts') and callable(data_type.accepts)
+    def _validate_value_against_data_type(cls, data_type, value, op_name: str, port_type: str, port_name: str):
+        try:
+            value_accepted = cls._is_value_accepted(data_type, value)
+        except ValueError as e:
+            raise ValueError(
+                "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
+        if not value_accepted:
+            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
+            if not is_float_type and not isinstance(value, data_type):
+                raise ValueError(
+                    "%s '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
+                        port_type, port_name, op_name, data_type.__name__, type(value).__name__))
+
+    @classmethod
+    def _is_value_accepted(cls, data_type: Any, value: Optional[Any]) -> Optional[bool]:
+        """Check if the given type has an "convert(value)" method, i.e. our XXXLike types, if so return its result."""
+        # noinspection PyBroadException
+        try:
+            return data_type.convert(value)
+        except AttributeError:
+            return None
 
     @classmethod
     def _parse_docstring(cls, docstring):

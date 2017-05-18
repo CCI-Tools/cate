@@ -32,7 +32,7 @@ from typing import List, Union
 from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
-from .workspace import Workspace, WorkspaceError
+from .workspace import Workspace, WorkspaceError, OpKwArgs
 from ..util import UNDEFINED, Monitor
 
 
@@ -88,13 +88,13 @@ class WorkspaceManager(metaclass=ABCMeta):
 
     @abstractmethod
     def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: List[str],
+                            op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
-                               op_name: str, op_args: List[str],
+                               op_name: str, op_args: OpKwArgs,
                                monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
@@ -293,13 +293,14 @@ class FSWorkspaceManager(WorkspaceManager):
             raise WorkspaceError(e)
 
     def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: List[str],
+                            op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
-        workspace.run_op(op_name, op_args, validate_args=True, monitor=monitor)
+        workspace.run_op(op_name, op_args, monitor=monitor)
         return workspace
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: List[str],
+    def set_workspace_resource(self, base_dir: str, res_name: str,
+                               op_name: str, op_args: OpKwArgs,
                                monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)

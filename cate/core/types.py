@@ -39,13 +39,14 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
+import ast
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
+from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
-from shapely.wkt import loads
 
 from cate.util.misc import to_list, to_datetime_range, to_datetime
 
@@ -124,11 +125,65 @@ class Like(Generic[T], metaclass=ABCMeta):
         """
         return cls.format(value)
 
+    @classmethod
+    def assert_value_ok(cls, cond: bool, value: Any):
+        if not cond:
+            text_value = str(value)
+            if len(text_value) > 37:
+                text_value = text_value[0:38] + '...'
+            raise ValueError('cannot convert value <%s> to %s' % (text_value, cls.name()))
+
 
 VarNames = List[str]
 
 
-# ===== Like-derived types below =====
+class Arbitrary(Like[Any]):
+    """
+    Represents an arbitrary Python value.
+    """
+    TYPE = Any
+
+    @classmethod
+    def convert(cls, value: Any) -> Any:
+        """
+        Return **value**.
+        """
+        return value
+
+    @classmethod
+    def format(cls, value: Any) -> str:
+        if value is None:
+            return ''
+        return str(value)
+
+
+class Literal(Like[Any]):
+    """
+    Represents an arbitrary Python literal.
+    """
+    TYPE = str
+
+    @classmethod
+    def convert(cls, value: Any) -> Any:
+        """
+        If **value** is a string treat it as a Python literal and return its evaluation result,
+        otherwise return **value**.
+        """
+        if value == '':
+            return None
+        if isinstance(value, str):
+            try:
+                return ast.literal_eval(value)
+            except (SyntaxError, ValueError):
+                cls.assert_value_ok(False, value)
+        return value
+
+    @classmethod
+    def format(cls, value: Any) -> str:
+        if value is None:
+            return ''
+        return repr(value)
+
 
 class VarNamesLike(Like[VarNames]):
     """
@@ -169,6 +224,8 @@ class VarNamesLike(Like[VarNames]):
     def format(cls, value: Optional[VarNames]) -> str:
         if not value:
             return ''
+        if isinstance(value, str):
+            return value
         if len(value) == 1:
             return value[0]
         return ', '.join(value)
@@ -194,8 +251,7 @@ class VarName(Like[str]):
         if value is None:
             return None
 
-        if not isinstance(value, str):
-            raise ValueError('cannot convert value <{}>  to {}'.format(value, cls.name()))
+        cls.assert_value_ok(isinstance(value, str), value)
 
         return value
 
@@ -215,8 +271,6 @@ class DictLike(Like[dict]):
 
     @classmethod
     def convert(cls, value: Any) -> Optional[dict]:
-
-        # Can be optional
         if value is None:
             return None
 
@@ -230,11 +284,15 @@ class DictLike(Like[dict]):
                 return eval('dict(%s)' % value, None, None)
             raise ValueError()
         except Exception:
-            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+            cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: dict) -> str:
-        return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()])
+    def format(cls, value: Optional[dict]) -> str:
+        return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()]) if value else ''
+
+    @classmethod
+    def to_json(cls, value: Optional[T]):
+        return value
 
 
 class PointLike(Like[Point]):
@@ -252,23 +310,25 @@ class PointLike(Like[Point]):
 
     @classmethod
     def convert(cls, value: Any) -> Optional[Point]:
-        # Can be optional
         if value is None:
             return None
 
         try:
             if isinstance(value, Point):
                 return value
-            if isinstance(value, str):
+            elif isinstance(value, str):
+                value = value.strip()
+                if value == '':
+                    return None
                 pair = value.split(',')
                 return Point(float(pair[0]), float(pair[1]))
             return Point(value[0], value[1])
         except Exception:
-            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+            cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: Point) -> str:
-        return "%s, %s" % (value.x, value.y)
+    def format(cls, value: Optional[Point]) -> str:
+        return "%s, %s" % (value.x, value.y) if value else ''
 
 
 class PolygonLike(Like[Polygon]):
@@ -276,18 +336,19 @@ class PolygonLike(Like[Polygon]):
     Type class for geometric Polygon objects
 
     Accepts:
-        1. a Shapely Polygon
-        2. a string 'min_lon, min_lat, max_lon, max_lat'
-        3. a WKT string 'POLYGON ...'
+        1. a ``shapely.geometry.Polygon`` object
+        2. a string "min_lon, min_lat, max_lon, max_lat"
+        3. a WKT string "POLYGON ((RING))" or "POLYGON ((OUTER-RING), (INNER-RING), ...)"
         4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
+        5. a list or tuple [min_lon, min_lat, max_lon, max_lat]
 
-    Converts to a valid shapely Polygon.
+    Converts to a valid Shapely Polygon.
     """
-    TYPE = Union[Polygon, str, List[Tuple[float, float]]]
+    TYPE = Union[Polygon, List[Tuple[float, float]],
+                 str, Tuple[float, float, float, float]]
 
     @classmethod
     def convert(cls, value: Any) -> Optional[Polygon]:
-        # Can be optional
         if value is None:
             return None
 
@@ -295,29 +356,33 @@ class PolygonLike(Like[Polygon]):
             if isinstance(value, Polygon):
                 if value.is_valid:
                     return value
-            if isinstance(value, list):
-                polygon = Polygon(value)
-                if polygon.is_valid:
-                    return polygon
-            if isinstance(value, str):
-                value = value.lstrip()
+            elif isinstance(value, str):
+                value = value.strip()
+                if value == '':
+                    return None
                 if value[:7].lower() == 'polygon':
-                    polygon = loads(value)
+                    polygon = wkt.loads(value)
                 else:
                     val = [float(x) for x in value.split(',')]
                     polygon = box(val[0], val[1], val[2], val[3])
                 if polygon.is_valid:
                     return polygon
+            else:
+                try:
+                    polygon = Polygon(value)
+                    if polygon.is_valid:
+                        return polygon
+                except Exception:
+                    return box(float(value[0]), float(value[1]),
+                               float(value[2]), float(value[3]))
         except Exception:
-            raise ValueError('cannot convert geometry to a valid'
-                             ' Polygon: {}'.format(value))
+            pass
 
-        raise ValueError('cannot convert geometry to a valid'
-                         ' Polygon: {}'.format(value))
+        cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: Polygon) -> str:
-        return value.wkt
+    def format(cls, value: Optional[Polygon]) -> str:
+        return value.wkt if value else ''
 
 
 class GeometryLike(Like[BaseGeometry]):
@@ -337,7 +402,6 @@ class GeometryLike(Like[BaseGeometry]):
 
     @classmethod
     def convert(cls, value: Any) -> Optional[BaseGeometry]:
-        # Can be optional
         if value is None:
             return None
 
@@ -345,7 +409,11 @@ class GeometryLike(Like[BaseGeometry]):
         try:
             return PolygonLike.convert(value)
         except ValueError:
-            return PointLike.convert(value)
+            try:
+                return PointLike.convert(value)
+            except ValueError:
+                pass
+        cls.assert_value_ok(False, value)
 
     @classmethod
     def accepts(cls, value: Any) -> bool:
@@ -354,7 +422,7 @@ class GeometryLike(Like[BaseGeometry]):
 
     @classmethod
     def format(cls, value: BaseGeometry) -> str:
-        return value.wkt
+        return value.wkt if value else ''
 
 
 class TimeLike(Like[datetime]):
@@ -374,19 +442,20 @@ class TimeLike(Like[datetime]):
         # Can be optional
         if value is None or isinstance(value, datetime):
             return value
-        if value == '':
+
+        if isinstance(value, str) and value.strip() == '':
             return None
+
         if isinstance(value, date) or isinstance(value, str):
             try:
                 return to_datetime(value)
             except Exception:
-                raise ValueError('cannot convert {} to a'
-                                 ' valid {}'.format(value, cls.name()))
-        raise ValueError('cannot convert {} to a valid'
-                         ' {}'.format(value, cls.name()))
+                pass
+
+        cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: datetime) -> str:
+    def format(cls, value: Optional[datetime]) -> str:
         return _to_isoformat(value)
 
 
@@ -437,14 +506,58 @@ class TimeRangeLike(Like[TimeRange]):
                 if _range[0] < _range[1]:
                     return _range
         except Exception:
-            raise ValueError('cannot convert {} to a'
-                             ' valid {}'.format(value, cls.name()))
+            pass
 
-        raise ValueError('cannot convert {} to a valid'
-                         ' {}'.format(value, cls.name()))
+        cls.assert_value_ok(False, value)
 
     @classmethod
     def format(cls, value: Optional[TimeRange]) -> str:
         if not value:
             return ''
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
+
+
+import xarray as xr
+import pandas as pd
+
+
+class DatasetLike(Like[xr.Dataset]):
+    TYPE = Union[xr.Dataset, pd.DataFrame, None]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[xr.Dataset]:
+        # Can be optional
+        if value is None:
+            return None
+        if isinstance(value, xr.Dataset):
+            return value
+        if isinstance(value, pd.DataFrame):
+            return xr.Dataset.from_dataframe(value)
+        raise ValueError('Value must be an xr.Dataset or pd.DataFrame')
+
+    @classmethod
+    def format(cls, value: Optional[xr.Dataset]) -> str:
+        if value is None:
+            return ''
+        raise ValueError('Values of type DatasetLike cannot be converted to text')
+
+
+class DataFrameLike(Like[pd.DataFrame]):
+    TYPE = Union[pd.DataFrame, xr.Dataset, None]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[pd.DataFrame]:
+        # Can be optional
+        if value is None:
+            return None
+        if isinstance(value, pd.DataFrame):
+            return value
+        if isinstance(value, xr.Dataset):
+            return value.to_dataframe()
+        raise ValueError('Value must be a pd.DataFrame or xr.Dataset')
+
+    @classmethod
+    def format(cls, value: Optional[pd.DataFrame]) -> str:
+        if value is None:
+            return ''
+        raise ValueError('Values of type DataFrameLike cannot be converted to text')

@@ -1,4 +1,5 @@
-version: '0.7.0.dev1.{build}'
+version: '{build}'
+# version here is only relevant for the appveyor CI, no need to adjust
 
 environment:
   global:

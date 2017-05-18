@@ -201,7 +201,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 @op_input('quotechar', nullable=True)
 @op_input('comment', nullable=True)
 def read_csv(file: str,
-             delimiter:str = ',',
+             delimiter: str = ',',
              delim_whitespace: bool = False,
              quotechar: str = None,
              comment: str = None,
@@ -211,9 +211,9 @@ def read_csv(file: str,
 
     :param file: The CSV file path.
     :param delimiter: Delimiter to use. If delimiter is None, will try to automatically determine this.
-    :param delim_whitespace: Specifies whether or not whitespaces will be used as delimiter. 
+    :param delim_whitespace: Specifies whether or not whitespaces will be used as delimiter.
            If this option is set, nothing should be passed in for the delimiter parameter.
-    :param quotechar: The character used to denote the start and end of a quoted item. 
+    :param quotechar: The character used to denote the start and end of a quoted item.
            Quoted items can include the delimiter and it will be ignored.
     :param comment: Indicates remainder of line should not be parsed.
            If found at the beginning of a line, the line will be ignored altogether.

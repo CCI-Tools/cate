@@ -85,21 +85,27 @@ To select particular geophysical quantities to work with, use the ``select_var``
 
 .. code-block:: console
 
-    $ cate res set cc_tot select_var ds=cl07 var=cc_total
+    $ cate res set cc_tot select_var ds=@cl07 var=cc_total
     Executing 2 workflow step(s): done
     Resource "cc_tot" set.
 
 .. code-block:: console
 
-    $ cate res set oz_tot select_var ds=oz07 var=O3_du_tot
+    $ cate res set oz_tot select_var ds=@oz07 var=O3_du_tot
     Executing 2 workflow step(s): done
     Resource "oz_tot" set.
+
+
+Note the at-character "@" in ``@cl07`` and ``@oz07``. This indicates that the input ``ds`` of the ``select_var``
+operation will be the output of the respective ``open`` steps. This establishes a permanent connection
+between step ``open`` and ``select_var``. In fact, this is the way processing graphs are constructed using
+the Cate CLI.
 
 We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=cc_tot var=cc_total file=fig1.png
+    $ cate ws run plot_map ds=@cc_tot var=cc_total file=fig1.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -109,7 +115,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=oz_tot var=O3_du_tot file=fig2.png
+    $ cate ws run plot_map ds=@oz_tot var=O3_du_tot file=fig2.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -213,13 +219,13 @@ To carry out coregistration, use ``cate res set`` again with appropriate operati
 
 .. code-block:: console
 
-    $ cate res set cc_tot_res coregister ds_master=oz_tot ds_slave=cc_tot
+    $ cate res set cc_tot_res coregister ds_master=@oz_tot ds_slave=@cc_tot
     Executing 5 workflow step(s): done
     Resource "cc_tot_res" set.
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=cc_tot_res var=cc_total file=fig3.png
+    $ cate ws run plot_map ds=@cc_tot_res var=cc_total file=fig3.png
     Running operation 'plot_map': Executing 5 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -236,19 +242,19 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate res set oz_africa subset_spatial ds=oz_tot lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set oz_africa subset_spatial ds=@oz_tot region=-20,-40,60,40
     Executing 3 workflow step(s): done
     Resource "oz_africa" set.
 
 .. code-block:: console
 
-    $ cate res set cc_africa subset_spatial ds=cc_tot_res lat_min=-40 lat_max=40 lon_min=-20 lon_max=60
+    $ cate res set cc_africa subset_spatial ds=@cc_tot_res region=-20,-40,60,40
     Executing 6 workflow step(s): done
     Resource "cc_africa" set.
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=cc_africa var=cc_total file=fig4.png
+    $ cate ws run plot_map ds=@cc_africa var=cc_total file=fig4.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -258,7 +264,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=cc_africa var=cc_total lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig5.png
+    $ cate ws run plot_map ds=@cc_africa var=cc_total region=-20,-40,60,40 file=fig5.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -271,26 +277,12 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 Temporal Filtering
 ------------------
 
-To further filter the datasets to contain only a particular time-span, use ``subset_temporal`` operation
+To further filter the datasets to contain only a particular time range, use ``subset_temporal`` operation
 
 .. code-block:: console
 
-    $ cate res set oz_africa_janoct subset_temporal ds=oz_africa time_min='2007-01-01' time_max='2007-10-30'
-    $ cate res set cc_africa_janoct subset_temporal ds=cc_africa time_min='2007-01-01' time_max='2007-10-30'
-
-If on Linux, quotes enclosing datetime strings should be additionally escaped:
-
-.. code-block:: console
-
-    $ cate res set oz_africa_janoct subset_temporal ds=oz_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-    Executing 4 workflow step(s): done
-    Resource "oz_africa_janoct" set.
-
-.. code-block:: console
-
-    $ cate res set cc_africa_janoct subset_temporal ds=cc_africa time_min=\'2007-01-01\' time_max=\'2007-10-30\'
-    Executing 7 workflow step(s): done
-    Resource "cc_africa_janoct" set.
+    $ cate res set oz_africa_janoct subset_temporal ds=@oz_africa time_range=2007-01-01,2007-10-30
+    $ cate res set cc_africa_janoct subset_temporal ds=@cc_africa time_range=2007-01-01,2007-10-30
 
 
 -------------------
@@ -301,13 +293,13 @@ We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` 
 
 .. code-block:: console
 
-    $ cate res set cc_africa_ts tseries_mean ds=cc_africa_janoct var=cc_total
+    $ cate res set cc_africa_ts tseries_mean ds=@cc_africa_janoct var=cc_total
     Executing 8 workflow step(s): done
     Resource "cc_africa_ts" set.
 
 .. code-block:: console
 
-    $ cate res set oz_africa_ts tseries_mean ds=oz_africa_janoct var=O3_du_tot
+    $ cate res set oz_africa_ts tseries_mean ds=@oz_africa_janoct var=O3_du_tot
     Executing 5 workflow step(s): done
     Resource "oz_africa_ts" set.
 
@@ -321,7 +313,7 @@ To plot the time-series and save the ``plot`` operation can be used together wit
 
 .. code-block:: console
 
-    $ cate ws run plot ds=cc_africa_ts var=cc_total file=fig6.png
+    $ cate ws run plot ds=@cc_africa_ts var=cc_total file=fig6.png
     Running operation 'plot': Executing 11 workflow step(s)
     Operation 'plot' executed.
 
@@ -331,7 +323,7 @@ To plot the time-series and save the ``plot`` operation can be used together wit
 
 .. code-block:: console
 
-    $ cate ws run plot ds=oz_africa_ts var=O3_du_tot file=fig7.png
+    $ cate ws run plot ds=@oz_africa_ts var=O3_du_tot file=fig7.png
     Running operation 'plot': Executing 11 workflow step(s)
     Operation 'plot' executed.
 
@@ -354,7 +346,7 @@ To carry out a product-moment correlation on the mean time-series, the ``pearson
 
 .. code-block:: console
 
-    $ cate res set pearson pearson_correlation ds_y=cc_africa_ts ds_x=oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
+    $ cate res set pearson pearson_correlation ds_y=@cc_africa_ts ds_x=@oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
     Executing 12 workflow step(s): done
     Resource "pearson" set.
 
@@ -382,13 +374,13 @@ of the same lat/lon dimension - corr_coeff and p_value that can then be plotted 
 
 .. code-block:: console
 
-    $ cate res set pearson_map pearson_correlation ds_y=cc_africa_janoct ds_x=oz_africa_janoct var_y=cc_total var_x=O3_du_tot
+    $ cate res set pearson_map pearson_correlation ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
+    $ cate ws run plot_map ds=@pearson_map var=corr_coef lat_min=-40 lat_max=40 lon_min=-20 lon_max=60 file=fig8.png
     Running operation 'plot_map': Executing 13 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -401,5 +393,5 @@ Using the API
 =============
 
 A demonstration of how to apply the CCI Toolbox API to the use case described here is given in a dedicated
-`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc9.ipynb>`_ on GitHub.
+`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ on GitHub.
 

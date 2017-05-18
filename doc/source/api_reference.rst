@@ -32,7 +32,7 @@ Averaging
 
 .. autofunction:: cate.ops.long_term_average
 
-.. autofunction:: cate.ops.temporal_agg
+.. autofunction:: cate.ops.temporal_aggregation
 
 
 Coregistration
@@ -86,6 +86,8 @@ Data visualization
 
 .. autofunction:: cate.ops.plot
 
+.. autofunction:: cate.ops.plot_dataframe
+
 
 Resampling
 ----------
@@ -124,6 +126,14 @@ Misc
 .. autofunction:: cate.ops.harmonize
 
 .. autofunction:: cate.ops.sel
+
+.. autofunction:: cate.ops.from_dataframe
+
+.. autofunction:: cate.ops.identity
+
+.. autofunction:: cate.ops.literal
+
+.. autofunction:: cate.ops.pandas_fillna
 
 
 Data Stores and Data Sources API

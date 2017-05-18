@@ -34,15 +34,49 @@ import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Dict
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
-from cate.core.op import OP_REGISTRY, parse_op_args
+from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
 from cate.util import Monitor, Namespace, object_to_qualified_name, to_json
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
+
+#: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
+#: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
+#: 2. dict(source=str): a reference to a step port name
+OpArg = Dict[str, Any]
+
+#: JSON-serializable, positional operation arguments
+OpArgs = List[OpArg]
+
+#: JSON-serializable, keyword operation arguments
+OpKwArgs = Dict[str, OpArg]
+
+
+def mk_op_arg(arg) -> OpArg:
+    """
+    Utility function which turns an argument into an operation argument.
+    If *args* is a ``str`` and starts with "@" it is turned into a "source" vargument,
+    otherwise it is turned into a "value" argument.
+    """
+    return dict(source=arg[1:]) if isinstance(arg, str) and arg.startswith('@') else dict(value=arg)
+
+
+def mk_op_args(*args) -> OpArgs:
+    """
+    Utility function which converts a list into positional operation arguments.
+    """
+    return [mk_op_arg(arg) for arg in args]
+
+
+def mk_op_kwargs(**kwargs) -> OpKwArgs:
+    """
+    Utility function which converts a dictionary into operation keyword arguments.
+    """
+    return OrderedDict([(kw, mk_op_arg(arg)) for kw, arg in kwargs.items()])
 
 
 class Workspace:
@@ -188,8 +222,9 @@ class Workspace:
         if isinstance(resource, xr.Dataset):
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
-                variable = resource.data_vars[var_name]
-                variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+                if not var_name.endswith('_bnds'):
+                    variable = resource.data_vars[var_name]
+                    variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
             return dict(name=res_name,
                         dataType=data_type_name,
                         dims=to_json(resource.dims),
@@ -375,10 +410,10 @@ class Workspace:
         if res_name in self._resource_cache:
             self._resource_cache[new_res_name] = self._resource_cache.pop(res_name)
 
-    def set_resource(self, res_name: str, op_name: str, op_args: List[str], overwrite=False, validate_args=False):
+    def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name
         assert op_name
-        assert op_args
+        assert op_kwargs
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
@@ -404,26 +439,35 @@ class Workspace:
             # Prevent resource from self-referencing
             namespace.pop(res_name, None)
 
-        op_kwargs = self._parse_op_args(op, op_args, namespace, validate_args)
-
-        return_output_name = OpMetaInfo.RETURN_OUTPUT_NAME
-
         # Wire new op_step with outputs from existing steps
         for input_name, input_value in op_kwargs.items():
             if input_name not in new_step.input:
                 raise WorkspaceError('"%s" is not an input of operation "%s"' % (input_name, op_name))
             input_port = new_step.input[input_name]
-            if isinstance(input_value, NodePort):
-                # input_value is an output NodePort of another step
-                input_port.source = input_value
-            elif isinstance(input_value, Namespace):
-                # input_value is output_namespace of another step
-                if return_output_name not in input_value:
-                    raise WorkspaceError('Illegal value for input "%s"' % input_name)
-                input_port.source = input_value['return']
+
+            if 'source' in input_value:
+                source = input_value['source']
+                if source is not None:
+                    source = eval(source, None, namespace)
+                if isinstance(source, NodePort):
+                    # source is an output NodePort of another step
+                    input_port.source = source
+                elif isinstance(source, Namespace):
+                    # source is output_namespace of another step
+                    if OpMetaInfo.RETURN_OUTPUT_NAME not in source:
+                        raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
+                    input_port.source = source[OpMetaInfo.RETURN_OUTPUT_NAME]
+            elif 'value' in input_value:
+                # Constant value
+                input_port.value = input_value['value']
             else:
-                # Neither a Namespace nor a NodePort, it must be a constant value
-                input_port.value = input_value
+                raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
+
+        if validate_args:
+            inputs = new_step.input
+            input_values = {kw: inputs[kw].source or inputs[kw].value for kw, v in op_kwargs.items()}
+            # Validate all values except those of type NodePort (= the sources)
+            op.op_meta_info.validate_input_values(input_values, [NodePort])
 
         old_step = workflow.find_node(res_name)
 
@@ -436,7 +480,7 @@ class Workspace:
                 if requires:
                     ids_of_invalidated_steps.add(step.id)
 
-        print(ids_of_invalidated_steps)
+        # print(ids_of_invalidated_steps)
 
         workflow = self._workflow
         # noinspection PyUnusedLocal
@@ -448,18 +492,24 @@ class Workspace:
             if key in self._resource_cache:
                 del self._resource_cache[key]
 
-    def run_op(self, op_name: str, op_args: List[str], validate_args=False, monitor=Monitor.NONE):
+    def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name
-        assert op_args
+        assert op_kwargs
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
             raise WorkspaceError('Unknown operation "%s"' % op_name)
 
+        unpacked_op_kwargs = {}
+        for input_name, input_value in op_kwargs.items():
+            if 'source' in input_value:
+                unpacked_op_kwargs[input_name] = eval(input_value['source'], None, self.resource_cache)
+            elif 'value' in input_value:
+                unpacked_op_kwargs[input_name] = input_value['value']
+
         with monitor.starting("Running operation '%s'" % op_name, 2):
             self.workflow.invoke(self.resource_cache, monitor=monitor.child(work=1))
-            op_kwargs = self._parse_op_args(op, op_args, self.resource_cache, validate_args)
-            op(monitor=monitor.child(work=1), **op_kwargs)
+            op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()
@@ -472,21 +522,6 @@ class Workspace:
             steps = self.workflow.find_steps_to_compute(res_step.id)
         Workflow.invoke_steps(steps, value_cache=self._resource_cache, monitor=monitor)
         return steps[-1].get_output_value()
-
-    # noinspection PyMethodMayBeStatic
-    def _parse_op_args(self, op, raw_op_args, namespace: dict, validate_args: bool):
-        try:
-            # some arguments may now be of type 'Namespace' or 'NodePort', which are outputs of other workflow steps
-            op_args, op_kwargs = parse_op_args(raw_op_args, input_props=op.op_meta_info.input, namespace=namespace)
-        except ValueError as e:
-            raise WorkspaceError(e)
-        if op_args:
-            raise WorkspaceError("Positional arguments are not yet supported")
-        if validate_args:
-            # validate the op_kwargs using the operation's meta-info
-            namespace_types = set(type(value) for value in namespace.values())
-            op.op_meta_info.validate_input_values(op_kwargs, except_types=namespace_types)
-        return op_kwargs
 
     def _assert_open(self):
         if self._is_closed:

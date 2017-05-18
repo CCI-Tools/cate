@@ -7,7 +7,7 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
-    TimeLike
+    TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike
 from cate.util import object_to_qualified_name, OrderedDict
 
 import xarray as xr
@@ -157,7 +157,9 @@ class DictLikeTest(TestCase):
     def test_accepts(self):
         self.assertTrue(DictLike.accepts(None))
         self.assertTrue(DictLike.accepts(''))
+        self.assertTrue(DictLike.accepts(' '))
         self.assertTrue(DictLike.accepts('a=6, b=5.3, c=True, d="Hello"'))
+
         self.assertFalse(DictLike.accepts('{a=True}'))
         self.assertFalse(DictLike.accepts('a=true'))
         self.assertFalse(DictLike.accepts('{a, b}'))
@@ -171,7 +173,7 @@ class DictLikeTest(TestCase):
 
         with self.assertRaises(ValueError) as err:
             DictLike.convert('{a=8, b}')
-        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(str(err.exception), 'cannot convert value <{a=8, b}> to DictLike')
 
     def test_format(self):
         self.assertEqual(DictLike.format(OrderedDict([('name', 'bibo'), ('thres', 0.5), ('drop', True)])),
@@ -184,7 +186,9 @@ class PointLikeTest(TestCase):
     """
 
     def test_accepts(self):
-        self.assertTrue(PointLike.accepts("2.4, 4.8"))
+        self.assertTrue(PointLike.accepts(""))
+        self.assertTrue(PointLike.accepts("\t\n "))
+        self.assertTrue(PointLike.accepts("2.4, 4.8\n"))
         self.assertTrue(PointLike.accepts((2.4, 4.8)))
         self.assertTrue(PointLike.accepts([2.4, 4.8]))
         self.assertTrue(PointLike.accepts(Point(2.4, 4.8)))
@@ -192,14 +196,12 @@ class PointLikeTest(TestCase):
         self.assertFalse(PointLike.accepts(25.1))
 
     def test_convert(self):
-        expected = Point(0.0, 1.0)
-        actual = PointLike.convert('0.0,1.0')
-        self.assertTrue(expected, actual)
-
+        self.assertEqual(PointLike.convert(None), None)
+        self.assertEqual(PointLike.convert(''), None)
+        self.assertEqual(PointLike.convert('0.0,1.0'), Point(0.0, 1.0))
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
-        self.assertTrue('cannot convert' in str(err.exception))
-        self.assertEqual(None, PointLike.convert(None))
+        self.assertEqual(str(err.exception), 'cannot convert value <0.0,abc> to PointLike')
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
@@ -211,51 +213,43 @@ class PolygonLikeTest(TestCase):
     """
 
     def test_accepts(self):
+        self.assertTrue(PolygonLike.accepts(""))
+        self.assertTrue(PolygonLike.accepts(" \t"))
         self.assertTrue(PolygonLike.accepts("0.0,0.0,1.1,1.1"))
         self.assertTrue(PolygonLike.accepts("0.0, 0.0, 1.1, 1.1"))
 
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
         pol = Polygon(coords)
         self.assertTrue(PolygonLike.accepts(coords))
         self.assertTrue(PolygonLike.accepts(pol))
         self.assertTrue(PolygonLike.accepts(pol.wkt))
+        self.assertTrue(PolygonLike.accepts(pol.bounds))
 
         self.assertFalse(PolygonLike.accepts("0.0,aaa,1.1,1.1"))
         self.assertFalse(PolygonLike.accepts("0.0, aaa, 1.1, 1.1"))
-
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
-        self.assertFalse(PolygonLike.accepts(coords))
-
-        coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
-        self.assertFalse(PolygonLike.accepts(coords))
-
-        invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
-        self.assertFalse(PolygonLike.accepts(invalid))
-
-        wkt = 'MULTIPOLYGON()'
-        self.assertFalse(PolygonLike.accepts(wkt))
-
-        invalid = 'Something_something_in_the_month_of_May'
-        self.assertFalse(PolygonLike.accepts(invalid))
-
+        self.assertFalse(PolygonLike.accepts([(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]))
+        self.assertFalse(PolygonLike.accepts([(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]))
+        self.assertFalse(PolygonLike.accepts(Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])))
+        self.assertFalse(PolygonLike.accepts('MULTIPOLYGON()'))
+        self.assertFalse(PolygonLike.accepts('Something_in_the_month_of_May'))
         self.assertFalse(PolygonLike.accepts(1.0))
 
     def test_convert(self):
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
-        expected = Polygon(coords)
-        actual = PolygonLike.convert(coords)
-        self.assertTrue(actual, expected)
+        self.assertEqual(PolygonLike.convert(None), None)
+        self.assertEqual(PolygonLike.convert(''), None)
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
+        self.assertTrue(PolygonLike.convert(coords), Polygon(coords))
+        self.assertTrue(PolygonLike.convert([10.4, 20.2, 30.8, 40.8]), Polygon(coords))
 
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
-        self.assertEqual('cannot convert geometry to a valid Polygon: aaa', str(err.exception))
-        self.assertEqual(None, PolygonLike.convert(None))
+        self.assertEqual(str(err.exception), 'cannot convert value <aaa> to PolygonLike')
 
     def test_format(self):
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
+        self.assertEqual(PolygonLike.format(None), '')
+        coords = [(10.4, 20.2), (30.8, 20.2), (30.8, 40.8), (10.4, 40.8)]
         pol = PolygonLike.convert(coords)
-        self.assertTrue('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))' ==
-                        PolygonLike.format(pol))
+        self.assertEqual(PolygonLike.format(pol), 'POLYGON ((10.4 20.2, 30.8 20.2, 30.8 40.8, 10.4 40.8, 10.4 20.2))')
 
 
 class GeometryLikeTest(TestCase):
@@ -285,30 +279,23 @@ class GeometryLikeTest(TestCase):
         invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
         self.assertFalse(GeometryLike.accepts(invalid))
 
-        wkt = 'MULTIPOLYGON()'
-        self.assertFalse(GeometryLike.accepts(wkt))
-
-        invalid = 'Something_something_in_the_month_of_May'
-        self.assertFalse(GeometryLike.accepts(invalid))
-
+        self.assertFalse(GeometryLike.accepts('MULTIPOLYGON()'))
+        self.assertFalse(GeometryLike.accepts('Something_in_the_month_of_May'))
         self.assertFalse(GeometryLike.accepts(1.0))
 
     def test_convert(self):
+        self.assertEqual(GeometryLike.convert(None), None)
+        self.assertEqual(GeometryLike.convert(""), None)
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
-        expected = Polygon(coords)
-        actual = GeometryLike.convert(coords)
-        self.assertTrue(actual, expected)
+        self.assertTrue(GeometryLike.convert(coords), Polygon(coords))
 
         with self.assertRaises(ValueError) as err:
             GeometryLike.convert('aaa')
-        self.assertTrue('cannot convert' in str(err.exception))
-        self.assertEqual(None, GeometryLike.convert(None))
+        self.assertEqual(str(err.exception), 'cannot convert value <aaa> to GeometryLike')
 
     def test_format(self):
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
-        pol = GeometryLike.convert(coords)
-        self.assertTrue('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))' ==
-                        GeometryLike.format(pol))
+        pol = GeometryLike.convert([(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)])
+        self.assertTrue(GeometryLike.format(pol), 'POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')
 
 
 class TimeLikeTest(TestCase):
@@ -318,6 +305,8 @@ class TimeLikeTest(TestCase):
 
     def test_accepts(self):
         self.assertTrue(TimeLike.accepts(None))
+        self.assertTrue(TimeLike.accepts(''))
+        self.assertTrue(TimeLike.accepts(' '))
         self.assertTrue(TimeLike.accepts('2001-01-01'))
         self.assertTrue(TimeLike.accepts(datetime(2001, 1, 1)))
         self.assertTrue(TimeLike.accepts(date(2001, 1, 1)))
@@ -330,9 +319,11 @@ class TimeLikeTest(TestCase):
         self.assertEqual(TimeLike.convert('2017-04-19'), datetime(2017, 4, 19))
         self.assertEqual(TimeLike.convert(datetime(2017, 4, 19)), datetime(2017, 4, 19))
         self.assertEqual(TimeLike.convert(date(2017, 4, 19)), datetime(2017, 4, 19, 12))
+        self.assertEqual(TimeLike.convert('  '), None)
         self.assertEqual(TimeLike.convert(None), None)
 
     def test_format(self):
+        self.assertEqual(TimeLike.format(None), '')
         self.assertEqual(TimeLike.format(datetime(2017, 4, 19)), '2017-04-19')
 
     def test_json(self):
@@ -413,3 +404,91 @@ class TypeNamesTest(TestCase):
         self.assertEqual(object_to_qualified_name(PolygonLike), 'cate.core.types.PolygonLike')
         self.assertEqual(object_to_qualified_name(GeometryLike), 'cate.core.types.GeometryLike')
         self.assertEqual(object_to_qualified_name(TimeRangeLike), 'cate.core.types.TimeRangeLike')
+
+
+class ArbitraryTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(Arbitrary.convert(None), None)
+        self.assertEqual(Arbitrary.convert(434), 434)
+        self.assertEqual(Arbitrary.convert(3.4), 3.4)
+        self.assertEqual(Arbitrary.convert(True), True)
+        self.assertEqual(Arbitrary.convert((3, 5, 7)), (3, 5, 7))
+        self.assertEqual(Arbitrary.convert('abc'), 'abc')
+
+    def test_format(self):
+        self.assertEqual(Arbitrary.format(None), '')
+        self.assertEqual(Arbitrary.format(434), '434')
+        self.assertEqual(Arbitrary.format(3.4), '3.4')
+        self.assertEqual(Arbitrary.format("abc"), "abc")
+        self.assertEqual(Arbitrary.format(True), 'True')
+
+
+class LiteralTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(Literal.convert(''), None)
+        self.assertEqual(Literal.convert('None'), None)
+        self.assertEqual(Literal.convert('434'), 434)
+        self.assertEqual(Literal.convert('3.4'), 3.4)
+        self.assertEqual(Literal.convert('True'), True)
+        self.assertEqual(Literal.convert('"abc"'), 'abc')
+        self.assertEqual(Literal.convert('2 + 6'), 8)
+        self.assertEqual(Literal.convert('(3, 5, 7)'), (3, 5, 7))
+
+        with self.assertRaises(ValueError):
+            Literal.convert('[1,2')
+        with self.assertRaises(ValueError):
+            Literal.convert('abc')
+
+    def test_format(self):
+        self.assertEqual(Literal.format(None), '')
+        self.assertEqual(Literal.format(434), '434')
+        self.assertEqual(Literal.format(3.4), '3.4')
+        self.assertEqual(Literal.format("abc"), "'abc'")
+        self.assertEqual(Literal.format(True), 'True')
+        self.assertEqual(Literal.format([1, 2, 3]), '[1, 2, 3]')
+
+
+class DatasetLikeTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(DatasetLike.convert(None), None)
+
+        data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+        xr_ds = xr.Dataset(data_vars=data)
+        pd_ds = pd.DataFrame(data=data)
+        self.assertIsInstance(DatasetLike.convert(xr_ds), xr.Dataset)
+        self.assertIsInstance(DatasetLike.convert(pd_ds), xr.Dataset)
+
+        with self.assertRaises(ValueError):
+            DatasetLike.convert(42)
+
+    def test_format(self):
+        self.assertEqual(DatasetLike.format(None), '')
+
+        with self.assertRaises(ValueError):
+            data = {'v1': [4, 5, 6], 'v2': [6, 7, 8]}
+            DatasetLike.format(xr.Dataset(data_vars=data))
+
+
+class DataFrameLikeTest(TestCase):
+
+    def test_convert(self):
+        self.assertEqual(DataFrameLike.convert(None), None)
+
+        data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+        pd_ds = pd.DataFrame(data=data)
+        xr_ds = xr.Dataset(data_vars=data)
+        self.assertIsInstance(DataFrameLike.convert(pd_ds), pd.DataFrame)
+        self.assertIsInstance(DataFrameLike.convert(xr_ds), pd.DataFrame)
+
+        with self.assertRaises(ValueError):
+            DataFrameLike.convert(42)
+
+    def test_format(self):
+        self.assertEqual(DataFrameLike.format(None), '')
+
+        with self.assertRaises(ValueError):
+            data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
+            DataFrameLike.format(pd.DataFrame(data=data))

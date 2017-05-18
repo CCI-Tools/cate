@@ -3,4 +3,4 @@ python:
     setup_py_install: true
 
 conda:
-    file: readthedocs-env.yml
+    file: environment-rtd.yml

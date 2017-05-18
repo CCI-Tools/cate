@@ -21,7 +21,7 @@ class NullMonitorTest(TestCase):
 
 
 class ConsoleMonitorTest(TestCase):
-    def test_console_monitor(self):
+    def test_console_monitor_wo_progress_bar(self):
         m = ConsoleMonitor()
         with fetch_std_streams() as (stdout, stderr):
             m.start('task A', total_work=10)
@@ -33,16 +33,37 @@ class ConsoleMonitorTest(TestCase):
             m.done()
         actual_stdout = stdout.getvalue()
         expected_stdout = 'task A: started\n' + \
-                          'task A:  10%\n' + \
+                          'task A:  10% \n' + \
                           'task A:  60% phase 1\n' + \
                           'task A: phase 2\n' + \
-                          'task A: 100%\n' + \
-                          'task A: progress\n' + \
+                          'task A: 100% \n' + \
+                          'task A: in progress...\n' + \
                           'task A: done\n'
 
         self.assertEqual(actual_stdout, expected_stdout)
         self.assertEqual(stderr.getvalue(), '')
-        self.assertTrue(True)
+
+    def test_console_monitor_with_progress_bar(self):
+        m = ConsoleMonitor(progress_bar_size=10)
+        with fetch_std_streams() as (stdout, stderr):
+            m.start('task A', total_work=10)
+            m.progress(work=1)
+            m.progress(work=5, msg='phase 1')
+            m.progress(msg='phase 2')
+            m.progress(work=4)
+            m.progress()
+            m.done()
+        actual_stdout = stdout.getvalue()
+        expected_stdout = 'task A: started\n' + \
+                          'task A: [#---------]  10% \n' + \
+                          'task A: [######----]  60% phase 1\n' + \
+                          'task A: phase 2\n' + \
+                          'task A: [##########] 100% \n' + \
+                          'task A: in progress...\n' + \
+                          'task A: done\n'
+
+        self.assertEqual(actual_stdout, expected_stdout)
+        self.assertEqual(stderr.getvalue(), '')
 
     def test_label_required(self):
         monitor = ConsoleMonitor()

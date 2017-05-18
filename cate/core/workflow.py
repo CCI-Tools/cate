@@ -366,7 +366,7 @@ class Node(metaclass=ABCMeta):
         port_assignments = []
         for port in namespace[:]:
             if port.source:
-                port_assignments.append('%s=%s' % (port.name, str(port.source)))
+                port_assignments.append('%s=@%s' % (port.name, str(port.source)))
             elif port.has_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
@@ -1311,7 +1311,7 @@ class NodePort:
     def from_json_dict(self, json_dict):
         self._source_ref = None
         self._source = None
-        self._value = None
+        self._value = UNDEFINED
 
         if json_dict is None:
             return
@@ -1361,7 +1361,7 @@ class NodePort:
         if self.source is not None:
             json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
         elif self.has_value:
-            # Do not serialize output values, tey are temporary and may not be JSON-serializable
+            # Do not serialize output values, they are temporary and may not be JSON-serializable
             is_output = self._name in self._node.op_meta_info.output
             if not is_output:
                 json_dict['value'] = self._to_json_value(self._value)

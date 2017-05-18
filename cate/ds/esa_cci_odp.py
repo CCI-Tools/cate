@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
@@ -46,6 +45,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+import socket
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -86,6 +86,9 @@ _ODP_PROTOCOL_HTTP = 'HTTPServer'
 _ODP_PROTOCOL_OPENDAP = 'OPENDAP'
 
 _ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
+
+# by default there is no timeout
+socket.setdefaulttimeout(10)
 
 
 def get_data_store_path():
@@ -252,13 +255,14 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
         end_time = None
         if time_info:
             time_format, p1, p2 = time_info
-            start_time = datetime.strptime(filename[p1:p2], time_format)
-            # Convert back to text, so we can JSON-encode it
-            start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
+            if time_format:
+                start_time = datetime.strptime(filename[p1:p2], time_format)
+                # Convert back to text, so we can JSON-encode it
+                start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
         file_list.append([filename, start_time, end_time, file_size, urls])
 
     def pick_start_time(file_info_rec):
-        return file_info_rec[1]
+        return file_info_rec[1] if file_info_rec[1] else datetime.max
 
     return sorted(file_list, key=pick_start_time)
 
@@ -451,9 +455,6 @@ class EsaCciOdpDataSource(DataSource):
                                    if protocol in _ODP_AVAILABLE_PROTOCOLS_LIST]
         return self._protocol_list
 
-    def matches_filter(self, name: str = None) -> bool:
-        return name.lower() in self.name.lower()
-
     def find_url(self, desired_service='HTTP'):
         for url_service in self._json_dict.get('url', []):
             parts = url_service.split('|')
@@ -570,7 +571,7 @@ class EsaCciOdpDataSource(DataSource):
         try:
             ds = open_xarray_dataset(files)
             if region:
-                [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                [lon_min, lat_min, lon_max, lat_max] = region.bounds
                 ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
             if var_names:
                 ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
@@ -667,22 +668,54 @@ class EsaCciOdpDataSource(DataSource):
                                 isnan(geo_lat_res) or isnan(geo_lon_res)):
                             process_region = True
 
-                            [lat_min, lon_min, lat_max, lon_max] = region.bounds
+                            [lon_min, lat_min, lon_max, lat_max] = region.bounds
 
-                            lat_min = floor((lat_min - geo_lat_min) / geo_lat_res)
-                            lat_max = ceil((lat_max - geo_lat_min) / geo_lat_res)
-                            lon_min = floor((lon_min - geo_lon_min) / geo_lon_res)
-                            lon_max = ceil((lon_max - geo_lon_min) / geo_lon_res)
+                            descending_data_order = set()
+                            for var in remote_dataset.coords.keys():
+                                if remote_dataset.coords[var][0] > remote_dataset.coords[var][-1]:
+                                    descending_data_order.add(var)
 
-                            # TODO (kbernat): check why dataset.sel fails!
+                            if 'lat' not in descending_data_order:
+                                lat_min = lat_min - geo_lat_min
+                                lat_max = lat_max - geo_lat_min
+                            else:
+                                lat_min_copy = lat_min
+                                lat_min = geo_lat_max - lat_max
+                                lat_max = geo_lat_max - lat_min_copy
+
+                            if 'lon' not in descending_data_order:
+                                lon_min = lon_min - geo_lon_min
+                                lon_max = lon_max - geo_lon_min
+                            else:
+                                lon_min_copy = lon_min
+                                lon_min = geo_lon_max - lon_max
+                                lon_max = geo_lon_max - lon_min_copy
+
+                            lat_min = floor(lat_min / geo_lat_res)
+                            lat_max = ceil(lat_max / geo_lat_res)
+                            lon_min = floor(lon_min / geo_lon_res)
+                            lon_max = ceil(lon_max / geo_lon_res)
+
                             remote_dataset = remote_dataset.isel(drop=False,
                                                                  lat=slice(lat_min, lat_max),
                                                                  lon=slice(lon_min, lon_max))
+                            if 'lat' not in descending_data_order:
+                                geo_lat_min_copy = geo_lat_min
+                                geo_lat_min = lat_min * geo_lat_res + geo_lat_min_copy
+                                geo_lat_max = lat_max * geo_lat_res + geo_lat_min_copy
+                            else:
+                                geo_lat_max_copy = geo_lat_max
+                                geo_lat_min = geo_lat_max_copy - lat_max * geo_lat_res
+                                geo_lat_max = geo_lat_max_copy - lat_min * geo_lat_res
 
-                            geo_lat_max = lat_max * geo_lat_res + geo_lat_min
-                            geo_lat_min += lat_min * geo_lat_res
-                            geo_lon_max = lon_max * geo_lon_res + geo_lon_min
-                            geo_lon_min += lon_min * geo_lon_res
+                            if 'lon' not in descending_data_order:
+                                geo_lon_min_copy = geo_lon_min
+                                geo_lon_min = lon_min * geo_lon_res + geo_lon_min_copy
+                                geo_lon_max = lon_max * geo_lon_res + geo_lon_min_copy
+                            else:
+                                geo_lon_max_copy = geo_lon_max
+                                geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
+                                geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
 
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
@@ -801,12 +834,13 @@ class EsaCciOdpDataSource(DataSource):
         # Compute file_end_date from 'time_frequency' field
         # Compute the data source's temporal coverage
         for file_rec in file_list:
-            file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
-            file_end_date = file_start_date + time_delta
-            data_source_start_date = min(data_source_start_date, file_start_date)
-            data_source_end_date = max(data_source_end_date, file_end_date)
-            file_rec[1] = file_start_date
-            file_rec[2] = file_end_date
+            if file_rec[1]:
+                file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+                file_end_date = file_start_date + time_delta
+                data_source_start_date = min(data_source_start_date, file_start_date)
+                data_source_end_date = max(data_source_end_date, file_end_date)
+                file_rec[1] = file_start_date
+                file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
 
@@ -839,5 +873,5 @@ class _DownloadStatistics:
             mb_per_sec = self._to_mibs(self.bytes_done) / seconds
         else:
             mb_per_sec = 0
-        return "%d of %d MB, speed %.3f MB/s" % \
+        return "%d of %d MiB @ %.3f MiB/s" % \
                (self._to_mibs(self.bytes_done), self._to_mibs(self.bytes_total), mb_per_sec)

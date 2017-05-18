@@ -221,12 +221,11 @@ class ConsoleMonitor(Monitor):
     A simple console monitor that directly writes to ``sys.stdout`` and detects user cancellation requests via CTRL+C.
 
     :param stay_in_line: If ``True``, the text written out will stay in the same line.
-    :param progress_bar_size: If ``> 0``, a progress monitor of *progress_bar_size* characters
-        will be written to the console. If ``0 or less`` it will adapt size to console size, where ``0`` is maximum
-        available space
+    :param progress_bar_size: If ``> 1``, a progress monitor of max. *progress_bar_size* characters
+        will be written to the console.
     """
 
-    def __init__(self, stay_in_line=False, progress_bar_size=None):
+    def __init__(self, stay_in_line=False, progress_bar_size=1):
         self._stay_in_line = stay_in_line
         self._progress_bar_size = progress_bar_size
         self._effective_progress_size = 0
@@ -272,37 +271,31 @@ class ConsoleMonitor(Monitor):
         if self._stay_in_line:
             sys.stdout.write('\n')
 
-    def _recalculate_effective_progress_size(self, term_size: int):
-        self._term_size = term_size
-        self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size - 11
-
     def _report_progress(self, percentage=None, msg=None):
-
-        percentage_str = ''
-        progress_bar_str = ''
-
         term_size = get_terminal_size().columns
         if sys.platform == 'win32':
-            term_size = term_size - 1
-        if term_size is not self._term_size:
-            self._term_size = term_size
-            self._effective_progress_size = self._term_size - len(self._label) + self._progress_bar_size \
-                if self._progress_bar_size is not None else 0 - 11
-        if percentage is not None:
-            percentage_str = '%3d%%' % percentage
-            if self._progress_bar_size is not None and self._progress_bar_size <= 0:
-                done_count = int(self._effective_progress_size * percentage / 100 + 0.5)
-                remaining_count = self._effective_progress_size - done_count
-                progress_bar_str = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)
+            term_size -= 1
 
-        if percentage is not None and msg:
-            line = '%s: %s%s %s' % (self._label, progress_bar_str, percentage_str, msg)
-        elif percentage is not None:
-            line = '%s: %s%s' % (self._label, progress_bar_str, percentage_str)
-        elif msg:
-            line = '%s: %s' % (self._label, msg)
-        else:
-            line = '%s: progress' % self._label
+        label_text = '%s: ' % self._label
+        percentage_text = '' if percentage is None else '%3d%% ' % percentage
+        progress_bar_text = ''
+        message_text = 'in progress...' if (not msg and percentage is None) else (msg or '')
+
+        progress_bar_size = self._progress_bar_size
+        min_text_size = len(label_text) + len(percentage_text) + len(message_text)
+        if percentage is not None and progress_bar_size > 1:
+            available_progress_bar_size = term_size - (min_text_size + 3)
+            if available_progress_bar_size > 1:
+                if progress_bar_size > available_progress_bar_size:
+                    progress_bar_size = available_progress_bar_size
+            else:
+                progress_bar_size = 0
+            if progress_bar_size > 1:
+                done_count = int(progress_bar_size * percentage / 100 + 0.5)
+                remaining_count = progress_bar_size - done_count
+                progress_bar_text = '[%s%s] ' % ('#' * done_count, '-' * remaining_count)
+
+        line = label_text + progress_bar_text + percentage_text + message_text
 
         if self._stay_in_line:
             if len(line) > term_size:
