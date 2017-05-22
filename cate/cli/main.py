@@ -764,6 +764,11 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_exit(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if not service_info or \
+                not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
+            return
+
         if command_args.yes:
             answer = 'y'
         else:
