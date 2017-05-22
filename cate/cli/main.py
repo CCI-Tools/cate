@@ -1116,7 +1116,7 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display temporal coverage of cached datasets.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Define a local data source using a file pattern.')
+        add_parser = subparsers.add_parser('add', help='Add a new local data source using a file pattern.')
         add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '
