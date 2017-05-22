@@ -24,7 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import os.path
 
-from .defaults import DEFAULT_CONF_FILE, LOCAL_CONF_FILE
+from .defaults import DEFAULT_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE
 
 _CONFIG = None
 
@@ -132,6 +132,10 @@ def _write_default_config_file(default_config_file: str, template_module: str) -
     default_config_dir = os.path.dirname(default_config_file)
     if default_config_dir and not os.path.exists(default_config_dir):
         os.mkdir(default_config_dir)
+        with open(os.path.join(default_config_dir, LOCATION_FILE), 'w') as fp:
+            import sys
+            fp.write(sys.prefix)
+
     with open(default_config_file, 'w') as fp:
         import pkgutil
         parts = template_module.split('.')
