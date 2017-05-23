@@ -28,7 +28,7 @@ from typing import List, Sequence
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import DEFAULT_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from cate.conf.defaults import GLOBAL_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, query_data_sources
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import WorkspaceManager
@@ -62,7 +62,7 @@ class WebSocketService:
         # noinspection PyBroadException
         conf_text = ''
         try:
-            with open(DEFAULT_CONF_FILE, 'r') as fp:
+            with open(GLOBAL_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
         except:
             # ok
@@ -96,7 +96,7 @@ class WebSocketService:
 
         # Now join lines back again and write modified config file
         conf_text = '\n'.join(conf_lines)
-        with open(DEFAULT_CONF_FILE, 'w') as fp:
+        with open(GLOBAL_CONF_FILE, 'w') as fp:
             fp.write(conf_text)
 
     def get_data_stores(self) -> list:

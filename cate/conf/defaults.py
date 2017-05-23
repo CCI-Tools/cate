@@ -27,13 +27,14 @@ from ..version import __version__
 DEFAULT_DATA_DIR_NAME = '.cate'
 DEFAULT_DATA_PATH = os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME)
 DEFAULT_VERSION_DATA_PATH = os.path.join(DEFAULT_DATA_PATH, __version__)
-DEFAULT_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
 
+VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
+GLOBAL_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
 LOCAL_CONF_FILE = 'cate-conf.py'
 LOCATION_FILE = 'cate.location'
 
-SCRATCH_WORKSPACES_DIR_NAME = 'scratch-workspaces'
-SCRATCH_WORKSPACES_PATH = os.path.join(DEFAULT_VERSION_DATA_PATH, SCRATCH_WORKSPACES_DIR_NAME)
+SCRATCH_WORKSPACES_DIR_NAME = 'scratch'
+SCRATCH_WORKSPACES_PATH = os.path.join(DEFAULT_DATA_PATH, SCRATCH_WORKSPACES_DIR_NAME)
 
 WORKSPACE_CACHE_DIR_NAME = '.cate-cache'
 WORKSPACE_DATA_DIR_NAME = '.cate-workspace'

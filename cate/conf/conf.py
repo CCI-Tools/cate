@@ -18,13 +18,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from typing import Any
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import os.path
+from typing import Any
 
-from .defaults import DEFAULT_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE
+from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE
 
 _CONFIG = None
 
@@ -63,49 +63,51 @@ def get_config() -> dict:
     """
     global _CONFIG
     if _CONFIG is None:
-        set_config(default_config_file=os.path.expanduser(DEFAULT_CONF_FILE),
-                   local_config_file=os.path.expanduser(LOCAL_CONF_FILE),
-                   template_module='cate.conf.template')
+        _set_config(version_config_file=os.path.expanduser(VERSION_CONF_FILE),
+                    global_config_file=os.path.expanduser(GLOBAL_CONF_FILE),
+                    local_config_file=os.path.expanduser(LOCAL_CONF_FILE),
+                    template_module='cate.conf.template')
 
     return _CONFIG
 
 
-def set_config(config: dict = None,
-               default_config_file: str = None,
-               local_config_file: str = None,
-               template_module: str = None) -> None:
+def _set_config(version_config_file: str = None,
+                global_config_file: str = None,
+                local_config_file: str = None,
+                template_module: str = None) -> None:
     """
-    Set the global Cate configuration dictionary.
+    Set the Cate configuration dictionary.
 
-    :param config: Optional configuration object
-    :param default_config_file: Location of the default configuration Python file
-    :param local_config_file: Location of a local configuration Python file
+    :param version_config_file: Location of the default configuration Python file, usually "~/.cate/<version>/conf.py"
+    :param global_config_file: Location of the global configuration Python file, usually "~/.cate/conf.py"
+    :param local_config_file: Location of a local configuration Python file, e.g. "./cate-conf.py"
     :param template_module: Qualified name of a Python module that serves as a configuration template file.
                             If given, this file will be copied into the parent directory of *default_config_file*.
-    :return:
     """
-    global _CONFIG
-    _CONFIG = config or {}
-
-    if default_config_file and template_module:
-        if not os.path.exists(default_config_file):
+    if version_config_file and template_module:
+        if not os.path.exists(version_config_file):
             try:
-                _write_default_config_file(default_config_file, template_module)
+                _write_default_config_file(version_config_file, template_module)
             except (IOError, OSError) as error:
-                print('warning: failed to create %s: %s' % (default_config_file, str(error)))
+                print('warning: failed to create %s: %s' % (version_config_file, str(error)))
 
-    if default_config_file and os.path.isfile(default_config_file):
-        try:
-            _CONFIG = _read_python_config(default_config_file)
-        except Exception as error:
-            print('warning: failed to read %s: %s' % (default_config_file, str(error)))
+    new_config = None
+    for config_file in [version_config_file, global_config_file, local_config_file]:
+        if config_file and os.path.isfile(config_file):
+            try:
+                config = _read_python_config(config_file)
+                if new_config is None:
+                    new_config = config
+                else:
+                    new_config.update(config)
+            except Exception as error:
+                print('warning: failed to read %s: %s' % (version_config_file, str(error)))
 
-    if local_config_file and os.path.isfile(local_config_file):
-        try:
-            local_config = _read_python_config(local_config_file)
-            _CONFIG.update(local_config)
-        except Exception as e:
-            print('warning: failed to read %s: %s' % (local_config_file, str(e)))
+    global _CONFIG
+    if new_config is not None:
+        _CONFIG = new_config
+    else:
+        _CONFIG = {}
 
 
 def _read_python_config(file):
@@ -131,7 +133,7 @@ def _write_default_config_file(default_config_file: str, template_module: str) -
     default_config_file = os.path.expanduser(default_config_file)
     default_config_dir = os.path.dirname(default_config_file)
     if default_config_dir and not os.path.exists(default_config_dir):
-        os.mkdir(default_config_dir)
+        os.makedirs(default_config_dir, exist_ok=True)
         with open(os.path.join(default_config_dir, LOCATION_FILE), 'w') as fp:
             import sys
             fp.write(sys.prefix)
@@ -144,4 +146,5 @@ def _write_default_config_file(default_config_file: str, template_module: str) -
         template_data = pkgutil.get_data(template_package, template_file)
         text = template_data.decode('utf-8')
         fp.write(text)
+
     return default_config_file
