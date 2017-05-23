@@ -1,9 +1,9 @@
+# version here is only relevant for the AppVeyor CI, no need to adjust
 version: '{build}'
-# version here is only relevant for the appveyor CI, no need to adjust
 
 environment:
   global:
-    PYTHON_LOC: "C:\\Miniconda35-x64"
+    PYTHON_LOC: "C:\\Miniconda36-x64"
 
 install:
   - call %PYTHON_LOC%\Scripts\activate.bat
