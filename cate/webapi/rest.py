@@ -19,25 +19,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cate.util import ConsoleMonitor
-from cate.util import Monitor
-import datetime
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
+import concurrent
+import concurrent.futures
+import datetime
 import json
 import os.path
 import time
 import traceback
 from typing import List
 
-import numpy as np
-import xarray as xr
 import fiona
-import tornado.web
+import numpy as np
 import tornado.gen
-import concurrent.futures
+import tornado.web
+import xarray as xr
 
 from cate.conf import get_config
 from cate.conf.defaults import \
@@ -46,6 +44,8 @@ from cate.conf.defaults import \
     WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
     WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from cate.util import ConsoleMonitor
+from cate.util import Monitor
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
@@ -264,9 +264,9 @@ class ResourceWriteHandler(WebAPIRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
-                                                                       format_name=format_name)
-            self.write_status_ok(content=workspace.to_json_dict())
+                workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
+                                                           format_name=format_name)
+            self.write_status_ok()
         except Exception as e:
             self.write_status_error(exception=e)
 
@@ -292,8 +292,8 @@ class ResourcePrintHandler(WebAPIRequestHandler):
         workspace_manager = self.application.workspace_manager
         try:
             with cwd(base_dir):
-                workspace = workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
-            self.write_status_ok(content=workspace.to_json_dict())
+                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
+            self.write_status_ok()
         except Exception as e:
             self.write_status_error(exception=e)
 
