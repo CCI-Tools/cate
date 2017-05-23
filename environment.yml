@@ -13,7 +13,7 @@ dependencies:
   #
   # dependencies (in alphabetical order)
   #
-  - cartop >=0.15
+  - cartopy >=0.15
   - dask >=0.14
   - fiona >=1.7
   - geopandas >=0.2
