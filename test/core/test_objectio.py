@@ -25,24 +25,24 @@ class WriterRegistryTest(TestCase):
 
         reader = OBJECT_IO_REGISTRY.find_reader(format_name='NETCDF3', filename_ext='.nc')
         self.assertIsNotNone(reader)
-        self.assertEquals(reader.format_name, 'NETCDF3')
-        self.assertEquals(reader.filename_ext, '.nc')
+        self.assertEqual(reader.format_name, 'NETCDF3')
+        self.assertEqual(reader.filename_ext, '.nc')
 
         reader = OBJECT_IO_REGISTRY.find_reader(file='hello.txt')
         self.assertIsNotNone(reader)
-        self.assertEquals(reader.format_name, 'TEXT')
-        self.assertEquals(reader.filename_ext, '.txt')
+        self.assertEqual(reader.format_name, 'TEXT')
+        self.assertEqual(reader.filename_ext, '.txt')
 
         reader = OBJECT_IO_REGISTRY.find_reader(format_name='JSON')
         self.assertIsNotNone(reader)
-        self.assertEquals(reader.format_name, 'JSON')
-        self.assertEquals(reader.filename_ext, '.json')
+        self.assertEqual(reader.format_name, 'JSON')
+        self.assertEqual(reader.filename_ext, '.json')
 
         reader = OBJECT_IO_REGISTRY.find_reader(file='meris_l1b.dim',
                                                 default_reader=OBJECT_IO_REGISTRY.find_reader(format_name='NETCDF4'))
         self.assertIsNotNone(reader)
-        self.assertEquals(reader.format_name, 'NETCDF4')
-        self.assertEquals(reader.filename_ext, '.nc')
+        self.assertEqual(reader.format_name, 'NETCDF4')
+        self.assertEqual(reader.filename_ext, '.nc')
 
         reader = OBJECT_IO_REGISTRY.find_reader(format_name='BEAM-DIMAP')
         self.assertIsNone(reader)
@@ -51,33 +51,33 @@ class WriterRegistryTest(TestCase):
         writer = OBJECT_IO_REGISTRY.find_writer(filename_ext='.nc')
         self.assertIsNotNone(writer)
         self.assertIn(writer.format_name, {'NETCDF3', 'NETCDF4'})
-        self.assertEquals(writer.filename_ext, '.nc')
+        self.assertEqual(writer.filename_ext, '.nc')
 
         writer = OBJECT_IO_REGISTRY.find_writer(obj=xr.Dataset(), format_name='NETCDF4')
         self.assertIsNotNone(writer)
         self.assertTrue(writer.format_name == 'NETCDF4')
-        self.assertEquals(writer.filename_ext, '.nc')
+        self.assertEqual(writer.filename_ext, '.nc')
 
         writer = OBJECT_IO_REGISTRY.find_writer(format_name='NETCDF3', filename_ext='.nc')
         self.assertIsNotNone(writer)
-        self.assertEquals(writer.format_name, 'NETCDF3')
-        self.assertEquals(writer.filename_ext, '.nc')
+        self.assertEqual(writer.format_name, 'NETCDF3')
+        self.assertEqual(writer.filename_ext, '.nc')
 
         writer = OBJECT_IO_REGISTRY.find_writer(filename_ext='.txt')
         self.assertIsNotNone(writer)
-        self.assertEquals(writer.format_name, 'TEXT')
-        self.assertEquals(writer.filename_ext, '.txt')
+        self.assertEqual(writer.format_name, 'TEXT')
+        self.assertEqual(writer.filename_ext, '.txt')
 
         writer = OBJECT_IO_REGISTRY.find_writer(obj=dict(a=3), format_name='JSON')
         self.assertIsNotNone(writer)
-        self.assertEquals(writer.format_name, 'JSON')
-        self.assertEquals(writer.filename_ext, '.json')
+        self.assertEqual(writer.format_name, 'JSON')
+        self.assertEqual(writer.filename_ext, '.json')
 
         writer = OBJECT_IO_REGISTRY.find_writer(format_name='BEAM-DIMAP',
                                                 default_writer=OBJECT_IO_REGISTRY.find_writer(format_name='NETCDF3'))
         self.assertIsNotNone(writer)
-        self.assertEquals(writer.format_name, 'NETCDF3')
-        self.assertEquals(writer.filename_ext, '.nc')
+        self.assertEqual(writer.format_name, 'NETCDF3')
+        self.assertEqual(writer.filename_ext, '.nc')
 
         writer = OBJECT_IO_REGISTRY.find_writer(format_name='BEAM-DIMAP')
         self.assertIsNone(writer)
