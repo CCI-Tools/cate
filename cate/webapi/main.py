@@ -95,6 +95,9 @@ def service_factory(application):
 
 def create_application():
     application = Application([
+        ('/_static/(.*)', tornado.web.StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
+        ('/mpl.js', MplJsHander),
+
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
         (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
@@ -121,6 +124,7 @@ def create_application():
         (url_pattern('/ws/res/csv/{{base_dir}}/{{res_name}}'), ResVarCsvHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+
     ])
     application.workspace_manager = FSWorkspaceManager()
     return application

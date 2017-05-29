@@ -53,14 +53,16 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
 svgz, tif, tiff
 
 """
+from typing import Callable, Optional
 
 import matplotlib
 import xarray as xr
 import pandas as pd
-from matplotlib.figure import Figure
 
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from matplotlib.backend_bases import FigureManagerBase
+from matplotlib.figure import Figure
 
 import cartopy.crs as ccrs
 
@@ -71,6 +73,34 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
                         'svgz', 'tif', 'tiff']
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
+
+_FIGURE_MANAGER_FACTORY = None
+
+
+def register_figure_manager_factory(figure_manager_factory: Callable[[int, Figure], FigureManagerBase]) -> None:
+    global _FIGURE_MANAGER_FACTORY
+    _FIGURE_MANAGER_FACTORY = figure_manager_factory
+
+_FIGURE_MANAGERS = {}
+
+
+def register_figure(figure: Figure) ->  Optional[FigureManagerBase]:
+    if _FIGURE_MANAGER_FACTORY is not None:
+        num = id(figure)
+        manager = _FIGURE_MANAGER_FACTORY(num, figure)
+        if manager is not None:
+            _FIGURE_MANAGERS[num] = manager
+            return manager
+    return None
+
+
+def deregister_figure(figure: Figure) -> Optional[FigureManagerBase]:
+    num = id(figure)
+    if num in _FIGURE_MANAGERS:
+        manager = _FIGURE_MANAGERS[num]
+        del _FIGURE_MANAGERS[num]
+        return manager
+    return None
 
 
 @op(tags=['plot', 'map'], no_cache=True)
@@ -204,6 +234,9 @@ def plot_map(ds: xr.Dataset,
     if file:
         fig.savefig(file)
 
+    register_figure(fig)
+    return fig if not in_notebook() else None
+
 
 @op(tags=['plot'], no_cache=True)
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
@@ -236,6 +269,9 @@ def plot_dataframe(df: pd.DataFrame,
         fig = ax.get_figure()
         fig.savefig(file)
 
+    register_figure(fig)
+    return fig if not in_notebook() else None
+
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -245,7 +281,7 @@ def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
          fig: Figure = None,
-         file: str = None) -> Figure:
+         file: str = None) -> OFigure:
     """
     Plot a variable, optionally save the figure in a file.
 
@@ -283,6 +319,7 @@ def plot(ds: xr.Dataset,
     if file:
         fig.savefig(file)
 
+    register_figure(fig)
     return fig if not in_notebook() else None
 
 
@@ -322,5 +359,5 @@ def in_notebook():
     """
     import sys
     ipykernel_in_sys_modules = 'ipykernel' in sys.modules
-    print('###########################################', ipykernel_in_sys_modules)
+    # print('###########################################', ipykernel_in_sys_modules)
     return ipykernel_in_sys_modules

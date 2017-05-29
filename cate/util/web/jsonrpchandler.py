@@ -62,8 +62,8 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._active_futures = {}
         self._job_start = {}
         self._report_defer_period = report_defer_period
-        # Check: following call causes exception although Tornado docs say, it is ok
-        # self.set_nodelay(True)
+        if hasattr(self, 'set_nodelay'):
+            self.set_nodelay(True)
 
     def open(self):
         print("JsonRcpWebSocketHandler.open")
