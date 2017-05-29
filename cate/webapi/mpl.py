@@ -1,54 +1,44 @@
+# The MIT License (MIT)
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+from cate.util.web.webapi import WebAPIRequestHandler
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 """
-This example demonstrates how to embed matplotlib WebAgg interactive
-plotting in your own web application and framework.  It is not
-necessary to do all this if you merely want to display a plot in a
-browser or use matplotlib's built-in Tornado-based server "on the
-side".
+Implements the Tornado REST and WebSocket handlers for working with interactive ``matplotlib`` 
+figures in a web frontend.
 
-The framework being used must support web sockets.
+Code bases on an example taken from https://matplotlib.org/examples/user_interfaces/embedding_webagg.html 
 """
-from typing import Optional
-
-import tornado.web
-import tornado.websocket
-
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_webagg_core import (
-    FigureManagerWebAgg, new_figure_manager_given_figure)
-
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 import io
 import json
+from typing import Optional
 
-import numpy as np
-import tornado
+from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
+from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
+from tornado.web import RequestHandler
+from tornado.websocket import WebSocketHandler
 
-
-def create_figure():
-    """
-    Creates a simple example figure.
-    """
-    sns.set(style="dark")
-    rs = np.random.RandomState(50)
-
-    # Set up the matplotlib figure
-    f, axes = plt.subplots(3, 3, figsize=(9, 9), sharex=True, sharey=True)
-
-    # Rotate the starting point around the cubehelix hue circle
-    for ax, s in zip(axes.flat, np.linspace(0, 3, 10)):
-        # Create a cubehelix colormap to use with kdeplot
-        cmap = sns.cubehelix_palette(start=s, light=1, as_cmap=True)
-
-        # Generate and plot a random bivariate dataset
-        x, y = rs.randn(2, 50)
-        sns.kdeplot(x, y, cmap=cmap, shade=True, cut=5, ax=ax)
-        ax.set(xlim=(-3, 3), ylim=(-3, 3))
-
-    f.tight_layout()
-    return f
-
+from cate.ops.plot import FIGURE_REGISTRY
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
@@ -109,7 +99,15 @@ html_content = """
 """
 
 
-class MplMainPageHander(tornado.web.RequestHandler):
+def _get_figure_manager(figure_id: int) -> Optional[FigureManagerWebAgg]:
+    if FIGURE_REGISTRY.has_entry(figure_id):
+        _, data = FIGURE_REGISTRY.get_entry(figure_id)
+        return data['figure_manager']
+    return None
+
+
+# noinspection PyAbstractClass
+class MplMainPageHandler(RequestHandler):
     """
     Serves the main HTML page.
     """
@@ -121,7 +119,8 @@ class MplMainPageHander(tornado.web.RequestHandler):
         self.write(content)
 
 
-class MplJsHander(tornado.web.RequestHandler):
+# noinspection PyAbstractClass
+class MplJavaScriptHandler(RequestHandler):
     """
     Serves the generated matplotlib javascript file.  The content
     is dynamically generated based on which toolbar functions the
@@ -135,15 +134,23 @@ class MplJsHander(tornado.web.RequestHandler):
         self.write(js_content)
 
 
-class MplDownloadHander(tornado.web.RequestHandler):
+# noinspection PyAbstractClass
+class MplDownloadHandler(WebAPIRequestHandler):
     """
     Handles downloading of the figure in various file formats.
     """
 
-    def get(self, format):
-        manager = self.application.manager
+    def get(self, figure_id: str, format: str):
+        figure_id = int(figure_id)
 
-        mimetypes = {
+        figure_manager = _get_figure_manager(figure_id)
+        try:
+            assert figure_manager is not None, "missing figure manager for figure_id={}".format(figure_id)
+        except Exception as exception:
+            self.write_status_error(exception)
+            return
+
+        mime_types = {
             'ps': 'application/postscript',
             'eps': 'application/postscript',
             'pdf': 'application/pdf',
@@ -154,14 +161,15 @@ class MplDownloadHander(tornado.web.RequestHandler):
             'emf': 'application/emf'
         }
 
-        self.set_header('Content-Type', mimetypes.get(format, 'binary'))
+        self.set_header('Content-Type', mime_types.get(format, 'binary'))
 
         buff = io.BytesIO()
-        manager.canvas.print_figure(buff, format=format)
+        figure_manager.canvas.print_figure(buff, format=format)
         self.write(buff.getvalue())
 
 
-class MplWebSocket(tornado.websocket.WebSocketHandler):
+# noinspection PyAbstractClass
+class MplWebSocketHandler(WebSocketHandler):
     """
     A websocket for interactive communication between the plot in
     the browser and the server.
@@ -181,21 +189,25 @@ class MplWebSocket(tornado.websocket.WebSocketHandler):
     supports_binary = True
 
     def open(self):
-        # Register the websocket with the FigureManagers.
-        for figure_id, figure_manager in FIGURE_MANAGERS.items():
-            figure_manager.add_web_socket(self)
+        # Register the WebSocket with the FigureManagers.
+        for fig_entry in FIGURE_REGISTRY.entries:
+            self._register_with_figure_manager(fig_entry)
+        # Start observing changes in figure registry
+        FIGURE_REGISTRY.add_observer(self._on_figure_registry_change)
+
         if hasattr(self, 'set_nodelay'):
             self.set_nodelay(True)
 
     def on_close(self):
-        # When the socket is closed, deregister the websocket with
-        # the FigureManagers.
-        for figure_id, figure_manager in FIGURE_MANAGERS.items():
-            figure_manager.remove_web_socket(self)
+        # Stop observing changes in figure registry
+        FIGURE_REGISTRY.remove_observer(self._on_figure_registry_change)
+        # When closed, deregister the WebSocket with the FigureManagers.
+        for fig_entry in FIGURE_REGISTRY.entries:
+            self._deregister_with_figure_manager(fig_entry)
 
     def on_message(self, message):
         # The 'supports_binary' message is relevant to the
-        # websocket itself.  The other messages get passed along
+        # WebSocket itself.  The other messages get passed along
         # to matplotlib as-is.
 
         # Every message has a "type" and a "figure_id".
@@ -204,9 +216,11 @@ class MplWebSocket(tornado.websocket.WebSocketHandler):
             self.supports_binary = message['value']
         else:
             figure_id = message['figure_id']
-            if figure_id in FIGURE_MANAGERS:
-                manager = FIGURE_MANAGERS[figure_id]
-                manager.handle_json(message)
+            if FIGURE_REGISTRY.has_entry(figure_id):
+                _, data = FIGURE_REGISTRY.get_entry(figure_id)
+                figure_manager = data['figure_manager']
+                assert figure_manager is not None
+                figure_manager.handle_json(message)
 
     def send_json(self, content):
         self.write_message(json.dumps(content))
@@ -218,3 +232,24 @@ class MplWebSocket(tornado.websocket.WebSocketHandler):
             data_uri = "data:image/png;base64,{0}".format(
                 blob.encode('base64').replace('\n', ''))
             self.write_message(data_uri)
+
+    def _on_figure_registry_change(self, event: str, fig_entry):
+        if event == 'entry_added' or event == 'entry_updated':
+            self._register_with_figure_manager(fig_entry)
+        elif event == 'entry_removed':
+            self._deregister_with_figure_manager(fig_entry)
+
+    def _register_with_figure_manager(self, fig_entry):
+        figure, data = fig_entry
+        figure_manager = data.get('figure_manager')
+        if figure_manager is None:
+            figure_id = data['figure_id']
+            figure_manager = new_figure_manager_given_figure(figure_id, figure)
+            data['figure_manager'] = figure_manager
+        figure_manager.add_web_socket(self)
+
+    def _deregister_with_figure_manager(self, fig_entry):
+        _, data = fig_entry
+        figure_manager = data.get('figure_manager')
+        if figure_manager is not None:
+            figure_manager.remove_web_socket(self)

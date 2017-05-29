@@ -53,15 +53,15 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
 svgz, tif, tiff
 
 """
-from typing import Callable, Optional
+from collections import OrderedDict
+from typing import Callable, Optional, Tuple, List, ValuesView
 
 import matplotlib
-import xarray as xr
 import pandas as pd
+import xarray as xr
 
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from matplotlib.backend_bases import FigureManagerBase
 from matplotlib.figure import Figure
 
 import cartopy.crs as ccrs
@@ -74,36 +74,67 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'svgz', 'tif', 'tiff']
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
-_FIGURE_MANAGER_FACTORY = None
+FigureRegistryEntry = Tuple[Figure, dict]
+FigureRegistryObserver = Callable[[str, FigureRegistryEntry], None]
 
 
-def register_figure_manager_factory(figure_manager_factory: Callable[[int, Figure], FigureManagerBase]) -> None:
-    global _FIGURE_MANAGER_FACTORY
-    _FIGURE_MANAGER_FACTORY = figure_manager_factory
+class FigureRegistry:
+    def __init__(self):
+        self._figures = OrderedDict()
+        self._observers = set()
 
-_FIGURE_MANAGERS = {}
+    def add_observer(self, observer: FigureRegistryObserver):
+        self._observers.add(observer)
+
+    def remove_observer(self, observer: FigureRegistryObserver):
+        self._observers.remove(observer)
+
+    @property
+    def figures(self) -> List[Figure]:
+        return [figure for figure, _ in self._figures.values()]
+
+    @property
+    def entries(self) -> ValuesView[FigureRegistryEntry]:
+        return self._figures.values()
+
+    def has_entry(self, figure_id: int) -> bool:
+        return figure_id in self._figures
+
+    def get_entry(self, figure_id: int) -> Optional[FigureRegistryEntry]:
+        return self._figures.get(figure_id)
+
+    def add_entry(self, figure_id: int, figure: Figure) -> FigureRegistryEntry:
+        fig_entry = None
+        if figure_id in self._figures:
+            event = 'entry_updated'
+        else:
+            event = 'entry_added'
+        fig_entry = (figure, dict(figure_id=figure_id))
+        self._figures[figure_id] = fig_entry
+        self._notify_observers(event, fig_entry)
+        return fig_entry
+
+    def remove_entry(self, figure_id: int) -> Optional[FigureRegistryEntry]:
+        fig_entry = None
+        if figure_id in self._figures:
+            fig_entry = self._figures.pop(figure_id)
+            self._notify_observers('entry_removed', fig_entry)
+        return fig_entry
+
+    def _notify_observers(self, event: str, fig_entry: FigureRegistryEntry):
+        for observer in self._observers:
+            observer(event, fig_entry)
+
+FIGURE_REGISTRY = FigureRegistry()
 
 
-def register_figure(figure: Figure) ->  Optional[FigureManagerBase]:
-    if _FIGURE_MANAGER_FACTORY is not None:
-        num = id(figure)
-        manager = _FIGURE_MANAGER_FACTORY(num, figure)
-        if manager is not None:
-            _FIGURE_MANAGERS[num] = manager
-            return manager
-    return None
+def _register_figure(figure: Figure, figure_id: Optional[int]) -> None:
+    if figure_id is not None:
+        global FIGURE_REGISTRY
+        return FIGURE_REGISTRY.add_entry(figure, figure_id=figure_id)
 
 
-def deregister_figure(figure: Figure) -> Optional[FigureManagerBase]:
-    num = id(figure)
-    if num in _FIGURE_MANAGERS:
-        manager = _FIGURE_MANAGERS[num]
-        del _FIGURE_MANAGERS[num]
-        return manager
-    return None
-
-
-@op(tags=['plot', 'map'], no_cache=True)
+@op(tags=['plot', 'map'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
@@ -114,6 +145,7 @@ def deregister_figure(figure: Figure) -> Optional[FigureManagerBase]:
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+@op_input('fig_id')
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
@@ -121,7 +153,8 @@ def plot_map(ds: xr.Dataset,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
-             file: str = None) -> None:
+             file: str = None,
+             fig_id: int = None) -> Figure:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the
@@ -146,6 +179,7 @@ def plot_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param file: path to a file in which to save the plot
+    :param fig_id: An optional integer used to identify this figure.
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently supported')
@@ -222,7 +256,7 @@ def plot_map(ds: xr.Dataset,
         print(e)
         var_data = var
 
-    fig = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(16, 8))
     ax = plt.axes(projection=proj)
     if extents:
         ax.set_extent(extents)
@@ -232,22 +266,24 @@ def plot_map(ds: xr.Dataset,
     ax.coastlines()
     var_data.plot.contourf(ax=ax, transform=proj)
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
 
-    register_figure(fig)
-    return fig if not in_notebook() else None
+    _register_figure(figure, fig_id)
+    return figure if not in_notebook() else None
 
 
-@op(tags=['plot'], no_cache=True)
+@op(tags=['plot'])
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+@op_input('fig_id')
 def plot_dataframe(df: pd.DataFrame,
                    plot_type: str = 'line',
                    file: str = None,
-                   **kwargs) -> None:
+                   fig_id: int = None,
+                   **kwargs) -> Figure:
     """
-    Plot a dataframe.
+    Plot a data frame.
 
     This is a wrapper of pandas.DataFrame.plot() function.
 
@@ -257,31 +293,34 @@ def plot_dataframe(df: pd.DataFrame,
     :param df: A pandas dataframe to plot
     :param plot_type: Plot type
     :param file: path to a file in which to save the plot
+    :param fig_id: An optional integer used to identify this figure.
     :param kwargs: Keyword arguments to pass to the underlying
-    pandas.DataFrame.plot function
+                   pandas.DataFrame.plot function
     """
     if not isinstance(df, pd.DataFrame):
         raise NotImplementedError('Only pandas dataframes are currently'
                                   ' supported')
 
     ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
+    figure = ax.get_figure()
     if file:
-        fig = ax.get_figure()
-        fig.savefig(file)
+        figure.savefig(file)
 
-    register_figure(fig)
-    return fig if not in_notebook() else None
+    _register_figure(figure, fig_id)
+    return figure if not in_notebook() else None
 
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+@op_input('fig_id')
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
-         fig: Figure = None,
-         file: str = None) -> OFigure:
+         figure: Figure = None,
+         file: str = None,
+         fig_id: int = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
 
@@ -297,8 +336,9 @@ def plot(ds: xr.Dataset,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
                   e.g. "lat=12.4, time='2012-05-02'".
-    :param fig: optional figure from a previous ``plot`` call
+    :param figure: optional figure from a previous ``plot`` call
     :param file: path to a file in which to save the plot
+    :param fig_id: An optional integer used to identify this figure.
     """
 
     var = VarName.convert(var)
@@ -314,13 +354,13 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    fig = fig or plt.figure(figsize=(16, 8))
+    figure = figure or plt.figure(figsize=(16, 8))
     var_data.plot()
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
 
-    register_figure(fig)
-    return fig if not in_notebook() else None
+    _register_figure(figure, fig_id)
+    return figure if not in_notebook() else None
 
 
 def _check_bounding_box(lat_min: float,

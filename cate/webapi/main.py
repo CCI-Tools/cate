@@ -48,7 +48,8 @@ Components
 import sys
 from datetime import date
 
-from tornado.web import Application
+from tornado.web import Application, StaticFileHandler
+from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX,  \
     WEBAPI_PROGRESS_DEFER_PERIOD
@@ -63,6 +64,7 @@ from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, Workspace
     ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
     ResourcePrintHandler, ResourceWriteHandler, CountriesGeoJSONHandler, \
     ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
+from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
@@ -95,8 +97,11 @@ def service_factory(application):
 
 def create_application():
     application = Application([
-        ('/_static/(.*)', tornado.web.StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
-        ('/mpl.js', MplJsHander),
+        ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
+        ('/mpl.js', MplJavaScriptHandler),
+
+        (url_pattern('/mpl/download/{{figure_id}}/{{format}}'), MplDownloadHandler),
+        (url_pattern('/mpl/ws'), MplWebSocketHandler),
 
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
