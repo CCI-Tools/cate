@@ -63,6 +63,8 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
 
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
+TRACE_TILE_PERF = False
+
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
 # Explicitly load Cate-internal plugins.
@@ -407,13 +409,15 @@ class ResVarTileHandler(WebAPIRequestHandler):
                                                          format='PNG',
                                                          tile_cache=rgb_tile_cache))
             ResVarTileHandler.PYRAMIDS[pyramid_id] = pyramid
-            print('Created pyramid "%s":' % pyramid_id)
-            print('  tile_size:', pyramid.tile_size)
-            print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
-            print('  num_levels:', pyramid.num_levels)
+            if TRACE_TILE_PERF:
+                print('Created pyramid "%s":' % pyramid_id)
+                print('  tile_size:', pyramid.tile_size)
+                print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
+                print('  num_levels:', pyramid.num_levels)
 
         try:
-            print('PERF: >>> Tile:', image_id, z, y, x)
+            if TRACE_TILE_PERF:
+                print('PERF: >>> Tile:', image_id, z, y, x)
             t1 = time.clock()
             tile = pyramid.get_tile(int(x), int(y), int(z))
             t2 = time.clock()
@@ -421,7 +425,8 @@ class ResVarTileHandler(WebAPIRequestHandler):
             self.set_header('Content-Type', 'image/png')
             self.write(tile)
 
-            print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
+            if TRACE_TILE_PERF:
+                print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
             # GLOBAL_LOCK.release()
         except Exception as e:
             traceback.print_exc()
