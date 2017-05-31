@@ -271,6 +271,10 @@ class OpMetaInfo:
                 if cls.MONITOR_INPUT_NAME != arg_name:
                     default_value = default_values[i]
                     input_dict[arg_name]['default_value'] = default_value
+                    if default_value is None:
+                        input_dict[arg_name]['nullable'] = True
+                    else:
+                        input_dict[arg_name]['data_type'] = type(default_value)
                     if 'position' in input_dict[arg_name]:
                         del input_dict[arg_name]['position']
         return input_dict, has_monitor
@@ -298,7 +302,10 @@ class OpMetaInfo:
         inputs = self.input
         # Ensure required input values have values (even None is a value).
         for name, properties in inputs.items():
-            required = 'position' in properties
+            has_no_default = 'default_value' not in properties
+            is_positioned = 'position' in properties
+            is_auto = 'step_id' in properties
+            required = (is_positioned or has_no_default) and not is_auto
             if required and (name not in input_values):
                 raise ValueError("input '%s' for operation '%s' required" %
                                  (name, self.qualified_name))
@@ -309,10 +316,15 @@ class OpMetaInfo:
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
-            data_type = input_properties.get('data_type', None)
+            if input_properties.get('step_id'):
+                if value is not None:
+                    raise ValueError(
+                        "input '%s' for operation '%s' must not be provided" % (name, self.qualified_name))
+                continue
+            data_type = input_properties.get('data_type')
             if value is None:
                 default_is_none = input_properties.get('default_value', 1) is None
-                value_set = input_properties.get('value_set', None)
+                value_set = input_properties.get('value_set')
                 value_set_has_none = value_set and (None in value_set)
                 nullable = input_properties.get('nullable', False)
                 if not (default_is_none or value_set_has_none or nullable):
