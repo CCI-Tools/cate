@@ -188,6 +188,14 @@ class MplWebSocketHandler(WebSocketHandler):
     """
     supports_binary = True
 
+    # We must override this to return True (= all origins are ok), otherwise we get
+    #   WebSocket connection to 'ws://localhost:9090/app' failed:
+    #   Error during WebSocket handshake:
+    #   Unexpected response code: 403 (forbidden)
+    def check_origin(self, origin):
+        print("MplWebSocketHandler: check " + str(origin))
+        return True
+
     def open(self):
         # Register the WebSocket with the FigureManagers.
         for fig_entry in FIGURE_REGISTRY.entries:
@@ -234,6 +242,7 @@ class MplWebSocketHandler(WebSocketHandler):
             self.write_message(data_uri)
 
     def _on_figure_registry_change(self, event: str, fig_entry):
+        print('MplWebSocketHandler._on_figure_registry_change({}, data={}): '.format(event, fig_entry[1]))
         if event == 'entry_added' or event == 'entry_updated':
             self._register_with_figure_manager(fig_entry)
         elif event == 'entry_removed':
