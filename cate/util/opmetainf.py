@@ -317,9 +317,6 @@ class OpMetaInfo:
                 continue
             input_properties = inputs[name]
             if input_properties.get('step_id'):
-                if value is not None:
-                    raise ValueError(
-                        "input '%s' for operation '%s' must not be provided" % (name, self.qualified_name))
                 continue
             data_type = input_properties.get('data_type')
             if value is None:
