@@ -125,13 +125,14 @@ class FigureRegistry:
         for observer in self._observers:
             observer(event, fig_entry)
 
+
 FIGURE_REGISTRY = FigureRegistry()
 
 
-def _register_figure(figure: Figure, figure_id: Optional[int]) -> None:
+def _register_figure(figure: Figure, figure_id) -> None:
     if figure_id is not None:
         global FIGURE_REGISTRY
-        return FIGURE_REGISTRY.add_entry(figure, figure_id=figure_id)
+        return FIGURE_REGISTRY.add_entry(figure, figure_id=hash(figure_id))
 
 
 @op(tags=['plot', 'map'])
@@ -145,7 +146,7 @@ def _register_figure(figure: Figure, figure_id: Optional[int]) -> None:
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id')
+@op_input('fig_id', step_id=True)
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
@@ -276,7 +277,7 @@ def plot_map(ds: xr.Dataset,
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id')
+@op_input('fig_id', step_id=True)
 def plot_dataframe(df: pd.DataFrame,
                    plot_type: str = 'line',
                    file: str = None,
@@ -314,7 +315,7 @@ def plot_dataframe(df: pd.DataFrame,
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id')
+@op_input('fig_id', step_id=True)
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
