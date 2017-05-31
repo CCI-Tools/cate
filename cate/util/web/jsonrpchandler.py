@@ -62,12 +62,12 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._active_futures = {}
         self._job_start = {}
         self._report_defer_period = report_defer_period
-        if hasattr(self, 'set_nodelay'):
-            self.set_nodelay(True)
 
     def open(self):
         print("JsonRcpWebSocketHandler.open")
         self._service = self._service_factory(self._application)
+        if hasattr(self, 'set_nodelay'):
+            self.set_nodelay(True)
 
     def on_close(self):
         print("JsonRcpWebSocketHandler.on_close")
