@@ -62,12 +62,18 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._active_futures = {}
         self._job_start = {}
         self._report_defer_period = report_defer_period
-        # Check: following call causes exception although Tornado docs say, it is ok
-        # self.set_nodelay(True)
 
     def open(self):
         print("JsonRcpWebSocketHandler.open")
         self._service = self._service_factory(self._application)
+
+        # noinspection PyBroadException
+        try:
+            # Reduce 200-500ms delays due to the interaction between Nagle’s algorithm and TCP delayed ACKs
+            # at the expense of possibly increasing bandwidth usage.
+            self.set_nodelay(True)
+        except:
+            pass
 
     def on_close(self):
         print("JsonRcpWebSocketHandler.on_close")
