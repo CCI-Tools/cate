@@ -32,7 +32,7 @@ class OpMetaInfoTest(TestCase):
 
     def test_introspect_operation(self):
         # noinspection PyUnusedLocal
-        def f(a: str, b: int, c: float = 1, d='A') -> float:
+        def f(a: str, b: int = None, c: float = 1, d='A') -> float:
             """
             The doc.
 
@@ -57,9 +57,9 @@ class OpMetaInfoTest(TestCase):
         self.assertIn('d', op_meta_info.input)
         self.assertIn(RETURN, op_meta_info.output)
         self.assertEqual(op_meta_info.input['a'], dict(data_type=str, position=0, description='the a str'))
-        self.assertEqual(op_meta_info.input['b'], dict(data_type=int, position=1, description='the b int'))
+        self.assertEqual(op_meta_info.input['b'], dict(data_type=int, nullable=True, default_value=None, description='the b int'))
         self.assertEqual(op_meta_info.input['c'], dict(data_type=float, default_value=1, description='the c float'))
-        self.assertEqual(op_meta_info.input['d'], dict(default_value='A', description="the d 'A'"))
+        self.assertEqual(op_meta_info.input['d'], dict(data_type=str, default_value='A', description="the d 'A'"))
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float, description='a float'))
         self.assertEqual(op_meta_info.has_monitor, False)
         self.assertEqual(op_meta_info.has_named_outputs, False)
@@ -82,6 +82,37 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.output[RETURN], dict(data_type=float))
         self.assertEqual(op_meta_info.has_monitor, True)
         self.assertEqual(op_meta_info.has_named_outputs, False)
+
+    def test_validate_input_values(self):
+        op_meta_info = OpMetaInfo('some_op')
+        op_meta_info.input['file'] = dict(data_type=str)
+        op_meta_info.input['count'] = dict(data_type=int, default_value=2, nullable=True)
+        op_meta_info.input['fig_id'] = dict(step_id=True)
+        op_meta_info.output[RETURN] = dict(data_type=int)
+
+        self.assertEqual(op_meta_info.validate_input_values(dict(file='a/b/c')), None)
+        self.assertEqual(op_meta_info.validate_input_values(dict(file='a/b/c', count=3)), None)
+        self.assertEqual(op_meta_info.validate_input_values(dict(file='a/b/c', count=None)), None)
+
+        with self.assertRaises(ValueError) as cm:
+            op_meta_info.validate_input_values(dict())
+        self.assertEqual(str(cm.exception),
+                         "input 'file' for operation 'some_op' required")
+
+        with self.assertRaises(ValueError) as cm:
+            op_meta_info.validate_input_values(dict(file=None))
+        self.assertEqual(str(cm.exception),
+                         "input 'file' for operation 'some_op' is not nullable")
+
+        with self.assertRaises(ValueError) as cm:
+            op_meta_info.validate_input_values(dict(file='a/b/c', count='bibo'))
+        self.assertEqual(str(cm.exception),
+                         "input 'count' for operation 'some_op' must be of type 'int', but got type 'str'")
+
+        with self.assertRaises(ValueError) as cm:
+            op_meta_info.validate_input_values(dict(file='a/b/c', fig_id=9))
+        self.assertEqual(str(cm.exception),
+                         "input 'fig_id' for operation 'some_op' must not be provided")
 
     def test_to_json_dict(self):
         op_meta_info = OpMetaInfo('x.y.Z')
