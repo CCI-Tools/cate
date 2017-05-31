@@ -69,6 +69,14 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         if hasattr(self, 'set_nodelay'):
             self.set_nodelay(True)
 
+        # noinspection PyBroadException
+        try:
+            # Reduce 200-500ms delays due to the interaction between Nagle’s algorithm and TCP delayed ACKs
+            # at the expense of possibly increasing bandwidth usage.
+            self.set_nodelay(True)
+        except:
+            pass
+
     def on_close(self):
         print("JsonRcpWebSocketHandler.on_close")
         self._service = None
