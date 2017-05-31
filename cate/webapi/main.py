@@ -101,11 +101,11 @@ def create_application():
         ('/mpl.js', MplJavaScriptHandler),
 
         (url_pattern('/mpl/download/{{figure_id}}/{{format}}'), MplDownloadHandler),
-        (url_pattern('/mpl/ws'), MplWebSocketHandler),
+        (url_pattern('/mpl'), MplWebSocketHandler),
 
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
+        (url_pattern('/api'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
                                                             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
