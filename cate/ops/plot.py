@@ -132,7 +132,7 @@ FIGURE_REGISTRY = FigureRegistry()
 def _register_figure(figure: Figure, figure_id) -> None:
     if figure_id is not None:
         global FIGURE_REGISTRY
-        return FIGURE_REGISTRY.add_entry(figure, figure_id=hash(figure_id))
+        return FIGURE_REGISTRY.add_entry(hash(figure_id), figure)
 
 
 @op(tags=['plot', 'map'])
