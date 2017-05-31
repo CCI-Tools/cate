@@ -59,7 +59,12 @@ import xarray as xr
 import pandas as pd
 from matplotlib.figure import Figure
 
-matplotlib.use('Qt4Agg')
+# noinspection PyBroadException
+try:
+    matplotlib.use('Qt5Agg')
+except:
+    matplotlib.use('Qt4Agg')
+
 import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
