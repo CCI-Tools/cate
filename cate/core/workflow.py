@@ -123,8 +123,8 @@ from typing import Sequence, Optional, Union, List, Dict
 
 from cate.util import Namespace, UNDEFINED
 from cate.util.monitor import Monitor
-from .op import OP_REGISTRY, OpRegistration
 from cate.util.opmetainf import OpMetaInfo
+from .op import OP_REGISTRY, OpRegistration
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
@@ -264,8 +264,9 @@ class Node(metaclass=ABCMeta):
         """
         Make this class instance's callable. The call is delegated to :py:meth:`call()`.
 
-        :param context: An optional execution context. It will be used as value of any node
-               input which has a "context" property set to ``True``.
+        :param context: An optional execution context. It will be used to automatically set the
+               value of any node input which has a "context" property set to either ``True`` or a
+               context expression string.
         :param monitor: An optional progress monitor.
         :param input_values: The input values.
         :return: The output value.
@@ -280,10 +281,12 @@ class Node(metaclass=ABCMeta):
         1. Set default_value where input values are missing in *input_values*
         2. Validate the input_values using this workflows's meta-info
         3. Set this workflow's input port values
-        4. Invoke this workflow with given *value_cache* and *monitor*
+        4. Invoke this workflow with given *context* and *monitor*
         5. Get this workflow's output port values. Named outputs will be returned as dictionary.
 
-        :param value_cache: An optional value cache.
+        :param context: An optional execution context. It will be used to automatically set the
+               value of any node input which has a "context" property set to either ``True`` or a
+               context expression string.
         :param monitor: An optional progress monitor.
         :param input_values: The input values.
         :return: The output values.
@@ -295,34 +298,59 @@ class Node(metaclass=ABCMeta):
         self.op_meta_info.validate_input_values(input_values)
         # 3. Set this workflow's input port values
         self.set_input_values(input_values)
-        # 4. Invoke this workflow with given *value_cache* and *monitor*
+        # 4. Invoke this workflow with given *context* and *monitor*
         self.invoke(context=context, monitor=monitor)
         # 5. Get this workflow's output port values. Named outputs will be returned as dictionary.
         return self.get_output_value()
 
-    def invoke(self, context: Dict = None, monitor: Monitor = Monitor.NONE):
+    def invoke(self, context: Dict = None, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
-               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param context: An optional execution context.
         :param monitor: An optional progress monitor.
         """
         self._invoke_impl(_new_context(context, step=self), monitor=monitor)
 
     @abstractmethod
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
-               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
+
+    def _set_context_values(self, context, input_values) -> None:
+        """
+        Set certain input values from given execution *context*.
+        For any input that uses the 'context' input property, set the desired *context* values.
+
+        :param context: The execution context.
+        :param input_values: The node's input values.
+        """
+        for input_name, input_props in self.op_meta_info.input.items():
+            context_property_value = input_props.get('context')
+            if isinstance(context_property_value, str):
+                # noinspection PyBroadException
+                try:
+                    input_values[input_name] = eval(context_property_value, {}, context)
+                except:
+                    input_values[input_name] = None
+            elif context_property_value:
+                input_values[input_name] = context
+
+    def _get_value_cache(self, context: Dict):
+        """
+        Get the 'value_cache' entry from context
+        only if this node is allowed to cache, otherwise return None.
+        """
+        value_cache = context.get('value_cache')
+        return value_cache if self.op_meta_info.can_cache else None
 
     def set_input_values(self, input_values):
         for node_input in self.input[:]:
@@ -573,18 +601,25 @@ class Workflow(Node):
         """
         Invoke this workflow by invoking all all of its step nodes.
 
-        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
-               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         self.invoke_steps(self.steps, context=context, monitor=monitor)
 
-    @classmethod
-    def invoke_steps(cls,
+    def invoke_steps(self,
                      steps: List['Step'],
-                     context: dict = None,
+                     context: Dict = None,
                      monitor_label: str = None,
-                     monitor=Monitor.NONE):
+                     monitor=Monitor.NONE) -> None:
+        """
+        Invoke just the given steps.
+
+        :param steps: Selected steps of this workflow.
+        :param context: An optional execution context
+        :param monitor_label: An optional label for the progress monitor.
+        :param monitor: The progress monitor.
+        """
+        context = _new_context(context, workflow=self)
         step_count = len(steps)
         if step_count == 1:
             steps[0].invoke(context=context, monitor=monitor)
@@ -837,16 +872,18 @@ class WorkflowStep(Step):
         """The workflow's resource path (file path, URL)."""
         return self._resource
 
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying workflow's return value(s).
 
-        :param context: The execution context.
+        :param context: The execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
-        value_cache = context.get('value_cache')
+        value_cache = self._get_value_cache(context)
+        # If the value_cache already has a child from a former sub-workflow invocation,
+        # use it as current value_cache
         if value_cache is not None and hasattr(value_cache, 'child'):
             context = _new_context(context, value_cache=value_cache.child(self.id))
 
@@ -903,13 +940,13 @@ class OpStep(Step):
         """The operation registration. See :py:class:`cate.core.op.OpRegistration`"""
         return self._op_registration
 
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
@@ -917,17 +954,14 @@ class OpStep(Step):
             if node_input.has_value:
                 input_values[node_input.name] = node_input.value
 
-        for input_name, input_props in self.op_meta_info.input.items():
-            if input_props.get('context'):
-                input_values[input_name] = context
+        self._set_context_values(context, input_values)
 
-        value_cache = context.get('value_cache')
-        can_cache = value_cache is not None and self.op_meta_info.can_cache
-        if can_cache and self.id in value_cache:
+        value_cache = self._get_value_cache(context)
+        if value_cache is not None and self.id in value_cache:
             return_value = value_cache[self.id]
         else:
             return_value = self._op_registration(monitor=monitor, **input_values)
-            if can_cache:
+            if value_cache is not None:
                 value_cache[self.id] = return_value
 
         if self.op_meta_info.has_named_outputs:
@@ -990,38 +1024,27 @@ class ExprStep(Step):
         """The expression."""
         return self._expression
 
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
         for node_input in self.input[:]:
             input_values[node_input.name] = node_input.value
 
-        # For any input that uses the 'context' input property, set the desired values
-        for input_name, input_props in self.op_meta_info.input.items():
-            context_property_value = input_props.get('context')
-            if isinstance(context_property_value, str):
-                # noinspection PyBroadException
-                try:
-                    input_values[input_name] = eval(context_property_value, {}, context)
-                except:
-                    input_values[input_name] = None
-            elif context_property_value:
-                input_values[input_name] = context
+        self._set_context_values(context, input_values)
 
-        value_cache = context.get('value_cache')
-        can_cache = value_cache is not None and self.op_meta_info.can_cache
-        if can_cache and self.id in value_cache:
+        value_cache = self._get_value_cache(context)
+        if value_cache is not None and self.id in value_cache:
             return_value = value_cache[self.id]
         else:
             return_value = eval(self.expression, None, input_values)
-            if can_cache:
+            if value_cache is not None:
                 value_cache[self.id] = return_value
 
         if self.op_meta_info.has_named_outputs:
@@ -1067,13 +1090,13 @@ class NoOpStep(Step):
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
 
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
@@ -1133,13 +1156,13 @@ class SubProcessStep(Step):
         """The sub process' arguments."""
         return self._sub_process_arguments
 
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()

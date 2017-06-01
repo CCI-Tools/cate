@@ -155,6 +155,44 @@ class WorkflowTest(TestCase):
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
         self.assertEqual(value_cache, dict(op1={'y': 4}, op2={'b': 8}, op3={'w': 32}))
 
+    def test_invoke_with_context_inputs(self):
+        def some_op(context, workflow, workflow_id, step, step_id, invalid):
+            return dict(context=context,
+                        workflow=workflow,
+                        workflow_id=workflow_id,
+                        step=step,
+                        step_id=step_id,
+                        invalid=invalid)
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            op_reg = OP_REGISTRY.add_op(some_op)
+            op_reg.op_meta_info.input['context']['context'] = True
+            op_reg.op_meta_info.input['workflow']['context'] = 'workflow'
+            op_reg.op_meta_info.input['workflow_id']['context'] = 'workflow.id'
+            op_reg.op_meta_info.input['step']['context'] = 'step'
+            op_reg.op_meta_info.input['step_id']['context'] = 'step.id'
+            op_reg.op_meta_info.input['invalid']['context'] = 'gnarz[8]'
+
+            step = OpStep(op_reg, node_id='test_step')
+
+            workflow = Workflow(OpMetaInfo('test_workflow'))
+            workflow.add_step(step)
+            workflow.invoke()
+
+            output = step.output['return'].value
+            self.assertIsInstance(output, dict)
+            self.assertIsInstance(output.get('context'), dict)
+            self.assertIs(output.get('workflow'), workflow)
+            self.assertEqual(output.get('workflow_id'), 'test_workflow')
+            self.assertIs(output.get('step'), step)
+            self.assertEqual(output.get('step_id'), 'test_step')
+            self.assertEqual(output.get('invalid', 1), None)
+
+        finally:
+            OP_REGISTRY.remove_op(some_op)
+
     def test_call(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
 

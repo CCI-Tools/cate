@@ -413,7 +413,7 @@ class Workspace:
     def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name
         assert op_name
-        assert op_kwargs
+        assert op_kwargs is not None
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
@@ -520,7 +520,7 @@ class Workspace:
             if res_step is None:
                 raise WorkspaceError('Resource "%s" not found' % res_name)
             steps = self.workflow.find_steps_to_compute(res_step.id)
-        Workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
+        self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
         return steps[-1].get_output_value()
 
     def _new_context(self):

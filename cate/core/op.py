@@ -437,11 +437,14 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
-    :param context: If ``True``, the value of the input will be a dictionary representing
+    :param context: If ``True``, the value of the operation input will be a dictionary representing
            the current execution context. For example,
            when the operation is executed from a workflow, the dictionary will hold at least three
            entries: ``workflow`` provides the current workflow, ``step`` is the currently executed step,
-           and ``value_cache`` which is a mapping from step identifiers to step outputs.
+           and ``value_cache`` which is a mapping from step identifiers to step outputs. If *context* is a
+           string, the value of the operation input will be the result of evaluating the string as Python expression
+           with the current execution context as local environment. This means, *context* may be an expression
+           such as 'workspace', 'workspace.base_dir', 'step', 'step.id'.
     :param properties: Other properties (keyword arguments) that will be added to the
            meta-information of the named output.
     :param registry: Optional operation registry.
