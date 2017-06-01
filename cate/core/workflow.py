@@ -260,18 +260,19 @@ class Node(metaclass=ABCMeta):
             if port.source is not None:
                 port.source.node.collect_predecessors(predecessors, excludes)
 
-    def __call__(self, value_cache: dict = None, monitor=Monitor.NONE, **input_values):
+    def __call__(self, context: Dict = None, monitor=Monitor.NONE, **input_values):
         """
         Make this class instance's callable. The call is delegated to :py:meth:`call()`.
 
-        :param value_cache: An optional value cache.
+        :param context: An optional execution context. It will be used as value of any node
+               input which has a "context" property set to ``True``.
         :param monitor: An optional progress monitor.
         :param input_values: The input values.
         :return: The output value.
         """
-        return self.call(value_cache=value_cache, monitor=monitor, input_values=input_values)
+        return self.call(context=context, monitor=monitor, input_values=input_values)
 
-    def call(self, value_cache: dict = None, monitor=Monitor.NONE, input_values: dict = None):
+    def call(self, context: Dict = None, monitor=Monitor.NONE, input_values: Dict = None):
         """
         Calls this workflow with given *input_values* and returns the result.
 
@@ -295,12 +296,24 @@ class Node(metaclass=ABCMeta):
         # 3. Set this workflow's input port values
         self.set_input_values(input_values)
         # 4. Invoke this workflow with given *value_cache* and *monitor*
-        self.invoke(value_cache=value_cache, monitor=monitor)
+        self.invoke(context=context, monitor=monitor)
         # 5. Get this workflow's output port values. Named outputs will be returned as dictionary.
         return self.get_output_value()
 
+    def invoke(self, context: Dict = None, monitor: Monitor = Monitor.NONE):
+        """
+        Invoke this node's underlying operation with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
+               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param monitor: An optional progress monitor.
+        """
+        self._invoke_impl(_new_context(context, step=self), monitor=monitor)
+
     @abstractmethod
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -556,7 +569,7 @@ class Workflow(Node):
         for step in self._steps:
             step.remove_orphaned_sources(removed_node)
 
-    def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
+    def _invoke_impl(self, context: Dict, monitor=Monitor.NONE) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
 
@@ -564,22 +577,22 @@ class Workflow(Node):
                A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
         :param monitor: An optional progress monitor.
         """
-        self.invoke_steps(self.steps, value_cache=value_cache, monitor=monitor)
+        self.invoke_steps(self.steps, context=context, monitor=monitor)
 
     @classmethod
     def invoke_steps(cls,
                      steps: List['Step'],
-                     value_cache: dict = None,
+                     context: dict = None,
                      monitor_label: str = None,
                      monitor=Monitor.NONE):
         step_count = len(steps)
         if step_count == 1:
-            steps[0].invoke(value_cache=value_cache, monitor=monitor)
+            steps[0].invoke(context=context, monitor=monitor)
         elif step_count > 1:
             monitor_label = monitor_label or "Executing {step_count} workflow step(s)"
             with monitor.starting(monitor_label.format(step_count=step_count), step_count):
                 for step in steps:
-                    step.invoke(value_cache=value_cache, monitor=monitor.child(work=1))
+                    step.invoke(context=context, monitor=monitor.child(work=1))
 
     @classmethod
     def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Workflow':
@@ -824,21 +837,21 @@ class WorkflowStep(Step):
         """The workflow's resource path (file path, URL)."""
         return self._resource
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying workflow's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The execution context.
         :param monitor: An optional progress monitor.
         """
-
+        value_cache = context.get('value_cache')
         if value_cache is not None and hasattr(value_cache, 'child'):
-            value_cache = value_cache.child(self.id)
+            context = _new_context(context, value_cache=value_cache.child(self.id))
 
         # Invoke underlying workflow.
-        self._workflow.invoke(value_cache=value_cache, monitor=monitor)
+        self._workflow.invoke(context=context, monitor=monitor)
 
         # transfer workflow output values into this node's output values
         for workflow_output in self._workflow.output[:]:
@@ -890,7 +903,7 @@ class OpStep(Step):
         """The operation registration. See :py:class:`cate.core.op.OpRegistration`"""
         return self._op_registration
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -905,9 +918,10 @@ class OpStep(Step):
                 input_values[node_input.name] = node_input.value
 
         for input_name, input_props in self.op_meta_info.input.items():
-            if input_props.get('step_id'):
-                input_values[input_name] = self.id
+            if input_props.get('context'):
+                input_values[input_name] = context
 
+        value_cache = context.get('value_cache')
         can_cache = value_cache is not None and self.op_meta_info.can_cache
         if can_cache and self.id in value_cache:
             return_value = value_cache[self.id]
@@ -976,7 +990,7 @@ class ExprStep(Step):
         """The expression."""
         return self._expression
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -989,6 +1003,19 @@ class ExprStep(Step):
         for node_input in self.input[:]:
             input_values[node_input.name] = node_input.value
 
+        # For any input that uses the 'context' input property, set the desired values
+        for input_name, input_props in self.op_meta_info.input.items():
+            context_property_value = input_props.get('context')
+            if isinstance(context_property_value, str):
+                # noinspection PyBroadException
+                try:
+                    input_values[input_name] = eval(context_property_value, {}, context)
+                except:
+                    input_values[input_name] = None
+            elif context_property_value:
+                input_values[input_name] = context
+
+        value_cache = context.get('value_cache')
         can_cache = value_cache is not None and self.op_meta_info.can_cache
         if can_cache and self.id in value_cache:
             return_value = value_cache[self.id]
@@ -1040,7 +1067,7 @@ class NoOpStep(Step):
             op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -1106,7 +1133,7 @@ class SubProcessStep(Step):
         """The sub process' arguments."""
         return self._sub_process_arguments
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE):
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
@@ -1497,3 +1524,9 @@ class ValueCache(dict):
         self.clear()
         for value in values:
             _close_value(value)
+
+
+def _new_context(context: Optional[Dict], **kwargs) -> Dict:
+    new_context = dict() if context is None else dict(context)
+    new_context.update(kwargs)
+    return new_context
