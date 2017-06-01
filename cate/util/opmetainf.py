@@ -304,7 +304,7 @@ class OpMetaInfo:
         for name, properties in inputs.items():
             has_no_default = 'default_value' not in properties
             is_positioned = 'position' in properties
-            is_auto = 'step_id' in properties
+            is_auto = 'context' in properties
             required = (is_positioned or has_no_default) and not is_auto
             if required and (name not in input_values):
                 raise ValueError("input '%s' for operation '%s' required" %
@@ -316,7 +316,8 @@ class OpMetaInfo:
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
-            if input_properties.get('step_id'):
+            if input_properties.get('context'):
+                # Context values will be set by framework
                 continue
             data_type = input_properties.get('data_type')
             if value is None:

@@ -400,7 +400,7 @@ def op_input(input_name: str,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
-             step_id=UNDEFINED,
+             context=UNDEFINED,
              registry=OP_REGISTRY,
              **properties):
     """
@@ -437,7 +437,14 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
-    :param step_id: If ``True``, the value of the input will be the current workflow step identifier.
+    :param context: If ``True``, the value of the operation input will be a dictionary representing
+           the current execution context. For example,
+           when the operation is executed from a workflow, the dictionary will hold at least three
+           entries: ``workflow`` provides the current workflow, ``step`` is the currently executed step,
+           and ``value_cache`` which is a mapping from step identifiers to step outputs. If *context* is a
+           string, the value of the operation input will be the result of evaluating the string as Python expression
+           with the current execution context as local environment. This means, *context* may be an expression
+           such as 'workspace', 'workspace.base_dir', 'step', 'step.id'.
     :param properties: Other properties (keyword arguments) that will be added to the
            meta-information of the named output.
     :param registry: Optional operation registry.
@@ -455,7 +462,7 @@ def op_input(input_name: str,
                               value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range,
-                              step_id=step_id,
+                              context=context,
                               **properties)
 
         input_namespace[input_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})

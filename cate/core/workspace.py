@@ -413,7 +413,7 @@ class Workspace:
     def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name
         assert op_name
-        assert op_kwargs
+        assert op_kwargs is not None
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
@@ -508,7 +508,7 @@ class Workspace:
                 unpacked_op_kwargs[input_name] = input_value['value']
 
         with monitor.starting("Running operation '%s'" % op_name, 2):
-            self.workflow.invoke(self.resource_cache, monitor=monitor.child(work=1))
+            self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
             op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
@@ -520,8 +520,11 @@ class Workspace:
             if res_step is None:
                 raise WorkspaceError('Resource "%s" not found' % res_name)
             steps = self.workflow.find_steps_to_compute(res_step.id)
-        Workflow.invoke_steps(steps, value_cache=self._resource_cache, monitor=monitor)
+        self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
         return steps[-1].get_output_value()
+
+    def _new_context(self):
+        return dict(value_cache=self._resource_cache, workspace=self)
 
     def _assert_open(self):
         if self._is_closed:
