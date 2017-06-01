@@ -904,6 +904,10 @@ class OpStep(Step):
             if node_input.has_value:
                 input_values[node_input.name] = node_input.value
 
+        for input_name, input_props in self.op_meta_info.input.items():
+            if input_props.get('step_id'):
+                input_values[input_name] = self.id
+
         can_cache = value_cache is not None and self.op_meta_info.can_cache
         if can_cache and self.id in value_cache:
             return_value = value_cache[self.id]
