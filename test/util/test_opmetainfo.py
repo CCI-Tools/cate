@@ -87,7 +87,7 @@ class OpMetaInfoTest(TestCase):
         op_meta_info = OpMetaInfo('some_op')
         op_meta_info.input['file'] = dict(data_type=str)
         op_meta_info.input['count'] = dict(data_type=int, default_value=2, nullable=True)
-        op_meta_info.input['fig_id'] = dict(step_id=True)
+        op_meta_info.input['ctx'] = dict(context=True)
         op_meta_info.output[RETURN] = dict(data_type=int)
 
         self.assertEqual(op_meta_info.validate_input_values(dict(file='a/b/c')), None)
@@ -109,10 +109,6 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(str(cm.exception),
                          "input 'count' for operation 'some_op' must be of type 'int', but got type 'str'")
 
-        with self.assertRaises(ValueError) as cm:
-            op_meta_info.validate_input_values(dict(file='a/b/c', fig_id=9))
-        self.assertEqual(str(cm.exception),
-                         "input 'fig_id' for operation 'some_op' must not be provided")
 
     def test_to_json_dict(self):
         op_meta_info = OpMetaInfo('x.y.Z')

@@ -150,10 +150,48 @@ class WorkflowTest(TestCase):
 
         value_cache = dict()
         workflow.input.p.value = 3
-        workflow.invoke(value_cache=value_cache)
+        workflow.invoke(context=dict(value_cache=value_cache))
         output_value = workflow.output.q.value
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
         self.assertEqual(value_cache, dict(op1={'y': 4}, op2={'b': 8}, op3={'w': 32}))
+
+    def test_invoke_with_context_inputs(self):
+        def some_op(context, workflow, workflow_id, step, step_id, invalid):
+            return dict(context=context,
+                        workflow=workflow,
+                        workflow_id=workflow_id,
+                        step=step,
+                        step_id=step_id,
+                        invalid=invalid)
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            op_reg = OP_REGISTRY.add_op(some_op)
+            op_reg.op_meta_info.input['context']['context'] = True
+            op_reg.op_meta_info.input['workflow']['context'] = 'workflow'
+            op_reg.op_meta_info.input['workflow_id']['context'] = 'workflow.id'
+            op_reg.op_meta_info.input['step']['context'] = 'step'
+            op_reg.op_meta_info.input['step_id']['context'] = 'step.id'
+            op_reg.op_meta_info.input['invalid']['context'] = 'gnarz[8]'
+
+            step = OpStep(op_reg, node_id='test_step')
+
+            workflow = Workflow(OpMetaInfo('test_workflow'))
+            workflow.add_step(step)
+            workflow.invoke()
+
+            output = step.output['return'].value
+            self.assertIsInstance(output, dict)
+            self.assertIsInstance(output.get('context'), dict)
+            self.assertIs(output.get('workflow'), workflow)
+            self.assertEqual(output.get('workflow_id'), 'test_workflow')
+            self.assertIs(output.get('step'), step)
+            self.assertEqual(output.get('step_id'), 'test_step')
+            self.assertEqual(output.get('invalid', 1), None)
+
+        finally:
+            OP_REGISTRY.remove_op(some_op)
 
     def test_call(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
@@ -521,7 +559,7 @@ class WorkflowStepTest(TestCase):
 
         value_cache = {}
         step.input.p.value = 3
-        step.invoke(value_cache=value_cache)
+        step.invoke(context=dict(value_cache=value_cache))
         output_value = step.output.q.value
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
         self.assertEqual(value_cache, {'op1': {'y': 4}, 'op2': {'b': 8}, 'op3': {'w': 32}})
@@ -542,7 +580,7 @@ class WorkflowStepTest(TestCase):
         from cate.core.workflow import ValueCache
         value_cache = ValueCache()
         workflow.input.x.value = 4
-        workflow.invoke(value_cache=value_cache)
+        workflow.invoke(context=dict(value_cache=value_cache))
         output_value = workflow.output.y.value
         self.assertEqual(output_value, 2 * (4 + 1) + 3 * (2 * (4 + 1)))
         self.assertEqual(value_cache, {'jojo_87.__child__': {'op1': {'y': 5}, 'op2': {'b': 10}, 'op3': {'w': 40}}})

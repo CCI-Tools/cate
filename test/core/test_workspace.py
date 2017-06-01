@@ -11,6 +11,29 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
+
+    def test_workspace_is_part_of_context(self):
+
+        def some_op(ctx: dict) -> dict:
+            return dict(ctx)
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            op_reg = OP_REGISTRY.add_op(some_op)
+            op_reg.op_meta_info.input['ctx']['context'] = True
+
+            ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+            ws.set_resource('new_ctx', op_reg.op_meta_info.qualified_name, {})
+            ws.execute_workflow('new_ctx')
+
+            self.assertTrue('new_ctx' in ws.resource_cache)
+            self.assertTrue('workspace' in ws.resource_cache['new_ctx'])
+            self.assertIs(ws.resource_cache['new_ctx']['workspace'], ws)
+
+        finally:
+            OP_REGISTRY.remove_op(some_op)
+
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
 
