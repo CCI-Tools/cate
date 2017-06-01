@@ -57,13 +57,23 @@ from collections import OrderedDict
 from typing import Callable, Optional, Tuple, List, ValuesView
 
 import matplotlib
-import pandas as pd
-import xarray as xr
 
-matplotlib.use('Qt5Agg')
+has_qt5agg = False
+# noinspection PyBroadException
+try:
+    if not matplotlib.__version__.startswith('1.'):
+        matplotlib.use('Qt5Agg')
+        has_qt5agg = True
+except:
+    pass
+if not has_qt5agg:
+    matplotlib.use('Qt4Agg')
+
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
+import xarray as xr
+import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
