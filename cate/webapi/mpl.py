@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from cate.core.workspace import Workspace
 from cate.util.web.webapi import WebAPIRequestHandler
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -31,14 +32,11 @@ Code bases on an example taken from https://matplotlib.org/examples/user_interfa
 
 import io
 import json
-from typing import Optional
-
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
-
-from cate.ops.plot import FIGURE_REGISTRY
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
@@ -99,13 +97,6 @@ html_content = """
 """
 
 
-def _get_figure_manager(figure_id: int) -> Optional[FigureManagerWebAgg]:
-    if FIGURE_REGISTRY.has_entry(figure_id):
-        _, data = FIGURE_REGISTRY.get_entry(figure_id)
-        return data['figure_manager']
-    return None
-
-
 # noinspection PyAbstractClass
 class MplMainPageHandler(RequestHandler):
     """
@@ -140,10 +131,16 @@ class MplDownloadHandler(WebAPIRequestHandler):
     Handles downloading of the figure in various file formats.
     """
 
-    def get(self, figure_id: str, format: str):
+    def get(self, base_dir: str, figure_id: str, format_name: str):
+        workspace_manager = self.application.workspace_manager
+        assert workspace_manager
+
+        workspace = workspace_manager.get_workspace(base_dir)
+        assert workspace
+
         figure_id = int(figure_id)
 
-        figure_manager = _get_figure_manager(figure_id)
+        figure_manager = _get_figure_manager(workspace, figure_id)
         try:
             assert figure_manager is not None, "missing figure manager for figure_id={}".format(figure_id)
         except Exception as exception:
@@ -161,10 +158,10 @@ class MplDownloadHandler(WebAPIRequestHandler):
             'emf': 'application/emf'
         }
 
-        self.set_header('Content-Type', mime_types.get(format, 'binary'))
+        self.set_header('Content-Type', mime_types.get(format_name, 'binary'))
 
         buff = io.BytesIO()
-        figure_manager.canvas.print_figure(buff, format=format)
+        figure_manager.canvas.print_figure(buff, format=format_name)
         self.write(buff.getvalue())
 
 
@@ -188,30 +185,33 @@ class MplWebSocketHandler(WebSocketHandler):
     """
     supports_binary = True
 
-    # We must override this to return True (= all origins are ok), otherwise we get
-    #   WebSocket connection to 'ws://localhost:9090/app' failed:
-    #   Error during WebSocket handshake:
-    #   Unexpected response code: 403 (forbidden)
-    def check_origin(self, origin):
-        print("MplWebSocketHandler: check " + str(origin))
-        return True
+    def __init__(self, application, request, **kwargs):
+        super(MplWebSocketHandler, self).__init__(application, request, **kwargs)
+        self.workspace = None
+        self.figure_managers = None
 
-    def open(self):
-        # Register the WebSocket with the FigureManagers.
-        for fig_entry in FIGURE_REGISTRY.entries:
-            self._register_with_figure_manager(fig_entry)
-        # Start observing changes in figure registry
-        FIGURE_REGISTRY.add_observer(self._on_figure_registry_change)
-
+    def open(self, base_dir: str):
         if hasattr(self, 'set_nodelay'):
             self.set_nodelay(True)
 
+        workspace_manager = self.application.workspace_manager
+        assert workspace_manager
+
+        self.workspace = workspace_manager.get_workspace(base_dir)
+        assert self.workspace
+
+        figure_managers = self.workspace.user_data.get('figure_managers')
+        if figure_managers:
+            for figure_manager in figure_managers.values():
+                figure_manager.remove_web_socket(self)
+        self.workspace.user_data['figure_managers'] = dict()
+
     def on_close(self):
-        # Stop observing changes in figure registry
-        FIGURE_REGISTRY.remove_observer(self._on_figure_registry_change)
-        # When closed, deregister the WebSocket with the FigureManagers.
-        for fig_entry in FIGURE_REGISTRY.entries:
-            self._deregister_with_figure_manager(fig_entry)
+        figure_managers = self.workspace.user_data.get('figure_managers')
+        if figure_managers:
+            for figure_manager in figure_managers.values():
+                figure_manager.remove_web_socket(self)
+        self.workspace.user_data['figure_managers'] = None
 
     def on_message(self, message):
         # The 'supports_binary' message is relevant to the
@@ -224,16 +224,16 @@ class MplWebSocketHandler(WebSocketHandler):
             self.supports_binary = message['value']
         else:
             figure_id = message['figure_id']
-            if FIGURE_REGISTRY.has_entry(figure_id):
-                _, data = FIGURE_REGISTRY.get_entry(figure_id)
-                figure_manager = data['figure_manager']
-                assert figure_manager is not None
+            figure_manager = _get_figure_manager(self.workspace, figure_id, web_socket=self)
+            if figure_manager is not None:
                 figure_manager.handle_json(message)
 
     def send_json(self, content):
+        """Method required by matplotlib's FigureManagerWebAgg"""
         self.write_message(json.dumps(content))
 
     def send_binary(self, blob):
+        """Method required by matplotlib's FigureManagerWebAgg"""
         if self.supports_binary:
             self.write_message(blob, binary=True)
         else:
@@ -241,24 +241,29 @@ class MplWebSocketHandler(WebSocketHandler):
                 blob.encode('base64').replace('\n', ''))
             self.write_message(data_uri)
 
-    def _on_figure_registry_change(self, event: str, fig_entry):
-        print('MplWebSocketHandler._on_figure_registry_change({}, data={}): '.format(event, fig_entry[1]))
-        if event == 'entry_added' or event == 'entry_updated':
-            self._register_with_figure_manager(fig_entry)
-        elif event == 'entry_removed':
-            self._deregister_with_figure_manager(fig_entry)
+    def check_origin(self, origin):
+        """
+        Overridden to to return True (= all origins are ok), otherwise we get
+            WebSocket connection to 'ws://localhost:9090/app' failed:
+            Error during WebSocket handshake:
+            Unexpected response code: 403 (forbidden)
 
-    def _register_with_figure_manager(self, fig_entry):
-        figure, data = fig_entry
-        figure_manager = data.get('figure_manager')
-        if figure_manager is None:
-            figure_id = data['figure_id']
-            figure_manager = new_figure_manager_given_figure(figure_id, figure)
-            data['figure_manager'] = figure_manager
-        figure_manager.add_web_socket(self)
+        :param origin: The request origin
+        :return: True
+        """
+        return True
 
-    def _deregister_with_figure_manager(self, fig_entry):
-        _, data = fig_entry
-        figure_manager = data.get('figure_manager')
-        if figure_manager is not None:
-            figure_manager.remove_web_socket(self)
+
+def _get_figure_manager(workspace: Workspace, figure_id: int, web_socket: WebSocketHandler = None):
+    figure_managers = workspace.user_data.get('figure_managers')
+    assert figure_managers is not None
+    if figure_id in figure_managers:
+        return figure_managers[figure_id]
+    for resource_id, resource in workspace.resource_cache.items():
+        if figure_id == hash(resource_id) and isinstance(resource, Figure):
+            figure_manager = new_figure_manager_given_figure(figure_id, resource)
+            if web_socket is not None:
+                figure_manager.add_web_socket(web_socket)
+            figure_managers[figure_id] = figure_manager
+            return figure_manager
+    return None

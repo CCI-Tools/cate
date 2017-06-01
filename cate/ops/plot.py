@@ -53,8 +53,6 @@ Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
 svgz, tif, tiff
 
 """
-from collections import OrderedDict
-from typing import Callable, Optional, Tuple, List, ValuesView
 
 import matplotlib
 
@@ -84,66 +82,6 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'svgz', 'tif', 'tiff']
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
-FigureRegistryEntry = Tuple[Figure, dict]
-FigureRegistryObserver = Callable[[str, FigureRegistryEntry], None]
-
-
-class FigureRegistry:
-    def __init__(self):
-        self._figures = OrderedDict()
-        self._observers = set()
-
-    def add_observer(self, observer: FigureRegistryObserver):
-        self._observers.add(observer)
-
-    def remove_observer(self, observer: FigureRegistryObserver):
-        self._observers.remove(observer)
-
-    @property
-    def figures(self) -> List[Figure]:
-        return [figure for figure, _ in self._figures.values()]
-
-    @property
-    def entries(self) -> ValuesView[FigureRegistryEntry]:
-        return self._figures.values()
-
-    def has_entry(self, figure_id: int) -> bool:
-        return figure_id in self._figures
-
-    def get_entry(self, figure_id: int) -> Optional[FigureRegistryEntry]:
-        return self._figures.get(figure_id)
-
-    def add_entry(self, figure_id: int, figure: Figure) -> FigureRegistryEntry:
-        fig_entry = None
-        if figure_id in self._figures:
-            event = 'entry_updated'
-        else:
-            event = 'entry_added'
-        fig_entry = (figure, dict(figure_id=figure_id))
-        self._figures[figure_id] = fig_entry
-        self._notify_observers(event, fig_entry)
-        return fig_entry
-
-    def remove_entry(self, figure_id: int) -> Optional[FigureRegistryEntry]:
-        fig_entry = None
-        if figure_id in self._figures:
-            fig_entry = self._figures.pop(figure_id)
-            self._notify_observers('entry_removed', fig_entry)
-        return fig_entry
-
-    def _notify_observers(self, event: str, fig_entry: FigureRegistryEntry):
-        for observer in self._observers:
-            observer(event, fig_entry)
-
-
-FIGURE_REGISTRY = FigureRegistry()
-
-
-def _register_figure(figure: Figure, figure_id) -> None:
-    if figure_id is not None:
-        global FIGURE_REGISTRY
-        return FIGURE_REGISTRY.add_entry(hash(figure_id), figure)
-
 
 @op(tags=['plot', 'map'])
 @op_input('ds')
@@ -156,7 +94,6 @@ def _register_figure(figure: Figure, figure_id) -> None:
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id', step_id=True)
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              index: DictLike.TYPE = None,
@@ -164,8 +101,7 @@ def plot_map(ds: xr.Dataset,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
-             file: str = None,
-             fig_id: int = None) -> Figure:
+             file: str = None) -> Figure:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the
@@ -190,7 +126,6 @@ def plot_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param file: path to a file in which to save the plot
-    :param fig_id: An optional integer used to identify this figure.
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only raster datasets are currently supported')
@@ -279,7 +214,6 @@ def plot_map(ds: xr.Dataset,
     if file:
         figure.savefig(file)
 
-    _register_figure(figure, fig_id)
     return figure if not in_notebook() else None
 
 
@@ -287,11 +221,9 @@ def plot_map(ds: xr.Dataset,
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id', step_id=True)
 def plot_dataframe(df: pd.DataFrame,
                    plot_type: str = 'line',
                    file: str = None,
-                   fig_id: int = None,
                    **kwargs) -> Figure:
     """
     Plot a data frame.
@@ -304,7 +236,6 @@ def plot_dataframe(df: pd.DataFrame,
     :param df: A pandas dataframe to plot
     :param plot_type: Plot type
     :param file: path to a file in which to save the plot
-    :param fig_id: An optional integer used to identify this figure.
     :param kwargs: Keyword arguments to pass to the underlying
                    pandas.DataFrame.plot function
     """
@@ -317,7 +248,6 @@ def plot_dataframe(df: pd.DataFrame,
     if file:
         figure.savefig(file)
 
-    _register_figure(figure, fig_id)
     return figure if not in_notebook() else None
 
 
@@ -325,13 +255,11 @@ def plot_dataframe(df: pd.DataFrame,
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-@op_input('fig_id', step_id=True)
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
          figure: Figure = None,
-         file: str = None,
-         fig_id: int = None) -> Figure:
+         file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
 
@@ -349,7 +277,6 @@ def plot(ds: xr.Dataset,
                   e.g. "lat=12.4, time='2012-05-02'".
     :param figure: optional figure from a previous ``plot`` call
     :param file: path to a file in which to save the plot
-    :param fig_id: An optional integer used to identify this figure.
     """
 
     var = VarName.convert(var)
@@ -370,7 +297,6 @@ def plot(ds: xr.Dataset,
     if file:
         figure.savefig(file)
 
-    _register_figure(figure, fig_id)
     return figure if not in_notebook() else None
 
 

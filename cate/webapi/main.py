@@ -100,8 +100,8 @@ def create_application():
         ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         ('/mpl.js', MplJavaScriptHandler),
 
-        (url_pattern('/mpl/download/{{figure_id}}/{{format}}'), MplDownloadHandler),
-        (url_pattern('/mpl'), MplWebSocketHandler),
+        (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format}}'), MplDownloadHandler),
+        (url_pattern('/mpl/figures/{{base_dir}}'), MplWebSocketHandler),
 
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),

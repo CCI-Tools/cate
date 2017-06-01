@@ -29,12 +29,13 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
+from typing import List, Tuple, Any, Dict
 
 import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
-from typing import List, Tuple, Any, Dict
+from matplotlib.figure import Figure
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
@@ -94,6 +95,7 @@ class Workspace:
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
+        self._user_data = dict()
 
     def __del__(self):
         self.close()
@@ -133,6 +135,10 @@ class Workspace:
     @property
     def workflow_file(self) -> str:
         return self.get_workflow_file(self.base_dir)
+
+    @property
+    def user_data(self) -> dict:
+        return self._user_data
 
     @classmethod
     def get_workspace_dir(cls, base_dir) -> str:
@@ -197,10 +203,10 @@ class Workspace:
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
                             ('workflow', self.workflow.to_json_dict()),
-                            ('resources', self._resources_to_json_dict())
+                            ('resources', self._resources_to_json_list())
                             ])
 
-    def _resources_to_json_dict(self):
+    def _resources_to_json_list(self):
         resource_descriptors = []
         resource_cache = dict(self._resource_cache)
         for res_step in self.workflow.steps:
@@ -254,6 +260,10 @@ class Workspace:
                         variables=variable_descriptors,
                         geometry=geometry,
                         numFeatures=num_features)
+        elif isinstance(resource, Figure):
+            return dict(name=res_name,
+                        dataType=data_type_name,
+                        figureId=hash(res_name))
         return dict(name=res_name, dataType=data_type_name)
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
