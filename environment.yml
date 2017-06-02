@@ -23,6 +23,7 @@ dependencies:
   - numba >=0.26
   # 1.12 gave some trouble
   - numpy=1.11*
+  - owslib >= 0.14
   - pandas >=0.18
   - pillow >=4.0
   - pyqt=4*

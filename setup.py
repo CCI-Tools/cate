@@ -37,6 +37,7 @@ requirements = [
     'netcdf4 >= 1.2',
     'numba >= 0.26',
     'numpy >= 1.7',
+    'owslib >= 0.14',
     'pandas >= 0.18',
     'pillow >= 4.0',
     'pyproj >= 1.9',
