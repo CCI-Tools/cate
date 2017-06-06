@@ -464,15 +464,16 @@ class EsaCciOdpDataSource(DataSource):
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-
-        temp_coverage_start = self._catalogue_data.get('temporal_coverage_start', None)
-        temp_coverage_end = self._catalogue_data.get('temporal_coverage_end', None)
-        if temp_coverage_start and temp_coverage_end:
-            self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
-
         if not self._temporal_coverage:
-            self.update_file_list(monitor)
-        return self._temporal_coverage
+            temp_coverage_start = self._catalogue_data.get('temporal_coverage_start', None)
+            temp_coverage_end = self._catalogue_data.get('temporal_coverage_end', None)
+            if temp_coverage_start and temp_coverage_end:
+                self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
+            else:
+                self.update_file_list(monitor)
+        if self._temporal_coverage:
+            return self._temporal_coverage
+        return None
 
     @property
     def schema(self) -> Schema:
