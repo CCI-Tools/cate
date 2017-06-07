@@ -202,7 +202,7 @@ def plot_map(ds: xr.Dataset,
         print(e)
         var_data = var
 
-    figure = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
         ax.set_extent(extents)
@@ -243,7 +243,7 @@ def plot_dataframe(df: pd.DataFrame,
         raise NotImplementedError('Only pandas dataframes are currently'
                                   ' supported')
 
-    ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
+    ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
     figure = ax.get_figure()
     if file:
         figure.savefig(file)
@@ -292,7 +292,7 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    figure = figure or plt.figure(figsize=(16, 8))
+    figure = figure or plt.figure(figsize=(8, 4))
     var_data.plot()
     if file:
         figure.savefig(file)
