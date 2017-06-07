@@ -263,7 +263,7 @@ class Workspace:
         elif isinstance(resource, Figure):
             return dict(name=res_name,
                         dataType=data_type_name,
-                        figureId=hash(res_name))
+                        figureId=get_resource_int_id(res_name))
         return dict(name=res_name, dataType=data_type_name)
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
@@ -556,3 +556,17 @@ class WorkspaceError(Exception):
     @property
     def cause(self):
         return self._cause
+
+
+def get_resource_int_id(resource_name: str, max: int = 4294967295) -> int:
+    return get_int_id(hash(resource_name), max=max)
+
+
+def get_int_id(num: int, max: int = 4294967295) -> int:
+    if max < 0xff:
+        raise ValueError('max is too small: %s' % max)
+    if num < 0:
+        num = ((-num) << 1) | 0x01
+    while num > max:
+        num = (num >> 8) ^ (num & 0xff)
+    return num

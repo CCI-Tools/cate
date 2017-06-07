@@ -4,7 +4,7 @@ import unittest
 
 from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow
-from cate.core.workspace import Workspace, mk_op_kwargs
+from cate.core.workspace import Workspace, mk_op_kwargs, get_resource_int_id, get_int_id
 
 NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp_2.nc')
@@ -181,3 +181,52 @@ class WorkspaceTest(unittest.TestCase):
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
                                            "cannot convert value <iih!> to PointLike")
+
+
+class ResourceIdTest(unittest.TestCase):
+    def test_get_figure_id(self):
+
+        id0 = get_resource_int_id('x')
+        self.assertGreater(id0, 0)
+        self.assertLessEqual(id0, 4294967295)
+        self.assertEqual(id0, get_resource_int_id('x'))
+
+        id1 = get_resource_int_id('res_1')
+        self.assertGreater(id1, 0)
+        self.assertLessEqual(id1, 4294967295)
+        self.assertEqual(id1, get_resource_int_id('res_1'))
+
+        id2 = get_resource_int_id('guy_with_no_name')
+        self.assertGreater(id2, 0)
+        self.assertLessEqual(id2, 4294967295)
+        self.assertEqual(id2, get_resource_int_id('guy_with_no_name'))
+
+        self.assertNotEqual(id0, id1)
+        self.assertNotEqual(id0, id2)
+
+
+
+    def test_reduce_int_size(self):
+        big_int = 0b10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001010
+        self.assertEqual(big_int, 19807040628566084398385987594)
+        self.assertEqual(bin(get_int_id(big_int, max=2**64-1)),
+                         '0b100000000000000000000000000000000000000000000000000000000001010')
+        self.assertEqual(bin(get_int_id(big_int, max=2**32-1)),
+                         '0b1000000000000000000000000001010')
+        self.assertEqual(bin(get_int_id(big_int, max=2**16-1)), '0b100000000001010')
+        self.assertEqual(bin(get_int_id(big_int, max=2**14-1)), '0b1001010')
+        self.assertEqual(bin(get_int_id(big_int, max=0xff)), '0b1001010')
+
+        with self.assertRaises(ValueError):
+            get_int_id(big_int, max=2**5-1)
+
+        self.assertEqual(bin(get_int_id(-big_int, max=2**64-1)),
+                         '0b1000000000000000000000000000000000000000000000000000000000010101')
+        self.assertEqual(bin(get_int_id(-big_int, max=2**32-1)),
+                         '0b10000000000000000000000000010101')
+        self.assertEqual(bin(get_int_id(-big_int, max=2**16-1)), '0b1000000000010101')
+        self.assertEqual(bin(get_int_id(-big_int, max=2**14-1)), '0b10010101')
+        self.assertEqual(bin(get_int_id(-big_int, max=0xff)), '0b10010101')
+
+        with self.assertRaises(ValueError):
+            get_int_id(-big_int, max=2**5-1)

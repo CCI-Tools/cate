@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from cate.core.workspace import Workspace
+from cate.core.workspace import Workspace, get_resource_int_id
 from cate.util.web.webapi import WebAPIRequestHandler
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -259,11 +259,15 @@ def _get_figure_manager(workspace: Workspace, figure_id: int, web_socket: WebSoc
     assert figure_managers is not None
     if figure_id in figure_managers:
         return figure_managers[figure_id]
-    for resource_id, resource in workspace.resource_cache.items():
-        if figure_id == hash(resource_id) and isinstance(resource, Figure):
-            figure_manager = new_figure_manager_given_figure(figure_id, resource)
-            if web_socket is not None:
-                figure_manager.add_web_socket(web_socket)
-            figure_managers[figure_id] = figure_manager
-            return figure_manager
+    for resource_name, resource in workspace.resource_cache.items():
+        if isinstance(resource, Figure):
+            resource_id = get_resource_int_id(resource_name)
+            if figure_id == resource_id:
+                figure_manager = new_figure_manager_given_figure(figure_id, resource)
+                if web_socket is not None:
+                    figure_manager.add_web_socket(web_socket)
+                figure_managers[figure_id] = figure_manager
+                return figure_manager
     return None
+
+
