@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 from cate.core.workspace import Workspace, get_resource_int_id
 from cate.util.web.webapi import WebAPIRequestHandler
 
@@ -132,19 +133,19 @@ class MplDownloadHandler(WebAPIRequestHandler):
     """
 
     def get(self, base_dir: str, figure_id: str, format_name: str):
+
+        figure_id = int(figure_id)
+
         workspace_manager = self.application.workspace_manager
         assert workspace_manager
 
         workspace = workspace_manager.get_workspace(base_dir)
         assert workspace
 
-        figure_id = int(figure_id)
-
-        figure_manager = _get_figure_manager(workspace, figure_id)
         try:
-            assert figure_manager is not None, "missing figure manager for figure_id={}".format(figure_id)
-        except Exception as exception:
-            self.write_status_error(exception)
+            figure_manager = _get_figure_manager(workspace, figure_id)
+        except ValueError as e:
+            self.write_status_error(e)
             return
 
         mime_types = {
@@ -188,11 +189,14 @@ class MplWebSocketHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(MplWebSocketHandler, self).__init__(application, request, **kwargs)
         self.workspace = None
-        self.figure_managers = None
+        self.figure_id = None
+        self.figure_manager = None
 
-    def open(self, base_dir: str):
+    def open(self, base_dir: str, figure_id: str):
         if hasattr(self, 'set_nodelay'):
             self.set_nodelay(True)
+
+        self.figure_id = int(figure_id)
 
         workspace_manager = self.application.workspace_manager
         assert workspace_manager
@@ -200,18 +204,21 @@ class MplWebSocketHandler(WebSocketHandler):
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
 
-        figure_managers = self.workspace.user_data.get('figure_managers')
-        if figure_managers:
-            for figure_manager in figure_managers.values():
-                figure_manager.remove_web_socket(self)
-        self.workspace.user_data['figure_managers'] = dict()
+        try:
+            figure_manager = _get_or_create_figure_manager(self.workspace, self.figure_id)
+        except ValueError as e:
+            self.send_json(dict(type='message', message=str(e)))
+            return
+
+        figure_manager.add_web_socket(self)
+        self.figure_manager = figure_manager
 
     def on_close(self):
-        figure_managers = self.workspace.user_data.get('figure_managers')
-        if figure_managers:
-            for figure_manager in figure_managers.values():
-                figure_manager.remove_web_socket(self)
-        self.workspace.user_data['figure_managers'] = None
+        if self.figure_manager:
+            self.figure_manager.remove_web_socket(self)
+            if not len(self.figure_manager.web_sockets):
+                _remove_figure_manager(self.workspace, self.figure_id)
+        self.figure_manager = None
 
     def on_message(self, message):
         # The 'supports_binary' message is relevant to the
@@ -224,9 +231,9 @@ class MplWebSocketHandler(WebSocketHandler):
             self.supports_binary = message['value']
         else:
             figure_id = message['figure_id']
-            figure_manager = _get_figure_manager(self.workspace, figure_id, web_socket=self)
-            if figure_manager is not None:
-                figure_manager.handle_json(message)
+            assert figure_id == self.figure_id
+            if self.figure_manager:
+                self.figure_manager.handle_json(message)
 
     def send_json(self, content):
         """Method required by matplotlib's FigureManagerWebAgg"""
@@ -254,9 +261,11 @@ class MplWebSocketHandler(WebSocketHandler):
         return True
 
 
-def _get_figure_manager(workspace: Workspace, figure_id: int, web_socket: WebSocketHandler = None):
+def _get_or_create_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWebAgg:
     figure_managers = workspace.user_data.get('figure_managers')
-    assert figure_managers is not None
+    if not figure_managers:
+        figure_managers = dict()
+        workspace.user_data['figure_managers'] = figure_managers
     if figure_id in figure_managers:
         return figure_managers[figure_id]
     for resource_name, resource in workspace.resource_cache.items():
@@ -264,10 +273,19 @@ def _get_figure_manager(workspace: Workspace, figure_id: int, web_socket: WebSoc
             resource_id = get_resource_int_id(resource_name)
             if figure_id == resource_id:
                 figure_manager = new_figure_manager_given_figure(figure_id, resource)
-                if web_socket is not None:
-                    figure_manager.add_web_socket(web_socket)
                 figure_managers[figure_id] = figure_manager
                 return figure_manager
-    return None
+    raise ValueError("no resource found for figure_id={}".format(figure_id))
 
 
+def _get_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWebAgg:
+    figure_managers = workspace.user_data.get('figure_managers')
+    if figure_managers and figure_id in figure_managers:
+        return figure_managers[figure_id]
+    raise ValueError("missing figure manager for figure_id={}".format(figure_id))
+
+
+def _remove_figure_manager(workspace: Workspace, figure_id: int) -> None:
+    figure_managers = workspace.user_data.get('figure_managers')
+    if figure_managers and figure_id in figure_managers:
+        del figure_managers[figure_id]

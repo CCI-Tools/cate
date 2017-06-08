@@ -101,7 +101,7 @@ def create_application():
         ('/mpl.js', MplJavaScriptHandler),
 
         (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
-        (url_pattern('/mpl/figures/{{base_dir}}'), MplWebSocketHandler),
+        (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
 
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
