@@ -39,6 +39,9 @@ from matplotlib.backends.backend_webagg_core import new_figure_manager_given_fig
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
 
+_DEBUG_WEB_SOCKET_RPC = True
+
+
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
 # framework, but here we just use Python string formatting.
@@ -197,6 +200,7 @@ class MplWebSocketHandler(WebSocketHandler):
             self.set_nodelay(True)
 
         self.figure_id = int(figure_id)
+        print('MplWebSocketHandler.open', base_dir, figure_id)
 
         workspace_manager = self.application.workspace_manager
         assert workspace_manager
@@ -212,8 +216,10 @@ class MplWebSocketHandler(WebSocketHandler):
 
         figure_manager.add_web_socket(self)
         self.figure_manager = figure_manager
+        print('got figure_manager for figure #%s' % figure_id)
 
     def on_close(self):
+        print('MplWebSocketHandler.on_close', self.workspace.base_dir, self.figure_id)
         if self.figure_manager:
             self.figure_manager.remove_web_socket(self)
             if not len(self.figure_manager.web_sockets):
@@ -221,13 +227,16 @@ class MplWebSocketHandler(WebSocketHandler):
         self.figure_manager = None
 
     def on_message(self, message):
-        # The 'supports_binary' message is relevant to the
-        # WebSocket itself.  The other messages get passed along
-        # to matplotlib as-is.
+        if _DEBUG_WEB_SOCKET_RPC:
+            print('MplWebSocketHandler.on_message(%s)' % repr(message))
 
         # Every message has a "type" and a "figure_id".
         message = json.loads(message)
+
         if message['type'] == 'supports_binary':
+            # The 'supports_binary' message is relevant to the
+            # WebSocket itself.  The other messages get passed along
+            # to matplotlib as-is.
             self.supports_binary = message['value']
         else:
             figure_id = message['figure_id']
@@ -237,6 +246,8 @@ class MplWebSocketHandler(WebSocketHandler):
 
     def send_json(self, content):
         """Method required by matplotlib's FigureManagerWebAgg"""
+        if _DEBUG_WEB_SOCKET_RPC:
+            print('MplWebSocketHandler.send_json(%s)' % repr(content))
         self.write_message(json.dumps(content))
 
     def send_binary(self, blob):
