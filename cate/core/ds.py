@@ -572,13 +572,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     # temp_ds is no longer used
     temp_ds.close()
 
-    if n_chunks == 1:
-        # The file size is fine
-        return xr.open_mfdataset(paths,
-                                 concat_dim=concat_dim,
-                                 autoclose=True,
-                                 **kwargs)
-
     divisor = sqrt(n_chunks)
 
     # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5

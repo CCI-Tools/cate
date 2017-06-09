@@ -23,6 +23,7 @@ dependencies:
   - numba >=0.33
   # numpy 1.12 gave some trouble
   - numpy >=1.11
+  - owslib >= 0.14
   # pandas 0.20 has deprecations that produce ugly warnings from xarray
   - pandas=0.19
   - pillow >=4.1

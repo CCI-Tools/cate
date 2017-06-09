@@ -37,6 +37,7 @@ requirements = [
     'netcdf4',
     'numba',
     'numpy',
+    'owslib',
     'pandas',
     'pillow',
     'pyproj',
