@@ -590,4 +590,3 @@ def _adjust_input_properties(input_properties):
     data_type = input_properties.get('data_type', UNDEFINED)
     if data_type is UNDEFINED and not (default_value is UNDEFINED or default_value is None):
         input_properties['data_type'] = type(default_value)
-

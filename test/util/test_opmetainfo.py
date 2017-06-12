@@ -109,7 +109,6 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(str(cm.exception),
                          "input 'count' for operation 'some_op' must be of type 'int', but got type 'str'")
 
-
     def test_to_json_dict(self):
         op_meta_info = OpMetaInfo('x.y.Z')
         op_meta_info.header['description'] = 'Hello!'
