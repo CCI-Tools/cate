@@ -41,7 +41,7 @@ from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -458,7 +458,7 @@ class Workspace:
             if 'source' in input_value:
                 source = input_value['source']
                 if source is not None:
-                    source = eval(source, None, namespace)
+                    source = safe_eval(source, namespace)
                 if isinstance(source, NodePort):
                     # source is an output NodePort of another step
                     input_port.source = source
@@ -513,7 +513,7 @@ class Workspace:
         unpacked_op_kwargs = {}
         for input_name, input_value in op_kwargs.items():
             if 'source' in input_value:
-                unpacked_op_kwargs[input_name] = eval(input_value['source'], None, self.resource_cache)
+                unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
             elif 'value' in input_value:
                 unpacked_op_kwargs[input_name] = input_value['value']
 

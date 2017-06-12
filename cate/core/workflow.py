@@ -121,7 +121,7 @@ from io import IOBase
 from itertools import chain
 from typing import Sequence, Optional, Union, List, Dict
 
-from cate.util import Namespace, UNDEFINED
+from cate.util import Namespace, UNDEFINED, safe_eval
 from cate.util.monitor import Monitor
 from cate.util.opmetainf import OpMetaInfo
 from .op import OP_REGISTRY, OpRegistration
@@ -338,7 +338,7 @@ class Node(metaclass=ABCMeta):
             if isinstance(context_property_value, str):
                 # noinspection PyBroadException
                 try:
-                    input_values[input_name] = eval(context_property_value, {}, context)
+                    input_values[input_name] = safe_eval(context_property_value, context)
                 except:
                     input_values[input_name] = None
             elif context_property_value:
@@ -1043,7 +1043,7 @@ class ExprStep(Step):
         if value_cache is not None and self.id in value_cache:
             return_value = value_cache[self.id]
         else:
-            return_value = eval(self.expression, None, input_values)
+            return_value = safe_eval(self.expression, input_values)
             if value_cache is not None:
                 value_cache[self.id] = return_value
 

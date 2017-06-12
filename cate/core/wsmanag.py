@@ -33,7 +33,7 @@ from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
-from ..util import UNDEFINED, Monitor
+from ..util import UNDEFINED, Monitor, safe_eval
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -376,5 +376,5 @@ class FSWorkspaceManager(WorkspaceManager):
         elif res_name_or_expr.isidentifier() and workspace.workflow.find_node(res_name_or_expr) is not None:
             value = workspace.execute_workflow(res_name=res_name_or_expr, monitor=monitor)
         if value is UNDEFINED:
-            value = eval(res_name_or_expr, None, workspace.resource_cache)
+            value = safe_eval(res_name_or_expr, workspace.resource_cache)
         return value
