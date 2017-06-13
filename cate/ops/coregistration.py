@@ -265,8 +265,8 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     # Set/Update global geospatial attributes
     retset.attrs['geospatial_lat_min'] = retset.lat.values[0]
     retset.attrs['geospatial_lat_max'] = retset.lat.values[-1]
-    retset.attrs['geospatial_lon_min'] = retset.lat.values[0]
-    retset.attrs['geospatial_lon_max'] = retset.lat.values[-1]
+    retset.attrs['geospatial_lon_min'] = retset.lon.values[0]
+    retset.attrs['geospatial_lon_max'] = retset.lon.values[-1]
     retset.attrs['geospatial_lon_resolution'] = abs(retset.lon.values[1] -
                                                     retset.lon.values[0])
     retset.attrs['geospatial_lat_resolution'] = abs(retset.lat.values[1] -
