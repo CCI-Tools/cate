@@ -213,41 +213,38 @@ class Workspace:
             res_name = res_step.id
             if res_name in resource_cache:
                 res_id = self._resource_cache.get_id(res_name)
+                res_update_count = self._resource_cache.get_update_count(res_name)
                 resource = resource_cache.pop(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_id, res_name, resource)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         if len(resource_cache) > 0:
             # We should not get here as all resources should have an associated workflow step!
             for res_name, resource in resource_cache.items():
                 res_id = self._resource_cache.get_id(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_id, res_name, resource)
+                res_update_count = self._resource_cache.get_update_count(res_name)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         return resource_descriptors
 
-    def _get_resource_descriptor(self, res_id: int, res_name: str, resource):
+    def _get_resource_descriptor(self, res_id: int, res_update_count: int, res_name: str, resource):
         variable_descriptors = []
         data_type_name = object_to_qualified_name(type(resource))
+        resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
-            return dict(id=res_id,
-                        name=res_name,
-                        dataType=data_type_name,
-                        dims=to_json(resource.dims),
-                        attrs=self._get_dataset_attr_list(resource.attrs),
-                        variables=variable_descriptors)
+            resource_json.update(dims=to_json(resource.dims),
+                                 attrs=self._get_dataset_attr_list(resource.attrs),
+                                 variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
-            return dict(id=res_id,
-                        name=res_name,
-                        dataType=data_type_name,
-                        variables=variable_descriptors)
+            resource_json.update(variables=variable_descriptors)
         elif isinstance(resource, fiona.Collection):
             num_features = len(resource)
             properties = resource.schema.get('properties')
@@ -259,20 +256,10 @@ class Workspace:
                         'isFeatureAttribute': True,
                     })
             geometry = resource.schema.get('geometry')
-            return dict(id=res_id,
-                        name=res_name,
-                        dataType=data_type_name,
-                        variables=variable_descriptors,
-                        geometry=geometry,
-                        numFeatures=num_features)
-        elif isinstance(resource, Figure):
-            return dict(id=res_id,
-                        name=res_name,
-                        dataType=data_type_name,
-                        figureId=res_id)
-        return dict(id=res_id,
-                    name=res_name,
-                    dataType=data_type_name)
+            resource_json.update(variables=variable_descriptors,
+                                 geometry=geometry,
+                                 numFeatures=num_features)
+        return resource_json
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
         attr_list = []
