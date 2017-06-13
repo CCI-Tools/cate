@@ -35,7 +35,6 @@ import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
-from matplotlib.figure import Figure
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
