@@ -2,6 +2,7 @@ import json
 import os
 import unittest
 
+from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow
 from cate.core.workspace import Workspace, mk_op_kwargs
@@ -48,7 +49,8 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"),
                         overwrite=True)
         self.assertIn('X', ws.resource_cache)
-        self.assertNotIn('Y', ws.resource_cache)
+        self.assertIn('Y', ws.resource_cache)
+        self.assertIs(ws.resource_cache['Y'], UNDEFINED)
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
@@ -56,8 +58,10 @@ class WorkspaceTest(unittest.TestCase):
 
         ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2),
                         overwrite=True)
-        self.assertNotIn('X', ws.resource_cache)
-        self.assertNotIn('Y', ws.resource_cache)
+        self.assertIn('X', ws.resource_cache)
+        self.assertIs(ws.resource_cache['X'], UNDEFINED)
+        self.assertIn('Y', ws.resource_cache)
+        self.assertIs(ws.resource_cache['Y'], UNDEFINED)
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
@@ -89,9 +93,9 @@ class WorkspaceTest(unittest.TestCase):
         print('----X------------------------------')
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=9), overwrite=True)
         self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache.get('X'), None)
-        self.assertEqual(ws.resource_cache.get('Y'), None)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
         print('----Y------------------------------')
         ws.execute_workflow()
@@ -111,9 +115,9 @@ class WorkspaceTest(unittest.TestCase):
         print('----------------------------------')
         ws.set_resource('A', 'cate.ops.utility.identity', mk_op_kwargs(value=5), overwrite=True)
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), None)
-        self.assertEqual(ws.resource_cache.get('Y'), None)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
         print('----------------------------------')
         ws.execute_workflow()

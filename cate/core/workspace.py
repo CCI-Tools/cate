@@ -41,7 +41,7 @@ from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -270,7 +270,9 @@ class Workspace:
                         name=res_name,
                         dataType=data_type_name,
                         figureId=res_id)
-        return dict(name=res_name, dataType=data_type_name)
+        return dict(id=res_id,
+                    name=res_name,
+                    dataType=data_type_name)
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
         attr_list = []
@@ -441,7 +443,8 @@ class Workspace:
 
         # This namespace will allow us to wire the new resource with existing workflow steps
         # We only add step outputs, so we cannot reference another step's input neither.
-        # Note that workspace workflows never have any inputs to be referenced anyway.
+        # This is not a problem because a workspace's workflow doesn't have any inputs
+        # to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
             output_namespace = step.output
@@ -506,7 +509,7 @@ class Workspace:
         # Remove any cached resource values, whose steps became invalidated
         for key in ids_of_invalidated_steps:
             if key in self._resource_cache:
-                del self._resource_cache[key]
+                self._resource_cache[key] = UNDEFINED
 
     def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name

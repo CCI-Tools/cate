@@ -957,7 +957,7 @@ class OpStep(Step):
         self._set_context_values(context, input_values)
 
         value_cache = self._get_value_cache(context)
-        if value_cache is not None and self.id in value_cache:
+        if value_cache is not None and self.id in value_cache and value_cache[self.id] is not UNDEFINED:
             return_value = value_cache[self.id]
         else:
             return_value = self._op_registration(monitor=monitor, **input_values)
