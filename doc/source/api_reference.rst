@@ -86,7 +86,7 @@ Data visualization
 
 .. autofunction:: cate.ops.plot
 
-.. autofunction:: cate.ops.plot_dataframe
+.. autofunction:: cate.ops.plot_data_frame
 
 
 Resampling

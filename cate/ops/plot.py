@@ -217,14 +217,17 @@ def plot_map(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
+# TODO (forman): remove the 'plot_data_frame' operation. It is too specific.
+# Instead, make other 'plot_' ops accept xarray and pandas objects.
+
 @op(tags=['plot'])
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot_dataframe(df: pd.DataFrame,
-                   plot_type: str = 'line',
-                   file: str = None,
-                   **kwargs) -> Figure:
+def plot_data_frame(df: pd.DataFrame,
+                    plot_type: str = 'line',
+                    file: str = None,
+                    **kwargs) -> Figure:
     """
     Plot a data frame.
 
@@ -240,8 +243,7 @@ def plot_dataframe(df: pd.DataFrame,
                    pandas.DataFrame.plot function
     """
     if not isinstance(df, pd.DataFrame):
-        raise NotImplementedError('Only pandas dataframes are currently'
-                                  ' supported')
+        raise NotImplementedError('"df" must be of type "pandas.DataFrame"')
 
     ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
     figure = ax.get_figure()
@@ -253,13 +255,13 @@ def plot_dataframe(df: pd.DataFrame,
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('index', data_type=DictLike)
-@op_input('props', data_type=DictLike)
+@op_input('indexers', data_type=DictLike)
+@op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
-         index: DictLike.TYPE = None,
-         props: DictLike.TYPE = None,
+         indexers: DictLike.TYPE = None,
+         properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
@@ -271,16 +273,16 @@ def plot(ds: xr.Dataset,
 
     :param ds: Dataset that contains the variable named by *var*.
     :param var: The name of the variable to plot
-    :param index: Optional index into the variable's data array. The *index* is a dictionary
-                  that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
-                  e.g. "lat=12.4, time='2012-05-02'".
-    :param props: optional plot properties for Python matplotlib,
-                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
-                  For full reference refer to
-                  https://matplotlib.org/api/lines_api.html and
-                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param indexers: Optional indexers into the variable's data array. The *index* is a dictionary
+           that maps the variable's dimension names to constant labels. For example,
+           ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+           datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+           e.g. "lat=12.4, time='2012-05-02'".
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
     """
 
@@ -290,21 +292,21 @@ def plot(ds: xr.Dataset,
 
     var = ds[var_name]
 
-    index = DictLike.convert(index)
-    props = DictLike.convert(props) or {}
-    if 'label' not in props:
-        props['label'] = var_name
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
+    if 'label' not in properties:
+        properties['label'] = var_name
 
     try:
-        if index:
-            var_data = var.sel(method='nearest', **index)
+        if indexers:
+            var_data = var.sel(method='nearest', **indexers)
         else:
             var_data = var
     except ValueError:
         var_data = var
 
     figure = plt.figure(figsize=(8, 4))
-    var_data.plot(**props)
+    var_data.plot(**properties)
     if file:
         figure.savefig(file)
 
@@ -313,13 +315,13 @@ def plot(ds: xr.Dataset,
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('index', data_type=DictLike)
-@op_input('props', data_type=DictLike)
+@op_input('indexers', data_type=DictLike)
+@op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_hist(ds: xr.Dataset,
               var: VarName.TYPE,
-              index: DictLike.TYPE = None,
-              props: DictLike.TYPE = None,
+              indexers: DictLike.TYPE = None,
+              properties: DictLike.TYPE = None,
               file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
@@ -331,16 +333,16 @@ def plot_hist(ds: xr.Dataset,
 
     :param ds: Dataset that contains the variable named by *var*.
     :param var: The name of the variable to plot
-    :param index: Optional index into the variable's data array. The *index* is a dictionary
-                  that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
-                  e.g. "lat=12.4, time='2012-05-02'".
-    :param props: optional histogram plot properties for Python matplotlib,
-                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
-                  For full reference refer to
-                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
-                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param indexers: Optional index into the variable's data array. The *index* is a dictionary
+           that maps the variable's dimension names to constant labels. For example,
+           ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+           datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+           e.g. "lat=12.4, time='2012-05-02'".
+    :param properties: optional histogram plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
     """
 
@@ -350,21 +352,21 @@ def plot_hist(ds: xr.Dataset,
 
     var = ds[var]
 
-    index = DictLike.convert(index)
-    props = DictLike.convert(props) or {}
-    if 'label' not in props:
-        props['label'] = var_name
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
+    if 'label' not in properties:
+        properties['label'] = var_name
 
     try:
-        if index:
-            var_data = var.sel(method='nearest', **index)
+        if indexers:
+            var_data = var.sel(method='nearest', **indexers)
         else:
             var_data = var
     except ValueError:
         var_data = var
 
     figure = plt.figure(figsize=(8, 4))
-    var_data.plot.hist(**props)
+    var_data.plot.hist(**properties)
     if file:
         figure.savefig(file)
 
