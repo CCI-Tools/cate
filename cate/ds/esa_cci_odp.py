@@ -446,6 +446,10 @@ class EsaCciOdpDataSource(DataSource):
         return self._master_id
 
     @property
+    def uuid(self) -> Optional[str]:
+        return self._uuid
+
+    @property
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
@@ -493,6 +497,7 @@ class EsaCciOdpDataSource(DataSource):
 
             meta_info['protocols'] = self.protocols
             meta_info['variables'] = self._variables_list()
+            meta_info['uuid'] = self._uuid
 
             if self._catalogue_data:
                 meta_info.update(self._catalogue_data)
