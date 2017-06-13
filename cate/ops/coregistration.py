@@ -37,7 +37,7 @@ from typing import Tuple
 import numpy as np
 import xarray as xr
 
-from cate.core.op import op_input, op
+from cate.core.op import op_input, op, op_return
 
 from cate.ops import resampling
 
@@ -45,6 +45,7 @@ from cate.ops import resampling
 @op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'])
 @op_input('method_us', value_set=['nearest', 'linear'])
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
+@op_return(add_history=True)
 def coregister(ds_master: xr.Dataset,
                ds_slave: xr.Dataset,
                method_us: str = 'linear',
