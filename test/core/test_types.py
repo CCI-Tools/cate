@@ -157,7 +157,7 @@ class DictLikeTest(TestCase):
     def test_accepts(self):
         self.assertTrue(DictLike.accepts(None))
         self.assertTrue(DictLike.accepts(''))
-        self.assertTrue(DictLike.accepts(' '))
+        self.assertTrue(DictLike.accepts('  '))
         self.assertTrue(DictLike.accepts('a=6, b=5.3, c=True, d="Hello"'))
 
         self.assertFalse(DictLike.accepts('{a=True}'))
@@ -168,6 +168,7 @@ class DictLikeTest(TestCase):
 
     def test_convert(self):
         self.assertEqual(DictLike.convert(None), None)
+        self.assertEqual(DictLike.convert(''), None)
         self.assertEqual(DictLike.convert('  '), None)
         self.assertEqual(DictLike.convert('name="bibo", thres=0.5, drop=False'), dict(name="bibo", thres=0.5, drop=False))
 
