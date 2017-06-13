@@ -28,7 +28,7 @@ Operations for coregistration of datasets
 Operations
 ==========
 
-coregister - coregister two datasets that are defined on global, pixel-registered grids that are
+coregister - coregister two datasets that are defined on pixel-registered grids that are
 equidistant in lat/lon coordinates.
 
 """
@@ -55,7 +55,10 @@ def coregister(ds_master: xr.Dataset,
     interpolation, if downsampling has to be performed, the pixels of the slave dataset
     are aggregated to form a coarser grid.
 
-    This operation works on datasets whose spatial dimensions are defined on global,
+    The returned dataset will contain the lat/lon intersection of provided
+    master and slave datasets, resampled unto the master grid frequency.
+
+    This operation works on datasets whose spatial dimensions are defined on
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
     define the middle of a pixel and pixels have the same size across the dataset.
 
@@ -75,53 +78,101 @@ def coregister(ds_master: xr.Dataset,
     :param method_ds: Interpolation method to use for downsampling.
     :return: The slave dataset resampled on the grid of the master
     """
-    # Check if the grid is global, equidistant and pixel-registered
-    # The datasets are expected to be harmonized
-    lat_bounds = (-90.0, 90.0)
-    lon_bounds = (-180.0, 180.0)
-    lats = [ds_master['lat'].values, ds_slave['lat'].values]
-    lons = [ds_master['lon'].values, ds_slave['lon'].values]
+    # Check if the grids of the provided datasets are equidistant and pixel
+    # registered
+    grids = (('slave', ds_slave['lat'].values, -90),
+             ('slave', ds_slave['lon'].values, -180),
+             ('master', ds_master['lat'].values, -90),
+             ('master', ds_master['lon'].values, -180))
 
-    # The raised error does not say which dataset it was that failed the check, because
-    # the datasets don't have identifiers apart from contained variables.
-    for lat in lats:
-        if not _is_equidistant(lat, lat_bounds):
-            raise ValueError('The provided dataset does not seem to be '
-                             'global, equidistant and pixel-registered.')
+    for array in grids:
+        if not _within_bounds(array[1], array[2]):
+            raise ValueError('The {} dataset grid does not fall into required'
+                             ' boundaries. Required boundaries are ({}, {}),'
+                             ' dataset boundaries are ({}, {}). Running the'
+                             ' harmonization operation'
+                             ' may help.'.format(array[0],
+                                                 array[2],
+                                                 abs(array[2]),
+                                                 array[1][0],
+                                                 array[1][-1]))
+        if not _is_equidistant(array[1]):
+            raise ValueError('The {} dataset is not'
+                             ' equidistant'.format(array[0]))
 
-    for lon in lons:
-        if not _is_equidistant(lon, lon_bounds):
-            raise ValueError('The provided dataset does not seem to be '
-                             'global, equidistant and pixel-registered.')
+        if not _is_pixel_registered(array[1], array[2]):
+            raise ValueError('The {} dataset is not'
+                             ' pixel-registered'.format(array[0]))
 
+    # Check if all arrays of the slave dataset have lat/lon/time dimensionality
+    for key in ds_slave.data_vars:
+        if not _is_valid_array(ds_slave[key]):
+            raise ValueError('{} data array of slave dataset is not valid for'
+                             ' coregistration. Expected coordinates are (lat,'
+                             ' lon, time), received coordinates are'
+                             ' {}, consider running select_var and/or'
+                             ' harmonization operations'
+                             ' first.'.format(key, ds_slave[key].dims))
+
+    # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
+
     return _resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds])
 
 
-def _is_equidistant(array: np.ndarray, bounds: Tuple[float, float]) -> bool:
+def _is_equidistant(array: np.ndarray) -> bool:
     """
-    Check if the given 1D array is equidistant within the given bounds. E.g. the
-    distance between the lower boundary and the first element of the array should
-    be equal to the distance between every element and it's neighbours, as well as
-    between the last element of the array and the upper boundary.
+    Check if the given 1D array is equidistant. E.g. the
+    distance between all elements of the array should be equal.
 
     :param array: The array that should be equidistant
-    :param bounds: The bounds within the array should be equidistant.
     """
-    # There should be half a pixel difference between the lower boundary and the pixel
-    # center.
-    step = (bounds[0] - array[0]) * 2
-    for i in range(0, len(array)):
-        if i == len(array) - 1:
-            curr_step = (array[i] - bounds[1]) * 2
-        else:
-            curr_step = array[i] - array[i + 1]
-
+    step = abs(array[1] - array[0])
+    for i in range(0, len(array) - 1):
+        curr_step = abs(array[i + 1] - array[i])
         if curr_step != step:
             return False
 
     return True
+
+
+def _is_pixel_registered(array: np.ndarray, origin) -> bool:
+    """
+    Check if the given coordinate array is pixel registered. E.g., values
+    should denote the 'middle' point of a pixel.
+
+    :param array: The array that should be pixel registered
+    :param origin: The origin value for the values in the given array
+    """
+    step = abs(array[1] - array[0])
+    return ((array[0] - step / 2) - origin) % step == 0
+
+
+def _is_valid_array(array: xr.DataArray) -> bool:
+    """
+    Check if the provided xarray Data Array is valid for coregistration.
+    Meaning, its dimensionality is lat/lon/time.
+
+    :param array: Array to check for validity
+    :return: True if the given array is valid
+    """
+    return (3 == len(array.dims) and
+            'time' in array.dims and
+            'lat' in array.dims and
+            'lon' in array.dims)
+
+
+def _within_bounds(array: np.ndarray, low_bound) -> bool:
+    """
+    Check if the given array falls into the given bounds. In cate we work with
+    grids that are symmetrical around zero.
+
+    :param array: Array to check
+    :param low_bound: lower boundary
+    :return: True if falls into bounds
+    """
+    return (array[0] >= low_bound and array[-1] <= abs(low_bound))
 
 
 def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int) -> xr.DataArray:
@@ -181,11 +232,88 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     :param method_ds: Interpolation method for downsampling, see resampling.py
     :return: xr.Dataset The resampled slave dataset
     """
-    # master_keys = ds_master.dims.keys()
-    # slave_keys = ds_master.dims.keys()
+    # Find lat/lon bounds of the intersection of master and slave grids. The
+    # bounds should fall on pixel boundaries for both spatial dimensions for
+    # both datasets
+    lat_min, lat_max = _find_intersection(ds_master['lat'].values,
+                                          ds_slave['lat'].values,
+                                          global_bounds=(-90, 90))
+    lon_min, lon_max = _find_intersection(ds_master['lon'].values,
+                                          ds_slave['lon'].values,
+                                          global_bounds=(-180, 180))
+
+    m_lat = ds_master['lat'].values
+    m_lon = ds_master['lon'].values
+    s_lat = ds_slave['lat'].values
+    s_lon = ds_slave['lon'].values
+
+    m_lat_px_size = abs(m_lat[1] - m_lat[0])
+    m_lon_px_size = abs(m_lon[1] - m_lon[0])
+    s_lat_px_size = abs(s_lat[1] - s_lat[0])
+    s_lon_px_size = abs(s_lon[1] - s_lon[0])
+
+    lat_min = max(m_lat[0] - m_lat_px_size / 2, s_lat[0] - s_lat_px_size / 2)
+    lat_max = min(m_lat[-1] + m_lat_px_size / 2, s_lat[-1] + m_lat_px_size / 2)
+    lon_min = max(m_lon[0] - m_lon_px_size / 2, s_lon[0] - s_lon_px_size / 2)
+    lon_max = min(m_lon[-1] + m_lon_px_size / 2, s_lon[-1] + s_lon_px_size / 2)
+
+    # Subset slave dataset
 
     lon = ds_master['lon']
     lat = ds_master['lat']
 
     kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds}
     return ds_slave.apply(_resample_array, **kwargs)
+
+
+def _find_intersection(first: np.ndarray,
+                       second: np.ndarray,
+                       global_bounds: Tuple[float, float]) -> Tuple[float, float]:
+    """
+    Find 1D intersection of given arrays such that the resulting intersection
+    bounds fall on 'pixel' boundaries for both given arrays.
+
+    :param first: First 1D array
+    :param second: Second 1D array
+    :param global_bounds: (min, max) maximum interval for a valid intersection
+    :return: (min, max) intersection bounds
+    """
+    first_px_size = abs(first[1] - first[0])
+    second_px_size = abs(second[1] - second[0])
+
+    minimum = max(first[0] - first_px_size / 2,
+                  second[0] - second_px_size / 2)
+    maximum = min(first[-1] + first_px_size / 2,
+                  second[-1] + second_px_size / 2)
+
+    delta = maximum - minimum
+    if delta < max(first_px_size, second_px_size):
+        raise ValueError('Could not find a valid intersection to perform'
+                         ' coregistration on')
+
+    # Make sure min/max fall on pixel boundaries for both grids
+    # Because there exists a number N denoting how many smaller pixels fall
+    # into one larger pixel (for pixel registered datasets with the same
+    # origin) => the boundary has to be adjusted by steps equal
+    # to smaller pixels.
+    finer = min(first_px_size, second_px_size)
+    safety = 100
+    i = 0
+    while (0 != (minimum - global_bounds[0]) % first_px_size and
+           0 != (minimum - global_bounds[0]) % second_px_size):
+        if i == safety:
+            raise ValueError('Could not find a valid intersection to perform'
+                             ' coregistration on')
+        minimum = minimum + finer
+        i = i + 1
+
+    i = 0
+    while (0 != (global_bounds[1] - maximum) % first_px_size and
+           0 != (global_bounds[1] - maximum) % second_px_size):
+        if i == safety:
+            raise ValueError('Could not find a valid intersection to perform'
+                             ' coregistration on')
+        maximum = maximum - finer
+        i = i + 1
+
+    return (minimum, maximum)
