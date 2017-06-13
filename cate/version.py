@@ -20,4 +20,4 @@
 # SOFTWARE.
 
 #: Cate version string (PEP440-compatible).
-__version__ = '0.8.0rc3'
+__version__ = '0.8.0rc5'

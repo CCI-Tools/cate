@@ -33,7 +33,7 @@ from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
-from ..util import UNDEFINED, Monitor
+from ..util import UNDEFINED, Monitor, safe_eval
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -110,18 +110,18 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> Workspace:
+                                monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
 
@@ -320,24 +320,23 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
             write_object(obj, file_path, format_name=format_name)
             monitor.progress(work=1, msg='Writing file %s' % file_path)
-        return workspace
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> Workspace:
+                                monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         obj = self._get_resource_value(workspace, res_name, monitor)
 
         import xarray as xr
         import numpy as np
         import matplotlib
-        matplotlib.use('Qt4Agg')
+        matplotlib.use('Qt5Agg')
         import matplotlib.pyplot as plt
 
         if isinstance(obj, xr.Dataset):
@@ -362,14 +361,12 @@ class FSWorkspaceManager(WorkspaceManager):
             plt.show()
         else:
             raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
-        return workspace
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         value = self._get_resource_value(workspace, res_name_or_expr, monitor)
         pprint.pprint(value)
-        return workspace
 
     # noinspection PyMethodMayBeStatic
     def _get_resource_value(self, workspace, res_name_or_expr, monitor):
@@ -379,5 +376,5 @@ class FSWorkspaceManager(WorkspaceManager):
         elif res_name_or_expr.isidentifier() and workspace.workflow.find_node(res_name_or_expr) is not None:
             value = workspace.execute_workflow(res_name=res_name_or_expr, monitor=monitor)
         if value is UNDEFINED:
-            value = eval(res_name_or_expr, None, workspace.resource_cache)
+            value = safe_eval(res_name_or_expr, workspace.resource_cache)
         return value

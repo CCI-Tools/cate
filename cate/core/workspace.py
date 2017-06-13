@@ -29,18 +29,19 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
+from typing import List, Tuple, Any, Dict
 
 import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
-from typing import List, Tuple, Any, Dict
+from matplotlib.figure import Figure
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -94,6 +95,7 @@ class Workspace:
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
+        self._user_data = dict()
 
     def __del__(self):
         self.close()
@@ -133,6 +135,10 @@ class Workspace:
     @property
     def workflow_file(self) -> str:
         return self.get_workflow_file(self.base_dir)
+
+    @property
+    def user_data(self) -> dict:
+        return self._user_data
 
     @classmethod
     def get_workspace_dir(cls, base_dir) -> str:
@@ -197,10 +203,10 @@ class Workspace:
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
                             ('workflow', self.workflow.to_json_dict()),
-                            ('resources', self._resources_to_json_dict())
+                            ('resources', self._resources_to_json_list())
                             ])
 
-    def _resources_to_json_dict(self):
+    def _resources_to_json_list(self):
         resource_descriptors = []
         resource_cache = dict(self._resource_cache)
         for res_step in self.workflow.steps:
@@ -254,6 +260,10 @@ class Workspace:
                         variables=variable_descriptors,
                         geometry=geometry,
                         numFeatures=num_features)
+        elif isinstance(resource, Figure):
+            return dict(name=res_name,
+                        dataType=data_type_name,
+                        figureId=get_resource_int_id(res_name))
         return dict(name=res_name, dataType=data_type_name)
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
@@ -448,7 +458,7 @@ class Workspace:
             if 'source' in input_value:
                 source = input_value['source']
                 if source is not None:
-                    source = eval(source, None, namespace)
+                    source = safe_eval(source, namespace)
                 if isinstance(source, NodePort):
                     # source is an output NodePort of another step
                     input_port.source = source
@@ -503,7 +513,7 @@ class Workspace:
         unpacked_op_kwargs = {}
         for input_name, input_value in op_kwargs.items():
             if 'source' in input_value:
-                unpacked_op_kwargs[input_name] = eval(input_value['source'], None, self.resource_cache)
+                unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
             elif 'value' in input_value:
                 unpacked_op_kwargs[input_name] = input_value['value']
 
@@ -546,3 +556,17 @@ class WorkspaceError(Exception):
     @property
     def cause(self):
         return self._cause
+
+
+def get_resource_int_id(resource_name: str, max: int = 4294967295) -> int:
+    return get_int_id(hash(resource_name), max=max)
+
+
+def get_int_id(num: int, max: int = 4294967295) -> int:
+    if max < 0xff:
+        raise ValueError('max is too small: %s' % max)
+    if num < 0:
+        num = ((-num) << 1) | 0x01
+    while num > max:
+        num = (num >> 8) ^ (num & 0xff)
+    return num

@@ -115,7 +115,7 @@ from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import to_list, Monitor
+from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
@@ -277,7 +277,7 @@ def _parse_op_args(raw_args: List[str],
                 # noinspection PyBroadException
                 try:
                     # Eval with given namespace as locals
-                    value = eval(raw_value, None, namespace)
+                    value = safe_eval(raw_value, namespace)
                 except Exception:
                     value = raw_value
 

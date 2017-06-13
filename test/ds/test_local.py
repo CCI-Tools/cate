@@ -225,7 +225,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
 
         xr = ds.open_dataset()
         self.assertIsNotNone(xr)
-        self.assertEquals(xr.coords.dims.get('time'), 3)
+        self.assertEqual(xr.coords.dims.get('time'), 3)
 
         xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
                                          datetime.datetime(1978, 11, 15)))
@@ -235,12 +235,12 @@ class LocalFilePatternSourceTest(unittest.TestCase):
 
         xr = ds.open_dataset()
         self.assertIsNotNone(xr)
-        self.assertEquals(xr.coords.dims.get('time'), 3)
+        self.assertEqual(xr.coords.dims.get('time'), 3)
 
         xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
                                          datetime.datetime(1978, 11, 15)))
         self.assertIsNotNone(xr)
-        self.assertEquals(xr.coords.dims.get('time'), 1)
+        self.assertEqual(xr.coords.dims.get('time'), 1)
 
     def test_make_local(self):
         data_source = self._local_data_store.query('local_w_temporal')[0]

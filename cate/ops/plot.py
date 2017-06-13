@@ -83,7 +83,7 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
 
-@op(tags=['plot', 'map'], no_cache=True)
+@op(tags=['plot', 'map'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
@@ -101,7 +101,7 @@ def plot_map(ds: xr.Dataset,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
-             file: str = None) -> None:
+             file: str = None) -> Figure:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the
@@ -128,7 +128,7 @@ def plot_map(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are currently supported')
+        raise NotImplementedError('Only gridded datasets are currently supported')
 
     var_name = None
     if not var:
@@ -202,7 +202,7 @@ def plot_map(ds: xr.Dataset,
         print(e)
         var_data = var
 
-    fig = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
         ax.set_extent(extents)
@@ -212,19 +212,21 @@ def plot_map(ds: xr.Dataset,
     ax.coastlines()
     var_data.plot.contourf(ax=ax, transform=proj)
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 
-@op(tags=['plot'], no_cache=True)
+@op(tags=['plot'])
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_dataframe(df: pd.DataFrame,
                    plot_type: str = 'line',
                    file: str = None,
-                   **kwargs) -> None:
+                   **kwargs) -> Figure:
     """
-    Plot a dataframe.
+    Plot a data frame.
 
     This is a wrapper of pandas.DataFrame.plot() function.
 
@@ -235,26 +237,29 @@ def plot_dataframe(df: pd.DataFrame,
     :param plot_type: Plot type
     :param file: path to a file in which to save the plot
     :param kwargs: Keyword arguments to pass to the underlying
-    pandas.DataFrame.plot function
+                   pandas.DataFrame.plot function
     """
     if not isinstance(df, pd.DataFrame):
         raise NotImplementedError('Only pandas dataframes are currently'
                                   ' supported')
 
-    ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
+    ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
+    figure = ax.get_figure()
     if file:
-        fig = ax.get_figure()
-        fig.savefig(file)
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
+@op_input('props', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
-         fig: Figure = None,
+         props: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
@@ -271,14 +276,24 @@ def plot(ds: xr.Dataset,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
                   e.g. "lat=12.4, time='2012-05-02'".
-    :param fig: optional figure from a previous ``plot`` call
+    :param props: optional plot properties for Python matplotlib,
+                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+                  For full reference refer to
+                  https://matplotlib.org/api/lines_api.html and
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
     """
 
-    var = VarName.convert(var)
-    var = ds[var]
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var_name]
 
     index = DictLike.convert(index)
+    props = DictLike.convert(props) or {}
+    if 'label' not in props:
+        props['label'] = var_name
 
     try:
         if index:
@@ -288,12 +303,72 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    fig = fig or plt.figure(figsize=(16, 8))
-    var_data.plot()
+    figure = plt.figure(figsize=(8, 4))
+    var_data.plot(**props)
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
 
-    return fig if not in_notebook() else None
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('index', data_type=DictLike)
+@op_input('props', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_hist(ds: xr.Dataset,
+              var: VarName.TYPE,
+              index: DictLike.TYPE = None,
+              props: DictLike.TYPE = None,
+              file: str = None) -> Figure:
+    """
+    Plot a variable, optionally save the figure in a file.
+
+    The plot can either be shown using pyplot functionality, or saved,
+    if a path is given. The following file formats for saving the plot
+    are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
+    svgz, tif, tiff
+
+    :param ds: Dataset that contains the variable named by *var*.
+    :param var: The name of the variable to plot
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
+                  that maps the variable's dimension names to constant labels. For example,
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
+    :param props: optional histogram plot properties for Python matplotlib,
+                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+                  For full reference refer to
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    """
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var]
+
+    index = DictLike.convert(index)
+    props = DictLike.convert(props) or {}
+    if 'label' not in props:
+        props['label'] = var_name
+
+    try:
+        if index:
+            var_data = var.sel(method='nearest', **index)
+        else:
+            var_data = var
+    except ValueError:
+        var_data = var
+
+    figure = plt.figure(figsize=(8, 4))
+    var_data.plot.hist(**props)
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 
 def _check_bounding_box(lat_min: float,
@@ -332,5 +407,5 @@ def in_notebook():
     """
     import sys
     ipykernel_in_sys_modules = 'ipykernel' in sys.modules
-    print('###########################################', ipykernel_in_sys_modules)
+    # print('###########################################', ipykernel_in_sys_modules)
     return ipykernel_in_sys_modules

@@ -2,24 +2,22 @@
 Tests for plotting operations
 """
 
+import itertools
 import os
+import shutil
 import sys
+import tempfile
 import unittest
+from contextlib import contextmanager
 from unittest import TestCase
 
 import numpy as np
-import xarray as xr
 import pandas as pd
-import tempfile
-import shutil
-from contextlib import contextmanager
-import itertools
+import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.util.misc import object_to_qualified_name
-
 from cate.ops.plot import plot, plot_map, plot_dataframe
-
+from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
 ON_WIN = sys.platform == 'win32'
@@ -47,6 +45,7 @@ class TestPlotMap(TestCase):
     """
     Test plot_map() function
     """
+
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
@@ -146,6 +145,7 @@ class TestPlot(TestCase):
     """
     Test plot() function
     """
+
     def test_plot(self):
         # Test plot
         dataset = xr.Dataset({
@@ -175,6 +175,7 @@ class TestPlotDataFrame(TestCase):
     """
     Test plot_dataframe() function.
     """
+
     def test_nominal(self):
         """
         Test nominal execution

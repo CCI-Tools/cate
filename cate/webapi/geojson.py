@@ -194,7 +194,7 @@ def triangle_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: 
     return 0.5 * abs(dx1 * dy2 - dy1 * dx2)
 
 
-@numba.jit()
+@numba.jit(forceobj=True)
 def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, simp_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *x_data.size* points to
@@ -208,7 +208,7 @@ def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, simp_ratio: float)
     :return: A pair comprising the simplified *x_data* and *y_data*.
     """
     is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
-    old_point_count = x_data.size
+    old_point_count = int(x_data.size)
     new_point_count = int(simp_ratio * old_point_count + 0.5)
     min_point_count = 4 if is_ring else 2
     if new_point_count < min_point_count:

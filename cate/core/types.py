@@ -49,6 +49,7 @@ from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
 from cate.util.misc import to_list, to_datetime_range, to_datetime
+from cate.util.safe import safe_eval
 
 T = TypeVar('T')
 
@@ -281,7 +282,7 @@ class DictLike(Like[dict]):
             if isinstance(value, str):
                 if value.strip() == '':
                     return None
-                return eval('dict(%s)' % value, None, None)
+                return safe_eval('dict(%s)' % value, {})
             raise ValueError()
         except Exception:
             cls.assert_value_ok(False, value)

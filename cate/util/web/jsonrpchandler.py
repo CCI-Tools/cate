@@ -34,6 +34,8 @@ from tornado.websocket import WebSocketHandler
 from cate.util import OpMetaInfo
 from .jsonrpcmonitor import JsonRcpWebSocketMonitor
 
+_DEBUG_WEB_SOCKET_RPC = False
+
 
 # noinspection PyAbstractClass
 class JsonRcpWebSocketHandler(WebSocketHandler):
@@ -84,7 +86,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
     #   Error during WebSocket handshake:
     #   Unexpected response code: 403 (forbidden)
     def check_origin(self, origin):
-        print("JsonRcpWebSocketHandler: check " + str(origin))
+        print("JsonRcpWebSocketHandler.check_origin(%s)" % repr(origin))
         return True
 
     # TODO: notify connected client on any of the following error cases
@@ -112,7 +114,10 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         if not isinstance(method_name, str) or len(method_name) == 0:
             print('Received invalid JSON-RCP message: missing or invalid "method" value: %s' % message)
             return
-        print("RPC[%s] ==> %s: %s" % (method_id, method_name, message))
+
+        if _DEBUG_WEB_SOCKET_RPC:
+            print("RPC[%s] ==> %s: %s" % (method_id, method_name, message))
+
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
@@ -194,7 +199,8 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._write_response(json_text, method_id)
 
     def _write_response(self, json_text: str, method_id: int):
-        print("RPC[%s] <== %s" % (method_id, json_text))
+        if _DEBUG_WEB_SOCKET_RPC:
+            print("RPC[%s] <== %s" % (method_id, json_text))
         self.write_message(json_text)
 
     def call_service_method(self, method_id: int, method_name: str, method_params: list):
