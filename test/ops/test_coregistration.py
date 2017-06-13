@@ -41,8 +41,7 @@ class TestCoregistration(TestCase):
             'time': np.array([1, 2])})
 
         # Test that the coarse dataset has been resampled onto the grid
-        # of the finer dataset. Values are not expected to change, as we
-        # have zeroes in all matrices.
+        # of the finer dataset.
         ds_coarse_resampled = coregister(ds_fine, ds_coarse)
         expected = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([[[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
@@ -94,27 +93,6 @@ class TestCoregistration(TestCase):
 
         assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)
 
-        # Test if non pixel-registered is rejected
-        ds_coarse_err = xr.Dataset({
-            'first': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
-            'second': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
-            'lat': np.linspace(-90, 90, 5),
-            'lon': np.linspace(-162, 162, 10),
-            'time': np.array([1, 2])})
-
-        with self.assertRaises(ValueError):
-            coregister(ds_fine, ds_coarse_err)
-
-        ds_coarse_err = xr.Dataset({
-            'first': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
-            'second': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
-            'lat': np.linspace(-72, 72, 5),
-            'lon': np.linspace(-180, 180, 10),
-            'time': np.array([1, 2])})
-
-        with self.assertRaises(ValueError):
-            coregister(ds_fine, ds_coarse_err)
-
     def test_registered(self):
         """
         Test registered operation execution execution
@@ -135,8 +113,7 @@ class TestCoregistration(TestCase):
             'time': np.array([1, 2])})
 
         # Test that the coarse dataset has been resampled onto the grid
-        # of the finer dataset. Values are not expected to change, as we
-        # have zeroes in all matrices.
+        # of the finer dataset.
         ds_coarse_resampled = reg_op(ds_master=ds_fine, ds_slave=ds_coarse)
         expected = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([[[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
@@ -188,7 +165,56 @@ class TestCoregistration(TestCase):
 
         assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)
 
-        # Test if non pixel-registered is rejected
+    def test_error(self):
+        """
+        Test error conditions
+        """
+        # Test unexpected global bounds
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(67.5, 135, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse)
+        self.assertIn('(67.5, 135.0)', str(err.exception))
+
+        # Test non-equidistant dataset
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': [-67.5, -20, 20, 67.5],
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse)
+        self.assertIn('not equidistant', str(err.exception))
+
+        # Test non-pixel registered dataset
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
         ds_coarse_err = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
             'second': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
@@ -196,8 +222,9 @@ class TestCoregistration(TestCase):
             'lon': np.linspace(-162, 162, 10),
             'time': np.array([1, 2])})
 
-        with self.assertRaises(ValueError):
-            reg_op(ds_master=ds_fine, ds_slave=ds_coarse_err)
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse_err)
+        self.assertIn('not pixel-registered', str(err.exception))
 
         ds_coarse_err = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.zeros([2, 5, 10])),
@@ -206,14 +233,66 @@ class TestCoregistration(TestCase):
             'lon': np.linspace(-180, 180, 10),
             'time': np.array([1, 2])})
 
-        with self.assertRaises(ValueError):
-            reg_op(ds_master=ds_fine, ds_slave=ds_coarse_err)
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse_err)
+        self.assertIn('not pixel-registered', str(err.exception))
 
-    def test_error(self):
-        """
-        Test error conditions
-        """
-        pass
+        # Test unexpected dimensionality
+        ds_fine = xr.Dataset({
+            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        # Should run, doesn't apply to master
+        coregister(ds_fine, ds_coarse)
+
+        ds_fine = xr.Dataset({
+            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['slime', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse)
+        self.assertIn('slime', str(err.exception))
+
+        ds_fine = xr.Dataset({
+            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon', 'histogram'],
+                       np.array([np.arange(36).reshape(3, 6, 2),
+                                 np.arange(36).reshape(3, 6, 2)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2]),
+            'histogram': [1, 2]})
+
+        with self.assertRaises(ValueError) as err:
+            coregister(ds_fine, ds_coarse)
+        self.assertIn('histogram', str(err.exception))
 
     def test_find_intersection(self):
         """

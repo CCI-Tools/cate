@@ -99,12 +99,14 @@ def coregister(ds_master: xr.Dataset,
                                                  array[1][0],
                                                  array[1][-1]))
         if not _is_equidistant(array[1]):
-            raise ValueError('The {} dataset is not'
-                             ' equidistant'.format(array[0]))
+            raise ValueError('The {} dataset grid is not'
+                             ' equidistant, can not perform'
+                             ' coregistration'.format(array[0]))
 
         if not _is_pixel_registered(array[1], array[2]):
-            raise ValueError('The {} dataset is not'
-                             ' pixel-registered'.format(array[0]))
+            raise ValueError('The {} dataset grid is not'
+                             ' pixel-registered, can not perform'
+                             ' coregistration'.format(array[0]))
 
     # Check if all arrays of the slave dataset have lat/lon/time dimensionality
     for key in ds_slave.data_vars:
