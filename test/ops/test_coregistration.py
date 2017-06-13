@@ -16,6 +16,7 @@ from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
 
 from cate.ops import coregister
+from cate.ops.coregistration import _find_intersection
 
 
 class TestCoregistration(TestCase):
@@ -298,10 +299,59 @@ class TestCoregistration(TestCase):
         """
         Test the _find_intersection method
         """
-        pass
+        # Test =======
+        #          =========
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(5.5, 14.5, 10)
+        result = _find_intersection(a, b, (0, 15))
+        self.assertEqual((5, 10), result)
 
-    def test_subset(self):
-        """
-        Test coregistration when running on a subset dataset
-        """
-        pass
+        # Test   =======
+        #    =========
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(5.5, 14.5, 10)
+        result = _find_intersection(b, a, (0, 15))
+        self.assertEqual((5, 10), result)
+
+        # Test   =======
+        #     ==============
+        a = np.linspace(5.5, 14.5, 10)
+        b = np.linspace(0.5, 19.5, 20)
+        result = _find_intersection(a, b, (0, 20))
+        self.assertEqual((5, 15), result)
+
+        # Test ==================
+        #          ========
+        a = np.linspace(0.5, 19.5, 20)
+        b = np.linspace(5.5, 14.5, 10)
+        result = _find_intersection(a, b, (0, 20))
+        self.assertEqual((5, 15), result)
+
+        # Test ============
+        #                    ========
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(10.5, 19.5, 10)
+        with self.assertRaises(ValueError) as err:
+            _find_intersection(a, b, (0, 20))
+        self.assertIn('valid intersection', str(err.exception))
+
+        # Test       ============
+        #  ========
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(10.5, 19.5, 10)
+        with self.assertRaises(ValueError) as err:
+            _find_intersection(b, a, (0, 20))
+        self.assertIn('valid intersection', str(err.exception))
+
+        # Test misaligned origins
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(1, 9, 10)
+        with self.assertRaises(ValueError) as err:
+            _find_intersection(a, b, (0, 10))
+        self.assertIn('valid intersection', str(err.exception))
+
+        # Test differing pixel sizes
+        a = np.linspace(0.5, 9.5, 10)
+        b = np.linspace(5.25, 14.75, 20)
+        result = _find_intersection(b, a, (0, 20))
+        self.assertEqual((5, 10), result)

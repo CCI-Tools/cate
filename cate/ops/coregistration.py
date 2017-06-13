@@ -324,4 +324,9 @@ def _find_intersection(first: np.ndarray,
         maximum = maximum - finer
         i = i + 1
 
+    # This is possible in some cases when mis-aligned grid arrays are presented
+    if maximum <= minimum:
+        raise ValueError('Could not find a valid intersection to perform'
+                         ' coregistration on')
+
     return (minimum, maximum)
