@@ -1187,6 +1187,31 @@ class ValueCacheTest(TestCase):
         self.assertEqual(vc.get_id('bibo2'), 5)
         self.assertEqual(vc.get_id('bibo3'), 6)
 
+    def test_get_update_count(self):
+        vc = ValueCache()
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_update_count('bibo1'), 0)
+        self.assertEqual(vc.get_update_count('bibo2'), 0)
+        self.assertEqual(vc.get_update_count('bibo3'), 0)
+
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+        vc['bibo2'] = object()
+        vc['bibo2'] = None
+
+        self.assertEqual(vc.get_update_count('bibo1'), 0)
+        self.assertEqual(vc.get_update_count('bibo2'), 3)
+        self.assertEqual(vc.get_update_count('bibo3'), 1)
+
+        vc.clear()
+
+        self.assertEqual(vc.get_update_count('bibo1'), None)
+        self.assertEqual(vc.get_update_count('bibo2'), None)
+        self.assertEqual(vc.get_update_count('bibo3'), None)
+
     def test_rename_key(self):
         bibo = object()
 

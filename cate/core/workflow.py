@@ -1509,7 +1509,7 @@ class ValueCache(dict):
 
     def __init__(self):
         super(ValueCache, self).__init__()
-        self._ids = dict()
+        self._id_infos = dict()
         self._last_id = 0
 
     def __del__(self):
@@ -1525,10 +1525,12 @@ class ValueCache(dict):
         if *key* didn't exist before.
         """
         old_value = self.get(key)
-        existed_before = key in self
+        id_info = self._id_infos.get(key)
         self._set(key, value)
-        if not existed_before:
-            self._ids[key] = self._gen_id()
+        if id_info:
+            self._id_infos[key] = id_info[0], id_info[1] + 1
+        else:
+            self._id_infos[key] = self._gen_id(), 0
         if old_value is not value:
             self._close_value(old_value)
 
@@ -1539,7 +1541,7 @@ class ValueCache(dict):
         """Override the ``dict`` method to close the value and remove its ID."""
         old_value = self.get(key)
         self._del(key)
-        del self._ids[key]
+        del self._id_infos[key]
         if old_value is not None:
             self._close_value(old_value)
 
@@ -1549,13 +1551,19 @@ class ValueCache(dict):
         return self.get(key, default) if key else default
 
     def get_id(self, key: str):
-        """Return the integer ID for given *key* or ``None``. The ID is unique within this cache."""
-        return self._ids.get(key)
+        """Return the integer ID for given *key* or ``None``."""
+        id_info = self._id_infos.get(key)
+        return id_info[0] if id_info else None
+
+    def get_update_count(self, key: str):
+        """Return the integer update count for given *key* or ``None``."""
+        id_info = self._id_infos.get(key)
+        return id_info[1] if id_info else None
 
     def get_key(self, id: int):
         """Return the key for given integer *id* or ``None``."""
-        for key, old_id in self._ids.items():
-            if old_id == id:
+        for key, id_info in self._id_infos.items():
+            if id_info[0] == id:
                 return key
         return None
 
@@ -1580,9 +1588,9 @@ class ValueCache(dict):
         self._del(key)
         self._set(new_key, value)
 
-        id = self._ids[key]
-        del self._ids[key]
-        self._ids[new_key] = id
+        id_info = self._id_infos[key]
+        del self._id_infos[key]
+        self._id_infos[new_key] = id_info
 
         child_key = key + '._child'
         if child_key in self:
@@ -1596,14 +1604,14 @@ class ValueCache(dict):
         value = super(ValueCache, self).pop(key)
         if existed_before:
             self._close_value(value)
-            del self._ids[key]
+            del self._id_infos[key]
         return value
 
     def clear(self) -> None:
         """Override the ``dict`` method to closes values and remove all IDs."""
         self._close_values()
         super(ValueCache, self).clear()
-        self._ids.clear()
+        self._id_infos.clear()
 
     def close(self) -> None:
         """Close all values and remove all IDs."""
