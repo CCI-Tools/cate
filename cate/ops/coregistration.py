@@ -242,28 +242,28 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
                                           ds_slave['lon'].values,
                                           global_bounds=(-180, 180))
 
-    m_lat = ds_master['lat'].values
-    m_lon = ds_master['lon'].values
-    s_lat = ds_slave['lat'].values
-    s_lon = ds_slave['lon'].values
+    # Subset slave dataset and master grid
+    lat_slice = slice(lat_min, lat_max)
+    lon_slice = slice(lon_min, lon_max)
 
-    m_lat_px_size = abs(m_lat[1] - m_lat[0])
-    m_lon_px_size = abs(m_lon[1] - m_lon[0])
-    s_lat_px_size = abs(s_lat[1] - s_lat[0])
-    s_lon_px_size = abs(s_lon[1] - s_lon[0])
+    lon = ds_master['lon'].sel(lon=lon_slice)
+    lat = ds_master['lat'].sel(lat=lat_slice)
 
-    lat_min = max(m_lat[0] - m_lat_px_size / 2, s_lat[0] - s_lat_px_size / 2)
-    lat_max = min(m_lat[-1] + m_lat_px_size / 2, s_lat[-1] + m_lat_px_size / 2)
-    lon_min = max(m_lon[0] - m_lon_px_size / 2, s_lon[0] - s_lon_px_size / 2)
-    lon_max = min(m_lon[-1] + m_lon_px_size / 2, s_lon[-1] + s_lon_px_size / 2)
-
-    # Subset slave dataset
-
-    lon = ds_master['lon']
-    lat = ds_master['lat']
+    retset = ds_slave.sel(lat=lat_slice, lon=lon_slice)
 
     kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds}
-    return ds_slave.apply(_resample_array, **kwargs)
+    retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)
+
+    # Set/Update global geospatial attributes
+    retset.attrs['geospatial_lat_min'] = retset.coords['lat'].values[0]
+    retset.attrs['geospatial_lat_max'] = retset.coords['lat'].values[-1]
+    retset.attrs['geospatial_lon_min'] = retset.coords['lon'].values[0]
+    retset.attrs['geospatial_lon_max'] = retset.coords['lon'].values[-1]
+    retset.attrs['geospatial_lon_resolution'] = abs(retset.coords['lon'][1] -
+                                                    retset.coords['lon'][0])
+    retset.attrs['geospatial_lat_resolution'] = abs(retset.coords['lat'][1] -
+                                                    retset.coords['lat'][0])
+    return retset
 
 
 def _find_intersection(first: np.ndarray,
