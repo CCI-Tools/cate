@@ -475,7 +475,7 @@ class LocalDataSource(DataSource):
             'name': self._name,
             'meta_data': {
                 'deprecated': 'to be merged with meta_info in the future',
-                'temporal_coverage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
+                'temporal_covrage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
                 'spatial_coverage': PolygonLike.format(self._spatial_coverage) if self._spatial_coverage else None,
                 'variables': VarNamesLike.format(self._variables) if self._variables else None,
 
