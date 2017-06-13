@@ -25,17 +25,17 @@ The Cate development team uses Conda and a new environment is created like so
        
 which will create a new Conda environment named `cate`.       
 
-To run any script on **Linux** and **OS X**:
+To run any script on **Linux** and **OS X** (don't forget the dot):
  
     $ source activate cate
     $ python setup.py develop
     $ cd scripts
     
-    $ source ./<script-1>.sh
-    $ source ./<script-2>.sh
+    $ ./<script-1>.sh
+    $ ./<script-2>.sh
     $ ...
       
-You don't need to source on **Windows**:
+On **Windows**:
 
     > activate cate
     > python setup.py develop
