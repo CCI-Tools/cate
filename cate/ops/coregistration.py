@@ -42,7 +42,8 @@ from cate.core.op import op_input, op, op_return
 from cate.ops import resampling
 
 
-@op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'])
+@op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'],
+    version='1.0')
 @op_input('method_us', value_set=['nearest', 'linear'])
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
 @op_return(add_history=True)
