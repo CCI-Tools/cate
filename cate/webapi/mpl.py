@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cate.core.workspace import Workspace, get_resource_int_id
+from cate.core.workspace import Workspace
 from cate.util.web.webapi import WebAPIRequestHandler
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -281,7 +281,7 @@ def _get_or_create_figure_manager(workspace: Workspace, figure_id: int) -> Figur
         return figure_managers[figure_id]
     for resource_name, resource in workspace.resource_cache.items():
         if isinstance(resource, Figure):
-            resource_id = get_resource_int_id(resource_name)
+            resource_id = workspace.resource_cache.get_id(resource_name)
             if figure_id == resource_id:
                 figure_manager = new_figure_manager_given_figure(figure_id, resource)
                 figure_managers[figure_id] = figure_manager

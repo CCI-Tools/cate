@@ -4,10 +4,10 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from cate.core.op import op_input, op_output, OpRegistration
-from cate.util.opmetainf import OpMetaInfo
-from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
-from cate.util.misc import object_to_qualified_name
+from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache
 from cate.util import UNDEFINED
+from cate.util.misc import object_to_qualified_name
+from cate.util.opmetainf import OpMetaInfo
 
 
 @op_input('x')
@@ -577,13 +577,12 @@ class WorkflowStepTest(TestCase):
         step.input.p.source = workflow.input.x
         workflow.output.y.source = step.output.q
 
-        from cate.core.workflow import ValueCache
         value_cache = ValueCache()
         workflow.input.x.value = 4
         workflow.invoke(context=dict(value_cache=value_cache))
         output_value = workflow.output.y.value
         self.assertEqual(output_value, 2 * (4 + 1) + 3 * (2 * (4 + 1)))
-        self.assertEqual(value_cache, {'jojo_87.__child__': {'op1': {'y': 5}, 'op2': {'b': 10}, 'op3': {'w': 40}}})
+        self.assertEqual(value_cache, {'jojo_87._child': {'op1': {'y': 5}, 'op2': {'b': 10}, 'op3': {'w': 40}}})
 
 
 class OpStepTest(TestCase):
@@ -1068,3 +1067,142 @@ class NodePortTest(TestCase):
 
         step2.input.a.source = None
         self.assertEqual(step2.input.a.to_json_dict(), dict())
+
+
+class ValueCacheTest(TestCase):
+    class ClosableBibo:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    def test_close(self):
+        bibo1 = ValueCacheTest.ClosableBibo()
+        bibo2 = ValueCacheTest.ClosableBibo()
+        bibo3 = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo1'] = bibo1
+        vc['bibo2'] = bibo2
+        vc['bibo3'] = bibo3
+
+        self.assertFalse(bibo1.closed)
+        self.assertFalse(bibo2.closed)
+        self.assertFalse(bibo3.closed)
+        vc.close()
+        self.assertTrue(bibo1.closed)
+        self.assertTrue(bibo2.closed)
+        self.assertTrue(bibo3.closed)
+
+    def test_close_with_child(self):
+        bibo1 = ValueCacheTest.ClosableBibo()
+        bibo2 = ValueCacheTest.ClosableBibo()
+        bibo3 = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo1'] = bibo1
+        vc['bibo2'] = bibo2
+        bibo2_child = vc.child('bibo2')
+        bibo2_child['bibo3'] = bibo3
+
+        self.assertFalse(bibo1.closed)
+        self.assertFalse(bibo2.closed)
+        self.assertFalse(bibo3.closed)
+        vc.close()
+        self.assertTrue(bibo1.closed)
+        self.assertTrue(bibo2.closed)
+        self.assertTrue(bibo3.closed)
+
+    def test_set(self):
+        bibo = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+
+        self.assertFalse(bibo.closed)
+        vc['bibo'] = None
+        self.assertTrue(bibo.closed)
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], None)
+
+    def test_del(self):
+        bibo = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+
+        self.assertFalse(bibo.closed)
+        del vc['bibo']
+        self.assertTrue(bibo.closed)
+        self.assertNotIn('bibo', vc)
+
+    def test_child(self):
+        bibo = object()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+
+        child_vc = vc.child('bibo')
+        self.assertIsInstance(child_vc, ValueCache)
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+        self.assertIn('bibo._child', vc)
+        self.assertIs(vc['bibo._child'], child_vc)
+        self.assertIsNot(child_vc, vc)
+
+    def test_get_id(self):
+        vc = ValueCache()
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 1)
+        self.assertEqual(vc.get_id('bibo2'), 2)
+        self.assertEqual(vc.get_id('bibo3'), 3)
+
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 1)
+        self.assertEqual(vc.get_id('bibo2'), 2)
+        self.assertEqual(vc.get_id('bibo3'), 3)
+
+        vc.clear()
+
+        self.assertEqual(vc.get_id('bibo1'), None)
+        self.assertEqual(vc.get_id('bibo2'), None)
+        self.assertEqual(vc.get_id('bibo3'), None)
+
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 4)
+        self.assertEqual(vc.get_id('bibo2'), 5)
+        self.assertEqual(vc.get_id('bibo3'), 6)
+
+    def test_rename_key(self):
+        bibo = object()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+
+        bibo_id = vc.get_id('bibo')
+        bibo_child = vc.child('bibo')
+
+        vc.rename_key('bibo', 'bert')
+
+        self.assertNotIn('bibo', vc)
+        self.assertNotIn('bibo._child', vc)
+
+        self.assertIn('bert', vc)
+        self.assertIs(vc['bert'], bibo)
+        self.assertIn('bert._child', vc)
+        self.assertIs(vc['bert._child'], bibo_child)
+        self.assertEqual(vc.get_id('bert'), bibo_id)

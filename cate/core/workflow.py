@@ -1500,53 +1500,121 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
     source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))
 
 
-def _close_value(value):
-    if hasattr(value, 'close'):
-        # noinspection PyBroadException
-        try:
-            value.close()
-        except:
-            pass
-
-
 class ValueCache(dict):
     """
-    A dictionary that can be closed. If closed, all values that have a ``close`` attribute are closed as well.
-    Values are also closed, if they are removed.
+    ``ValueCache`` is a closable dictionary that maintains unique IDs for it's keys.
+    If a ``ValueCache`` is closed, all closable values are also closed.
+    A value is closeable if it has a ``close`` attribute whose value is a callable.
     """
 
     def __init__(self):
         super(ValueCache, self).__init__()
+        self._ids = dict()
+        self._last_id = 0
 
     def __del__(self):
+        """Override the ``dict`` method to close any old values."""
         self._close_values()
+
+    def _set(self, key, value):
+        super(ValueCache, self).__setitem__(key, value)
 
     def __setitem__(self, key, value):
+        """
+        Override the ``dict`` method to close any old value and generate a new ID,
+        if *key* didn't exist before.
+        """
         old_value = self.get(key)
-        super(ValueCache, self).__setitem__(key, value)
+        existed_before = key in self
+        self._set(key, value)
+        if not existed_before:
+            self._ids[key] = self._gen_id()
         if old_value is not value:
-            _close_value(old_value)
+            self._close_value(old_value)
+
+    def _del(self, key):
+        super(ValueCache, self).__delitem__(key)
 
     def __delitem__(self, key):
+        """Override the ``dict`` method to close the value and remove its ID."""
         old_value = self.get(key)
-        super(ValueCache, self).__delitem__(key)
+        self._del(key)
+        del self._ids[key]
         if old_value is not None:
-            _close_value(old_value)
+            self._close_value(old_value)
+
+    def get_id(self, key: str):
+        """Return the integer ID for given *key*. The ID is unique within this cache."""
+        return self._ids.get(key)
 
     def child(self, key: str) -> 'ValueCache':
-        child_key = key + '.__child__'
+        """Return the child ``ValueCache`` for given *key*."""
+        child_key = key + '._child'
         if child_key not in self:
-            self[child_key] = ValueCache()
+            self._set(child_key, ValueCache())
         return self[child_key]
 
-    def close(self):
-        self._close_values()
+    def rename_key(self, key: str, new_key: str) -> None:
+        """
+        Rename the given *key* into *new_key* without changing the value of the ID.
 
-    def _close_values(self):
-        values = list(self.values())
+        :param key: The old key.
+        :param new_key: The new key.
+        """
+        if key == new_key:
+            return
+
+        value = self[key]
+        self._del(key)
+        self._set(new_key, value)
+
+        id = self._ids[key]
+        del self._ids[key]
+        self._ids[new_key] = id
+
+        child_key = key + '._child'
+        if child_key in self:
+            child_cache = self[child_key]
+            self._del(child_key)
+            self._set(new_key + '._child', child_cache)
+
+    def pop(self, key):
+        """Override the ``dict`` method to close the value and remove its ID."""
+        existed_before = key in self
+        value = super(ValueCache, self).pop(key)
+        if existed_before:
+            self._close_value(value)
+            del self._ids[key]
+        return value
+
+    def clear(self) -> None:
+        """Override the ``dict`` method to closes values and remove all IDs."""
+        self._close_values()
+        super(ValueCache, self).clear()
+        self._ids.clear()
+
+    def close(self) -> None:
+        """Close all values and remove all IDs."""
         self.clear()
+
+    def _close_values(self) -> None:
+        values = list(self.values())
         for value in values:
-            _close_value(value)
+            self._close_value(value)
+
+    @classmethod
+    def _close_value(cls, value):
+        if value is not None and hasattr(value, 'close'):
+            # noinspection PyBroadException
+            try:
+                value.close()
+            except:
+                pass
+
+    def _gen_id(self) -> int:
+        new_id = self._last_id + 1
+        self._last_id = new_id
+        return new_id
 
 
 def _new_context(context: Optional[Dict], **kwargs) -> Dict:
