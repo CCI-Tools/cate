@@ -1543,9 +1543,21 @@ class ValueCache(dict):
         if old_value is not None:
             self._close_value(old_value)
 
+    def get_value_by_id(self, id: int, default=UNDEFINED):
+        """Return the value for the given integer *id* or return *default*."""
+        key = self.get_key(id)
+        return self.get(key, default) if key else default
+
     def get_id(self, key: str):
-        """Return the integer ID for given *key*. The ID is unique within this cache."""
+        """Return the integer ID for given *key* or ``None``. The ID is unique within this cache."""
         return self._ids.get(key)
+
+    def get_key(self, id: int):
+        """Return the key for given integer *id* or ``None``."""
+        for key, old_id in self._ids.items():
+            if old_id == id:
+                return key
+        return None
 
     def child(self, key: str) -> 'ValueCache':
         """Return the child ``ValueCache`` for given *key*."""
