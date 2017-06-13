@@ -362,11 +362,11 @@ class OpMetaInfo:
     @classmethod
     def _validate_value_against_data_type(cls, data_type, value, op_name: str, port_type: str, port_name: str):
         try:
-            value_accepted = cls._is_value_accepted(data_type, value)
+            value, can_convert = cls._convert_value(data_type, value)
         except ValueError as e:
             raise ValueError(
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
-        if not value_accepted:
+        if not can_convert and value is not None:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if not is_float_type and not isinstance(value, data_type):
                 raise ValueError(
@@ -374,13 +374,13 @@ class OpMetaInfo:
                         port_type, port_name, op_name, data_type.__name__, type(value).__name__))
 
     @classmethod
-    def _is_value_accepted(cls, data_type: Any, value: Optional[Any]) -> Optional[bool]:
+    def _convert_value(cls, data_type: Any, value: Optional[Any]) -> Tuple[Any, bool]:
         """Check if the given type has an "convert(value)" method, i.e. our XXXLike types, if so return its result."""
         # noinspection PyBroadException
         try:
-            return data_type.convert(value)
+            return data_type.convert(value), True
         except AttributeError:
-            return None
+            return value, False
 
     @classmethod
     def _parse_docstring(cls, docstring):
