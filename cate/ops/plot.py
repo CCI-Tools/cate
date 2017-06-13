@@ -128,7 +128,7 @@ def plot_map(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are currently supported')
+        raise NotImplementedError('Only gridded datasets are currently supported')
 
     var_name = None
     if not var:
@@ -254,11 +254,12 @@ def plot_dataframe(df: pd.DataFrame,
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('index', data_type=DictLike)
+@op_input('props', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          index: DictLike.TYPE = None,
-         figure: Figure = None,
+         props: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
@@ -275,14 +276,24 @@ def plot(ds: xr.Dataset,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
                   e.g. "lat=12.4, time='2012-05-02'".
-    :param figure: optional figure from a previous ``plot`` call
+    :param props: optional plot properties for Python matplotlib,
+                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+                  For full reference refer to
+                  https://matplotlib.org/api/lines_api.html and
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
     """
 
-    var = VarName.convert(var)
-    var = ds[var]
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var_name]
 
     index = DictLike.convert(index)
+    props = DictLike.convert(props) or {}
+    if 'label' not in props:
+        props['label'] = var_name
 
     try:
         if index:
@@ -292,8 +303,68 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    figure = figure or plt.figure(figsize=(8, 4))
-    var_data.plot()
+    figure = plt.figure(figsize=(8, 4))
+    var_data.plot(**props)
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('index', data_type=DictLike)
+@op_input('props', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_hist(ds: xr.Dataset,
+              var: VarName.TYPE,
+              index: DictLike.TYPE = None,
+              props: DictLike.TYPE = None,
+              file: str = None) -> Figure:
+    """
+    Plot a variable, optionally save the figure in a file.
+
+    The plot can either be shown using pyplot functionality, or saved,
+    if a path is given. The following file formats for saving the plot
+    are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
+    svgz, tif, tiff
+
+    :param ds: Dataset that contains the variable named by *var*.
+    :param var: The name of the variable to plot
+    :param index: Optional index into the variable's data array. The *index* is a dictionary
+                  that maps the variable's dimension names to constant labels. For example,
+                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+                  e.g. "lat=12.4, time='2012-05-02'".
+    :param props: optional histogram plot properties for Python matplotlib,
+                  e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+                  For full reference refer to
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
+                  https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    """
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var]
+
+    index = DictLike.convert(index)
+    props = DictLike.convert(props) or {}
+    if 'label' not in props:
+        props['label'] = var_name
+
+    try:
+        if index:
+            var_data = var.sel(method='nearest', **index)
+        else:
+            var_data = var
+    except ValueError:
+        var_data = var
+
+    figure = plt.figure(figsize=(8, 4))
+    var_data.plot.hist(**props)
     if file:
         figure.savefig(file)
 
