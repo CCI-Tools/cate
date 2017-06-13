@@ -291,10 +291,6 @@ class DictLike(Like[dict]):
     def format(cls, value: Optional[dict]) -> str:
         return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()]) if value else ''
 
-    @classmethod
-    def to_json(cls, value: Optional[T]):
-        return value
-
 
 class PointLike(Like[Point]):
     """

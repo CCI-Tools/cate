@@ -179,6 +179,13 @@ class DictLikeTest(TestCase):
         self.assertEqual(DictLike.format(OrderedDict([('name', 'bibo'), ('thres', 0.5), ('drop', True)])),
                          "name='bibo', thres=0.5, drop=True")
 
+    def test_to_json(self):
+        self.assertEqual(DictLike.to_json(OrderedDict([('name', 'bibo'), ('thres', 0.5), ('drop', True)])),
+                         "name='bibo', thres=0.5, drop=True")
+
+    def test_from_json(self):
+        self.assertEqual(DictLike.from_json("name='bibo', thres=0.5, drop=True"),
+                         dict(name='bibo', thres=0.5, drop=True))
 
 class PointLikeTest(TestCase):
     """
