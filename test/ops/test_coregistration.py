@@ -10,7 +10,7 @@ from unittest import TestCase
 
 import numpy as np
 import xarray as xr
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 
 from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
@@ -355,3 +355,32 @@ class TestCoregistration(TestCase):
         b = np.linspace(5.25, 14.75, 20)
         result = _find_intersection(b, a, (0, 20))
         self.assertEqual((5, 10), result)
+
+    def test_subset(self):
+        """
+        Test coregistration being run on a subset
+        """
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        lat_slice = slice(-70, 70)
+        lon_slice = slice(-40, 40)
+        ds_coarse = ds_coarse.sel(lat=lat_slice, lon=lon_slice)
+
+        # Test that the coarse dataset has been resampled onto the grid
+        # of the finer dataset.
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse)
+        assert_array_equal([-67.5, -22.5, 22.5, 67.5], ds_coarse_resampled.lat.values)
+        assert_array_equal([-22.5, 22.5],
+                           ds_coarse_resampled.lon.values)
