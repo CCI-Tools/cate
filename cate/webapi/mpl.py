@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cate.core.workspace import Workspace, get_resource_int_id
-from cate.util.web.webapi import WebAPIRequestHandler
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
@@ -33,14 +30,18 @@ Code bases on an example taken from https://matplotlib.org/examples/user_interfa
 
 import io
 import json
+from typing import Optional
+
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
 
-_DEBUG_WEB_SOCKET_RPC = True
+from cate.core.workspace import Workspace
+from cate.util.web.webapi import WebAPIRequestHandler
 
+_DEBUG_WEB_SOCKET_RPC = True
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
@@ -208,23 +209,11 @@ class MplWebSocketHandler(WebSocketHandler):
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
 
-        try:
-            figure_manager = _get_or_create_figure_manager(self.workspace, self.figure_id)
-        except ValueError as e:
-            self.send_json(dict(type='message', message=str(e)))
-            return
-
-        figure_manager.add_web_socket(self)
-        self.figure_manager = figure_manager
         print('got figure_manager for figure #%s' % figure_id)
 
     def on_close(self):
         print('MplWebSocketHandler.on_close', self.workspace.base_dir, self.figure_id)
-        if self.figure_manager:
-            self.figure_manager.remove_web_socket(self)
-            if not len(self.figure_manager.web_sockets):
-                _remove_figure_manager(self.workspace, self.figure_id)
-        self.figure_manager = None
+        self._remove_figure_manager()
 
     def on_message(self, message):
         if _DEBUG_WEB_SOCKET_RPC:
@@ -240,9 +229,17 @@ class MplWebSocketHandler(WebSocketHandler):
             self.supports_binary = message['value']
         else:
             figure_id = message['figure_id']
-            assert figure_id == self.figure_id
-            if self.figure_manager:
-                self.figure_manager.handle_json(message)
+            if figure_id != self.figure_id:
+                message = "received figure_id={}, but expected figure_id={}".format(figure_id, self.figure_id)
+                self.send_json(dict(type='message', message=message))
+                return
+
+            figure_manager = self._get_or_create_figure_manager()
+            if figure_manager:
+                figure_manager.handle_json(message)
+            else:
+                message = "no figure found for figure_id={}".format(figure_id)
+                self.send_json(dict(type='message', message=message))
 
     def send_json(self, content):
         """Method required by matplotlib's FigureManagerWebAgg"""
@@ -255,8 +252,7 @@ class MplWebSocketHandler(WebSocketHandler):
         if self.supports_binary:
             self.write_message(blob, binary=True)
         else:
-            data_uri = "data:image/png;base64,{0}".format(
-                blob.encode('base64').replace('\n', ''))
+            data_uri = "data:image/png;base64,{0}".format(blob.encode('base64').replace('\n', ''))
             self.write_message(data_uri)
 
     def check_origin(self, origin):
@@ -271,22 +267,40 @@ class MplWebSocketHandler(WebSocketHandler):
         """
         return True
 
+    def _get_or_create_figure_manager(self) -> Optional[FigureManagerWebAgg]:
+        workspace = self.workspace
+        figure_id = self.figure_id
 
-def _get_or_create_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWebAgg:
-    figure_managers = workspace.user_data.get('figure_managers')
-    if not figure_managers:
-        figure_managers = dict()
-        workspace.user_data['figure_managers'] = figure_managers
-    if figure_id in figure_managers:
-        return figure_managers[figure_id]
-    for resource_name, resource in workspace.resource_cache.items():
-        if isinstance(resource, Figure):
-            resource_id = get_resource_int_id(resource_name)
-            if figure_id == resource_id:
-                figure_manager = new_figure_manager_given_figure(figure_id, resource)
-                figure_managers[figure_id] = figure_manager
-                return figure_manager
-    raise ValueError("no resource found for figure_id={}".format(figure_id))
+        figure = workspace.resource_cache.get_value_by_id(figure_id)
+        if isinstance(figure, Figure):
+            figure_managers = workspace.user_data.get('figure_managers')
+            figure_manager = figure_managers and figure_managers.get(figure_id)
+            if figure_manager:
+                if figure_manager.canvas.figure is figure:
+                    # we have a figure_manager and it already manages our figure
+                    return figure_manager
+                # forget this manager, we have a new figure
+                figure_manager.remove_web_socket(self)
+            # create a new figure_manager for our figure
+            figure_manager = new_figure_manager_given_figure(figure_id, figure)
+            figure_manager.add_web_socket(self)
+            if not figure_managers:
+                # store a new mapping of figure_id to figure_manager
+                figure_managers = dict()
+                workspace.user_data['figure_managers'] = figure_managers
+            # register our figure_manager
+            figure_managers[figure_id] = figure_manager
+            return figure_manager
+        return None
+
+    def _remove_figure_manager(self) -> None:
+        workspace = self.workspace
+        figure_id = self.figure_id
+        figure_managers = workspace.user_data.get('figure_managers')
+        if figure_managers and figure_id in figure_managers:
+            figure_manager = figure_managers[figure_id]
+            figure_manager.remove_web_socket(self)
+            del figure_managers[figure_id]
 
 
 def _get_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWebAgg:
@@ -294,9 +308,3 @@ def _get_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWe
     if figure_managers and figure_id in figure_managers:
         return figure_managers[figure_id]
     raise ValueError("missing figure manager for figure_id={}".format(figure_id))
-
-
-def _remove_figure_manager(workspace: Workspace, figure_id: int) -> None:
-    figure_managers = workspace.user_data.get('figure_managers')
-    if figure_managers and figure_id in figure_managers:
-        del figure_managers[figure_id]

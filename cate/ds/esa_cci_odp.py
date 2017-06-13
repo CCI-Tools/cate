@@ -446,6 +446,10 @@ class EsaCciOdpDataSource(DataSource):
         return self._master_id
 
     @property
+    def uuid(self) -> Optional[str]:
+        return self._uuid
+
+    @property
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
@@ -493,6 +497,7 @@ class EsaCciOdpDataSource(DataSource):
 
             meta_info['protocols'] = self.protocols
             meta_info['variables'] = self._variables_list()
+            meta_info['uuid'] = self._uuid
 
             if self._catalogue_data:
                 meta_info.update(self._catalogue_data)
@@ -889,7 +894,13 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        local_meta_info = self.meta_info.copy()
+        if local_meta_info.get('uuid'):
+            del local_meta_info['uuid']
+            local_meta_info['ref_uuid'] = self.meta_info['uuid']
+
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
+                                                  meta_info=local_meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 

@@ -41,7 +41,7 @@ from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -212,17 +212,19 @@ class Workspace:
         for res_step in self.workflow.steps:
             res_name = res_step.id
             if res_name in resource_cache:
+                res_id = self._resource_cache.get_id(res_name)
                 resource = resource_cache.pop(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_name, resource)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         if len(resource_cache) > 0:
             # We should not get here as all resources should have an associated workflow step!
             for res_name, resource in resource_cache.items():
-                resource_descriptor = self._get_resource_descriptor(res_name, resource)
+                res_id = self._resource_cache.get_id(res_name)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         return resource_descriptors
 
-    def _get_resource_descriptor(self, res_name: str, resource):
+    def _get_resource_descriptor(self, res_id: int, res_name: str, resource):
         variable_descriptors = []
         data_type_name = object_to_qualified_name(type(resource))
         if isinstance(resource, xr.Dataset):
@@ -231,7 +233,8 @@ class Workspace:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
-            return dict(name=res_name,
+            return dict(id=res_id,
+                        name=res_name,
                         dataType=data_type_name,
                         dims=to_json(resource.dims),
                         attrs=self._get_dataset_attr_list(resource.attrs),
@@ -241,7 +244,8 @@ class Workspace:
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
-            return dict(name=res_name,
+            return dict(id=res_id,
+                        name=res_name,
                         dataType=data_type_name,
                         variables=variable_descriptors)
         elif isinstance(resource, fiona.Collection):
@@ -255,16 +259,20 @@ class Workspace:
                         'isFeatureAttribute': True,
                     })
             geometry = resource.schema.get('geometry')
-            return dict(name=res_name,
+            return dict(id=res_id,
+                        name=res_name,
                         dataType=data_type_name,
                         variables=variable_descriptors,
                         geometry=geometry,
                         numFeatures=num_features)
         elif isinstance(resource, Figure):
-            return dict(name=res_name,
+            return dict(id=res_id,
+                        name=res_name,
                         dataType=data_type_name,
-                        figureId=get_resource_int_id(res_name))
-        return dict(name=res_name, dataType=data_type_name)
+                        figureId=res_id)
+        return dict(id=res_id,
+                    name=res_name,
+                    dataType=data_type_name)
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
         attr_list = []
@@ -418,7 +426,7 @@ class Workspace:
         res_step.set_id(new_res_name)
 
         if res_name in self._resource_cache:
-            self._resource_cache[new_res_name] = self._resource_cache.pop(res_name)
+            self._resource_cache.rename_key(res_name, new_res_name)
 
     def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name
@@ -435,7 +443,8 @@ class Workspace:
 
         # This namespace will allow us to wire the new resource with existing workflow steps
         # We only add step outputs, so we cannot reference another step's input neither.
-        # Note that workspace workflows never have any inputs to be referenced anyway.
+        # This is not a problem because a workspace's workflow doesn't have any inputs
+        # to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
             output_namespace = step.output
@@ -500,7 +509,7 @@ class Workspace:
         # Remove any cached resource values, whose steps became invalidated
         for key in ids_of_invalidated_steps:
             if key in self._resource_cache:
-                del self._resource_cache[key]
+                self._resource_cache[key] = UNDEFINED
 
     def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name
@@ -556,17 +565,3 @@ class WorkspaceError(Exception):
     @property
     def cause(self):
         return self._cause
-
-
-def get_resource_int_id(resource_name: str, max: int = 4294967295) -> int:
-    return get_int_id(hash(resource_name), max=max)
-
-
-def get_int_id(num: int, max: int = 4294967295) -> int:
-    if max < 0xff:
-        raise ValueError('max is too small: %s' % max)
-    if num < 0:
-        num = ((-num) << 1) | 0x01
-    while num > max:
-        num = (num >> 8) ^ (num & 0xff)
-    return num

@@ -16,7 +16,7 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.plot import plot, plot_map, plot_dataframe
+from cate.ops.plot import plot, plot_map, plot_data_frame
 from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
@@ -173,7 +173,7 @@ class TestPlot(TestCase):
                  reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
 class TestPlotDataFrame(TestCase):
     """
-    Test plot_dataframe() function.
+    Test plot_data_frame() function.
     """
 
     def test_nominal(self):
@@ -186,14 +186,14 @@ class TestPlotDataFrame(TestCase):
                                                          periods=10))
 
         with create_tmp_file('remove_me', 'png') as tmp_file:
-            plot_dataframe(df, file=tmp_file)
+            plot_data_frame(df, file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
         Test the method when run as a registered operation
         """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_dataframe))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_data_frame))
 
         data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
