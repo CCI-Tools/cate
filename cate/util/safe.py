@@ -106,13 +106,13 @@ get_safe_globals = _get_safe_globals_accessor()
 
 def safe_eval(expression: str, local_namespace: Dict[str, Any] = None):
     """
-    The **expression** argument is parsed and evaluated as a Python expression 
-    using the **local_namespace** mapping as local namespace. 
+    The **expression** argument is parsed and evaluated as a Python expression
+    using the **local_namespace** mapping as local namespace.
     The **expression** has no access to the current environment and only limited access to the standard builtins, i.e.
     only functions considered safe are allowed, e.g. *abs*, *min*, *max*, etc.
-    
+
     Syntax errors are reported as exceptions.
-        
+
     :param expression: A Python expression.
     :param local_namespace: The local namespace in which **expression** is evaluated.
     :return: The result of the evaluated expression.

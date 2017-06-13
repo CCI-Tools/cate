@@ -22,10 +22,10 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
-Implements the Tornado REST and WebSocket handlers for working with interactive ``matplotlib`` 
+Implements the Tornado REST and WebSocket handlers for working with interactive ``matplotlib``
 figures in a web frontend.
 
-Code bases on an example taken from https://matplotlib.org/examples/user_interfaces/embedding_webagg.html 
+Code bases on an example taken from https://matplotlib.org/examples/user_interfaces/embedding_webagg.html
 """
 
 import io
