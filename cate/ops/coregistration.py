@@ -186,7 +186,11 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     :param us_method: Upsampling method, see resampling.py
     :return: resampled slice
     """
-    result = resampling.resample_2d(arr_slice.values, w, h, ds_method, us_method)
+    result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
+                                    w,
+                                    h,
+                                    ds_method,
+                                    us_method)
     return xr.DataArray(result)
 
 
@@ -255,14 +259,14 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)
 
     # Set/Update global geospatial attributes
-    retset.attrs['geospatial_lat_min'] = retset.coords['lat'].values[0]
-    retset.attrs['geospatial_lat_max'] = retset.coords['lat'].values[-1]
-    retset.attrs['geospatial_lon_min'] = retset.coords['lon'].values[0]
-    retset.attrs['geospatial_lon_max'] = retset.coords['lon'].values[-1]
-    retset.attrs['geospatial_lon_resolution'] = abs(retset.coords['lon'][1] -
-                                                    retset.coords['lon'][0])
-    retset.attrs['geospatial_lat_resolution'] = abs(retset.coords['lat'][1] -
-                                                    retset.coords['lat'][0])
+    retset.attrs['geospatial_lat_min'] = retset.lat.values[0]
+    retset.attrs['geospatial_lat_max'] = retset.lat.values[-1]
+    retset.attrs['geospatial_lon_min'] = retset.lat.values[0]
+    retset.attrs['geospatial_lon_max'] = retset.lat.values[-1]
+    retset.attrs['geospatial_lon_resolution'] = abs(retset.lon.values[1] -
+                                                    retset.lon.values[0])
+    retset.attrs['geospatial_lat_resolution'] = abs(retset.lat.values[1] -
+                                                    retset.lat.values[0])
     return retset
 
 
