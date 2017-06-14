@@ -370,13 +370,20 @@ class LocalDataSource(DataSource):
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
         return bool(to_remove or to_add)
 
-    def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
+    def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False,
+                    extract_meta_info: bool = False):
         if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_coverage
             if time_coverage:
                 self._extend_temporal_coverage(time_coverage)
         self._files = OrderedDict(sorted(self._files.items(),
                                          key=lambda f: f[1] if isinstance(f, Tuple) and f[1] else datetime.max))
+        if extract_meta_info:
+            try:
+                ds = xr.open_dataset(file)
+                self._meta_info.update(ds.attrs)
+            except OSError:
+                pass
         self.save()
 
     def _extend_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
@@ -534,8 +541,13 @@ class LocalDataStore(DataStore):
         data_source = self.create_data_source(name)
         if isinstance(files, str):
             files = [files]
+        is_first_file = True
         for file in files:
-            data_source.add_dataset(file)
+            if is_first_file:
+                data_source.add_dataset(file, extract_meta_info=True)
+                is_first_file = False
+            else:
+                data_source.add_dataset(file)
         return data_source
 
     def remove_data_source(self, name: str, remove_files: bool = True):
