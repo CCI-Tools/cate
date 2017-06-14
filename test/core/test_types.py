@@ -188,6 +188,7 @@ class DictLikeTest(TestCase):
         self.assertEqual(DictLike.from_json("name='bibo', thres=0.5, drop=True"),
                          dict(name='bibo', thres=0.5, drop=True))
 
+
 class PointLikeTest(TestCase):
     """
     Test the PointLike type

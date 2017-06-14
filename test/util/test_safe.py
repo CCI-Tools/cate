@@ -26,8 +26,8 @@ class SafeTest(TestCase):
         self.assertEqual(safe_eval('"Ha%s" % "Ha"'), "HaHa")
 
     def test_safe_eval_forbidden(self):
-        with self.assertRaises(TypeError) as e:
+        with self.assertRaises(TypeError):
             safe_eval('eval("3+1")')
 
-        with self.assertRaises(TypeError) as e:
+        with self.assertRaises(TypeError):
             safe_eval('open("test.txt", "w")')
