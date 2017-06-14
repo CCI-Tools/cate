@@ -181,26 +181,23 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/write/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(file_path=file_path, format_name=format_name))
-        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
-        return Workspace.from_json_dict(json_dict)
+        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> Workspace:
+                                monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/plot/{base_dir}/{res_name}',
                         path_args=dict(base_dir=base_dir, res_name=res_name),
                         query_args=self._query(var_name=var_name, file_path=file_path))
-        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
-        return Workspace.from_json_dict(json_dict)
+        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         url = self._url('/ws/res/print/{base_dir}',
                         path_args=dict(base_dir=base_dir),
                         query_args=self._query(res_name_or_expr=res_name_or_expr))
-        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
-        return Workspace.from_json_dict(json_dict)
+        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)

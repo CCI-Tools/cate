@@ -19,4 +19,5 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = '0.8.0rc2'
+#: Cate version string (PEP440-compatible).
+__version__ = '0.8.0rc5'

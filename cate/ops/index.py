@@ -51,7 +51,8 @@ def enso_nino34(ds: xr.Dataset,
                 threshold: float=None) -> pd.DataFrame:
     """
     Calculate nino34 index, which is defined as a five month running mean of
-    anomalies of monthly means of SST data in Nino3.4 region.
+    anomalies of monthly means of SST data in Nino3.4 region:: lon_min=-170
+    lat_min=-5 lon_max=-120 lat_max=5.
 
     :param ds: A monthly SST dataset
     :param file: Path to the reference data file

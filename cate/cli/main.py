@@ -115,7 +115,7 @@ from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import to_list, Monitor
+from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
@@ -277,7 +277,7 @@ def _parse_op_args(raw_args: List[str],
                 # noinspection PyBroadException
                 try:
                     # Eval with given namespace as locals
-                    value = eval(raw_value, None, namespace)
+                    value = safe_eval(raw_value, namespace)
                 except Exception:
                     value = raw_value
 
@@ -764,6 +764,11 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_exit(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if not service_info or \
+                not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
+            return
+
         if command_args.yes:
             answer = 'y'
         else:
@@ -1116,7 +1121,7 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display temporal coverage of cached datasets.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Define a local data source using a file pattern.')
+        add_parser = subparsers.add_parser('add', help='Add a new local data source using a file pattern.')
         add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '

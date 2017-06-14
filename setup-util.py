@@ -36,10 +36,10 @@ setup(
     author='Cate Development Team',
     packages=['cate', 'cate.util', 'cate.util.im', 'cate.util.web'],
     install_requires=[
-        'numpy >= 1.7',
+        'numpy',
         # Optional dependencies
-        # 'matplotlib >= 1.5,<2',
-        # 'tornado >= 4.4',
-        # 'pillow >= 4.0'
+        # 'matplotlib',
+        # 'tornado',
+        # 'pillow'
     ],
 )

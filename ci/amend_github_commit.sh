@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# used the Github commit API to add a comment to that commit that triggered this travis job
 #
-# reference:
-# https://gist.github.com/justincampbell/5066394
-# https://developer.github.com/v3/repos/statuses/
+# This script uses the GitHub commit API to add a comment to the commit, which triggered this TravisCI job.
+#
+# References:
+# - https://gist.github.com/justincampbell/5066394
+# - https://developer.github.com/v3/repos/statuses/
 #
 
 STATUS="$1"

@@ -75,7 +75,8 @@ def add_to_data_store_registry():
 class LocalDataSource(DataSource):
     def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: 'LocalDataStore',
                  temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: PolygonLike.TYPE = None,
-                 variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None):
+                 variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None,
+                 meta_info: dict = None):
         self._name = name
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
@@ -102,6 +103,8 @@ class LocalDataSource(DataSource):
 
         self._reference_type = reference_type if reference_type else None
         self._reference_name = reference_name
+
+        self._meta_info = meta_info if meta_info else OrderedDict()
 
     def _resolve_file_path(self, path) -> Sequence:
         return glob(os.path.join(self._data_store.data_store_path, path))
@@ -326,7 +329,8 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
+                                                  meta_info=self.meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 
@@ -366,13 +370,20 @@ class LocalDataSource(DataSource):
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
         return bool(to_remove or to_add)
 
-    def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False):
+    def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False,
+                    extract_meta_info: bool = False):
         if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_coverage
             if time_coverage:
                 self._extend_temporal_coverage(time_coverage)
         self._files = OrderedDict(sorted(self._files.items(),
                                          key=lambda f: f[1] if isinstance(f, Tuple) and f[1] else datetime.max))
+        if extract_meta_info:
+            try:
+                ds = xr.open_dataset(file)
+                self._meta_info.update(ds.attrs)
+            except OSError:
+                pass
         self.save()
 
     def _extend_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
@@ -457,6 +468,10 @@ class LocalDataSource(DataSource):
     def name(self) -> str:
         return self._name
 
+    @property
+    def meta_info(self) -> OrderedDict:
+        return self._meta_info
+
     def to_json_dict(self):
         """
         Return a JSON-serializable dictionary representation of this object.
@@ -466,13 +481,15 @@ class LocalDataSource(DataSource):
         config = OrderedDict({
             'name': self._name,
             'meta_data': {
-                'temporal_coverage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
+                'deprecated': 'to be merged with meta_info in the future',
+                'temporal_covrage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
                 'spatial_coverage': PolygonLike.format(self._spatial_coverage) if self._spatial_coverage else None,
                 'variables': VarNamesLike.format(self._variables) if self._variables else None,
 
                 'reference_type': self._reference_type,
                 'reference_name': self._reference_name
             },
+            'meta_info': self._meta_info,
             'files': [[item[0], item[1][0], item[1][1]] if item[1] else [item[0]] for item in self._files.items()]
         })
         return config
@@ -483,6 +500,7 @@ class LocalDataSource(DataSource):
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
         meta_data = json_dicts.get('meta_data', {})
+        meta_info = json_dicts.get('meta_info', OrderedDict())
 
         temporal_coverage = meta_data.get('temporal_coverage', None)
         # TODO why is this code here, doesn't work, because 'temporal_coverage' is a string
@@ -509,7 +527,7 @@ class LocalDataSource(DataSource):
             else:
                 files = OrderedDict()
             return LocalDataSource(name, files, data_store, temporal_coverage, spatial_coverage, variables,
-                                   reference_type, reference_name)
+                                   reference_type, reference_name, meta_info=meta_info)
         return None
 
 
@@ -523,8 +541,13 @@ class LocalDataStore(DataStore):
         data_source = self.create_data_source(name)
         if isinstance(files, str):
             files = [files]
+        is_first_file = True
         for file in files:
-            data_source.add_dataset(file)
+            if is_first_file:
+                data_source.add_dataset(file, extract_meta_info=True)
+                is_first_file = False
+            else:
+                data_source.add_dataset(file)
         return data_source
 
     def remove_data_source(self, name: str, remove_files: bool = True):
@@ -539,7 +562,8 @@ class LocalDataStore(DataStore):
         self._data_sources.remove(data_source)
 
     def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
-                           reference_type: str = None, reference_name: str = None):
+                           reference_type: str = None, reference_name: str = None,
+                           meta_info: OrderedDict = None):
         self._init_data_sources()
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
@@ -548,7 +572,8 @@ class LocalDataStore(DataStore):
                 raise ValueError(
                     "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
         data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
-                                      reference_type=reference_type, reference_name=reference_name)
+                                      reference_type=reference_type, reference_name=reference_name,
+                                      meta_info=meta_info)
         self._save_data_source(data_source)
         self._data_sources.append(data_source)
         return data_source

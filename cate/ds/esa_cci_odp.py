@@ -53,6 +53,9 @@ from math import ceil, floor, isnan
 from typing import Sequence, Tuple, Optional, Any
 from xarray.backends import NetCDF4DataStore
 
+from owslib.csw import CatalogueServiceWeb
+from owslib.namespaces import Namespaces
+
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
@@ -62,6 +65,8 @@ from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
+
+_CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -86,6 +91,11 @@ _ODP_PROTOCOL_HTTP = 'HTTPServer'
 _ODP_PROTOCOL_OPENDAP = 'OPENDAP'
 
 _ODP_AVAILABLE_PROTOCOLS_LIST = [_ODP_PROTOCOL_HTTP, _ODP_PROTOCOL_OPENDAP]
+
+_CSW_TIMEOUT = 10
+_CSW_MAX_RESULTS = 1000
+_CSW_METADATA_CACHE_FILE = 'catalogue_metadata.xml'
+_CSW_CACHE_FILE = 'catalogue.xml'
 
 # by default there is no timeout
 socket.setdefaulttimeout(10)
@@ -223,7 +233,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
                                                  fields='url,title,size',
                                                  dataset_id=dataset_query_id,
                                                  replica='false',
-                                                 latest='true',
+                                                 latest='True',
                                                  project='esacci'),
                                             monitor=monitor)
 
@@ -279,6 +289,9 @@ class EsaCciOdpDataStore(DataStore):
         self._index_json_dict = index_cache_json_dict
         self._data_sources = []
 
+        self._cci_catalogue_service = None
+        self._cci_catalogue_data_dict = None
+
     @property
     def index_cache_used(self):
         return self._index_cache_used
@@ -330,8 +343,21 @@ class EsaCciOdpDataStore(DataStore):
             self._load_index()
         docs = self._index_json_dict.get('response', {}).get('docs', [])
         self._data_sources = []
-        for doc in docs:
-            self._data_sources.append(EsaCciOdpDataSource(self, doc))
+
+        if self._cci_catalogue_data_dict:
+            for catalogue_data in self._cci_catalogue_data_dict.values():
+                catalogue_item = catalogue_data.copy()
+                catalogue_item.pop('data_sources')
+                for ds_name in catalogue_data.get('data_sources'):
+                    for idx, doc in enumerate(docs):
+                        instance_id = doc.get('instance_id', None)
+                        if ds_name == instance_id:
+                            self._data_sources.append(EsaCciOdpDataSource(self, doc, catalogue_item))
+                            del docs[idx]
+                            break
+        else:
+            for doc in docs:
+                self._data_sources.append(EsaCciOdpDataSource(self, doc))
 
     def _load_index(self):
         self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
@@ -346,6 +372,16 @@ class EsaCciOdpDataStore(DataStore):
                                                     cache_json_filename='dataset-list.json',
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days)
+
+        if not self._cci_catalogue_service:
+            self._cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
+        self._cci_catalogue_data_dict = _load_or_fetch_json(self._cci_catalogue_service.getrecords,
+                                                            fetch_json_args=[],
+                                                            cache_used=self._index_cache_used,
+                                                            cache_dir=get_metadata_store_path(),
+                                                            cache_json_filename='catalogue.json',
+                                                            cache_timestamp_filename='catalogue-timestamp.json',
+                                                            cache_expiration_days=self._index_cache_expiration_days)
 
 
 INFO_FIELD_NAMES = sorted(["realization",
@@ -362,6 +398,19 @@ INFO_FIELD_NAMES = sorted(["realization",
                            "version",
                            "cci_project",
                            "data_type",
+                           # catalogue data fields
+                           "abstract",
+                           "bbox_minx",
+                           "bbox_miny",
+                           "bbox_maxx",
+                           "bbox_maxy",
+                           "creation_date",
+                           "publication_date",
+                           "title",
+                           "data_sources",
+                           "licences",
+                           "temporal_coverage_start",
+                           "temporal_coverage_end"
                            ])
 
 
@@ -369,29 +418,66 @@ class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
+                 cci_catalogue_data: dict = None,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._master_id = json_dict.get('master_id', None)
         self._dataset_id = json_dict.get('id', None)
+        self._instance_id = json_dict.get('instance_id', None)
+
+        if json_dict.get('xlink', None):
+            self._uuid = json_dict.get('xlink')[0].split('|', 1)[0].rsplit('/', 1)[1]
+        else:
+            self._uuid = None
+
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
+        self._catalogue_data = cci_catalogue_data
+
         self._file_list = None
+
         self._temporal_coverage = None
         self._protocol_list = None
+        self._meta_info = None
 
     @property
     def name(self) -> str:
         return self._master_id
 
     @property
+    def uuid(self) -> Optional[str]:
+        return self._uuid
+
+    @property
     def data_store(self) -> EsaCciOdpDataStore:
         return self._data_store
 
+    @property
+    def spatial_coverage(self) -> Optional[PolygonLike]:
+        if self._catalogue_data \
+                and self._catalogue_data.get('bbox_minx', None) and self._catalogue_data.get('bbox_miny', None) \
+                and self._catalogue_data.get('bbox_maxx', None) and self._catalogue_data.get('bbox_maxy', None):
+
+            return PolygonLike.convert([
+                self._catalogue_data.get('bbox_minx'),
+                self._catalogue_data.get('bbox_miny'),
+                self._catalogue_data.get('bbox_maxx'),
+                self._catalogue_data.get('bbox_maxy')
+            ])
+        return None
+
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
-            self.update_file_list(monitor)
-        return self._temporal_coverage
+            temp_coverage_start = self._catalogue_data.get('temporal_coverage_start', None)
+            temp_coverage_end = self._catalogue_data.get('temporal_coverage_end', None)
+            if temp_coverage_start and temp_coverage_end:
+                self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
+            else:
+                self.update_file_list(monitor)
+        if self._temporal_coverage:
+            return self._temporal_coverage
+        return None
 
     @property
     def schema(self) -> Schema:
@@ -400,19 +486,25 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
+        if not self._meta_info:
+            meta_info = OrderedDict()
+            for name in INFO_FIELD_NAMES:
+                value = self._json_dict.get(name, None)
+                # Many values in the index JSON are one-element lists: turn them into scalars
+                if isinstance(value, list) and len(value) == 1:
+                    value = value[0]
+                meta_info[name] = value
 
-        meta_info = OrderedDict()
-        for name in INFO_FIELD_NAMES:
-            value = self._json_dict.get(name, None)
-            # Many values in the index JSON are one-element lists: turn them into scalars
-            if isinstance(value, list) and len(value) == 1:
-                value = value[0]
-            meta_info[name] = value
+            meta_info['protocols'] = self.protocols
+            meta_info['variables'] = self._variables_list()
+            meta_info['uuid'] = self._uuid
 
-        meta_info['protocols'] = self.protocols
-        meta_info['variables'] = self._variables_list()
+            if self._catalogue_data:
+                meta_info.update(self._catalogue_data)
 
-        return meta_info
+            self._meta_info = meta_info
+
+        return self._meta_info
 
     @property
     def cache_info(self) -> OrderedDict:
@@ -802,7 +894,13 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name)
+        local_meta_info = self.meta_info.copy()
+        if local_meta_info.get('uuid'):
+            del local_meta_info['uuid']
+            local_meta_info['ref_uuid'] = self.meta_info['uuid']
+
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
+                                                  meta_info=local_meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
 
@@ -875,3 +973,86 @@ class _DownloadStatistics:
             mb_per_sec = 0
         return "%d of %d MiB @ %.3f MiB/s" % \
                (self._to_mibs(self.bytes_done), self._to_mibs(self.bytes_total), mb_per_sec)
+
+
+class EsaCciCatalogueService:
+
+    def __init__(self, catalogue_url: str):
+
+        self._catalogue_url = catalogue_url
+
+        self._catalogue = None
+        self._catalogue_service = None
+
+        self._namespaces = Namespaces()
+
+    def reset(self):
+        self._catalogue = None
+        self._catalogue_service = None
+
+    def getrecords(self, monitor: Monitor = Monitor.NONE):
+        if not self._catalogue_service:
+            self._init_service()
+
+        if not self._catalogue:
+            self._build_catalogue(monitor.child(1))
+
+        return self._catalogue
+
+    def _build_catalogue(self, monitor: Monitor = Monitor.NONE):
+
+        self._catalogue = {}
+
+        catalogue_metadata = {}
+
+        start_position = 0
+        max_records = _CSW_MAX_RESULTS
+
+        matches = -1
+        while True:
+            # fetch record metadata
+            self._catalogue_service.getrecords2(esn='full', outputschema=self._namespaces.get_namespace('gmd'),
+                                                startposition=start_position, maxrecords=max_records)
+            if matches == -1:
+                # set counters, start progress monitor
+                matches = self._catalogue_service.results.get('matches')
+                if matches == 0:
+                    break
+                monitor.start(label="Fetching catalogue data... (%d records)" % matches,
+                              total_work=ceil(matches / max_records))
+
+            catalogue_metadata.update(self._catalogue_service.records)
+            monitor.progress(work=1)
+
+            # bump counters
+            start_position += max_records
+            if start_position > matches:
+                break
+
+        self._catalogue = {
+            record.identification.uricode[0]: {
+                    'abstract': record.identification.abstract,
+                    'bbox_minx': record.identification.bbox.minx if record.identification.bbox else None,
+                    'bbox_miny': record.identification.bbox.miny if record.identification.bbox else None,
+                    'bbox_maxx': record.identification.bbox.maxx if record.identification.bbox else None,
+                    'bbox_maxy': record.identification.bbox.maxy if record.identification.bbox else None,
+                    'creation_date':
+                    next(iter(e.date for e in record.identification.date if e and e.type == 'creation'), None),
+                    'publication_date':
+                    next(iter(e.date for e in record.identification.date if e and e.type == 'publication'), None),
+                    'title': record.identification.title,
+                    'data_sources': record.identification.uricode[1:],
+                    'licences': record.identification.uselimitation,
+                    'temporal_coverage_start': record.identification.temporalextent_start,
+                    'temporal_coverage_end': record.identification.temporalextent_end
+            }
+            for record in catalogue_metadata.values()
+            if record.identification and len(record.identification.uricode) > 0
+        }
+        monitor.done()
+
+    def _init_service(self):
+        if self._catalogue:
+            return
+        if not self._catalogue_service:
+            self._catalogue_service = CatalogueServiceWeb(url=self._catalogue_url, timeout=_CSW_TIMEOUT, skip_caps=True)

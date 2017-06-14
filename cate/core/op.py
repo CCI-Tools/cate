@@ -396,9 +396,11 @@ def op_input(input_name: str,
              default_value=UNDEFINED,
              position=UNDEFINED,
              data_type=UNDEFINED,
+             nullable=UNDEFINED,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
+             context=UNDEFINED,
              registry=OP_REGISTRY,
              **properties):
     """
@@ -425,14 +427,26 @@ def op_input(input_name: str,
     A key-value pair in *properties* will always overwrite the derived properties listed above.
 
     :param input_name: The name of an input.
-    :param position: The position of a positional input (not supported yet).
+    :param position: The position of a positional input.
     :param default_value: A default value.
     :param data_type: The data type of the input values.
+           If not given, the type of any given, non-None *default_value* is used.
+    :param nullable: If ``True``, the value of the input may be ``None``.
+           If not given, it will be set to ``True`` if the *default_value* is ``None``.
     :param value_set_source: The name of an input, which can be used to generate a dynamic value set.
     :param value_set: A sequence of the valid values. Note that all values in this sequence
-                      must be compatible with *data_type*.
+           must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the named output.
+    :param context: If ``True``, the value of the operation input will be a dictionary representing
+           the current execution context. For example,
+           when the operation is executed from a workflow, the dictionary will hold at least three
+           entries: ``workflow`` provides the current workflow, ``step`` is the currently executed step,
+           and ``value_cache`` which is a mapping from step identifiers to step outputs. If *context* is a
+           string, the value of the operation input will be the result of evaluating the string as Python expression
+           with the current execution context as local environment. This means, *context* may be an expression
+           such as 'workspace', 'workspace.base_dir', 'step', 'step.id'.
+    :param properties: Other properties (keyword arguments) that will be added to the
+           meta-information of the named output.
     :param registry: Optional operation registry.
     """
 
@@ -444,10 +458,15 @@ def op_input(input_name: str,
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
                               position=position,
+                              nullable=nullable,
                               value_set_source=value_set_source,
                               value_set=value_set,
-                              value_range=value_range, **properties)
+                              value_range=value_range,
+                              context=context,
+                              **properties)
+
         input_namespace[input_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
+        _adjust_input_properties(input_namespace[input_name])
         return func_or_class
 
     return decorator
@@ -555,3 +574,19 @@ def op_return(data_type=UNDEFINED,
                      data_type=data_type,
                      registry=registry,
                      **properties)
+
+
+def _adjust_input_properties(input_properties):
+    """Adjust any undefined input properties that can be derived from other defined input properties."""
+
+    default_value = input_properties.get('default_value', UNDEFINED)
+
+    # Derive undefined 'nullable' from 'default_value'
+    nullable = input_properties.get('nullable', UNDEFINED)
+    if nullable is UNDEFINED and default_value is None:
+        input_properties['nullable'] = True
+
+    # Derive undefined 'data_type' from 'default_value'
+    data_type = input_properties.get('data_type', UNDEFINED)
+    if data_type is UNDEFINED and not (default_value is UNDEFINED or default_value is None):
+        input_properties['data_type'] = type(default_value)

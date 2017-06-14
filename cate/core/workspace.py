@@ -29,18 +29,18 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
+from typing import List, Tuple, Any, Dict
 
 import fiona
 import numpy as np
 import pandas as pd
 import xarray as xr
-from typing import List, Tuple, Any, Dict
 
 from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 from cate.core.op import OP_REGISTRY
 from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json
+from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
 from cate.util.im import ImagePyramid, get_chunk_size
 from cate.util.opmetainf import OpMetaInfo
 
@@ -94,6 +94,7 @@ class Workspace:
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
+        self._user_data = dict()
 
     def __del__(self):
         self.close()
@@ -133,6 +134,10 @@ class Workspace:
     @property
     def workflow_file(self) -> str:
         return self.get_workflow_file(self.base_dir)
+
+    @property
+    def user_data(self) -> dict:
+        return self._user_data
 
     @classmethod
     def get_workspace_dir(cls, base_dir) -> str:
@@ -197,47 +202,48 @@ class Workspace:
                             ('is_modified', self.is_modified),
                             ('is_saved', os.path.exists(self.workspace_dir)),
                             ('workflow', self.workflow.to_json_dict()),
-                            ('resources', self._resources_to_json_dict())
+                            ('resources', self._resources_to_json_list())
                             ])
 
-    def _resources_to_json_dict(self):
+    def _resources_to_json_list(self):
         resource_descriptors = []
         resource_cache = dict(self._resource_cache)
         for res_step in self.workflow.steps:
             res_name = res_step.id
             if res_name in resource_cache:
+                res_id = self._resource_cache.get_id(res_name)
+                res_update_count = self._resource_cache.get_update_count(res_name)
                 resource = resource_cache.pop(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_name, resource)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         if len(resource_cache) > 0:
             # We should not get here as all resources should have an associated workflow step!
             for res_name, resource in resource_cache.items():
-                resource_descriptor = self._get_resource_descriptor(res_name, resource)
+                res_id = self._resource_cache.get_id(res_name)
+                res_update_count = self._resource_cache.get_update_count(res_name)
+                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
                 resource_descriptors.append(resource_descriptor)
         return resource_descriptors
 
-    def _get_resource_descriptor(self, res_name: str, resource):
+    def _get_resource_descriptor(self, res_id: int, res_update_count: int, res_name: str, resource):
         variable_descriptors = []
         data_type_name = object_to_qualified_name(type(resource))
+        resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
-            return dict(name=res_name,
-                        dataType=data_type_name,
-                        dims=to_json(resource.dims),
-                        attrs=self._get_dataset_attr_list(resource.attrs),
-                        variables=variable_descriptors)
+            resource_json.update(dims=to_json(resource.dims),
+                                 attrs=self._get_dataset_attr_list(resource.attrs),
+                                 variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
-            return dict(name=res_name,
-                        dataType=data_type_name,
-                        variables=variable_descriptors)
+            resource_json.update(variables=variable_descriptors)
         elif isinstance(resource, fiona.Collection):
             num_features = len(resource)
             properties = resource.schema.get('properties')
@@ -249,12 +255,10 @@ class Workspace:
                         'isFeatureAttribute': True,
                     })
             geometry = resource.schema.get('geometry')
-            return dict(name=res_name,
-                        dataType=data_type_name,
-                        variables=variable_descriptors,
-                        geometry=geometry,
-                        numFeatures=num_features)
-        return dict(name=res_name, dataType=data_type_name)
+            resource_json.update(variables=variable_descriptors,
+                                 geometry=geometry,
+                                 numFeatures=num_features)
+        return resource_json
 
     def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
         attr_list = []
@@ -408,12 +412,12 @@ class Workspace:
         res_step.set_id(new_res_name)
 
         if res_name in self._resource_cache:
-            self._resource_cache[new_res_name] = self._resource_cache.pop(res_name)
+            self._resource_cache.rename_key(res_name, new_res_name)
 
     def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name
         assert op_name
-        assert op_kwargs
+        assert op_kwargs is not None
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
@@ -425,7 +429,8 @@ class Workspace:
 
         # This namespace will allow us to wire the new resource with existing workflow steps
         # We only add step outputs, so we cannot reference another step's input neither.
-        # Note that workspace workflows never have any inputs to be referenced anyway.
+        # This is not a problem because a workspace's workflow doesn't have any inputs
+        # to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
             output_namespace = step.output
@@ -448,7 +453,7 @@ class Workspace:
             if 'source' in input_value:
                 source = input_value['source']
                 if source is not None:
-                    source = eval(source, None, namespace)
+                    source = safe_eval(source, namespace)
                 if isinstance(source, NodePort):
                     # source is an output NodePort of another step
                     input_port.source = source
@@ -490,7 +495,7 @@ class Workspace:
         # Remove any cached resource values, whose steps became invalidated
         for key in ids_of_invalidated_steps:
             if key in self._resource_cache:
-                del self._resource_cache[key]
+                self._resource_cache[key] = UNDEFINED
 
     def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name
@@ -503,12 +508,12 @@ class Workspace:
         unpacked_op_kwargs = {}
         for input_name, input_value in op_kwargs.items():
             if 'source' in input_value:
-                unpacked_op_kwargs[input_name] = eval(input_value['source'], None, self.resource_cache)
+                unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
             elif 'value' in input_value:
                 unpacked_op_kwargs[input_name] = input_value['value']
 
         with monitor.starting("Running operation '%s'" % op_name, 2):
-            self.workflow.invoke(self.resource_cache, monitor=monitor.child(work=1))
+            self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
             op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
@@ -520,8 +525,11 @@ class Workspace:
             if res_step is None:
                 raise WorkspaceError('Resource "%s" not found' % res_name)
             steps = self.workflow.find_steps_to_compute(res_step.id)
-        Workflow.invoke_steps(steps, value_cache=self._resource_cache, monitor=monitor)
+        self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
         return steps[-1].get_output_value()
+
+    def _new_context(self):
+        return dict(value_cache=self._resource_cache, workspace=self)
 
     def _assert_open(self):
         if self._is_closed:

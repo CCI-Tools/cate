@@ -46,3 +46,5 @@ from .monitor import Monitor, ChildMonitor, ConsoleMonitor
 from .namespace import Namespace
 from .opmetainf import OpMetaInfo
 from .undefined import UNDEFINED
+from .safe import safe_eval, get_safe_globals
+

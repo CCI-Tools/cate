@@ -271,6 +271,10 @@ class OpMetaInfo:
                 if cls.MONITOR_INPUT_NAME != arg_name:
                     default_value = default_values[i]
                     input_dict[arg_name]['default_value'] = default_value
+                    if default_value is None:
+                        input_dict[arg_name]['nullable'] = True
+                    else:
+                        input_dict[arg_name]['data_type'] = type(default_value)
                     if 'position' in input_dict[arg_name]:
                         del input_dict[arg_name]['position']
         return input_dict, has_monitor
@@ -298,7 +302,10 @@ class OpMetaInfo:
         inputs = self.input
         # Ensure required input values have values (even None is a value).
         for name, properties in inputs.items():
-            required = 'position' in properties
+            has_no_default = 'default_value' not in properties
+            is_positioned = 'position' in properties
+            is_auto = 'context' in properties
+            required = (is_positioned or has_no_default) and not is_auto
             if required and (name not in input_values):
                 raise ValueError("input '%s' for operation '%s' required" %
                                  (name, self.qualified_name))
@@ -309,10 +316,13 @@ class OpMetaInfo:
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
-            data_type = input_properties.get('data_type', None)
+            if input_properties.get('context'):
+                # Context values will be set by framework
+                continue
+            data_type = input_properties.get('data_type')
             if value is None:
                 default_is_none = input_properties.get('default_value', 1) is None
-                value_set = input_properties.get('value_set', None)
+                value_set = input_properties.get('value_set')
                 value_set_has_none = value_set and (None in value_set)
                 nullable = input_properties.get('nullable', False)
                 if not (default_is_none or value_set_has_none or nullable):
@@ -352,11 +362,11 @@ class OpMetaInfo:
     @classmethod
     def _validate_value_against_data_type(cls, data_type, value, op_name: str, port_type: str, port_name: str):
         try:
-            value_accepted = cls._is_value_accepted(data_type, value)
+            value, can_convert = cls._convert_value(data_type, value)
         except ValueError as e:
             raise ValueError(
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
-        if not value_accepted:
+        if not can_convert and value is not None:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if not is_float_type and not isinstance(value, data_type):
                 raise ValueError(
@@ -364,13 +374,13 @@ class OpMetaInfo:
                         port_type, port_name, op_name, data_type.__name__, type(value).__name__))
 
     @classmethod
-    def _is_value_accepted(cls, data_type: Any, value: Optional[Any]) -> Optional[bool]:
+    def _convert_value(cls, data_type: Any, value: Optional[Any]) -> Tuple[Any, bool]:
         """Check if the given type has an "convert(value)" method, i.e. our XXXLike types, if so return its result."""
         # noinspection PyBroadException
         try:
-            return data_type.convert(value)
+            return data_type.convert(value), True
         except AttributeError:
-            return None
+            return value, False
 
     @classmethod
     def _parse_docstring(cls, docstring):

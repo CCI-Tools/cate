@@ -2,6 +2,7 @@ import json
 import os
 import unittest
 
+from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 from cate.core.workflow import Workflow
 from cate.core.workspace import Workspace, mk_op_kwargs
@@ -11,6 +12,29 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
+
+    def test_workspace_is_part_of_context(self):
+
+        def some_op(ctx: dict) -> dict:
+            return dict(ctx)
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            op_reg = OP_REGISTRY.add_op(some_op)
+            op_reg.op_meta_info.input['ctx']['context'] = True
+
+            ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+            ws.set_resource('new_ctx', op_reg.op_meta_info.qualified_name, {})
+            ws.execute_workflow('new_ctx')
+
+            self.assertTrue('new_ctx' in ws.resource_cache)
+            self.assertTrue('workspace' in ws.resource_cache['new_ctx'])
+            self.assertIs(ws.resource_cache['new_ctx']['workspace'], ws)
+
+        finally:
+            OP_REGISTRY.remove_op(some_op)
+
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
 
@@ -22,17 +46,22 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"), overwrite=True)
+        ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"),
+                        overwrite=True)
         self.assertIn('X', ws.resource_cache)
-        self.assertNotIn('Y', ws.resource_cache)
+        self.assertIn('Y', ws.resource_cache)
+        self.assertIs(ws.resource_cache['Y'], UNDEFINED)
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2), overwrite=True)
-        self.assertNotIn('X', ws.resource_cache)
-        self.assertNotIn('Y', ws.resource_cache)
+        ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2),
+                        overwrite=True)
+        self.assertIn('X', ws.resource_cache)
+        self.assertIs(ws.resource_cache['X'], UNDEFINED)
+        self.assertIn('Y', ws.resource_cache)
+        self.assertIs(ws.resource_cache['Y'], UNDEFINED)
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
@@ -64,9 +93,9 @@ class WorkspaceTest(unittest.TestCase):
         print('----X------------------------------')
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=9), overwrite=True)
         self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache.get('X'), None)
-        self.assertEqual(ws.resource_cache.get('Y'), None)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
         print('----Y------------------------------')
         ws.execute_workflow()
@@ -86,9 +115,9 @@ class WorkspaceTest(unittest.TestCase):
         print('----------------------------------')
         ws.set_resource('A', 'cate.ops.utility.identity', mk_op_kwargs(value=5), overwrite=True)
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), None)
-        self.assertEqual(ws.resource_cache.get('Y'), None)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
+        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
         print('----------------------------------')
         ws.execute_workflow()

@@ -53,7 +53,7 @@ from .correlation import pearson_correlation
 from .harmonize import harmonize
 from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
     read_csv, read_geo_data_frame, read_geo_data_collection, read_netcdf, write_netcdf3, write_netcdf4
-from .plot import plot_map, plot, plot_dataframe
+from .plot import plot_map, plot, plot_data_frame
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
@@ -89,7 +89,7 @@ __all__ = [
     # .plot
     'plot_map',
     'plot',
-    'plot_dataframe',
+    'plot_data_frame',
     # .io
     'open_dataset',
     'save_dataset',

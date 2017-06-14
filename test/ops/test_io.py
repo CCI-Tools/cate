@@ -55,14 +55,14 @@ class TestIO(TestCase):
         df = read_csv(file_out, index_col='id')
         df.to_csv(file_in)
 
-        self.assertEquals(file_in.getvalue(), raw_data)
+        self.assertEqual(file_in.getvalue(), raw_data)
 
     def test_read_geo_data_collection(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
 
         collection = read_geo_data_collection(file)
         self.assertIsNotNone(collection)
-        self.assertEquals(len(collection), 179)
+        self.assertEqual(len(collection), 179)
         collection.close()
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_GEOPANDAS_TESTS', None) == '1', 'CATE_DISABLE_GEOPANDAS_TESTS = 1')
