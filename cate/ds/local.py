@@ -42,6 +42,7 @@ Components
 
 import json
 import os
+import psutil
 import shutil
 import xarray as xr
 from collections import OrderedDict
@@ -567,10 +568,26 @@ class LocalDataStore(DataStore):
         self._init_data_sources()
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
+        lock_filename = '{}.lock'.format(name)
         for ds in self._data_sources:
             if ds.name == name:
-                raise ValueError(
-                    "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
+                if os.path.isfile(lock_filename):
+                    with open(lock_filename, 'r') as lock_file:
+                        writer_pid = lock_file.readline()
+                        lock_file.close()
+                        print(writer_pid)
+                        if psutil.pid_exists(int(writer_pid)):
+                            raise ValueError("Cannot access data source {}, another process is using it (pid:{}".format(
+                                    ds.name, writer_pid))
+                        else:
+                            break
+                else:
+                    raise ValueError(
+                        "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
+        # pid = os.getpid()
+        # with open(lock_filename, 'w') as lock_file:
+        #     lock_file.write(str(pid))
+
         data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
                                       reference_type=reference_type, reference_name=reference_name,
                                       meta_info=meta_info)
