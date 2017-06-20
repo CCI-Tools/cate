@@ -68,7 +68,10 @@ setup(
     license='MIT',
     author='Cate Development Team',
     packages=packages,
-    data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
+    data_files=[
+        ('cate/ds', ['cate/ds/esa_cci_ftp.json']),
+        ('cate/ds/data/countries', ['cate/ds/data/countries/countries.geojson']),
+    ],
     entry_points={
         'console_scripts': [
             'cate = cate.cli.main:main',
