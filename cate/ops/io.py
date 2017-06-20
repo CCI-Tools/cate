@@ -60,7 +60,7 @@ def open_dataset(ds_name: str,
     import cate.core.ds
     ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
                                    var_names=var_names, region=region)
-    if harmonize:
+    if ds and harmonize:
         return harmonize_op(ds)
 
     return ds
