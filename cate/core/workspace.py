@@ -525,8 +525,11 @@ class Workspace:
             if res_step is None:
                 raise WorkspaceError('Resource "%s" not found' % res_name)
             steps = self.workflow.find_steps_to_compute(res_step.id)
-        self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
-        return steps[-1].get_output_value()
+        if len(steps):
+            self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
+            return steps[-1].get_output_value()
+        else:
+            return None
 
     def _new_context(self):
         return dict(value_cache=self._resource_cache, workspace=self)

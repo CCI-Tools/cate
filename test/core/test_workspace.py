@@ -12,7 +12,6 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
-
     def test_workspace_is_part_of_context(self):
 
         def some_op(ctx: dict) -> dict:
@@ -34,6 +33,10 @@ class WorkspaceTest(unittest.TestCase):
 
         finally:
             OP_REGISTRY.remove_op(some_op)
+
+    def test_execute_empty_workflow(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+        ws.execute_workflow()
 
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
