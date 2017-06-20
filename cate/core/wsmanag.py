@@ -324,8 +324,11 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
-            write_object(obj, file_path, format_name=format_name)
-            monitor.progress(work=1, msg='Writing file %s' % file_path)
+            if obj is not None:
+                write_object(obj, file_path, format_name=format_name)
+                monitor.progress(work=1, msg='Writing file %s' % file_path)
+            else:
+                monitor.progress(work=1, msg='No output, file %s NOT written' % file_path)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,

@@ -266,6 +266,10 @@ class WebSocketService:
         workspace = self.workspace_manager.save_workspace(base_dir)
         return workspace.to_json_dict()
 
+    def clean_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.clean_workspace(base_dir)
+        return workspace.to_json_dict()
+
     # see cate-desktop: src/renderer.states.WorkspaceState
     def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor) -> dict:
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
@@ -273,6 +277,10 @@ class WebSocketService:
 
     def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
+        return workspace.to_json_dict()
+
+    def delete_workspace_resource(self, base_dir: str, res_name: str, ) -> dict:
+        workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return workspace.to_json_dict()
 
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: OpKwArgs,
