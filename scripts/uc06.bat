@@ -15,7 +15,7 @@ cate ws init
 
 rem Open the datasets and assign to resource names
 cate res open soil local.SOIL_2007
-rem Doesn't work see Issue #xxx
+rem Doesn't work see Issue #257
 cate res open sst local.SST_2006_2007
 
 rem Perform temporal aggregation
