@@ -40,7 +40,7 @@ requirements = [
     'owslib',
     'pandas',
     'pillow',
-    'psutil'
+    'psutil',
     'pyproj',
     'scipy',
     'shapely',
