@@ -758,7 +758,7 @@ class ImagePyramid:
         :param array: Numpy ndarray-like array of data
         :param max_size: maximum image size as (width, height)
         :param tile_size: optional tile size (tile_width, tile_height)
-        :param int_div: mux_size must be integer-divisible by tile size
+        :param int_div: max_size must be integer-divisible by tile size
         :param num_level_zero_tiles: optional number of level zero tiles
         :param num_levels: optional number of levels
         :return: pyramid layout as tuple (max_size, tile_size, num_level_zero_tiles, num_levels)

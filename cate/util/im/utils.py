@@ -132,8 +132,8 @@ def compute_tile_size(total_size,
             best_tile_size = ts
 
     if not best_tile_size:
-        raise ValueError('tile size could not be computed')
-
+        # if no suitable tile size can be found, use the image untiled
+        best_tile_size = total_size
     return best_tile_size
 
 
