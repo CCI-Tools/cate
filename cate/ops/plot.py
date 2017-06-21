@@ -253,6 +253,49 @@ def plot_data_frame(df: pd.DataFrame,
 
     return figure if not in_notebook() else None
 
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_contour(ds: xr.Dataset,
+         var: VarName.TYPE,
+         indexers: DictLike.TYPE = None,
+         figure: Figure = None,
+         properties: DictLike.TYPE = None,
+         file: str = None) -> Figure:
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var_name]
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
+    if 'label' not in properties:
+        properties['label'] = var_name
+
+    try:
+        if indexers:
+            var_data = var.sel(method='nearest', **indexers)
+        else:
+            var_data = var
+    except ValueError:
+        var_data = var
+
+    if figure:
+        ax = figure.get_axes()[0]
+    else:
+        figure = plt.figure(figsize=(8, 4))
+        ax = figure.add_subplot(111)
+
+    var_data.plot.contour(ax=ax, **properties)
+    ax.set_xlabel("test")
+    figure.tight_layout()
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -281,6 +324,7 @@ def plot(ds: xr.Dataset,
            datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
            e.g. "lat=12.4, time='2012-05-02'".
     :param figure: Figure object to be re-used for plotting
+    :param type: type of plot
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
            For full reference refer to
@@ -302,9 +346,9 @@ def plot(ds: xr.Dataset,
 
     try:
         if indexers:
-            var_data = var.sel(method='nearest', **indexers).to_dataframe()
+            var_data = var.sel(method='nearest', **indexers)
         else:
-            var_data = var.to_dataframe()
+            var_data = var
     except ValueError:
         var_data = var
 
@@ -382,6 +426,7 @@ def plot_hist(ds: xr.Dataset,
         figure.savefig(file)
 
     return figure if not in_notebook() else None
+
 
 
 def _check_bounding_box(lat_min: float,
