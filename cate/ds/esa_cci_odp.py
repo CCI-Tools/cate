@@ -720,7 +720,6 @@ class EsaCciOdpDataSource(DataSource):
             os.makedirs(local_path)
 
         selected_file_list = self._find_files(time_range)
-
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
             files = self._get_urls_list(selected_file_list, protocol)
@@ -872,7 +871,7 @@ class EsaCciOdpDataSource(DataSource):
                             urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                         file_number += 1
                         local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
-        local_ds.save()
+        local_ds.save(True)
         monitor.done()
 
     def make_local(self,
@@ -900,8 +899,8 @@ class EsaCciOdpDataSource(DataSource):
             local_meta_info['ref_uuid'] = self.meta_info['uuid']
 
         local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
-                                                  meta_info=local_meta_info)
-        self._make_local(local_ds, time_range, region, var_names, monitor)
+                                                  time_range, var_names, meta_info=local_meta_info, lock_file=True)
+        self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
         return local_ds
 
     def _init_file_list(self, monitor: Monitor = Monitor.NONE):
