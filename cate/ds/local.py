@@ -570,7 +570,7 @@ class LocalDataStore(DataStore):
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
         lock_filename = '{}.lock'.format(name)
-        lock_filepath = os.path.join(get_data_store_path(), lock_filename)
+        lock_filepath = os.path.join(self._store_dir, lock_filename)
         existing_ds = None
         for ds in self._data_sources:
             if ds.name == name:
@@ -643,7 +643,7 @@ class LocalDataStore(DataStore):
         self._save_data_source(data_source)
         if unlock:
             try:
-                os.remove(os.path.join(get_data_store_path(), '{}.lock'.format(data_source.name)))
+                os.remove(os.path.join(self._store_dir, '{}.lock'.format(data_source.name)))
             except FileNotFoundError:
                 pass
 
