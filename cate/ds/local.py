@@ -514,22 +514,22 @@ class LocalDataSource(DataSource):
         reference_type = meta_data.get('reference_type', None)
         reference_name = meta_data.get('reference_name', None)
 
+        files_dict = OrderedDict()
         if name and isinstance(files, list):
             if len(files) > 0:
                 if isinstance(files[0], list):
                     file_details_length = len(files[0])
                     if file_details_length > 2:
-                        files = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
-                                             parser.parse(item[2]).replace(microsecond=0))
-                                             if item[1] and item[2] else None) for item in files)
-                    else:
-                        files = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
-                                            if len(item) > 1 else (item[0], None) for item in files)
-            else:
-                files = OrderedDict()
-            return LocalDataSource(name, files, data_store, temporal_coverage, spatial_coverage, variables,
-                                   reference_type, reference_name, meta_info=meta_info)
-        return None
+                        files_dict = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
+                                                 parser.parse(item[2]).replace(microsecond=0))
+                                                 if item[1] and item[2] else None) for item in files)
+                    elif file_details_length > 0:
+                        files_dict = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
+                                                 if len(item) > 1 else (item[0], None) for item in files)
+                else:
+                    files_dict = files
+        return LocalDataSource(name, files_dict, data_store, temporal_coverage, spatial_coverage, variables,
+                               reference_type, reference_name, meta_info=meta_info)
 
 
 class LocalDataStore(DataStore):

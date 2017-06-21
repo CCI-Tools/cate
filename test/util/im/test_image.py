@@ -269,6 +269,31 @@ class ImagePyramidTest(TestCase):
         self.assertEqual(compute_tile_size_b2(4096), (256, 4))
         self.assertEqual(compute_tile_size_b2(2048), (256, 3))
 
+    def test_compute_layout(self):
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(4000, 2000))
+        self.assertEqual(max_size, (4000, 2000))
+        self.assertEqual(tile_size, (250, 250))
+        self.assertEqual(num_level_zero_tiles, (2, 1))
+        self.assertEqual(num_levels, 4)
+
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(400, 200))
+        self.assertEqual(max_size, (400, 200))
+        self.assertEqual(tile_size, (200, 200))
+        self.assertEqual(num_level_zero_tiles, (2, 1))
+        self.assertEqual(num_levels, 1)
+
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(1201, 401))
+        self.assertEqual(max_size, (1201, 401))
+        self.assertEqual(tile_size, (1201, 401))
+        self.assertEqual(num_level_zero_tiles, (1, 1))
+        self.assertEqual(num_levels, 1)
+
+        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(200, 100))
+        self.assertEqual(max_size, (200, 100))
+        self.assertEqual(tile_size, (200, 100))
+        self.assertEqual(num_level_zero_tiles, (1, 1))
+        self.assertEqual(num_levels, 1)
+
 
 def compute_tile_size_b2(size):
     s = size
