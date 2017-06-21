@@ -73,6 +73,7 @@ from matplotlib.figure import Figure
 import xarray as xr
 import pandas as pd
 import cartopy.crs as ccrs
+import seaborn as sns
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike, TimeLike
@@ -261,6 +262,7 @@ def plot_data_frame(df: pd.DataFrame,
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
+         figure: Figure = None,
          properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
@@ -278,6 +280,7 @@ def plot(ds: xr.Dataset,
            ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
            datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
            e.g. "lat=12.4, time='2012-05-02'".
+    :param figure: Figure object to be re-used for plotting
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
            For full reference refer to
@@ -299,14 +302,22 @@ def plot(ds: xr.Dataset,
 
     try:
         if indexers:
-            var_data = var.sel(method='nearest', **indexers)
+            var_data = var.sel(method='nearest', **indexers).to_dataframe()
         else:
-            var_data = var
+            var_data = var.to_dataframe()
     except ValueError:
         var_data = var
 
-    figure = plt.figure(figsize=(8, 4))
-    var_data.plot(**properties)
+    if figure:
+        ax = figure.get_axes()[0]
+    else:
+        figure = plt.figure(figsize=(8, 4))
+        ax = figure.add_subplot(111)
+
+    #var_data.plot(ax = ax, **properties)
+    var_data.plot(ax=ax, **properties)
+    ax.set_xlabel("test")
+    figure.tight_layout()
     if file:
         figure.savefig(file)
 
