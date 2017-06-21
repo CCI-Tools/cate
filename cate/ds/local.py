@@ -437,8 +437,8 @@ class LocalDataSource(DataSource):
         if time_range_to_be_removed:
             self._reduce_temporal_coverage(time_range_to_be_removed)
 
-    def save(self):
-        self._data_store.save_data_source(self)
+    def save(self, unlock: bool = False):
+        self._data_store.save_data_source(self, unlock)
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         return self._temporal_coverage
@@ -564,33 +564,40 @@ class LocalDataStore(DataStore):
 
     def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
                            reference_type: str = None, reference_name: str = None,
-                           meta_info: OrderedDict = None):
+                           time_range: TimeRangeLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
+                           meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
         if not name.startswith('%s.' % self.name):
             name = '%s.%s' % (self.name, name)
         lock_filename = '{}.lock'.format(name)
+        lock_filepath = os.path.join(get_data_store_path(), lock_filename)
+        existing_ds = None
         for ds in self._data_sources:
             if ds.name == name:
-                if os.path.isfile(lock_filename):
-                    with open(lock_filename, 'r') as lock_file:
+                if lock_file and os.path.isfile(lock_filepath):
+                    with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
-                        lock_file.close()
-                        print(writer_pid)
                         if psutil.pid_exists(int(writer_pid)):
-                            raise ValueError("Cannot access data source {}, another process is using it (pid:{}".format(
-                                    ds.name, writer_pid))
-                        else:
+                            raise ValueError("Cannot access data source {}, another process is using it (pid:{}"
+                                             .format(ds.name, writer_pid))
+                        # ds.temporal_coverage() == time_range and
+                        if ds.spatial_coverage() == region \
+                                and ds.variables_info == var_names:
+                            existing_ds = ds
                             break
-                else:
-                    raise ValueError(
-                        "Local data store '%s' already contains a data source named '%s'" % (self.name, name))
-        # pid = os.getpid()
-        # with open(lock_filename, 'w') as lock_file:
-        #     lock_file.write(str(pid))
+                raise ValueError("Local data store '{}' already contains a data source named '{}'"
+                                 .format(self.name, name))
+        if existing_ds:
+            data_source = existing_ds
+        else:
+            data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
+                                          reference_type=reference_type, reference_name=reference_name,
+                                          meta_info=meta_info)
+        if lock_file:
+            pid = os.getpid()
+            with open(lock_filepath, 'w') as lock_file:
+                lock_file.write(str(pid))
 
-        data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
-                                      reference_type=reference_type, reference_name=reference_name,
-                                      meta_info=meta_info)
         self._save_data_source(data_source)
         self._data_sources.append(data_source)
         return data_source
@@ -632,8 +639,13 @@ class LocalDataStore(DataStore):
             if data_source:
                 self._data_sources.append(data_source)
 
-    def save_data_source(self, data_source):
+    def save_data_source(self, data_source, unlock: bool = False):
         self._save_data_source(data_source)
+        if unlock:
+            try:
+                os.remove(os.path.join(get_data_store_path(), '{}.lock'.format(data_source.name)))
+            except FileNotFoundError:
+                pass
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()
