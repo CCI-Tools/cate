@@ -784,8 +784,15 @@ class ImagePyramid:
                          compute_tile_size(max_height, int_div=int_div))
         tile_width, tile_height = tile_size
         if not num_level_zero_tiles:
-            num_level_zero_tiles = cardinal_div_round(max_width, max_height), \
-                                   cardinal_div_round(max_height, max_width)
+            num_levels = 1
+            while True:
+                num_level_zero_tiles = cardinal_div_round(max_width, tile_width * 2 ** (num_levels - 1)), \
+                                       cardinal_div_round(max_height, tile_height * 2 ** (num_levels - 1))
+                if num_level_zero_tiles[0] == 1 or num_level_zero_tiles[1] == 1:
+                    break
+                else:
+                    num_levels += 1
+
         if not num_levels:
             num_levels = 1
             num_tiles_x = num_level_zero_tiles[0]
