@@ -45,7 +45,7 @@ def tseries_point(ds: xr.Dataset,
                   var: VarNamesLike.TYPE = None,
                   method: str = 'nearest') -> xr.Dataset:
     """
-    Extract time-series from *ds* at given *lat*, *lon* position using
+    Extract time-series from *ds* at given *lon*, *lat* position using
     interpolation *method* for each *var* given in a comma separated list of
     variables.
 
@@ -54,10 +54,10 @@ def tseries_point(ds: xr.Dataset,
     meta-information preserved.
 
     If a variable has more than three dimensions, the resulting timeseries
-    variable will preserve all other dimensions except for lat/lon.
+    variable will preserve all other dimensions except for lon/lat.
 
     :param ds: The dataset from which to perform timeseries extraction.
-    :param point: Point to extract
+    :param point: Point to extract, e.g. (lon,lat)
     :param var: Variable(s) for which to perform the timeseries selection
                 if none is given, all variables in the dataset will be used.
     :param method: Interpolation method to use.
