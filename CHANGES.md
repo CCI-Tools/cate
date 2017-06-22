@@ -1,3 +1,5 @@
+## Changes in version 0.8.0rc7
+
 ## Changes in version 0.8.0rc6
 
 * `cate.webapi.websocket` now understands the operations 
