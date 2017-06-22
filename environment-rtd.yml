@@ -12,6 +12,6 @@ dependencies:
   - pytest-cov
   - tornado
   # v 0.2.0 of sphinx-argparse needs a greater commonmark-parser version than rtd
-  - sphinx-argparse =>0.1.17
+  - sphinx-argparse >=0.1.17
   - pip:
     - sphinx_autodoc_annotation
