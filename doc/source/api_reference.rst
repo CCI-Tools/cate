@@ -194,6 +194,8 @@ Workflow API
 .. autoclass:: cate.core.NodePort
     :members:
 
+.. _api-monitoring:
+
 Task Monitoring API
 ===================
 
