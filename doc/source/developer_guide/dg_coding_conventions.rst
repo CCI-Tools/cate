@@ -1,12 +1,15 @@
+.. _PEP-8: https://www.python.org/dev/peps/pep-0008/
+.. _PEP-257: https://www.python.org/dev/peps/pep-0257/
+.. _PEP-258: https://www.python.org/dev/peps/pep-0258/
+
 Coding conventions
 ==================
 
 Code style
 ----------
 
-Like most Python projects, we try to adhere to
-`PEP-8 <https://www.python.org/dev/peps/pep-0008/>`__ (Style Guide for
-Python Code) and `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`__
+Like most Python projects, we try to adhere to PEP-8_ (Style Guide for
+Python Code) and PEP-257_
 (Docstring Conventions) with any modifications documented here. Be sure
 to read those documents if you intend to contribute code to Cate
 project.
@@ -22,8 +25,8 @@ Spaces or tabs, etc
 Private components and properties
 ---------------------------------
 
--  According to PEP-8, we use a leading underscore to make components
-   private.
+-  According to PEP-8, we use a leading underscore to denote components
+   as private.
 -  In most cases, class instance variables should be private. Use the
    ``@property`` annotation on a getter method to export them in a
    controlled way. Think twice if you want write access.
@@ -31,15 +34,12 @@ Private components and properties
 Docstrings
 ----------
 
--  Use double quotes for docstrings ``"""``.
+-  Use triple quotes for docstrings ``"""``.
 -  Use single docstrings ``"""bla bla bla."""`` if you have no docstring
    attributes and if the text fits into one line. Otherwise, add a line
    break after the opening ``"""`` and before the closing ``"""``.
 -  Use the Sphinx-style docstring attributes, e.g. ``:param <name>:``,
-   ``:return:``, etc and references, e.g.
-   ``:py:class:\``\ \`\ ``or``:py:meth:\`\`\` etc. **(This is TBC, there
-   is an alternative for Sphinx that is nicer for IPython, see
-   `numpydoc <https://pypi.python.org/pypi/numpydoc>`__)**
+   ``:return:``, etc and references, e.g. ``:py:class:`` or ``py:meth:`` etc.
 -  Use the Sphinx ``#:`` syntax to document variables.
 
 -  All modules must have a docstring that explains a module's intend,
@@ -53,8 +53,7 @@ Docstrings
 -  All public (API) variables must have a docstring that explains a
    variable's purpose, value and type.
 
-See also `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`__ and
-`PEP-258 <https://www.python.org/dev/peps/pep-0258/>`__.
+See also PEP-257_ and PEP-258_.
 
 Type annotations
 ----------------
