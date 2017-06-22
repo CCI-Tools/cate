@@ -22,6 +22,7 @@ ESA CCI Toolbox Documentation
    terminology
    rel_projects
    support
+   developer_guide
 
 
 Indices and tables
