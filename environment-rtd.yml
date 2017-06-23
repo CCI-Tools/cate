@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  # rdt has currently no higher version
+  # rdt requires "sphinx_rtd_theme ==0.1.7" which is not available for python 3.6 yet.
   - python=3.5*
   #
   # for testing
