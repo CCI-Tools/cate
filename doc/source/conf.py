@@ -30,7 +30,7 @@ MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas
                 'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'matplotlib.backends.backend_webagg_core',
                 'pyproj', 'scipy', 'scipy.stats',
                 'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
-                'numpy', 'jdcal', 'dateutil', 'PIL']
+                'numpy', 'jdcal', 'dateutil', 'PIL', 'owslib', 'owslib.csw', 'psutil']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
