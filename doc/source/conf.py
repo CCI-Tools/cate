@@ -27,9 +27,10 @@ from cate.version import __version__ as cate_version
 import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
-                'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'pyproj', 'scipy', 'scipy.stats',
+                'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'matplotlib.backends.backend_webagg_core',
+                'pyproj', 'scipy', 'scipy.stats',
                 'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
-                'numpy', 'jdcal', 'dateutil']
+                'numpy', 'jdcal', 'dateutil', 'PIL']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
