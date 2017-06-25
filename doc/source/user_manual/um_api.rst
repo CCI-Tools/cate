@@ -15,7 +15,7 @@ in Cate's GitHub repository.
 More information about the Cate Python API:
 
 * :doc:`../api_reference`
-* `API Example Notebooks <https://github.com/CCI-Tools/cate-core/blob/master/notebooks>`_.
+* `API Example Notebooks <https://github.com/CCI-Tools/cate-core/blob/master/notebooks>`_
 * :doc:`../developer_guide`
 
 

@@ -149,18 +149,35 @@ Later versions of Cate will also support the following step types:
 * Any shell executables
 * Other workflows
 
-Workflows are also saved and reopened as part of a **workspace**. A workspace refers to a directory in the
+Workflows are also saved and reopened as part of a Cate **workspace**. A Cate workspace refers to a directory in the
 user's file system containing a ``.cate-workspace`` sub-directory, where Cate stores workspace-specific
-data such as the workflow. The workflow is saved as a JSON file within that sub-directory together
+data such as the workspace's workflow. The workflow is saved as a JSON file within that sub-directory together
 with any other files serving as input or output for the workflow. Relative file paths used as operation parameters are
 resolved against the current workspace directory. If a workspace is closed all of its in-memory resources are closed
 and disposed.
+
+The following figure :numref:`about_workspace` shows the workspace with its contained workflow steps and the
+associated in-memory resource objects.
+
+.. _about_workspace:
+
+.. figure:: _static/figures/about-workspace.png
+   :scale: 100 %
+   :align: center
+
+   Cate's workspace/workflow concept
 
 In Cate's CLI, you'll find all workspace- and resource-related commands by using the ``cate ws`` and ``cate res``
 commands::
 
     $ cate ws --help
     $ cate res --help
+
+Using the CLI run command, workflows can be directly executed when given as a JSON-formatted text file::
+
+    $ cate run <my-workflow.json>
+
+More on workflows and its file format can be found in a dedicated chapter :doc:`workflows`.
 
 In Cate's GUI, workspace commands are available in the *File* menu. Furthermore
 

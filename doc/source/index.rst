@@ -19,10 +19,11 @@ ESA CCI Toolbox Documentation
    architecture
    api_reference
    detailed_design
-   terminology
-   rel_projects
+   downloads
    support
    developer_guide
+   terminology
+   rel_projects
 
 
 Indices and tables
