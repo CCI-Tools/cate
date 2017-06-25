@@ -104,22 +104,30 @@ DATA SOURCES Panel
 ------------------
 
 
+
 ----------------
 OPERATIONS Panel
 ----------------
 
-The term *operations* as used in the Cate context includes
-functions that
+The **OPERATIONS** panel is used to browse and apply available operations.
+The term *operations* as used in the Cate context includes functions that
 
-* read datasets from files
-* manipulate these dataset
-* plot datasets
-* write datasets to files
+* read datasets from files;
+* manipulate these dataset;
+* plot datasets;
+* write datasets to files.
 
+Note that all Cate operations are plain Python functions. To let them appear in Cate's CLI and GUI,
+the are annotated with additional meta-data. This also allows for setting specific operation input/output
+properties so that specific user interfaces for a given operation is genereted on-the-fly.
+If you are a Python programmer, you might be interested to take a look at the various operation implementations
+in the `cate.ops <https://github.com/CCI-Tools/cate-core/tree/master/cate/ops>`_ sub-package. They all use the
+Cate *decorators* ``@op``, ``@op_input``, ``@op_output`` that provide extra meta-information.
 
 ---------------
 WORKSPACE Panel
 ---------------
+
 
 
 ---------------
@@ -127,7 +135,33 @@ VARIABLES Panel
 ---------------
 
 
+
+------------
+LAYERS Panel
+------------
+
+
+----------------
+PLACEMARKS Panel
+----------------
+
+
+
+-----------
+VIEWS Panel
+-----------
+
+
+
+-----------
+TASKS Panel
+-----------
+
+
+
 ------------------
 Preferences Dialog
 ------------------
+
+
 
