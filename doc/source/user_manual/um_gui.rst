@@ -16,10 +16,10 @@ interface and adds some unique imaging and visual data analysis features.
 The basic idea of Cate Desktop is to allow access all remote CCI data sources and calling all Cate operations
 through a consistent interface. The results of opening a data source or applying an operations is usually
 an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
-a (NetCDF/CF) dataset comprising one or more geo-physcial variables, but a resource can virtually be of any (Python)
+a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
-The initial layout of Cate Desktop, when run for the first time, reflects what just has been described.
+The Cate Desktop user interface basically comprises *panels*, *views*, and a *menu bar*:
 
 .. _gui_initial:
 
@@ -29,13 +29,14 @@ The initial layout of Cate Desktop, when run for the first time, reflects what j
 
    Cate Desktop initial layout
 
-The user interface basically comprises *panels*, *views*, and a *menu bar*.
+
 
 ------
 Panels
 ------
 
-The screenshot in :numref:`_gui_initial` shows four active *panels*:
+When run for the first time, the initial layout and position of the *panels*, as shown in :numref:`_gui_initial`,
+reflects what just has been described above with respect to data sources, operations, resources/datasets, and variables:
 
 1. On the upper left, the **DATA SOURCES** panel to browse, download and open both local and remote data sources,
    including data from ESA CCI Open Data Portal;
@@ -48,12 +49,16 @@ The screenshot in :numref:`_gui_initial` shows four active *panels*:
 Other panels are initially hidden. They are
 
 * On the upper left, the **LAYERS** panel, to manage the imagery layers displayed on the active *World view*;
-* On the upper left, the **PLACEMARKS** panel, to manage user placemarks, which may be used as input to
-   various operastions, e.g. to create time series plots;
+* On the upper left, the **PLACEMARKS** panel, to manage user-defined placemarks, which may be used as input to
+  various operations, e.g. to create time series plots;
 * On the lower right, the **VIEWS** panel, to display and edit properties of the currently active view. It also allows
   for creating new *World views*;
 * On the lower right, the **TASKS** panel, to list and possibly cancel running background tasks.
 
+Each panel's visibility can be controlled by left- and right-most panel bars. Click on a panel icon to toggle its
+visibility. Between two panels, there are invisible, horizontal split bars. Move the mouse pointer over the split bar
+to see it turning into a split cursor, then drag to change the vertical split position. In a similar way, there are
+invisible, vertical split bars between the tool panels and the views area. Move the mouse cursor over them to find them.
 
 -----
 Views
@@ -122,7 +127,8 @@ the are annotated with additional meta-data. This also allows for setting specif
 properties so that specific user interfaces for a given operation is genereted on-the-fly.
 If you are a Python programmer, you might be interested to take a look at the various operation implementations
 in the `cate.ops <https://github.com/CCI-Tools/cate-core/tree/master/cate/ops>`_ sub-package. They all use the
-Cate *decorators* ``@op``, ``@op_input``, ``@op_output`` that provide extra meta-information.
+Python 3.5 *type annotations* and the Cate *decorators* ``@op``, ``@op_input``, ``@op_output`` that provide
+extra meta-information to a function to make it a published operation.
 
 ---------------
 WORKSPACE Panel

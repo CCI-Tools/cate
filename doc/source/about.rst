@@ -123,6 +123,8 @@ to list and query available operation.
 In the GUI, the panel OPERATIONS lets you query and apply all available operations. Applying an operation creates a
 new *workflow* step in the current *workspace*.
 
+.. _about_workspace:
+
 Workflows, Resources, and Workspaces
 ------------------------------------
 
@@ -156,10 +158,10 @@ with any other files serving as input or output for the workflow. Relative file 
 resolved against the current workspace directory. If a workspace is closed all of its in-memory resources are closed
 and disposed.
 
-The following figure :numref:`about_workspace` shows the workspace with its contained workflow steps and the
+The following figure :numref:`_about_workspace_fig` shows the workspace with its contained workflow steps and the
 associated in-memory resource objects.
 
-.. _about_workspace:
+.. _about_workspace_fig:
 
 .. figure:: _static/figures/about-workspace.png
    :scale: 100 %
