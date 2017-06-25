@@ -1,6 +1,6 @@
-===========
-Desktop GUI
-===========
+==================
+Cate Desktop (GUI)
+==================
 
 *Applies to Cate Desktop, version 0.8.0*
 
@@ -23,7 +23,7 @@ The initial layout of Cate Desktop, when run for the first time, reflects what j
 
 .. _gui_initial:
 
-.. figure:: _static/figures/user_manual/gui_initial.png
+.. figure:: ../_static/figures/user_manual/gui_initial.png
    :scale: 100 %
    :align: center
 
@@ -88,22 +88,23 @@ The **File** menu comprises *Workspace*-related commands and allows setting **Pr
 
 .. _gui_file_menu:
 
-.. figure:: _static/figures/user_manual/gui_file_menu.png
+.. figure:: ../_static/figures/user_manual/gui_file_menu.png
    :scale: 100 %
    :align: center
 
    Cate Desktop's File menu (Windows 10)
 
 
----------
+
 Reference
----------
+=========
 
-
+------------------
 DATA SOURCES Panel
 ------------------
 
 
+----------------
 OPERATIONS Panel
 ----------------
 
@@ -116,14 +117,17 @@ functions that
 * write datasets to files
 
 
+---------------
 WORKSPACE Panel
 ---------------
 
 
+---------------
 VARIABLES Panel
 ---------------
 
 
+------------------
 Preferences Dialog
 ------------------
 
