@@ -1,4 +1,8 @@
-## Changes in version 0.8.0rc7
+## Changes in version 0.8.0rc7.dev1
+
+* Fixed wrong error message that was raised, when attempting to delete a resource on which other steps 
+  still depend on.
+* Various documentation updates.
 
 ## Changes in version 0.8.0rc6
 

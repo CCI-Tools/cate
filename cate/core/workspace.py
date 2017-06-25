@@ -388,11 +388,11 @@ class Workspace:
         dependent_steps = []
         for step in self.workflow.steps:
             if step is not res_step and step.requires(res_step):
-                dependent_steps.append(res_step.id)
+                dependent_steps.append(step.id)
 
         if dependent_steps:
             raise WorkspaceError('Cannot delete resource "%s" because the following resource '
-                                 'depend on it: %s' % (res_step, ', '.join(dependent_steps)))
+                                 'depend on it: %s' % (res_name, ', '.join(dependent_steps)))
 
         self.workflow.remove_step(res_step)
         if res_name in self._resource_cache:
