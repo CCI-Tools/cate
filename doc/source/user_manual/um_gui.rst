@@ -3,12 +3,8 @@ Desktop GUI
 ===========
 
 *Cate Desktop* is a desktop application and is intended to serve as the primary graphical user interface (GUI)
-of the CCI Toolbox. Cate Desktop only has an alpha preview state yet. However, it is actively developed and a first
-version is expected to be released in May 2017.
+for the CCI Toolbox.
 
-The source code is available at GitHub in the `cate-desktop <https://github.com/CCI-Tools/cate-desktop>`_ repository.
-It is quite easy to build it from scratch and run from the command-line. If you are interested, just follow the
-build instructions given in the repository's `README <https://github.com/CCI-Tools/cate-desktop/blob/master/README.md>`_.
 
 The following :numref:`cate_desktop_1` and :numref:`cate_desktop_2` are screen shots alpha preview stage
 (April 2017) of Cate Desktop:
@@ -32,3 +28,15 @@ The following :numref:`cate_desktop_1` and :numref:`cate_desktop_2` are screen s
 
 
 
+
+Downloads
+=========
+
+Find installers for the latest version of Cate Desktop at `releases <https://github.com/CCI-Tools/cate-core/releases>`_ on GitHub.
+
+Source Code
+===========
+
+The source code is available at GitHub in the `cate-desktop <https://github.com/CCI-Tools/cate-desktop>`_ repository.
+It is quite easy to build it from scratch and run from the command-line. If you are interested, just follow the
+build instructions given in the repository's `README <https://github.com/CCI-Tools/cate-desktop/blob/master/README.md>`_.

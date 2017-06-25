@@ -2,22 +2,39 @@
 Cate Python API
 ===============
 
-Overview
-========
+Python programmers can use Cate's Python API by two means
 
-Coming soon.
+1. installing the ``cate``  package directly from sources
+2. installing the ``cate`` package as a Conda package into their Miniconda3/Anaconda3 environment.
 
-Using Cate in your Programs
-===========================
+Note, Cate is not yet available through `pip` (i.e. from PyPi, the common Python Package Index).
 
-Coming soon.
+For detailed instruction, please follow the `README <https://github.com/CCI-Tools/cate-core/blob/master/README.md>`_
+in Cate's GitHub repository.
 
-Extending Cate
-==============
+More information about the Cate Python API:
 
-Coming soon.
+* :doc:`../api_reference`
+* `API Example Notebooks <https://github.com/CCI-Tools/cate-core/blob/master/notebooks>`_.
+* :doc:`../developer_guide`
 
-Examples
-========
 
-Coming soon.
+.. Overview
+   ========
+
+.. TODO
+
+.. Using Cate in your Programs
+   ===========================
+
+.. TODO
+
+.. Extending Cate
+   ==============
+
+.. TODO
+
+.. Examples
+   ========
+
+.. TODO

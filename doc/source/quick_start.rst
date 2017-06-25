@@ -389,9 +389,17 @@ of the same lat/lon dimension - corr_coeff and p_value that can then be plotted 
    :align: center
 
 
+-------------
+More Examples
+-------------
+
+More CLI Examples can be found in the
+`scripts <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ directory within Cate's
+GitHub repository.
+
 Using the API
 =============
 
-A demonstration of how to apply the CCI Toolbox API to the use case described here is given in a dedicated
-`IPython Notebook <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ on GitHub.
+A demonstration of how to apply the Cate's Python API to the use case described here is given in the
+`cate-uc09.ipynb <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ notebook example.
 

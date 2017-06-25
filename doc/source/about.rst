@@ -19,15 +19,30 @@ Interfaces
 
 Cate comprises three major software interfaces:
 
-1. The Cate **Python API** allows you using Cate functions in your Python programs. Cate is
-   programmed in Python 3.
+1. **Cate Desktop** is a user-friendly desktop application. It provides a graphical user interface
+   to all the functionality provided by the CLI. In addition, the GUI
+   allows for visualising data on 3D globes and 2D maps.
+
+
+.. figure:: _static/figures/about-gui.png
+   :scale: 100 %
+   :align: center
+
+   Cate Desktop, this is GUI of the CCI Toolbox
+
 2. The Cate **Command-Line Interface** (CLI) used to access and process data through a command shell or
    console terminal. Almost all Cate functionality is accessible through its CLI. You may decide to use the CLI
    if you don't like programming in Python. The CLI may also be used to write batch processing scripts for
    automation.
-3. **Cate Desktop** is a user-friendly desktop application. It provides a graphical user interface
-   to all the functionality provided by the CLI. In addition, the GUI
-   allows for visualising data on 3D globes and 2D maps.
+
+.. figure:: _static/figures/about-cli.png
+   :scale: 100 %
+   :align: center
+
+   Cate CLI, this is the CLI of the CCI Toolbox
+
+3. The Cate **Python API** allows you using Cate functions in your Python programs. Cate is
+   programmed in Python 3.
 
 Concepts
 ========
@@ -134,10 +149,11 @@ Later versions of Cate will also support the following step types:
 * Any shell executables
 * Other workflows
 
-Worflows can be saved and reopened as part of a **workspace**. A workspace is just a directory in the
-user's file system. The workflow is saved as a JSON file within that directory together with any other files
-serving as input or output for the workflow. Relative file paths used as operation parameters are resolved
-against the current workspace directory. If a workspace is closed all of its in-memory resources are closed
+Workflows are also saved and reopened as part of a **workspace**. A workspace refers to a directory in the
+user's file system containing a ``.cate-workspace`` sub-directory, where Cate stores workspace-specific
+data such as the workflow. The workflow is saved as a JSON file within that sub-directory together
+with any other files serving as input or output for the workflow. Relative file paths used as operation parameters are
+resolved against the current workspace directory. If a workspace is closed all of its in-memory resources are closed
 and disposed.
 
 In Cate's CLI, you'll find all workspace- and resource-related commands by using the ``cate ws`` and ``cate res``
