@@ -391,7 +391,7 @@ class Workspace:
                 dependent_steps.append(step.id)
 
         if dependent_steps:
-            raise WorkspaceError('Cannot delete resource "%s" because the following resource '
+            raise WorkspaceError('Cannot delete resource "%s" because the following resource(s) '
                                  'depend on it: %s' % (res_name, ', '.join(dependent_steps)))
 
         self.workflow.remove_step(res_step)
