@@ -23,6 +23,9 @@ They can also be used as the output of the workflow itself.
 
 Cate externally represents workflows in form of JSON-formatted text files. Support for YAML will be added later.
 
+An internal workflow JSON file is also the most important part of a Cate *workspace* directory as explained further
+in section :ref:`about_workspaces`.
+
 Example
 =======
 
