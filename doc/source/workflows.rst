@@ -35,58 +35,58 @@ The parameters to this workflow are:
 
 .. code-block:: console
 
-{
-  "qualified_name": "subset_netcdf",
-  "header": {
-    "description": "This workflow creates a spatial subset from a netcdf."
-  },
-  "input": {
-    "input_file": {
-      "data_type": "string",
-      "description": "Input netcdf file"
-    },
-    "region": {
-      "data_type": "string",
-      "description": "subset region (WKT)"
-    },
-    "output_file": {
-      "data_type": "string",
-      "description": "Output netcdf file"
-    },
-  },
-  "output": {
-    "return": {
-      "source": "subset.return",
-      "data_type": "xr.Dataset",
-      "description": "The spatial subsetted dataset"
+    {
+      "qualified_name": "subset_netcdf",
+      "header": {
+        "description": "This workflow creates a spatial subset from a netcdf."
+      },
+      "input": {
+        "input_file": {
+          "data_type": "string",
+          "description": "Input netcdf file"
+        },
+        "region": {
+          "data_type": "string",
+          "description": "subset region (WKT)"
+        },
+        "output_file": {
+          "data_type": "string",
+          "description": "Output netcdf file"
+        },
+      },
+      "output": {
+        "return": {
+          "source": "subset.return",
+          "data_type": "xr.Dataset",
+          "description": "The spatial subsetted dataset"
+        }
+      },
+      "steps": [
+        {
+          "id": "read",
+          "op": "read_netcdf",
+          "input": {
+            "file": { "source": "subset_netcdf.input_file" }
+          }
+        },
+        {
+          "id": "subset",
+          "op": "subset_spatial",
+          "input": {
+            "ds": { "source": "read" }
+            "region": { "source": "subset_netcdf.region" }
+          }
+        },
+        {
+          "id": "write",
+          "op": "write_netcdf4",
+          "input": {
+            "obj": { "source": "subset" }
+            "file": { "source": "subset_netcdf.output_file" }
+          }
+        },
+      ]
     }
-  },
-  "steps": [
-    {
-      "id": "read",
-      "op": "read_netcdf",
-      "input": {
-        "file": { "source": "subset_netcdf.input_file" }
-      }
-    },
-    {
-      "id": "subset",
-      "op": "subset_spatial",
-      "input": {
-        "ds": { "source": "read" }
-        "region": { "source": "subset_netcdf.region" }
-      }
-    },
-    {
-      "id": "write",
-      "op": "write_netcdf4",
-      "input": {
-        "obj": { "source": "subset" }
-        "file": { "source": "subset_netcdf.output_file" }
-      }
-    },
-  ]
-}
 
 
 JSON-format
