@@ -29,10 +29,10 @@ in section :ref:`about_workspaces`.
 Example
 =======
 
-This workflow opens a dataset, creates a spatial subset and writes the result a a new NetCDF file.
+This workflow opens a dataset, creates a spatial subset, and writes the result into a new NetCDF file.
 The parameters to this workflow are:
 
-* the input file name
+* the input file path
 * the subset region
 * the output file name
 
@@ -41,20 +41,20 @@ The parameters to this workflow are:
     {
       "qualified_name": "subset_netcdf",
       "header": {
-        "description": "This workflow creates a spatial subset from a netcdf."
+        "description": "This workflow creates a spatial subset of a dataset read from a NetCDF file."
       },
       "input": {
         "input_file": {
           "data_type": "string",
-          "description": "Input netcdf file"
+          "description": "Input NetCDF file path"
         },
         "region": {
           "data_type": "string",
-          "description": "subset region (WKT)"
+          "description": "Subset region (as Geometry WKT)"
         },
         "output_file": {
           "data_type": "string",
-          "description": "Output netcdf file"
+          "description": "Output NetCDF file path"
         },
       },
       "output": {
@@ -95,22 +95,23 @@ The parameters to this workflow are:
 JSON-format
 ===========
 
-The workflow is represented in JSON format that on the top level has 5 different keywords:
+The workflow is represented in JSON format that uses five different keywords on its top level:
 
-* qualified_name
-* header
-* input
-* output
-* steps
+* ``qualified_name``
+* ``header``
+* ``input``
+* ``output``
+* ``steps``
 
-The ``qualified_name`` contains a name under which the workflow can be referenced.
-The ``header`` section can contain a descripion about the worklfow.
-In the ``input`` section each input to the workflow ist listed together with its data type and description.
-If a workflow has an output an ``output`` section list the named outputs of a workflow together with their sources.
+The ``qualified_name`` contains a name under which the workflow can be referenced. This is the workflow's operation name.
+The ``header`` section contains meta-information about the workflow, for example a description text or a version number.
+In the ``input`` section each input to the workflow is listed together with its data type and description.
+If a workflow has one or more outputs, an ``output`` section lists the named outputs of a workflow together with
+their sources.
 
-The ``step`` sectionliste the individiual steps of a workflow tha are executed sequentially.
-The values of the input parameter are taken taken from the parameters decalred in the ``input`` section of the workflow or
-from the output of another operation.
+The ``step`` section lists the individiual steps of a workflow that are executed sequentially.
+The values of the input parameter are taken from the parameters declared in the top-level ``input`` section or
+from the output section of another workflow step.
 
 
 JSON Workflow Schema
