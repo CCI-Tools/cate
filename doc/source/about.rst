@@ -68,7 +68,7 @@ In Cate's CLI, ``cate ds`` is used to perform numerous dataset-related tasks. Ty
 
     $ cate ds --help
 
-to get an overview of the supported sub-comands. For example, use
+to get an overview of the supported sub-comands. For example, use:::
 
     $ cate ds list
 
