@@ -2,21 +2,31 @@
 Workflows
 =========
 
-A workflow is an acyclic processing graph made up from nodes containing operations.
-Similar to an operation a workflow has zero or more (named) inputs and outputs.
+Overview
+========
 
-Purpose
-=======
+Workflows are a fundamental concept in Cate. A workflow is an acyclic processing graph made up from workflow steps
+of various types:
 
-The idea of a workflow is to combine multiple operations together and treat them as a new operation
-without having the need to program. The outputs of one operations can be used as the input for other operations.
+* Steps that invoke *operations* - (Python) functions with additional meta-information;
+* Steps that invoke Python expressions or scripts;
+* Steps that invoke another workflow;
+* Steps that invoke an external executable.
+
+At the time of writing, Cate has support for the first type, operation steps (CLI and GUI), and limited support
+for steps that invoke another workflows (CLI only). The other step types will be added in future releases.
+
+The idea of a workflow is to combine multiple processing steps and treat them as a new operation
+without having the need to program. Workflows can have zero, one or more *inputs* of arbitrary data type.
+The *outputs* of one step can be used as the input for any other step.
 They can also be used as the output of the workflow itself.
 
+Cate externally represents workflows in form of JSON-formatted text files. Support for YAML will be added later.
 
 Example
 =======
 
-This workflow opens a dataset, creates a spatial subset and writes the result a a new netcdf file.
+This workflow opens a dataset, creates a spatial subset and writes the result a a new NetCDF file.
 The parameters to this workflow are:
 
 * the input file name

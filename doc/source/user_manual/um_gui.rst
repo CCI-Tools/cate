@@ -227,12 +227,63 @@ perform some action**. For example, to display an image layer on the 3D Globe vi
 a given time index, although the dataset might be composed of multiple such 2D images that form a time series and / or
 a stack of atmospheric layers.
 
-.. _operations_panel:
 
+.. _workspace_panel:
+
+---------------
+WORKSPACE Panel
+---------------
+
+.. _gui_panel_workspace:
+
+.. figure:: ../_static/figures/user_manual/gui_panel_workspace.png
+   :scale: 100 %
+   :align: right
+
+   WORKSPACE panel
+
+
+
+.. _variables_panel:
+
+---------------
+VARIABLES Panel
+---------------
+
+.. _gui_panel_variables:
+
+.. figure:: ../_static/figures/user_manual/gui_panel_variables.png
+   :scale: 100 %
+   :align: right
+
+   VARIABLES panel
+
+
+
+.. _operations_panel:
 
 ----------------
 OPERATIONS Panel
 ----------------
+
+The **OPERATIONS** panel is used to browse and apply available operations. The term *operations* as used
+in the Cate context includes functions that
+
+* read datasets from files;
+* manipulate these dataset;
+* plot datasets;
+* write datasets to files.
+
+.. note::
+   For Python programmers: At the time of writing, all Cate operations are plain Python functions.
+   To let them appear in Cate's GUI and CLI, they are annotated with additional meta-information.
+   This also allows for setting specific operation input/output
+   properties so that specific user interfaces for a given operation is genereted on-the-fly.
+   You might be interested to take a look at the various functions in the modules of
+   the `cate.ops <https://github.com/CCI-Tools/cate-core/tree/master/cate/ops>`_ Python package of Cate.
+   These functions all use Python 3.5 *type annotations* and Cate *decorators* ``@op``, ``@op_input``,
+   ``@op_output`` to add that meta-information to turn it into Cate *operations*.
+
 
 .. _gui_panel_operations:
 
@@ -243,40 +294,28 @@ OPERATIONS Panel
    OPERATIONS panel
 
 
-The **OPERATIONS** panel is used to browse and apply available operations.
-The term *operations* as used in the Cate context includes functions that
+.. _gui_dialog_new_op_step:
 
-* read datasets from files;
-* manipulate these dataset;
-* plot datasets;
-* write datasets to files.
+.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
+   :scale: 100 %
+   :align: center
 
-Note that all Cate operations are plain Python functions. To let them appear in Cate's GUI and CLI,
-the are annotated with additional meta-information. This also allows for setting specific operation input/output
-properties so that specific user interfaces for a given operation is genereted on-the-fly.
-If you are a Python programmer, you might be interested to take a look at the various operation implementations
-in the `cate.ops <https://github.com/CCI-Tools/cate-core/tree/master/cate/ops>`_ sub-package. They all use
-Python 3.5 *type annotations* and Cate *decorators* ``@op``, ``@op_input``, ``@op_output`` to add
-that meta-information to a function and to publish it to the GUI and CLI.
+   New Operation Step dialog
+
+
+.. _gui_dialog_new_op_step_applied:
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step_applied.png
+   :scale: 100 %
+   :align: center
+
+   New Operation Step dialog
+
 
 .. note::
    Some operations allow or require entering a path to a file or a directory location. When you pass a relative path,
    it is meant to be relative to the current workspace directory.
 
-
-.. _workspace_panel:
-
----------------
-WORKSPACE Panel
----------------
-
-
-.. _variables_panel:
-
-
----------------
-VARIABLES Panel
----------------
 
 
 .. _layers_panel:
