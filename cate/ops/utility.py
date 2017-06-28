@@ -34,6 +34,7 @@ import xarray as xr
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal
+from cate.util import Monitor
 
 
 @op(tags=['utility', 'internal'])
@@ -125,3 +126,21 @@ def literal(value: Literal.TYPE) -> Arbitrary.TYPE:
     :param value: An arbitrary (Python) literal.
     """
     return Literal.convert(value)
+
+
+@op(tags=['utility'])
+def test_tasks(num_steps: int = 10,
+               step_duration: float = 0.5,
+               fail_before: bool = False,
+               fail_after: bool = False,
+               monitor: Monitor = Monitor.NONE):
+    import time
+    monitor.start('Testing the task panel')
+    if fail_before:
+        raise ValueError('This error is a test.')
+    for i in range(num_steps):
+        time.sleep(step_duration)
+        monitor.progress(1.0, 'Step %s of %s' % (i + 1, num_steps))
+    if fail_after:
+        raise ValueError('This error is a test.')
+    monitor.done()

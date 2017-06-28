@@ -236,7 +236,7 @@ class Workspace:
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
             resource_json.update(dims=to_json(resource.dims),
-                                 attrs=self._get_dataset_attr_list(resource.attrs),
+                                 attrs=self._attrs_to_json_list(resource.attrs),
                                  variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
@@ -260,7 +260,7 @@ class Workspace:
                                  numFeatures=num_features)
         return resource_json
 
-    def _get_dataset_attr_list(self, attrs: dict) -> List[Tuple[str, Any]]:
+    def _attrs_to_json_list(self, attrs: dict) -> List[Tuple[str, Any]]:
         attr_list = []
         for name, value in attrs.items():
             attr_list.append([name, to_json(value)])
@@ -283,16 +283,18 @@ class Workspace:
             'shape': variable.shape,
             'chunks': get_chunk_size(variable),
             'dimensions': variable.dims,
-            'fill_value': self._get_float_attr(attrs, '_FillValue'),
-            'valid_min': self._get_float_attr(attrs, 'valid_min'),
-            'valid_max': self._get_float_attr(attrs, 'valid_max'),
-            'add_offset': self._get_float_attr(attrs, 'add_offset'),
-            'scale_factor': self._get_float_attr(attrs, 'scale_factor'),
-            'standard_name': self._get_unicode_attr(attrs, 'standard_name'),
-            'long_name': self._get_unicode_attr(attrs, 'long_name'),
-            'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
-            'comment': self._get_unicode_attr(attrs, 'comment'),
+            # 'fill_value': self._get_float_attr(attrs, '_FillValue'),
+            # 'valid_min': self._get_float_attr(attrs, 'valid_min'),
+            # 'valid_max': self._get_float_attr(attrs, 'valid_max'),
+            # 'add_offset': self._get_float_attr(attrs, 'add_offset'),
+            # 'scale_factor': self._get_float_attr(attrs, 'scale_factor'),
+            # 'standard_name': self._get_unicode_attr(attrs, 'standard_name'),
+            # 'long_name': self._get_unicode_attr(attrs, 'long_name'),
+            # 'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
+            # 'comment': self._get_unicode_attr(attrs, 'comment'),
+            'attrs': self._attrs_to_json_list(attrs)
         }
+
         image_config = self._get_variable_image_config(variable)
         if image_config:
             variable_info['imageLayout'] = image_config
