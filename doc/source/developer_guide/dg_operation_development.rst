@@ -94,7 +94,7 @@ must be provided to the ``@op`` decorator as well.
 
   @op(version='1.0')
   @op_output('name2', add_history=True)
-  def history_op(ds1: xr.Dataset, ds2: xr.Dataset):
+  def my_op_that_saves_history_info(ds1: xr.Dataset, ds2: xr.Dataset):
       # Do some science
       return {'name1': ds1, 'name2': ds2}
 
@@ -126,7 +126,7 @@ For example, an operation that accepts both an ``xr.Dataset`` and a
   @op()
   @op_input('dsf', data_type=DatasetLike)
   @op_input('region', data_type=PolygonLike)
-  def type_op(dsf: DatasetLike.TYPE, region: PolygonLike.TYPE):
+  def my_op_using_advanced_types(dsf: DatasetLike.TYPE, region: PolygonLike.TYPE):
       # Convert inputs to base types (implicit validation)
       ds = DatasetLike.convert(dsf)
       region = PolygonLike.convert(region)
@@ -163,7 +163,7 @@ For example:
   from cate.util.monitor import Monitor
 
   @op()
-  def monitor_op(a: str, monitor: Monitor = Monitor.NONE):
+  def my_op_with_a_monitor(a: str, monitor: Monitor = Monitor.NONE):
       # Set up the monitor
       total_work = 100
       with monitor.starting('Monitor Operation', total_work=total_work):
@@ -242,8 +242,13 @@ better in the GUI, on the CLI, as well as in Jupyter notebooks.
 Cate supports returning multiple named outputs as a Python dictionary.
 
 .. code-block:: python
-
-  return {'Dataset': ds, 'Table': df, 'Scalar': i}
+  ...
+  @op_output('dataset', data_type=xr.Dataset, description='...')
+  @op_output('table', data_type=gpd.GeoDataFrame, description='...')
+  @op_output('scalar', data_type=float, description='...')
+  def my_op_that_has_named_outputs(...):
+    ...
+    return {'dataset': ds, 'table': df, 'scalar': x}
 
 .. _dg-op-other-operations:
 
