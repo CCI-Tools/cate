@@ -29,7 +29,7 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
-from typing import List, Tuple, Any, Dict
+from typing import List, Any, Dict
 
 import fiona
 import numpy as np
@@ -235,8 +235,8 @@ class Workspace:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
-            resource_json.update(dims=to_json(resource.dims),
-                                 attrs=self._attrs_to_json_list(resource.attrs),
+            resource_json.update(dimSizes=to_json(resource.dims),
+                                 attributes=self._attrs_to_json_dict(resource.attrs),
                                  variables=variable_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
@@ -260,17 +260,17 @@ class Workspace:
                                  numFeatures=num_features)
         return resource_json
 
-    def _attrs_to_json_list(self, attrs: dict) -> List[Tuple[str, Any]]:
-        attr_list = []
+    def _attrs_to_json_dict(self, attrs: dict) -> Dict[str, Any]:
+        attr_json_dict = {}
         for name, value in attrs.items():
-            attr_list.append([name, to_json(value)])
-        return attr_list
+            attr_json_dict[name] = to_json(value)
+        return attr_json_dict
 
     def _get_pandas_variable_descriptor(self, variable: pd.Series):
         return {
             'name': variable.name,
             'dataType': object_to_qualified_name(variable.dtype),
-            'ndim': variable.ndim,
+            'numDims': variable.ndim,
             'shape': variable.shape,
         }
 
@@ -279,10 +279,10 @@ class Workspace:
         variable_info = {
             'name': variable.name,
             'dataType': object_to_qualified_name(variable.dtype),
-            'ndim': len(variable.dims),
+            'numDims': len(variable.dims),
+            'dimNames': variable.dims,
             'shape': variable.shape,
-            'chunks': get_chunk_size(variable),
-            'dimensions': variable.dims,
+            'chunkSizes': get_chunk_size(variable),
             # 'fill_value': self._get_float_attr(attrs, '_FillValue'),
             # 'valid_min': self._get_float_attr(attrs, 'valid_min'),
             # 'valid_max': self._get_float_attr(attrs, 'valid_max'),
@@ -292,13 +292,13 @@ class Workspace:
             # 'long_name': self._get_unicode_attr(attrs, 'long_name'),
             # 'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
             # 'comment': self._get_unicode_attr(attrs, 'comment'),
-            'attrs': self._attrs_to_json_list(attrs)
+            'attributes': self._attrs_to_json_dict(attrs)
         }
 
         image_config = self._get_variable_image_config(variable)
         if image_config:
             variable_info['imageLayout'] = image_config
-            variable_info['y_flipped'] = Workspace._is_y_flipped(variable)
+            variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
         return variable_info
 
     # noinspection PyMethodMayBeStatic

@@ -2,10 +2,14 @@ import json
 import os
 import unittest
 
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from cate.core.workflow import Workflow, OpStep
+from cate.core.workspace import Workspace, mk_op_kwargs
 from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
-from cate.core.workflow import Workflow
-from cate.core.workspace import Workspace, mk_op_kwargs
 
 NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp_2.nc')
@@ -33,6 +37,136 @@ class WorkspaceTest(unittest.TestCase):
 
         finally:
             OP_REGISTRY.remove_op(some_op)
+
+    def test_to_json_dict(self):
+
+        def dataset_op() -> xr.Dataset:
+            periods = 5
+            temperature = (15 + 8 * np.random.randn(periods, 2, 2)).round(decimals=1)
+            precipitation = (10 * np.random.rand(periods, 2, 2)).round(decimals=1)
+            ds = xr.Dataset(
+                data_vars={
+                    'temperature': (['time', 'lat', 'lon'], temperature,
+                                    {'a': np.array([1, 2, 3]), 'comment': 'hot', '_FillValue': np.nan}),
+                    'precipitation': (
+                    ['time', 'lat', 'lon'], precipitation, {'x': True, 'comment': 'wet', '_FillValue': -1.0})
+                },
+                coords={
+                    'lon': np.array([12, 13]),
+                    'lat': np.array([50, 51]),
+                    'time': pd.date_range('2014-09-06', periods=periods)
+                },
+                attrs={
+                    'history': 'a b c'
+                })
+            return ds
+
+        def data_frame_op() -> pd.DataFrame:
+            data = {'A': [1, 2, 3, np.nan, 4, 9, np.nan, np.nan, 1, 0, 4, 6],
+                    'B': [5, 6, 8, 7, 5, 5, 5, 9, 1, 2, 7, 6]}
+            time = pd.date_range('2000-01-01', freq='MS', periods=12)
+            return pd.DataFrame(data=data, index=time, dtype=float)
+
+        def int_op() -> int:
+            return 394852
+
+        def str_op() -> str:
+            return 'Hi!'
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            OP_REGISTRY.add_op(dataset_op)
+            OP_REGISTRY.add_op(data_frame_op)
+            OP_REGISTRY.add_op(int_op)
+            OP_REGISTRY.add_op(str_op)
+            workflow = Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!')))
+            workflow.add_step(OpStep(dataset_op, node_id='ds'))
+            workflow.add_step(OpStep(data_frame_op, node_id='df'))
+            workflow.add_step(OpStep(int_op, node_id='i'))
+            workflow.add_step(OpStep(str_op, node_id='s'))
+            ws = Workspace('/path', workflow)
+            ws.execute_workflow()
+
+            d_ws = ws.to_json_dict()
+            # import pprint
+            # pprint.pprint(d_ws)
+
+            d_wf = d_ws.get('workflow')
+            self.assertIsNotNone(d_wf)
+
+            l_res = d_ws.get('resources')
+            self.assertIsNotNone(l_res)
+            self.assertEqual(len(l_res), 4)
+
+            res_1 = l_res[0]
+            self.assertEqual(res_1.get('name'), 'ds')
+            self.assertEqual(res_1.get('dataType'), 'xarray.core.dataset.Dataset')
+            self.assertEqual(res_1.get('dimSizes'), dict(lat=2, lon=2, time=5))
+            self.assertEqual(res_1.get('attributes'), {'history': 'a b c'})
+            res_1_vars = res_1.get('variables')
+            self.assertIsNotNone(res_1_vars)
+            self.assertEqual(len(res_1_vars), 2)
+            var_1 = res_1_vars[0]
+            self.assertEqual(var_1.get('name'), 'precipitation')
+            self.assertEqual(var_1.get('dataType'), 'float64')
+            self.assertEqual(var_1.get('numDims'), 3)
+            self.assertEqual(var_1.get('shape'), (5, 2, 2))
+            self.assertEqual(var_1.get('chunkSizes'), None)
+            self.assertEqual(var_1.get('isYFlipped'), True)
+            self.assertEqual(var_1.get('isFeatureAttribute'), None)
+            self.assertEqual(var_1.get('attributes'), dict(x=True, comment='wet', _FillValue=-1.))
+            var_2 = res_1_vars[1]
+            self.assertEqual(var_2.get('name'), 'temperature')
+            self.assertEqual(var_2.get('dataType'), 'float64')
+            self.assertEqual(var_2.get('numDims'), 3)
+            self.assertEqual(var_2.get('shape'), (5, 2, 2))
+            self.assertEqual(var_2.get('chunkSizes'), None)
+            self.assertEqual(var_2.get('isYFlipped'), True)
+            self.assertEqual(var_2.get('isFeatureAttribute'), None)
+            self.assertEqual(var_2.get('attributes'), dict(a=[1, 2, 3], comment='hot', _FillValue=np.nan))
+
+            res_2 = l_res[1]
+            self.assertEqual(res_2.get('name'), 'df')
+            self.assertEqual(res_2.get('dataType'), 'pandas.core.frame.DataFrame')
+            self.assertIsNone(res_2.get('attributes'))
+            res_2_vars = res_2.get('variables')
+            self.assertIsNotNone(res_2_vars)
+            self.assertEqual(len(res_2_vars), 2)
+            var_1 = res_2_vars[0]
+            self.assertEqual(var_1.get('name'), 'A')
+            self.assertEqual(var_1.get('dataType'), 'float64')
+            self.assertEqual(var_1.get('numDims'), 1)
+            self.assertEqual(var_1.get('shape'), (12,))
+            self.assertEqual(var_1.get('isYFlipped'), None)
+            self.assertEqual(var_1.get('isFeatureAttribute'), None)
+            self.assertIsNone(var_1.get('attributes'))
+            var_2 = res_2_vars[1]
+            self.assertEqual(var_2.get('name'), 'B')
+            self.assertEqual(var_2.get('dataType'), 'float64')
+            self.assertEqual(var_2.get('numDims'), 1)
+            self.assertEqual(var_2.get('shape'), (12,))
+            self.assertEqual(var_2.get('isYFlipped'), None)
+            self.assertEqual(var_2.get('isFeatureAttribute'), None)
+            self.assertIsNone(var_2.get('attributes'))
+
+            res_3 = l_res[2]
+            self.assertEqual(res_3.get('name'), 'i')
+            self.assertEqual(res_3.get('dataType'), 'int')
+            self.assertIsNone(res_3.get('attributes'))
+            self.assertIsNone(res_3.get('variables'))
+
+            res_4 = l_res[3]
+            self.assertEqual(res_4.get('name'), 's')
+            self.assertEqual(res_4.get('dataType'), 'str')
+            self.assertIsNone(res_4.get('attrs'))
+            self.assertIsNone(res_4.get('variables'))
+
+        finally:
+            OP_REGISTRY.remove_op(dataset_op)
+            OP_REGISTRY.remove_op(data_frame_op)
+            OP_REGISTRY.remove_op(int_op)
+            OP_REGISTRY.remove_op(str_op)
 
     def test_execute_empty_workflow(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
