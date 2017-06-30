@@ -2,15 +2,14 @@
 Tests for subsetting operations
 """
 
+from datetime import datetime
 from unittest import TestCase
 
 import numpy as np
 import xarray as xr
 
-from datetime import datetime
-
-from cate.ops import subset
 from cate.core.op import OP_REGISTRY
+from cate.ops import subset
 from cate.util.misc import object_to_qualified_name
 
 
@@ -150,9 +149,11 @@ class TestSubsetSpatial(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
 
-        with self.assertRaises(Exception) as err:
+        with self.assertRaises(Exception) as cm:
             subset.subset_spatial(dataset, pol)
-        self.assertEqual(str(err.exception), 'cannot convert value <POLYGON((162.0703125 39.63953756436670...> to PolygonLike')
+        self.assertEqual(str(cm.exception),
+                         "input 'region' for operation 'cate.ops.subset.subset_spatial': "
+                         "cannot convert value <POLYGON((162.0703125 39.63953756436670...> to PolygonLike")
 
 
 class TestSubsetTemporal(TestCase):

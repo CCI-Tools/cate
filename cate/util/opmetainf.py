@@ -23,10 +23,11 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import re
 from collections import OrderedDict
-from inspect import isclass
 from typing import Tuple, Dict, List, Any, Optional
 
 from cate.util import object_to_qualified_name, qualified_name_to_object
+
+Props = Dict[str, Any]
 
 
 class OpMetaInfo:
@@ -55,8 +56,9 @@ class OpMetaInfo:
                  op_qualified_name: str,
                  has_monitor: bool = False,
                  header_dict: dict = None,
-                 input_dict: OrderedDict = None,
-                 output_dict: OrderedDict = None):
+                 arg_inputs: List[Tuple[str, Props]] = None,
+                 input_dict: Dict[str, Props] = None,
+                 output_dict: Dict[str, Props] = None):
         if not op_qualified_name:
             raise ValueError("argument 'op_qualified_name' is required")
         self._qualified_name = op_qualified_name
@@ -64,6 +66,7 @@ class OpMetaInfo:
         self._header = header_dict if header_dict else dict()
         self._input = OrderedDict(input_dict if input_dict else {})
         self._output = OrderedDict(output_dict if output_dict else {})
+        self._input_names = arg_inputs or self._get_input_names(self._input)
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -87,7 +90,16 @@ class OpMetaInfo:
         return self._header
 
     @property
-    def input(self) -> Dict[str, Dict[str, Any]]:
+    def input_names(self) -> List[str]:
+        """
+        The input names in the order they have been declared.
+
+        :return: List of input names.
+        """
+        return self._input_names
+
+    @property
+    def input(self) -> Dict[str, Props]:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
@@ -96,7 +108,7 @@ class OpMetaInfo:
         return self._input
 
     @property
-    def output(self) -> Dict[str, Dict[str, Any]]:
+    def output(self) -> Dict[str, Props]:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
@@ -189,15 +201,9 @@ class OpMetaInfo:
 
         op_qualified_name = object_to_qualified_name(operation, fail=True)
 
-        input_dict, has_monitor = OrderedDict(), False
+        arg_inputs, input_dict, has_monitor = [], OrderedDict(), False
         if hasattr(operation, '__code__'):
-            input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
-        elif isclass(operation):
-            if hasattr(operation, '__call__'):
-                call_method = getattr(operation, '__call__')
-                input_dict, has_monitor = cls._introspect_inputs_from_callable(call_method, True)
-            else:
-                raise ValueError('operations of type class must define a __call__(self, ...) method')
+            arg_inputs, input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
 
         return_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -238,13 +244,15 @@ class OpMetaInfo:
                           output_dict=output_dict)
 
     @classmethod
-    def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> Tuple[OrderedDict, bool]:
+    def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> \
+            Tuple[List[Tuple[str, Props]], Props, bool]:
+        arg_inputs = []
         input_dict = OrderedDict()
         has_monitor = False
         # code object containing compiled function bytecode
         if not hasattr(operation, '__code__'):
             # Check: throw exception here?
-            return input_dict, has_monitor
+            return arg_inputs, input_dict, has_monitor
         code = operation.__code__
         # number of arguments (not including * or ** args)
         arg_count = code.co_argcount
@@ -257,7 +265,9 @@ class OpMetaInfo:
         arg_pos = 0
         for arg_name in arg_names:
             if cls.MONITOR_INPUT_NAME != arg_name:
-                input_dict[arg_name] = dict(position=arg_pos)
+                input_props = dict(position=arg_pos)
+                arg_inputs.append((arg_name, input_props))
+                input_dict[arg_name] = input_props
                 arg_pos += 1
             else:
                 has_monitor = True
@@ -275,9 +285,7 @@ class OpMetaInfo:
                         input_dict[arg_name]['nullable'] = True
                     else:
                         input_dict[arg_name]['data_type'] = type(default_value)
-                    if 'position' in input_dict[arg_name]:
-                        del input_dict[arg_name]['position']
-        return input_dict, has_monitor
+        return arg_inputs, input_dict, has_monitor
 
     def set_default_input_values(self, input_values: Dict):
         """
@@ -303,9 +311,8 @@ class OpMetaInfo:
         # Ensure required input values have values (even None is a value).
         for name, properties in inputs.items():
             has_no_default = 'default_value' not in properties
-            is_positioned = 'position' in properties
             is_auto = 'context' in properties
-            required = (is_positioned or has_no_default) and not is_auto
+            required = has_no_default and not is_auto
             if required and (name not in input_values):
                 raise ValueError("input '%s' for operation '%s' required" %
                                  (name, self.qualified_name))
@@ -449,6 +456,28 @@ class OpMetaInfo:
             .replace(':py:func:', '') \
             .replace(':py:attr:', '') \
             .replace('`', '')
+
+    @classmethod
+    def _get_input_names(cls, input_dict: Dict[str, Props]) -> List[str]:
+        num_args = len(input_dict)
+        if not num_args:
+            return []
+        args = num_args * ['']
+        index = 0
+        for name, props in input_dict.items():
+            position = props.get('position', index)
+            if 0 <= position < num_args:
+                if args[position]:
+                    raise ValueError("illegal input property, position={} used twice".format(position))
+            else:
+                raise ValueError(
+                    "illegal input property, expected position={} to {}, but was {}".format(0, num_args - 1, position))
+            args[position] = name
+            index += 1
+        for position in range(num_args):
+            if not args[position]:
+                raise ValueError("illegal input properties, position={} is undefined".format(position))
+        return args
 
 
 _SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")

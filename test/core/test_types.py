@@ -1,20 +1,19 @@
 from collections import namedtuple
 from datetime import datetime, date
+from io import StringIO
 from typing import Union, Tuple
 from unittest import TestCase
 
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import xarray as xr
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
-    TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike
+    TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike
 from cate.util import object_to_qualified_name, OrderedDict
-
-import xarray as xr
-import pandas as pd
-import geopandas as gpd
-import numpy as np
-
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
 ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])
@@ -30,7 +29,7 @@ class ExampleType(Like[ExamplePoint]):
     TYPE = Union[ExamplePoint, Tuple[float, float], str]
 
     @classmethod
-    def convert(cls, value) -> ExamplePoint:
+    def convert(cls, value, default=None) -> ExamplePoint:
         try:
             if isinstance(value, ExamplePoint):
                 return value
@@ -67,13 +66,17 @@ class ExampleTypeTest(TestCase):
         self.assertEqual(scale_point(ExamplePoint(2.4, 4.8), 0.5), ExamplePoint(1.2, 2.4))
 
     def test_abuse(self):
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError) as cm:
             scale_point("A, 4.8", 0.5)
-        self.assertEqual(str(e.exception), "cannot convert value <A, 4.8> to ExampleType")
+        self.assertEqual(str(cm.exception),
+                         "input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "cannot convert value <A, 4.8> to ExampleType")
 
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError) as cm:
             scale_point(25.1, 0.5)
-        self.assertEqual(str(e.exception), "cannot convert value <25.1> to ExampleType")
+        self.assertEqual(str(cm.exception),
+                         "input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "cannot convert value <25.1> to ExampleType")
 
     def test_registered_op(self):
         registered_op = _OP_REGISTRY.get_op(object_to_qualified_name(scale_point))
@@ -149,6 +152,33 @@ class VarNameTest(TestCase):
         self.assertEqual('aa', VarName.format('aa'))
 
 
+class FileLikeTest(TestCase):
+    """
+    Test the FileLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(FileLike.accepts(None))
+        self.assertTrue(FileLike.accepts(''))
+        self.assertTrue(FileLike.accepts('a/b/c'))
+        self.assertTrue(FileLike.accepts(StringIO()))
+        self.assertFalse(FileLike.accepts(2))
+        self.assertFalse(FileLike.accepts(True))
+
+    def test_convert(self):
+        self.assertEqual(FileLike.convert(None), None)
+        self.assertEqual(FileLike.convert(''), None)
+        self.assertEqual(FileLike.convert('a/b/c'), 'a/b/c')
+        io = StringIO()
+        self.assertEqual(FileLike.convert(io), io)
+
+    def test_format(self):
+        self.assertEqual(FileLike.format(None), '')
+        self.assertEqual(FileLike.format('a/b/c'), 'a/b/c')
+        io = StringIO()
+        self.assertEqual(FileLike.format(io), '')
+
+
 class DictLikeTest(TestCase):
     """
     Test the DictLike type
@@ -170,7 +200,8 @@ class DictLikeTest(TestCase):
         self.assertEqual(DictLike.convert(None), None)
         self.assertEqual(DictLike.convert(''), None)
         self.assertEqual(DictLike.convert('  '), None)
-        self.assertEqual(DictLike.convert('name="bibo", thres=0.5, drop=False'), dict(name="bibo", thres=0.5, drop=False))
+        self.assertEqual(DictLike.convert('name="bibo", thres=0.5, drop=False'),
+                         dict(name="bibo", thres=0.5, drop=False))
 
         with self.assertRaises(ValueError) as err:
             DictLike.convert('{a=8, b}')
@@ -416,7 +447,6 @@ class TypeNamesTest(TestCase):
 
 
 class ArbitraryTest(TestCase):
-
     def test_convert(self):
         self.assertEqual(Arbitrary.convert(None), None)
         self.assertEqual(Arbitrary.convert(434), 434)
@@ -434,7 +464,6 @@ class ArbitraryTest(TestCase):
 
 
 class LiteralTest(TestCase):
-
     def test_convert(self):
         self.assertEqual(Literal.convert(''), None)
         self.assertEqual(Literal.convert('None'), None)
@@ -460,7 +489,6 @@ class LiteralTest(TestCase):
 
 
 class DatasetLikeTest(TestCase):
-
     def test_convert(self):
         self.assertEqual(DatasetLike.convert(None), None)
 
@@ -482,7 +510,6 @@ class DatasetLikeTest(TestCase):
 
 
 class DataFrameLikeTest(TestCase):
-
     def test_convert(self):
         self.assertEqual(DataFrameLike.convert(None), None)
 

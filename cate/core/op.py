@@ -105,7 +105,6 @@ Components
 """
 
 from collections import OrderedDict
-from inspect import isclass
 from typing import Union, Callable
 
 import xarray as xr
@@ -125,6 +124,11 @@ class OpRegistration:
     def __init__(self, operation):
         self._op_meta_info = OpMetaInfo.introspect_operation(operation)
         self._operation = operation
+        for attr_name in ['__module__', '__name__', '__qualname__', '__doc__', '__file__']:
+            try:
+                setattr(self, attr_name, getattr(operation, attr_name))
+            except AttributeError:
+                pass
 
     @property
     def op_meta_info(self) -> OpMetaInfo:
@@ -134,9 +138,9 @@ class OpRegistration:
         return self._op_meta_info
 
     @property
-    def operation(self) -> object:
+    def operation(self) -> Callable:
         """
-        :return: The actual operation object which may be a class or any callable.
+        :return: The actual operation object which may be any callable.
         """
         return self._operation
 
@@ -195,14 +199,27 @@ class OpRegistration:
     def __str__(self):
         return '%s: %s' % (self.operation, self.op_meta_info)
 
-    def __call__(self, monitor: Monitor = Monitor.NONE, **input_values):
+    def __call__(self, *args, monitor: Monitor = Monitor.NONE, **kwargs):
         """
         Perform this operation.
 
+        :param args: the arguments
         :param monitor: an optional progress monitor, which is passed to the wrapped callable, if it supports it.
-        :param input_values: the input values
-        :return: the output value(s).
+        :param kwargs: the keyword arguments
+        :return: the operation output.
         """
+
+        input_values = kwargs
+
+        # process arguments, if any
+        num_args = len(args)
+        if num_args:
+            input_names = self.op_meta_info.input_names
+            for position in range(num_args):
+                if position >= len(input_names):
+                    raise ValueError("too many inputs given for operation '{}'".format(self.op_meta_info.qualified_name))
+                input_name = self.op_meta_info.input_names[position]
+                input_values[input_name] = args[position]
 
         # set default_value where input values are missing
         self.op_meta_info.set_default_input_values(input_values)
@@ -215,14 +232,8 @@ class OpRegistration:
             input_values[self.op_meta_info.MONITOR_INPUT_NAME] = monitor
 
         operation = self.operation
-        if isclass(operation):
-            # create object instance
-            operation_instance = operation()
-            # call the instance
-            return_value = operation_instance(**input_values)
-        else:
-            # call the function/method/callable/?
-            return_value = operation(**input_values)
+        # call the callable
+        return_value = operation(**input_values)
 
         if self.op_meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
@@ -285,7 +296,7 @@ class OpRegistry:
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda item: item[0]))
 
-    def add_op(self, operation, fail_if_exists=True) -> OpRegistration:
+    def add_op(self, operation: Callable, fail_if_exists=True) -> OpRegistration:
         """
         Add a new operation registration.
 
@@ -293,6 +304,7 @@ class OpRegistry:
         :param fail_if_exists: raise ``ValueError`` if the operation was already registered
         :return: a :py:class:`cate.core.op.OpRegistration` object
         """
+        operation = self._unwrap_operation(operation)
         op_key = self.get_op_key(operation)
         if op_key in self._op_registrations:
             if fail_if_exists:
@@ -303,7 +315,7 @@ class OpRegistry:
         self._op_registrations[op_key] = op_registration
         return op_registration
 
-    def remove_op(self, operation, fail_if_not_exists=False) -> OpRegistration:
+    def remove_op(self, operation: Callable, fail_if_not_exists=False) -> OpRegistration:
         """
         Remove an operation registration.
 
@@ -312,6 +324,7 @@ class OpRegistry:
         :return: the removed :py:class:`cate.core.op.OpRegistration` object or ``None``
                  if *fail_if_not_exists* is ``False``.
         """
+        operation = self._unwrap_operation(operation)
         op_key = self.get_op_key(operation)
         if op_key not in self._op_registrations:
             if fail_if_not_exists:
@@ -328,6 +341,7 @@ class OpRegistry:
         :param fail_if_not_exists: raise ``ValueError`` if no such operation was found
         :return: a :py:class:`cate.core.op.OpRegistration` object or ``None`` if *fail_if_not_exists* is ``False``.
         """
+        operation = self._unwrap_operation(operation)
         op_key = self.get_op_key(operation)
         op_registration = self._op_registrations.get(op_key, None)
         if op_registration is None and fail_if_not_exists:
@@ -345,11 +359,21 @@ class OpRegistry:
         if isinstance(operation, str):
             qualified_name = operation
         else:
+            operation = self._unwrap_operation(operation)
             qualified_name = object_to_qualified_name(operation)
         if qualified_name.startswith('cate.ops.'):
             return qualified_name.rsplit('.', maxsplit=1)[1]
         else:
             return qualified_name
+
+    @classmethod
+    def _unwrap_operation(cls, operation):
+        if not operation:
+            raise ValueError('operation must be given')
+        try:
+            return operation.operation
+        except AttributeError:
+            return operation
 
 
 class _DefaultOpRegistry(OpRegistry):
@@ -384,10 +408,10 @@ def op(registry=OP_REGISTRY, **properties):
     :param registry: The operation registry.
     """
 
-    def decorator(func_or_class):
-        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
+    def decorator(op_func):
+        op_registration = registry.add_op(op_func, fail_if_exists=False)
         op_registration.op_meta_info.header.update({k: v for k, v in properties.items() if v is not UNDEFINED})
-        return func_or_class
+        return op_registration
 
     return decorator
 
@@ -450,8 +474,8 @@ def op_input(input_name: str,
     :param registry: Optional operation registry.
     """
 
-    def decorator(func_or_class):
-        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
+    def decorator(op_func):
+        op_registration = registry.add_op(op_func, fail_if_exists=False)
         input_namespace = op_registration.op_meta_info.input
         if input_name not in input_namespace:
             input_namespace[input_name] = dict()
@@ -467,7 +491,7 @@ def op_input(input_name: str,
 
         input_namespace[input_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
         _adjust_input_properties(input_namespace[input_name])
-        return func_or_class
+        return op_registration
 
     return decorator
 
@@ -510,8 +534,8 @@ def op_output(output_name: str,
     :param registry: Optional operation registry.
     """
 
-    def decorator(func_or_class):
-        op_registration = registry.add_op(func_or_class, fail_if_exists=False)
+    def decorator(op_func):
+        op_registration = registry.add_op(op_func, fail_if_exists=False)
         output_namespace = op_registration.op_meta_info.output
         if not op_registration.op_meta_info.has_named_outputs:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
@@ -522,7 +546,7 @@ def op_output(output_name: str,
             output_namespace[output_name] = dict()
         new_properties = dict(data_type=data_type, **properties)
         output_namespace[output_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
-        return func_or_class
+        return op_registration
 
     return decorator
 

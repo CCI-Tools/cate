@@ -2,9 +2,9 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
-from cate.util.opmetainf import OpMetaInfo
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
+from cate.util.opmetainf import OpMetaInfo
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
@@ -35,12 +35,12 @@ class OpTest(TestCase):
         self.assertIs(op_reg, added_op_reg)
         self.assertIs(op_reg.operation, f)
         expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(data_type=float, position=0)
+        expected_inputs['a'] = dict(position=0, data_type=float)
         expected_inputs['b'] = dict(position=1)
         expected_inputs['c'] = dict(position=2)
-        expected_inputs['u'] = dict(default_value=3, data_type=int)
-        expected_inputs['v'] = dict(default_value='A', data_type=str)
-        expected_inputs['w'] = dict(default_value=4.9, data_type=float)
+        expected_inputs['u'] = dict(position=3, default_value=3, data_type=int)
+        expected_inputs['v'] = dict(position=4, default_value='A', data_type=str)
+        expected_inputs['w'] = dict(position=5, default_value=4.9, data_type=float)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
@@ -68,14 +68,13 @@ class OpTest(TestCase):
             self.registry.add_op(f_op, fail_if_exists=True)
 
         op_reg = self.registry.get_op(object_to_qualified_name(f_op))
-        self.assertIs(op_reg.operation, f_op)
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(position=0, data_type=float)
         expected_inputs['b'] = dict(position=1)
         expected_inputs['c'] = dict(position=2)
-        expected_inputs['u'] = dict(default_value=3, data_type=int)
-        expected_inputs['v'] = dict(default_value='A', data_type=str)
-        expected_inputs['w'] = dict(default_value=4.9, data_type=float)
+        expected_inputs['u'] = dict(position=3, default_value=3, data_type=int)
+        expected_inputs['v'] = dict(position=4, default_value='A', data_type=str)
+        expected_inputs['w'] = dict(position=5, default_value=4.9, data_type=float)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
@@ -97,14 +96,13 @@ class OpTest(TestCase):
             self.registry.add_op(f_op_inp_ret, fail_if_exists=True)
 
         op_reg = self.registry.get_op(object_to_qualified_name(f_op_inp_ret))
-        self.assertIs(op_reg.operation, f_op_inp_ret)
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(position=0, data_type=float, value_range=[0., 1.])
         expected_inputs['b'] = dict(position=1)
         expected_inputs['c'] = dict(position=2)
-        expected_inputs['u'] = dict(default_value=3, data_type=int)
-        expected_inputs['v'] = dict(default_value='A', data_type=str, value_set=['A', 'B', 'C'])
-        expected_inputs['w'] = dict(default_value=4.9, data_type=float)
+        expected_inputs['u'] = dict(position=3, default_value=3, data_type=int)
+        expected_inputs['v'] = dict(position=4, default_value='A', data_type=str, value_set=['A', 'B', 'C'])
+        expected_inputs['w'] = dict(position=5, default_value=4.9, data_type=float)
         expected_outputs = OrderedDict()
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
@@ -112,59 +110,6 @@ class OpTest(TestCase):
                              dict(description='Hi, I am f_op_inp_ret!'),
                              expected_inputs,
                              expected_outputs)
-
-    def test_C(self):
-        class C:
-            """Hi, I am C!"""
-
-            def __call__(self):
-                return None
-
-        registry = self.registry
-        added_op_reg = registry.add_op(C)
-        self.assertIsNotNone(added_op_reg)
-
-        with self.assertRaises(ValueError):
-            registry.add_op(C, fail_if_exists=True)
-
-        self.assertIs(registry.add_op(C, fail_if_exists=False), added_op_reg)
-
-        op_reg = registry.get_op(object_to_qualified_name(C))
-        self.assertIs(op_reg, added_op_reg)
-        self.assertIs(op_reg.operation, C)
-        self._assertMetaInfo(op_reg.op_meta_info,
-                             object_to_qualified_name(C),
-                             dict(description='Hi, I am C!'),
-                             OrderedDict(),
-                             OrderedDict({RETURN: {}}))
-
-        removed_op_reg = registry.remove_op(C)
-        self.assertIs(removed_op_reg, op_reg)
-        op_reg = registry.get_op(object_to_qualified_name(C))
-        self.assertIsNone(op_reg)
-
-        with self.assertRaises(ValueError):
-            registry.remove_op(C, fail_if_not_exists=True)
-
-    def test_C_op(self):
-        @op(author='Ernie and Bert', registry=self.registry)
-        class C_op:
-            """Hi, I am C_op!"""
-
-            def __call__(self):
-                return None
-
-        with self.assertRaises(ValueError):
-            # must exist
-            self.registry.add_op(C_op, fail_if_exists=True)
-
-        op_reg = self.registry.get_op(object_to_qualified_name(C_op))
-        self.assertIs(op_reg.operation, C_op)
-        self._assertMetaInfo(op_reg.op_meta_info,
-                             object_to_qualified_name(C_op),
-                             dict(description='Hi, I am C_op!', author='Ernie and Bert'),
-                             OrderedDict(),
-                             OrderedDict({RETURN: {}}))
 
     def _assertMetaInfo(self, op_meta_info: OpMetaInfo,
                         expected_name: str,
@@ -185,47 +130,64 @@ class OpTest(TestCase):
         def f(x, y: float, a=4):
             return a * x + y if a != 5 else 'foo'
 
-        self.assertEqual(f(y=1, x=8), 33)
-        self.assertEqual(f(**dict(a=5, x=8, y=1)), 'foo')
+        self.assertIs(f, self.registry.get_op(f))
+        self.assertEqual(f.op_meta_info.input['x'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(f.op_meta_info.input['x'].get('default_value', None), 0.5)
+        self.assertEqual(f.op_meta_info.input['x'].get('position', None), 0)
+        self.assertEqual(f.op_meta_info.input['y'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.input['y'].get('position', None), 1)
+        self.assertEqual(f.op_meta_info.input['a'].get('data_type', None), int)
+        self.assertEqual(f.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(f.op_meta_info.input['a'].get('default_value', None), 4)
+        self.assertEqual(f.op_meta_info.input['a'].get('position', None), 2)
+        self.assertEqual(f.op_meta_info.output[RETURN].get('data_type', None), float)
 
-        op_reg = self.registry.get_op(f)
-
-        self.assertEqual(op_reg.op_meta_info.input['x'].get('data_type', None), float)
-        self.assertEqual(op_reg.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
-        self.assertEqual(op_reg.op_meta_info.input['x'].get('default_value', None), 0.5)
-        self.assertEqual(op_reg.op_meta_info.input['x'].get('position', None), 0)
-        self.assertEqual(op_reg.op_meta_info.input['y'].get('data_type', None), float)
-        self.assertEqual(op_reg.op_meta_info.input['y'].get('position', None), 1)
-        self.assertEqual(op_reg.op_meta_info.input['a'].get('data_type', None), int)
-        self.assertEqual(op_reg.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
-        self.assertEqual(op_reg.op_meta_info.input['a'].get('default_value', None), 4)
-        self.assertEqual(op_reg.op_meta_info.input['a'].get('position', None), None)
-        self.assertEqual(op_reg.op_meta_info.output[RETURN].get('data_type', None), float)
-
-        with self.assertRaises(ValueError) as cm:
-            result = op_reg(x=0, y=3.)
-        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9]")
+        self.assertEqual(f(y=1, x=0.2), 4 * 0.2 + 1)
+        self.assertEqual(f(y=3), 4 * 0.5 + 3)
+        self.assertEqual(f(0.6, y=3, a=1), 1 * 0.6 + 3.0)
 
         with self.assertRaises(ValueError) as cm:
-            result = op_reg(x='A', y=3.)
-        self.assertEqual(str(cm.exception), "input 'x' for operation 'test.core.test_op.f' must be of type 'float', "
-                                            "but got type 'str'")
+            f(y=1, x=8)
+        self.assertEqual(str(cm.exception),
+                         "input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9]")
 
         with self.assertRaises(ValueError) as cm:
-            result = op_reg(x=0.4)
-        self.assertEqual(str(cm.exception), "input 'y' for operation 'test.core.test_op.f' required")
+            f(y=None, x=0.2)
+        self.assertEqual(str(cm.exception),
+                         "input 'y' for operation 'test.core.test_op.f' is not nullable")
 
         with self.assertRaises(ValueError) as cm:
-            result = op_reg(x=0.6, y=0.1, a=2)
-        self.assertEqual(str(cm.exception), "input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5]")
+            f(y=0.5, x=0.2, a=2)
+        self.assertEqual(str(cm.exception),
+                         "input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5]")
 
-        # with self.assertRaises(ValueError) as cm:
-        #     result = op_reg(x=0.6, y=0.1, a=5)
-        # self.assertEqual(str(cm.exception),
-        #                  "output '%s' for operation 'test.core.test_op.f' must be of type 'float', but got type 'str'" % RETURN)
+        with self.assertRaises(ValueError) as cm:
+            result = f(x=0, y=3.)
+        self.assertEqual(str(cm.exception),
+                         "input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9]")
 
-        result = op_reg(y=3)
-        self.assertEqual(result, 4 * 0.5 + 3)
+        with self.assertRaises(ValueError) as cm:
+            result = f(x='A', y=3.)
+        self.assertEqual(str(cm.exception),
+                         "input 'x' for operation 'test.core.test_op.f' must be of type 'float', "
+                         "but got type 'str'")
+
+        with self.assertRaises(ValueError) as cm:
+            result = f(x=0.4)
+        self.assertEqual(str(cm.exception),
+                         "input 'y' for operation 'test.core.test_op.f' required")
+
+        with self.assertRaises(ValueError) as cm:
+            result = f(x=0.6, y=0.1, a=2)
+        self.assertEqual(str(cm.exception),
+                         "input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5]")
+
+        with self.assertRaises(ValueError) as cm:
+            f(y=3, a=5)
+        self.assertEqual(str(cm.exception),
+                         "output 'return' for operation 'test.core.test_op.f' must be of type 'float', "
+                         "but got type 'str'")
 
     def test_function_invocation(self):
         def f(x, a=4):
@@ -248,99 +210,6 @@ class OpTest(TestCase):
         self.assertEqual(result, 4 * 2.5)
         self.assertEqual(monitor.total_work, 23)
         self.assertEqual(monitor.is_done, True)
-
-    def test_class_invocation(self):
-        @op_input('x', registry=self.registry)
-        @op_input('a', default_value=4, registry=self.registry)
-        @op_output('y', registry=self.registry)
-        class C:
-            def __call__(self, x, a):
-                return {'y': x * a}
-
-        op_reg = self.registry.get_op(C)
-        result = op_reg(x=2.5)
-        self.assertEqual(result, {'y': 4 * 2.5})
-
-    def test_class_invocation_with_monitor(self):
-        @op_input('x', registry=self.registry)
-        @op_input('a', default_value=4, registry=self.registry)
-        @op_output('y', registry=self.registry)
-        class C:
-            def __call__(self, x, a, monitor: Monitor):
-                monitor.start('C', 19)
-                output = {'y': x * a}
-                monitor.done()
-                return output
-
-        op_reg = self.registry.get_op(C)
-        monitor = MyMonitor()
-        result = op_reg(x=2.5, monitor=monitor)
-        self.assertEqual(result, {'y': 4 * 2.5})
-        self.assertEqual(monitor.total_work, 19)
-        self.assertEqual(monitor.is_done, True)
-
-    def test_class_invocation_with_start_up(self):
-        @op_input('x', registry=self.registry)
-        @op_input('a', default_value=4, registry=self.registry)
-        @op_output('y', registry=self.registry)
-        class C:
-            b = None
-
-            @classmethod
-            def start_up(cls):
-                C.b = 1.5
-
-            @classmethod
-            def tear_down(cls):
-                C.b = None
-
-            def __call__(self, x, a):
-                return {'y': x * a + C.b}
-
-        op_reg = self.registry.get_op(C)
-        with self.assertRaisesRegex(TypeError, "unsupported operand type\\(s\\) for \\+\\: 'float' and 'NoneType'"):
-            # because C.b is None, C.start_up has not been called yet
-            op_reg(x=2.5)
-
-        # Note: this is exemplary code how the framework could call special class methods start_up/tear_down if it
-        # finds them declared in a given op-class.
-        # - 'start_up' may be called a single time before instances are created.
-        # - 'tear_down' may be called and an operation is deregistered and it's 'start_up' has been called.
-        C.start_up()
-        result = op_reg(x=2.5)
-        C.tear_down()
-        self.assertEqual(result, {'y': 4 * 2.5 + 1.5})
-
-    def test_C_op_inp_out(self):
-        @op_input('a', data_type=float, default_value=0.5, value_range=[0., 1.], registry=self.registry)
-        @op_input('b', data_type=str, default_value='A', value_set=['A', 'B', 'C'], registry=self.registry)
-        @op_output('x', data_type=float, registry=self.registry)
-        @op_output('y', data_type=list, registry=self.registry)
-        class C_op_inp_out:
-            """Hi, I am C_op_inp_out!"""
-
-            def __call__(self, a, b):
-                x = 2.5 * a
-                y = [a, b]
-                return {'x': x, 'y': y}
-
-        with self.assertRaises(ValueError):
-            # must exist
-            self.registry.add_op(C_op_inp_out, fail_if_exists=True)
-
-        op_reg = self.registry.get_op(object_to_qualified_name(C_op_inp_out))
-        self.assertIs(op_reg.operation, C_op_inp_out)
-        expected_inputs = OrderedDict()
-        expected_inputs['a'] = dict(position=0, data_type=float, default_value=0.5, value_range=[0., 1.])
-        expected_inputs['b'] = dict(position=1, data_type=str, default_value='A', value_set=['A', 'B', 'C'])
-        expected_outputs = OrderedDict()
-        expected_outputs['y'] = dict(data_type=list)
-        expected_outputs['x'] = dict(data_type=float)
-        self._assertMetaInfo(op_reg.op_meta_info,
-                             object_to_qualified_name(C_op_inp_out),
-                             dict(description='Hi, I am C_op_inp_out!'),
-                             expected_inputs,
-                             expected_outputs)
 
     def test_history_op(self):
         """

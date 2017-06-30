@@ -84,8 +84,11 @@ class TestPlotMap(TestCase):
 
         # Test value error is raised when passing an unexpected dataset type
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(ValueError) as cm:
                 plot_map([1, 2, 4], file=tmp_file)
+            self.assertEqual(str(cm.exception),
+                             "input 'ds' for operation 'cate.ops.plot.plot_map' "
+                             "must be of type 'Dataset', but got type 'list'")
             self.assertFalse(os.path.isfile(tmp_file))
 
         # Test the extensions bound checking
