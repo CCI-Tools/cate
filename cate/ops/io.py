@@ -209,7 +209,7 @@ def read_csv(file: FileLike.TYPE,
              delim_whitespace: bool = False,
              quotechar: str = None,
              comment: str = None,
-             index_col: str = 'id',
+             index_col: str = None,
              more_args: DictLike.TYPE = None) -> pd.DataFrame:
     """
     Read comma-separated values (CSV) from plain text file into a Pandas DataFrame.
