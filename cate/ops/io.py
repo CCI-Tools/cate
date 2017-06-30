@@ -25,12 +25,12 @@ from abc import ABCMeta
 
 import fiona
 import geopandas as gpd
-import xarray as xr
 import pandas as pd
+import xarray as xr
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike
+from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
 from cate.ops.harmonize import harmonize as harmonize_op
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -195,17 +195,22 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 
 
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='r',
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
 @op_input('delimiter', nullable=True)
 @op_input('delim_whitespace', nullable=True)
 @op_input('quotechar', nullable=True)
 @op_input('comment', nullable=True)
-def read_csv(file: str,
+@op_input('index_col', nullable=True)
+def read_csv(file: FileLike.TYPE,
              delimiter: str = ',',
              delim_whitespace: bool = False,
              quotechar: str = None,
              comment: str = None,
-             **kwargs) -> pd.DataFrame:
+             index_col: str = 'id',
+             more_args: DictLike.TYPE = None) -> pd.DataFrame:
     """
     Read comma-separated values (CSV) from plain text file into a Pandas DataFrame.
 
@@ -218,11 +223,14 @@ def read_csv(file: str,
     :param comment: Indicates remainder of line should not be parsed.
            If found at the beginning of a line, the line will be ignored altogether.
            This parameter must be a single character.
-    :param kwargs: Other optional pandas.read_csv() parameters
+    :param index_col: The name of the column that provides unique identifiers
+    :param more_args: Other optional pandas.read_csv() keyword arguments
     :return: The DataFrame object.
     """
     # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
-    kwargs = dict(kwargs)
+    kwargs = DictLike.convert(more_args)
+    if kwargs is None:
+        kwargs = {}
     if delimiter:
         kwargs.update(delimiter=delimiter)
     if delim_whitespace:
@@ -231,6 +239,8 @@ def read_csv(file: str,
         kwargs.update(quotechar=quotechar)
     if comment:
         kwargs.update(comment=comment)
+    if index_col:
+        kwargs.update(index_col=index_col)
     return pd.read_csv(file, **kwargs)
 
 
