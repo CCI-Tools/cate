@@ -39,6 +39,7 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
+import io
 import ast
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
@@ -257,6 +258,32 @@ class VarName(Like[str]):
         return value
 
 
+class FileLike(Like[dict]):
+    """
+    Type class for file-like objects
+
+    Accepts:
+        1. a string
+        2. an io.IOBase object
+
+    Does not convert at all.
+    """
+
+    TYPE = Union[str, io.IOBase]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[Union[str, io.IOBase]]:
+        if not value:
+            return None
+        if not isinstance(value, str) and not isinstance(value, io.IOBase):
+            raise ValueError('File must be a path or a file handler')
+        return value
+
+    @classmethod
+    def format(cls, value: Optional[Union[str, io.IOBase]]) -> str:
+        return "{}".format(value) if isinstance(value, str) else ''
+
+
 class DictLike(Like[dict]):
     """
     Type class for dictionary objects
@@ -278,6 +305,7 @@ class DictLike(Like[dict]):
         if isinstance(value, dict):
             return value
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, str):
                 if value.strip() == '':
@@ -310,6 +338,7 @@ class PointLike(Like[Point]):
         if value is None:
             return None
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, Point):
                 return value
@@ -349,6 +378,7 @@ class PolygonLike(Like[Polygon]):
         if value is None:
             return None
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, Polygon):
                 if value.is_valid:
@@ -365,6 +395,7 @@ class PolygonLike(Like[Polygon]):
                 if polygon.is_valid:
                     return polygon
             else:
+                # noinspection PyBroadException
                 try:
                     polygon = Polygon(value)
                     if polygon.is_valid:
@@ -444,6 +475,7 @@ class TimeLike(Like[datetime]):
             return None
 
         if isinstance(value, date) or isinstance(value, str):
+            # noinspection PyBroadException
             try:
                 return to_datetime(value)
             except Exception:
@@ -491,6 +523,7 @@ class TimeRangeLike(Like[TimeRange]):
         if value is None or value == '':
             return None
 
+        # noinspection PyBroadException
         try:
             _range = None
             if isinstance(value, tuple):
