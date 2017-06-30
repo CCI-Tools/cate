@@ -55,8 +55,17 @@ svgz, tif, tiff
 """
 
 import matplotlib
-
 has_qt5agg = False
+
+matplotlib.rcParams['font.size'] = 8.
+matplotlib.rcParams['lines.markersize'] = 4.
+matplotlib.rcParams['text.color'] = 'white'
+matplotlib.rcParams['figure.edgecolor'] = '#394b59'
+matplotlib.rcParams['figure.facecolor'] = '#394b59'
+matplotlib.rcParams['axes.edgecolor'] = 'white'
+matplotlib.rcParams['axes.labelcolor'] = 'white'
+matplotlib.rcParams['xtick.color'] = 'white'
+matplotlib.rcParams['ytick.color'] = 'white'
 # noinspection PyBroadException
 try:
     if not matplotlib.__version__.startswith('1.'):
@@ -69,6 +78,8 @@ if not has_qt5agg:
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+
+from dateutil import parser
 
 import xarray as xr
 import pandas as pd
@@ -252,6 +263,54 @@ def plot_data_frame(df: pd.DataFrame,
 
     return figure if not in_notebook() else None
 
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('properties', data_type=DictLike)
+@op_input('filled', data_type=bool)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_contour(ds: xr.Dataset,
+         var: VarName.TYPE,
+         indexers: DictLike.TYPE = None,
+         properties: DictLike.TYPE = None,
+         filled: bool = True,
+         file: str = None) -> Figure:
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
+    var = ds[var_name]
+    indexers = DictLike.convert(indexers)
+
+    properties = DictLike.convert(properties) or {}
+    if 'label' not in properties:
+        properties['label'] = var_name
+    print(indexers)
+    try:
+        if indexers:
+            if 'time' in indexers.keys():
+                if isinstance(indexers['time'],int):
+                    var_data = var.isel(**indexers)
+                else:
+                    dt = parser.parse(indexers['time'])
+                    var_data = var.sel(method='nearest', time= dt)
+            else:
+                var_data = var.sel(method='nearest', **indexers)
+    except ValueError:
+        var_data = var
+
+    figure = plt.figure(figsize=(8, 4))
+    ax = figure.add_subplot(111)
+    if filled:
+        var_data.plot.contourf(ax=ax, **properties)
+    else:
+        var_data.plot.contour(ax=ax, **properties)
+    figure.tight_layout()
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -278,6 +337,8 @@ def plot(ds: xr.Dataset,
            ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
            datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
            e.g. "lat=12.4, time='2012-05-02'".
+    :param figure: Figure object to be re-used for plotting
+    :param type: type of plot
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
            For full reference refer to
@@ -306,12 +367,118 @@ def plot(ds: xr.Dataset,
         var_data = var
 
     figure = plt.figure(figsize=(8, 4))
-    var_data.plot(**properties)
+    ax = figure.add_subplot(111)
+    var_data.plot(ax=ax, **properties)
+    figure.tight_layout()
     if file:
         figure.savefig(file)
-
     return figure if not in_notebook() else None
 
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('var2', value_set_source='ds2', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('indexers2', data_type=DictLike)
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_scatter(ds: xr.Dataset,
+         ds2: xr.Dataset,
+         var: VarName.TYPE,
+         var2: VarName.TYPE,
+         indexers: DictLike.TYPE = None,
+         indexers2: DictLike.TYPE = None,
+         properties: DictLike.TYPE = None,
+         file: str = None) -> Figure:
+    """
+    Plot a variable, optionally save the figure in a file.
+
+    The plot can either be shown using pyplot functionality, or saved,
+    if a path is given. The following file formats for saving the plot
+    are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
+    svgz, tif, tiff
+
+    :param ds: Dataset that contains the variable named by *var*.
+    :param var: The name of variable 1 to plot
+    :param var2: The name of the second variable to plot
+    :param indexers: Optional indexers into the variable's data array. The *index* is a dictionary
+           that maps the variable's dimension names to constant labels. For example,
+           ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
+           datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
+           e.g. "lat=12.4, time='2012-05-02'".
+    :param type: type of plot
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    """
+
+    var_name = VarName.convert(var)
+    var_name2 = VarName.convert(var2)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+    if not var_name2:
+        raise ValueError("Missing value for 'var2'")
+
+    var = ds[var_name]
+    var2 = ds2[var_name2]
+
+    indexers = DictLike.convert(indexers)
+    indexers2 = DictLike.convert(indexers2)
+    properties = DictLike.convert(properties) or {}
+    if 'label' not in properties:
+        properties['label'] = var_name
+
+    try:
+        if indexers:
+            var_data = var.sel(method='nearest', **indexers)
+            if not indexers2:
+                indexers2 = indexers
+
+            var_data2 = var2.sel(method='nearest', **indexers2)
+            unlimited_dim = list(set(list(var.dims)) ^ set(list(indexers.keys())))
+            min_dim = max(var_data[unlimited_dim[0]].min(),var_data2[unlimited_dim[0]].min())
+            max_dim = min(var_data[unlimited_dim[0]].max(), var_data2[unlimited_dim[0]].max())
+            print(min_dim, max_dim)
+            var_data = var_data.where( (var_data[unlimited_dim[0]]>=min_dim) & (var_data[unlimited_dim[0]]<=max_dim),
+                                       drop=True)
+            var_data2 = var_data2.where((var_data2[unlimited_dim[0]]>=min_dim) & (var_data2[unlimited_dim[0]]<=max_dim),
+                                        drop=True)
+            print(var_data)
+            print(var_data2)
+            if len(unlimited_dim) is 1:
+                print(unlimited_dim)
+                indexer3 = {unlimited_dim[0]: var_data[unlimited_dim[0]].data}
+                var_data2.reindex(method = 'nearest', **indexer3)
+            else:
+                print("Err!")
+        else:
+            var_data = var
+            var_data2 = var2
+    except ValueError:
+        var_data = var
+        var_data2 = var2
+
+    #if figure:
+    #    ax = figure.get_axes()[0]
+    #else:
+    figure = plt.figure(figsize=(12, 8))
+    ax = figure.add_subplot(111)
+
+    #var_data.plot(ax = ax, **properties)
+    ax.plot(var_data.values,var_data2.values,'.')
+    #var_data.plot(ax=ax, **properties)
+    xlabel_txt = "".join(", " + str(key) + " = " +str(value) for key, value in indexers.items())
+    xlabel_txt = var_name + xlabel_txt
+    ylabel_txt = "".join(", " + str(key) + " = " + str(value) for key, value in indexers2.items())
+    ylabel_txt = var_name2 + ylabel_txt
+    ax.set_xlabel(xlabel_txt)
+    ax.set_ylabel(ylabel_txt)
+    figure.tight_layout()
+    if file:
+        figure.savefig(file)
+    return figure if not in_notebook() else None
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -371,6 +538,7 @@ def plot_hist(ds: xr.Dataset,
         figure.savefig(file)
 
     return figure if not in_notebook() else None
+
 
 
 def _check_bounding_box(lat_min: float,
