@@ -86,21 +86,25 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 @op(tags=['plot', 'map'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('index', data_type=DictLike)
+@op_input('indexers', data_type=DictLike)
 @op_input('time', data_type=TimeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
+@op_input('title')
+@op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
-             index: DictLike.TYPE = None,
+             indexers: DictLike.TYPE = None,
              time: TimeLike.TYPE = None,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
+             title: str = None,
+             properties: DictLike.TYPE = None,
              file: str = None) -> Figure:
     """
     Plot the given variable from the given dataset on a map with coastal lines.
@@ -116,7 +120,7 @@ def plot_map(ds: xr.Dataset,
 
     :param ds: xr.Dataset to plot
     :param var: variable name in the dataset to plot
-    :param index: Optional index into the variable's data array. The *index* is a dictionary
+    :param indexers: Optional index into the variable's data array. The *index* is a dictionary
                   that maps the variable's dimension names to constant labels. For example,
                   ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
                   datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
@@ -125,6 +129,12 @@ def plot_map(ds: xr.Dataset,
     :param region: Region to plot
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
+    :param title: an optional title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5)"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
     """
     if not isinstance(ds, xr.Dataset):
@@ -139,7 +149,9 @@ def plot_map(ds: xr.Dataset,
         var_name = VarName.convert(var)
 
     var = ds[var_name]
-    index = DictLike.convert(index)
+    indexers = DictLike.convert(indexers)
+
+    properties = DictLike.convert(properties) or {}
 
     # Validate time
     time = TimeLike.convert(time)
@@ -152,13 +164,13 @@ def plot_map(ds: xr.Dataset,
 
     for dim_name in var.dims:
         if dim_name not in ('lat', 'lon'):
-            if not index:
-                index = dict()
-            if dim_name not in index:
+            if not indexers:
+                indexers = dict()
+            if dim_name not in indexers:
                 if dim_name in var.coords:
-                    index[dim_name] = var.coords[dim_name][0]
+                    indexers[dim_name] = var.coords[dim_name][0]
                 else:
-                    index[dim_name] = 0
+                    indexers[dim_name] = 0
 
     extents = None
     region = PolygonLike.convert(region)
@@ -194,8 +206,8 @@ def plot_map(ds: xr.Dataset,
         raise ValueError('illegal projection: "%s"' % projection)
 
     try:
-        if index:
-            var_data = var.sel(method=sel_method, **index)
+        if indexers:
+            var_data = var.sel(method=sel_method, **indexers)
         else:
             var_data = var
     except ValueError as e:
@@ -210,7 +222,10 @@ def plot_map(ds: xr.Dataset,
         ax.set_global()
 
     ax.coastlines()
-    var_data.plot.contourf(ax=ax, transform=proj)
+    var_data.plot.contourf(ax=ax, transform=proj, **properties)
+    if title:
+        ax.set_title(title)
+
     if file:
         figure.savefig(file)
 
@@ -256,11 +271,13 @@ def plot_data_frame(df: pd.DataFrame,
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
+@op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
+         title: str = None,
          properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
@@ -278,6 +295,7 @@ def plot(ds: xr.Dataset,
            ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
            datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
            e.g. "lat=12.4, time='2012-05-02'".
+    :param title: an optional plot title
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
            For full reference refer to
@@ -305,8 +323,14 @@ def plot(ds: xr.Dataset,
     except ValueError:
         var_data = var
 
-    figure = plt.figure(figsize=(8, 4))
-    var_data.plot(**properties)
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+
+    var_data.plot(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
     if file:
         figure.savefig(file)
 
@@ -316,11 +340,13 @@ def plot(ds: xr.Dataset,
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
+@op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_hist(ds: xr.Dataset,
               var: VarName.TYPE,
               indexers: DictLike.TYPE = None,
+              title: str = None,
               properties: DictLike.TYPE = None,
               file: str = None) -> Figure:
     """
@@ -354,8 +380,6 @@ def plot_hist(ds: xr.Dataset,
 
     indexers = DictLike.convert(indexers)
     properties = DictLike.convert(properties) or {}
-    if 'label' not in properties:
-        properties['label'] = var_name
 
     try:
         if indexers:
@@ -366,7 +390,13 @@ def plot_hist(ds: xr.Dataset,
         var_data = var
 
     figure = plt.figure(figsize=(8, 4))
-    var_data.plot.hist(**properties)
+    ax = figure.add_subplot(111)
+
+    var_data.plot.hist(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
     if file:
         figure.savefig(file)
 

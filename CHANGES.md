@@ -1,6 +1,6 @@
 ## Changes in version 0.9.0.dev2
 
-TODO
+* `plot_` operations now have a new `title` parameter.
 
 ## Changes in version 0.9.0.dev1
 
