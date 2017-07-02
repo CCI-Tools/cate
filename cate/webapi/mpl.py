@@ -41,7 +41,7 @@ from tornado.websocket import WebSocketHandler
 from cate.core.workspace import Workspace
 from cate.util.web.webapi import WebAPIRequestHandler
 
-_DEBUG_WEB_SOCKET_RPC = True
+_DEBUG_WEB_SOCKET_RPC = False
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
