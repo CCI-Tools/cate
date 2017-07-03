@@ -227,6 +227,7 @@ class Workspace:
 
     def _get_resource_descriptor(self, res_id: int, res_update_count: int, res_name: str, resource):
         variable_descriptors = []
+        coords_descriptors = []
         data_type_name = object_to_qualified_name(type(resource))
         resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
@@ -235,9 +236,14 @@ class Workspace:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+            var_names = sorted(resource.coords.keys())
+            for var_name in var_names:
+                variable = resource.coords[var_name]
+                coords_descriptors.append(self._get_xarray_variable_descriptor(variable, is_coord=True))
             resource_json.update(dimSizes=to_json(resource.dims),
                                  attributes=self._attrs_to_json_dict(resource.attrs),
-                                 variables=variable_descriptors)
+                                 variables=variable_descriptors,
+                                 coordVariables=coords_descriptors)
         elif isinstance(resource, pd.DataFrame):
             var_names = list(resource.columns)
             for var_name in var_names:
@@ -274,7 +280,7 @@ class Workspace:
             'shape': variable.shape,
         }
 
-    def _get_xarray_variable_descriptor(self, variable: xr.DataArray):
+    def _get_xarray_variable_descriptor(self, variable: xr.DataArray, is_coord = False):
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,
@@ -292,13 +298,18 @@ class Workspace:
             # 'long_name': self._get_unicode_attr(attrs, 'long_name'),
             # 'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
             # 'comment': self._get_unicode_attr(attrs, 'comment'),
-            'attributes': self._attrs_to_json_dict(attrs)
+            'attributes': self._attrs_to_json_dict(attrs),
+            'isCoord': is_coord
         }
 
-        image_config = self._get_variable_image_config(variable)
-        if image_config:
-            variable_info['imageLayout'] = image_config
-            variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
+        if not is_coord:
+            image_config = self._get_variable_image_config(variable)
+            if image_config:
+                variable_info['imageLayout'] = image_config
+                variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
+        else:
+            variable_info['data'] = to_json(variable.data)
+
         return variable_info
 
     # noinspection PyMethodMayBeStatic

@@ -284,6 +284,11 @@ def cwd(path: str):
         os.chdir(old_dir)
 
 
+_DATETIME64 = np.dtype('datetime64')
+_ZERO_THMS_POSTFIX = 'T00:00:00'
+_ZERO_MICR_POSTFIX = '.000000000'
+
+
 def to_json(v):
     if v is None:
         return v
@@ -293,12 +298,34 @@ def to_json(v):
         return v
     if t == complex:
         return [v.real, v.imag]
-
     if isinstance(v, type):
         return object_to_qualified_name(v)
 
+    # TODO (forman): handle dtype=uint64/int64 here, as JSON does not support 64-bit ints
+
+    is_datetime64 = False
     try:
-        return np.asscalar(v)
+        is_datetime64 = np.issubdtype(v.dtype, np.datetime64)
+    except AttributeError:
+        pass
+
+    if is_datetime64:
+        # Convert time values to time strings
+        is_scalar = False
+        try:
+            is_scalar = v.size == 1
+        except AttributeError:
+            pass
+        if is_scalar:
+            time_str = str(v)
+            if time_str.endswith(_ZERO_MICR_POSTFIX):
+                time_str = time_str[0: -len(_ZERO_MICR_POSTFIX)]
+            if time_str.endswith(_ZERO_THMS_POSTFIX):
+                time_str = time_str[0: -len(_ZERO_THMS_POSTFIX)]
+            return time_str
+
+    try:
+        return v.item()
     except (AttributeError, ValueError):
         pass
 
