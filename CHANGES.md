@@ -1,6 +1,7 @@
 ## Changes in version 0.9.0.dev2
 
 * `plot_` operations now have a new `title` parameter.
+* Fixed problem if the `lon` or `lat` coordinate variables where empty
 
 ## Changes in version 0.9.0.dev1
 

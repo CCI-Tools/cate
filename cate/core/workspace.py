@@ -323,13 +323,25 @@ class Workspace:
             lats = variable.coords[lat_dim_name]
             lons = variable.coords[lon_dim_name]
 
-            lat_delta = 0.5 * abs(lats[1] - lats[0]) if len(lats) else 0
-            lon_delta = 0.5 * abs(lons[1] - lons[0]) if len(lons) else 0
+            if len(lons) >= 2:
+                lon_delta = 0.5 * abs(lons[1] - lons[0])
+                west = min(lons[0], lons[-1]) - lon_delta
+                east = max(lons[0], lons[-1]) + lon_delta
+            elif len(lons) == 1:
+                west = east = lons[0]
+            else:
+                # Note, this is actually an error condition
+                west = east = 0
 
-            south = min(lats[0], lats[-1]) - lat_delta
-            north = max(lats[0], lats[-1]) + lat_delta
-            west = min(lons[0], lons[-1]) - lon_delta
-            east = max(lons[0], lons[-1]) + lon_delta
+            if len(lats) >= 2:
+                lat_delta = 0.5 * abs(lats[1] - lats[0])
+                south = min(lats[0], lats[-1]) - lat_delta
+                north = max(lats[0], lats[-1]) + lat_delta
+            elif len(lats) == 1:
+                south = north = lats[0]
+            else:
+                # Note, this is actually an error condition
+                south = north = 0
 
             south = 90 if south > 90 else (-90 if south < -90 else float(south))
             north = 90 if north > 90 else (-90 if north < -90 else float(north))
