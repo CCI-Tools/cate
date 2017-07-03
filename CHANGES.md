@@ -1,7 +1,17 @@
 ## Changes in version 0.9.0.dev2
 
-* `plot_` operations now have a new `title` parameter.
-* Fixed problem if the `lon` or `lat` coordinate variables where empty
+### Improvements and new Features
+
+* Added `plot_scatter` and `plot_contour` operations ([#278](https://github.com/CCI-Tools/cate-core/issues/278)).
+  
+* Most `plot_` operations now have a new `title` parameter.
+
+### Fixes
+
+* Fixed [#259](https://github.com/CCI-Tools/cate-core/issues/259)
+* Fixed problem if the `lon` or `lat` coordinate variables were empty.
+  See comments in [#276](https://github.com/CCI-Tools/cate-core/issues/276).
+
 
 ## Changes in version 0.9.0.dev1
 
