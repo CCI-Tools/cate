@@ -30,8 +30,8 @@ Functions
 """
 
 import xarray as xr
-import numpy as np
 from scipy.stats import pearsonr
+from scipy.special import betainc
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName
@@ -95,7 +95,8 @@ def pearson_correlation(ds_x: xr.Dataset,
 
     if array_x.values.shape != array_y.values.shape:
         raise ValueError('The provided variables {} and {} do not have the same shape, '
-                         'Pearson correlation can not be performed.'.format(var_x, var_y))
+                         'Pearson correlation can not be performed. Please '
+                         'review operation documentation'.format(var_x, var_y))
 
     # Perform a simple Pearson correlation that returns just a coefficient and
     # a p_value.
@@ -109,27 +110,10 @@ def pearson_correlation(ds_x: xr.Dataset,
     if (not ds_x['lat'].equals(ds_y['lat']) or
             not ds_x['lon'].equals(ds_y['lon'])):
         raise ValueError('When performing a pixel by pixel correlation the datasets have to have the same '
-                         'lat/lon definition.')
+                         'lat/lon definition. Consider running coregistration first')
 
     # Do pixel by pixel correlation
-
-    lat = ds_x['lat']
-    lon = ds_y['lon']
-
-    corr_coef = np.zeros([len(lat), len(lon)])
-    p_value = np.zeros([len(lat), len(lon)])
-
-    for lai in range(0, len(lat)):
-        for loi in range(0, len(lon)):
-            x = array_x.isel(lat=lai, lon=loi).values
-            y = array_y.isel(lat=lai, lon=loi).values
-            corr_coef[lai, loi], p_value[lai, loi] = pearsonr(x, y)
-
-    retset = xr.Dataset({
-        'corr_coef': (['lat', 'lon'], corr_coef),
-        'p_value': (['lat', 'lon'], p_value),
-        'lat': lat,
-        'lon': lon})
+    retset = _pearsonr(array_x, array_y)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
     if file:
@@ -164,4 +148,72 @@ def _pearson_simple(ds_x: xr.Dataset,
         with open(file, "w") as text_file:
             print(retset, file=text_file)
 
+    return retset
+
+
+def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
+    """
+    Calculates a Pearson correlation coefficients and p-values for testing
+    non-correlation of lon/lat/time xarray datasets for each lon/lat point.
+
+    Heavily influenced by scipy.stats.pearsonr
+
+    The Pearson correlation coefficient measures the linear relationship
+    between two datasets. Strictly speaking, Pearson's correlation requires
+    that each dataset be normally distributed, and not necessarily zero-mean.
+    Like other correlation coefficients, this one varies between -1 and +1
+    with 0 implying no correlation. Correlations of -1 or +1 imply an exact
+    linear relationship. Positive correlations imply that as x increases, so
+    does y. Negative correlations imply that as x increases, y decreases.
+
+    The p-value roughly indicates the probability of an uncorrelated system
+    producing datasets that have a Pearson correlation at least as extreme
+    as the one computed from these datasets. The p-values are not entirely
+    reliable but are probably reasonable for datasets larger than 500 or so.
+
+    :param x: lon/lat/time xr.DataArray
+    :param y: xr.DataArray of the same spatiotemporal extents and resolution as
+    x.
+    :return: A dataset containing the correlation coefficients and p_values on
+    the lon/lat grid of x and y.
+
+    References
+    ----------
+    http://www.statsoft.com/textbook/glosp.html#Pearson%20Correlation
+    """
+    n = len(x['time'])
+
+    xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
+    xm_ym = xm * ym
+    r_num = xm_ym.sum(dim='time')
+    xm_squared = xr.ufuncs.square(xm)
+    ym_squared = xr.ufuncs.square(ym)
+    r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') *
+                           ym_squared.sum(dim='time'))
+    r_den = r_den.where(r_den != 0)
+    r = r_num / r_den
+
+    # Presumably, if abs(r) > 1, then it is only some small artifact of floating
+    # point arithmetic.
+    # At this point r should be a lon/lat dataArray, so it should be safe to
+    # load it in memory explicitly. This will take time as it will kick-start
+    # deferred processing.
+    r.values[r.values < -1.0] = -1.0
+    r.values[r.values > 1.0] = 1.0
+    r.attrs = {'description': 'Correlation coefficients between'
+               ' {} and {}.'.format(x.name, y.name)}
+
+    df = n - 2
+    t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
+                                             (1.0 + r.where(r != -1))))
+    prob = df / (df + t_squared)
+    prob.values = betainc(0.5 * df, 0.5, prob.values)
+    prob.attrs = {'description': 'Rough indicator of probability of an'
+                  ' uncorrelated system producing datasets that have a Pearson'
+                  ' correlation at least as extreme as the one computed from'
+                  ' these datsets. Not entirely reliable, but reasonable for'
+                  ' datasets larger than 500 or so.'}
+
+    retset = xr.Dataset({'corr_coef': r,
+                         'p_value': prob})
     return retset
