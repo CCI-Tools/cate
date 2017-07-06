@@ -43,14 +43,12 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['correlation'])
-@op_input('corr_type', value_set=['pixel_by_pixel'])
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
 def pearson_correlation(ds_x: xr.Dataset,
                         ds_y: xr.Dataset,
                         var_x: VarName.TYPE,
-                        var_y: VarName.TYPE,
-                        corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
+                        var_y: VarName.TYPE) -> xr.Dataset:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
@@ -66,9 +64,8 @@ def pearson_correlation(ds_x: xr.Dataset,
     If two 1D or 2D variables are provided, a single pair of correlation
     coefficient and p_value will be calculated and returned.
 
-    In case 3D time/lat/lon variables are provided, a correlation will be
-    perfomed according to the given correlation type. In case a pixel_by_pixel
-    correlation is chosen, the datasets have to have the same lat/lon
+    In case 3D time/lat/lon variables are provided, pixel by pixel correlation
+    will be performed.  The datasets have to have the same lat/lon
     definition, so that a 2D lat/lon map of correlation coefficients, as well
     as p_values can be constructed.
 
@@ -76,11 +73,10 @@ def pearson_correlation(ds_x: xr.Dataset,
     grows, so does y. Negative correlations imply that as x increases, y
     decreases.
 
-    :param ds_y: The 'y' dataset
     :param ds_x: The 'x' dataset
-    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
-    :param corr_type: Correlation type to use for 3D time/lat/lon variables.
+    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     """
     var_x = VarName.convert(var_x)
     var_y = VarName.convert(var_y)
@@ -89,7 +85,7 @@ def pearson_correlation(ds_x: xr.Dataset,
     array_x = ds_x[var_x]
 
     if len(array_x.dims) > 3 or len(array_y.dims) > 3:
-        raise NotImplementedError('Pearson correlation for multi-dimensional variables is not yet implemented.')
+        raise NotImplementedError('Pearson correlation for multi-dimensional variables is not implemented.')
 
     if array_x.values.shape != array_y.values.shape:
         raise ValueError('The provided variables {} and {} do not have the same shape, '
@@ -100,10 +96,6 @@ def pearson_correlation(ds_x: xr.Dataset,
     # a p_value.
     if len(array_x.dims) < 3:
         return _pearson_simple(ds_x, ds_y, var_x, var_y)
-
-    if corr_type != 'pixel_by_pixel':
-        raise NotImplementedError('Only pixel by pixel Pearson correlation is currently implemented for '
-                                  'time/lat/lon dataset variables.')
 
     if (not ds_x['lat'].equals(ds_y['lat']) or
             not ds_x['lon'].equals(ds_y['lon'])):
