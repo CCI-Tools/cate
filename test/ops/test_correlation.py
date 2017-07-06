@@ -2,7 +2,6 @@
 Tests for correlation operations
 """
 
-import os
 from unittest import TestCase
 
 import numpy as np
@@ -25,10 +24,7 @@ class TestCorrelation(TestCase):
             'first': ('time', np.linspace(0, 5, 6))})
         dataset2['first'][0] = 3
 
-        correlation = pearson_correlation(dataset, dataset2, 'first', 'first',
-                                          file='remove_me.txt')
-        self.assertTrue(os.path.isfile('remove_me.txt'))
-        os.remove('remove_me.txt')
+        correlation = pearson_correlation(dataset, dataset2, 'first', 'first')
 
         test_value = correlation['p_value']
         self.assertTrue(np.isclose(test_value, 0.082086))
@@ -54,10 +50,7 @@ class TestCorrelation(TestCase):
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.array([1, 2])})
 
-        correlation = pearson_correlation(ds1, ds2, 'first', 'first',
-                                          file='remove_me.txt')
-        self.assertTrue(os.path.isfile('remove_me.txt'))
-        os.remove('remove_me.txt')
+        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
 
     def test_validate_against_scipy(self):
         """

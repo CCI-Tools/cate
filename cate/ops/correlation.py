@@ -46,12 +46,10 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('corr_type', value_set=['pixel_by_pixel'])
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[_ALL_FILE_FILTER])
 def pearson_correlation(ds_x: xr.Dataset,
                         ds_y: xr.Dataset,
                         var_x: VarName.TYPE,
                         var_y: VarName.TYPE,
-                        file: str = None,
                         corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
@@ -66,8 +64,7 @@ def pearson_correlation(ds_x: xr.Dataset,
     datasets of the same area at different times.
 
     If two 1D or 2D variables are provided, a single pair of correlation
-    coefficient and p_value will be calculated and returned, as well as
-    optionally saved in a text file.
+    coefficient and p_value will be calculated and returned.
 
     In case 3D time/lat/lon variables are provided, a correlation will be
     perfomed according to the given correlation type. In case a pixel_by_pixel
@@ -83,7 +80,6 @@ def pearson_correlation(ds_x: xr.Dataset,
     :param ds_x: The 'x' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
-    :param file: Filepath variable. If given, this is where the results will be saved in a text file.
     :param corr_type: Correlation type to use for 3D time/lat/lon variables.
     """
     var_x = VarName.convert(var_x)
@@ -103,7 +99,7 @@ def pearson_correlation(ds_x: xr.Dataset,
     # Perform a simple Pearson correlation that returns just a coefficient and
     # a p_value.
     if len(array_x.dims) < 3:
-        return _pearson_simple(ds_x, ds_y, var_x, var_y, file)
+        return _pearson_simple(ds_x, ds_y, var_x, var_y)
 
     if corr_type != 'pixel_by_pixel':
         raise NotImplementedError('Only pixel by pixel Pearson correlation is currently implemented for '
@@ -118,24 +114,16 @@ def pearson_correlation(ds_x: xr.Dataset,
     retset = _pearsonr(array_x, array_y)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
-    if file:
-        with open(file, "w") as text_file:
-            print(retset, file=text_file)
-            print(retset['corr_coef'], file=text_file)
-            print(retset['p_value'], file=text_file)
-
     return retset
 
 
 def _pearson_simple(ds_x: xr.Dataset,
                     ds_y: xr.Dataset,
                     var_x: str,
-                    var_y: str,
-                    file: str = None) -> xr.Dataset:
+                    var_y: str) -> xr.Dataset:
     """
     Perform a simple Pearson correlation that gets just the coefficient and
-    the p_value, as well as creates a dataset to return, and saves the result
-    in the given file.
+    the p_value.
     """
     corr_coef, p_value = pearsonr(ds_x[var_x].values,
                                   ds_y[var_y].values)
@@ -144,11 +132,6 @@ def _pearson_simple(ds_x: xr.Dataset,
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
     retset['corr_coef'] = corr_coef
     retset['p_value'] = p_value
-
-    # Save the result if file path is given
-    if file:
-        with open(file, "w") as text_file:
-            print(retset, file=text_file)
 
     return retset
 
