@@ -418,12 +418,13 @@ def op(registry=OP_REGISTRY, **properties):
 
 def op_input(input_name: str,
              default_value=UNDEFINED,
-             position=UNDEFINED,
+             units=UNDEFINED,
              data_type=UNDEFINED,
              nullable=UNDEFINED,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
+             position=UNDEFINED,
              context=UNDEFINED,
              registry=OP_REGISTRY,
              **properties):
@@ -451,8 +452,8 @@ def op_input(input_name: str,
     A key-value pair in *properties* will always overwrite the derived properties listed above.
 
     :param input_name: The name of an input.
-    :param position: The position of a positional input.
     :param default_value: A default value.
+    :param units: The geo-physical units of the input value.
     :param data_type: The data type of the input values.
            If not given, the type of any given, non-None *default_value* is used.
     :param nullable: If ``True``, the value of the input may be ``None``.
@@ -461,6 +462,7 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param position: The zero-based position of an input.
     :param context: If ``True``, the value of the operation input will be a dictionary representing
            the current execution context. For example,
            when the operation is executed from a workflow, the dictionary will hold at least three
@@ -481,11 +483,12 @@ def op_input(input_name: str,
             input_namespace[input_name] = dict()
         new_properties = dict(data_type=data_type,
                               default_value=default_value,
-                              position=position,
+                              units=units,
                               nullable=nullable,
                               value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range,
+                              position=position,
                               context=context,
                               **properties)
 
