@@ -279,11 +279,14 @@ def read_geo_data_collection(file: str) -> fiona.Collection:
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
 @op_input('drop_variables', data_type=VarNamesLike)
 @op_input('decode_cf')
+@op_input('normalize')
 @op_input('decode_times')
 @op_input('engine')
 def read_netcdf(file: str,
                 drop_variables: VarNamesLike.TYPE = None,
-                decode_cf: bool = True, decode_times: bool = True,
+                decode_cf: bool = True,
+                normalize: bool = True,
+                decode_times: bool = True,
                 engine: str = None) -> xr.Dataset:
     """
     Read a dataset from a netCDF 3/4 or HDF file.
@@ -291,12 +294,19 @@ def read_netcdf(file: str,
     :param file: The netCDF file path.
     :param drop_variables: List of variables to be dropped.
     :param decode_cf: Whether to decode CF attributes and coordinate variables.
+    :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
     :param engine: Optional netCDF engine name.
     """
     drop_variables = VarNamesLike.convert(drop_variables)
-    return xr.open_dataset(file, drop_variables=drop_variables,
-                           decode_cf=decode_cf, decode_times=decode_times, engine=engine)
+    ds = xr.open_dataset(file,
+                         drop_variables=drop_variables,
+                         decode_cf=decode_cf,
+                         decode_times=decode_times,
+                         engine=engine)
+    if ds and normalize:
+        return normalize_op(ds)
+    return ds
 
 
 @op(tags=['output'], no_cache=True)
