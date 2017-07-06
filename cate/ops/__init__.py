@@ -50,7 +50,7 @@ def cate_init():
 from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation
-from .harmonize import harmonize
+from .normalize import normalize
 from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
     read_csv, read_geo_data_frame, read_geo_data_collection, read_netcdf, write_netcdf3, write_netcdf4
 from .plot import plot_map, plot, plot_data_frame
@@ -74,8 +74,8 @@ __all__ = [
     'resample_2d',
     'downsample_2d',
     'upsample_2d',
-    # .harmonize
-    'harmonize',
+    # .normalize
+    'normalize',
     # .select
     'select_var',
     # .coregistration

@@ -12,7 +12,7 @@ node "CCI_Toolbox_Core" {
     package cate.ops {
         [coregistration]
         [correlation]
-        [harmonize]
+        [normalize]
         [io]
         [plot]
         [resampling]

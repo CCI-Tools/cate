@@ -23,7 +23,7 @@
 Description
 ===========
 
-Dataset harmonization operation.
+Dataset normalization operation.
 
 Components
 ==========
@@ -39,14 +39,26 @@ from cate.core.op import op
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 
 
-@op(tags=['harmonize'])
-def harmonize(ds: xr.Dataset) -> xr.Dataset:
+@op(tags=['utility'])
+def normalize(ds: xr.Dataset) -> xr.Dataset:
     """
-    Harmonize the given dataset. Rename latitude and longitude names to
-    lat and lon, if it is not already the case. Decode time if necessary.
+    Normalize the geo- and time-coding upon opening the given dataset w.r.t.
+    to a common (CF-compatible) convention used within Cate. This will maximize the compatibility of
+    a dataset for usage with Cate's operations.
 
-    :param ds: The dataset to harmonize
-    :return: The harmonized dataset
+    That is,
+    * variables named "latitude" will be renamed to "lat";
+    * variables named "longitude" or "long" will be renamed to "lon";
+
+    Then, for equi-rectangular grids,
+    * A 2D variable named "lat" will be renamed to "lat_2d" and will have new dimension names ("lat", "lon");
+    * A 2D variable named "lon" will be renamed to "lon_2d" and will have new dimension names ("lat", "lon");
+    * Two new 1D coordinate variables "lat" and "lon" will be generated from their associated 2D variables.
+
+    Finally, it will be ensured that a "time" coordinate variable will be of type *datetime*.
+
+    :param ds: The dataset to normalize.
+    :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
 
     ds = _normalize_lat_lon(ds)

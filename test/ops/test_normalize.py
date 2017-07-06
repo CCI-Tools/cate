@@ -9,7 +9,7 @@ from jdcal import gcal2jd
 import numpy as np
 from datetime import datetime
 
-from cate.ops.harmonize import harmonize
+from cate.ops.normalize import normalize
 from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
 
@@ -22,7 +22,7 @@ def assertDatasetEqual(expected, actual):
 
 
 class TestHarmonize(TestCase):
-    def test_harmonize_lon_lat_2d(self):
+    def test_normalize_lon_lat_2d(self):
         """
         Test nominal execution
         """
@@ -70,10 +70,10 @@ class TestHarmonize(TestCase):
                                'geospatial_lat_min': 5.,
                                'geospatial_lat_max': 35.})
 
-        actual = harmonize(dataset)
+        actual = normalize(dataset)
         xr.testing.assert_equal(actual, expected)
 
-    def test_harmonize_lon_lat(self):
+    def test_normalize_lon_lat(self):
         """
         Test nominal execution
         """
@@ -82,14 +82,14 @@ class TestHarmonize(TestCase):
                                                         [2, 3, 4]])})
         expected = xr.Dataset({'first': (['lat', 'lon'], [[1, 2, 3],
                                                           [2, 3, 4]])})
-        actual = harmonize(dataset)
+        actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
         dataset = xr.Dataset({'first': (['lat', 'long'], [[1, 2, 3],
                                                           [2, 3, 4]])})
         expected = xr.Dataset({'first': (['lat', 'lon'], [[1, 2, 3],
                                                           [2, 3, 4]])})
-        actual = harmonize(dataset)
+        actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
         dataset = xr.Dataset({'first': (['latitude',
@@ -97,17 +97,17 @@ class TestHarmonize(TestCase):
                                                         [2, 3, 4]])})
         expected = xr.Dataset({'first': (['lat', 'spacetime'], [[1, 2, 3],
                                                                 [2, 3, 4]])})
-        actual = harmonize(dataset)
+        actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
         dataset = xr.Dataset({'first': (['zef', 'spacetime'], [[1, 2, 3],
                                                                [2, 3, 4]])})
         expected = xr.Dataset({'first': (['zef', 'spacetime'], [[1, 2, 3],
                                                                 [2, 3, 4]])})
-        actual = harmonize(dataset)
+        actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
-    def test_julian_day(self):
+    def test_normalize_julian_day(self):
         """
         Test Julian Day -> Datetime conversion
         """
@@ -129,7 +129,7 @@ class TestHarmonize(TestCase):
             'time': [datetime(2000, x, 1) for x in range(1, 13)]})
         expected.time.attrs['long_name'] = 'time'
 
-        actual = harmonize(ds)
+        actual = normalize(ds)
 
         assertDatasetEqual(actual, expected)
 
@@ -137,7 +137,7 @@ class TestHarmonize(TestCase):
         """
         Test as a registered operation
         """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(harmonize))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(normalize))
         dataset = xr.Dataset({'first': (['latitude',
                                          'longitude'], [[1, 2, 3],
                                                         [2, 3, 4]])})

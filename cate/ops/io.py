@@ -31,7 +31,7 @@ import xarray as xr
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
-from cate.ops.harmonize import harmonize as harmonize_op
+from cate.ops.normalize import normalize as normalize_op
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
@@ -41,11 +41,12 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
+@op_input('normalize')
 def open_dataset(ds_name: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
-                 harmonize: bool = True) -> xr.Dataset:
+                 normalize: bool = True) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 
@@ -54,14 +55,14 @@ def open_dataset(ds_name: str,
     :param region: Optional spatial region of the requested dataset
     :param var_names: Optional names of variables of the requested dataset
     :param monitor: a progress monitor, used only if *sync* is ``True``.
-    :param harmonize: Whether to harmonize the dataset upon opening
+    :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :return: An new dataset instance.
     """
     import cate.core.ds
     ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
                                    var_names=var_names, region=region)
-    if ds and harmonize:
-        return harmonize_op(ds)
+    if ds and normalize:
+        return normalize_op(ds)
 
     return ds
 

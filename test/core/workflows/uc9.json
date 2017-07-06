@@ -95,8 +95,8 @@
       }
     },
     {
-      "id": "harmonize",
-      "op": "cate.ops.harmonize.harmonize",
+      "id": "normalize",
+      "op": "cate.ops.normalize.normalize",
       "input": {
         "datasets": "dataset_list"
       }
