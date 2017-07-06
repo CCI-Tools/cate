@@ -30,6 +30,8 @@ Functions
 """
 
 import xarray as xr
+import numpy as np
+
 from scipy.stats import pearsonr
 from scipy.special import betainc
 
@@ -198,8 +200,11 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     # At this point r should be a lon/lat dataArray, so it should be safe to
     # load it in memory explicitly. This may take time as it will kick-start
     # deferred processing.
+    # Comparing with NaN produces warnings that can be safely ignored
+    default_warning_settings = np.seterr(invalid='ignore')
     r.values[r.values < -1.0] = -1.0
     r.values[r.values > 1.0] = 1.0
+    np.seterr(**default_warning_settings)
     r.attrs = {'description': 'Correlation coefficients between'
                ' {} and {}.'.format(x.name, y.name)}
 
