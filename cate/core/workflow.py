@@ -129,6 +129,9 @@ from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
 
+#: Increment number on any (JSON) schema change
+WORKFLOW_SCHEMA_VERSION = 1
+WORKFLOW_SCHEMA_TAG = 'schema'
 
 class Node(metaclass=ABCMeta):
     """
@@ -743,6 +746,7 @@ class Workflow(Node):
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         workflow_json_dict = OrderedDict()
+        workflow_json_dict[WORKFLOW_SCHEMA_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
         workflow_json_dict['input'] = input_json_dict
@@ -821,17 +825,17 @@ class Step(Node):
         :return: A JSON-serializable dictionary
         """
 
-        node_dict = OrderedDict()
-        node_dict['id'] = self.id
+        step_json_dict = OrderedDict()
+        step_json_dict['id'] = self.id
 
-        self.enhance_json_dict(node_dict)
+        self.enhance_json_dict(step_json_dict)
 
-        node_dict['input'] = OrderedDict(
+        step_json_dict['input'] = OrderedDict(
             [(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
-        node_dict['output'] = OrderedDict(
+        step_json_dict['output'] = OrderedDict(
             [(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
 
-        return node_dict
+        return step_json_dict
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):

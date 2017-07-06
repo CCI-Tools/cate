@@ -299,6 +299,7 @@ class WorkflowTest(TestCase):
 
         expected_json_text = """
         {
+            "schema": 1,
             "qualified_name": "my_workflow",
             "header": {},
             "input": {

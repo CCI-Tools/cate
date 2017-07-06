@@ -265,6 +265,7 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_example(self):
         expected_json_text = """{
+            "schema": 1,
             "qualified_name": "workspace_workflow",
             "header": {
                 "description": "Test!"
@@ -281,6 +282,7 @@ class WorkspaceTest(unittest.TestCase):
                         },
                         "drop_variables": {},
                         "decode_cf": {},
+                        "normalize": {},
                         "decode_times": {},
                         "engine": {}
                     },
