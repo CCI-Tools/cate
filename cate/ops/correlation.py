@@ -153,7 +153,7 @@ def _pearson_simple(ds_x: xr.Dataset,
 
 def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     """
-    Calculates a Pearson correlation coefficients and p-values for testing
+    Calculates Pearson correlation coefficients and p-values for testing
     non-correlation of lon/lat/time xarray datasets for each lon/lat point.
 
     Heavily influenced by scipy.stats.pearsonr
@@ -196,7 +196,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     # Presumably, if abs(r) > 1, then it is only some small artifact of floating
     # point arithmetic.
     # At this point r should be a lon/lat dataArray, so it should be safe to
-    # load it in memory explicitly. This will take time as it will kick-start
+    # load it in memory explicitly. This may take time as it will kick-start
     # deferred processing.
     r.values[r.values < -1.0] = -1.0
     r.values[r.values > 1.0] = 1.0
