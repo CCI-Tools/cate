@@ -30,6 +30,7 @@ Components
 """
 
 import xarray as xr
+import numpy as np
 
 from jdcal import jd2gcal
 from datetime import datetime
@@ -42,34 +43,100 @@ from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 def harmonize(ds: xr.Dataset) -> xr.Dataset:
     """
     Harmonize the given dataset. Rename latitude and longitude names to
-    lat and lon, if it is not already the case. Decode time if neccessary
+    lat and lon, if it is not already the case. Decode time if necessary.
 
     :param ds: The dataset to harmonize
     :return: The harmonized dataset
     """
-    lat_name = get_lat_dim_name(ds)
-    lon_name = get_lon_dim_name(ds)
 
-    name_dict = dict()
-    if lat_name:
-        name_dict[lat_name] = 'lat'
-
-    if lon_name:
-        name_dict[lon_name] = 'lon'
-
-    ds = ds.rename(name_dict)
+    ds = _normalize_lat_lon(ds)
+    ds = _normalize_lat_lon_2d(ds)
 
     # Handle Julian Day Time
     try:
         if ds.time.long_name.lower().strip() == 'time in julian days':
-            return _jd2datetime(ds)
+            return _normalize_jd2datetime(ds)
     except AttributeError:
         pass
 
     return ds
 
 
-def _jd2datetime(ds: xr.Dataset) -> xr.Dataset:
+def _normalize_lat_lon(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Rename variables named 'longitude' or 'long' to 'lon', and 'latitude' to 'lon'.
+    :param ds: some xarray dataset
+    :return: a normalized xarray dataset, or the original one
+    """
+    lat_name = get_lat_dim_name(ds)
+    lon_name = get_lon_dim_name(ds)
+
+    name_dict = dict()
+    if lat_name and 'lat' not in ds:
+        name_dict[lat_name] = 'lat'
+
+    if lon_name and 'lon' not in ds:
+        name_dict[lon_name] = 'lon'
+
+    if name_dict:
+        ds = ds.rename(name_dict)
+
+    return ds
+
+
+def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Detect 2D 'lat', 'lon' variables that span a equi-rectangular grid. Then:
+    Rename original 'lat', 'lon' variables to 'lat_2d', 'lon_2d'
+    Rename original dimensions names of 'lat_2d', 'lon_2d' variables, usually ('y', 'x'), to ('lat', 'lon').
+    Insert new 1D 'lat', 'lon' coordinate variables with dimensions 'lat' and 'lon', respectively.
+    :param ds: some xarray dataset
+    :return: a normalized xarray dataset, or the original one
+    """
+    if not ('lat' in ds and 'lon' in ds):
+        return ds
+
+    lat_var = ds['lat']
+    lon_var = ds['lon']
+
+    lat_dims = lat_var.dims
+    lon_dims = lon_var.dims
+    if lat_dims != lon_dims:
+        return ds
+
+    spatial_dims = lon_dims
+    if len(spatial_dims) != 2:
+        return ds
+
+    x_dim_name = spatial_dims[-1]
+    y_dim_name = spatial_dims[-2]
+
+    lat_data_1 = lat_var[:, 0]
+    lat_data_2 = lat_var[:, -1]
+    lon_data_1 = lon_var[0, :]
+    lon_data_2 = lon_var[-1, :]
+
+    equal_lat = np.allclose(lat_data_1, lat_data_2, equal_nan=True)
+    equal_lon = np.allclose(lon_data_1, lon_data_2, equal_nan=True)
+    if not (equal_lat and equal_lon):
+        return ds
+
+    ds = ds.rename({
+        'lon': 'lon_2d',
+        'lat': 'lat_2d',
+    })
+
+    ds = ds.rename({
+        x_dim_name: 'lon',
+        y_dim_name: 'lat',
+    })
+
+    ds = ds.assign_coords(lon=np.array(lon_data_1), lat=np.array(lat_data_1))
+
+    return ds
+
+
+def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     """
     Convert the time dimension of the given dataset from Julian date to
     datetime.

@@ -22,7 +22,58 @@ def assertDatasetEqual(expected, actual):
 
 
 class TestHarmonize(TestCase):
-    def test_harmonize(self):
+    def test_harmonize_lon_lat_2d(self):
+        """
+        Test nominal execution
+        """
+        dims = ('time', 'y', 'x')
+        attribs = {'valid_min': 0., 'valid_max': 1.}
+
+        t_size = 2
+        y_size = 3
+        x_size = 4
+
+        a_data = np.random.random_sample((t_size, y_size, x_size))
+        b_data = np.random.random_sample((t_size, y_size, x_size))
+        time_data = [1, 2]
+        lat_data = [[30., 30., 30., 30.],
+                    [20., 20., 20., 20.],
+                    [10., 10., 10., 10.]]
+        lon_data = [[-10., 0., 10., 20.],
+                    [-10., 0., 10., 20.],
+                    [-10., 0., 10., 20.]]
+        dataset = xr.Dataset({'a': (dims, a_data, attribs),
+                              'b': (dims, b_data, attribs)
+                              },
+                             {'time': (('time',), time_data),
+                              'lat': (('y', 'x'), lat_data),
+                              'lon': (('y', 'x'), lon_data)
+                              },
+                             {'geospatial_lon_min': -15.,
+                              'geospatial_lon_max': 25.,
+                              'geospatial_lat_min': 5.,
+                              'geospatial_lat_max': 35.
+                              }
+                             )
+
+        new_dims = ('time', 'lat', 'lon')
+        expected = xr.Dataset({'a': (new_dims, a_data, attribs),
+                               'b': (new_dims, b_data, attribs)},
+                              {'time': (('time',), time_data),
+                               'lat_2d': (('lat', 'lon'), lat_data),
+                               'lon_2d': (('lat', 'lon'), lon_data),
+                               'lat': (('lat',), [30., 20., 10.]),
+                               'lon': (('lon',), [-10., 0., 10., 20.]),
+                               },
+                              {'geospatial_lon_min': -15.,
+                               'geospatial_lon_max': 25.,
+                               'geospatial_lat_min': 5.,
+                               'geospatial_lat_max': 35.})
+
+        actual = harmonize(dataset)
+        xr.testing.assert_equal(actual, expected)
+
+    def test_harmonize_lon_lat(self):
         """
         Test nominal execution
         """
