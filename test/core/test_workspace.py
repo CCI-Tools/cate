@@ -279,15 +279,7 @@ class WorkspaceTest(unittest.TestCase):
                     "input": {
                         "file": {
                             "value": "%s"
-                        },
-                        "drop_variables": {},
-                        "decode_cf": {},
-                        "normalize": {},
-                        "decode_times": {},
-                        "engine": {}
-                    },
-                    "output": {
-                        "return": {}
+                        }
                     }
                 },
                 {
@@ -299,12 +291,7 @@ class WorkspaceTest(unittest.TestCase):
                         },
                         "var": {
                           "value": "precipitation"
-                        },
-                        "std_suffix": {},
-                        "calculate_std": {}
-                    },
-                    "output": {
-                        "return": {}
+                        }
                     }
                 }
             ]

@@ -314,9 +314,6 @@ class WorkflowTest(TestCase):
                     "op": "test.core.test_workflow.op1",
                     "input": {
                         "x": { "source": "my_workflow.p" }
-                    },
-                    "output": {
-                        "y": {}
                     }
                 },
                 {
@@ -324,9 +321,6 @@ class WorkflowTest(TestCase):
                     "op": "test.core.test_workflow.op2",
                     "input": {
                         "a": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "b": {}
                     }
                 },
                 {
@@ -335,9 +329,6 @@ class WorkflowTest(TestCase):
                     "input": {
                         "v": {"source": "op2.b"},
                         "u": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "w": {}
                     }
                 }
             ]
@@ -770,11 +761,7 @@ class OpStepTest(TestCase):
             "id": "op3",
             "op": "test.core.test_workflow.op3",
             "input": {
-                "v": {},
                 "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
             }
         }
         """
@@ -802,9 +789,6 @@ class OpStepTest(TestCase):
             "input": {
                 "v": {"value": 1.2},
                 "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
             }
         }
         """

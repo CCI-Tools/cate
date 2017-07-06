@@ -824,18 +824,26 @@ class Step(Node):
 
         :return: A JSON-serializable dictionary
         """
-
         step_json_dict = OrderedDict()
         step_json_dict['id'] = self.id
 
         self.enhance_json_dict(step_json_dict)
 
-        step_json_dict['input'] = OrderedDict(
-            [(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
-        step_json_dict['output'] = OrderedDict(
-            [(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
+        inputs_json_dict = self.get_inputs_json_dict()
+        if inputs_json_dict is not None:
+            step_json_dict['input'] = inputs_json_dict
+
+        outputs_json_dict = self.get_outputs_json_dict()
+        if outputs_json_dict is not None:
+            step_json_dict['output'] = outputs_json_dict
 
         return step_json_dict
+
+    def get_inputs_json_dict(self):
+        return OrderedDict([(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
+
+    def get_outputs_json_dict(self):
+        return OrderedDict([(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
@@ -998,6 +1006,25 @@ class OpStep(Step):
 
     def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['op'] = self.op_meta_info.qualified_name
+
+    def get_inputs_json_dict(self):
+        inputs_json_dict = OrderedDict()
+        for node_input in self.input[:]:
+            input_json_dict = node_input.to_json_dict()
+            if input_json_dict and node_input.has_value:
+                value = node_input.value
+                input_props = self.op_meta_info.input.get(node_input.name)
+                if input_props:
+                    default_value = input_props.get('default_value', UNDEFINED)
+                    if value == default_value:
+                        # If value equals default_value, we don't store it in JSON
+                        input_json_dict = None
+            if input_json_dict:
+                inputs_json_dict[node_input.name] = input_json_dict
+        return inputs_json_dict
+
+    def get_outputs_json_dict(self):
+        return None
 
     def __repr__(self):
         return "OpStep(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
