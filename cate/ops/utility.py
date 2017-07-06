@@ -129,18 +129,30 @@ def literal(value: Literal.TYPE) -> Arbitrary.TYPE:
 
 
 @op(tags=['utility'])
-def test_tasks(num_steps: int = 10,
-               step_duration: float = 0.5,
-               fail_before: bool = False,
-               fail_after: bool = False,
-               monitor: Monitor = Monitor.NONE):
+@op_input('step_duration', units='seconds')
+def no_op(num_steps: int = 10,
+          step_duration: float = 0.5,
+          fail_before: bool = False,
+          fail_after: bool = False,
+          monitor: Monitor = Monitor.NONE):
+    """
+    An operation that basically does nothing but spending configurable time.
+    It may be useful for testing purposes.
+
+    :param num_steps: Number of steps to iterate.
+    :param step_duration: How much time to spend in each step in seconds.
+    :param fail_before: If the operation should fail before spending time doing nothing.
+    :param fail_after: If the operation should fail after spending time doing nothing.
+    :param monitor: A progress monitor.
+    """
     import time
-    monitor.start('Testing the task panel')
+    monitor.start('Computing nothing', num_steps)
     if fail_before:
-        raise ValueError('This error is a test.')
+        raise ValueError('Intentionally failed before doing anything.')
     for i in range(num_steps):
         time.sleep(step_duration)
-        monitor.progress(1.0, 'Step %s of %s' % (i + 1, num_steps))
+        monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
     if fail_after:
-        raise ValueError('This error is a test.')
+        raise ValueError('Intentionally failed after doing nothing.')
     monitor.done()
+
