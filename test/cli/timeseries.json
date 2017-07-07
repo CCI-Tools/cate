@@ -33,7 +33,7 @@
   },
   "output": {
     "return": {
-      "source": "timeseries_op.return",
+      "source": "timeseries_op",
       "data_type": "list",
       "description": "Time series as list of values"
     }

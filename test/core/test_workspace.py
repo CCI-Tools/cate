@@ -280,7 +280,7 @@ class WorkspaceTest(unittest.TestCase):
                     "op": "cate.ops.timeseries.tseries_mean",
                     "input": {
                         "ds": {
-                            "source": "p.return"
+                            "source": "p"
                         },
                         "var": {
                           "value": "precipitation"
@@ -299,6 +299,8 @@ class WorkspaceTest(unittest.TestCase):
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"))
         print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+
+        self.maxDiff = None
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
         with self.assertRaises(ValueError) as e:

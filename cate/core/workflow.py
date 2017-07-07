@@ -411,7 +411,7 @@ class Node(metaclass=ABCMeta):
         for port in namespace[:]:
             if port.source:
                 port_assignments.append('%s=@%s' % (port.name, str(port.source)))
-            elif port.has_value:
+            elif port.is_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
                 default_value = self.op_meta_info.input[port.name].get('default_value', None)
@@ -1011,7 +1011,7 @@ class OpStep(Step):
         inputs_json_dict = OrderedDict()
         for node_input in self.input[:]:
             input_json_dict = node_input.to_json_dict()
-            if input_json_dict and node_input.has_value:
+            if input_json_dict and node_input.is_value:
                 value = node_input.value
                 input_props = self.op_meta_info.input.get(node_input.name)
                 if input_props:
@@ -1247,7 +1247,7 @@ class SubProcessStep(Step):
         return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
 
 
-SourceRef = namedtuple('SourcerRef', ['node_id', 'port_name'])
+SourceRef = namedtuple('SourceRef', ['node_id', 'port_name'])
 
 
 class NodePort:
@@ -1285,6 +1285,10 @@ class NodePort:
             return True
 
     @property
+    def is_value(self) -> bool:
+        return not self._source and self._value is not UNDEFINED
+
+    @property
     def value(self):
         if self._source:
             return self._source.value
@@ -1302,6 +1306,10 @@ class NodePort:
     @property
     def source_ref(self) -> SourceRef:
         return self._source_ref
+
+    @property
+    def is_source(self) -> bool:
+        return self._source is not None
 
     @property
     def source(self) -> 'NodePort':
@@ -1443,19 +1451,25 @@ class NodePort:
         :return: A JSON-serializable dictionary
         """
         json_dict = dict()
-        if self.source is not None:
-            json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self.has_value:
-            # Do not serialize output values, they are temporary and may not be JSON-serializable
-            is_output = self._name in self._node.op_meta_info.output
-            if not is_output:
-                json_dict['value'] = self._to_json_value(self._value)
+        source = self._source
+        if source is not None:
+            # If we have a source, the port's value is undefined.
+            json_dict['source'] = str(source)
+        else:
+            value = self._value
+            # Only serialize defined values
+            if value is not UNDEFINED:
+                is_output = self._name in self._node.op_meta_info.output
+                # Do not serialize output values, they are temporary and may not be JSON-serializable
+                if not is_output:
+                    json_dict['value'] = self._to_json_value(self._value)
         return json_dict
 
     # noinspection PyBroadException
     def _to_json_value(self, value):
         input_props = self._node.op_meta_info.input.get(self._name)
         if input_props:
+            # try converting value using a dedicated method
             data_type = input_props.get('data_type')
             if data_type:
                 try:
@@ -1484,8 +1498,10 @@ class NodePort:
 
     def __str__(self):
         if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:
+            # Use short form
             return self._node.id
         else:
+            # Use dot form
             return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):
