@@ -158,13 +158,29 @@ class Workspace:
         return Workspace(base_dir, Workspace.new_workflow(dict(description=description or '')))
 
     @classmethod
-    def open(cls, base_dir: str) -> 'Workspace':
+    def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_dir(base_dir)):
             raise WorkspaceError('Not a valid workspace: %s' % base_dir)
         try:
             workflow_file = cls.get_workflow_file(base_dir)
             workflow = Workflow.load(workflow_file)
-            return Workspace(base_dir, workflow)
+            workspace = Workspace(base_dir, workflow)
+
+            # <<< Issue #270
+            resource_cache = workspace._resource_cache
+            steps = workflow.steps
+            with monitor.starting('Reading resources', len(steps)):
+                for step in workflow.steps:
+                    resource_name = step.id
+                    resource_file = os.path.join(base_dir, resource_name + '.nc')
+                    if os.path.isfile(resource_file):
+                        resource_value = xr.open_dataset(resource_file)
+                        resource_cache[resource_name] = resource_value
+                    monitor.progress(1)
+            # >>> Issue #270
+
+
+            return workspace
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
@@ -173,7 +189,7 @@ class Workspace:
             return
         self._resource_cache.close()
 
-    def save(self):
+    def save(self, monitor: Monitor = Monitor.NONE):
         self._assert_open()
         base_dir = self.base_dir
         try:
@@ -183,6 +199,21 @@ class Workspace:
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             self.workflow.store(self.workflow_file)
+
+            # <<< Issue #270
+            resource_cache = self._resource_cache
+            with monitor.starting('Writing resources', len(resource_cache)):
+                for resource_name, resource_value in resource_cache.items():
+                    resource_file = os.path.join(base_dir, resource_name + '.nc')
+                    try:
+                        resource_value.to_netcdf(resource_file)
+                    except AttributeError as e:
+                        pass
+                    except (IOError, OSError) as e:
+                        print(e)
+                    monitor.progress(1)
+            # >>> Issue #270
+
             self._is_modified = False
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
@@ -448,6 +479,16 @@ class Workspace:
 
         if res_name in self._resource_cache:
             self._resource_cache.rename_key(res_name, new_res_name)
+
+        # <<< Issue #270
+        res_file = os.path.join(self.base_dir, res_name + '.nc')
+        if os.path.isfile(res_file):
+            new_res_file = os.path.join(self.base_dir, new_res_name + '.nc')
+            try:
+                os.replace(res_file, new_res_file)
+            except (OSError, IOError) as e:
+                print(e)
+        # >>> Issue #270
 
     def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
         assert res_name

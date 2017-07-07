@@ -262,8 +262,8 @@ class WebSocketService:
         self.workspace_manager.close_workspace(base_dir)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def save_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.save_workspace(base_dir)
+    def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
         return workspace.to_json_dict()
 
     def clean_workspace(self, base_dir: str) -> dict:
