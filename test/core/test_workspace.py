@@ -42,14 +42,14 @@ class WorkspaceTest(unittest.TestCase):
 
         def dataset_op() -> xr.Dataset:
             periods = 5
-            temperature = (15 + 8 * np.random.randn(periods, 2, 2)).round(decimals=1)
-            precipitation = (10 * np.random.rand(periods, 2, 2)).round(decimals=1)
+            temperature_data = (15 + 8 * np.random.randn(periods, 2, 2)).round(decimals=1)
+            temperature_attrs = {'a': np.array([1, 2, 3]), 'comment': 'hot', '_FillValue': np.nan}
+            precipitation_data = (10 * np.random.rand(periods, 2, 2)).round(decimals=1)
+            precipitation_attrs = {'x': True, 'comment': 'wet', '_FillValue': -1.0}
             ds = xr.Dataset(
                 data_vars={
-                    'temperature': (['time', 'lat', 'lon'], temperature,
-                                    {'a': np.array([1, 2, 3]), 'comment': 'hot', '_FillValue': np.nan}),
-                    'precipitation': (
-                    ['time', 'lat', 'lon'], precipitation, {'x': True, 'comment': 'wet', '_FillValue': -1.0})
+                    'temperature': (('time', 'lat', 'lon'), temperature_data, temperature_attrs),
+                    'precipitation': (('time', 'lat', 'lon'), precipitation_data, precipitation_attrs)
                 },
                 coords={
                     'lon': np.array([12, 13]),
@@ -213,34 +213,29 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache, {})
 
-        print('----------------------------------')
         value = ws.execute_workflow('Y')
         self.assertEqual(value, 1)
         self.assertEqual(ws.resource_cache.get('X'), 1)
         self.assertEqual(ws.resource_cache.get('Y'), 1)
         self.assertEqual(ws.resource_cache.get('Z'), None)
 
-        print('----------------------------------')
         value = ws.execute_workflow('Z')
         self.assertEqual(value, 1)
         self.assertEqual(ws.resource_cache.get('X'), 1)
         self.assertEqual(ws.resource_cache.get('Y'), 1)
         self.assertEqual(ws.resource_cache.get('Z'), 1)
 
-        print('----X------------------------------')
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=9), overwrite=True)
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
-        print('----Y------------------------------')
         ws.execute_workflow()
         self.assertEqual(ws.resource_cache.get('X'), 9)
         self.assertEqual(ws.resource_cache.get('Y'), 9)
         self.assertEqual(ws.resource_cache.get('Z'), 9)
 
-        print('----------------------------------')
         ws.rename_resource('X', 'A')
         self.assertIsNone(ws.workflow.find_node('X'))
         self.assertIsNotNone(ws.workflow.find_node('A'))
@@ -249,14 +244,12 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 9)
         self.assertEqual(ws.resource_cache.get('Z'), 9)
 
-        print('----------------------------------')
         ws.set_resource('A', 'cate.ops.utility.identity', mk_op_kwargs(value=5), overwrite=True)
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
         self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
 
-        print('----------------------------------')
         ws.execute_workflow()
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
         self.assertEqual(ws.resource_cache.get('A'), 5)

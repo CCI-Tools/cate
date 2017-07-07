@@ -231,26 +231,33 @@ class Workspace:
         data_type_name = object_to_qualified_name(type(resource))
         resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
+
             var_names = sorted(resource.data_vars.keys())
             for var_name in var_names:
                 if not var_name.endswith('_bnds'):
                     variable = resource.data_vars[var_name]
                     variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
+
             var_names = sorted(resource.coords.keys())
             for var_name in var_names:
                 variable = resource.coords[var_name]
                 coords_descriptors.append(self._get_xarray_variable_descriptor(variable, is_coord=True))
+
             resource_json.update(dimSizes=to_json(resource.dims),
                                  attributes=self._attrs_to_json_dict(resource.attrs),
                                  variables=variable_descriptors,
                                  coordVariables=coords_descriptors)
+
         elif isinstance(resource, pd.DataFrame):
+
             var_names = list(resource.columns)
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
             resource_json.update(variables=variable_descriptors)
+
         elif isinstance(resource, fiona.Collection):
+
             num_features = len(resource)
             properties = resource.schema.get('properties')
             if properties:
@@ -307,7 +314,10 @@ class Workspace:
             if image_config:
                 variable_info['imageLayout'] = image_config
                 variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
-        else:
+        elif variable.ndim == 1:
+            # Serialize data of coordinate variables.
+            # To limit data transfer volume, we serialize data arrays only if they are 1D.
+            # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
         return variable_info
