@@ -51,9 +51,8 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
     * variables named "longitude" or "long" will be renamed to "lon";
 
     Then, for equi-rectangular grids,
-    * A 2D variable named "lat" will be renamed to "lat_2d" and will have new dimension names ("lat", "lon");
-    * A 2D variable named "lon" will be renamed to "lon_2d" and will have new dimension names ("lat", "lon");
-    * Two new 1D coordinate variables "lat" and "lon" will be generated from their associated 2D variables.
+    * Remove 2D "lat" and "lon" variables;
+    * Two new 1D coordinate variables "lat" and "lon" will be generated from original 2D forms.
 
     Finally, it will be ensured that a "time" coordinate variable will be of type *datetime*.
 
@@ -99,8 +98,8 @@ def _normalize_lat_lon(ds: xr.Dataset) -> xr.Dataset:
 def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
     """
     Detect 2D 'lat', 'lon' variables that span a equi-rectangular grid. Then:
-    Rename original 'lat', 'lon' variables to 'lat_2d', 'lon_2d'
-    Rename original dimensions names of 'lat_2d', 'lon_2d' variables, usually ('y', 'x'), to ('lat', 'lon').
+    Drop original 'lat', 'lon' variables
+    Rename original dimensions names of 'lat', 'lon' variables, usually ('y', 'x'), to ('lat', 'lon').
     Insert new 1D 'lat', 'lon' coordinate variables with dimensions 'lat' and 'lon', respectively.
     :param ds: some xarray dataset
     :return: a normalized xarray dataset, or the original one
@@ -133,10 +132,7 @@ def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
     if not (equal_lat and equal_lon):
         return ds
 
-    ds = ds.rename({
-        'lon': 'lon_2d',
-        'lat': 'lat_2d',
-    })
+    ds = ds.drop(['lon', 'lat'])
 
     ds = ds.rename({
         x_dim_name: 'lon',

@@ -60,8 +60,6 @@ class TestHarmonize(TestCase):
         expected = xr.Dataset({'a': (new_dims, a_data, attribs),
                                'b': (new_dims, b_data, attribs)},
                               {'time': (('time',), time_data),
-                               'lat_2d': (('lat', 'lon'), lat_data),
-                               'lon_2d': (('lat', 'lon'), lon_data),
                                'lat': (('lat',), [30., 20., 10.]),
                                'lon': (('lon',), [-10., 0., 10., 20.]),
                                },
