@@ -1,3 +1,9 @@
+## Changes in version 0.9.0.dev4
+
+* Fixed #285
+* Fixed #283
+* Fixed #281
+
 ## Changes in version 0.9.0.dev3
 
 * Fixed packaging location of file `countries.geojson` so that Cate Desktop can display it
