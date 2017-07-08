@@ -49,7 +49,7 @@ def cate_init():
 
 from .select import select_var
 from .coregistration import coregister
-from .correlation import pearson_correlation
+from .correlation import pearson_correlation_simple, pearson_correlation_map
 from .harmonize import harmonize
 from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
     read_csv, read_geo_data_frame, read_geo_data_collection, read_netcdf, write_netcdf3, write_netcdf4
@@ -85,7 +85,8 @@ __all__ = [
     'subset_temporal',
     'subset_temporal_index',
     # .correlation
-    'person_correlation',
+    'pearson_correlation_simple',
+    'pearson_correlation_map',
     # .plot
     'plot_map',
     'plot',

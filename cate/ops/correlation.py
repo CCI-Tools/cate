@@ -35,48 +35,42 @@ import numpy as np
 from scipy.stats import pearsonr
 from scipy.special import betainc
 
-from cate.core.op import op, op_input
+from cate.core.op import op, op_input, op_output
 from cate.core.types import VarName
 
 
-_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
-
-
-@op(tags=['correlation'])
+@op(tags=['utility'])
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-def pearson_correlation(ds_x: xr.Dataset,
-                        ds_y: xr.Dataset,
-                        var_x: VarName.TYPE,
-                        var_y: VarName.TYPE) -> xr.Dataset:
+@op_output('corr_coef', output_type=float)
+@op_output('p_value', output_type=float)
+def pearson_correlation_simple(ds_x: xr.Dataset,
+                               ds_y: xr.Dataset,
+                               var_x: VarName.TYPE,
+                               var_y: VarName.TYPE):
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
+
+    Performs a simple correlation analysis on the provided datasets and returns
+    a correlation coefficient and the corresponding p_value for a correlation
+    of all values in the given variables.
+
+    The provided variables have to have the same shape, but not neccessarily
+    the same definition on all axes. The usual use case would be performing
+    correlation analysis of two timeseries.
+
+    Positive correlation implies that as x grows, so does y. Negative
+    correlation implies that as x increases, y decreases.
 
     For more information how to interpret the results, see
     `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_,
     and `here <https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.pearsonr.html>`_.
 
-    The provided variables have to have the same shape, but depending on the
-    type of variables and chosen correlation type, not necessarily the same
-    definition for all dimensions. E.g., it is possible to correlate two
-    datasets of the same area at different times.
-
-    If two 1D or 2D variables are provided, a single pair of correlation
-    coefficient and p_value will be calculated and returned.
-
-    In case 3D time/lat/lon variables are provided, pixel by pixel correlation
-    will be performed.  The datasets have to have the same lat/lon
-    definition, so that a 2D lat/lon map of correlation coefficients, as well
-    as p_values can be constructed.
-
-    There are 'x' and 'y' datasets. Positive correlations imply that as x
-    grows, so does y. Negative correlations imply that as x increases, y
-    decreases.
-
     :param ds_x: The 'x' dataset
     :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
     var_x = VarName.convert(var_x)
     var_y = VarName.convert(var_y)
@@ -84,46 +78,76 @@ def pearson_correlation(ds_x: xr.Dataset,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if len(array_x.dims) > 3 or len(array_y.dims) > 3:
-        raise NotImplementedError('Pearson correlation for multi-dimensional variables is not implemented.')
+    if array_x.values.shape != array_y.values.shape:
+        raise ValueError('The provided variables {} and {} do not have the same shape, '
+                         'Pearson correlation can not be performed. Please '
+                         'review operation documentation'.format(var_x, var_y))
+
+    cc, pv = pearsonr(array_x.values, array_y.values)
+    return {'corr_coef': cc, 'p_value': pv}
+
+
+@op(tags=['utility'])
+@op_input('var_x', value_set_source='ds_x', data_type=VarName)
+@op_input('var_y', value_set_source='ds_y', data_type=VarName)
+def pearson_correlation_map(ds_x: xr.Dataset,
+                            ds_y: xr.Dataset,
+                            var_x: VarName.TYPE,
+                            var_y: VarName.TYPE) -> xr.Dataset:
+    """
+    Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
+
+    Perform Pearson correlation analysis on two time/lat/lon datasets and
+    produce a lat/lon map of correlation coefficients and p_values of
+    underlying timeseries in the provided datasets.
+
+    The lat/lon definition of both datasets has to be the same. The length of
+    the time dimension should be equal, but not neccessarily have the same
+    definition. E.g., it is possible to correlate different times of the same
+    area.
+
+    There are 'x' and 'y' datasets. Positive correlations imply that as x
+    grows, so does y. Negative correlations imply that as x increases, y
+    decreases.
+
+    For more information how to interpret the results, see
+    `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_,
+    and `here <https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.pearsonr.html>`_.
+
+    :param ds_x: The 'x' dataset
+    :param ds_y: The 'y' dataset
+    :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
+    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :returns: a dataset containing a map of correlation coefficients and p_values
+    """
+    var_x = VarName.convert(var_x)
+    var_y = VarName.convert(var_y)
+
+    array_y = ds_y[var_y]
+    array_x = ds_x[var_x]
+
+    if len(array_x.dims) != 3 or len(array_y.dims) != 3:
+        raise ValueError('pearson_correlation_map works only on 3D'
+                         ' datasets. Please review operation'
+                         ' documentation.')
 
     if array_x.values.shape != array_y.values.shape:
         raise ValueError('The provided variables {} and {} do not have the same shape, '
                          'Pearson correlation can not be performed. Please '
                          'review operation documentation'.format(var_x, var_y))
 
-    # Perform a simple Pearson correlation that returns just a coefficient and
-    # a p_value.
-    if len(array_x.dims) < 3:
-        return _pearson_simple(ds_x, ds_y, var_x, var_y)
-
     if (not ds_x['lat'].equals(ds_y['lat']) or
             not ds_x['lon'].equals(ds_y['lon'])):
         raise ValueError('When performing a pixel by pixel correlation the datasets have to have the same '
                          'lat/lon definition. Consider running coregistration first')
 
+    if len(array_x['time']) < 3:
+        raise ValueError('The length of the time dimension should not be less'
+                         ' than three to run the calculation.')
+
     # Do pixel by pixel correlation
     retset = _pearsonr(array_x, array_y)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
-
-    return retset
-
-
-def _pearson_simple(ds_x: xr.Dataset,
-                    ds_y: xr.Dataset,
-                    var_x: str,
-                    var_y: str) -> xr.Dataset:
-    """
-    Perform a simple Pearson correlation that gets just the coefficient and
-    the p_value.
-    """
-    corr_coef, p_value = pearsonr(ds_x[var_x].values,
-                                  ds_y[var_y].values)
-
-    retset = xr.Dataset()
-    retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
-    retset['corr_coef'] = corr_coef
-    retset['p_value'] = p_value
 
     return retset
 
