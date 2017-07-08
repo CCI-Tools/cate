@@ -103,6 +103,11 @@ def pearson_correlation_map(ds_x: xr.Dataset,
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
+    Perform Pearson correlation on two datasets and produce a lon/lat map of
+    correlation coefficients and the correspoding p_values.
+
+    In case two 3D lon/lat/time datasets are provided, pixel by pixel
+    correlation will be performed. It is also possible two pro
     Perform Pearson correlation analysis on two time/lat/lon datasets and
     produce a lat/lon map of correlation coefficients and p_values of
     underlying timeseries in the provided datasets.
@@ -134,24 +139,37 @@ def pearson_correlation_map(ds_x: xr.Dataset,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if len(array_x.dims) != 3 or len(array_y.dims) != 3:
-        raise ValueError('pearson_correlation_map works only on 3D'
-                         ' datasets. Please review operation'
-                         ' documentation.')
-
-    if array_x.values.shape != array_y.values.shape:
-        raise ValueError('The provided variables {} and {} do not have the same shape, '
-                         'Pearson correlation can not be performed. Please '
-                         'review operation documentation'.format(var_x, var_y))
-
-    if (not ds_x['lat'].equals(ds_y['lat']) or
-            not ds_x['lon'].equals(ds_y['lon'])):
-        raise ValueError('When performing a pixel by pixel correlation the datasets have to have the same '
-                         'lat/lon definition. Consider running coregistration first')
-
     if len(array_x['time']) < 3:
         raise ValueError('The length of the time dimension should not be less'
                          ' than three to run the calculation.')
+
+    # Further validate inputs
+    if array_x.dims == array_y.dims:
+        if len(array_x.dims) != 3 or len(array_y.dims) != 3:
+            raise ValueError('pearson_correlation_map works only on 3D'
+                             ' datasets. Please review operation'
+                             ' documentation.')
+
+        if array_x.values.shape != array_y.values.shape:
+            raise ValueError('The provided variables {} and {} do not have the'
+                             ' same shape, Pearson correlation can not be'
+                             ' performed. Please review operation'
+                             ' documentation'.format(var_x, var_y))
+
+        if (not ds_x['lat'].equals(ds_y['lat']) or
+                not ds_x['lon'].equals(ds_y['lon'])):
+            raise ValueError('When performing a pixel by pixel correlation the'
+                             ' datasets have to have the same lat/lon'
+                             ' definition. Consider running coregistration'
+                             ' first')
+
+    elif (((array_x.dims == 3) and (array_y.dims != 1)) or
+          ((array_x.dims == 1) and (array_y.dims != 3))):
+        raise ValueError('A correlation coefficient map can only be produced'
+                         ' if both provided datasets are 3D datasets with'
+                         ' lon/lat/time dimensionality, or if a combination'
+                         ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                         ' is provided.')
 
     # Do pixel by pixel correlation
     retset = _pearsonr(array_x, array_y)
