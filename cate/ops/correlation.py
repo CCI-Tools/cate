@@ -36,16 +36,18 @@ from scipy.stats import pearsonr
 from scipy.special import betainc
 
 from cate.core.op import op, op_input, op_output
-from cate.core.types import VarName
+from cate.core.types import VarName, DatasetLike
 
 
 @op(tags=['utility'])
+@op_input('ds_x', data_type=DatasetLike)
+@op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
 @op_output('corr_coef', output_type=float)
 @op_output('p_value', output_type=float)
-def pearson_correlation_simple(ds_x: xr.Dataset,
-                               ds_y: xr.Dataset,
+def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
+                               ds_y: DatasetLike.TYPE,
                                var_x: VarName.TYPE,
                                var_y: VarName.TYPE):
     """
@@ -72,6 +74,8 @@ def pearson_correlation_simple(ds_x: xr.Dataset,
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
+    ds_x = DatasetLike.convert(ds_x)
+    ds_y = DatasetLike.convert(ds_y)
     var_x = VarName.convert(var_x)
     var_y = VarName.convert(var_y)
 
@@ -88,6 +92,8 @@ def pearson_correlation_simple(ds_x: xr.Dataset,
 
 
 @op(tags=['utility'])
+@op_input('ds_x', data_type=DatasetLike)
+@op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
 def pearson_correlation_map(ds_x: xr.Dataset,
@@ -120,6 +126,8 @@ def pearson_correlation_map(ds_x: xr.Dataset,
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :returns: a dataset containing a map of correlation coefficients and p_values
     """
+    ds_x = DatasetLike.convert(ds_x)
+    ds_y = DatasetLike.convert(ds_y)
     var_x = VarName.convert(var_x)
     var_y = VarName.convert(var_y)
 
