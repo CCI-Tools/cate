@@ -111,6 +111,10 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        pass
+
+    @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
@@ -318,6 +322,11 @@ class FSWorkspaceManager(WorkspaceManager):
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.delete_resource(res_name)
+        return workspace
+
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        workspace = self.get_workspace(base_dir)
+        workspace.set_resource_persistence(res_name, persistent)
         return workspace
 
     def write_workspace_resource(self, base_dir: str, res_name: str,

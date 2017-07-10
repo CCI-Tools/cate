@@ -230,6 +230,7 @@ class WorkflowTest(TestCase):
                 },
                 {
                     "id": "op3",
+                    "persistent": true,
                     "op": "test.core.test_workflow.op3",
                     "input": {
                         "u": {"source": "op1.y"},
@@ -273,6 +274,10 @@ class WorkflowTest(TestCase):
         self.assertIs(step3.input.v.source, step2.output.b)
         self.assertIs(workflow.output.q.source, step3.output.w)
 
+        self.assertEqual(step1.persistent, False)
+        self.assertEqual(step2.persistent, False)
+        self.assertEqual(step3.persistent, True)
+
     def test_from_json_dict_empty(self):
         json_dict = json.loads('{"qualified_name": "hello"}')
         workflow = Workflow.from_json_dict(json_dict)
@@ -295,6 +300,8 @@ class WorkflowTest(TestCase):
         step3.input.u.source = step1.output.y
         step3.input.v.source = step2.output.b
         workflow.output.q.source = step3.output.w
+
+        step2.persistent = True
 
         workflow_dict = workflow.to_json_dict()
 
@@ -319,6 +326,7 @@ class WorkflowTest(TestCase):
                 },
                 {
                     "id": "op2",
+                    "persistent": true,
                     "op": "test.core.test_workflow.op2",
                     "input": {
                         "a": {"source": "op1.y"}
@@ -1000,7 +1008,6 @@ class NodePortTest(TestCase):
         # with self.assertRaises(ValueError) as cm:
         #     x_port.source = y_port
         # self.assertEqual(str(cm.exception), "AAAAA")
-
 
     def test_resolve_source_ref(self):
         step1 = OpStep(op1, node_id='myop1')

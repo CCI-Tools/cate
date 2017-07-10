@@ -133,6 +133,7 @@ from .workflow_svg import Node as _Node
 WORKFLOW_SCHEMA_VERSION = 1
 WORKFLOW_SCHEMA_TAG = 'schema'
 
+
 class Node(metaclass=ABCMeta):
     """
     Base class for all nodes including parent nodes (e.g. :py:class:`Workflow`) and child nodes (e.g. :py:class:`Step`).
@@ -155,6 +156,7 @@ class Node(metaclass=ABCMeta):
             raise ValueError('node_id must be given')
         self._op_meta_info = op_meta_info
         self._id = node_id
+        self._persistent = False
         self._input = self._new_input_namespace()
         self._output = self._new_output_namespace()
 
@@ -781,37 +783,61 @@ class Step(Node):
         self._parent_node = None
 
     @property
+    def persistent(self):
+        """
+        Return whether this step is persistent.
+        That is, if the current workspace is saved, the result(s) of a persistent step may be written to
+        a "resource" file in the workspace directory using this step's ID as filename. The file format and filename
+        extension will be chosen according to each result's data type.
+        On next attempt to execute the step again, e.g. if a workspace is opened, persistent steps may read the
+        "resource" file to produce the result rather than performing an expensive re-computation.
+        :return: True, if so, False otherwise
+        """
+        return self._persistent
+
+    @persistent.setter
+    def persistent(self, value: bool):
+        """
+        Set whether this step is persistent. See :py:meth:`persistent`.
+        :param value: True, if so, False otherwise
+        """
+        self._persistent = value
+        print('persistent: ', self._persistent)
+
+    @property
     def parent_node(self):
         """The node's ID."""
         return self._parent_node
 
     @classmethod
     def from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['Step']:
-        node = cls.new_step_from_json_dict(json_dict, registry=registry)
-        if node is None:
+        step = cls.new_step_from_json_dict(json_dict, registry=registry)
+        if step is None:
             return None
 
-        node_input_dict = json_dict.get('input', {})
-        for name, properties in node_input_dict.items():
-            if name not in node.input:
+        step.persistent = json_dict.get('persistent', False)
+
+        step_input_dict = json_dict.get('input', {})
+        for name, properties in step_input_dict.items():
+            if name not in step.input:
                 # update op_meta_info
-                node.op_meta_info.input[name] = node.op_meta_info.input.get(name, {})
+                step.op_meta_info.input[name] = step.op_meta_info.input.get(name, {})
                 # then create a new port
-                node.input[name] = NodePort(node, name)
-            node_input = node.input[name]
-            node_input.from_json_dict(node_input_dict)
+                step.input[name] = NodePort(step, name)
+            step_input = step.input[name]
+            step_input.from_json_dict(step_input_dict)
 
-        node_output_dict = json_dict.get('output', {})
-        for name, properties in node_output_dict.items():
-            if name not in node.output:
+        step_output_dict = json_dict.get('output', {})
+        for name, properties in step_output_dict.items():
+            if name not in step.output:
                 # first update op_meta_info
-                node.op_meta_info.output[name] = node.op_meta_info.output.get(name, {})
+                step.op_meta_info.output[name] = step.op_meta_info.output.get(name, {})
                 # then create a new port
-                node.output[name] = NodePort(node, name)
-            node_output = node.output[name]
-            node_output.from_json_dict(node_output_dict)
+                step.output[name] = NodePort(step, name)
+            step_output = step.output[name]
+            step_output.from_json_dict(step_output_dict)
 
-        return node
+        return step
 
     @classmethod
     @abstractmethod
@@ -826,6 +852,9 @@ class Step(Node):
         """
         step_json_dict = OrderedDict()
         step_json_dict['id'] = self.id
+
+        if self.persistent:
+            step_json_dict['persistent'] = True
 
         self.enhance_json_dict(step_json_dict)
 

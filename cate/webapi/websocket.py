@@ -293,6 +293,11 @@ class WebSocketService:
                                                                       monitor=monitor)
             return workspace.to_json_dict()
 
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
+        with cwd(base_dir):
+            workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
+            return workspace.to_json_dict()
+
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()
