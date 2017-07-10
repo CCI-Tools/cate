@@ -46,7 +46,7 @@ from cate.core.types import VarName, DatasetLike
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
 @op_output('corr_coef', output_type=float)
 @op_output('p_value', output_type=float)
-def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
+def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
                                ds_y: DatasetLike.TYPE,
                                var_x: VarName.TYPE,
                                var_y: VarName.TYPE):
@@ -82,7 +82,7 @@ def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
         raise ValueError('To calculate simple correlation, both provided'
                          ' datasets should be simple 1d timeseries. To'
                          ' create a map of correlation coefficients, use'
-                         ' pearson_correlation_map operation instead.')
+                         ' pearson_correlation operation instead.')
 
     if len(array_x['time']) != len(array_y['time']):
         raise ValueError('The length of the time dimension differs between'
@@ -102,10 +102,10 @@ def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
 @op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-def pearson_correlation_map(ds_x: xr.Dataset,
-                            ds_y: xr.Dataset,
-                            var_x: VarName.TYPE,
-                            var_y: VarName.TYPE) -> xr.Dataset:
+def pearson_correlation(ds_x: xr.Dataset,
+                        ds_y: xr.Dataset,
+                        var_x: VarName.TYPE,
+                        var_y: VarName.TYPE) -> xr.Dataset:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 

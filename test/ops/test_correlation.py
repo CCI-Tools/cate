@@ -9,10 +9,10 @@ import xarray as xr
 import pandas as pd
 from scipy.stats import pearsonr
 
-from cate.ops.correlation import pearson_correlation_simple, pearson_correlation_map
+from cate.ops.correlation import pearson_correlation_scalar, pearson_correlation
 
 
-class TestPearsonSimple(TestCase):
+class TestPearsonScalar(TestCase):
     def test_nominal(self):
         """
         Test nominal run
@@ -23,7 +23,7 @@ class TestPearsonSimple(TestCase):
             'first': ('time', np.linspace(0, 5, 6))})
         dataset2['first'][0] = 3
 
-        correlation = pearson_correlation_simple(dataset, dataset2, 'first', 'first')
+        correlation = pearson_correlation_scalar(dataset, dataset2, 'first', 'first')
 
         test_value = correlation['p_value']
         self.assertTrue(np.isclose(test_value, 0.082086))
@@ -40,7 +40,7 @@ class TestPearsonSimple(TestCase):
         df.index = df['time']
         df['first'][0] = 3
 
-        correlation = pearson_correlation_simple(ds, df, 'first', 'first')
+        correlation = pearson_correlation_scalar(ds, df, 'first', 'first')
 
         test_value = correlation['p_value']
         self.assertTrue(np.isclose(test_value, 0.082086))
@@ -56,7 +56,7 @@ class TestPearsonSimple(TestCase):
         ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_simple(ds1, ds2, 'first', 'first')
+            pearson_correlation_scalar(ds1, ds2, 'first', 'first')
         self.assertIn('dimension differs', str(err.exception))
 
         # Test incompatible time dimension
@@ -64,11 +64,11 @@ class TestPearsonSimple(TestCase):
         ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_simple(ds1, ds2, 'first', 'first')
+            pearson_correlation_scalar(ds1, ds2, 'first', 'first')
         self.assertIn('dimension should not be less', str(err.exception))
 
 
-class TestPearsonMap(TestCase):
+class TestPearson(TestCase):
     def test_nominal(self):
         """
         Test nominal run
@@ -96,7 +96,7 @@ class TestPearsonMap(TestCase):
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.array([1, 2, 3])})
 
-        corr = pearson_correlation_map(ds1, ds2, 'first', 'first')
+        corr = pearson_correlation(ds1, ds2, 'first', 'first')
 
         self.assertTrue(corr['corr_coef'].max() == corr['corr_coef'].min())
         self.assertTrue(corr['corr_coef'].max() == -0.5)
@@ -131,7 +131,7 @@ class TestPearsonMap(TestCase):
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.linspace(0, 5, 6)})
 
-        correlation = pearson_correlation_map(ds1, ds2, 'first', 'first')
+        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
                                           cc_sp)))
         self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
@@ -160,7 +160,7 @@ class TestPearsonMap(TestCase):
             'first': (['time'], y),
             'time': np.linspace(0, 5, 6)})
 
-        correlation = pearson_correlation_map(ds1, ds2, 'first', 'first')
+        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
                                           cc_sp)))
         self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
@@ -188,7 +188,7 @@ class TestPearsonMap(TestCase):
         df = pd.DataFrame({'first': y, 'time': np.linspace(0, 5, 6)})
         df.index = df['time']
 
-        correlation = pearson_correlation_map(ds1, df, 'first', 'first')
+        correlation = pearson_correlation(ds1, df, 'first', 'first')
         self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
                                           cc_sp)))
         self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
@@ -213,11 +213,11 @@ class TestPearsonMap(TestCase):
             'f': np.array([1, 2])})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds1, ds2, 'first', 'second')
+            pearson_correlation(ds1, ds2, 'first', 'second')
         self.assertIn('dimensionality', str(err.exception))
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds2, ds2, 'second', 'second')
+            pearson_correlation(ds2, ds2, 'second', 'second')
         self.assertIn('dimensionality', str(err.exception))
 
         # Test incompatible shape
@@ -234,7 +234,7 @@ class TestPearsonMap(TestCase):
             'time': np.array([1, 2, 3, 4])})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds1, ds2, 'first', 'first')
+            pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertIn('shape', str(err.exception))
 
         # Test incompatible lon/lat
@@ -251,7 +251,7 @@ class TestPearsonMap(TestCase):
             'time': np.array([1, 2, 3])})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds1, ds2, 'first', 'first')
+            pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertIn('lat/lon definition', str(err.exception))
 
         # Test incompatible time dimension
@@ -266,7 +266,7 @@ class TestPearsonMap(TestCase):
             'time': np.array([1, 2, 3, 4])})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds1, ds2, 'first', 'first')
+            pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertIn('dimension differs', str(err.exception))
 
         # Test incompatible time dimension
@@ -281,5 +281,5 @@ class TestPearsonMap(TestCase):
             'time': np.array([1, 2])})
 
         with self.assertRaises(ValueError) as err:
-            pearson_correlation_map(ds1, ds2, 'first', 'first')
+            pearson_correlation(ds1, ds2, 'first', 'first')
         self.assertIn('dimension should not be less', str(err.exception))

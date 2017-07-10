@@ -336,14 +336,14 @@ To plot the time-series and save the ``plot`` operation can be used together wit
 Product-Moment Correlation
 --------------------------
 
-To carry out a product-moment correlation on the mean time-series, the ``pearson_correlation_simple`` operation can be used.
+To carry out a product-moment correlation on the mean time-series, the ``pearson_correlation_scalar`` operation can be used.
 
 .. code-block:: console
 
     $ cate op list --tag correlation
     One operation found
-       1: pearson_correlation_simple
-       2: pearson_correlation_map
+       1: pearson_correlation_scalar
+       2: pearson_correlation
 
 .. code-block:: console
 
@@ -366,11 +366,11 @@ We can view the result using ``cate res print``, or save it using ``cate res wri
 
 To carry out a pixel by pixel correlation of two coregistered time/lat/lon datasets such
 that the result is a map of correlation coefficients or the corresponding
-probability values, one can use ``pearson_correlation_map``:
+probability values, one can use ``pearson_correlation``:
 
 .. code-block:: console
 
-    $ cate res set pearson_map pearson_correlation_map ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
+    $ cate res set pearson_map pearson_correlation ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
 
