@@ -3,6 +3,11 @@
 .. _Attribute Convention for Data Discovery: http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery
 .. _CF Ancillary Data: http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#ancillary-data
 .. _CF Flags: http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#flags
+.. _xarray : http://xarray.pydata.org
+.. _numpy: http://www.numpy.org
+.. _pandas: http://pandas.pydata.org
+.. _dask: http://dask.pydata.org
+.. _line_profiler: https://github.com/rkern/line_profiler
 
 =====================
 Operation Development
@@ -13,6 +18,36 @@ approach. E.g., any valid Python function can be decorated accordingly to
 introduce it to the Cate plugin system. However, there are some caveats one
 should keep in mind, as well as best practices to follow when developing Cate
 operations. This chapters explores these issues.
+
+
+.. _dg-op-technology:
+
+Operation development technology stack
+======================================
+
+To develop operations for cate one should be at least cursory familiar with the
+following Python projects:
+
+* xarray_
+* numpy_
+* pandas_
+* dask_
+
+The ``xarray`` package is used the most as ``xarray.Dataset`` is the data model
+used to represent raster data throughout Cate. Most operations work on xarray datasets and
+produce xarray datasets. For tabular data representation and manipulation Cate
+supports ``pandas``. ``Numpy`` is the corner stone of both xarray and pandas and is used
+when data is explicitly loaded into memory from an xarray object.
+
+The ``dask`` package provides numpy-like data array abstraction of datasets spanning many
+on-disk files or even remote locations. A dask array is the underlying array
+object type of xarray datasets spanning over multiple files, which is the case
+in the large majority of Cate use cases. It can be beneficial to be accustomed
+with how dask works in order to write fast, parallelized operations. Not taking
+into account how dask works can result in a heavy performance penalty.
+
+
+.. _dg-op-registration:
 
 Registration with the Cate plugin system
 ========================================
@@ -72,6 +107,7 @@ If the newly created operation is meant to be part of the Cate core operation
 suite, it should be possible to import it when Cate is used programmatically.
 Hence, it should be put in ``cate/ops`` and imported in ``cate/ops/__init__.py``.
 
+
 .. _dg-op-history-information:
 
 History information
@@ -102,6 +138,7 @@ Here history information will be added only to the ``name2`` output. We could
 have added ``add_history=True`` to both outputs. Adding history information to
 the only output, if this output is a dataset, can be achieved by using
 ``@op_return`` in a similar manner.
+
 
 .. _dg-op-cate-typing-system:
 
@@ -143,6 +180,7 @@ that can be a ``shapely.geometry.Polygon``, a coordinate string, a WKT string,
 a list of coordinate points, as well as a list of lon/lat values. Now the GUI
 is also aware that the operation expects a polygon and an appropriate dialog
 can be displayed.
+
 
 .. _dg-op-monitor-usage:
 
@@ -188,6 +226,7 @@ cancelled.
 
 See also :ref:`api-monitoring`.
 
+
 .. _dg-op-relevant-conventions:
 
 Adherence to relevant conventions
@@ -228,6 +267,7 @@ Data Discovery`_ should be updated or added if these do not exist. For example:
 
       return rs
 
+
 .. _dg-op-operation-outputs:
 
 Operation outputs
@@ -250,6 +290,7 @@ Cate supports returning multiple named outputs as a Python dictionary.
     ...
     return {'dataset': ds, 'table': df, 'scalar': x}
 
+
 .. _dg-op-other-operations:
 
 Using other operations
@@ -270,6 +311,7 @@ imports. The correct way to import an existing operation is the following:
 
   # Directly from subset.py
   from cate.ops.subset import subset_spatial
+
 
 .. _dg-op-testing:
 
@@ -300,20 +342,18 @@ bones test set up for any operation should be the following:
           result = dummy_op()
           self.assertEqual(expected, result)
 
-      def test_registered(self):
+      def test_error(self):
           """
-          Test execution through OP_REGISTRY
+          Test known error conditions
           """
-          reg_op = OP_REGISTRY.get_op(object_to_qualified_name(dumy_op))
-          expected = 1
-          result = reg_op()
-          self.assertEqual(expected, result)
+          with self.assertRaises(ValueError) as err:
+              dummy_op(param='will error')
 
 It is absolutely crucial to at least have a nominal test that runs the
 operation with expected inputs that asserts if the output is what was expected,
-as well as a nominal test that runs the operation through the operation
-registry. This ensures that the operation won't fail on the CLI or in the GUI
-due to an overlooked mistake in the decorators.
+the imported operation will automatically be invoked through the operation
+registry and this will also work in validating if the decorators have been used
+properly.
 
 If an operation implements a monitor, it is a good idea to test if it has been
 implemented properly. For example:
@@ -335,6 +375,82 @@ It is also a good idea to test if the dataset meta information is altered
 correctly, if newly created data variables have correct attributes, as well as
 if unexpected inputs are handled correctly.
 
+
+.. _dg-op-optimization:
+
+Optimization
+============
+
+Profiling
+---------
+
+If the operation seems to be too slow it should first be profiled to explore
+the opportunities of potential improvement. The line_profiler_ package might
+come in handy here. It can be installed via conda ``conda install
+line_profiler`` and then used in a notebook to time individual lines of a given
+operation as such:
+
+.. code-block:: python
+
+    import cate.ops as ops
+    %load_ext line_profiler
+    %lprun -f ops.some_op result = some_op()
+
+A caveat here is that while profiling, the operation being profiled should be
+undecorated. Otherwise ``line_profiler`` has trouble finding the source code
+to test.
+
+Leveraging xarray and dask
+--------------------------
+
+When developing operations it should be kept in mind that every operation can
+potentially work on out-of-memory datasets. Hence one should try to leverage
+possibilities offered by xarray and dask as much as possible.
+
+For example, an operation producing a statistical quantity of a timeseries for
+each lon/lat point of a raster could be naively implemented as such:
+
+.. code-block:: python
+
+    import xarray as xr
+    from scipy import tricky_stat
+
+    def some_op(da: xr.DataArray):
+        """
+        Run tricky_stat on the given data array
+        """
+        for i in range(0, len(ds.lon)):
+            for j in range(0, len(ds.lat)):
+                array = da.isel(lat=j, lon=i).values
+                res[i, j] = tricky_stat(array)
+
+However, this implementation will yield a heavy performance implication due to 
+the fact that our ``xr.DataArray`` is likely distributed among many files,
+parts of which will be read on each ``da.isel(lat=j, lon=i).values``
+invocation resulting in a large overhead in memory and processing time due to
+io operations.
+
+A better approach would be to use arithmetics and ``xarray`` ufuncs directly:
+
+.. code-block:: python
+
+    import xarray as xr
+
+    def some_op(da: xr.DataArray):
+        """
+        Run tricky_stat on the given data array. Influenced by tricky_stat
+        scipy implementation.
+        """
+        da1 = xr.ufuncs.sqrt(da * MAGIC_CONSTANT)
+        tricky_stat = da1.mean(dim='time')
+        return tricky_stat
+
+This second operation has a potential of running several orders of magnitude
+faster due to minimized amount of io operations, as well as additional
+optimizations and parallelization occuring behind the scenes in ``xarray`` and
+``dask`` code.
+
+
 .. _dg-op-development-checklist:
 
 Operation development checklist
@@ -348,7 +464,7 @@ Operation development checklist
   when appropriate?
 * Does the operation use cate typing system so that it can be integrated with
   the GUI nicely? Both in the function signature and decorators?
-* Are inputs validated (potentially using the cate typing system)
+* Are inputs validated?
 * If the operation can take a while, does it use a monitor and can be
   cancelled?
 * Is the operation a 'well behaved netCDF filter'?
@@ -364,8 +480,6 @@ Operation development checklist
 * Is the operation well tested?
 
   * Is nominal functionality tested?
-  * Is nominal functionality tested when the operation is invoked through the
-    operation registry?
   * Is the monitor tested?
   * Are the side effects on attributes and other meta information tested?
   * Are error conditions tested?
