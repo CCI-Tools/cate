@@ -29,12 +29,6 @@ class TestPearsonSimple(TestCase):
         corr_coef = correlation['corr_coef']
         self.assertTrue(np.isclose(corr_coef, 0.755928))
 
-    def test_registered(self):
-        """
-        Nominal run using the operation through OP_REGISTRY
-        """
-        pass
-
     def test_polymorphism(self):
         """
         Nominal run with an xr.Dataset and a pd.DataFrame
@@ -95,12 +89,6 @@ class TestPearsonMap(TestCase):
 
         self.assertTrue(corr['p_value'].max() == corr['p_value'].min())
         self.assertTrue(np.isclose(corr['p_value'].min(), 0.6666666))
-
-    def test_registered(self):
-        """
-        Nominal run using the operation through OP_REGISTRY
-        """
-        pass
 
     def test_validate_against_scipy(self):
         """
