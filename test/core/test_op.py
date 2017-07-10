@@ -1,7 +1,9 @@
 from collections import OrderedDict
 from unittest import TestCase
+import xarray as xr
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
+from cate.core.types import FileLike, VarName
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
 from cate.util.opmetainf import OpMetaInfo
@@ -17,12 +19,12 @@ class OpTest(TestCase):
     def tearDown(self):
         self.registry = None
 
-    def test_executable(self):
+    def test_executable_no_ds(self):
         import os.path
         import sys
-        exe = sys.executable + " " + os.path.join(os.path.dirname(__file__), 'ext-executable.py')
+        exe = sys.executable + " " + os.path.join(os.path.dirname(__file__), 'executables', 'mkentropy.py')
         commandline_pattern = exe + " {num_steps} {period}"
-        op_reg = self.registry.add_op_from_executable(OpMetaInfo('mkentropy',
+        op_reg = self.registry.add_op_from_executable(OpMetaInfo('make_entropy',
                                                                  input_dict={
                                                                      'num_steps': {'data_type': int},
                                                                      'period': {'data_type': float},
@@ -33,6 +35,31 @@ class OpTest(TestCase):
                                                       commandline_pattern)
         exit_code = op_reg(num_steps=10, period=0.1)
         self.assertEqual(exit_code, 0)
+
+    def test_executable_ds(self):
+        import os.path
+        import sys
+        dir_path = os.path.dirname(__file__)
+        exe = sys.executable + " " + os.path.join(dir_path, 'executables', 'filterds.py')
+        commandline_pattern = exe + " {ifile} {ofile} {var}"
+        op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
+                                                                 input_dict={
+                                                                     'ifile': {'data_type': FileLike},
+                                                                     'ofile': {'data_type': FileLike, 'output': 'return'},
+                                                                     'var': {'data_type': VarName},
+                                                                 },
+                                                                 output_dict={
+                                                                     'return': {'data_type': int}
+                                                                 }),
+                                                      commandline_pattern)
+        ifile = os.path.join(dir_path, 'test_data', 'small', 'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-20000101000000-fv02.2.nc')
+        ofile = os.path.join(dir_path, 'test_data', 'filter_ds.nc')
+        if os.path.isfile(ofile):
+            os.remove(ofile)
+        exit_code = op_reg(ifile=ifile, ofile=ofile, var='sm')
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(os.path.isfile(ofile))
+        os.remove(ofile)
 
     def test_expression(self):
         op_reg = self.registry.add_op_from_expression(OpMetaInfo('add_xy',
