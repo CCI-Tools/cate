@@ -451,6 +451,50 @@ optimizations and parallelization occuring behind the scenes in ``xarray`` and
 ``dask`` code.
 
 
+.. _dg-op-docs:
+
+Documentation
+=============
+
+Operation docstrings are used to provide help information in all channels where
+an operation may be used. It is rendered on the command line when ``cate op
+info some_op`` is invoked, it is shown in the appropriate places on the GUI,
+invoked by users through Python ``help()``, as well as published as part of
+Cate documentation. Hence, it is of utmost importance that the docstring
+explains well what a particular operation does, as well as documents all input
+parameters. See also :ref:`dg-cc-docstrings`.
+
+For example:
+
+.. code-block:: python
+
+    import xarray as xr
+    import pandas as pd
+
+    def doc_op(ds: xr.Dataset, df: pd.DataFrame, magical_const: float):
+        """
+        This operation carries out a well documented calculation.
+
+        References
+        ----------
+        'Source <http://www.science.org/documented/calculation>'_
+
+        :param ds: The input dataset used for calculation
+        :param df: A dataframe containing auxiliary information
+        :param magical_const: Magical constant to use for calculation
+        :return: Input dataset with documented calculation applied to it
+        """
+        # Do some science
+        return ds
+
+To make sure generated Cate documentation is updated, don't forget to include
+the operation in ``cate/doc/source/api_reference.rst``
+
+If an existing operation name is altered, don't forget to run a search through
+Cate documentation source to find the possible places where a documentation
+update is needed.
+
+
 .. _dg-op-development-checklist:
 
 Operation development checklist
@@ -484,6 +528,8 @@ Operation development checklist
   * Are the side effects on attributes and other meta information tested?
   * Are error conditions tested?
   * Do the tests run resonably fast?
+
+* Is the operation properly documented?
 
 When a newly created operation coresponds to this checklist well, it can be said with
 some certainty that the operation behaves well with respect to the Cate
