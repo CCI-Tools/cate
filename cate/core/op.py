@@ -105,12 +105,12 @@ Components
 """
 
 from collections import OrderedDict
-from typing import Union, Callable
+from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
 from cate import __version__
-from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED
+from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
 
 
 class OpRegistration:
@@ -119,10 +119,11 @@ class OpRegistration:
     meta-information about the operation.
 
     :param operation: the actual class or any callable object.
+    :param op_meta_info: operation meta information.
     """
 
-    def __init__(self, operation):
-        self._op_meta_info = OpMetaInfo.introspect_operation(operation)
+    def __init__(self, operation, op_meta_info=None):
+        self._op_meta_info = op_meta_info or OpMetaInfo.introspect_operation(operation)
         self._operation = operation
         for attr_name in ['__module__', '__name__', '__qualname__', '__doc__', '__file__']:
             try:
@@ -217,7 +218,8 @@ class OpRegistration:
             input_names = self.op_meta_info.input_names
             for position in range(num_args):
                 if position >= len(input_names):
-                    raise ValueError("too many inputs given for operation '{}'".format(self.op_meta_info.qualified_name))
+                    raise ValueError(
+                        "too many inputs given for operation '{}'".format(self.op_meta_info.qualified_name))
                 input_name = self.op_meta_info.input_names[position]
                 input_values[input_name] = args[position]
 
@@ -246,12 +248,12 @@ class OpRegistration:
             self.op_meta_info.validate_output_values(return_value)
 
             # Add history information to outputs
-            for name, props in self.op_meta_info.output.items():
+            for name, properties in self.op_meta_info.output.items():
                 if name not in return_value:
                     # Unlikely
                     continue
                 try:
-                    if props['add_history']:
+                    if properties['add_history']:
                         return_value[name] = \
                             self._add_history(return_value[name], input_values)
                 except KeyError:
@@ -296,6 +298,76 @@ class OpRegistry:
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda item: item[0]))
 
+    def add_op_from_executable(self,
+                               op_meta_info: OpMetaInfo,
+                               commandline_pattern: str,
+                               cwd: Optional[str] = None,
+                               env: Dict[str, str] = None,
+                               fail_if_exists=True) -> OpRegistration:
+
+        op_key = op_meta_info.qualified_name
+        if op_key in self._op_registrations:
+            if fail_if_exists:
+                raise ValueError("operation with name '%s' already registered" % op_key)
+            else:
+                return self._op_registrations[op_key]
+
+        # TODO (forman): Add special input properties:
+        #                - "is_cwd" - an input that provides the current working directory, must be of type str
+        #                - "is_env" - an input that provides environment variables, must be of type DictLike
+        #                - "is_output" - an input that provides the file path of an output, must be of type str
+
+        def run(**kwargs):
+            import subprocess
+            import time
+            commandline = commandline_pattern.format(**kwargs)
+            # TODO (forman): create 3 threads: 1. wait for process, 2. read stdout, 3. read stderr
+            completed_process = subprocess.run(commandline, cwd=cwd, env=env)
+            return completed_process.returncode
+
+        op_registration = OpRegistration(run, op_meta_info=op_meta_info)
+        self._op_registrations[op_key] = op_registration
+        return op_registration
+
+    def add_op_from_expression(self,
+                               op_meta_info: OpMetaInfo,
+                               expression: str,
+                               fail_if_exists=True) -> OpRegistration:
+
+        if not op_meta_info:
+            raise ValueError('op_meta_info must be given')
+        if not expression:
+            raise ValueError('expr must be given')
+
+        op_key = op_meta_info.qualified_name
+        if op_key in self._op_registrations:
+            if fail_if_exists:
+                raise ValueError("operation with name '%s' already registered" % op_key)
+            else:
+                return self._op_registrations[op_key]
+
+        def eval(ctx=None, **kwargs):
+            if ctx:
+                value_cache = ctx.get('value_cache')
+                if value_cache:
+                    kwargs.update(value_cache)
+            return safe_eval(expression, local_namespace=kwargs)
+
+        eval.__name__ = op_key
+        eval.__doc__ = op_meta_info.header.get('description')
+
+        input_dict = dict(op_meta_info.input)
+        input_dict.update(context={'context': True, 'default_value': None})
+        op_meta_info = OpMetaInfo(op_key,
+                                  has_monitor=op_meta_info.has_monitor,
+                                  header_dict=dict(op_meta_info.header),
+                                  input_dict=input_dict,
+                                  output_dict=dict(op_meta_info.output))
+
+        op_registration = OpRegistration(eval, op_meta_info=op_meta_info)
+        self._op_registrations[op_key] = op_registration
+        return op_registration
+
     def add_op(self, operation: Callable, fail_if_exists=True) -> OpRegistration:
         """
         Add a new operation registration.
@@ -315,7 +387,7 @@ class OpRegistry:
         self._op_registrations[op_key] = op_registration
         return op_registration
 
-    def remove_op(self, operation: Callable, fail_if_not_exists=False) -> OpRegistration:
+    def remove_op(self, operation: Callable, fail_if_not_exists=False) -> Optional[OpRegistration]:
         """
         Remove an operation registration.
 

@@ -17,7 +17,37 @@ class OpTest(TestCase):
     def tearDown(self):
         self.registry = None
 
-    def test_f(self):
+    def test_executable(self):
+        import os.path
+        import sys
+        exe = sys.executable + " " + os.path.join(os.path.dirname(__file__), 'ext-executable.py')
+        commandline_pattern = exe + " {num_steps} {period}"
+        op_reg = self.registry.add_op_from_executable(OpMetaInfo('mkentropy',
+                                                                 input_dict={
+                                                                     'num_steps': {'data_type': int},
+                                                                     'period': {'data_type': float},
+                                                                 },
+                                                                 output_dict={
+                                                                     'return': {'data_type': int}
+                                                                 }),
+                                                      commandline_pattern)
+        exit_code = op_reg(num_steps=10, period=0.1)
+        self.assertEqual(exit_code, 0)
+
+    def test_expression(self):
+        op_reg = self.registry.add_op_from_expression(OpMetaInfo('add_xy',
+                                                                 input_dict={
+                                                                     'x': {'data_type': float},
+                                                                     'y': {'data_type': float},
+                                                                 },
+                                                                 output_dict={
+                                                                     'return': {'data_type': float}
+                                                                 }),
+                                                      'x + y')
+        z = op_reg(x=1.2, y=2.4)
+        self.assertEqual(z, 1.2 + 2.4)
+
+    def test_plain_function(self):
         def f(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f!"""
             return str(a + b + c + u + len(v) + w)
@@ -57,7 +87,7 @@ class OpTest(TestCase):
         with self.assertRaises(ValueError):
             registry.remove_op(f, fail_if_not_exists=True)
 
-    def test_f_op(self):
+    def test_decorated_function(self):
         @op(registry=self.registry)
         def f_op(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f_op!"""
@@ -83,7 +113,7 @@ class OpTest(TestCase):
                              expected_inputs,
                              expected_outputs)
 
-    def test_f_op_inp_ret(self):
+    def test_decorated_function_with_inputs_and_outputs(self):
         @op_input('a', value_range=[0., 1.], registry=self.registry)
         @op_input('v', value_set=['A', 'B', 'C'], registry=self.registry)
         @op_return(registry=self.registry)
