@@ -8,7 +8,7 @@ import numpy as np
 import xarray as xr
 from scipy.stats import pearsonr
 
-from cate.ops.correlation import pearson_correlation
+from cate.ops.correlation import pearson_correlation_simple, pearson_correlation_map
 
 
 class TestCorrelation(TestCase):
@@ -24,7 +24,7 @@ class TestCorrelation(TestCase):
             'first': ('time', np.linspace(0, 5, 6))})
         dataset2['first'][0] = 3
 
-        correlation = pearson_correlation(dataset, dataset2, 'first', 'first')
+        correlation = pearson_correlation_simple(dataset, dataset2, 'first', 'first')
 
         test_value = correlation['p_value']
         self.assertTrue(np.isclose(test_value, 0.082086))
@@ -34,23 +34,27 @@ class TestCorrelation(TestCase):
         # Test general functionality 3D dataset variables
         ds1 = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8),
+                                                        np.eye(4, 8),
                                                         np.eye(4, 8)])),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8),
+                                                         np.eye(4, 8),
                                                          np.eye(4, 8)])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])})
+            'time': np.array([1, 2, 3])})
 
         ds2 = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8),
+                                                        np.eye(4, 8),
                                                         np.eye(4, 8)])),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8),
+                                                         np.eye(4, 8),
                                                          np.eye(4, 8)])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])})
+            'time': np.array([1, 2, 3])})
 
-        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
+        correlation = pearson_correlation_map(ds1, ds2, 'first', 'first')
 
     def test_validate_against_scipy(self):
         """
@@ -80,7 +84,7 @@ class TestCorrelation(TestCase):
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.linspace(0, 5, 6)})
 
-        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
+        correlation = pearson_correlation_map(ds1, ds2, 'first', 'first')
         self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
                                           cc_sp)))
         self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
