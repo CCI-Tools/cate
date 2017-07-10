@@ -34,25 +34,38 @@ class TestPearsonSimple(TestCase):
         """
         Nominal run with an xr.Dataset and a pd.DataFrame
         """
-        pass
+        ds = xr.Dataset({'first': ('time', np.linspace(0, 5, 6))})
+        df = pd.DataFrame({'first': np.linspace(0, 5, 6),
+                           'time': np.linspace(0, 5, 6)})
+        df.index = df['time']
+        df['first'][0] = 3
 
-    def test_2d(self):
-        """
-        Nominal run with a 2d object
-        """
-        pass
+        correlation = pearson_correlation_simple(ds, df, 'first', 'first')
 
-    def test_3d(self):
-        """
-        Nominal run with a 3d object
-        """
-        pass
+        test_value = correlation['p_value']
+        self.assertTrue(np.isclose(test_value, 0.082086))
+        corr_coef = correlation['corr_coef']
+        self.assertTrue(np.isclose(corr_coef, 0.755928))
 
     def test_error(self):
         """
         Test error conditions
         """
-        pass
+        # Test incompatible time dimension
+        ds1 = xr.Dataset({'first': ('time', np.linspace(0, 5, 6))})
+        ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_simple(ds1, ds2, 'first', 'first')
+        self.assertIn('dimension differs', str(err.exception))
+
+        # Test incompatible time dimension
+        ds1 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
+        ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_simple(ds1, ds2, 'first', 'first')
+        self.assertIn('dimension should not be less', str(err.exception))
 
 
 class TestPearsonMap(TestCase):

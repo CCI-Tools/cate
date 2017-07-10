@@ -53,13 +53,8 @@ def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
-    Performs a simple correlation analysis on the provided datasets and returns
-    a correlation coefficient and the corresponding p_value for a correlation
-    of all values in the given variables.
-
-    The provided variables have to have the same shape, but not neccessarily
-    the same definition on all axes. The usual use case would be performing
-    correlation analysis of two timeseries.
+    Performs a simple correlation analysis on two timeseries and returns
+    a correlation coefficient and the corresponding p_value.
 
     Positive correlation implies that as x grows, so does y. Negative
     correlation implies that as x increases, y decreases.
@@ -82,10 +77,21 @@ def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if array_x.values.shape != array_y.values.shape:
-        raise ValueError('The provided variables {} and {} do not have the same shape, '
-                         'Pearson correlation can not be performed. Please '
-                         'review operation documentation'.format(var_x, var_y))
+    if ((len(array_x.dims) != len(array_y.dims)) and
+       (len(array_x.dims) != 1)):
+        raise ValueError('To calculate simple correlation, both provided'
+                         ' datasets should be simple 1d timeseries. To'
+                         ' create a map of correlation coefficients, use'
+                         ' pearson_correlation_map operation instead.')
+
+    if len(array_x['time']) != len(array_y['time']):
+        raise ValueError('The length of the time dimension differs between'
+                         ' the given datasets. Can not perform the calculation'
+                         ', please review operation documentation.')
+
+    if len(array_x['time']) < 3:
+        raise ValueError('The length of the time dimension should not be less'
+                         ' than three to run the calculation.')
 
     cc, pv = pearsonr(array_x.values, array_y.values)
     return {'corr_coef': cc, 'p_value': pv}
