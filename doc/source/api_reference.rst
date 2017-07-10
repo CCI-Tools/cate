@@ -44,7 +44,9 @@ Coregistration
 Correlation
 -----------
 
-.. autofunction:: cate.ops.pearson_correlation
+.. autofunction:: cate.ops.pearson_correlation_simple
+
+.. autofunction:: cate.ops.pearson_correlation_map
 
 
 Input / Output

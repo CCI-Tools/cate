@@ -39,7 +39,7 @@ from cate.core.op import op, op_input, op_output
 from cate.core.types import VarName, DatasetLike
 
 
-@op(tags=['utility'])
+@op(tags=['utility', 'correlation'])
 @op_input('ds_x', data_type=DatasetLike)
 @op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
@@ -97,7 +97,7 @@ def pearson_correlation_simple(ds_x: DatasetLike.TYPE,
     return {'corr_coef': cc, 'p_value': pv}
 
 
-@op(tags=['utility'])
+@op(tags=['utility', 'correlation'])
 @op_input('ds_x', data_type=DatasetLike)
 @op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)

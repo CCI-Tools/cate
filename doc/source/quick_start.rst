@@ -336,45 +336,41 @@ To plot the time-series and save the ``plot`` operation can be used together wit
 Product-Moment Correlation
 --------------------------
 
-To carry out a product-moment correlation on the mean time-series, the ``pearson_correlation`` operation can be used.
+To carry out a product-moment correlation on the mean time-series, the ``pearson_correlation_simple`` operation can be used.
 
 .. code-block:: console
 
     $ cate op list --tag correlation
     One operation found
-       1: pearson_correlation
+       1: pearson_correlation_simple
+       2: pearson_correlation_map
 
 .. code-block:: console
 
-    $ cate res set pearson pearson_correlation ds_y=@cc_africa_ts ds_x=@oz_africa_ts var_y=cc_total var_x=O3_du_tot file=pearson.txt
+    $ cate res set pearson pearson_correlation ds_y=@cc_africa_ts ds_x=@oz_africa_ts var_y=cc_total var_x=O3_du_tot
     Executing 12 workflow step(s): done
     Resource "pearson" set.
 
 
-This will calculate the correlation coefficient along with the associated p_value for both mean time-series,
-as well as save the information in the given file. We can view the result using ``cate res print``:
+This will calculate the correlation coefficient along with the associated p_value for both mean time-series.
+We can view the result using ``cate res print``, or save it using ``cate res write``:
 
 .. code-block:: console
 
     $ cate res print pearson
-    <xarray.Dataset>
-    Dimensions:    ()
-    Coordinates:
-        *empty*
-    Data variables:
-        corr_coef  float64 -0.2924
-        p_value    float64 0.4123
-    Attributes:
-        Cate_Description: Correlation between cc_total O3_du_tot
-
-If both variables provided to the pearson_correlation operation have time/lat/lon dimensions
-and the lat/lon definition is the same, a pixel by pixel correlation will be carried out
-and result in the creation of two variables
-of the same lat/lon dimension - corr_coeff and p_value that can then be plotted on a map.
+    {'corr_coef': -0.2924, 'p_value': 0.4123}
 
 .. code-block:: console
 
-    $ cate res set pearson_map pearson_correlation ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
+    $ cate res write pearson pearson.txt
+
+To carry out a pixel by pixel correlation of two coregistered time/lat/lon datasets such
+that the result is a map of correlation coefficients or the corresponding
+probability values, one can use ``pearson_correlation_map``:
+
+.. code-block:: console
+
+    $ cate res set pearson_map pearson_correlation_map ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
 
