@@ -238,43 +238,28 @@ class OpRegistration:
         if self.op_meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
-
             for name, properties in self.op_meta_info.output.items():
                 if name not in return_value or return_value[name] is None:
-                    return_value[name] = properties.get('default_value', None)
+                    return_value[name] = properties.get('default_value')
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values(return_value)
-
             # Add history information to outputs
-            for name, props in self.op_meta_info.output.items():
-                if name not in return_value:
-                    # Unlikely
-                    continue
-                try:
-                    if props['add_history']:
-                        return_value[name] = \
-                            self._add_history(return_value[name], input_values)
-                except KeyError:
-                    # @op_output doesn't have an 'add_history' key
-                    continue
+            for name, properties in self.op_meta_info.output.items():
+                add_history = properties.get('add_history')
+                if add_history:
+                    return_value[name] = self._add_history(return_value[name], input_values)
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
+            properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
             if return_value is None:
-                properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
-                return_value = properties.get('default_value', None)
+                return_value = properties.get('default_value')
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
-
             # Add history information to the output
-            try:
-                properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
-                if properties['add_history']:
-                    return_value = self._add_history(return_value,
-                                                     input_values)
-            except KeyError:
-                # @op_return doesn't have an 'add_history' key
-                pass
+            add_history = properties.get('add_history')
+            if add_history:
+                return_value = self._add_history(return_value, input_values)
 
         return return_value
 
