@@ -59,7 +59,7 @@ OpKwArgs = Dict[str, OpArg]
 def mk_op_arg(arg) -> OpArg:
     """
     Utility function which turns an argument into an operation argument.
-    If *args* is a ``str`` and starts with "@" it is turned into a "source" vargument,
+    If *args* is a ``str`` and starts with "@" it is turned into a "source" argument,
     otherwise it is turned into a "value" argument.
     """
     return dict(source=arg[1:]) if isinstance(arg, str) and arg.startswith('@') else dict(value=arg)
@@ -158,13 +158,23 @@ class Workspace:
         return Workspace(base_dir, Workspace.new_workflow(dict(description=description or '')))
 
     @classmethod
-    def open(cls, base_dir: str) -> 'Workspace':
+    def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_dir(base_dir)):
             raise WorkspaceError('Not a valid workspace: %s' % base_dir)
         try:
             workflow_file = cls.get_workflow_file(base_dir)
             workflow = Workflow.load(workflow_file)
-            return Workspace(base_dir, workflow)
+            workspace = Workspace(base_dir, workflow)
+
+            # Read resources for persistent steps
+            persistent_steps = [step for step in workflow.steps if step.persistent]
+            if persistent_steps:
+                with monitor.starting('Reading resources', len(persistent_steps)):
+                    for step in persistent_steps:
+                        workspace._read_resource_from_file(step.id)
+                    monitor.progress(1)
+
+            return workspace
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
 
@@ -172,8 +182,20 @@ class Workspace:
         if self._is_closed:
             return
         self._resource_cache.close()
+        # Remove all resource files that are no longer required
+        if os.path.isdir(self.workspace_dir):
+            persistent_ids = {step.id for step in self.workflow.steps if step.persistent}
+            for filename in os.listdir(self.workspace_dir):
+                res_file = os.path.join(self.workspace_dir, filename)
+                if os.path.isfile(res_file) and filename.endswith('.nc'):
+                    res_name = filename[0: -3]
+                    if res_name not in persistent_ids:
+                        try:
+                            os.remove(res_file)
+                        except (OSError, IOError) as e:
+                            print('error:', e)
 
-    def save(self):
+    def save(self, monitor: Monitor = Monitor.NONE):
         self._assert_open()
         base_dir = self.base_dir
         try:
@@ -183,9 +205,49 @@ class Workspace:
             if not os.path.isdir(workspace_dir):
                 os.mkdir(workspace_dir)
             self.workflow.store(self.workflow_file)
+
+            # Write resources for all persistent steps
+            persistent_steps = [step for step in self.workflow.steps if step.persistent]
+            if persistent_steps:
+                with monitor.starting('Writing resources', len(persistent_steps)):
+                    for step in persistent_steps:
+                        self._write_resource_to_file(step.id)
+                        monitor.progress(1)
+
             self._is_modified = False
         except (IOError, OSError) as e:
             raise WorkspaceError(e)
+
+    def _write_resource_to_file(self, res_name):
+        res_value = self._resource_cache.get(res_name)
+        if res_value is not None:
+            resource_file = os.path.join(self.workspace_dir, res_name + '.nc')
+            try:
+                res_value.to_netcdf(resource_file)
+            except AttributeError:
+                pass
+            except Exception as e:
+                print('error:', e)
+
+    def _read_resource_from_file(self, res_name):
+        res_file = os.path.join(self.workspace_dir, res_name + '.nc')
+        if os.path.isfile(res_file):
+            try:
+                res_value = xr.open_dataset(res_file)
+                self._resource_cache[res_name] = res_value
+            except Exception as e:
+                print('error:', e)
+
+    # <<< Issue #270
+
+    def set_resource_persistence(self, res_name: str, persistent: bool):
+        self._assert_open()
+        res_step = self.workflow.find_node(res_name)
+        if res_step is None:
+            raise WorkspaceError('Resource "%s" not found' % res_name)
+        if res_step.persistent == persistent:
+            return
+        res_step.persistent = persistent
 
     @classmethod
     def from_json_dict(cls, json_dict):
@@ -287,7 +349,7 @@ class Workspace:
             'shape': variable.shape,
         }
 
-    def _get_xarray_variable_descriptor(self, variable: xr.DataArray, is_coord = False):
+    def _get_xarray_variable_descriptor(self, variable: xr.DataArray, is_coord=False):
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,
@@ -389,7 +451,6 @@ class Workspace:
     def _get_unicode_attr(self, attr, key, default_value=''):
         if key in attr:
             value = attr.get(key)
-            # print(key, ' type:', str(type(value)), ' value:', str(value))
             if type(value) == bytes or type(value) == np.bytes_:
                 return value.decode('unicode_escape')
             elif type(value) != str:
@@ -519,8 +580,6 @@ class Workspace:
                 requires = step.requires(old_step)
                 if requires:
                     ids_of_invalidated_steps.add(step.id)
-
-        # print(ids_of_invalidated_steps)
 
         workflow = self._workflow
         # noinspection PyUnusedLocal

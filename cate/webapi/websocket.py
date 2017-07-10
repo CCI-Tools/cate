@@ -262,8 +262,8 @@ class WebSocketService:
         self.workspace_manager.close_workspace(base_dir)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def save_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.save_workspace(base_dir)
+    def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
         return workspace.to_json_dict()
 
     def clean_workspace(self, base_dir: str) -> dict:
@@ -291,6 +291,11 @@ class WebSocketService:
                                                                       op_name,
                                                                       op_args,
                                                                       monitor=monitor)
+            return workspace.to_json_dict()
+
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
+        with cwd(base_dir):
+            workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
             return workspace.to_json_dict()
 
     def get_color_maps(self):
