@@ -27,7 +27,7 @@
   },
   "output": {
     "return": {
-      "source": "step_filter.return",
+      "source": "step_filter",
       "data_type": "cate.Dataset",
       "description": "A new dataset that just contains variable "
     }

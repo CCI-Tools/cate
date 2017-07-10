@@ -4,7 +4,8 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from cate.core.op import op_input, op_output, OpRegistration
-from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache
+from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache, \
+    SourceRef
 from cate.util import UNDEFINED
 from cate.util.misc import object_to_qualified_name
 from cate.util.opmetainf import OpMetaInfo
@@ -25,8 +26,8 @@ def op2(a):
 @op_input('u')
 @op_input('v')
 @op_output('w')
-def op3(u, v):
-    return {'w': 2 * u + 3 * v}
+def op3(u, v, c=0):
+    return {'w': 2 * u + 3 * v + c}
 
 
 def get_resource(rel_path):
@@ -299,6 +300,7 @@ class WorkflowTest(TestCase):
 
         expected_json_text = """
         {
+            "schema": 1,
             "qualified_name": "my_workflow",
             "header": {},
             "input": {
@@ -313,9 +315,6 @@ class WorkflowTest(TestCase):
                     "op": "test.core.test_workflow.op1",
                     "input": {
                         "x": { "source": "my_workflow.p" }
-                    },
-                    "output": {
-                        "y": {}
                     }
                 },
                 {
@@ -323,9 +322,6 @@ class WorkflowTest(TestCase):
                     "op": "test.core.test_workflow.op2",
                     "input": {
                         "a": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "b": {}
                     }
                 },
                 {
@@ -334,9 +330,6 @@ class WorkflowTest(TestCase):
                     "input": {
                         "v": {"source": "op2.b"},
                         "u": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "w": {}
                     }
                 }
             ]
@@ -603,7 +596,7 @@ class OpStepTest(TestCase):
         self.assertIs(step.output.w.node, step)
         self.assertEqual(step.output.w.name, 'w')
 
-        self.assertEqual(str(step), step.id + ' = test.core.test_workflow.op3(u=None, v=None) -> (w) [OpStep]')
+        self.assertEqual(str(step), step.id + ' = test.core.test_workflow.op3(u=None, v=None, c=0) -> (w) [OpStep]')
         self.assertEqual(repr(step), "OpStep(test.core.test_workflow.op3, node_id='%s')" % step.id)
 
     def test_init_operation_and_name_are_equivalent(self):
@@ -761,6 +754,7 @@ class OpStepTest(TestCase):
     def test_to_json_dict(self):
         step3 = OpStep(op3, node_id='op3')
         step3.input.u.value = 2.8
+        step3.input.c.value = 1
 
         step3_dict = step3.to_json_dict()
 
@@ -769,11 +763,8 @@ class OpStepTest(TestCase):
             "id": "op3",
             "op": "test.core.test_workflow.op3",
             "input": {
-                "v": {},
-                "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
+                "u": {"value": 2.8},
+                "c": {"value": 1}
             }
         }
         """
@@ -800,10 +791,8 @@ class OpStepTest(TestCase):
             "op": "test.core.test_workflow.op3",
             "input": {
                 "v": {"value": 1.2},
-                "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
+                "u": {"value": 2.8},
+                "c": {"value": 1}
             }
         }
         """
@@ -950,15 +939,68 @@ class SubProcessStepTest(TestCase):
 class NodePortTest(TestCase):
     def test_init(self):
         step = OpStep(op1, node_id='myop')
-        source = NodePort(step, 'x')
+        x_port = NodePort(step, 'x')
 
-        self.assertIs(source.node, step)
-        self.assertEqual(source.node_id, 'myop')
-        self.assertEqual(source.name, 'x')
-        self.assertEqual(source.source, None)
-        self.assertEqual(source.value, None)
-        self.assertEqual(str(source), 'myop.x')
-        self.assertEqual(repr(source), "NodePort('myop', 'x')")
+        self.assertIs(x_port.node, step)
+        self.assertEqual(x_port.node_id, 'myop')
+        self.assertEqual(x_port.name, 'x')
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+        self.assertEqual(str(x_port), 'myop.x')
+        self.assertEqual(repr(x_port), "NodePort('myop', 'x')")
+
+    def test_source_and_value(self):
+        step1 = OpStep(op1, node_id='op1')
+        step2 = OpStep(op2, node_id='op2')
+
+        x_port = NodePort(step1, 'x')
+        y_port = NodePort(step1, 'y')
+        b_port = NodePort(step2, 'b')
+
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+
+        x_port.value = 11
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, True)
+        self.assertEqual(x_port.has_value, True)
+        self.assertEqual(x_port.value, 11)
+
+        x_port.source = b_port
+        self.assertEqual(x_port.is_source, True)
+        self.assertEqual(x_port.source, b_port)
+        self.assertEqual(x_port.source_ref, SourceRef(node_id='op2', port_name='b'))
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+
+        b_port.value = 67382
+        self.assertEqual(x_port.is_source, True)
+        self.assertEqual(x_port.source, b_port)
+        self.assertEqual(x_port.source_ref, SourceRef(node_id='op2', port_name='b'))
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, True)
+        self.assertEqual(x_port.value, 67382)
+
+        with self.assertRaises(ValueError) as cm:
+            x_port.source = x_port
+        self.assertEqual(str(cm.exception), "cannot connect 'op1.x' with itself")
+
+        # TODO (forman): check cyclic dependency
+        # with self.assertRaises(ValueError) as cm:
+        #     x_port.source = y_port
+        # self.assertEqual(str(cm.exception), "AAAAA")
+
 
     def test_resolve_source_ref(self):
         step1 = OpStep(op1, node_id='myop1')

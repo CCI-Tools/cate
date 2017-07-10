@@ -129,6 +129,9 @@ from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
 
+#: Increment number on any (JSON) schema change
+WORKFLOW_SCHEMA_VERSION = 1
+WORKFLOW_SCHEMA_TAG = 'schema'
 
 class Node(metaclass=ABCMeta):
     """
@@ -408,7 +411,7 @@ class Node(metaclass=ABCMeta):
         for port in namespace[:]:
             if port.source:
                 port_assignments.append('%s=@%s' % (port.name, str(port.source)))
-            elif port.has_value:
+            elif port.is_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
                 default_value = self.op_meta_info.input[port.name].get('default_value', None)
@@ -743,6 +746,7 @@ class Workflow(Node):
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         workflow_json_dict = OrderedDict()
+        workflow_json_dict[WORKFLOW_SCHEMA_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
         workflow_json_dict['input'] = input_json_dict
@@ -820,18 +824,26 @@ class Step(Node):
 
         :return: A JSON-serializable dictionary
         """
+        step_json_dict = OrderedDict()
+        step_json_dict['id'] = self.id
 
-        node_dict = OrderedDict()
-        node_dict['id'] = self.id
+        self.enhance_json_dict(step_json_dict)
 
-        self.enhance_json_dict(node_dict)
+        inputs_json_dict = self.get_inputs_json_dict()
+        if inputs_json_dict is not None:
+            step_json_dict['input'] = inputs_json_dict
 
-        node_dict['input'] = OrderedDict(
-            [(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
-        node_dict['output'] = OrderedDict(
-            [(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
+        outputs_json_dict = self.get_outputs_json_dict()
+        if outputs_json_dict is not None:
+            step_json_dict['output'] = outputs_json_dict
 
-        return node_dict
+        return step_json_dict
+
+    def get_inputs_json_dict(self):
+        return OrderedDict([(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
+
+    def get_outputs_json_dict(self):
+        return OrderedDict([(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
@@ -994,6 +1006,25 @@ class OpStep(Step):
 
     def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['op'] = self.op_meta_info.qualified_name
+
+    def get_inputs_json_dict(self):
+        inputs_json_dict = OrderedDict()
+        for node_input in self.input[:]:
+            input_json_dict = node_input.to_json_dict()
+            if input_json_dict and node_input.is_value:
+                value = node_input.value
+                input_props = self.op_meta_info.input.get(node_input.name)
+                if input_props:
+                    default_value = input_props.get('default_value', UNDEFINED)
+                    if value == default_value:
+                        # If value equals default_value, we don't store it in JSON
+                        input_json_dict = None
+            if input_json_dict:
+                inputs_json_dict[node_input.name] = input_json_dict
+        return inputs_json_dict
+
+    def get_outputs_json_dict(self):
+        return None
 
     def __repr__(self):
         return "OpStep(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
@@ -1216,7 +1247,7 @@ class SubProcessStep(Step):
         return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
 
 
-SourceRef = namedtuple('SourcerRef', ['node_id', 'port_name'])
+SourceRef = namedtuple('SourceRef', ['node_id', 'port_name'])
 
 
 class NodePort:
@@ -1254,6 +1285,10 @@ class NodePort:
             return True
 
     @property
+    def is_value(self) -> bool:
+        return not self._source and self._value is not UNDEFINED
+
+    @property
     def value(self):
         if self._source:
             return self._source.value
@@ -1271,6 +1306,10 @@ class NodePort:
     @property
     def source_ref(self) -> SourceRef:
         return self._source_ref
+
+    @property
+    def is_source(self) -> bool:
+        return self._source is not None
 
     @property
     def source(self) -> 'NodePort':
@@ -1412,19 +1451,25 @@ class NodePort:
         :return: A JSON-serializable dictionary
         """
         json_dict = dict()
-        if self.source is not None:
-            json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self.has_value:
-            # Do not serialize output values, they are temporary and may not be JSON-serializable
-            is_output = self._name in self._node.op_meta_info.output
-            if not is_output:
-                json_dict['value'] = self._to_json_value(self._value)
+        source = self._source
+        if source is not None:
+            # If we have a source, the port's value is undefined.
+            json_dict['source'] = str(source)
+        else:
+            value = self._value
+            # Only serialize defined values
+            if value is not UNDEFINED:
+                is_output = self._name in self._node.op_meta_info.output
+                # Do not serialize output values, they are temporary and may not be JSON-serializable
+                if not is_output:
+                    json_dict['value'] = self._to_json_value(self._value)
         return json_dict
 
     # noinspection PyBroadException
     def _to_json_value(self, value):
         input_props = self._node.op_meta_info.input.get(self._name)
         if input_props:
+            # try converting value using a dedicated method
             data_type = input_props.get('data_type')
             if data_type:
                 try:
@@ -1453,8 +1498,10 @@ class NodePort:
 
     def __str__(self):
         if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:
+            # Use short form
             return self._node.id
         else:
+            # Use dot form
             return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):

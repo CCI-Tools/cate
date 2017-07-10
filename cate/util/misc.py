@@ -324,6 +324,12 @@ def to_json(v):
                 time_str = time_str[0: -len(_ZERO_THMS_POSTFIX)]
             return time_str
 
+    if isinstance(v, np.ndarray) and not np.issubdtype(v.dtype, np.datetime64):
+        try:
+            return v.tolist()
+        except AttributeError:
+            pass
+
     try:
         return v.item()
     except (AttributeError, ValueError):

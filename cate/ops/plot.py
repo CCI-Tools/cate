@@ -575,31 +575,16 @@ def in_notebook():
 
 
 def _get_var_data(var, indexers: dict, time=None, remaining_dims=None):
-    if time:
-        if indexers is None:
-            indexers = {}
+
+    if time is not None:
+        indexers = dict(indexers) if indexers else dict()
         indexers['time'] = time
+
     if indexers:
-        time = indexers.get('time')
-        if time is not None:
-            indexers['time'] = TimeLike.convert(time)
+        var = var.sel(method='nearest', **indexers)
 
-        if remaining_dims:
-            for dim_name in var.dims:
-                if dim_name not in remaining_dims:
-                    if dim_name not in indexers:
-                        if dim_name in var.coords:
-                            indexers[dim_name] = var.coords[dim_name][0]
-                        else:
-                            indexers[dim_name] = 0
+    if remaining_dims:
+        isel_indexers = {dim_name: 0 for dim_name in var.dims if dim_name not in remaining_dims}
+        var = var.isel(**isel_indexers)
 
-        # If there is any non-int index, we need a method to compute actual indexes
-        method = None
-        for v in indexers.values():
-            if not isinstance(v, int):
-                method = 'nearest'
-        try:
-            return var.sel(method=method, **indexers)
-        except ValueError:
-            pass
     return var

@@ -157,11 +157,13 @@ class ToJsonTest(TestCase):
         self.assertEqual(to_json(np.array([])),
                          [])
         self.assertEqual(to_json(np.array([1])),
-                         1)
+                         [1])
         self.assertEqual(to_json(np.array([1, 2, 3])),
                          [1, 2, 3])
         self.assertEqual(to_json(np.array([[1, 2], [3, 4]])),
                          [[1, 2], [3, 4]])
+        self.assertEqual(to_json(np.array([1, 2, 3])[2]),
+                         3)
         self.assertEqual(to_json(np.array([np.datetime64('2005-02-21'),
                                            np.datetime64('2005-02-23'),
                                            np.datetime64('2005-02-25')])),

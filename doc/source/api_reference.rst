@@ -123,7 +123,7 @@ Timeseries
 Misc
 ----
 
-.. autofunction:: cate.ops.harmonize
+.. autofunction:: cate.ops.normalize
 
 .. autofunction:: cate.ops.sel
 
