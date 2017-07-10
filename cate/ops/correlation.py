@@ -139,16 +139,14 @@ def pearson_correlation_map(ds_x: xr.Dataset,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if len(array_x['time']) < 3:
-        raise ValueError('The length of the time dimension should not be less'
-                         ' than three to run the calculation.')
-
     # Further validate inputs
     if array_x.dims == array_y.dims:
         if len(array_x.dims) != 3 or len(array_y.dims) != 3:
-            raise ValueError('pearson_correlation_map works only on 3D'
-                             ' datasets. Please review operation'
-                             ' documentation.')
+            raise ValueError('A correlation coefficient map can only be produced'
+                             ' if both provided datasets are 3D datasets with'
+                             ' lon/lat/time dimensionality, or if a combination'
+                             ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                             ' is provided.')
 
         if array_x.values.shape != array_y.values.shape:
             raise ValueError('The provided variables {} and {} do not have the'
@@ -163,13 +161,24 @@ def pearson_correlation_map(ds_x: xr.Dataset,
                              ' definition. Consider running coregistration'
                              ' first')
 
-    elif (((array_x.dims == 3) and (array_y.dims != 1)) or
-          ((array_x.dims == 1) and (array_y.dims != 3))):
+    elif (((len(array_x.dims) == 3) and (len(array_y.dims) != 1)) or
+          ((len(array_x.dims) == 1) and (len(array_y.dims) != 3)) or
+          ((len(array_x.dims) != 3) and (len(array_y.dims) == 1)) or
+          ((len(array_x.dims) != 1) and (len(array_y.dims) == 3))):
         raise ValueError('A correlation coefficient map can only be produced'
                          ' if both provided datasets are 3D datasets with'
                          ' lon/lat/time dimensionality, or if a combination'
                          ' of a 3D lon/lat/time dataset and a 1D timeseries'
                          ' is provided.')
+
+    if len(array_x['time']) != len(array_y['time']):
+        raise ValueError('The length of the time dimension differs between'
+                         ' the given datasets. Can not perform the calculation'
+                         ', please review operation documentation.')
+
+    if len(array_x['time']) < 3:
+        raise ValueError('The length of the time dimension should not be less'
+                         ' than three to run the calculation.')
 
     # Do pixel by pixel correlation
     retset = _pearsonr(array_x, array_y)

@@ -6,6 +6,7 @@ from unittest import TestCase
 
 import numpy as np
 import xarray as xr
+import pandas as pd
 from scipy.stats import pearsonr
 
 from cate.ops.correlation import pearson_correlation_simple, pearson_correlation_map
@@ -127,16 +128,145 @@ class TestPearsonMap(TestCase):
         """
         Test a (3d, 1d) input pair
         """
-        pass
+        x = np.linspace(0, 5, 6)
+        y = np.linspace(0, 5, 6)
+        y[0] = 3
+
+        cc_sp, pv_sp = pearsonr(x, y)
+
+        x_3d = np.empty((4, 8, 6))
+        x_3d[:] = x
+
+        ds1 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], x_3d),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.linspace(0, 5, 6)})
+
+        ds2 = xr.Dataset({
+            'first': (['time'], y),
+            'time': np.linspace(0, 5, 6)})
+
+        correlation = pearson_correlation_map(ds1, ds2, 'first', 'first')
+        self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
+                                          cc_sp)))
+        self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
+                                          pv_sp)))
 
     def test_polymorphism(self):
         """
         Broadcasting run where the 1d input is a pandas dataframe
         """
-        pass
+        x = np.linspace(0, 5, 6)
+        y = np.linspace(0, 5, 6)
+        y[0] = 3
+
+        cc_sp, pv_sp = pearsonr(x, y)
+
+        x_3d = np.empty((4, 8, 6))
+        x_3d[:] = x
+
+        ds1 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], x_3d),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.linspace(0, 5, 6)})
+
+        df = pd.DataFrame({'first': y, 'time': np.linspace(0, 5, 6)})
+        df.index = df['time']
+
+        correlation = pearson_correlation_map(ds1, df, 'first', 'first')
+        self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
+                                          cc_sp)))
+        self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
+                                          pv_sp)))
 
     def test_error(self):
         """
         Test error conditions
         """
-        pass
+        # Test incompatible dimensions
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([3, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])})
+
+        ds2 = xr.Dataset({
+            'second': (['time', 'lat', 'lon', 'f'], np.ones([3, 4, 8, 2])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3]),
+            'f': np.array([1, 2])})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds1, ds2, 'first', 'second')
+        self.assertIn('dimensionality', str(err.exception))
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds2, ds2, 'second', 'second')
+        self.assertIn('dimensionality', str(err.exception))
+
+        # Test incompatible shape
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([3, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])})
+
+        ds2 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([4, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3, 4])})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds1, ds2, 'first', 'first')
+        self.assertIn('shape', str(err.exception))
+
+        # Test incompatible lon/lat
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([3, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])})
+
+        ds2 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([3, 4, 8])),
+            'lat': np.linspace(0, 3, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds1, ds2, 'first', 'first')
+        self.assertIn('lat/lon definition', str(err.exception))
+
+        # Test incompatible time dimension
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([3, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])})
+
+        ds2 = xr.Dataset({
+            'first': (['time'], np.ones([4])),
+            'time': np.array([1, 2, 3, 4])})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds1, ds2, 'first', 'first')
+        self.assertIn('dimension differs', str(err.exception))
+
+        # Test incompatible time dimension
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.ones([2, 4, 8])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        ds2 = xr.Dataset({
+            'first': (['time'], np.ones([2])),
+            'time': np.array([1, 2])})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_map(ds1, ds2, 'first', 'first')
+        self.assertIn('dimension should not be less', str(err.exception))
