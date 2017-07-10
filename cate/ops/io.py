@@ -31,7 +31,9 @@ import xarray as xr
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
+from cate.core.utils import DaskMonitor
 from cate.ops.normalize import normalize as normalize_op
+from cate.util import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
@@ -54,7 +56,6 @@ def open_dataset(ds_name: str,
     :param time_range: Optional time range of the requested dataset
     :param region: Optional spatial region of the requested dataset
     :param var_names: Optional names of variables of the requested dataset
-    :param monitor: a progress monitor, used only if *sync* is ``True``.
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :return: An new dataset instance.
     """
@@ -72,15 +73,17 @@ def open_dataset(ds_name: str,
 @op_input('ds')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('format', value_set=['NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_64BIT', 'NETCDF3_CLASSIC'])
-def save_dataset(ds: xr.Dataset, file: str, format: str = None):
+def save_dataset(ds: xr.Dataset, file: str, format: str = None, monitor: Monitor = Monitor.NONE):
     """
     Save a dataset to NetCDF file.
 
     :param ds: The dataset
     :param file: File path
     :param format: NetCDF format flavour, one of 'NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_64BIT', 'NETCDF3_CLASSIC'.
+    :param monitor: a progress monitor.
     """
-    ds.to_netcdf(file, format=format)
+    with DaskMonitor("save_dataset", monitor):
+        ds.to_netcdf(file, format=format)
 
 
 # noinspection PyShadowingBuiltins
