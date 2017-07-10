@@ -17,7 +17,7 @@ from cate.util.misc import object_to_qualified_name
 
 from cate.ops import coregister
 from cate.ops.coregistration import _find_intersection
-from util.test_monitor import RecordingMonitor
+from ..util.test_monitor import RecordingMonitor
 
 
 class TestCoregistration(TestCase):
