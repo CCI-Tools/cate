@@ -31,6 +31,7 @@ Functions
 
 import xarray as xr
 import numpy as np
+import pandas as pd
 
 from scipy.stats import pearsonr
 from scipy.special import betainc
@@ -44,12 +45,10 @@ from cate.core.types import VarName, DatasetLike
 @op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-@op_output('corr_coef', output_type=float)
-@op_output('p_value', output_type=float)
 def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
                                ds_y: DatasetLike.TYPE,
                                var_x: VarName.TYPE,
-                               var_y: VarName.TYPE):
+                               var_y: VarName.TYPE) -> pd.DataFrame:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
@@ -94,7 +93,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
                          ' than three to run the calculation.')
 
     cc, pv = pearsonr(array_x.values, array_y.values)
-    return {'corr_coef': cc, 'p_value': pv}
+    return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
 
 
 @op(tags=['utility', 'correlation'])
