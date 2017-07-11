@@ -36,7 +36,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from scipy.special import betainc
 
-from cate.core.op import op, op_input, op_output
+from cate.core.op import op, op_input
 from cate.core.types import VarName, DatasetLike
 
 
