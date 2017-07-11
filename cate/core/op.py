@@ -397,8 +397,10 @@ def op(registry=OP_REGISTRY, **properties):
         op_registration = registry.add_op(op_func, fail_if_exists=False)
         try:
             default_tags = op_registration.op_meta_info.header['tags']
-            properties['tags'] = default_tags + properties['tags']
+            if default_tags[0] not in properties['tags']:
+                properties['tags'] = default_tags + properties['tags']
         except KeyError:
+            # The user has not provided any tags
             pass
         op_registration.op_meta_info.header.update({k: v for k, v in properties.items() if v is not UNDEFINED})
         return op_registration
