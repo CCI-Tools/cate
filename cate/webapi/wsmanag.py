@@ -162,6 +162,9 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        raise NotImplemented()
+
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: OpKwArgs,
                                monitor: Monitor = Monitor.NONE) -> Workspace:

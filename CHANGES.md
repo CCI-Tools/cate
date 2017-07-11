@@ -1,8 +1,9 @@
 ## Changes in version 0.9.0.dev4
 
-* Fixed #285
-* Fixed #283
-* Fixed #281
+* Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
+* Fixed [#283](https://github.com/CCI-Tools/cate-core/issues/283)
+* Fixed [#281](https://github.com/CCI-Tools/cate-core/issues/281)
+* Fixed [#270](https://github.com/CCI-Tools/cate-core/issues/270)
 
 ## Changes in version 0.9.0.dev3
 

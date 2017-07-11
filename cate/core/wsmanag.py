@@ -54,7 +54,8 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+    def open_workspace(self, base_dir: str,
+                       monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
@@ -71,11 +72,13 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def save_workspace(self, base_dir: str) -> Workspace:
+    def save_workspace(self, base_dir: str,
+                       monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
+    def save_all_workspaces(self,
+                            monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
@@ -105,6 +108,10 @@ class WorkspaceManager(metaclass=ABCMeta):
 
     @abstractmethod
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
+        pass
+
+    @abstractmethod
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
         pass
 
     @abstractmethod
@@ -177,9 +184,10 @@ class FSWorkspaceManager(WorkspaceManager):
             assert not workspace.is_closed
             # noinspection PyTypeChecker
             return workspace
-        workspace = Workspace.open(base_dir)
-        assert base_dir not in self._open_workspaces
-        workspace.execute_workflow(monitor=monitor)
+        with monitor.starting("Opening workspace", 100):
+            workspace = Workspace.open(base_dir, monitor=monitor.child(50))
+            assert base_dir not in self._open_workspaces
+            workspace.execute_workflow(monitor=monitor.child(50))
         self._open_workspaces[base_dir] = workspace
         return workspace
 
@@ -219,9 +227,8 @@ class FSWorkspaceManager(WorkspaceManager):
                 monitor.progress(work=5)
 
             # Save and close current workspace
-            workspace.save()
+            workspace.save(monitor=monitor.child(work=25))
             workspace.close()
-            monitor.progress(work=5)
 
             try:
                 # if the given directory exists and is empty, we must delete it because
@@ -233,7 +240,7 @@ class FSWorkspaceManager(WorkspaceManager):
                 shutil.copytree(base_dir, to_dir)
                 monitor.progress(work=10)
                 # Reopen from new location
-                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=70))
+                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
                 # If it was a scratch workspace, delete the original
                 if workspace.is_scratch:
                     shutil.rmtree(base_dir)
@@ -242,11 +249,11 @@ class FSWorkspaceManager(WorkspaceManager):
             except (IOError, OSError) as e:
                 raise WorkspaceError(e)
 
-    def save_workspace(self, base_dir: str) -> Workspace:
+    def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
         if workspace:
-            workspace.save()
+            workspace.save(monitor=monitor)
         return workspace
 
     def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
@@ -254,8 +261,7 @@ class FSWorkspaceManager(WorkspaceManager):
         n = len(workspaces)
         with monitor.starting('Saving %s workspace(s)' % n, n):
             for workspace in workspaces:
-                workspace.save()
-                monitor.progress(work=1)
+                workspace.save(monitor=monitor.child(work=1))
 
     def clean_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -316,6 +322,11 @@ class FSWorkspaceManager(WorkspaceManager):
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         workspace = self.get_workspace(base_dir)
         workspace.delete_resource(res_name)
+        return workspace
+
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        workspace = self.get_workspace(base_dir)
+        workspace.set_resource_persistence(res_name, persistent)
         return workspace
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
