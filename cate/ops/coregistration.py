@@ -195,8 +195,10 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     :param monitor: a progress monitor.
     :return: resampled slice
     """
+    if monitor.is_cancelled():
+        raise InterruptedError
     child_monitor = monitor.child(1)
-    with DaskMonitor("resample slice", child_monitor):
+    with DaskMonitor("resample time slice", child_monitor):
         result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
                                         w,
                                         h,
@@ -222,7 +224,10 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
     width = lon.values.size
     height = lat.values.size
 
+    if monitor.is_cancelled():
+        raise InterruptedError
     child_monitor = monitor.child(1)
+
     kwargs = {'w': width, 'h': height, 'ds_method': method_ds, 'us_method': method_us, 'monitor': child_monitor}
     group_by_time = array.groupby('time')
     num_time_steps = len(group_by_time)
@@ -271,6 +276,8 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     lon = ds_master['lon'].sel(lon=lon_slice)
     lat = ds_master['lat'].sel(lat=lat_slice)
 
+    if monitor.is_cancelled():
+        raise InterruptedError
     with monitor.starting("coregister dataset", len(ds_slave.data_vars)):
         kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'monitor': monitor}
         retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)

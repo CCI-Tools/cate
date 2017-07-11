@@ -32,7 +32,13 @@ _DEBUG_DASK_PROGRESS = False
 
 
 class DaskMonitor(Callback):
+    """
+    A ``dask.Callback`` that reports the task level notification that the
+    dask scheduler generates to the provided ``Monitor``.
 
+    This allows for tracking then progress inside dask compute/get calls and
+    the possibility to cancel them.
+    """
     def __init__(self, label: str, monitor: Monitor):
         super().__init__()
         self._label = label
@@ -52,7 +58,6 @@ class DaskMonitor(Callback):
         self._monitor.progress(work=1)
         if _DEBUG_DASK_PROGRESS:
             print("DaskMonitor.posttask: key=", key)
-
 
     def _finish(self, dsk, state, failed):
         self._monitor.done()
