@@ -45,7 +45,7 @@ class OpTest(TestCase):
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f),
-                             dict(description='Hi, I am f!'),
+                             dict(description='Hi, I am f!', tags=['test_op']),
                              expected_inputs,
                              expected_outputs)
 
@@ -58,7 +58,7 @@ class OpTest(TestCase):
             registry.remove_op(f, fail_if_not_exists=True)
 
     def test_f_op(self):
-        @op(registry=self.registry)
+        @op(registry=self.registry, tags=['some_tag'])
         def f_op(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f_op!"""
             return str(a + b + c + u + len(v) + w)
@@ -79,7 +79,8 @@ class OpTest(TestCase):
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f_op),
-                             dict(description='Hi, I am f_op!'),
+                             dict(description='Hi, I am f_op!',
+                                  tags=['test_op', 'some_tag']),
                              expected_inputs,
                              expected_outputs)
 
@@ -107,7 +108,8 @@ class OpTest(TestCase):
         expected_outputs[RETURN] = dict(data_type=str)
         self._assertMetaInfo(op_reg.op_meta_info,
                              object_to_qualified_name(f_op_inp_ret),
-                             dict(description='Hi, I am f_op_inp_ret!'),
+                             dict(description='Hi, I am f_op_inp_ret!',
+                                  tags=['test_op']),
                              expected_inputs,
                              expected_outputs)
 
