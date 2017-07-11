@@ -1,5 +1,7 @@
+import os.path
 from collections import OrderedDict
 from unittest import TestCase
+
 import xarray as xr
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
@@ -10,6 +12,10 @@ from cate.util.opmetainf import OpMetaInfo
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
+
+DIR = os.path.dirname(__file__)
+SOILMOISTURE_NC = os.path.join(DIR, 'test_data', 'small',
+                               'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-20000101000000-fv02.2.nc')
 
 
 class OpTest(TestCase):
@@ -22,7 +28,7 @@ class OpTest(TestCase):
     def test_executable_no_ds(self):
         import os.path
         import sys
-        exe = sys.executable + " " + os.path.join(os.path.dirname(__file__), 'executables', 'mkentropy.py')
+        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'mkentropy.py')
         commandline_pattern = exe + " {num_steps} {period}"
         op_reg = self.registry.add_op_from_executable(OpMetaInfo('make_entropy',
                                                                  input_dict={
@@ -36,30 +42,55 @@ class OpTest(TestCase):
         exit_code = op_reg(num_steps=10, period=0.1)
         self.assertEqual(exit_code, 0)
 
-    def test_executable_ds(self):
+    def test_executable_ds_file(self):
         import os.path
         import sys
-        dir_path = os.path.dirname(__file__)
-        exe = sys.executable + " " + os.path.join(dir_path, 'executables', 'filterds.py')
+        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
         commandline_pattern = exe + " {ifile} {ofile} {var}"
         op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
                                                                  input_dict={
                                                                      'ifile': {'data_type': FileLike},
-                                                                     'ofile': {'data_type': FileLike, 'output': 'return'},
+                                                                     'ofile': {'data_type': FileLike},
                                                                      'var': {'data_type': VarName},
                                                                  },
                                                                  output_dict={
                                                                      'return': {'data_type': int}
                                                                  }),
                                                       commandline_pattern)
-        ifile = os.path.join(dir_path, 'test_data', 'small', 'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-20000101000000-fv02.2.nc')
-        ofile = os.path.join(dir_path, 'test_data', 'filter_ds.nc')
+        ofile = os.path.join(DIR, 'test_data', 'filter_ds.nc')
         if os.path.isfile(ofile):
             os.remove(ofile)
-        exit_code = op_reg(ifile=ifile, ofile=ofile, var='sm')
+        exit_code = op_reg(ifile=SOILMOISTURE_NC, ofile=ofile, var='sm')
         self.assertEqual(exit_code, 0)
         self.assertTrue(os.path.isfile(ofile))
         os.remove(ofile)
+
+    def test_executable_ds_in_mem(self):
+        import os.path
+        import sys
+        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
+        commandline_pattern = exe + " {ifile} {ofile} {var}"
+        op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
+                                                                 input_dict={
+                                                                     'ds': {
+                                                                         'data_type': xr.Dataset,
+                                                                         'write_to': 'ifile'
+                                                                     },
+                                                                     'var': {
+                                                                         'data_type': VarName
+                                                                     },
+                                                                 },
+                                                                 output_dict={
+                                                                     'return': {
+                                                                         'data_type': xr.Dataset,
+                                                                         'read_from': 'ofile'
+                                                                     }
+                                                                 }),
+                                                      commandline_pattern)
+        ds = xr.open_dataset(SOILMOISTURE_NC)
+        ds_out = op_reg(ds=ds, var='sm')
+        self.assertIsNotNone(ds_out)
+        self.assertIsNotNone('sm' in ds_out)
 
     def test_expression(self):
         op_reg = self.registry.add_op_from_expression(OpMetaInfo('add_xy',
