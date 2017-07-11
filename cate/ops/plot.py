@@ -394,7 +394,7 @@ def plot_scatter(ds1: xr.Dataset,
             max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
             print(min_dim, max_dim)
             var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) & (var_data1[remaining_dims[0]] <= max_dim),
-                                      drop=True)
+                                        drop=True)
             var_data2 = var_data2.where(
                 (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
                 drop=True)

@@ -31,6 +31,8 @@ Private components and properties
    ``@property`` annotation on a getter method to export them in a
    controlled way. Think twice if you want write access.
 
+.. _dg-cc-docstrings:
+
 Docstrings
 ----------
 

@@ -44,6 +44,8 @@ Coregistration
 Correlation
 -----------
 
+.. autofunction:: cate.ops.pearson_correlation_scalar
+
 .. autofunction:: cate.ops.pearson_correlation
 
 
