@@ -203,19 +203,21 @@ For example:
   @op()
   def my_op_with_a_monitor(a: str, monitor: Monitor = Monitor.NONE):
       # Set up the monitor
-      total_work = 100
-      with monitor.starting('Monitor Operation', total_work=total_work):
-          monitor.progress(work=0)
-          step = total_work / len(a)
+      with monitor.starting('Monitor Operation', total_work=len(a)):
           for i in a:
-              # Check if the process has been cancelled
-              if monitor.is_cancelled():
-                  # Clean up
-                  return None
 
               # Do work
+
               # Update the monitor
-              monitor.progress(work=step)
+              monitor.progress(work=1)
+
+              # If there are resources to clean up (e.g., open file handles):
+              try:
+                  monitor.progress(work=1)
+              except Cancellation as c:
+                  # Clean up
+                  raise c
+
       return a
 
 Note that special caution should be taken to ensure the correct step size, such

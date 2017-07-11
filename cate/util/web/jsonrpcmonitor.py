@@ -91,6 +91,7 @@ class JsonRcpWebSocketMonitor(Monitor):
         self.last_time = None
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         if work:
             self.worked = (self.worked or 0.0) + work
         self._write_progress(message=msg)

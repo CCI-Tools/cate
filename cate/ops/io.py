@@ -31,7 +31,6 @@ import xarray as xr
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
-from cate.core.utils import DaskMonitor
 from cate.ops.normalize import normalize as normalize_op
 from cate.util import Monitor
 
@@ -82,7 +81,7 @@ def save_dataset(ds: xr.Dataset, file: str, format: str = None, monitor: Monitor
     :param format: NetCDF format flavour, one of 'NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_64BIT', 'NETCDF3_CLASSIC'.
     :param monitor: a progress monitor.
     """
-    with DaskMonitor("save_dataset", monitor):
+    with monitor.observing("save_dataset"):
         ds.to_netcdf(file, format=format)
 
 

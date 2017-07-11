@@ -38,7 +38,6 @@ import numpy as np
 import xarray as xr
 
 from cate.core.op import op_input, op, op_return
-from cate.core.utils import DaskMonitor
 from cate.util import Monitor
 
 from cate.ops import resampling
@@ -183,7 +182,7 @@ def _within_bounds(array: np.ndarray, low_bound) -> bool:
     return (array[0] >= low_bound and array[-1] <= abs(low_bound))
 
 
-def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int, monitor: Monitor) -> xr.DataArray:
+def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int, parent_monitor: Monitor) -> xr.DataArray:
     """
     Resample a single time slice of a larger xr.DataArray
 
@@ -192,13 +191,11 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     :param h: The desired new height (amount of latitudes)
     :param ds_method: Downsampling method, see resampling.py
     :param us_method: Upsampling method, see resampling.py
-    :param monitor: a progress monitor.
+    :param parent_monitor: the parent progress monitor.
     :return: resampled slice
     """
-    if monitor.is_cancelled():
-        raise InterruptedError
-    child_monitor = monitor.child(1)
-    with DaskMonitor("resample time slice", child_monitor):
+    monitor = parent_monitor.child(1)
+    with monitor.observing("resample time slice"):
         result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
                                         w,
                                         h,
@@ -208,7 +205,7 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
 
 
 def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, method_us: int,
-                    method_ds: int, monitor: Monitor) -> xr.DataArray:
+                    method_ds: int, parent_monitor: Monitor) -> xr.DataArray:
     """
     Resample the given xr.DataArray to a new grid defined by lat and lon
 
@@ -217,22 +214,20 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
     :param lon: 'lon' xr.DataArray attribute for the new grid
     :param method_us: Interpolation method to use for upsampling, see resampling.py
     :param method_ds: Interpolation method to use for downsampling, see resampling.py
-    :param monitor: a progress monitor.
+    :param parent_monitor: the parent progress monitor.
     :return: The resampled array
     """
     # Determine width and height of the resampled array
     width = lon.values.size
     height = lat.values.size
 
-    if monitor.is_cancelled():
-        raise InterruptedError
-    child_monitor = monitor.child(1)
+    monitor = parent_monitor.child(1)
 
-    kwargs = {'w': width, 'h': height, 'ds_method': method_ds, 'us_method': method_us, 'monitor': child_monitor}
+    kwargs = {'w': width, 'h': height, 'ds_method': method_ds, 'us_method': method_us, 'parent_monitor': monitor}
     group_by_time = array.groupby('time')
     num_time_steps = len(group_by_time)
 
-    with child_monitor.starting("coregister dataarray", total_work=num_time_steps):
+    with monitor.starting("coregister dataarray", total_work=num_time_steps):
         temp_array = group_by_time.apply(_resample_slice, **kwargs)
         chunks = list(temp_array.shape[1:])
         chunks.insert(0, 1)
@@ -276,10 +271,8 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     lon = ds_master['lon'].sel(lon=lon_slice)
     lat = ds_master['lat'].sel(lat=lat_slice)
 
-    if monitor.is_cancelled():
-        raise InterruptedError
     with monitor.starting("coregister dataset", len(ds_slave.data_vars)):
-        kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'monitor': monitor}
+        kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'parent_monitor': monitor}
         retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)
 
     # Set/Update global geospatial attributes

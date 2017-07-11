@@ -152,8 +152,6 @@ def no_op(num_steps: int = 10,
     for i in range(num_steps):
         time.sleep(step_duration)
         monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
-        if monitor.is_cancelled():
-            raise InterruptedError
     if fail_after:
         raise ValueError('Intentionally failed after doing nothing.')
     monitor.done()
