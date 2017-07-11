@@ -51,7 +51,7 @@ class Monitor(metaclass=ABCMeta):
     Derived classes must implement also the following two abstract methods, if they want cancellation support:
     :py:meth:`cancel` and :py:meth:`is_cancelled`.
 
-    Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
+    Pass ``Monitor.NONE`` to functions that expect a monitor instead of passing ``None``.
 
     Given here is an example of how progress monitors should be used by functions:::
 
@@ -73,7 +73,7 @@ class Monitor(metaclass=ABCMeta):
 
     """
 
-    #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
+    #: A valid monitor that effectively does nothing. Use ``Monitor.NONE`` it instead of passing ``None`` to
     #: functions and methods that expect an argument of type ``Monitor``.
     NONE = None
 
