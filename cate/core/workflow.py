@@ -802,7 +802,7 @@ class Step(Node):
         :param value: True, if so, False otherwise
         """
         self._persistent = value
-        print('persistent: ', self._persistent)
+        # print('persistent: ', self._persistent)
 
     @property
     def parent_node(self):
