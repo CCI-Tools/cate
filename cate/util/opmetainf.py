@@ -237,6 +237,9 @@ class OpMetaInfo:
                 if return_description and return_name in output_dict:
                     output_dict[return_name]['description'] = return_description
 
+        if hasattr(operation, '__module__'):
+            header['tags'] = [operation.__module__.split('.')[-1]]
+
         return OpMetaInfo(op_qualified_name,
                           header_dict=header,
                           has_monitor=has_monitor,

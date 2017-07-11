@@ -395,6 +395,11 @@ def op(registry=OP_REGISTRY, **properties):
 
     def decorator(op_func):
         op_registration = registry.add_op(op_func, fail_if_exists=False)
+        try:
+            default_tags = op_registration.op_meta_info.header['tags']
+            properties['tags'] = default_tags + properties['tags']
+        except KeyError:
+            pass
         op_registration.op_meta_info.header.update({k: v for k, v in properties.items() if v is not UNDEFINED})
         return op_registration
 
