@@ -237,10 +237,10 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
         chunks = list(temp_array.shape[1:])
         chunks.insert(0, 1)
         return xr.DataArray(temp_array.values,
-                        name=array.name,
-                        dims=array.dims,
-                        coords={'time': array.time, 'lat': lat, 'lon': lon},
-                        attrs=array.attrs).chunk(chunks=chunks)
+                            name=array.name,
+                            dims=array.dims,
+                            coords={'time': array.time, 'lat': lat, 'lon': lon},
+                            attrs=array.attrs).chunk(chunks=chunks)
 
 
 def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int, monitor: Monitor) -> xr.Dataset:

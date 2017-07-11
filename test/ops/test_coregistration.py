@@ -33,14 +33,14 @@ class TestCoregistration(TestCase):
             'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon':4})
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
 
         ds_coarse = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
             'lat': np.linspace(-60, 60, 3),
             'lon': np.linspace(-150, 150, 6),
-            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon':3})
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
 
         # Test that the coarse dataset has been resampled onto the grid
         # of the finer dataset.
