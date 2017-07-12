@@ -161,3 +161,39 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     ds.time.attrs['calendar'] = 'standard'
 
     return ds
+
+
+def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Adjust the global spatial attributes of the dataset by doing some
+    introspection of the dataset and adjusting the appropriate attributes
+    accordingly.
+
+    In case the determined attributes do not exist in the dataset, these will
+    be added.
+
+    For more information on suggested global attributes see
+    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    pass
+
+
+def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Adjust the global temporal attributes of the dataset by doing some
+    introspection of the dataset and adjusting the appropriate attributes
+    accordingly.
+
+    In case the determined attributes do not exist in the dataset, these will
+    be added.
+
+    For more information on suggested global attributes see
+    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    pass
