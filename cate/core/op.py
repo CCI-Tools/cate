@@ -88,7 +88,7 @@ Technical Requirements
 **Operation monitoring**
 
 :Description: Operation registration should recognise an optional *monitor* argument of a user function:
-    ``f(*args, monitor=Monitor.NULL, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) will be passed
+    ``f(*args, monitor=Monitor.NONE, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) will be passed
     by the framework to the user function in order to observe the progress and to cancel an operation.
 
 ----

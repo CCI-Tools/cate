@@ -203,19 +203,22 @@ For example:
   @op()
   def my_op_with_a_monitor(a: str, monitor: Monitor = Monitor.NONE):
       # Set up the monitor
-      total_work = 100
-      with monitor.starting('Monitor Operation', total_work=total_work):
-          monitor.progress(work=0)
-          step = total_work / len(a)
+      with monitor.starting('Monitor Operation', total_work=len(a)):
           for i in a:
-              # Check if the process has been cancelled
-              if monitor.is_cancelled():
-                  # Clean up
-                  return None
 
               # Do work
+
               # Update the monitor
-              monitor.progress(work=step)
+              monitor.progress(work=1)
+
+              # If there are resources to clean up (e.g., open file handles)
+              # use the following instead:
+              try:
+                  monitor.progress(work=1)
+              except Cancellation as c:
+                  # Clean up
+                  raise c
+
       return a
 
 Note that special caution should be taken to ensure the correct step size, such
@@ -223,6 +226,22 @@ that the task actually ends when the ``total_work`` is reached. Apart from
 progress monitoring it is crucial to implement the possibility to cancel long
 running operations and perform the appropriate clean up actions when it is
 cancelled.
+
+Operations that delagate the compute intensive work to ``xarray`` have often no possibility to
+report progress in a meaningful way nor to handle cancellation in a timely manner. In this case
+the ``xarray`` task can be observed:
+
+.. code-block:: python
+
+  from cate.core.op import op
+  from cate.util.monitor import Monitor
+  import xarray as xr
+
+  @op()
+  def my_op_with_a_monitor(da: xr.DataArray, monitor: Monitor = Monitor.NONE) -> xr.DataArray:
+      # Set up the monitor
+      with monitor.observing('Monitor Operation'):
+        return da.mean(dim='time')
 
 See also :ref:`api-monitoring`.
 
