@@ -48,8 +48,7 @@ class OpMetaInfoTest(TestCase):
 
         op_meta_info = OpMetaInfo.introspect_operation(f)
         self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(f))
-        self.assertEqual(op_meta_info.header, dict(description='The doc.',
-                                                   tags=['test_opmetainfo']))
+        self.assertEqual(op_meta_info.header, dict(description='The doc.'))
         self.assertEqual(len(op_meta_info.input), 4)
         self.assertEqual(len(op_meta_info.output), 1)
         self.assertIn('a', op_meta_info.input)
@@ -73,8 +72,7 @@ class OpMetaInfoTest(TestCase):
 
         op_meta_info = OpMetaInfo.introspect_operation(g)
         self.assertEqual(op_meta_info.qualified_name, object_to_qualified_name(g))
-        self.assertEqual(op_meta_info.header, dict(description='The doc.',
-                                                   tags=['test_opmetainfo']))
+        self.assertEqual(op_meta_info.header, dict(description='The doc.'))
         self.assertEqual(len(op_meta_info.input), 1)
         self.assertEqual(len(op_meta_info.output), 1)
         self.assertIn('x', op_meta_info.input)
