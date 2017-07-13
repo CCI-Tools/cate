@@ -354,6 +354,7 @@ class MyMonitor(Monitor):
         self.total_work = total_work
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         self.worked += work
 
     def done(self):

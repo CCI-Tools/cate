@@ -42,7 +42,7 @@ Components
 
 from .extend import extend
 from .misc import *
-from .monitor import Monitor, ChildMonitor, ConsoleMonitor
+from .monitor import Monitor, ChildMonitor, ConsoleMonitor, Cancellation
 from .namespace import Namespace
 from .opmetainf import OpMetaInfo
 from .undefined import UNDEFINED

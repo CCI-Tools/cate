@@ -31,7 +31,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
-from cate.util import OpMetaInfo
+from cate.util import OpMetaInfo, Cancellation
 from .jsonrpcmonitor import JsonRcpWebSocketMonitor
 
 _DEBUG_WEB_SOCKET_RPC = False
@@ -172,7 +172,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                 delta_t = time.time() - self._job_start[method_id]
                 del self._job_start[method_id]
                 print('Finished job', method_id, 'after', delta_t, 'seconds')
-        except (concurrent.futures.CancelledError, InterruptedError):
+        except (concurrent.futures.CancelledError, Cancellation):
             response = dict(jsonrpc='2.0',
                             id=method_id,
                             error=dict(code=999,

@@ -140,8 +140,6 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
     with monitor.starting("Loading", 10):
         while True:
             monitor.progress(work=1)
-            if monitor.is_cancelled():
-                raise InterruptedError
             paging_query_args = dict(query_args or {})
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
@@ -854,16 +852,12 @@ class EsaCciOdpDataSource(DataSource):
                     file_number = 1
 
                     for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
-                        if monitor.is_cancelled():
-                            raise InterruptedError
                         dataset_file = os.path.join(local_path, filename)
                         sub_monitor = monitor.child(work=1.0)
 
                         # noinspection PyUnusedLocal
                         def reporthook(block_number, read_size, total_file_size):
                             dl_stat.handle_chunk(read_size)
-                            if monitor.is_cancelled():
-                                raise InterruptedError
                             sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
                         sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
@@ -872,7 +866,6 @@ class EsaCciOdpDataSource(DataSource):
                         file_number += 1
                         local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
         local_ds.save(True)
-        monitor.done()
 
     def make_local(self,
                    local_name: str,

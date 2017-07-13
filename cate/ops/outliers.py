@@ -34,6 +34,7 @@ import numpy as np
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import VarNamesLike
+from cate.util import Monitor
 from cate import __version__
 
 
@@ -43,10 +44,11 @@ from cate import __version__
 @op_return(add_history=True)
 def detect_outliers(ds: xr.Dataset,
                     var: VarNamesLike.TYPE,
-                    threshold_low: float=0.05,
-                    threshold_high: float=0.95,
-                    quantiles: bool=True,
-                    mask: bool=False) -> xr.Dataset:
+                    threshold_low: float = 0.05,
+                    threshold_high: float = 0.95,
+                    quantiles: bool = True,
+                    mask: bool = False,
+                    monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Detect outliers in the given Dataset.
 
@@ -61,11 +63,12 @@ def detect_outliers(ds: xr.Dataset,
     select multiple variables matching a pattern.
     :param threshold_low: Values less or equal to this will be removed/masked
     :param threshold_high: Values greater or equal to this will be removed/masked
-    :bool quantiles: If True, threshold values are treated as quantiles,
+    :param quantiles: If True, threshold values are treated as quantiles,
     otherwise as absolute values.
-    :bool mask: If True, an ancillary variable containing flag values for
+    :param mask: If True, an ancillary variable containing flag values for
     outliers will be added to the dataset. Otherwise, outliers will be replaced
     with nan directly in the data variables.
+    :param monitor: A progress monitor.
     :return: The dataset with outliers masked or replaced with nan
     """
     # Create a list of variable names on which to perform outlier detection
@@ -80,29 +83,33 @@ def detect_outliers(ds: xr.Dataset,
     # For each array in the dataset for which we should detect outliers, detect
     # outliers
     ret_ds = ds.copy()
-    for var_name in variables:
-        if quantiles:
-            # Get threshold values
-            threshold_low = ret_ds[var_name].quantile(threshold_low)
-            threshold_high = ret_ds[var_name].quantile(threshold_high)
-
-        # If not mask, put nans in the data arrays for min/max outliers
-        if not mask:
-            arr = ret_ds[var_name]
-            attrs = arr.attrs
-            ret_ds[var_name] = arr.where((arr > threshold_low) &
-                                         (arr < threshold_high))
-            ret_ds[var_name].attrs = attrs
-        else:
-            # Create and add a data variable containing the mask for this data
-            # variable
-            _mask_outliers(ret_ds, var_name, threshold_low, threshold_high)
+    with monitor.starting("detect_outliers", total_work=len(variables) * 3):
+        for var_name in variables:
+            if quantiles:
+                # Get threshold values
+                with monitor.child(1).observing("quantile low"):
+                    threshold_low = ret_ds[var_name].quantile(threshold_low)
+                with monitor.child(1).observing("quantile high"):
+                    threshold_high = ret_ds[var_name].quantile(threshold_high)
+            else:
+                monitor.progress(2)
+            # If not mask, put nans in the data arrays for min/max outliers
+            if not mask:
+                arr = ret_ds[var_name]
+                attrs = arr.attrs
+                ret_ds[var_name] = arr.where((arr > threshold_low) & (arr < threshold_high))
+                ret_ds[var_name].attrs = attrs
+            else:
+                # Create and add a data variable containing the mask for this data
+                # variable
+                _mask_outliers(ret_ds, var_name, threshold_low, threshold_high)
+            monitor.progress(1)
 
     return ret_ds
 
 
 def _mask_outliers(ds: xr.Dataset, var_name: str, threshold_low: float,
-                   threshold_high: float) -> xr.Dataset:
+                   threshold_high: float):
     """
     Create a mask data array for the given variable of the dataset and given
     absolute threshold values. Add the mask data array as an ancillary data

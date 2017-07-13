@@ -434,7 +434,7 @@ API clients for a given context. The ``monitor`` module defines two useful imple
 * ``ConsoleMonitor``: a monitor that is used by the command-line interface
 * ``ChildMonitor``: a sub-monitor that can be passed to sub-tasks called from the current task
 
-In addition, the ``Monitor.NULL`` object, is a monitor singleton that basically does nothing. It is used instead
+In addition, the ``Monitor.NONE`` object, is a monitor singleton that basically does nothing. It is used instead
 of passing ``None`` into methods that don't require monitoring but expect a non-``None`` argument value.
 
 
