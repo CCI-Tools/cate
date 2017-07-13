@@ -21,7 +21,7 @@ def assertDatasetEqual(expected, actual):
     assert expected.equals(actual), (expected, actual)
 
 
-class TestHarmonize(TestCase):
+class TestNormalize(TestCase):
     def test_normalize_lon_lat_2d(self):
         """
         Test nominal execution

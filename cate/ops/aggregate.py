@@ -38,6 +38,8 @@ from cate.ops.select import select_var
 from cate.util.monitor import Monitor
 from cate.core.types import VarNamesLike
 
+from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
+
 
 @op(tags=['aggregate'], version='1.0')
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
@@ -112,7 +114,7 @@ def long_term_average(ds: xr.Dataset,
         except KeyError:
             retset[var].attrs['cell_methods'] = 'time: mean over years'
 
-    return retset
+    return adjust_spatial_attrs(retset)
 
 
 def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
@@ -163,4 +165,4 @@ def temporal_aggregation(ds: xr.Dataset,
         except KeyError:
             retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
 
-    return retset
+    return adjust_temporal_attrs(retset)
