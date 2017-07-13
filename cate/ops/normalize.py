@@ -196,9 +196,9 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     ds.attrs['geospatial_lon_resolution'] = abs(ds.lon.values[1] -
                                                 lon_min)
 
-    ds.attrs['geospatial_bounds'] = 'POLYGON({} {}, {} {}, {} {},\
-    {} {})'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
-                   lon_max, lat_min)
+    ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {},\
+ {} {}, {} {}))'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
+                        lon_max, lat_min, lon_min, lat_min)
 
     # Determination of the following attributes from introspection in a general
     # way is ambiguous, hence it is safer to drop them than to risk preserving
