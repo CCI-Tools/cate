@@ -84,10 +84,9 @@ class OpTest(TestCase):
                              expected_outputs)
 
     def test_f_op_inp_ret(self):
-        @op(registry=self.registry, tags=['test_op', 'some_tag'])
         @op_input('a', value_range=[0., 1.], registry=self.registry)
         @op_input('v', value_set=['A', 'B', 'C'], registry=self.registry)
-        @op_return()
+        @op_return(registry=self.registry)
         def f_op_inp_ret(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f_op_inp_ret!"""
             return str(a + b + c + u + len(v) + w)
