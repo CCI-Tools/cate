@@ -84,26 +84,48 @@ class TestEnsoNino34(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
                      [datetime(2002, x, 1) for x in range(1, 13)])})
-        lta = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
-            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90),
-            'time': [x for x in range(1, 13)]})
-        lta = 2 * lta
+        lta1 = xr.Dataset({
+             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+             'lat': np.linspace(-88, 88, 45),
+             'lon': np.linspace(-178, 178, 90),
+             'time': [x for x in range(1, 5)]})
+        lta2 = xr.Dataset({
+             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
+             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
+             'lat': np.linspace(-88, 88, 45),
+             'lon': np.linspace(-178, 178, 90),
+             'time': [x for x in range(5, 9)]})
+        lta3 = xr.Dataset({
+             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
+             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
+             'lat': np.linspace(-88, 88, 45),
+             'lon': np.linspace(-178, 178, 90),
+             'time': [x for x in range(9, 13)]})
+        lta = xr.concat([lta1, lta2, lta3], dim='time')
+
         expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
                          [datetime(2002, x, 1) for x in range(1, 11)])
-        expected = pd.DataFrame(data=(np.ones([20]) * -1),
+        data = [-0.2, -0.4, -0.6, -0.8, -0.6, -0.2, 0.2, 0.6, 0.8, 0.6, 0.4,
+                0.2, -0.2, -0.4, -0.6, -0.8, -0.6, -0.2, 0.2, 0.6]
+        expected = pd.DataFrame(data=data,
                                 columns=['ENSO N3.4 Index'],
                                 index=expected_time)
         expected['El Nino'] = pd.Series(np.zeros([20], dtype=bool),
                                         index=expected.index)
-        expected['La Nina'] = pd.Series(np.ones([20], dtype=bool),
+        expected['La Nina'] = pd.Series(np.zeros([20], dtype=bool),
                                         index=expected.index)
+        expected['El Nino'][7:10] = pd.Series(np.ones([3], dtype=bool))
+        expected['El Nino'][19] = True
+        expected['La Nina'][2:5] = pd.Series(np.ones([3], dtype=bool))
+        expected['La Nina'][14:17] = pd.Series(np.ones([3], dtype=bool))
+
         with create_tmp_file() as tmp_file:
             lta.to_netcdf(tmp_file)
             actual = index.enso_nino34(dataset, 'first', tmp_file,
-                                       threshold=0.0)
+                                       threshold=0.5)
+            print(expected)
+            print(actual)
             self.assertTrue(expected.equals(actual))
 
     def test_registered(self):
