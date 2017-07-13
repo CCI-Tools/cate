@@ -178,7 +178,40 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
-    pass
+    ds = ds.copy()
+
+    lat_min = ds.lat.values[0]
+    lat_max = ds.lat.values[-1]
+    lon_min = ds.lon.values[0]
+    lon_max = ds.lon.values[-1]
+
+    ds.attrs['geospatial_lat_min'] = lat_min
+    ds.attrs['geospatial_lat_max'] = lat_max
+    ds.attrs['geospatial_lat_units'] = 'degrees_north'
+    ds.attrs['geospatial_lat_resolution'] = abs(ds.lat.values[1] -
+                                                lat_min)
+    ds.attrs['geospatial_lon_min'] = lon_min
+    ds.attrs['geospatial_lon_max'] = lon_max
+    ds.attrs['geospatial_lon_units'] = 'degrees_east'
+    ds.attrs['geospatial_lon_resolution'] = abs(ds.lon.values[1] -
+                                                lon_min)
+
+    ds.attrs['geospatial_bounds'] = 'POLYGON({} {}, {} {}, {} {},\
+    {} {})'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
+                   lon_max, lat_min)
+
+    # Determination of the following attributes from introspection in a general
+    # way is ambiguous, hence it is safer to drop them than to risk preserving
+    # out of date attributes.
+    drop = ['geospatial_bounds_crs', 'geospatial_bounds_vertical_crs',
+            'geospatial_vertical_min', 'geospatial_vertical_max',
+            'geospatial_vertical_positive', 'geospatial_vertical_units',
+            'geospatial_vertical_resolution']
+
+    for key in drop:
+        ds.attrs.pop(key, None)
+
+    return ds
 
 
 def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
@@ -196,4 +229,43 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
-    pass
+    ds = ds.copy()
+
+    ds.attrs['time_coverage_start'] = str(ds.time.values[0])
+    ds.attrs['time_coverage_end'] = str(ds.time.values[-1])
+    ds.attrs['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
+    ds.attrs['time_coverage_duration'] = _get_duration(ds.time.values)
+
+    return ds
+
+
+def _get_temporal_res(time: np.ndarray) -> str:
+    """
+    Determine temporal resolution of the given datetimes array.
+
+    See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
+
+    :param time: A numpy array containing np.datetime64 objects
+    :return: Temporal resolution formatted as an ISO 8601:2004 duration string
+    """
+    delta = time[1] - time[0]
+    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+
+    if (27 < days) and (days < 32):
+        return 'P1M'
+    else:
+        return 'P{}D'.format(int(days))
+
+
+def _get_duration(time: np.ndarray) -> str:
+    """
+    Determine the duration of the given datetimes array.
+
+    See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
+
+    :param time: A numpy array containing np.datetime64 objects
+    :return: Temporal resolution formatted as an ISO 8601:2004 duration string
+    """
+    delta = time[-1] - time[0]
+    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+    return 'P{}D'.format(int(days))
