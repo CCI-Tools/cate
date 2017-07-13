@@ -111,6 +111,7 @@ import xarray as xr
 
 from cate import __version__
 from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
+from cate.util.tmpfile import new_temp_file, del_temp_file
 
 
 class OpRegistration:
@@ -317,10 +318,10 @@ class OpRegistry:
                 if value is not UNDEFINED:
                     if 'write_to' in props:
                         new_name = props['write_to']
-                        _, file = tempfile.mkstemp(suffix='.nc')
+                        _, file = new_temp_file(suffix='.nc')
                         value.to_netcdf(file)
                         format_kwargs[new_name] = file
-                        temp_input_files[name] = new_name, file
+                        temp_input_files[name] = file
                     else:
                         try:
                             value = value.format()
@@ -332,9 +333,9 @@ class OpRegistry:
                 if value is not UNDEFINED:
                     if 'read_from' in props:
                         new_name = props['read_from']
-                        _, file = tempfile.mkstemp(suffix='.nc')
+                        _, file = new_temp_file(suffix='.nc')
                         format_kwargs[new_name] = file
-                        temp_output_files[name] = new_name, file
+                        temp_output_files[name] = file
                     else:
                         try:
                             value = value.format()
@@ -347,18 +348,11 @@ class OpRegistry:
             completed_process = subprocess.run(commandline, cwd=cwd, env=env)
             exit_code = completed_process.returncode
 
-            for name, file_value in temp_input_files.items():
-                print(name, '=', file_value)
-                _, file = file_value
-                try:
-                    os.remove(file)
-                except (OSError, IOError) as e:
-                    print('error: ', e, file=sys.stderr)
+            for file in temp_input_files.values():
+                del_temp_file(file)
 
             return_value = {}
-            for name, file_value in temp_output_files.items():
-                print(name, '=', file_value)
-                _, file = file_value
+            for name, file in temp_output_files.items():
                 return_value[name] = xr.open_dataset(file)
 
             if not return_value:
