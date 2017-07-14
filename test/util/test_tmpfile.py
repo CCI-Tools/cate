@@ -4,9 +4,13 @@ from cate.util.tmpfile import new_temp_file, del_temp_file, del_temp_files, get_
 
 
 class TempFileTest(TestCase):
+
+    def setUp(self):
+        del_temp_files(force=True)
+        self.assertEqual(get_temp_files(), [])
+
     def test_all(self):
 
-        self.assertEqual(get_temp_files(), [])
         p1 = new_temp_file(prefix='test-')
         p2 = new_temp_file(suffix='.nc')
         self.assertEqual(len(get_temp_files()), 2)
