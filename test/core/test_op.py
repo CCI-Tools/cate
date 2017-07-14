@@ -251,23 +251,23 @@ class OpTest(TestCase):
                          "input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5]")
 
         with self.assertRaises(ValueError) as cm:
-            result = f(x=0, y=3.)
+            f(x=0, y=3.)
         self.assertEqual(str(cm.exception),
                          "input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9]")
 
         with self.assertRaises(ValueError) as cm:
-            result = f(x='A', y=3.)
+            f(x='A', y=3.)
         self.assertEqual(str(cm.exception),
                          "input 'x' for operation 'test.core.test_op.f' must be of type 'float', "
                          "but got type 'str'")
 
         with self.assertRaises(ValueError) as cm:
-            result = f(x=0.4)
+            f(x=0.4)
         self.assertEqual(str(cm.exception),
                          "input 'y' for operation 'test.core.test_op.f' required")
 
         with self.assertRaises(ValueError) as cm:
-            result = f(x=0.6, y=0.1, a=2)
+            f(x=0.6, y=0.1, a=2)
         self.assertEqual(str(cm.exception),
                          "input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5]")
 
@@ -439,6 +439,7 @@ class MyMonitor(Monitor):
         self.total_work = total_work
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         self.worked += work
 
     def done(self):

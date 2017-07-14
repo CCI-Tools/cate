@@ -222,6 +222,7 @@ class RecordingMonitor(Monitor):
         self._records.append(('start', label, total_work))
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         percentage = None
         if work is not None:
             self._worked += work
@@ -237,3 +238,6 @@ class RecordingMonitor(Monitor):
 
     def is_cancelled(self) -> bool:
         return self._cancelled
+
+    def __str__(self):
+        return "\n".join([str(r) for r in self._records])

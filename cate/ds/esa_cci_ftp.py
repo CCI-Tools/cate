@@ -59,7 +59,7 @@ from typing import Sequence, Union, List, Tuple, Mapping, Any
 from cate.core.cdm import Schema
 from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.util import to_datetime, Monitor
+from cate.util import to_datetime, Monitor, Cancellation
 
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
@@ -255,7 +255,7 @@ class FileSetDataSource(DataSource):
         file_set_size = 0
         for expected_dir_path, expected_filename_dict in expected_remote_files.items():
             if monitor.is_cancelled():
-                return
+                raise Cancellation()
             ftp_dir = ftp_base_dir + '/' + expected_dir_path
             try:
                 ftp.cwd(ftp_dir)
@@ -274,7 +274,7 @@ class FileSetDataSource(DataSource):
 
             for existing_filename, facts in remote_dir_content:
                 if monitor.is_cancelled():
-                    return
+                    raise Cancellation()
                 if facts.get('type', None) == 'file' and existing_filename in expected_filename_dict:
                     # update expected_filename_dict with facts of existing_filename
                     expected_filename_dict[existing_filename] = facts
@@ -292,7 +292,7 @@ class FileSetDataSource(DataSource):
                 checked_files_number += 1
                 child_monitor = monitor.child(work=1.)
                 if monitor.is_cancelled():
-                    return
+                    raise Cancellation()
                 if last_cwd is not existing_file_info['path']:
                     ftp.cwd(ftp_base_dir + '/' + existing_file_info['path'])
                     last_cwd = existing_file_info['path']
@@ -438,8 +438,6 @@ class FtpDownloader:
         return DownloadStatus.SUCCESS if error_msg is None else DownloadStatus.FAILURE
 
     def on_new_block(self, bytes_block):
-        if self._monitor.is_cancelled():
-            raise KeyboardInterrupt()
         self._fp.write(bytes_block)
         block_size = len(bytes_block)
         self._bytes_written += block_size

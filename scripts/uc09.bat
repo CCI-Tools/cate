@@ -29,9 +29,17 @@ rem to new resources named "cloud_sub" and "ozone_sub"
 cate res set cloud_sub subset_spatial ds=@cloud_cfc region=0,30,10,40
 cate res set ozone_sub subset_spatial ds=@ozone_coreg region=0,30,10,40
 
-cate res set corr pearson_correlation ds_x=@ozone_sub ds_y=@cloud_sub var_x=O3_du_tot var_y=cfc file=corr.txt
-
+rem Produce a correlation map
+cate res set corr pearson_correlation ds_x=@ozone_sub ds_y=@cloud_sub var_x=O3_du_tot var_y=cfc
+cate res write corr corr.nc
 cate res print corr
+
+rem Extract mean timeseries and produce a scalar correlation
+cate res set cloud_point tseries_point ds=@cloud_sub point=50,50
+cate res set ozone_point tseries_point ds=@ozone_sub point=50,50
+cate res set corr_scalar pearson_correlation_scalar ds_x=@ozone_point ds_y=@cloud_point var_x=O3_du_tot var_y=cfc
+cate res write corr_scalar corr_scalar.txt
+cate res print corr_scalar
 
 rem Save the workspace
 cate ws save

@@ -966,7 +966,8 @@ class NodePortTest(TestCase):
         step2 = OpStep(op2, node_id='op2')
 
         x_port = NodePort(step1, 'x')
-        y_port = NodePort(step1, 'y')
+        # TODO (gailis): this fails Flake8
+        # y_port = NodePort(step1, 'y')
         b_port = NodePort(step2, 'b')
 
         self.assertEqual(x_port.is_source, False)

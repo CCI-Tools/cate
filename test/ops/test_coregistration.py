@@ -17,6 +17,7 @@ from cate.util.misc import object_to_qualified_name
 
 from cate.ops import coregister
 from cate.ops.coregistration import _find_intersection
+from ..util.test_monitor import RecordingMonitor
 
 
 class TestCoregistration(TestCase):
@@ -32,18 +33,50 @@ class TestCoregistration(TestCase):
             'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])})
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
 
         ds_coarse = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
             'lat': np.linspace(-60, 60, 3),
             'lon': np.linspace(-150, 150, 6),
-            'time': np.array([1, 2])})
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
 
         # Test that the coarse dataset has been resampled onto the grid
         # of the finer dataset.
-        ds_coarse_resampled = coregister(ds_fine, ds_coarse)
+        rm = RecordingMonitor()
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse, monitor=rm)
+        self.assertEqual([('start', 'coregister dataset', 2),
+                          ('progress', 0.0, 'coregister dataarray', 0),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 0),
+                          ('progress', 0.125, None, 6),
+                          ('progress', 0.125, None, 13),
+                          ('progress', 0.125, None, 19),
+                          ('progress', 0.125, None, 25),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 25),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 25),
+                          ('progress', 0.125, None, 31),
+                          ('progress', 0.125, None, 38),
+                          ('progress', 0.125, None, 44),
+                          ('progress', 0.125, None, 50),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 50),
+                          ('progress', 0.0, 'coregister dataarray', 50),
+                          ('progress', 0.0, 'coregister dataarray', 50),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 50),
+                          ('progress', 0.125, None, 56),
+                          ('progress', 0.125, None, 63),
+                          ('progress', 0.125, None, 69),
+                          ('progress', 0.125, None, 75),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 75),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 75),
+                          ('progress', 0.125, None, 81),
+                          ('progress', 0.125, None, 88),
+                          ('progress', 0.125, None, 94),
+                          ('progress', 0.125, None, 100),
+                          ('progress', 0.0, 'coregister dataarray: resample time slice', 100),
+                          ('progress', 0.0, 'coregister dataarray', 100),
+                          ('done',)], rm.records)
+
         expected = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([[[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
                                                          [0.33333333, 0.57142857, 0.38095238, 0., 0., 0., 0., 0.],

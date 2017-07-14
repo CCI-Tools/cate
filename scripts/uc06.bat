@@ -42,7 +42,7 @@ cate res set soil_jannov subset_temporal ds=@soil_mon_point time_range="2007-01-
 cate res set enso_decoct subset_temporal ds=@enso_ds time_range="2006-12-01,2007-10-01"
 
 rem Perform correlation calculation
-cate res set corr pearson_correlation ds_x=@enso_decoct ds_y=@soil_jannov var_x="ENSO N3.4 Index" var_y="sm"
+cate res set corr pearson_correlation_scalar ds_x=@enso_decoct ds_y=@soil_jannov var_x="ENSO N3.4 Index" var_y="sm"
 cate res print corr
 
 rem Save and close the workspace
