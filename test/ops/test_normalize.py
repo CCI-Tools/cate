@@ -154,6 +154,9 @@ class TestAdjustSpatial(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [datetime(2000, x, 1) for x in range(1, 13)]})
 
+        ds.lon.attrs['units'] = 'degrees_east'
+        ds.lat.attrs['units'] = 'degrees_north'
+
         ds1 = adjust_spatial_attrs(ds)
 
         # Make sure original dataset is not altered

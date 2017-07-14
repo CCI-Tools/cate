@@ -419,13 +419,13 @@ class TestCoregistration(TestCase):
                            ds_coarse_resampled.lon.values)
 
         # Check if the geospatial attributes have been correctly set
-        self.assertEqual(ds_coarse_resampled.lat.values[0],
+        self.assertEqual(ds_coarse_resampled.lat.values[0] - 45 * 0.5,
                          ds_coarse_resampled.attrs['geospatial_lat_min'])
-        self.assertEqual(ds_coarse_resampled.lat.values[-1],
+        self.assertEqual(ds_coarse_resampled.lat.values[-1] + 45 * 0.5,
                          ds_coarse_resampled.attrs['geospatial_lat_max'])
-        self.assertEqual(ds_coarse_resampled.lon.values[0],
+        self.assertEqual(ds_coarse_resampled.lon.values[0] - 45 * 0.5,
                          ds_coarse_resampled.attrs['geospatial_lon_min'])
-        self.assertEqual(ds_coarse_resampled.lon.values[-1],
+        self.assertEqual(ds_coarse_resampled.lon.values[-1] + 45 * 0.5,
                          ds_coarse_resampled.attrs['geospatial_lon_max'])
         self.assertEqual(45.0,
                          ds_coarse_resampled.attrs['geospatial_lat_resolution'])
