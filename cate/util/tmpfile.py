@@ -64,7 +64,7 @@ def del_temp_file(file):
     return False
 
 
-def del_temp_files():
+def del_temp_files(force=False):
     """
     Removes all temporary files registered by :py:func:`new_temp_file`.
     This function is called as a shutdown hook of the Python interpreter.
@@ -75,7 +75,7 @@ def del_temp_files():
     for pair in list(_TEMP_FILES):
         if not _del_file(pair):
             remaining.append(pair)
-    _TEMP_FILES = remaining
+    _TEMP_FILES = [] if force else remaining
 
 
 # Register del_temp_files() as a shutdown hook.
