@@ -105,8 +105,8 @@ Components
 """
 
 from collections import OrderedDict
+import sys
 from typing import Union, Callable, Optional, Dict
-
 import xarray as xr
 
 from cate import __version__
@@ -287,15 +287,45 @@ class OpRegistry:
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda item: item[0]))
 
-    def add_op_from_executable(self,
-                               op_meta_info: OpMetaInfo,
-                               commandline_pattern: str,
-                               cwd: Optional[str] = None,
-                               env: Dict[str, str] = None,
-                               started: Union[str, Callable] = None,
-                               progress: Union[str, Callable] = None,
-                               done: Union[str, Callable] = None,
-                               fail_if_exists: bool=True) -> OpRegistration:
+    def add_executable(self,
+                       op_meta_info: OpMetaInfo,
+                       command_line_pattern: str,
+                       run_python: bool = False,
+                       cwd: Optional[str] = None,
+                       env: Dict[str, str] = None,
+                       started: Union[str, Callable] = None,
+                       progress: Union[str, Callable] = None,
+                       done: Union[str, Callable] = None,
+                       fail_if_exists: bool=True) -> OpRegistration:
+        """
+        Registers an external executable as an operation.
+
+        :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
+        :param command_line_pattern: A pattern that will be interpolated to obtain the actual command line pattern.
+               May contain "{input_name}" fields which will be replaced by the actual input value converted to text.
+               *input_name* must refer to a valid operation input name in *op_meta_info.input* or it must be
+               the value of either the "write_to" or "read_from" property of another input's property map.
+        :param run_python: If True, *command_line_pattern* refers to a Python script which will be executed with
+               the Python interpreter that Cate uses.
+        :param cwd: Current working directory to run the command line in.
+        :param env: Environment variables passed to the shell that executes the command line.
+        :param started: Either a callable that receives a text line from the executable's stdout
+               and returns a tuple (label, total_work) or a regex that must match
+               in order to signal the start of progress monitoring.
+               The regex must provide the group names "label" or "total_work" or both,
+               e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
+        :param progress: Either a callable that receives a text line from the executable's stdout
+               and returns a tuple (work, msg) or a regex that must match
+               in order to signal process.
+               The regex must provide group names "work" or "msg" or both,
+               e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
+        :param done: Either a callable that receives a text line a text line from the executable's stdout
+               and returns True or False or a regex that must match
+               in order to signal the end of progress monitoring.
+        :param fail_if_exists: If True, a ValueError is raised if an operation with same name is already registered.
+               Otherwise, if the operation exists, it is returned immediately and no other action is performed.
+        :return: The executable wrapped into an operation.
+        """
 
         op_key = op_meta_info.qualified_name
         if op_key in self._op_registrations:
@@ -311,7 +341,7 @@ class OpRegistry:
                                       output_dict=op_meta_info.output,
                                       header_dict=op_meta_info.header)
 
-        # Idea: add spectial input properties:
+        # Idea: process special input properties:
         #   - "is_cwd" - an input that provides the current working directory, must be of type str
         #   - "is_env" - an input that provides environment variables, must be of type DictLike
         #   - "is_output" - an input that provides the file path of an output, must be of type str
@@ -356,15 +386,15 @@ class OpRegistry:
             if _MONITOR in format_kwargs:
                 monitor = format_kwargs.pop(_MONITOR)
 
-            commandline = commandline_pattern.format(**format_kwargs)
+            command_line = command_line_pattern.format(**format_kwargs)
 
             stdout_handler = None
             if monitor:
                 stdout_handler = ProcessOutputMonitor(monitor,
-                                                      label=commandline,
+                                                      label=command_line,
                                                       started=started, progress=progress, done=done)
 
-            exit_code = execute(commandline,
+            exit_code = execute('"{}" {}'.format(sys.executable, command_line) if run_python else command_line,
                                 cwd=cwd, env=env,
                                 stdout_handler=stdout_handler,
                                 is_cancelled=monitor.is_cancelled if monitor else None)
@@ -382,7 +412,7 @@ class OpRegistry:
 
             if exit_code:
                 # There is output specified, but exit code signals error
-                raise ValueError('command [{}] exited with code {}'.format(commandline, exit_code))
+                raise ValueError('command [{}] exited with code {}'.format(command_line, exit_code))
 
             if len(return_value) == 1 and 'return' in return_value:
                 # Single output
@@ -395,10 +425,19 @@ class OpRegistry:
         self._op_registrations[op_key] = op_registration
         return op_registration
 
-    def add_op_from_expression(self,
-                               op_meta_info: OpMetaInfo,
-                               expression: str,
-                               fail_if_exists=True) -> OpRegistration:
+    def add_expression(self,
+                       op_meta_info: OpMetaInfo,
+                       expression: str,
+                       fail_if_exists=True) -> OpRegistration:
+        """
+        Registers a Python expression as an operation.
+
+        :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
+        :param expression: The Python expression. May refer to any name given in *op_meta_info.input*.
+        :param fail_if_exists: If True, a ValueError is raised if an operation with same name is already registered.
+               Otherwise, if the operation exists, it is returned immediately and no other action is performed.
+        :return: The Python expression wrapped into an operation.
+        """
 
         if not op_meta_info:
             raise ValueError('op_meta_info must be given')

@@ -117,12 +117,12 @@ class ProcessOutputMonitor:
     :param started: Either a callable that receives a text line and returns a tuple (label, total_work)
            or a regex that must match in order to signal the start of progress monitoring.
            The regex must provide the group names "label" or "total_work" or both,
-           e.g. "(?P=label\w+)" or "(?P=total_work\d+)"
-    :param started: Either a callable that receives a text line and returns a tuple (work, msg)
+           e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
+    :param progress: Either a callable that receives a text line and returns a tuple (work, msg)
            or a regex that must match in order to signal process.
            The regex must provide group names "work" or "msg" or both,
-           e.g. "(?P=msg\w+)" or "(?P=work\d+)"
-    :param regex_done: Either a callable that receives a text line and returns True or False
+           e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
+    :param done: Either a callable that receives a text line and returns True or False
            or a regex that must match in order to signal the end of progress monitoring.
     """
 

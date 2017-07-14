@@ -31,29 +31,29 @@ class OpTest(TestCase):
         self.registry = None
 
     def test_executable_no_ds(self):
-        op_reg = self.registry.add_op_from_executable(OpMetaInfo('make_entropy',
-                                                                 input_dict={
+        op_reg = self.registry.add_executable(OpMetaInfo('make_entropy',
+                                                         input_dict={
                                                                      'num_steps': {'data_type': int},
                                                                      'period': {'data_type': float},
                                                                  },
-                                                                 output_dict={
+                                                         output_dict={
                                                                      'return': {'data_type': int}
                                                                  }),
-                                                      MAKE_ENTROPY_EXE + " {num_steps} {period}")
+                                              MAKE_ENTROPY_EXE + " {num_steps} {period}")
         exit_code = op_reg(num_steps=5, period=0.05)
         self.assertEqual(exit_code, 0)
 
     def test_executable_ds_file(self):
-        op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
-                                                                 input_dict={
+        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
+                                                         input_dict={
                                                                      'ifile': {'data_type': FileLike},
                                                                      'ofile': {'data_type': FileLike},
                                                                      'var': {'data_type': VarName},
                                                                  },
-                                                                 output_dict={
+                                                         output_dict={
                                                                      'return': {'data_type': int}
                                                                  }),
-                                                      FILTER_DS_EXE + " {ifile} {ofile} {var}")
+                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ofile = os.path.join(DIR, 'test_data', 'filter_ds.nc')
         if os.path.isfile(ofile):
             os.remove(ofile)
@@ -63,8 +63,8 @@ class OpTest(TestCase):
         os.remove(ofile)
 
     def test_executable_ds_in_mem(self):
-        op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
-                                                                 input_dict={
+        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
+                                                         input_dict={
                                                                      'ds': {
                                                                          'data_type': xr.Dataset,
                                                                          'write_to': 'ifile'
@@ -73,28 +73,28 @@ class OpTest(TestCase):
                                                                          'data_type': VarName
                                                                      },
                                                                  },
-                                                                 output_dict={
+                                                         output_dict={
                                                                      'return': {
                                                                          'data_type': xr.Dataset,
                                                                          'read_from': 'ofile'
                                                                      }
                                                                  }),
-                                                      FILTER_DS_EXE + " {ifile} {ofile} {var}")
+                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ds = xr.open_dataset(SOILMOISTURE_NC)
         ds_out = op_reg(ds=ds, var='sm')
         self.assertIsNotNone(ds_out)
         self.assertIsNotNone('sm' in ds_out)
 
     def test_expression(self):
-        op_reg = self.registry.add_op_from_expression(OpMetaInfo('add_xy',
-                                                                 input_dict={
+        op_reg = self.registry.add_expression(OpMetaInfo('add_xy',
+                                                         input_dict={
                                                                      'x': {'data_type': float},
                                                                      'y': {'data_type': float},
                                                                  },
-                                                                 output_dict={
+                                                         output_dict={
                                                                      'return': {'data_type': float}
                                                                  }),
-                                                      'x + y')
+                                              'x + y')
         z = op_reg(x=1.2, y=2.4)
         self.assertEqual(z, 1.2 + 2.4)
 
