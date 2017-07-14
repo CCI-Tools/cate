@@ -1,6 +1,8 @@
 import os.path
 from collections import OrderedDict
 from unittest import TestCase
+import os.path
+import sys
 
 import xarray as xr
 
@@ -17,6 +19,9 @@ DIR = os.path.dirname(__file__)
 SOILMOISTURE_NC = os.path.join(DIR, 'test_data', 'small',
                                'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-20000101000000-fv02.2.nc')
 
+MAKE_ENTROPY_EXE = sys.executable + " " + os.path.join(DIR, 'executables', 'mkentropy.py')
+FILTER_DS_EXE = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
+
 
 class OpTest(TestCase):
     def setUp(self):
@@ -26,10 +31,6 @@ class OpTest(TestCase):
         self.registry = None
 
     def test_executable_no_ds(self):
-        import os.path
-        import sys
-        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'mkentropy.py')
-        commandline_pattern = exe + " {num_steps} {period}"
         op_reg = self.registry.add_op_from_executable(OpMetaInfo('make_entropy',
                                                                  input_dict={
                                                                      'num_steps': {'data_type': int},
@@ -38,15 +39,11 @@ class OpTest(TestCase):
                                                                  output_dict={
                                                                      'return': {'data_type': int}
                                                                  }),
-                                                      commandline_pattern)
+                                                      MAKE_ENTROPY_EXE + " {num_steps} {period}")
         exit_code = op_reg(num_steps=5, period=0.05)
         self.assertEqual(exit_code, 0)
 
     def test_executable_ds_file(self):
-        import os.path
-        import sys
-        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
-        commandline_pattern = exe + " {ifile} {ofile} {var}"
         op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
                                                                  input_dict={
                                                                      'ifile': {'data_type': FileLike},
@@ -56,7 +53,7 @@ class OpTest(TestCase):
                                                                  output_dict={
                                                                      'return': {'data_type': int}
                                                                  }),
-                                                      commandline_pattern)
+                                                      FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ofile = os.path.join(DIR, 'test_data', 'filter_ds.nc')
         if os.path.isfile(ofile):
             os.remove(ofile)
@@ -66,10 +63,6 @@ class OpTest(TestCase):
         os.remove(ofile)
 
     def test_executable_ds_in_mem(self):
-        import os.path
-        import sys
-        exe = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
-        commandline_pattern = exe + " {ifile} {ofile} {var}"
         op_reg = self.registry.add_op_from_executable(OpMetaInfo('filter_ds',
                                                                  input_dict={
                                                                      'ds': {
@@ -86,7 +79,7 @@ class OpTest(TestCase):
                                                                          'read_from': 'ofile'
                                                                      }
                                                                  }),
-                                                      commandline_pattern)
+                                                      FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ds = xr.open_dataset(SOILMOISTURE_NC)
         ds_out = op_reg(ds=ds, var='sm')
         self.assertIsNotNone(ds_out)
