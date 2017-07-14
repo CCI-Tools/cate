@@ -161,17 +161,17 @@ class TestAdjustSpatial(TestCase):
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
-        self.assertEqual(ds1.attrs['geospatial_lat_min'], -88)
-        self.assertEqual(ds1.attrs['geospatial_lat_max'], 88)
+        self.assertEqual(ds1.attrs['geospatial_lat_min'], -90)
+        self.assertEqual(ds1.attrs['geospatial_lat_max'], 90)
         self.assertEqual(ds1.attrs['geospatial_lat_units'], 'degrees_north')
         self.assertEqual(ds1.attrs['geospatial_lat_resolution'], 4)
-        self.assertEqual(ds1.attrs['geospatial_lon_min'], -178)
-        self.assertEqual(ds1.attrs['geospatial_lon_max'], 178)
+        self.assertEqual(ds1.attrs['geospatial_lon_min'], -180)
+        self.assertEqual(ds1.attrs['geospatial_lon_max'], 180)
         self.assertEqual(ds1.attrs['geospatial_lon_units'], 'degrees_east')
         self.assertEqual(ds1.attrs['geospatial_lon_resolution'], 4)
         self.assertEqual(ds1.attrs['geospatial_bounds'],
-                         'POLYGON((-178.0 -88.0, -178.0 88.0, 178.0 88.0,'
-                         ' 178.0 -88.0, -178.0 -88.0))')
+                         'POLYGON((-180.0 -90.0, -180.0 90.0, 180.0 90.0,'
+                         ' 180.0 -90.0, -180.0 -90.0))')
 
         # Test existing attributes update
         lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
@@ -180,17 +180,17 @@ class TestAdjustSpatial(TestCase):
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_spatial_attrs(ds2)
 
-        self.assertEqual(ds2.attrs['geospatial_lat_min'], -40)
-        self.assertEqual(ds2.attrs['geospatial_lat_max'], 40)
+        self.assertEqual(ds2.attrs['geospatial_lat_min'], -42)
+        self.assertEqual(ds2.attrs['geospatial_lat_max'], 42)
         self.assertEqual(ds2.attrs['geospatial_lat_units'], 'degrees_north')
         self.assertEqual(ds2.attrs['geospatial_lat_resolution'], 4)
-        self.assertEqual(ds2.attrs['geospatial_lon_min'], -18)
-        self.assertEqual(ds2.attrs['geospatial_lon_max'], 58)
+        self.assertEqual(ds2.attrs['geospatial_lon_min'], -20)
+        self.assertEqual(ds2.attrs['geospatial_lon_max'], 60)
         self.assertEqual(ds2.attrs['geospatial_lon_units'], 'degrees_east')
         self.assertEqual(ds2.attrs['geospatial_lon_resolution'], 4)
         self.assertEqual(ds2.attrs['geospatial_bounds'],
-                         'POLYGON((-18.0 -40.0, -18.0 40.0, 58.0 40.0, 58.0'
-                         ' -40.0, -18.0 -40.0))')
+                         'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0'
+                         ' -42.0, -20.0 -42.0))')
 
 
 class TestAdjustTemporal(TestCase):

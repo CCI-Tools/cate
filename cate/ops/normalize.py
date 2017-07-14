@@ -180,21 +180,18 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = ds.copy()
 
-    lat_min = ds.lat.values[0]
-    lat_max = ds.lat.values[-1]
-    lon_min = ds.lon.values[0]
-    lon_max = ds.lon.values[-1]
+    lon_min, lon_max, lon_res = _get_spatial_props(ds, 'lon')
+    lat_min, lat_max, lat_res = _get_spatial_props(ds, 'lat')
 
     ds.attrs['geospatial_lat_min'] = lat_min
     ds.attrs['geospatial_lat_max'] = lat_max
     ds.attrs['geospatial_lat_units'] = 'degrees_north'
-    ds.attrs['geospatial_lat_resolution'] = abs(ds.lat.values[1] -
-                                                lat_min)
+    ds.attrs['geospatial_lat_resolution'] = lat_res
+
     ds.attrs['geospatial_lon_min'] = lon_min
     ds.attrs['geospatial_lon_max'] = lon_max
     ds.attrs['geospatial_lon_units'] = 'degrees_east'
-    ds.attrs['geospatial_lon_resolution'] = abs(ds.lon.values[1] -
-                                                lon_min)
+    ds.attrs['geospatial_lon_resolution'] = lon_res
 
     ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {},\
  {} {}, {} {}))'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
@@ -237,6 +234,35 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     ds.attrs['time_coverage_duration'] = _get_duration(ds.time.values)
 
     return ds
+
+
+def _get_spatial_props(ds: xr.Dataset, dim: str) -> tuple:
+    """
+    Get spatial boundaries and resolution of the given dimension of the given
+    dataset. If 'dim_bnds' are found in the dataset, this will be used for
+    boundary calculation, otherwise it will rest purely on information gathered
+    from 'dim' itself.
+
+    :param ds: Dataset
+    :param dim: Dimension name
+    :return: (dim_min, dim_max, dim_res)
+    """
+
+    try:
+        dim_res = abs(ds[dim].values[1] - ds[dim].values[0])
+    except KeyError:
+        raise ValueError('Dimension {} not found in the provided'
+                         ' dataset.').format(dim)
+
+    try:
+        bnds = dim + '_bnds'
+        dim_min = min(ds[bnds].values[0][0], ds[bnds].values[-1][1])
+        dim_max = max(ds[bnds].values[0][0], ds[bnds].values[-1][1])
+    except KeyError:
+        dim_min = min(ds[dim].values[0], ds[dim].values[-1]) - dim_res * 0.5
+        dim_max = max(ds[dim].values[0], ds[dim].values[-1]) + dim_res * 0.5
+
+    return (dim_min, dim_max, dim_res)
 
 
 def _get_temporal_res(time: np.ndarray) -> str:
