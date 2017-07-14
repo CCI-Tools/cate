@@ -180,18 +180,17 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = ds.copy()
 
-    lon_min, lon_max, lon_res = _get_spatial_props(ds, 'lon')
-    lat_min, lat_max, lat_res = _get_spatial_props(ds, 'lat')
+    for dim in ('lon', 'lat'):
+        geoattrs = _get_spatial_props(ds, dim)
 
-    ds.attrs['geospatial_lat_min'] = lat_min
-    ds.attrs['geospatial_lat_max'] = lat_max
-    ds.attrs['geospatial_lat_units'] = 'degrees_north'
-    ds.attrs['geospatial_lat_resolution'] = lat_res
+        for key in geoattrs:
+            if geoattrs[key]:
+                ds.attrs[key] = geoattrs[key]
 
-    ds.attrs['geospatial_lon_min'] = lon_min
-    ds.attrs['geospatial_lon_max'] = lon_max
-    ds.attrs['geospatial_lon_units'] = 'degrees_east'
-    ds.attrs['geospatial_lon_resolution'] = lon_res
+    lon_min = ds.attrs['geospatial_lon_min']
+    lat_min = ds.attrs['geospatial_lat_min']
+    lon_max = ds.attrs['geospatial_lon_max']
+    lat_max = ds.attrs['geospatial_lat_max']
 
     ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {},\
  {} {}, {} {}))'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
@@ -238,31 +237,50 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
 
 def _get_spatial_props(ds: xr.Dataset, dim: str) -> tuple:
     """
-    Get spatial boundaries and resolution of the given dimension of the given
-    dataset. If 'dim_bnds' are found in the dataset, this will be used for
+    Get spatial boundaries, resolution and units of the given dimension of the given
+    dataset. If the 'bounds' are explicitly defined, these will be used for
     boundary calculation, otherwise it will rest purely on information gathered
     from 'dim' itself.
 
     :param ds: Dataset
     :param dim: Dimension name
-    :return: (dim_min, dim_max, dim_res)
+    :return: A dictionary {'attr_name': attr_value}
     """
+    ret = dict()
 
     try:
         dim_res = abs(ds[dim].values[1] - ds[dim].values[0])
+        res_name = 'geospatial_{}_resolution'.format(dim)
+        ret[res_name] = dim_res
     except KeyError:
         raise ValueError('Dimension {} not found in the provided'
                          ' dataset.').format(dim)
 
+    min_name = 'geospatial_{}_min'.format(dim)
+    max_name = 'geospatial_{}_max'.format(dim)
+    units_name = 'geospatial_{}_units'.format(dim)
+
     try:
-        bnds = dim + '_bnds'
+        # According to CF Conventions the corresponding 'bounds' variable name
+        # should be in the attributes of the coordinate variable
+        bnds = ds[dim].attrs['bounds']
         dim_min = min(ds[bnds].values[0][0], ds[bnds].values[-1][1])
         dim_max = max(ds[bnds].values[0][0], ds[bnds].values[-1][1])
     except KeyError:
         dim_min = min(ds[dim].values[0], ds[dim].values[-1]) - dim_res * 0.5
         dim_max = max(ds[dim].values[0], ds[dim].values[-1]) + dim_res * 0.5
 
-    return (dim_min, dim_max, dim_res)
+    ret[max_name] = dim_max
+    ret[min_name] = dim_min
+
+    try:
+        dim_units = ds[dim].attrs['units']
+    except KeyError:
+        dim_units = None
+
+    ret[units_name] = dim_units
+
+    return ret
 
 
 def _get_temporal_res(time: np.ndarray) -> str:
