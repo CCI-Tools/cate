@@ -39,7 +39,7 @@ class OpTest(TestCase):
                                                                      'return': {'data_type': int}
                                                                  }),
                                                       commandline_pattern)
-        exit_code = op_reg(num_steps=10, period=0.1)
+        exit_code = op_reg(num_steps=5, period=0.05)
         self.assertEqual(exit_code, 0)
 
     def test_executable_ds_file(self):

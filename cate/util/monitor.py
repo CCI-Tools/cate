@@ -42,6 +42,7 @@ from shutil import get_terminal_size
 
 try:
     from dask.callbacks import Callback
+
     _has_dask = True
 except ImportError:
     _has_dask = False
@@ -251,6 +252,7 @@ class ChildMonitor(Monitor):
         return self._parent_monitor.is_cancelled()
 
 
+# noinspection PyAbstractClass
 class ConsoleMonitor(Monitor):
     """
     A simple console monitor that directly writes to ``sys.stdout`` and detects user cancellation requests via CTRL+C.
@@ -274,6 +276,9 @@ class ConsoleMonitor(Monitor):
         self._msg = None
         self._term_size = 0
 
+    def __del__(self):
+        self._register_ctrl_c_handler(self._old_ctrl_c_handler)
+
     def start(self, label: str, total_work: float = None):
         self.check_for_cancellation()
         if not label:
@@ -282,7 +287,7 @@ class ConsoleMonitor(Monitor):
         self._worked = 0.
         self._percentage = None
         self._total_work = total_work
-        self._old_ctrl_c_handler = signal.signal(signal.SIGINT, self._on_ctrl_c)
+        self._register_ctrl_c_handler(self._on_ctrl_c)
         # if self._stay_in_line:
         #    sys.stdout.write('\n')
         self._report_progress(msg='started')
@@ -301,13 +306,19 @@ class ConsoleMonitor(Monitor):
 
     def done(self):
         self.check_for_cancellation()
-        signal.signal(signal.SIGINT, self._old_ctrl_c_handler)
+        self._register_ctrl_c_handler(self._old_ctrl_c_handler)
         if self.is_cancelled():
             self._report_progress(msg='cancelled')
         else:
             self._report_progress(msg='done' if self._msg is None else self._msg)
         if self._stay_in_line:
             sys.stdout.write('\n')
+
+    def cancel(self):
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
 
     def _report_progress(self, percentage=None, msg=None):
         term_size = get_terminal_size().columns
@@ -351,15 +362,17 @@ class ConsoleMonitor(Monitor):
         return round(100. * self._worked / self._total_work) \
             if self._worked is not None and self._total_work is not None else None
 
-    def cancel(self):
-        self._cancelled = True
-
-    def is_cancelled(self) -> bool:
-        return self._cancelled
-
     # noinspection PyUnusedLocal,PyShadowingNames
     def _on_ctrl_c(self, signal, frame):
         self.cancel()
+
+    def _register_ctrl_c_handler(self, ctrl_c_handler):
+        if ctrl_c_handler:
+            try:
+                signal.signal(signal.SIGINT, ctrl_c_handler)
+            except ValueError:
+                # If not on main thread, we may receive ValueError: signal only works in main thread
+                pass
 
 
 class _DaskMonitor(Callback):
@@ -370,6 +383,7 @@ class _DaskMonitor(Callback):
     This allows for tracking then progress inside dask compute/get calls and
     the possibility to cancel them.
     """
+
     def __init__(self, label: str, monitor: Monitor):
         super().__init__()
         self._label = label

@@ -112,7 +112,10 @@ import xarray as xr
 from cate import __version__
 from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
 from cate.util.tmpfile import new_temp_file, del_temp_file
+from cate.util.process import execute, ProcessOutputMonitor
 
+_MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
+_RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 
 class OpRegistration:
     """
@@ -232,7 +235,7 @@ class OpRegistration:
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument
-            input_values[self.op_meta_info.MONITOR_INPUT_NAME] = monitor
+            input_values[_MONITOR] = monitor
 
         operation = self.operation
         # call the callable
@@ -254,11 +257,11 @@ class OpRegistration:
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
-            properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
+            properties = self.op_meta_info.output[_RETURN]
             if return_value is None:
                 return_value = properties.get('default_value')
             # validate the return_value using this operation's meta-info
-            self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+            self.op_meta_info.validate_output_values({_RETURN: return_value})
             # Add history information to the output
             add_history = properties.get('add_history')
             if add_history:
@@ -289,7 +292,10 @@ class OpRegistry:
                                commandline_pattern: str,
                                cwd: Optional[str] = None,
                                env: Dict[str, str] = None,
-                               fail_if_exists=True) -> OpRegistration:
+                               started: Union[str, Callable] = None,
+                               progress: Union[str, Callable] = None,
+                               done: Union[str, Callable] = None,
+                               fail_if_exists: bool=True) -> OpRegistration:
 
         op_key = op_meta_info.qualified_name
         if op_key in self._op_registrations:
@@ -298,16 +304,19 @@ class OpRegistry:
             else:
                 return self._op_registrations[op_key]
 
-        # TODO (forman): Add special input properties:
-        #                - "is_cwd" - an input that provides the current working directory, must be of type str
-        #                - "is_env" - an input that provides environment variables, must be of type DictLike
-        #                - "is_output" - an input that provides the file path of an output, must be of type str
+        if started or progress and not op_meta_info.has_monitor:
+            op_meta_info = OpMetaInfo(op_qualified_name=op_meta_info.qualified_name,
+                                      has_monitor=True,
+                                      input_dict=op_meta_info.input,
+                                      output_dict=op_meta_info.output,
+                                      header_dict=op_meta_info.header)
+
+        # Idea: add spectial input properties:
+        #   - "is_cwd" - an input that provides the current working directory, must be of type str
+        #   - "is_env" - an input that provides environment variables, must be of type DictLike
+        #   - "is_output" - an input that provides the file path of an output, must be of type str
 
         def run(**kwargs):
-            import subprocess
-            import tempfile
-            import os
-            import sys
 
             format_kwargs = {}
             temp_input_files = {}
@@ -343,10 +352,22 @@ class OpRegistry:
                             pass
                         format_kwargs[name] = value
 
+            monitor = None
+            if _MONITOR in format_kwargs:
+                monitor = format_kwargs.pop(_MONITOR)
+
             commandline = commandline_pattern.format(**format_kwargs)
-            # TODO (forman): create 3 threads: 1. wait for process, 2. read stdout, 3. read stderr
-            completed_process = subprocess.run(commandline, cwd=cwd, env=env)
-            exit_code = completed_process.returncode
+
+            stdout_handler = None
+            if monitor:
+                stdout_handler = ProcessOutputMonitor(monitor,
+                                                      label=commandline,
+                                                      started=started, progress=progress, done=done)
+
+            exit_code = execute(commandline,
+                                cwd=cwd, env=env,
+                                stdout_handler=stdout_handler,
+                                is_cancelled=monitor.is_cancelled if monitor else None)
 
             for file in temp_input_files.values():
                 del_temp_file(file)
@@ -650,7 +671,8 @@ def op_output(output_name: str,
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the named output.
+    :param properties: Other properties (keyword arguments) that
+           will be added to the meta-information of the named output.
     :param registry: Optional operation registry.
     """
 
@@ -711,7 +733,8 @@ def op_return(data_type=UNDEFINED,
         @op(version='X.x')
 
     :param data_type: The data type of the return value.
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
+    :param properties: Other properties (keyword arguments)
+           that will be added to the meta-information of the return value.
     :param registry: The operation registry.
     """
     return op_output(OpMetaInfo.RETURN_OUTPUT_NAME,
