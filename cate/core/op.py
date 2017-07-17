@@ -105,6 +105,7 @@ Components
 """
 
 from collections import OrderedDict
+import platform
 import sys
 import shlex
 from typing import Union, Callable, Optional, Dict
@@ -117,6 +118,7 @@ from cate.util.process import execute, ProcessOutputMonitor
 
 _MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 _RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
+
 
 class OpRegistration:
     """
@@ -388,7 +390,7 @@ class OpRegistry:
                                                       label=command_line,
                                                       started=started, progress=progress, done=done)
 
-            command_line_args = shlex.split(command_line)
+            command_line_args = shlex.split(command_line, posix=platform.system() != 'Windows')
             if run_python:
                 command_line_args = [sys.executable] + command_line_args
 

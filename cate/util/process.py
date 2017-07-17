@@ -25,7 +25,6 @@ import concurrent.futures
 import re
 import subprocess
 import time
-import io
 from typing import Callable, Optional, Tuple, Union, Dict, Sequence
 
 from . import Monitor
@@ -34,28 +33,31 @@ from . import Monitor
 def execute(command_line_args: Sequence[str],
             cwd: Optional[str] = None,
             env: Optional[Dict[str, str]] = None,
+            started_handler: Optional[Callable[[subprocess.Popen], None]] = None,
             stdout_handler: Optional[Callable[[str], None]] = None,
             stderr_handler: Optional[Callable[[str], None]] = None,
             done_handler: Optional[Callable[[str], None]] = None,
             is_cancelled: Optional[Callable[[], bool]] = None,
-            cancelled_check_period: float = 0.1):
+            cancelled_check_period: float = 0.1,
+            kill_on_cancel=False):
     """
     Execute a child program in a new process.
 
     :param command_line_args: The command line arguments.
     :param cwd: Optional current working directory.
     :param env: Optional dictionary of environment variables.
+    :param started_handler: An optional callable that is called with the program's process (a ``subprocess.Popen`` object)
     :param stdout_handler: An optional callable that receives the process' stdout as lines of UTF-8 encoded text.
     :param stderr_handler: An optional callable that receives the process' stderr as lines of UTF-8 encoded text.
     :param done_handler: An optional callable that is called with the program's exit code
     :param is_cancelled: An optional callable that is called to determine whether the program's process should be killed
     :param cancelled_check_period: The time to sleep between subsequent *is_cancelled()* calls. Defaults to 0.1 seconds.
+    :param kill_on_cancel: Whether to send a SIGKILL rather than a SIGTERM signal when cancellation is requested (Unix only)
     :return: the program's return code (an `int`) or `None` if it could not be determined.
     """
 
     assert command_line_args, "command_line_args must be provided"
 
-    print("io.DEFAULT_BUFFER_SIZE", io.DEFAULT_BUFFER_SIZE)
     process = subprocess.Popen(map(str, command_line_args),
                                cwd=cwd,
                                env=env,
@@ -63,15 +65,12 @@ def execute(command_line_args: Sequence[str],
                                stderr=subprocess.PIPE,
                                bufsize=0)
 
+    if started_handler:
+        started_handler(process)
+
     def _read_line(fp, handler):
         while process.returncode is None:
-            print("_read_line wakeup")
-            if is_cancelled is not None and is_cancelled():
-                print("_read_line canceling")
-                _cancel(process)
             line = fp.readline()
-            print("_read_line.process.returncode", process.returncode)
-            print("_read_line.line", line)
             if handler:
                 # noinspection PyBroadException
                 try:
@@ -82,6 +81,8 @@ def execute(command_line_args: Sequence[str],
                     pass
             if not line:
                 return
+            if is_cancelled is not None and is_cancelled():
+                _cancel(process, kill_on_cancel)
 
     def _read_line_stdout():
         _read_line(process.stdout, stdout_handler)
@@ -93,16 +94,12 @@ def execute(command_line_args: Sequence[str],
         if is_cancelled is None:
             return
         while process.returncode is None:
-            print("_check_cancelled wakeup")
             if is_cancelled():
-                print("_check_cancelled canceling")
-                _cancel(process)
+                _cancel(process, kill_on_cancel)
             time.sleep(cancelled_check_period or 0.1)
 
     def _wait():
-        print("_wait")
         return_code = process.wait()
-        print("_wait. returned", return_code)
         if done_handler:
             done_handler(return_code)
         return return_code
@@ -118,9 +115,11 @@ def execute(command_line_args: Sequence[str],
     return result
 
 
-def _cancel(process: subprocess.Popen):
-    # process.terminate()
-    process.kill()
+def _cancel(process: subprocess.Popen, kill_on_cancel: bool):
+    if kill_on_cancel:
+        process.kill()
+    else:
+        process.terminate()
     return True
 
 
