@@ -369,18 +369,11 @@ class OpRegistry:
                         format_kwargs[name] = value
 
             for name, props in op_meta_info.output.items():
-                if value is not UNDEFINED:
-                    if 'read_from' in props:
-                        new_name = props['read_from']
-                        _, file = new_temp_file(suffix='.nc')
-                        format_kwargs[new_name] = file
-                        temp_output_files[name] = file
-                    else:
-                        try:
-                            value = value.format()
-                        except AttributeError:
-                            pass
-                        format_kwargs[name] = value
+                if 'read_from' in props:
+                    new_name = props['read_from']
+                    _, file = new_temp_file(suffix='.nc')
+                    format_kwargs[new_name] = file
+                    temp_output_files[name] = file
 
             monitor = None
             if _MONITOR in format_kwargs:
