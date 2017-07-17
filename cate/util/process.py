@@ -65,9 +65,12 @@ def execute(command_line_args: Sequence[str],
 
     def _read_line(fp, handler):
         while process.returncode is None:
+            print("_read_line wakeup")
             if is_cancelled is not None and is_cancelled():
+                print("_read_line canceling")
                 _cancel(process)
             line = fp.readline()
+            print("_read_line.line", line)
             if handler:
                 # noinspection PyBroadException
                 try:
@@ -89,12 +92,16 @@ def execute(command_line_args: Sequence[str],
         if is_cancelled is None:
             return
         while process.returncode is None:
+            print("_check_cancelled wakeup")
             if is_cancelled():
+                print("_check_cancelled canceling")
                 _cancel(process)
             time.sleep(cancelled_check_period or 0.1)
 
     def _wait():
+        print("_wait")
         return_code = process.wait()
+        print("_wait. returned", return_code)
         if done_handler:
             done_handler(return_code)
         return return_code
