@@ -70,6 +70,7 @@ def execute(command_line_args: Sequence[str],
                 print("_read_line canceling")
                 _cancel(process)
             line = fp.readline()
+            print("_read_line.process.returncode", process.returncode)
             print("_read_line.line", line)
             if handler:
                 # noinspection PyBroadException
