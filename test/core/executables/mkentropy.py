@@ -20,6 +20,6 @@ for i in range(n):
     if i == fail_at:
         raise RuntimeError('An intended error occurred!')
     time.sleep(period)
-    print('mkentropy: Did {} of {} steps: {}%'.format(i+1, n, (100*(i+1))/n))
+    print('mkentropy: Did {} of {} steps: {}%'.format(i + 1, n, (100 * (i + 1)) / n))
 
 print('mkentropy: Done making some entropy')

@@ -1,7 +1,6 @@
 import os.path
 from collections import OrderedDict
 from unittest import TestCase
-import os.path
 import sys
 
 import xarray as xr
