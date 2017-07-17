@@ -23,7 +23,7 @@ class WorkflowStep extends Step {
 }
 
 class OpStep extends Step {
-    op_registration : OpRegistration
+    op_registration : Operation
 }
 
 class ExprStep extends Step {
@@ -45,7 +45,7 @@ class cate.core.op.OpMetaInfo {
 }
 
 WorkflowStep --> Workflow: workflow
-OpStep o--> cate.core.op.OpRegistration
+OpStep o--> cate.core.op.Operation
 Node o--> cate.core.op.OpMetaInfo: op_meta_info
 Workflow o--> "0..N" Step: steps
 Step --> Node : parent

@@ -82,19 +82,24 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
     :raise ValueError: if *fail* is ``True`` and the name cannot be derived.
     """
 
-    module_name = value.__module__ if hasattr(value, '__module__') else None
+    try:
+        module_name = value.__module__
+    except AttributeError:
+        module_name = None
     if module_name == default_module_name:
         module_name = None
 
-    # Not sure, if '__qualname__' is the better choice - no Pythons docs available
-    name = value.__name__ if hasattr(value, '__name__') else None
+    try:
+        name = value.__name__
+    except AttributeError:
+        name = None
+
     if name:
         return module_name + '.' + name if module_name else name
-
-    if fail:
+    elif fail:
         raise ValueError("missing attribute '__name__'")
-
-    return str(value)
+    else:
+        return str(value)
 
 
 @contextmanager

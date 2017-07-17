@@ -3,7 +3,7 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from cate.core.op import op_input, op_output, OpRegistration
+from cate.core.op import op_input, op_output, Operation
 from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache, \
     SourceRef
 from cate.util import UNDEFINED
@@ -724,7 +724,7 @@ class OpStepTest(TestCase):
 
         self.assertIsInstance(step3, OpStep)
         self.assertEqual(step3.id, "op3")
-        self.assertIsInstance(step3.op, OpRegistration)
+        self.assertIsInstance(step3.op, Operation)
         self.assertIn('u', step3.input)
         self.assertIn('v', step3.input)
         self.assertIn('w', step3.output)
@@ -750,7 +750,7 @@ class OpStepTest(TestCase):
 
         self.assertIsInstance(step3, OpStep)
         self.assertEqual(step3.id, "op3")
-        self.assertIsInstance(step3.op, OpRegistration)
+        self.assertIsInstance(step3.op, Operation)
         self.assertIn('u', step3.input)
         self.assertIn('v', step3.input)
         self.assertIn('w', step3.output)

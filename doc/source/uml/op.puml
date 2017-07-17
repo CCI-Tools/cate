@@ -17,13 +17,13 @@ class, the @op, @op_input,
 end note
 
 class OpRegistry {
-    get_op(name): OpRegistration
-    add_op(operation): OpRegistration
-    remove_op(operation): OpRegistration
+    get_op(name): Operation
+    add_op(operation): Operation
+    remove_op(operation): Operation
 }
 
 
-class OpRegistration {
+class Operation {
     operation: object
     __call__(*args, **kwargs): object
 }
@@ -36,7 +36,7 @@ class OpMetaInfo {
     output : OrderedDict
 }
 
-OpRegistry o--> "N" OpRegistration
-OpRegistration --> OpMetaInfo: op_meta_info
+OpRegistry o--> "N" Operation
+Operation --> OpMetaInfo: op_meta_info
 
 @enduml

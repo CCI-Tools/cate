@@ -363,7 +363,7 @@ class RunCommandTest(CliTestCase):
                              expected_stdout='')
 
         finally:
-            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+            OP_REGISTRY.remove_op(op_reg, fail_if_not_exists=True)
 
     def test_run_workflow(self):
 
@@ -389,7 +389,7 @@ class RunCommandTest(CliTestCase):
             os.remove('timeseries_data.json')
 
         finally:
-            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+            OP_REGISTRY.remove_op(op_reg, fail_if_not_exists=True)
 
     def test_main_options(self):
         self.assert_main(['run', '-h'])

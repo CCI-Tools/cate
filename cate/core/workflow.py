@@ -124,7 +124,7 @@ from typing import Sequence, Optional, Union, List, Dict
 from cate.util import Namespace, UNDEFINED, safe_eval
 from cate.util.monitor import Monitor
 from cate.util.opmetainf import OpMetaInfo
-from .op import OP_REGISTRY, OpRegistration
+from .op import OP_REGISTRY, Operation
 from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
@@ -954,7 +954,7 @@ class WorkflowStep(Step):
 
 class OpStep(Step):
     """
-    An `OpStep` is a step node that invokes a registered operation of type :py:class:`OpRegistration`.
+    An `OpStep` is a step node that invokes a registered operation of type :py:class:`Operation`.
 
     :param operation: A fully qualified operation name or operation object such as a class or callable.
     :param registry: An operation registry to be used to lookup the operation, if given by name.
@@ -966,7 +966,7 @@ class OpStep(Step):
             raise ValueError('operation must be given')
         if isinstance(operation, str):
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        elif isinstance(operation, OpRegistration):
+        elif isinstance(operation, Operation):
             op_registration = operation
         else:
             op_registration = registry.get_op(operation, fail_if_not_exists=True)
@@ -978,7 +978,7 @@ class OpStep(Step):
 
     @property
     def op(self):
-        """The operation registration. See :py:class:`cate.core.op.OpRegistration`"""
+        """The operation registration. See :py:class:`cate.core.op.Operation`"""
         return self._op_registration
 
     def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
