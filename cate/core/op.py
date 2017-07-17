@@ -106,6 +106,7 @@ Components
 
 from collections import OrderedDict
 import sys
+import shlex
 from typing import Union, Callable, Optional, Dict
 import xarray as xr
 
@@ -387,7 +388,11 @@ class OpRegistry:
                                                       label=command_line,
                                                       started=started, progress=progress, done=done)
 
-            exit_code = execute('"{}" {}'.format(sys.executable, command_line) if run_python else command_line,
+            command_line_args = shlex.split(command_line)
+            if run_python:
+                command_line_args = [sys.executable] + command_line_args
+
+            exit_code = execute(command_line_args,
                                 cwd=cwd, env=env,
                                 stdout_handler=stdout_handler,
                                 is_cancelled=monitor.is_cancelled if monitor else None)

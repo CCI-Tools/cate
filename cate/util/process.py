@@ -25,12 +25,12 @@ import concurrent.futures
 import re
 import subprocess
 import time
-from typing import Callable, Optional, Tuple, Union, Dict
+from typing import Callable, Optional, Tuple, Union, Dict, Sequence
 
 from . import Monitor
 
 
-def execute(command_line: str,
+def execute(command_line_args: Sequence[str],
             cwd: Optional[str] = None,
             env: Optional[Dict[str, str]] = None,
             stdout_handler: Optional[Callable[[str], None]] = None,
@@ -41,7 +41,7 @@ def execute(command_line: str,
     """
     Execute a child program in a new process.
 
-    :param command_line: The command line.
+    :param command_line_args: The command line arguments.
     :param cwd: Optional current working directory.
     :param env: Optional dictionary of environment variables.
     :param stdout_handler: An optional callable that receives the process' stdout as lines of UTF-8 encoded text.
@@ -52,9 +52,9 @@ def execute(command_line: str,
     :return: the program's return code (an `int`) or `None` if it could not be determined.
     """
 
-    assert command_line, "command_line must be provided"
+    assert command_line_args, "command_line_args must be provided"
 
-    process = subprocess.Popen(command_line,
+    process = subprocess.Popen(map(str, command_line_args),
                                cwd=cwd,
                                env=env,
                                stdout=subprocess.PIPE,
@@ -62,6 +62,8 @@ def execute(command_line: str,
 
     def _read_line(fp, handler):
         while process.returncode is None:
+            if is_cancelled is not None and is_cancelled():
+                _cancel(process)
             line = fp.readline()
             if handler:
                 # noinspection PyBroadException
@@ -81,12 +83,11 @@ def execute(command_line: str,
         _read_line(process.stderr, stderr_handler)
 
     def _check_cancelled():
-        if not is_cancelled:
+        if is_cancelled is None:
             return
         while process.returncode is None:
             if is_cancelled():
-                process.kill()
-                return
+                _cancel(process)
             time.sleep(cancelled_check_period or 0.1)
 
     def _wait():
@@ -104,6 +105,11 @@ def execute(command_line: str,
         result = f4.result() if f4 in statuses.done else None
 
     return result
+
+
+def _cancel(process: subprocess.Popen):
+    process.terminate()
+    return True
 
 
 class ProcessOutputMonitor:

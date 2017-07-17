@@ -6,7 +6,7 @@ from cate.util.process import execute, ProcessOutputMonitor
 from .test_monitor import RecordingMonitor
 
 DIR = os.path.dirname(__file__)
-MAKE_ENTROPY = sys.executable + " " + os.path.join(DIR, '..', 'core', 'executables', 'mkentropy.py')
+MAKE_ENTROPY = os.path.join(DIR, '..', 'core', 'executables', 'mkentropy.py')
 
 
 class ProcessTest(TestCase):
@@ -21,7 +21,7 @@ class ProcessTest(TestCase):
         self.stderr_lines.append(line.strip())
 
     def test_execute_with_handler(self):
-        exit_code = execute(MAKE_ENTROPY + " 5 0.1",
+        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1],
                             stdout_handler=self.store_stdout_line,
                             stderr_handler=self.store_stderr_line)
         self.assertEqual(exit_code, 0)
@@ -36,7 +36,7 @@ class ProcessTest(TestCase):
         self.assertEqual(self.stderr_lines, [''])
 
     def test_execute_with_handler_failing(self):
-        exit_code = execute(MAKE_ENTROPY + " 5 0.1 3",
+        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1, 3],
                             stdout_handler=self.store_stdout_line,
                             stderr_handler=self.store_stderr_line)
         self.assertEqual(exit_code, 1)
@@ -60,12 +60,12 @@ class ProcessTest(TestCase):
             self.store_stdout_line(line)
             self.line_count += 1
 
-        exit_code = execute(MAKE_ENTROPY + " 5 0.1",
+        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1],
                             stdout_handler=store_stdout_line_and_cancel,
                             stderr_handler=self.store_stderr_line,
                             is_cancelled=monitor.is_cancelled,
                             cancelled_check_period=0.025)
-        self.assertEqual(exit_code, 1)
+        self.assertTrue(exit_code != 0)
         self.assertEqual(self.stdout_lines, ['mkentropy: Running 5 steps',
                                              'mkentropy: Did 1 of 5 steps: 20.0%',
                                              'mkentropy: Did 2 of 5 steps: 40.0%',
@@ -79,7 +79,7 @@ class ProcessTest(TestCase):
                                        started='mkentropy: Running (?P<total_work>\d+)',
                                        progress='mkentropy: Did (?P<work>\d+)',
                                        done=lambda line: 'Done' in line)
-        exit_code = execute(MAKE_ENTROPY + " 5 0.1", stdout_handler=handler)
+        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1], stdout_handler=handler)
         self.assertEqual(exit_code, 0)
         self.assertEqual(monitor.records, [('start', 'Process running', 5.0),
                                            ('progress', 1.0, None, 20),
