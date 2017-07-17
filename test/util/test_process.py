@@ -60,11 +60,11 @@ class ProcessTest(TestCase):
             self.store_stdout_line(line)
             self.line_count += 1
 
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1],
+        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.2],
                             stdout_handler=store_stdout_line_and_cancel,
                             stderr_handler=self.store_stderr_line,
                             is_cancelled=monitor.is_cancelled,
-                            cancelled_check_period=0.025)
+                            cancelled_check_period=0.02)
         self.assertTrue(exit_code != 0)
         self.assertEqual(self.stdout_lines, ['mkentropy: Running 5 steps',
                                              'mkentropy: Did 1 of 5 steps: 20.0%',
