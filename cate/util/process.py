@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import io
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -54,11 +55,13 @@ def execute(command_line_args: Sequence[str],
 
     assert command_line_args, "command_line_args must be provided"
 
+    print("io.DEFAULT_BUFFER_SIZE", io.DEFAULT_BUFFER_SIZE)
     process = subprocess.Popen(map(str, command_line_args),
                                cwd=cwd,
                                env=env,
                                stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+                               stderr=subprocess.PIPE,
+                               bufsize=0)
 
     def _read_line(fp, handler):
         while process.returncode is None:
