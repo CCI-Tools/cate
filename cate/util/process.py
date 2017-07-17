@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import io
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -26,6 +25,7 @@ import concurrent.futures
 import re
 import subprocess
 import time
+import io
 from typing import Callable, Optional, Tuple, Union, Dict, Sequence
 
 from . import Monitor
@@ -119,7 +119,8 @@ def execute(command_line_args: Sequence[str],
 
 
 def _cancel(process: subprocess.Popen):
-    process.terminate()
+    # process.terminate()
+    process.kill()
     return True
 
 
