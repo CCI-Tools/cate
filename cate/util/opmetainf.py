@@ -64,9 +64,9 @@ class OpMetaInfo:
         self._qualified_name = op_qualified_name
         self._has_monitor = True if has_monitor else False
         self._header = header_dict if header_dict else dict()
-        self._input = OrderedDict(input_dict if input_dict else {})
-        self._output = OrderedDict(output_dict if output_dict else {})
-        self._input_names = arg_inputs or self._get_input_names(self._input)
+        self._inputs = OrderedDict(input_dict if input_dict else {})
+        self._outputs = OrderedDict(output_dict if output_dict else {})
+        self._input_names = arg_inputs or self._get_input_names(self._inputs)
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -99,22 +99,22 @@ class OpMetaInfo:
         return self._input_names
 
     @property
-    def input(self) -> Dict[str, Props]:
+    def inputs(self) -> Dict[str, Props]:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
         :return: Named inputs.
         """
-        return self._input
+        return self._inputs
 
     @property
-    def output(self) -> Dict[str, Props]:
+    def outputs(self) -> Dict[str, Props]:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
         :return: Named outputs.
         """
-        return self._output
+        return self._outputs
 
     @property
     def has_monitor(self) -> bool:
@@ -130,7 +130,7 @@ class OpMetaInfo:
         :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
-        return not (len(self._output) == 1 and self.RETURN_OUTPUT_NAME in self._output)
+        return not (len(self._outputs) == 1 and self.RETURN_OUTPUT_NAME in self._outputs)
 
     @property
     def can_cache(self) -> bool:
@@ -149,8 +149,8 @@ class OpMetaInfo:
             json_dict['has_monitor'] = True
         if self.header:
             json_dict['header'] = dict(self.header)
-        json_dict['input'] = self.object_dict_to_json_dict(self.input, data_type_to_json)
-        json_dict['output'] = self.object_dict_to_json_dict(self.output, data_type_to_json)
+        json_dict['inputs'] = self.object_dict_to_json_dict(self.inputs, data_type_to_json)
+        json_dict['outputs'] = self.object_dict_to_json_dict(self.outputs, data_type_to_json)
         return json_dict
 
     @classmethod
@@ -158,8 +158,8 @@ class OpMetaInfo:
         qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
         header_obj = json_dict.get('header', kwargs.get('header', None))
         has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))
-        input_dict = json_dict.get('input', kwargs.get('input', None))
-        output_dict = json_dict.get('output', kwargs.get('output', None))
+        input_dict = json_dict.get('inputs', kwargs.get('inputs', None))
+        output_dict = json_dict.get('outputs', kwargs.get('outputs', None))
         return OpMetaInfo(qualified_name,
                           header_dict=header_obj,
                           has_monitor=has_monitor,
@@ -293,7 +293,7 @@ class OpMetaInfo:
 
         :param input_values: The dictionary of input values that will be modified.
         """
-        for name, properties in self.input.items():
+        for name, properties in self.inputs.items():
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
@@ -307,7 +307,7 @@ class OpMetaInfo:
                such as ``data_type``, ``nullable``, ``value_set``, ``value_range``.
         :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
         """
-        inputs = self.input
+        inputs = self.inputs
         # Ensure required input values have values (even None is a value).
         for name, properties in inputs.items():
             has_no_default = 'default_value' not in properties
@@ -356,7 +356,7 @@ class OpMetaInfo:
         :param output_values: The dictionary of output values.
         :raise ValueError: If *output_values* are invalid w.r.t. to the operation's output properties.
         """
-        outputs = self.output
+        outputs = self.outputs
         for name, value in output_values.items():
             if name not in outputs:
                 raise ValueError("'%s' is not an output of operation '%s'" % (name, self.qualified_name))

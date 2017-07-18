@@ -34,7 +34,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
 from cate.util.monitor import Monitor
-from .op import OpRegistration
+from .op import Operation
 
 
 def find_reader(file, format_name=None, **kwargs):
@@ -238,11 +238,11 @@ class ObjectIO(metaclass=ABCMeta):
         pass
 
     @property
-    def read_op(self) -> OpRegistration:
+    def read_op(self) -> Operation:
         return None
 
     @property
-    def write_op(self) -> OpRegistration:
+    def write_op(self) -> Operation:
         return None
 
     def read(self, file, monitor: Monitor = Monitor.NONE, **kwargs):

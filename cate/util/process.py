@@ -128,7 +128,7 @@ class ProcessOutputMonitor:
     A stdout handler for :py:func:`execute` the delegates extracted progress information to a monitor.
     Information is extracted using regular expressions or a callable that extracts the information.
 
-    :param monitor: The progress monitor to which extracted information from process output is delegated.
+    :param monitor: The progress monitor to which extracted information from process outputs is delegated.
     :param label: A default label that is used in case no start label has be extracted
     :param total_work: Default total work that is used in case no total work could be determined
     :param started: Either a callable that receives a text line and returns a tuple (label, total_work)

@@ -43,24 +43,24 @@ The parameters to this workflow are:
       "header": {
         "description": "This workflow creates a spatial subset of a dataset read from a NetCDF file."
       },
-      "input": {
+      "inputs": {
         "input_file": {
-          "data_type": "string",
+          "data_type": "str",
           "description": "Input NetCDF file path"
         },
         "region": {
-          "data_type": "string",
+          "data_type": "str",
           "description": "Subset region (as Geometry WKT)"
         },
         "output_file": {
-          "data_type": "string",
+          "data_type": "str",
           "description": "Output NetCDF file path"
         },
       },
-      "output": {
+      "outputs": {
         "return": {
           "source": "subset.return",
-          "data_type": "xr.Dataset",
+          "data_type": "xarray.dataset.Dataset",
           "description": "The spatial subsetted dataset"
         }
       },
@@ -68,14 +68,14 @@ The parameters to this workflow are:
         {
           "id": "read",
           "op": "read_netcdf",
-          "input": {
+          "inputs": {
             "file": { "source": "subset_netcdf.input_file" }
           }
         },
         {
           "id": "subset",
           "op": "subset_spatial",
-          "input": {
+          "inputs": {
             "ds": { "source": "read" }
             "region": { "source": "subset_netcdf.region" }
           }
@@ -83,7 +83,7 @@ The parameters to this workflow are:
         {
           "id": "write",
           "op": "write_netcdf4",
-          "input": {
+          "inputs": {
             "obj": { "source": "subset" }
             "file": { "source": "subset_netcdf.output_file" }
           }
@@ -99,8 +99,8 @@ The workflow is represented in JSON format that uses five different keywords on 
 
 * ``qualified_name``
 * ``header``
-* ``input``
-* ``output``
+* ``inputs``
+* ``outputs``
 * ``steps``
 
 The ``qualified_name`` contains a name under which the workflow can be referenced. This is the workflow's operation name.

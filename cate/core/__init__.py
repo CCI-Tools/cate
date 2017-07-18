@@ -26,7 +26,7 @@ Cate's core API.
 # noinspection PyUnresolvedReferences
 from .ds import DataStore, DataSource, open_dataset, query_data_sources
 # noinspection PyUnresolvedReferences
-from .op import op, op_input, op_output, op_return, OpMetaInfo, OpRegistration
+from .op import op, op_input, op_output, op_return, OpMetaInfo, Operation
 # noinspection PyUnresolvedReferences
 from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
 # noinspection PyUnresolvedReferences
@@ -40,7 +40,7 @@ del _
 
 __all__ = """
     DataStore, DataSource, open_dataset, query_data_sources
-    op, op_input, op_output, op_return, OpMetaInfo, OpRegistration
+    op, op_input, op_output, op_return, OpMetaInfo, Operation
     Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
     Monitor, ChildMonitor, ConsoleMonitor
 """.split()

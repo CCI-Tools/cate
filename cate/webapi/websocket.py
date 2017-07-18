@@ -241,8 +241,8 @@ class WebSocketService:
         for op_name, op_reg in OP_REGISTRY.op_registrations.items():
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
-            op_json_dict['input'] = [dict(name=name, **props) for name, props in op_json_dict['input'].items()]
-            op_json_dict['output'] = [dict(name=name, **props) for name, props in op_json_dict['output'].items()]
+            op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()]
+            op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()]
             op_list.append(op_json_dict)
 
         return sorted(op_list, key=lambda op: op['name'])

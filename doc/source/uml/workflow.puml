@@ -2,15 +2,15 @@
 
 abstract Node {
     id : str
-    input : Dict[str, NodePort]
-    output : Dict[str, NodePort]
-    {abstract} from_json_dict(json_dict)
+    inputs : Dict[str, NodePort]
+    outputs : Dict[str, NodePort]
+    {abstract} from_json(json_dict)
     {abstract} to_json_dict() : dict
     {abstract} invoke(monitor, **args)
 }
 
 class Workflow extends Node {
-    from_json_dict(json_dict)
+    from_json(json_dict)
     to_json_dict() : dict
     invoke(monitor, **args)
 }
@@ -23,7 +23,7 @@ class WorkflowStep extends Step {
 }
 
 class OpStep extends Step {
-    op_registration : OpRegistration
+    op_registration : Operation
 }
 
 class ExprStep extends Step {
@@ -40,12 +40,12 @@ class NoOpStep extends Step {
 class cate.core.op.OpMetaInfo {
     qualified_name : str
     header : dict
-    input : dict
-    output : dict
+    inputs : dict
+    outputs : dict
 }
 
 WorkflowStep --> Workflow: workflow
-OpStep o--> cate.core.op.OpRegistration
+OpStep o--> cate.core.op.Operation
 Node o--> cate.core.op.OpMetaInfo: op_meta_info
 Workflow o--> "0..N" Step: steps
 Step --> Node : parent

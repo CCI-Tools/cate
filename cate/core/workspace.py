@@ -529,7 +529,7 @@ class Workspace:
         # to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
-            output_namespace = step.output
+            output_namespace = step.outputs
             namespace[step.id] = output_namespace
 
         does_exist = res_name in namespace
@@ -542,9 +542,9 @@ class Workspace:
 
         # Wire new op_step with outputs from existing steps
         for input_name, input_value in op_kwargs.items():
-            if input_name not in new_step.input:
+            if input_name not in new_step.inputs:
                 raise WorkspaceError('"%s" is not an input of operation "%s"' % (input_name, op_name))
-            input_port = new_step.input[input_name]
+            input_port = new_step.inputs[input_name]
 
             if 'source' in input_value:
                 source = input_value['source']
@@ -565,7 +565,7 @@ class Workspace:
                 raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
 
         if validate_args:
-            inputs = new_step.input
+            inputs = new_step.inputs
             input_values = {kw: inputs[kw].source or inputs[kw].value for kw, v in op_kwargs.items()}
             # Validate all values except those of type NodePort (= the sources)
             op.op_meta_info.validate_input_values(input_values, [NodePort])

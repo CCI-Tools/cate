@@ -25,7 +25,7 @@ class WorkspaceTest(unittest.TestCase):
 
         try:
             op_reg = OP_REGISTRY.add_op(some_op)
-            op_reg.op_meta_info.input['ctx']['context'] = True
+            op_reg.op_meta_info.inputs['ctx']['context'] = True
 
             ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
             ws.set_resource('new_ctx', op_reg.op_meta_info.qualified_name, {})
@@ -258,18 +258,18 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_example(self):
         expected_json_text = """{
-            "schema": 1,
+            "schema_version": 1,
             "qualified_name": "workspace_workflow",
             "header": {
                 "description": "Test!"
             },
-            "input": {},
-            "output": {},
+            "inputs": {},
+            "outputs": {},
             "steps": [
                 {
                     "id": "p",
                     "op": "cate.ops.io.read_netcdf",
-                    "input": {
+                    "inputs": {
                         "file": {
                             "value": "%s"
                         }
@@ -278,10 +278,8 @@ class WorkspaceTest(unittest.TestCase):
                 {
                     "id": "ts",
                     "op": "cate.ops.timeseries.tseries_mean",
-                    "input": {
-                        "ds": {
-                            "source": "p"
-                        },
+                    "inputs": {
+                        "ds": "p",
                         "var": {
                           "value": "precipitation"
                         }

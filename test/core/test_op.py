@@ -1,11 +1,13 @@
 import os.path
+import os.path
+import sys
 from collections import OrderedDict
 from unittest import TestCase
-import sys
 
 import xarray as xr
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
+from cate.core.op import new_executable_op, new_expression_op
 from cate.core.types import FileLike, VarName
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
@@ -29,72 +31,72 @@ class OpTest(TestCase):
     def tearDown(self):
         self.registry = None
 
-    def test_executable_no_ds(self):
-        op_reg = self.registry.add_executable(OpMetaInfo('make_entropy',
-                                                         input_dict={
-                                                                     'num_steps': {'data_type': int},
-                                                                     'period': {'data_type': float},
-                                                                 },
-                                                         output_dict={
-                                                                     'return': {'data_type': int}
-                                                                 }),
-                                              MAKE_ENTROPY_EXE + " {num_steps} {period}")
-        exit_code = op_reg(num_steps=5, period=0.05)
+    def test_new_executable_op_without_ds(self):
+        op = new_executable_op(OpMetaInfo('make_entropy',
+                                          input_dict={
+                                              'num_steps': {'data_type': int},
+                                              'period': {'data_type': float},
+                                          },
+                                          output_dict={
+                                              'return': {'data_type': int}
+                                          }),
+                               MAKE_ENTROPY_EXE + " {num_steps} {period}")
+        exit_code = op(num_steps=5, period=0.05)
         self.assertEqual(exit_code, 0)
 
-    def test_executable_ds_file(self):
-        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
-                                                         input_dict={
-                                                                     'ifile': {'data_type': FileLike},
-                                                                     'ofile': {'data_type': FileLike},
-                                                                     'var': {'data_type': VarName},
-                                                                 },
-                                                         output_dict={
-                                                                     'return': {'data_type': int}
-                                                                 }),
-                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
+    def test_new_executable_op_with_ds_file(self):
+        op = new_executable_op(OpMetaInfo('filter_ds',
+                                          input_dict={
+                                              'ifile': {'data_type': FileLike},
+                                              'ofile': {'data_type': FileLike},
+                                              'var': {'data_type': VarName},
+                                          },
+                                          output_dict={
+                                              'return': {'data_type': int}
+                                          }),
+                               FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ofile = os.path.join(DIR, 'test_data', 'filter_ds.nc')
         if os.path.isfile(ofile):
             os.remove(ofile)
-        exit_code = op_reg(ifile=SOILMOISTURE_NC, ofile=ofile, var='sm')
+        exit_code = op(ifile=SOILMOISTURE_NC, ofile=ofile, var='sm')
         self.assertEqual(exit_code, 0)
         self.assertTrue(os.path.isfile(ofile))
         os.remove(ofile)
 
-    def test_executable_ds_in_mem(self):
-        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
-                                                         input_dict={
-                                                                     'ds': {
-                                                                         'data_type': xr.Dataset,
-                                                                         'write_to': 'ifile'
-                                                                     },
-                                                                     'var': {
-                                                                         'data_type': VarName
-                                                                     },
-                                                                 },
-                                                         output_dict={
-                                                                     'return': {
-                                                                         'data_type': xr.Dataset,
-                                                                         'read_from': 'ofile'
-                                                                     }
-                                                                 }),
-                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
+    def test_new_executable_op_with_ds_in_mem(self):
+        op = new_executable_op(OpMetaInfo('filter_ds',
+                                          input_dict={
+                                              'ds': {
+                                                  'data_type': xr.Dataset,
+                                                  'write_to': 'ifile'
+                                              },
+                                              'var': {
+                                                  'data_type': VarName
+                                              },
+                                          },
+                                          output_dict={
+                                              'return': {
+                                                  'data_type': xr.Dataset,
+                                                  'read_from': 'ofile'
+                                              }
+                                          }),
+                               FILTER_DS_EXE + " {ifile} {ofile} {var}")
         ds = xr.open_dataset(SOILMOISTURE_NC)
-        ds_out = op_reg(ds=ds, var='sm')
+        ds_out = op(ds=ds, var='sm')
         self.assertIsNotNone(ds_out)
         self.assertIsNotNone('sm' in ds_out)
 
-    def test_expression(self):
-        op_reg = self.registry.add_expression(OpMetaInfo('add_xy',
-                                                         input_dict={
-                                                                     'x': {'data_type': float},
-                                                                     'y': {'data_type': float},
-                                                                 },
-                                                         output_dict={
-                                                                     'return': {'data_type': float}
-                                                                 }),
-                                              'x + y')
-        z = op_reg(x=1.2, y=2.4)
+    def test_new_expression_op(self):
+        op = new_expression_op(OpMetaInfo('add_xy',
+                                          input_dict={
+                                              'x': {'data_type': float},
+                                              'y': {'data_type': float},
+                                          },
+                                          output_dict={
+                                              'return': {'data_type': float}
+                                          }),
+                               'x + y')
+        z = op(x=1.2, y=2.4)
         self.assertEqual(z, 1.2 + 2.4)
 
     def test_plain_function(self):
@@ -113,7 +115,7 @@ class OpTest(TestCase):
 
         op_reg = registry.get_op(object_to_qualified_name(f))
         self.assertIs(op_reg, added_op_reg)
-        self.assertIs(op_reg.operation, f)
+        self.assertIs(op_reg.wrapped_op, f)
         expected_inputs = OrderedDict()
         expected_inputs['a'] = dict(position=0, data_type=float)
         expected_inputs['b'] = dict(position=1)
@@ -199,8 +201,8 @@ class OpTest(TestCase):
         self.assertIsNotNone(op_meta_info)
         self.assertEqual(op_meta_info.qualified_name, expected_name)
         self.assertEqual(op_meta_info.header, expected_header)
-        self.assertEqual(OrderedDict(op_meta_info.input), expected_input)
-        self.assertEqual(OrderedDict(op_meta_info.output), expected_output)
+        self.assertEqual(OrderedDict(op_meta_info.inputs), expected_input)
+        self.assertEqual(OrderedDict(op_meta_info.outputs), expected_output)
 
     def test_function_validation(self):
         @op_input('x', registry=self.registry, data_type=float, value_range=[0.1, 0.9], default_value=0.5)
@@ -211,17 +213,17 @@ class OpTest(TestCase):
             return a * x + y if a != 5 else 'foo'
 
         self.assertIs(f, self.registry.get_op(f))
-        self.assertEqual(f.op_meta_info.input['x'].get('data_type', None), float)
-        self.assertEqual(f.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
-        self.assertEqual(f.op_meta_info.input['x'].get('default_value', None), 0.5)
-        self.assertEqual(f.op_meta_info.input['x'].get('position', None), 0)
-        self.assertEqual(f.op_meta_info.input['y'].get('data_type', None), float)
-        self.assertEqual(f.op_meta_info.input['y'].get('position', None), 1)
-        self.assertEqual(f.op_meta_info.input['a'].get('data_type', None), int)
-        self.assertEqual(f.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
-        self.assertEqual(f.op_meta_info.input['a'].get('default_value', None), 4)
-        self.assertEqual(f.op_meta_info.input['a'].get('position', None), 2)
-        self.assertEqual(f.op_meta_info.output[RETURN].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(f.op_meta_info.inputs['x'].get('default_value', None), 0.5)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('position', None), 0)
+        self.assertEqual(f.op_meta_info.inputs['y'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['y'].get('position', None), 1)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('data_type', None), int)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(f.op_meta_info.inputs['a'].get('default_value', None), 4)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('position', None), 2)
+        self.assertEqual(f.op_meta_info.outputs[RETURN].get('data_type', None), float)
 
         self.assertEqual(f(y=1, x=0.2), 4 * 0.2 + 1)
         self.assertEqual(f(y=3), 4 * 0.5 + 3)
@@ -316,7 +318,7 @@ class OpTest(TestCase):
                 op_meta_info.qualified_name + ' v' + \
                 op_meta_info.header['version'] + \
                 ' \nDefault input values: ' + \
-                str(op_meta_info.input) + '\nProvided input values: '
+                str(op_meta_info.inputs) + '\nProvided input values: '
 
         ret_ds = op_reg(ds=ds, a=2, b='trilinear')
         self.assertTrue(stamp in ret_ds.attrs['history'])
@@ -355,7 +357,7 @@ class OpTest(TestCase):
                 op_meta_info.qualified_name + ' v' + \
                 op_meta_info.header['version'] + \
                 ' \nDefault input values: ' + \
-                str(op_meta_info.input) + '\nProvided input values: '
+                str(op_meta_info.inputs) + '\nProvided input values: '
 
         ret = op_reg(ds=ds, a=2, b='trilinear')
         # Check that the dataset was stamped
@@ -395,8 +397,7 @@ class OpTest(TestCase):
 
         ds = xr.Dataset()
 
-        op_reg = \
-            self.registry.get_op(object_to_qualified_name(history_no_version))
+        op_reg = self.registry.get_op(object_to_qualified_name(history_no_version))
         with self.assertRaises(ValueError) as err:
             ret = op_reg(ds=ds, a=2, b='trilinear')
         self.assertTrue('Could not add history' in str(err.exception))
@@ -408,11 +409,10 @@ class OpTest(TestCase):
             return "Joke's on you"
 
         ds = xr.Dataset()
-        op_reg = \
-            self.registry.get_op(object_to_qualified_name(history_wrong_type))
+        op_reg = self.registry.get_op(object_to_qualified_name(history_wrong_type))
         with self.assertRaises(NotImplementedError) as err:
             ret = op_reg(ds=ds, a=2, b='abc')
-        self.assertTrue('Adding of operation signature' in str(err.exception))
+        self.assertTrue('Adding history information to an' in str(err.exception))
 
 
 class DefaultOpRegistryTest(TestCase):
