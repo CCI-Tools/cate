@@ -108,13 +108,14 @@ from typing import Tuple, Union, List, Dict, Any
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike
-from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
+from cate.ops.io import open_dataset
 from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
@@ -497,7 +498,7 @@ class RunCommand(Command):
         op_args, op_kwargs = _parse_op_args(command_args.op_args,
                                             input_props=op.op_meta_info.inputs, namespace=namespace)
         if op_args and is_workflow:
-            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments are not yet supported, please provide keyword=value pairs only")
 
         write_args = None
         if command_args.write_args:
