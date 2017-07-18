@@ -369,11 +369,14 @@ class OpRegistry:
         :param operation: A fully qualified operation name or a callable object
         :return: The operation key
         """
-        if isinstance(operation, str):
-            qualified_name = operation
-        else:
-            operation = self._unwrap_operation(operation)
-            qualified_name = object_to_qualified_name(operation)
+        try:
+            qualified_name = operation.op_meta_info.qualified_name
+        except AttributeError:
+            if isinstance(operation, str):
+                qualified_name = operation
+            else:
+                operation = self._unwrap_operation(operation)
+                qualified_name = object_to_qualified_name(operation)
         if qualified_name.startswith('cate.ops.'):
             return qualified_name.rsplit('.', maxsplit=1)[1]
         else:
@@ -643,7 +646,7 @@ def new_executable_op(op_meta_info: OpMetaInfo,
                       progress: Union[str, Callable] = None,
                       done: Union[str, Callable] = None) -> Operation:
     """
-    Registers an external executable as an operation.
+    Create an operation from an executable program.
 
     :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
     :param command_line_pattern: A pattern that will be interpolated to obtain the actual command line pattern.
@@ -762,7 +765,7 @@ def new_executable_op(op_meta_info: OpMetaInfo,
 
 def new_expression_op(op_meta_info: OpMetaInfo, expression: str) -> Operation:
     """
-    Registers a Python expression as an operation.
+    Create an operation that wraps a Python expression.
 
     :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
     :param expression: The Python expression. May refer to any name given in *op_meta_info.input*.
