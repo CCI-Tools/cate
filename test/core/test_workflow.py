@@ -314,14 +314,16 @@ class WorkflowTest(TestCase):
                 "p": {}
             },
             "outputs": {
-                "q": {"source": "op3.w"}
+                "q": {
+                    "source": "op3.w"
+                }
             },
             "steps": [
                 {
                     "id": "op1",
                     "op": "test.core.test_workflow.op1",
                     "inputs": {
-                        "x": { "source": "my_workflow.p" }
+                        "x": "my_workflow.p"
                     }
                 },
                 {
@@ -329,15 +331,15 @@ class WorkflowTest(TestCase):
                     "persistent": true,
                     "op": "test.core.test_workflow.op2",
                     "inputs": {
-                        "a": {"source": "op1.y"}
+                        "a": "op1.y"
                     }
                 },
                 {
                     "id": "op3",
                     "op": "test.core.test_workflow.op3",
                     "inputs": {
-                        "v": {"source": "op2.b"},
-                        "u": {"source": "op1.y"}
+                        "v": "op2.b",
+                        "u": "op1.y"
                     }
                 }
             ]
@@ -1108,12 +1110,15 @@ class NodePortTest(TestCase):
 
         step2.inputs.a.value = 982
         self.assertEqual(step2.inputs.a.to_json(), dict(value=982))
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict(value=982))
 
         step2.inputs.a.source = step1.outputs.y
-        self.assertEqual(step2.inputs.a.to_json(), dict(source='myop1.y'))
+        self.assertEqual(step2.inputs.a.to_json(), 'myop1.y')
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict(source='myop1.y'))
 
         step2.inputs.a.source = None
         self.assertEqual(step2.inputs.a.to_json(), dict())
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict())
 
 
 class ValueCacheTest(TestCase):

@@ -727,7 +727,7 @@ class Workflow(Node):
         # convert all inputs to JSON dicts
         inputs_json_dict = OrderedDict()
         for node_input in self._inputs[:]:
-            node_input_json_dict = node_input.to_json()
+            node_input_json_dict = node_input.to_json(force_dict=True)
             if node_input.name in self.op_meta_info.inputs:
                 node_input_json_dict.update(self.op_meta_info.inputs[node_input.name])
             inputs_json_dict[node_input.name] = node_input_json_dict
@@ -735,7 +735,7 @@ class Workflow(Node):
         # convert all outputs to JSON dicts
         outputs_json_dict = OrderedDict()
         for node_output in self._outputs[:]:
-            node_output_json_dict = node_output.to_json()
+            node_output_json_dict = node_output.to_json(force_dict=True)
             if node_output.name in self.op_meta_info.outputs:
                 node_output_json_dict.update(self.op_meta_info.outputs[node_output.name])
             outputs_json_dict[node_output.name] = node_output_json_dict
@@ -1472,26 +1472,26 @@ class NodePort:
             raise ValueError(source_format_msg % self)
         self._source_ref = node_id, port_name
 
-    def to_json(self):
+    def to_json(self, force_dict=False):
         """
         Return a JSON-serializable dictionary representation of this object.
 
         :return: A JSON-serializable dictionary
         """
-        json_dict = dict()
         source = self._source
         if source is not None:
-            # If we have a source, the port's value is undefined.
-            json_dict['source'] = str(source)
-        else:
-            value = self._value
-            # Only serialize defined values
-            if value is not UNDEFINED:
-                is_output = self._name in self._node.op_meta_info.outputs
-                # Do not serialize output values, they are temporary and may not be JSON-serializable
-                if not is_output:
-                    json_dict['value'] = self._to_json_value(self._value)
-        return json_dict
+            # If we have a source, there cannot be a value
+            return dict(source=str(source)) if force_dict else str(source)
+
+        value = self._value
+        # Only serialize defined values
+        if value is not UNDEFINED:
+            is_output = self._name in self._node.op_meta_info.outputs
+            # Do not serialize output values, they are temporary and may not be JSON-serializable
+            if not is_output:
+                return dict(value=self._to_json_value(self._value))
+
+        return {}
 
     # noinspection PyBroadException
     def _to_json_value(self, value):

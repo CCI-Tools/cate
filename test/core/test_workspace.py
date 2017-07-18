@@ -279,9 +279,7 @@ class WorkspaceTest(unittest.TestCase):
                     "id": "ts",
                     "op": "cate.ops.timeseries.tseries_mean",
                     "inputs": {
-                        "ds": {
-                            "source": "p"
-                        },
+                        "ds": "p",
                         "var": {
                           "value": "precipitation"
                         }
