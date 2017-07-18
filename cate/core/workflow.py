@@ -1716,3 +1716,14 @@ def _new_context(context: Optional[Dict], **kwargs) -> Dict:
     new_context = dict() if context is None else dict(context)
     new_context.update(kwargs)
     return new_context
+
+
+def new_workflow_op(workflow_or_path: Union[str, Workflow]) -> Operation:
+    """
+    Create an operation from a workflow read from the given path.
+
+    :param workflow_path: Either a path to Workflow JSON file or :py:class:`Workflow` object.
+    :return: The workflow operation.
+    """
+    workflow = Workflow.load(workflow_or_path) if isinstance(workflow_or_path, str) else workflow_or_path
+    return Operation(workflow, op_meta_info=workflow.op_meta_info)

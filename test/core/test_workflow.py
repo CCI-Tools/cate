@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from cate.core.op import op_input, op_output, Operation
 from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache, \
-    SourceRef
+    SourceRef, new_workflow_op
 from cate.util import UNDEFINED
 from cate.util.misc import object_to_qualified_name
 from cate.util.opmetainf import OpMetaInfo
@@ -199,6 +199,13 @@ class WorkflowTest(TestCase):
 
         output_value_2 = workflow.call(input_values=dict(p=3))
         self.assertEqual(output_value_1, output_value_2)
+
+    def test_new_workflow_op(self):
+        _, _, _, workflow = self.create_example_3_steps_workflow()
+
+        op = new_workflow_op(workflow)
+        self.assertEqual(op.op_meta_info.qualified_name, 'myWorkflow')
+        self.assertEqual(op(p=3), dict(q=2 * (3 + 1) + 3 * (2 * (3 + 1))))
 
     def test_from_json_dict(self):
         workflow_json_text = """
