@@ -3,13 +3,13 @@
   "header": {
     "description": "This is a test workflow composed of 3 steps."
   },
-  "input": {
+  "inputs": {
     "p": {
       "data_type": "float",
       "description": "Parameter 'p'"
     }
   },
-  "output": {
+  "outputs": {
     "q": {
       "source": "op3.w",
       "data_type": "float",
@@ -20,21 +20,21 @@
     {
       "id": "op1",
       "op": "test.core.test_workflow.op1",
-      "input": {
+      "inputs": {
         "x": ".p"
       }
     },
     {
       "id": "op2",
       "op": "test.core.test_workflow.op2",
-      "input": {
+      "inputs": {
         "a": "op1.y"
       }
     },
     {
       "id": "op3",
       "op": "test.core.test_workflow.op3",
-      "input": {
+      "inputs": {
         "v": "op2.b",
         "u": "op1.y"
       }

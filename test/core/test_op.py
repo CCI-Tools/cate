@@ -201,8 +201,8 @@ class OpTest(TestCase):
         self.assertIsNotNone(op_meta_info)
         self.assertEqual(op_meta_info.qualified_name, expected_name)
         self.assertEqual(op_meta_info.header, expected_header)
-        self.assertEqual(OrderedDict(op_meta_info.input), expected_input)
-        self.assertEqual(OrderedDict(op_meta_info.output), expected_output)
+        self.assertEqual(OrderedDict(op_meta_info.inputs), expected_input)
+        self.assertEqual(OrderedDict(op_meta_info.outputs), expected_output)
 
     def test_function_validation(self):
         @op_input('x', registry=self.registry, data_type=float, value_range=[0.1, 0.9], default_value=0.5)
@@ -213,17 +213,17 @@ class OpTest(TestCase):
             return a * x + y if a != 5 else 'foo'
 
         self.assertIs(f, self.registry.get_op(f))
-        self.assertEqual(f.op_meta_info.input['x'].get('data_type', None), float)
-        self.assertEqual(f.op_meta_info.input['x'].get('value_range', None), [0.1, 0.9])
-        self.assertEqual(f.op_meta_info.input['x'].get('default_value', None), 0.5)
-        self.assertEqual(f.op_meta_info.input['x'].get('position', None), 0)
-        self.assertEqual(f.op_meta_info.input['y'].get('data_type', None), float)
-        self.assertEqual(f.op_meta_info.input['y'].get('position', None), 1)
-        self.assertEqual(f.op_meta_info.input['a'].get('data_type', None), int)
-        self.assertEqual(f.op_meta_info.input['a'].get('value_set', None), [1, 4, 5])
-        self.assertEqual(f.op_meta_info.input['a'].get('default_value', None), 4)
-        self.assertEqual(f.op_meta_info.input['a'].get('position', None), 2)
-        self.assertEqual(f.op_meta_info.output[RETURN].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('value_range', None), [0.1, 0.9])
+        self.assertEqual(f.op_meta_info.inputs['x'].get('default_value', None), 0.5)
+        self.assertEqual(f.op_meta_info.inputs['x'].get('position', None), 0)
+        self.assertEqual(f.op_meta_info.inputs['y'].get('data_type', None), float)
+        self.assertEqual(f.op_meta_info.inputs['y'].get('position', None), 1)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('data_type', None), int)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('value_set', None), [1, 4, 5])
+        self.assertEqual(f.op_meta_info.inputs['a'].get('default_value', None), 4)
+        self.assertEqual(f.op_meta_info.inputs['a'].get('position', None), 2)
+        self.assertEqual(f.op_meta_info.outputs[RETURN].get('data_type', None), float)
 
         self.assertEqual(f(y=1, x=0.2), 4 * 0.2 + 1)
         self.assertEqual(f(y=3), 4 * 0.5 + 3)
@@ -318,7 +318,7 @@ class OpTest(TestCase):
                 op_meta_info.qualified_name + ' v' + \
                 op_meta_info.header['version'] + \
                 ' \nDefault input values: ' + \
-                str(op_meta_info.input) + '\nProvided input values: '
+                str(op_meta_info.inputs) + '\nProvided input values: '
 
         ret_ds = op_reg(ds=ds, a=2, b='trilinear')
         self.assertTrue(stamp in ret_ds.attrs['history'])
@@ -357,7 +357,7 @@ class OpTest(TestCase):
                 op_meta_info.qualified_name + ' v' + \
                 op_meta_info.header['version'] + \
                 ' \nDefault input values: ' + \
-                str(op_meta_info.input) + '\nProvided input values: '
+                str(op_meta_info.inputs) + '\nProvided input values: '
 
         ret = op_reg(ds=ds, a=2, b='trilinear')
         # Check that the dataset was stamped

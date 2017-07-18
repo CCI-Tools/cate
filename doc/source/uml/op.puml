@@ -32,8 +32,8 @@ class Operation {
 class OpMetaInfo {
     qualified_name : str
     header : OrderedDict
-    input : OrderedDict
-    output : OrderedDict
+    inputs : OrderedDict
+    outputs : OrderedDict
 }
 
 OpRegistry o--> "N" Operation

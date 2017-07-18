@@ -215,20 +215,20 @@ class Operation:
         if self.op_meta_info.has_named_outputs:
             # return_value is expected to be a dictionary-like object
             # set default_value where output values in return_value are missing
-            for name, properties in self.op_meta_info.output.items():
+            for name, properties in self.op_meta_info.outputs.items():
                 if name not in return_value or return_value[name] is None:
                     return_value[name] = properties.get('default_value')
             # validate the return_value using this operation's meta-info
             self.op_meta_info.validate_output_values(return_value)
             # Add history information to outputs
-            for name, properties in self.op_meta_info.output.items():
+            for name, properties in self.op_meta_info.outputs.items():
                 add_history = properties.get('add_history')
                 if add_history:
                     return_value[name] = self._add_history(return_value[name], input_values)
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
-            properties = self.op_meta_info.output[_RETURN]
+            properties = self.op_meta_info.outputs[_RETURN]
             if return_value is None:
                 return_value = properties.get('default_value')
             # validate the return_value using this operation's meta-info
@@ -278,7 +278,7 @@ class Operation:
                 op_name + ' v' + \
                 op_version + \
                 ' \nDefault input values: ' + \
-                str(self.op_meta_info.input) + '\nProvided input values: ' + \
+                str(self.op_meta_info.inputs) + '\nProvided input values: ' + \
                 str(input_str) + '\n'
 
         # Append the stamp to existing history information or create history
@@ -491,7 +491,7 @@ def op_input(input_name: str,
 
     def decorator(op_func):
         op_registration = registry.add_op(op_func, fail_if_exists=False)
-        input_namespace = op_registration.op_meta_info.input
+        input_namespace = op_registration.op_meta_info.inputs
         if input_name not in input_namespace:
             input_namespace[input_name] = dict()
         new_properties = dict(data_type=data_type,
@@ -553,7 +553,7 @@ def op_output(output_name: str,
 
     def decorator(op_func):
         op_registration = registry.add_op(op_func, fail_if_exists=False)
-        output_namespace = op_registration.op_meta_info.output
+        output_namespace = op_registration.op_meta_info.outputs
         if not op_registration.op_meta_info.has_named_outputs:
             # if there is only one entry and it is the 'return' entry, rename it to value of output_name
             output_properties = output_namespace[OpMetaInfo.RETURN_OUTPUT_NAME]
@@ -673,8 +673,8 @@ def new_executable_op(op_meta_info: OpMetaInfo,
     if started or progress and not op_meta_info.has_monitor:
         op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                                   has_monitor=True,
-                                  input_dict=op_meta_info.input,
-                                  output_dict=op_meta_info.output,
+                                  input_dict=op_meta_info.inputs,
+                                  output_dict=op_meta_info.outputs,
                                   header_dict=op_meta_info.header)
 
     # Idea: process special input properties:
@@ -688,7 +688,7 @@ def new_executable_op(op_meta_info: OpMetaInfo,
         temp_input_files = {}
         temp_output_files = {}
 
-        for name, props in op_meta_info.input.items():
+        for name, props in op_meta_info.inputs.items():
             value = kwargs.get(name, props.get('default_value', UNDEFINED))
             if value is not UNDEFINED:
                 if 'write_to' in props:
@@ -704,7 +704,7 @@ def new_executable_op(op_meta_info: OpMetaInfo,
                         pass
                     format_kwargs[name] = value
 
-        for name, props in op_meta_info.output.items():
+        for name, props in op_meta_info.outputs.items():
             if 'read_from' in props:
                 new_name = props['read_from']
                 _, file = new_temp_file(suffix='.nc')
@@ -781,13 +781,13 @@ def new_expression_op(op_meta_info: OpMetaInfo, expression: str) -> Operation:
                 kwargs.update(value_cache)
         return safe_eval(expression, local_namespace=kwargs)
 
-    input_dict = dict(op_meta_info.input)
+    input_dict = dict(op_meta_info.inputs)
     input_dict.update(context={'context': True, 'default_value': None})
     op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                               has_monitor=op_meta_info.has_monitor,
                               header_dict=dict(op_meta_info.header),
                               input_dict=input_dict,
-                              output_dict=dict(op_meta_info.output))
+                              output_dict=dict(op_meta_info.outputs))
 
     eval_expression.__name__ = op_meta_info.qualified_name
     eval_expression.__doc__ = op_meta_info.header.get('description')

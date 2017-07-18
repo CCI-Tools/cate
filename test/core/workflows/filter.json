@@ -3,7 +3,7 @@
   "header": {
     "description": "An example and very simple 'calculation' workflow."
   },
-  "input": {
+  "inputs": {
     "ds": {
       "data_type": "str",
       "description": "Data source name"
@@ -25,7 +25,7 @@
       "description": "The filename for the resulting dataset"
     }
   },
-  "output": {
+  "outputs": {
     "return": {
       "source": "step_filter",
       "data_type": "cate.Dataset",
@@ -36,7 +36,7 @@
     {
       "id": "step_load_ds",
       "op": "cate.ops.io.load_dataset",
-      "input": {
+      "inputs": {
         "data_source": "workflow.ds",
         "start_date": "workflow.start_date",
         "end_date": "workflow.end_date"
@@ -45,7 +45,7 @@
     {
       "id": "step_filter",
       "expression": "ds.step_filter([var])",
-      "input": {
+      "inputs": {
         "ds": "step_load_ds",
         "var": "workflow.var",
         "ds2": "open_ds2",
@@ -55,7 +55,7 @@
     {
       "id": "step_save_ds",
       "op": "cate.ops.io.save_dataset",
-      "input": {
+      "inputs": {
         "data_set": "step_filter",
         "output_file": "workflow.output_file"
       }

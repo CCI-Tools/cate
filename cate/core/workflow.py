@@ -157,8 +157,8 @@ class Node(metaclass=ABCMeta):
         self._op_meta_info = op_meta_info
         self._id = node_id
         self._persistent = False
-        self._input = self._new_input_namespace()
-        self._output = self._new_output_namespace()
+        self._inputs = self._new_input_namespace()
+        self._outputs = self._new_output_namespace()
 
     @property
     def op_meta_info(self) -> OpMetaInfo:
@@ -185,14 +185,14 @@ class Node(metaclass=ABCMeta):
         self.root_node.update_sources_node_id(self, old_id)
 
     @property
-    def input(self) -> Namespace:
+    def inputs(self) -> Namespace:
         """The node's inputs."""
-        return self._input
+        return self._inputs
 
     @property
-    def output(self) -> Namespace:
+    def outputs(self) -> Namespace:
         """The node's outputs."""
-        return self._output
+        return self._outputs
 
     @property
     def root_node(self) -> 'Node':
@@ -225,7 +225,7 @@ class Node(metaclass=ABCMeta):
         return other_port.source is self or (other_port.source_ref and other_port.source_ref.node_id == self._id)
 
     def is_direct_source_of(self, other_node: 'Node'):
-        for other_port in other_node._input[:]:
+        for other_port in other_node._inputs[:]:
             if self.is_direct_source_for_port(other_port):
                 return True
         return False
@@ -247,7 +247,7 @@ class Node(metaclass=ABCMeta):
         max_distance = -1
         if other_node.is_direct_source_of(self):
             max_distance = 1
-        for port in self._input[:]:
+        for port in self._inputs[:]:
             if port.source:
                 distance = port.source.node.max_distance_to(other_node)
                 if distance > 0:
@@ -261,7 +261,7 @@ class Node(metaclass=ABCMeta):
         if self in predecessors:
             predecessors.remove(self)
         predecessors.insert(0, self)
-        for port in self.input[:]:
+        for port in self.inputs[:]:
             if port.source is not None:
                 port.source.node.collect_predecessors(predecessors, excludes)
 
@@ -338,7 +338,7 @@ class Node(metaclass=ABCMeta):
         :param context: The execution context.
         :param input_values: The node's input values.
         """
-        for input_name, input_props in self.op_meta_info.input.items():
+        for input_name, input_props in self.op_meta_info.inputs.items():
             context_property_value = input_props.get('context')
             if isinstance(context_property_value, str):
                 # noinspection PyBroadException
@@ -358,14 +358,14 @@ class Node(metaclass=ABCMeta):
         return value_cache if self.op_meta_info.can_cache else None
 
     def set_input_values(self, input_values):
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             node_input.value = input_values[node_input.name]
 
     def get_output_value(self):
         if self.op_meta_info.has_named_outputs:
-            return {output.name: output.value for output in self.output[:]}
+            return {output.name: output.value for output in self.outputs[:]}
         else:
-            return self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value
+            return self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value
 
     @abstractmethod
     def to_json_dict(self):
@@ -377,19 +377,19 @@ class Node(metaclass=ABCMeta):
 
     def update_sources(self):
         """Resolve unresolved source references in inputs and outputs."""
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             port.update_source()
 
     def update_sources_node_id(self, changed_node: 'Node', old_id: str):
         """Update the source references of input and output ports from *old_id* to *new_id*."""
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             port.update_source_node_id(changed_node, old_id)
 
     def remove_orphaned_sources(self, orphaned_node: 'Node'):
         # Set all input/output ports to None, whose source are still old_step.
         # This will also set each port's source to None.
         # TODO (forman, 20160929): Actually, we should remove ports that still refer to old_step.
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             if port.source is not None and port.source.node is orphaned_node:
                 port.value = None
 
@@ -399,10 +399,10 @@ class Node(metaclass=ABCMeta):
         :param name: The port name
         :return: The port, or ``None`` if it couldn't be found.
         """
-        if name in self._output:
-            return self._output[name]
-        if name in self._input:
-            return self._input[name]
+        if name in self._outputs:
+            return self._outputs[name]
+        if name in self._inputs:
+            return self._inputs[name]
         return None
 
     def _body_string(self) -> Optional[str]:
@@ -416,7 +416,7 @@ class Node(metaclass=ABCMeta):
             elif port.is_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
-                default_value = self.op_meta_info.input[port.name].get('default_value', None)
+                default_value = self.op_meta_info.inputs[port.name].get('default_value', None)
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, default_value)))
             else:
                 port_assignments.append('%s' % port.name)
@@ -425,7 +425,7 @@ class Node(metaclass=ABCMeta):
     @staticmethod
     def _format_port_value(port: 'NodePort', is_input: bool, value: any):
         op_meta_info = port.node.op_meta_info
-        props = (op_meta_info.input if is_input else op_meta_info.output).get(port.name)
+        props = (op_meta_info.inputs if is_input else op_meta_info.outputs).get(port.name)
         if props:
             data_type = props.get('data_type')
             if data_type:
@@ -439,10 +439,10 @@ class Node(metaclass=ABCMeta):
         """String representation."""
         op_meta_info = self.op_meta_info
         body_string = self._body_string() or op_meta_info.qualified_name
-        input_assignments = self._format_port_assignments(self.input, True)
+        input_assignments = self._format_port_assignments(self.inputs, True)
         output_assignments = ''
         if op_meta_info.has_named_outputs:
-            output_assignments = self._format_port_assignments(self.output, False)
+            output_assignments = self._format_port_assignments(self.outputs, False)
             output_assignments = ' -> (%s)' % output_assignments
         return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
@@ -451,10 +451,10 @@ class Node(metaclass=ABCMeta):
         """String representation for developers."""
 
     def _new_input_namespace(self):
-        return self._new_namespace(self.op_meta_info.input.keys())
+        return self._new_namespace(self.op_meta_info.inputs.keys())
 
     def _new_output_namespace(self):
-        return self._new_namespace(self.op_meta_info.output.keys())
+        return self._new_namespace(self.op_meta_info.outputs.keys())
 
     def _new_namespace(self, names):
         return Namespace([(name, NodePort(self, name)) for name in names])
@@ -675,8 +675,8 @@ class Workflow(Node):
         if qualified_name is None:
             raise ValueError('missing mandatory property "qualified_name" in Workflow-JSON')
         header_json_dict = workflow_json_dict.get('header', {})
-        input_json_dict = workflow_json_dict.get('input', {})
-        output_json_dict = workflow_json_dict.get('output', {})
+        input_json_dict = workflow_json_dict.get('inputs', {})
+        output_json_dict = workflow_json_dict.get('outputs', {})
         steps_json_list = workflow_json_dict.get('steps', [])
 
         # convert 'data_type' entries to Python types in op_meta_info_input_json_dict & node_output_json_dict
@@ -705,9 +705,9 @@ class Workflow(Node):
         workflow = Workflow(op_meta_info)
         workflow.add_steps(*steps)
 
-        for node_input in workflow.input[:]:
+        for node_input in workflow.inputs[:]:
             node_input.from_json_dict(input_json_dict)
-        for node_output in workflow.output[:]:
+        for node_output in workflow.outputs[:]:
             node_output.from_json_dict(output_json_dict)
 
         workflow.update_sources()
@@ -723,18 +723,18 @@ class Workflow(Node):
 
         # convert all inputs to JSON dicts
         input_json_dict = OrderedDict()
-        for node_input in self._input[:]:
+        for node_input in self._inputs[:]:
             node_input_json_dict = node_input.to_json_dict()
-            if node_input.name in self.op_meta_info.input:
-                node_input_json_dict.update(self.op_meta_info.input[node_input.name])
+            if node_input.name in self.op_meta_info.inputs:
+                node_input_json_dict.update(self.op_meta_info.inputs[node_input.name])
             input_json_dict[node_input.name] = node_input_json_dict
 
         # convert all outputs to JSON dicts
         output_json_dict = OrderedDict()
-        for node_output in self._output[:]:
+        for node_output in self._outputs[:]:
             node_output_json_dict = node_output.to_json_dict()
-            if node_output.name in self.op_meta_info.output:
-                node_output_json_dict.update(self.op_meta_info.output[node_output.name])
+            if node_output.name in self.op_meta_info.outputs:
+                node_output_json_dict.update(self.op_meta_info.outputs[node_output.name])
             output_json_dict[node_output.name] = node_output_json_dict
 
         # convert all step nodes to JSON dicts
@@ -751,8 +751,8 @@ class Workflow(Node):
         workflow_json_dict[WORKFLOW_SCHEMA_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
-        workflow_json_dict['input'] = input_json_dict
-        workflow_json_dict['output'] = output_json_dict
+        workflow_json_dict['inputs'] = input_json_dict
+        workflow_json_dict['outputs'] = output_json_dict
         workflow_json_dict['steps'] = steps_json_list
 
         return workflow_json_dict
@@ -817,24 +817,24 @@ class Step(Node):
 
         step.persistent = json_dict.get('persistent', False)
 
-        step_input_dict = json_dict.get('input', {})
+        step_input_dict = json_dict.get('inputs', {})
         for name, properties in step_input_dict.items():
-            if name not in step.input:
+            if name not in step.inputs:
                 # update op_meta_info
-                step.op_meta_info.input[name] = step.op_meta_info.input.get(name, {})
+                step.op_meta_info.inputs[name] = step.op_meta_info.inputs.get(name, {})
                 # then create a new port
-                step.input[name] = NodePort(step, name)
-            step_input = step.input[name]
+                step.inputs[name] = NodePort(step, name)
+            step_input = step.inputs[name]
             step_input.from_json_dict(step_input_dict)
 
-        step_output_dict = json_dict.get('output', {})
+        step_output_dict = json_dict.get('outputs', {})
         for name, properties in step_output_dict.items():
-            if name not in step.output:
+            if name not in step.outputs:
                 # first update op_meta_info
-                step.op_meta_info.output[name] = step.op_meta_info.output.get(name, {})
+                step.op_meta_info.outputs[name] = step.op_meta_info.outputs.get(name, {})
                 # then create a new port
-                step.output[name] = NodePort(step, name)
-            step_output = step.output[name]
+                step.outputs[name] = NodePort(step, name)
+            step_output = step.outputs[name]
             step_output.from_json_dict(step_output_dict)
 
         return step
@@ -860,19 +860,19 @@ class Step(Node):
 
         inputs_json_dict = self.get_inputs_json_dict()
         if inputs_json_dict is not None:
-            step_json_dict['input'] = inputs_json_dict
+            step_json_dict['inputs'] = inputs_json_dict
 
         outputs_json_dict = self.get_outputs_json_dict()
         if outputs_json_dict is not None:
-            step_json_dict['output'] = outputs_json_dict
+            step_json_dict['outputs'] = outputs_json_dict
 
         return step_json_dict
 
     def get_inputs_json_dict(self):
-        return OrderedDict([(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
+        return OrderedDict([(node_input.name, node_input.to_json_dict()) for node_input in self.inputs[:]])
 
     def get_outputs_json_dict(self):
-        return OrderedDict([(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
+        return OrderedDict([(node_output.name, node_output.to_json_dict()) for node_output in self.outputs[:]])
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
@@ -898,10 +898,10 @@ class WorkflowStep(Step):
         self._workflow = workflow
         self._resource = resource
         # Connect the workflow's inputs with this node's input sources
-        for workflow_input in workflow.input[:]:
+        for workflow_input in workflow.inputs[:]:
             name = workflow_input.name
-            assert name in self.input
-            workflow_input.source = self.input[name]
+            assert name in self.inputs
+            workflow_input.source = self.inputs[name]
 
     @property
     def workflow(self) -> 'Workflow':
@@ -932,9 +932,9 @@ class WorkflowStep(Step):
         self._workflow.invoke(context=context, monitor=monitor)
 
         # transfer workflow output values into this node's output values
-        for workflow_output in self._workflow.output[:]:
-            assert workflow_output.name in self.output
-            node_output = self.output[workflow_output.name]
+        for workflow_output in self._workflow.outputs[:]:
+            assert workflow_output.name in self.outputs
+            node_output = self.outputs[workflow_output.name]
             node_output.value = workflow_output.value
 
     @classmethod
@@ -991,7 +991,7 @@ class OpStep(Step):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             if node_input.has_value:
                 input_values[node_input.name] = node_input.value
 
@@ -1007,9 +1007,9 @@ class OpStep(Step):
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
+                self.outputs[output_name].value = output_value
         else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     def __call__(self, monitor=Monitor.NONE, **input_values):
         """
@@ -1038,11 +1038,11 @@ class OpStep(Step):
 
     def get_inputs_json_dict(self):
         inputs_json_dict = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             input_json_dict = node_input.to_json_dict()
             if input_json_dict and node_input.is_value:
                 value = node_input.value
-                input_props = self.op_meta_info.input.get(node_input.name)
+                input_props = self.op_meta_info.inputs.get(node_input.name)
                 if input_props:
                     default_value = input_props.get('default_value', UNDEFINED)
                     if value == default_value:
@@ -1074,8 +1074,8 @@ class ExprStep(Step):
             raise ValueError('expression must be given')
         node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        if len(op_meta_info.outputs) == 0:
+            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(ExprStep, self).__init__(op_meta_info, node_id)
         self._expression = expression
 
@@ -1094,7 +1094,7 @@ class ExprStep(Step):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             input_values[node_input.name] = node_input.value
 
         self._set_context_values(context, input_values)
@@ -1109,9 +1109,9 @@ class ExprStep(Step):
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
+                self.outputs[output_name].value = output_value
         else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1146,8 +1146,8 @@ class NoOpStep(Step):
     def __init__(self, input_dict=None, output_dict=None, node_id=None):
         node_id = node_id if node_id else 'no_op_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        if len(op_meta_info.outputs) == 0:
+            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
 
     def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
@@ -1160,7 +1160,7 @@ class NoOpStep(Step):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             input_values[node_input.name] = node_input.value
 
     @classmethod
@@ -1203,8 +1203,8 @@ class SubProcessStep(Step):
             raise ValueError('sub_process_arguments must be given')
         node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
         op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        if len(op_meta_info.outputs) == 0:
+            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(SubProcessStep, self).__init__(op_meta_info, node_id)
         self._sub_process_arguments = sub_process_arguments
         # noinspection PyArgumentList
@@ -1226,7 +1226,7 @@ class SubProcessStep(Step):
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             input_values[node_input.name] = node_input.value
 
         # TODO (forman, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
@@ -1251,9 +1251,9 @@ class SubProcessStep(Step):
         if self.op_meta_info.has_named_outputs:
             # will never reach this code, see to-do above
             for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
+                self.outputs[output_name].value = output_value
         else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1285,7 +1285,7 @@ class NodePort:
     def __init__(self, node: Node, name: str):
         assert node is not None
         assert name is not None
-        assert name in node.op_meta_info.input or name in node.op_meta_info.output
+        assert name in node.op_meta_info.inputs or name in node.op_meta_info.outputs
         self._node = node
         self._name = name
         self._source_ref = None
@@ -1406,14 +1406,14 @@ class NodePort:
                         self, other_node_id, other_name, other_node_id))
             elif other_node_id:
                 if other_node:
-                    if len(other_node.output) == 1:
-                        node_port = other_node.output[0]
+                    if len(other_node.outputs) == 1:
+                        node_port = other_node.outputs[0]
                         self.source = node_port
                         return
                     else:
                         raise ValueError(
                             "cannot connect '%s' with node '%s' because it has %s named outputs" % (
-                                self, other_node_id, len(other_node.output)))
+                                self, other_node_id, len(other_node.outputs)))
                 else:
                     raise ValueError("cannot connect '%s' with output of node '%s' because node '%s' does not exist" % (
                         self, other_node_id, other_node_id))
@@ -1488,7 +1488,7 @@ class NodePort:
             value = self._value
             # Only serialize defined values
             if value is not UNDEFINED:
-                is_output = self._name in self._node.op_meta_info.output
+                is_output = self._name in self._node.op_meta_info.outputs
                 # Do not serialize output values, they are temporary and may not be JSON-serializable
                 if not is_output:
                     json_dict['value'] = self._to_json_value(self._value)
@@ -1496,7 +1496,7 @@ class NodePort:
 
     # noinspection PyBroadException
     def _to_json_value(self, value):
-        input_props = self._node.op_meta_info.input.get(self._name)
+        input_props = self._node.op_meta_info.inputs.get(self._name)
         if input_props:
             # try converting value using a dedicated method
             data_type = input_props.get('data_type')
@@ -1512,7 +1512,7 @@ class NodePort:
 
     # noinspection PyBroadException
     def _from_json_value(self, json_value):
-        input_props = self._node.op_meta_info.input.get(self._name)
+        input_props = self._node.op_meta_info.inputs.get(self._name)
         if input_props:
             data_type = input_props.get('data_type')
             if data_type:
@@ -1540,8 +1540,8 @@ class NodePort:
 def _convert_workflow_to_graph(workflow: Workflow):
     graph_nodes = {step.id: _convert_step_to_graph_node(step) for step in workflow.steps}
     graph = _Graph(workflow.op_meta_info.qualified_name,
-                   [name for name, _ in workflow.input],
-                   [name for name, _ in workflow.output],
+                   [name for name, _ in workflow.inputs],
+                   [name for name, _ in workflow.outputs],
                    list(graph_nodes.values()))
 
     graph_nodes[workflow.id] = graph
@@ -1554,14 +1554,14 @@ def _convert_workflow_to_graph(workflow: Workflow):
 
 def _convert_step_to_graph_node(step: Step):
     return _Node(step.op_meta_info.qualified_name,
-                 [name for name, _ in step.input],
-                 [name for name, _ in step.output])
+                 [name for name, _ in step.inputs],
+                 [name for name, _ in step.outputs])
 
 
 def _wire_target_node_graph_nodes(target_node, graph_nodes):
-    for _, target_port in target_node.input:
+    for _, target_port in target_node.inputs:
         _wire_target_port_graph_nodes(target_port, graph_nodes)
-    for _, target_port in target_node.output:
+    for _, target_port in target_node.outputs:
         _wire_target_port_graph_nodes(target_port, graph_nodes)
 
 

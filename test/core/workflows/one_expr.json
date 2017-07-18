@@ -3,12 +3,12 @@
   "header": {
     "description": "This is a test workflow composed of a single ExprNode."
   },
-  "input": {
+  "inputs": {
     "a": {},
     "b": {},
     "c": {}
   },
-  "output": {
+  "outputs": {
     "x": {
       "source": "expr_node.x"
     },
@@ -20,12 +20,12 @@
     {
       "id": "expr_node",
       "expression": "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)",
-      "input": {
+      "inputs": {
         "a": "expr_workflow.a",
         "b": "expr_workflow.b",
         "c": "expr_workflow.c"
       },
-      "output": {
+      "outputs": {
         "x": {},
         "y": {}
       }

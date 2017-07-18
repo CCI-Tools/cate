@@ -403,7 +403,7 @@ class ParseOpArgsTest(TestCase):
     def test_existing_method(self):
         op = OP_REGISTRY.get_op('cate.ops.timeseries.tseries_point', True)
         op_args, op_kwargs = _parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
-                                            input_props=op.op_meta_info.input)
+                                            input_props=op.op_meta_info.inputs)
         self.assertEqual(op_args, [])
         self.assertEqual(op_kwargs, OrderedDict([('ds', dict(source='ds')),
                                                  ('point', dict(value=(12.2, 54.3))),
