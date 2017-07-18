@@ -1,13 +1,25 @@
+import os.path
 from collections import OrderedDict
 from unittest import TestCase
+import sys
+
+import xarray as xr
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
+from cate.core.types import FileLike, VarName
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
 from cate.util.opmetainf import OpMetaInfo
 
 MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
+
+DIR = os.path.dirname(__file__)
+SOILMOISTURE_NC = os.path.join(DIR, 'test_data', 'small',
+                               'ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-20000101000000-fv02.2.nc')
+
+MAKE_ENTROPY_EXE = sys.executable + " " + os.path.join(DIR, 'executables', 'mkentropy.py')
+FILTER_DS_EXE = sys.executable + " " + os.path.join(DIR, 'executables', 'filterds.py')
 
 
 class OpTest(TestCase):
@@ -17,7 +29,75 @@ class OpTest(TestCase):
     def tearDown(self):
         self.registry = None
 
-    def test_f(self):
+    def test_executable_no_ds(self):
+        op_reg = self.registry.add_executable(OpMetaInfo('make_entropy',
+                                                         input_dict={
+                                                                     'num_steps': {'data_type': int},
+                                                                     'period': {'data_type': float},
+                                                                 },
+                                                         output_dict={
+                                                                     'return': {'data_type': int}
+                                                                 }),
+                                              MAKE_ENTROPY_EXE + " {num_steps} {period}")
+        exit_code = op_reg(num_steps=5, period=0.05)
+        self.assertEqual(exit_code, 0)
+
+    def test_executable_ds_file(self):
+        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
+                                                         input_dict={
+                                                                     'ifile': {'data_type': FileLike},
+                                                                     'ofile': {'data_type': FileLike},
+                                                                     'var': {'data_type': VarName},
+                                                                 },
+                                                         output_dict={
+                                                                     'return': {'data_type': int}
+                                                                 }),
+                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
+        ofile = os.path.join(DIR, 'test_data', 'filter_ds.nc')
+        if os.path.isfile(ofile):
+            os.remove(ofile)
+        exit_code = op_reg(ifile=SOILMOISTURE_NC, ofile=ofile, var='sm')
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(os.path.isfile(ofile))
+        os.remove(ofile)
+
+    def test_executable_ds_in_mem(self):
+        op_reg = self.registry.add_executable(OpMetaInfo('filter_ds',
+                                                         input_dict={
+                                                                     'ds': {
+                                                                         'data_type': xr.Dataset,
+                                                                         'write_to': 'ifile'
+                                                                     },
+                                                                     'var': {
+                                                                         'data_type': VarName
+                                                                     },
+                                                                 },
+                                                         output_dict={
+                                                                     'return': {
+                                                                         'data_type': xr.Dataset,
+                                                                         'read_from': 'ofile'
+                                                                     }
+                                                                 }),
+                                              FILTER_DS_EXE + " {ifile} {ofile} {var}")
+        ds = xr.open_dataset(SOILMOISTURE_NC)
+        ds_out = op_reg(ds=ds, var='sm')
+        self.assertIsNotNone(ds_out)
+        self.assertIsNotNone('sm' in ds_out)
+
+    def test_expression(self):
+        op_reg = self.registry.add_expression(OpMetaInfo('add_xy',
+                                                         input_dict={
+                                                                     'x': {'data_type': float},
+                                                                     'y': {'data_type': float},
+                                                                 },
+                                                         output_dict={
+                                                                     'return': {'data_type': float}
+                                                                 }),
+                                              'x + y')
+        z = op_reg(x=1.2, y=2.4)
+        self.assertEqual(z, 1.2 + 2.4)
+
+    def test_plain_function(self):
         def f(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f!"""
             return str(a + b + c + u + len(v) + w)
@@ -57,7 +137,7 @@ class OpTest(TestCase):
         with self.assertRaises(ValueError):
             registry.remove_op(f, fail_if_not_exists=True)
 
-    def test_f_op(self):
+    def test_decorated_function(self):
         @op(registry=self.registry)
         def f_op(a: float, b, c, u=3, v='A', w=4.9) -> str:
             """Hi, I am f_op!"""
@@ -83,7 +163,7 @@ class OpTest(TestCase):
                              expected_inputs,
                              expected_outputs)
 
-    def test_f_op_inp_ret(self):
+    def test_decorated_function_with_inputs_and_outputs(self):
         @op_input('a', value_range=[0., 1.], registry=self.registry)
         @op_input('v', value_set=['A', 'B', 'C'], registry=self.registry)
         @op_return(registry=self.registry)

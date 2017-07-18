@@ -105,12 +105,19 @@ Components
 """
 
 from collections import OrderedDict
-from typing import Union, Callable
-
+import platform
+import sys
+import shlex
+from typing import Union, Callable, Optional, Dict
 import xarray as xr
 
 from cate import __version__
-from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED
+from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
+from cate.util.tmpfile import new_temp_file, del_temp_file
+from cate.util.process import execute, ProcessOutputMonitor
+
+_MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
+_RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
 
 
 class OpRegistration:
@@ -119,10 +126,11 @@ class OpRegistration:
     meta-information about the operation.
 
     :param operation: the actual class or any callable object.
+    :param op_meta_info: operation meta information.
     """
 
-    def __init__(self, operation):
-        self._op_meta_info = OpMetaInfo.introspect_operation(operation)
+    def __init__(self, operation, op_meta_info=None):
+        self._op_meta_info = op_meta_info or OpMetaInfo.introspect_operation(operation)
         self._operation = operation
         for attr_name in ['__module__', '__name__', '__qualname__', '__doc__', '__file__']:
             try:
@@ -217,7 +225,8 @@ class OpRegistration:
             input_names = self.op_meta_info.input_names
             for position in range(num_args):
                 if position >= len(input_names):
-                    raise ValueError("too many inputs given for operation '{}'".format(self.op_meta_info.qualified_name))
+                    raise ValueError(
+                        "too many inputs given for operation '{}'".format(self.op_meta_info.qualified_name))
                 input_name = self.op_meta_info.input_names[position]
                 input_values[input_name] = args[position]
 
@@ -229,7 +238,7 @@ class OpRegistration:
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument
-            input_values[self.op_meta_info.MONITOR_INPUT_NAME] = monitor
+            input_values[_MONITOR] = monitor
 
         operation = self.operation
         # call the callable
@@ -251,11 +260,11 @@ class OpRegistration:
         else:
             # return_value is a single value, not a dict
             # set default_value if return_value is missing
-            properties = self.op_meta_info.output[OpMetaInfo.RETURN_OUTPUT_NAME]
+            properties = self.op_meta_info.output[_RETURN]
             if return_value is None:
                 return_value = properties.get('default_value')
             # validate the return_value using this operation's meta-info
-            self.op_meta_info.validate_output_values({OpMetaInfo.RETURN_OUTPUT_NAME: return_value})
+            self.op_meta_info.validate_output_values({_RETURN: return_value})
             # Add history information to the output
             add_history = properties.get('add_history')
             if add_history:
@@ -281,6 +290,189 @@ class OpRegistry:
         """
         return OrderedDict(sorted(self._op_registrations.items(), key=lambda item: item[0]))
 
+    def add_executable(self,
+                       op_meta_info: OpMetaInfo,
+                       command_line_pattern: str,
+                       run_python: bool = False,
+                       cwd: Optional[str] = None,
+                       env: Dict[str, str] = None,
+                       started: Union[str, Callable] = None,
+                       progress: Union[str, Callable] = None,
+                       done: Union[str, Callable] = None,
+                       fail_if_exists: bool=True) -> OpRegistration:
+        """
+        Registers an external executable as an operation.
+
+        :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
+        :param command_line_pattern: A pattern that will be interpolated to obtain the actual command line pattern.
+               May contain "{input_name}" fields which will be replaced by the actual input value converted to text.
+               *input_name* must refer to a valid operation input name in *op_meta_info.input* or it must be
+               the value of either the "write_to" or "read_from" property of another input's property map.
+        :param run_python: If True, *command_line_pattern* refers to a Python script which will be executed with
+               the Python interpreter that Cate uses.
+        :param cwd: Current working directory to run the command line in.
+        :param env: Environment variables passed to the shell that executes the command line.
+        :param started: Either a callable that receives a text line from the executable's stdout
+               and returns a tuple (label, total_work) or a regex that must match
+               in order to signal the start of progress monitoring.
+               The regex must provide the group names "label" or "total_work" or both,
+               e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
+        :param progress: Either a callable that receives a text line from the executable's stdout
+               and returns a tuple (work, msg) or a regex that must match
+               in order to signal process.
+               The regex must provide group names "work" or "msg" or both,
+               e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
+        :param done: Either a callable that receives a text line a text line from the executable's stdout
+               and returns True or False or a regex that must match
+               in order to signal the end of progress monitoring.
+        :param fail_if_exists: If True, a ValueError is raised if an operation with same name is already registered.
+               Otherwise, if the operation exists, it is returned immediately and no other action is performed.
+        :return: The executable wrapped into an operation.
+        """
+
+        op_key = op_meta_info.qualified_name
+        if op_key in self._op_registrations:
+            if fail_if_exists:
+                raise ValueError("operation with name '%s' already registered" % op_key)
+            else:
+                return self._op_registrations[op_key]
+
+        if started or progress and not op_meta_info.has_monitor:
+            op_meta_info = OpMetaInfo(op_qualified_name=op_meta_info.qualified_name,
+                                      has_monitor=True,
+                                      input_dict=op_meta_info.input,
+                                      output_dict=op_meta_info.output,
+                                      header_dict=op_meta_info.header)
+
+        # Idea: process special input properties:
+        #   - "is_cwd" - an input that provides the current working directory, must be of type str
+        #   - "is_env" - an input that provides environment variables, must be of type DictLike
+        #   - "is_output" - an input that provides the file path of an output, must be of type str
+
+        def run(**kwargs):
+
+            format_kwargs = {}
+            temp_input_files = {}
+            temp_output_files = {}
+
+            for name, props in op_meta_info.input.items():
+                value = kwargs.get(name, props.get('default_value', UNDEFINED))
+                if value is not UNDEFINED:
+                    if 'write_to' in props:
+                        new_name = props['write_to']
+                        _, file = new_temp_file(suffix='.nc')
+                        value.to_netcdf(file)
+                        format_kwargs[new_name] = file
+                        temp_input_files[name] = file
+                    else:
+                        try:
+                            value = value.format()
+                        except AttributeError:
+                            pass
+                        format_kwargs[name] = value
+
+            for name, props in op_meta_info.output.items():
+                if 'read_from' in props:
+                    new_name = props['read_from']
+                    _, file = new_temp_file(suffix='.nc')
+                    format_kwargs[new_name] = file
+                    temp_output_files[name] = file
+
+            monitor = None
+            if _MONITOR in format_kwargs:
+                monitor = format_kwargs.pop(_MONITOR)
+
+            command_line = command_line_pattern.format(**format_kwargs)
+
+            stdout_handler = None
+            if monitor:
+                stdout_handler = ProcessOutputMonitor(monitor,
+                                                      label=command_line,
+                                                      started=started, progress=progress, done=done)
+
+            command_line_args = shlex.split(command_line, posix=platform.system() != 'Windows')
+            if run_python:
+                command_line_args = [sys.executable] + command_line_args
+
+            exit_code = execute(command_line_args,
+                                cwd=cwd, env=env,
+                                stdout_handler=stdout_handler,
+                                is_cancelled=monitor.is_cancelled if monitor else None)
+
+            for file in temp_input_files.values():
+                del_temp_file(file)
+
+            return_value = {}
+            for name, file in temp_output_files.items():
+                return_value[name] = xr.open_dataset(file)
+
+            if not return_value:
+                # No output specified, so we return exit code
+                return exit_code
+
+            if exit_code:
+                # There is output specified, but exit code signals error
+                raise ValueError('command [{}] exited with code {}'.format(command_line, exit_code))
+
+            if len(return_value) == 1 and 'return' in return_value:
+                # Single output
+                return return_value['return']
+            else:
+                # Multiple outputs
+                return return_value
+
+        op_registration = OpRegistration(run, op_meta_info=op_meta_info)
+        self._op_registrations[op_key] = op_registration
+        return op_registration
+
+    def add_expression(self,
+                       op_meta_info: OpMetaInfo,
+                       expression: str,
+                       fail_if_exists=True) -> OpRegistration:
+        """
+        Registers a Python expression as an operation.
+
+        :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
+        :param expression: The Python expression. May refer to any name given in *op_meta_info.input*.
+        :param fail_if_exists: If True, a ValueError is raised if an operation with same name is already registered.
+               Otherwise, if the operation exists, it is returned immediately and no other action is performed.
+        :return: The Python expression wrapped into an operation.
+        """
+
+        if not op_meta_info:
+            raise ValueError('op_meta_info must be given')
+        if not expression:
+            raise ValueError('expr must be given')
+
+        op_key = op_meta_info.qualified_name
+        if op_key in self._op_registrations:
+            if fail_if_exists:
+                raise ValueError("operation with name '%s' already registered" % op_key)
+            else:
+                return self._op_registrations[op_key]
+
+        def eval(ctx=None, **kwargs):
+            if ctx:
+                value_cache = ctx.get('value_cache')
+                if value_cache:
+                    kwargs.update(value_cache)
+            return safe_eval(expression, local_namespace=kwargs)
+
+        eval.__name__ = op_key
+        eval.__doc__ = op_meta_info.header.get('description')
+
+        input_dict = dict(op_meta_info.input)
+        input_dict.update(context={'context': True, 'default_value': None})
+        op_meta_info = OpMetaInfo(op_key,
+                                  has_monitor=op_meta_info.has_monitor,
+                                  header_dict=dict(op_meta_info.header),
+                                  input_dict=input_dict,
+                                  output_dict=dict(op_meta_info.output))
+
+        op_registration = OpRegistration(eval, op_meta_info=op_meta_info)
+        self._op_registrations[op_key] = op_registration
+        return op_registration
+
     def add_op(self, operation: Callable, fail_if_exists=True) -> OpRegistration:
         """
         Add a new operation registration.
@@ -300,7 +492,7 @@ class OpRegistry:
         self._op_registrations[op_key] = op_registration
         return op_registration
 
-    def remove_op(self, operation: Callable, fail_if_not_exists=False) -> OpRegistration:
+    def remove_op(self, operation: Callable, fail_if_not_exists=False) -> Optional[OpRegistration]:
         """
         Remove an operation registration.
 
@@ -518,7 +710,8 @@ def op_output(output_name: str,
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the named output.
+    :param properties: Other properties (keyword arguments) that
+           will be added to the meta-information of the named output.
     :param registry: Optional operation registry.
     """
 
@@ -579,7 +772,8 @@ def op_return(data_type=UNDEFINED,
         @op(version='X.x')
 
     :param data_type: The data type of the return value.
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of the return value.
+    :param properties: Other properties (keyword arguments)
+           that will be added to the meta-information of the return value.
     :param registry: The operation registry.
     """
     return op_output(OpMetaInfo.RETURN_OUTPUT_NAME,

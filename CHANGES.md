@@ -1,17 +1,22 @@
 ## Changes in version 0.9.0.dev4
 
-* pearson_correlation has been split into two operations.
-  pearson_correlation_simple that produces a single pair of a correlation
-  coefficient and a probability value for the given timeseries.
-  pearson_correlation_map produces a map of correlation coefficients and p_values
-  and outputs this as a dataset that can be worked with further.
+### Operation Improvements
 
-* Performance of pearson correlation has been radically improved, the operations can now
+* The `pearson_correlation` operation has been split into two operations:
+  * `pearson_correlation_simple` that produces a single pair of a correlation
+    coefficient and a probability value for the given timeseries.
+  * `pearson_correlation_map` produces a map of correlation coefficients and p-values
+    and outputs this as a dataset that can be worked with further.
+    
+  Performance of pearson correlation has been radically improved. In addition, the operations can now
   accept both, a dataset and a dataframe and a map can be created also by
   performing correlation of a single timeseries against all spatial points in the
   other dataset.
+* External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
+  the *MPI Climate Data Operators* can now be registered as operations. (ONGOING)
+* A uniform way of handling spatiotemporal global attributes has been introduced
 
-* A uniform way for handling global spatiotemporal attributes has been added
+### Issues Fixed
 
 * Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
 * Fixed [#283](https://github.com/CCI-Tools/cate-core/issues/283)
