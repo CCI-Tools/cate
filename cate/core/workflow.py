@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -123,6 +121,10 @@ from typing import Sequence, Optional, Union, List, Dict
 
 from .op import OP_REGISTRY, Operation, Monitor
 from ..util import Namespace, UNDEFINED, safe_eval, OpMetaInfo
+
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 
 #: Version number of Workflow JSON schema.
 #: Will be incremented with the first schema change after public release.

@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -29,12 +27,16 @@ Implementation of generic :py:func:``read_object`` / :py:func:``write_object`` f
 on a global I/O registry ``OBJECT_IO_REGISTRY`` singleton.
 
 """
+
 import os.path
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
-from cate.util.monitor import Monitor
 from .op import Operation
+from ..util import Monitor
+
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def find_reader(file, format_name=None, **kwargs):

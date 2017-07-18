@@ -19,10 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
-
 """
 Description
 ===========
@@ -81,6 +77,7 @@ and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` fo
 Components
 ==========
 """
+
 import glob
 import os.path
 from abc import ABCMeta, abstractmethod
@@ -89,11 +86,16 @@ from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
 
-from cate.conf import get_config_path
-from cate.conf.defaults import DEFAULT_DATA_PATH
-from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
-from cate.util.monitor import Monitor
+from ..conf import get_config_path
+from ..conf.defaults import DEFAULT_DATA_PATH
+from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
+from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from ..util import Monitor
+
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 
 def get_data_stores_path() -> str:

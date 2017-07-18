@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -118,6 +116,8 @@ from ..version import __version__
 from ..util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
 from ..util.process import execute, ProcessOutputMonitor
 from ..util.tmpfile import new_temp_file, del_temp_file
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 _RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
@@ -785,6 +785,7 @@ def new_expression_op(op_meta_info: OpMetaInfo, expression: str) -> Operation:
         return safe_eval(expression, local_namespace=kwargs)
 
     inputs = dict(op_meta_info.inputs)
+    # noinspection PyArgumentList
     inputs.update(context={'context': True, 'default_value': None})
     op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                               has_monitor=op_meta_info.has_monitor,

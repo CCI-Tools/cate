@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import os
 import pprint
 import shutil
@@ -34,6 +32,8 @@ from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
 from ..util import UNDEFINED, Monitor, safe_eval
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class WorkspaceManager(metaclass=ABCMeta):

@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
-             "Janis Gailis (S[&]T Norway)"
-
 """
 Description
 ===========
@@ -56,7 +53,8 @@ Technical Requirements
 :URD References:
     * CCIT-UR-DM0001: a) access, b) ingest, c) display, d) process different kinds and sizes of data
     * CCIT-UR-DM0003: multi-dimensional data
-    * CCIT-UR-DM0005: access all ECV data products and metadata via standard user-community interfaces, protocols, and tools
+    * CCIT-UR-DM0005: access all ECV data products and metadata via standard user-community interfaces,
+                      protocols, and tools
     * CCIT-UR-DM0006: access to and ingestion of ESA CCI datasets
     * CCIT-UR-DM0011: access to and ingestion of non-CCI data
     * CCIT-UR-DM0012: handle different input file formats
@@ -114,8 +112,10 @@ from collections import OrderedDict
 from typing import List, Optional, Sequence, Union
 import xarray as xr
 
+from ..util.misc import object_to_qualified_name, qualified_name_to_object
 
-from cate.util.misc import object_to_qualified_name, qualified_name_to_object
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
+             "Janis Gailis (S[&]T Norway)"
 
 
 class Schema:

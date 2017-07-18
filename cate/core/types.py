@@ -19,10 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway), " \
-             "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -45,12 +41,17 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
+import pandas as pd
+import xarray as xr
 from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
-from cate.util.misc import to_list, to_datetime_range, to_datetime
-from cate.util.safe import safe_eval
+from ..util import safe_eval, to_list, to_datetime_range, to_datetime
+
+__author__ = "Janis Gailis (S[&]T Norway), " \
+             "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 T = TypeVar('T')
 
@@ -545,10 +546,6 @@ class TimeRangeLike(Like[TimeRange]):
         if not value:
             return ''
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
-
-
-import xarray as xr
-import pandas as pd
 
 
 class DatasetLike(Like[xr.Dataset]):
