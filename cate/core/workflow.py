@@ -129,9 +129,11 @@ from .workflow_svg import Drawing as _Drawing
 from .workflow_svg import Graph as _Graph
 from .workflow_svg import Node as _Node
 
-#: Increment number on any (JSON) schema change
+#: Version number of Workflow JSON schema.
+#: Will be incremented with the first schema change after public release.
 WORKFLOW_SCHEMA_VERSION = 1
-WORKFLOW_SCHEMA_TAG = 'schema'
+
+WORKFLOW_SCHEMA_VERSION_TAG = 'schema_version'
 
 
 class Node(metaclass=ABCMeta):
@@ -748,7 +750,7 @@ class Workflow(Node):
         output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
 
         workflow_json_dict = OrderedDict()
-        workflow_json_dict[WORKFLOW_SCHEMA_TAG] = WORKFLOW_SCHEMA_VERSION
+        workflow_json_dict[WORKFLOW_SCHEMA_VERSION_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
         workflow_json_dict['inputs'] = input_json_dict
