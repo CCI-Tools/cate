@@ -40,7 +40,7 @@ class WorkflowTest(TestCase):
         step1 = OpStep(op1, node_id='op1')
         step2 = OpStep(op2, node_id='op2')
         step3 = OpStep(op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('myWorkflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow = Workflow(OpMetaInfo('myWorkflow', inputs=OrderedDict(p={}), outputs=OrderedDict(q={})))
         workflow.add_steps(step1, step2, step3)
         step1.inputs.x.source = workflow.inputs.p
         step2.inputs.a.source = step1.outputs.y
@@ -300,7 +300,7 @@ class WorkflowTest(TestCase):
         step1 = OpStep(op1, node_id='op1')
         step2 = OpStep(op2, node_id='op2')
         step3 = OpStep(op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        workflow = Workflow(OpMetaInfo('my_workflow', inputs=OrderedDict(p={}), outputs=OrderedDict(q={})))
         workflow.add_steps(step1, step2, step3)
         step1.inputs.x.source = workflow.inputs.p
         step2.inputs.a.source = step1.outputs.y
@@ -362,21 +362,6 @@ class WorkflowTest(TestCase):
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
 
-    def test_repr_svg(self):
-        step1 = OpStep(op1, node_id='op1')
-        step2 = OpStep(op2, node_id='op2')
-        step3 = OpStep(op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        workflow.add_steps(step1, step2, step3)
-        step1.inputs.x.source = workflow.inputs.p
-        step2.inputs.a.source = step1.outputs.y
-        step3.inputs.u.source = step1.outputs.y
-        step3.inputs.v.source = step2.outputs.b
-        workflow.outputs.q.source = step3.outputs.w
-
-        workflow_json = workflow._repr_svg_()
-        # print('\n\n%s\n\n' % workflow_json)
-        self.assertIsNotNone(workflow_json)
 
 
 class ExprStepTest(TestCase):
@@ -578,8 +563,8 @@ class WorkflowStepTest(TestCase):
 
         workflow = Workflow(OpMetaInfo('contains_jojo_87',
                                        has_monitor=True,
-                                       input_dict=OrderedDict(x={}),
-                                       output_dict=OrderedDict(y={})))
+                                       inputs=OrderedDict(x={}),
+                                       outputs=OrderedDict(y={})))
         workflow.add_step(step)
         step.inputs.p.source = workflow.inputs.x
         workflow.outputs.y.source = step.outputs.q
@@ -827,8 +812,8 @@ class OpStepTest(TestCase):
 
 class NoOpStepTest(TestCase):
     def test_init(self):
-        step = NoOpStep(input_dict=OrderedDict([('a', {}), ('b', {})]),
-                        output_dict=OrderedDict([('c', {}), ('d', {})]))
+        step = NoOpStep(inputs=OrderedDict([('a', {}), ('b', {})]),
+                        outputs=OrderedDict([('c', {}), ('d', {})]))
 
         self.assertRegex(step.id, '^no_op_step_[0-9a-f]+$')
 
@@ -848,8 +833,8 @@ class NoOpStepTest(TestCase):
         self.assertEqual(repr(step), "NoOpStep(node_id='%s')" % step.id)
 
     def test_invoke(self):
-        step = NoOpStep(input_dict=OrderedDict([('a', {}), ('b', {})]),
-                        output_dict=OrderedDict([('c', {}), ('d', {})]))
+        step = NoOpStep(inputs=OrderedDict([('a', {}), ('b', {})]),
+                        outputs=OrderedDict([('c', {}), ('d', {})]))
 
         # Operation: Swap input
         step.outputs.c.source = step.inputs.b
@@ -900,7 +885,7 @@ class NoOpStepTest(TestCase):
 class SubProcessStepTest(TestCase):
     def test_init(self):
         step = SubProcessStep(['cd', '{{dir}}'],
-                              input_dict=OrderedDict(dir=dict(data_type=str)))
+                              inputs=OrderedDict(dir=dict(data_type=str)))
 
         self.assertRegex(step.id, '^sub_process_step_[0-9a-f]+$')
 
@@ -921,7 +906,7 @@ class SubProcessStepTest(TestCase):
 
     def test_invoke(self):
         step = SubProcessStep(['cd', '{{dir}}'],
-                              input_dict=OrderedDict([('dir', dict(data_type=str))]))
+                              inputs=OrderedDict([('dir', dict(data_type=str))]))
 
         step.inputs.dir.value = '..'
 
@@ -1026,8 +1011,8 @@ class NodePortTest(TestCase):
 
         g = Workflow(OpMetaInfo('myWorkflow',
                                 has_monitor=True,
-                                input_dict=OrderedDict(x={}),
-                                output_dict=OrderedDict(b={})))
+                                inputs=OrderedDict(x={}),
+                                outputs=OrderedDict(b={})))
         g.add_steps(step1, step2)
 
         step2.inputs.a.update_source()

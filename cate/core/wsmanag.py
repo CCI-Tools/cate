@@ -29,7 +29,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List, Union
 
-from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
@@ -281,7 +281,7 @@ class FSWorkspaceManager(WorkspaceManager):
         if old_workspace:
             old_workspace.resource_cache.close()
         # Create new workflow but keep old header info
-        workflow = Workspace.new_workflow(header_dict=old_workflow.op_meta_info.header if old_workflow else None)
+        workflow = Workspace.new_workflow(header=old_workflow.op_meta_info.header if old_workflow else None)
         workspace = Workspace(base_dir, workflow)
         self._open_workspaces[base_dir] = workspace
         workspace.save()

@@ -27,8 +27,8 @@ Cate's core API.
 from .ds import DataStore, DataSource, open_dataset, query_data_sources, DATA_STORE_REGISTRY
 
 # noinspection PyUnresolvedReferences
-from .op import op, op_input, op_output, op_return, OpMetaInfo, Operation, \
-    new_expression_op, new_executable_op, OP_REGISTRY
+from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \
+    new_expression_op, new_executable_op
 
 # noinspection PyUnresolvedReferences
 from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort, \
@@ -36,6 +36,9 @@ from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, Ex
 
 # noinspection PyUnresolvedReferences
 from ..util.monitor import Monitor, ChildMonitor, ConsoleMonitor
+
+# noinspection PyUnresolvedReferences
+from ..util.opmetainf import OpMetaInfo
 
 # Run plugin registration by importing the plugin module
 # noinspection PyUnresolvedReferences

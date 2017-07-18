@@ -25,7 +25,7 @@ import re
 from collections import OrderedDict
 from typing import Tuple, Dict, List, Any, Optional
 
-from cate.util import object_to_qualified_name, qualified_name_to_object
+from .misc import object_to_qualified_name, qualified_name_to_object
 
 Props = Dict[str, Any]
 
@@ -47,26 +47,27 @@ class OpMetaInfo:
 
     :param op_qualified_name: The operation's qualified name.
     :param has_monitor: Whether the operation supports a :py:class:`Monitor` keyword argument named ``monitor``.
-    :param header_dict: Header information dictionary.
-    :param input_dict: Input information dictionary.
-    :param output_dict: Output information dictionary.
+    :param header: Header information dictionary.
+    :param input_names: Input information dictionary.
+    :param inputs: Input information dictionary.
+    :param outputs: Output information dictionary.
     """
 
     def __init__(self,
-                 op_qualified_name: str,
+                 qualified_name: str,
                  has_monitor: bool = False,
-                 header_dict: dict = None,
-                 arg_inputs: List[Tuple[str, Props]] = None,
-                 input_dict: Dict[str, Props] = None,
-                 output_dict: Dict[str, Props] = None):
-        if not op_qualified_name:
-            raise ValueError("argument 'op_qualified_name' is required")
-        self._qualified_name = op_qualified_name
+                 header: dict = None,
+                 input_names: List[str] = None,
+                 inputs: Dict[str, Props] = None,
+                 outputs: Dict[str, Props] = None):
+        if not qualified_name:
+            raise ValueError("qualified_name must be given")
+        self._qualified_name = qualified_name
         self._has_monitor = True if has_monitor else False
-        self._header = header_dict if header_dict else dict()
-        self._inputs = OrderedDict(input_dict if input_dict else {})
-        self._outputs = OrderedDict(output_dict if output_dict else {})
-        self._input_names = arg_inputs or self._get_input_names(self._inputs)
+        self._header = header if header else dict()
+        self._inputs = OrderedDict(inputs if inputs else {})
+        self._outputs = OrderedDict(outputs if outputs else {})
+        self._input_names = input_names or self._get_input_names(self._inputs)
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -161,10 +162,10 @@ class OpMetaInfo:
         input_dict = json_dict.get('inputs', kwargs.get('inputs', None))
         output_dict = json_dict.get('outputs', kwargs.get('outputs', None))
         return OpMetaInfo(qualified_name,
-                          header_dict=header_obj,
+                          header=header_obj,
                           has_monitor=has_monitor,
-                          input_dict=cls.json_dict_to_object_dict(input_dict, json_to_data_type),
-                          output_dict=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
+                          inputs=cls.json_dict_to_object_dict(input_dict, json_to_data_type),
+                          outputs=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
 
     @classmethod
     def object_dict_to_json_dict(cls, obj_dict, data_type_to_json=None):
@@ -238,10 +239,10 @@ class OpMetaInfo:
                     output_dict[return_name]['description'] = return_description
 
         return OpMetaInfo(op_qualified_name,
-                          header_dict=header,
+                          header=header,
                           has_monitor=has_monitor,
-                          input_dict=input_dict,
-                          output_dict=output_dict)
+                          inputs=input_dict,
+                          outputs=output_dict)
 
     @classmethod
     def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> \
@@ -458,26 +459,26 @@ class OpMetaInfo:
             .replace('`', '')
 
     @classmethod
-    def _get_input_names(cls, input_dict: Dict[str, Props]) -> List[str]:
-        num_args = len(input_dict)
-        if not num_args:
+    def _get_input_names(cls, inputs: Dict[str, Props]) -> List[str]:
+        num_inputs = len(inputs)
+        if not num_inputs:
             return []
-        args = num_args * ['']
+        input_names = num_inputs * ['']
         index = 0
-        for name, props in input_dict.items():
+        for name, props in inputs.items():
             position = props.get('position', index)
-            if 0 <= position < num_args:
-                if args[position]:
+            if 0 <= position < num_inputs:
+                if input_names[position]:
                     raise ValueError("illegal input property, position={} used twice".format(position))
             else:
                 raise ValueError(
-                    "illegal input property, expected position={} to {}, but was {}".format(0, num_args - 1, position))
-            args[position] = name
+                    "illegal input property, expected position={} to {}, but was {}".format(0, num_inputs - 1, position))
+            input_names[position] = name
             index += 1
-        for position in range(num_args):
-            if not args[position]:
+        for position in range(num_inputs):
+            if not input_names[position]:
                 raise ValueError("illegal input properties, position={} is undefined".format(position))
-        return args
+        return input_names
 
 
 _SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")

@@ -32,11 +32,11 @@ class OpTest(TestCase):
 
     def test_new_executable_op_without_ds(self):
         op = new_executable_op(OpMetaInfo('make_entropy',
-                                          input_dict={
+                                          inputs={
                                               'num_steps': {'data_type': int},
                                               'period': {'data_type': float},
                                           },
-                                          output_dict={
+                                          outputs={
                                               'return': {'data_type': int}
                                           }),
                                MAKE_ENTROPY_EXE + " {num_steps} {period}")
@@ -45,12 +45,12 @@ class OpTest(TestCase):
 
     def test_new_executable_op_with_ds_file(self):
         op = new_executable_op(OpMetaInfo('filter_ds',
-                                          input_dict={
+                                          inputs={
                                               'ifile': {'data_type': FileLike},
                                               'ofile': {'data_type': FileLike},
                                               'var': {'data_type': VarName},
                                           },
-                                          output_dict={
+                                          outputs={
                                               'return': {'data_type': int}
                                           }),
                                FILTER_DS_EXE + " {ifile} {ofile} {var}")
@@ -64,7 +64,7 @@ class OpTest(TestCase):
 
     def test_new_executable_op_with_ds_in_mem(self):
         op = new_executable_op(OpMetaInfo('filter_ds',
-                                          input_dict={
+                                          inputs={
                                               'ds': {
                                                   'data_type': xr.Dataset,
                                                   'write_to': 'ifile'
@@ -73,7 +73,7 @@ class OpTest(TestCase):
                                                   'data_type': VarName
                                               },
                                           },
-                                          output_dict={
+                                          outputs={
                                               'return': {
                                                   'data_type': xr.Dataset,
                                                   'read_from': 'ofile'
@@ -87,11 +87,11 @@ class OpTest(TestCase):
 
     def test_new_expression_op(self):
         op = new_expression_op(OpMetaInfo('add_xy',
-                                          input_dict={
+                                          inputs={
                                               'x': {'data_type': float},
                                               'y': {'data_type': float},
                                           },
-                                          output_dict={
+                                          outputs={
                                               'return': {'data_type': float}
                                           }),
                                'x + y')

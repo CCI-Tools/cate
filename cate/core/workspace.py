@@ -36,13 +36,13 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
-from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
-from cate.core.op import OP_REGISTRY
-from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
-from cate.util.im import ImagePyramid, get_chunk_size
-from cate.util.opmetainf import OpMetaInfo
+from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
+from ..core.cdm import get_lon_dim_name, get_lat_dim_name
+from ..core.op import OP_REGISTRY
+from .workflow import Workflow, OpStep, NodePort, ValueCache
+from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
+from ..util.im import ImagePyramid, get_chunk_size
+from ..util.opmetainf import OpMetaInfo
 
 #: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
 #: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
@@ -148,10 +148,10 @@ class Workspace:
         return os.path.join(cls.get_workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
-    def new_workflow(cls, header_dict: dict = None) -> Workflow:
+    def new_workflow(cls, header: dict = None) -> Workflow:
         return Workflow(OpMetaInfo('workspace_workflow',
                                    has_monitor=True,
-                                   header_dict=header_dict or {}))
+                                   header=header or {}))
 
     @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':

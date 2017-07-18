@@ -121,13 +121,8 @@ from io import IOBase
 from itertools import chain
 from typing import Sequence, Optional, Union, List, Dict
 
-from cate.util import Namespace, UNDEFINED, safe_eval
-from cate.util.monitor import Monitor
-from cate.util.opmetainf import OpMetaInfo
-from .op import OP_REGISTRY, Operation
-from .workflow_svg import Drawing as _Drawing
-from .workflow_svg import Graph as _Graph
-from .workflow_svg import Node as _Node
+from .op import OP_REGISTRY, Operation, Monitor
+from ..util import Namespace, UNDEFINED, safe_eval, OpMetaInfo
 
 #: Version number of Workflow JSON schema.
 #: Will be incremented with the first schema change after public release.
@@ -687,9 +682,9 @@ class Workflow(Node):
         outputs_obj_dict = OpMetaInfo.json_dict_to_object_dict(outputs_json_dict)
         op_meta_info = OpMetaInfo(qualified_name,
                                   has_monitor=True,
-                                  header_dict=header_json_dict,
-                                  input_dict=inputs_obj_dict,
-                                  output_dict=outputs_obj_dict)
+                                  header=header_json_dict,
+                                  inputs=inputs_obj_dict,
+                                  outputs=outputs_obj_dict)
 
         # parse all step nodes
         steps = []
@@ -762,15 +757,6 @@ class Workflow(Node):
 
     def __repr__(self) -> str:
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
-
-    def _repr_svg_(self) -> str:
-        """
-        Get a SVG-representation for IPython notebooks.
-
-        :return: An SVG-representation of this workflow.
-        """
-        graph = _convert_workflow_to_graph(self)
-        return _Drawing(graph).to_svg()
 
 
 class Step(Node):
@@ -1067,16 +1053,16 @@ class ExprStep(Step):
     An ``ExprStep`` is a step node that computes its output from a simple (Python) *expression* string.
 
     :param expression: A simple (Python) expression string.
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, expression: str, input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, expression: str, inputs=None, outputs=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
         node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
         if len(op_meta_info.outputs) == 0:
             op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(ExprStep, self).__init__(op_meta_info, node_id)
@@ -1141,14 +1127,14 @@ class NoOpStep(Step):
     ``NoOpStep`` as a placeholder or blackbox for some other real operation that will be put into place at a later
     point in time.
 
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, inputs=None, outputs=None, node_id=None):
         node_id = node_id if node_id else 'no_op_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
         if len(op_meta_info.outputs) == 0:
             op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(NoOpStep, self).__init__(op_meta_info, node_id)
@@ -1190,8 +1176,8 @@ class SubProcessStep(Step):
 
     :param sub_process_arguments: The sub process' arguments as list where the first entry is usually an executable and
            remaining entries are the executable's arguments.
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
@@ -1199,13 +1185,13 @@ class SubProcessStep(Step):
                  sub_process_arguments: List[str],
                  environment_variables: Dict[str, str] = None,
                  working_directory: str = '',
-                 input_dict=None,
-                 output_dict=None,
+                 inputs=None,
+                 outputs=None,
                  node_id=None):
         if not sub_process_arguments:
             raise ValueError('sub_process_arguments must be given')
         node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
+        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
         if len(op_meta_info.outputs) == 0:
             op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
         super(SubProcessStep, self).__init__(op_meta_info, node_id)
@@ -1536,27 +1522,6 @@ class NodePort:
         return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))
 
 
-def _convert_workflow_to_graph(workflow: Workflow):
-    graph_nodes = {step.id: _convert_step_to_graph_node(step) for step in workflow.steps}
-    graph = _Graph(workflow.op_meta_info.qualified_name,
-                   [name for name, _ in workflow.inputs],
-                   [name for name, _ in workflow.outputs],
-                   list(graph_nodes.values()))
-
-    graph_nodes[workflow.id] = graph
-    _wire_target_node_graph_nodes(workflow, graph_nodes)
-    for step in workflow.steps:
-        _wire_target_node_graph_nodes(step, graph_nodes)
-
-    return graph
-
-
-def _convert_step_to_graph_node(step: Step):
-    return _Node(step.op_meta_info.qualified_name,
-                 [name for name, _ in step.inputs],
-                 [name for name, _ in step.outputs])
-
-
 def _wire_target_node_graph_nodes(target_node, graph_nodes):
     for _, target_port in target_node.inputs:
         _wire_target_port_graph_nodes(target_port, graph_nodes)
@@ -1722,7 +1687,7 @@ def new_workflow_op(workflow_or_path: Union[str, Workflow]) -> Operation:
     """
     Create an operation from a workflow read from the given path.
 
-    :param workflow_path: Either a path to Workflow JSON file or :py:class:`Workflow` object.
+    :param workflow_or_path: Either a path to Workflow JSON file or :py:class:`Workflow` object.
     :return: The workflow operation.
     """
     workflow = Workflow.load(workflow_or_path) if isinstance(workflow_or_path, str) else workflow_or_path

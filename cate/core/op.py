@@ -114,10 +114,10 @@ from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
-from cate import __version__
-from cate.util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
-from cate.util.process import execute, ProcessOutputMonitor
-from cate.util.tmpfile import new_temp_file, del_temp_file
+from ..version import __version__
+from ..util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
+from ..util.process import execute, ProcessOutputMonitor
+from ..util.tmpfile import new_temp_file, del_temp_file
 
 _MONITOR = OpMetaInfo.MONITOR_INPUT_NAME
 _RETURN = OpMetaInfo.RETURN_OUTPUT_NAME
@@ -676,9 +676,9 @@ def new_executable_op(op_meta_info: OpMetaInfo,
     if started or progress and not op_meta_info.has_monitor:
         op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                                   has_monitor=True,
-                                  input_dict=op_meta_info.inputs,
-                                  output_dict=op_meta_info.outputs,
-                                  header_dict=op_meta_info.header)
+                                  inputs=op_meta_info.inputs,
+                                  outputs=op_meta_info.outputs,
+                                  header=op_meta_info.header)
 
     # Idea: process special input properties:
     #   - "is_cwd" - an input that provides the current working directory, must be of type str
@@ -784,13 +784,13 @@ def new_expression_op(op_meta_info: OpMetaInfo, expression: str) -> Operation:
                 kwargs.update(value_cache)
         return safe_eval(expression, local_namespace=kwargs)
 
-    input_dict = dict(op_meta_info.inputs)
-    input_dict.update(context={'context': True, 'default_value': None})
+    inputs = dict(op_meta_info.inputs)
+    inputs.update(context={'context': True, 'default_value': None})
     op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                               has_monitor=op_meta_info.has_monitor,
-                              header_dict=dict(op_meta_info.header),
-                              input_dict=input_dict,
-                              output_dict=dict(op_meta_info.outputs))
+                              header=dict(op_meta_info.header),
+                              inputs=inputs,
+                              outputs=dict(op_meta_info.outputs))
 
     eval_expression.__name__ = op_meta_info.qualified_name
     eval_expression.__doc__ = op_meta_info.header.get('description')
