@@ -24,23 +24,21 @@ Cate's core API.
 """
 
 # noinspection PyUnresolvedReferences
-from .ds import DataStore, DataSource, open_dataset, query_data_sources
+from .ds import DataStore, DataSource, open_dataset, query_data_sources, DATA_STORE_REGISTRY
+
 # noinspection PyUnresolvedReferences
-from .op import op, op_input, op_output, op_return, OpMetaInfo, Operation
+from .op import op, op_input, op_output, op_return, OpMetaInfo, Operation, \
+    new_expression_op, new_executable_op, OP_REGISTRY
+
 # noinspection PyUnresolvedReferences
-from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
+from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort, \
+    new_workflow_op
+
 # noinspection PyUnresolvedReferences
 from ..util.monitor import Monitor, ChildMonitor, ConsoleMonitor
 
 # Run plugin registration by importing the plugin module
 # noinspection PyUnresolvedReferences
 from .plugin import cate_init as _
-
 del _
 
-__all__ = """
-    DataStore, DataSource, open_dataset, query_data_sources
-    op, op_input, op_output, op_return, OpMetaInfo, Operation
-    Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort
-    Monitor, ChildMonitor, ConsoleMonitor
-""".split()
