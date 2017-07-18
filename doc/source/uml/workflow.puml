@@ -4,13 +4,13 @@ abstract Node {
     id : str
     inputs : Dict[str, NodePort]
     outputs : Dict[str, NodePort]
-    {abstract} from_json_dict(json_dict)
+    {abstract} from_json(json_dict)
     {abstract} to_json_dict() : dict
     {abstract} invoke(monitor, **args)
 }
 
 class Workflow extends Node {
-    from_json_dict(json_dict)
+    from_json(json_dict)
     to_json_dict() : dict
     invoke(monitor, **args)
 }

@@ -431,6 +431,7 @@ class Node(metaclass=ABCMeta):
         if props:
             data_type = props.get('data_type')
             if data_type:
+                # noinspection PyBroadException
                 try:
                     return data_type.format(value)
                 except:
@@ -677,18 +678,18 @@ class Workflow(Node):
         if qualified_name is None:
             raise ValueError('missing mandatory property "qualified_name" in Workflow-JSON')
         header_json_dict = workflow_json_dict.get('header', {})
-        input_json_dict = workflow_json_dict.get('inputs', {})
-        output_json_dict = workflow_json_dict.get('outputs', {})
+        inputs_json_dict = workflow_json_dict.get('inputs', {})
+        outputs_json_dict = workflow_json_dict.get('outputs', {})
         steps_json_list = workflow_json_dict.get('steps', [])
 
         # convert 'data_type' entries to Python types in op_meta_info_input_json_dict & node_output_json_dict
-        input_obj_dict = OpMetaInfo.json_dict_to_object_dict(input_json_dict)
-        output_obj_dict = OpMetaInfo.json_dict_to_object_dict(output_json_dict)
+        inputs_obj_dict = OpMetaInfo.json_dict_to_object_dict(inputs_json_dict)
+        outputs_obj_dict = OpMetaInfo.json_dict_to_object_dict(outputs_json_dict)
         op_meta_info = OpMetaInfo(qualified_name,
                                   has_monitor=True,
                                   header_dict=header_json_dict,
-                                  input_dict=input_obj_dict,
-                                  output_dict=output_obj_dict)
+                                  input_dict=inputs_obj_dict,
+                                  output_dict=outputs_obj_dict)
 
         # parse all step nodes
         steps = []
@@ -708,9 +709,9 @@ class Workflow(Node):
         workflow.add_steps(*steps)
 
         for node_input in workflow.inputs[:]:
-            node_input.from_json_dict(input_json_dict)
+            node_input.from_json(inputs_json_dict.get(node_input.name))
         for node_output in workflow.outputs[:]:
-            node_output.from_json_dict(output_json_dict)
+            node_output.from_json(outputs_json_dict.get(node_output.name))
 
         workflow.update_sources()
         return workflow
@@ -721,23 +722,23 @@ class Workflow(Node):
 
         :return: A JSON-serializable dictionary
         """
-        # Developer note: keep variable naming consistent with Workflow.from_json_dict() method
+        # Developer note: keep variable naming consistent with Workflow.from_json() method
 
         # convert all inputs to JSON dicts
-        input_json_dict = OrderedDict()
+        inputs_json_dict = OrderedDict()
         for node_input in self._inputs[:]:
-            node_input_json_dict = node_input.to_json_dict()
+            node_input_json_dict = node_input.to_json()
             if node_input.name in self.op_meta_info.inputs:
                 node_input_json_dict.update(self.op_meta_info.inputs[node_input.name])
-            input_json_dict[node_input.name] = node_input_json_dict
+            inputs_json_dict[node_input.name] = node_input_json_dict
 
         # convert all outputs to JSON dicts
-        output_json_dict = OrderedDict()
+        outputs_json_dict = OrderedDict()
         for node_output in self._outputs[:]:
-            node_output_json_dict = node_output.to_json_dict()
+            node_output_json_dict = node_output.to_json()
             if node_output.name in self.op_meta_info.outputs:
                 node_output_json_dict.update(self.op_meta_info.outputs[node_output.name])
-            output_json_dict[node_output.name] = node_output_json_dict
+            outputs_json_dict[node_output.name] = node_output_json_dict
 
         # convert all step nodes to JSON dicts
         steps_json_list = []
@@ -746,15 +747,15 @@ class Workflow(Node):
 
         # convert 'data_type' Python types entries to JSON-strings
         header_json_dict = self.op_meta_info.header
-        input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
-        output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
+        inputs_json_dict = OpMetaInfo.object_dict_to_json_dict(inputs_json_dict)
+        outputs_json_dict = OpMetaInfo.object_dict_to_json_dict(outputs_json_dict)
 
         workflow_json_dict = OrderedDict()
         workflow_json_dict[WORKFLOW_SCHEMA_VERSION_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
-        workflow_json_dict['inputs'] = input_json_dict
-        workflow_json_dict['outputs'] = output_json_dict
+        workflow_json_dict['inputs'] = inputs_json_dict
+        workflow_json_dict['outputs'] = outputs_json_dict
         workflow_json_dict['steps'] = steps_json_list
 
         return workflow_json_dict
@@ -819,25 +820,25 @@ class Step(Node):
 
         step.persistent = json_dict.get('persistent', False)
 
-        step_input_dict = json_dict.get('inputs', {})
-        for name, properties in step_input_dict.items():
+        step_inputs_json_dict = json_dict.get('inputs', {})
+        for name, step_input_json in step_inputs_json_dict.items():
             if name not in step.inputs:
                 # update op_meta_info
                 step.op_meta_info.inputs[name] = step.op_meta_info.inputs.get(name, {})
                 # then create a new port
                 step.inputs[name] = NodePort(step, name)
             step_input = step.inputs[name]
-            step_input.from_json_dict(step_input_dict)
+            step_input.from_json(step_input_json)
 
-        step_output_dict = json_dict.get('outputs', {})
-        for name, properties in step_output_dict.items():
+        step_outputs_json_dict = json_dict.get('outputs', {})
+        for name, step_output_json in step_outputs_json_dict.items():
             if name not in step.outputs:
                 # first update op_meta_info
                 step.op_meta_info.outputs[name] = step.op_meta_info.outputs.get(name, {})
                 # then create a new port
                 step.outputs[name] = NodePort(step, name)
             step_output = step.outputs[name]
-            step_output.from_json_dict(step_output_dict)
+            step_output.from_json(step_output_json)
 
         return step
 
@@ -871,10 +872,10 @@ class Step(Node):
         return step_json_dict
 
     def get_inputs_json_dict(self):
-        return OrderedDict([(node_input.name, node_input.to_json_dict()) for node_input in self.inputs[:]])
+        return OrderedDict([(node_input.name, node_input.to_json()) for node_input in self.inputs[:]])
 
     def get_outputs_json_dict(self):
-        return OrderedDict([(node_output.name, node_output.to_json_dict()) for node_output in self.outputs[:]])
+        return OrderedDict([(node_output.name, node_output.to_json()) for node_output in self.outputs[:]])
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
@@ -1041,7 +1042,7 @@ class OpStep(Step):
     def get_inputs_json_dict(self):
         inputs_json_dict = OrderedDict()
         for node_input in self.inputs[:]:
-            input_json_dict = node_input.to_json_dict()
+            input_json_dict = node_input.to_json()
             if input_json_dict and node_input.is_value:
                 value = node_input.value
                 input_props = self.op_meta_info.inputs.get(node_input.name)
@@ -1432,15 +1433,11 @@ class NodePort:
                     "cannot connect '%s' with '.%s' because '%s' does not exist in any scope" % (
                         self, other_name, other_name))
 
-    def from_json_dict(self, json_dict):
+    def from_json(self, port_json):
         self._source_ref = None
         self._source = None
         self._value = UNDEFINED
 
-        if json_dict is None:
-            return
-
-        port_json = json_dict.get(self.name, None)
         if port_json is None:
             return
 
@@ -1475,7 +1472,7 @@ class NodePort:
             raise ValueError(source_format_msg % self)
         self._source_ref = node_id, port_name
 
-    def to_json_dict(self):
+    def to_json(self):
         """
         Return a JSON-serializable dictionary representation of this object.
 

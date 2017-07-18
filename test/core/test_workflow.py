@@ -1031,57 +1031,57 @@ class NodePortTest(TestCase):
         step2 = OpStep(op2, node_id='myop2')
         port2 = NodePort(step2, 'a')
 
-        port2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
+        port2.from_json(json.loads('{"value": 2.6}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, 2.6)
 
-        port2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
+        port2.from_json(json.loads('{"source": "myop1.y"}'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1.y" is a shorthand for {"source": "myop1.y"}
-        port2.from_json_dict(json.loads('{"a": "myop1.y"}'))
+        port2.from_json(json.loads('"myop1.y"'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
-        port2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
+        port2.from_json(json.loads('{"source": ".y"}'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # ".x" is a shorthand for {"source": ".x"}
-        port2.from_json_dict(json.loads('{"a": ".y"}'))
+        port2.from_json(json.loads('".y"'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1" is a shorthand for {"source": "myop1"}
-        port2.from_json_dict(json.loads('{"a": "myop1"}'))
+        port2.from_json(json.loads('"myop1"'))
         self.assertEqual(port2._source_ref, ('myop1', None))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is defined, but neither "source" nor "value" is given, it will neither have a source nor a value
-        port2.from_json_dict(json.loads('{"a": {}}'))
+        port2.from_json(json.loads('{}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
-        port2.from_json_dict(json.loads('{"a": null}'))
+        port2.from_json(json.loads('null'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is not defined at all, it will neither have a source nor a value
-        port2.from_json_dict(json.loads('{}'))
+        port2.from_json(json.loads('{}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
+            port2.from_json(json.loads('{"value": 2.6, "source": "y"}'))
         self.assertEqual(str(cm.exception),
                          "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
 
@@ -1089,31 +1089,31 @@ class NodePortTest(TestCase):
                        "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": ""}}'))
+            port2.from_json(json.loads('{"source": ""}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": "."}}'))
+            port2.from_json(json.loads('{"source": "."}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
+            port2.from_json(json.loads('{"source": "var."}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
     def test_to_json_dict(self):
         step1 = OpStep(op1, node_id='myop1')
         step2 = OpStep(op2, node_id='myop2')
 
-        self.assertEqual(step2.inputs.a.to_json_dict(), dict())
+        self.assertEqual(step2.inputs.a.to_json(), dict())
 
         step2.inputs.a.value = 982
-        self.assertEqual(step2.inputs.a.to_json_dict(), dict(value=982))
+        self.assertEqual(step2.inputs.a.to_json(), dict(value=982))
 
         step2.inputs.a.source = step1.outputs.y
-        self.assertEqual(step2.inputs.a.to_json_dict(), dict(source='myop1.y'))
+        self.assertEqual(step2.inputs.a.to_json(), dict(source='myop1.y'))
 
         step2.inputs.a.source = None
-        self.assertEqual(step2.inputs.a.to_json_dict(), dict())
+        self.assertEqual(step2.inputs.a.to_json(), dict())
 
 
 class ValueCacheTest(TestCase):
