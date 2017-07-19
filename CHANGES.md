@@ -24,6 +24,7 @@
 * Fixed [#273](https://github.com/CCI-Tools/cate-core/issues/273)
 * Fixed [#262](https://github.com/CCI-Tools/cate-core/issues/262)
 * Fixed [#201](https://github.com/CCI-Tools/cate-core/issues/201)
+* Fixed a problem with getting the variable statistics for variables with more that 3 dimensions
 
 ## Changes in version 0.9.0.dev3
 

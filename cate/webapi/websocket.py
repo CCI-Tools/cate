@@ -317,7 +317,7 @@ class WebSocketService:
 
         variable = dataset[var_name]
         if var_index:
-            variable = variable[var_index]
+            variable = variable[tuple(var_index)]
 
         valid_min = variable.min(skipna=True)
         valid_max = variable.max(skipna=True)
