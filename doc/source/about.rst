@@ -72,9 +72,9 @@ to get an overview of the supported sub-comands. For example, use:::
 
     $ cate ds list
 
-to list and query available data sources.
+to list available data sources.
 
-In the GUI, the panel **DATA SOURCES** lets you query and open all available data sources.
+In the GUI, the panel **DATA SOURCES** lets you query and open available data sources.
 
 Note that all remote CCI data source identifiers are prefixed by "esacci.", for example
 ``esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-0.r1``. Local data source identifiers are

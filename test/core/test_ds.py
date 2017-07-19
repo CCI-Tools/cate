@@ -18,8 +18,8 @@ class SimpleDataStore(ds.DataStore):
         super().__init__(name)
         self._data_sources = list(data_sources)
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
-        return [ds for ds in self._data_sources if ds.matches_filter(name)]
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
+        return [ds for ds in self._data_sources if ds.matches(id=id)]
 
     def _repr_html_(self):
         return ''
@@ -111,11 +111,11 @@ class IOTest(TestCase):
             self.assertEqual(len(data_sources), 98)
             self.assertEqual(data_sources[0].name, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
 
-            data_sources = ds.find_data_sources(name="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
+            data_sources = ds.find_data_sources(id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 1)
 
-            data_sources = ds.find_data_sources(name="ZZ")
+            data_sources = ds.find_data_sources(id="ZZ")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 0)
         finally:
@@ -141,17 +141,17 @@ class IOTest(TestCase):
         self.assertEqual(data_sources[2].name, "sst")
 
     def test_find_data_sources_with_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, name="aerosol")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].name, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, name="ozone")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="ozone")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].name, "ozone")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, name="Z")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="Z")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
 

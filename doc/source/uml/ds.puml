@@ -2,7 +2,7 @@
 
 object globals {
     DATA_STORE_REGISTRY: DataStoreRegistry
-    find_data_sources(data_stores, constraints)
+    find_data_sources(data_stores, id, query_expr)
     open_dataset(data_source, name, time_range)
 }
 
@@ -21,7 +21,7 @@ class DataStoreRegistry {
 
 interface DataStore {
     name: str
-    {abstract} query(query_expr): DataSource
+    {abstract} query(id, query_expr): DataSource
 }
 
 interface DataSource {

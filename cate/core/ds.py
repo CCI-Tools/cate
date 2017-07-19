@@ -92,7 +92,6 @@ from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util import Monitor
 
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
@@ -146,9 +145,18 @@ class DataSource(metaclass=ABCMeta):
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
 
-    def matches_filter(self, name=None) -> bool:
-        """Test if this data source matches the given *constraints*."""
-        if name and name.lower() not in self.name.lower():
+    def matches(self, id: str = None, query_expr: str = None) -> bool:
+        """
+        Test if this data source matches the given *id* or *query_expr*.
+        If neither *id* nor *query_expr* are given, the method returns True.
+
+        :param id: A data source identifier.
+        :param query_expr: A query expression. Currently, only simple search strings are supported.
+        :return: True, if this data sources matches the given *id* or *query_expr*.
+        """
+        if query_expr:
+            raise NotImplementedError('query_expr not yet supported')
+        if id and id.lower() not in self.name.lower():
             return False
         return True
 
@@ -370,11 +378,12 @@ class DataStore(metaclass=ABCMeta):
         return None
 
     @abstractmethod
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         """
         Retrieve data sources in this data store using the given constraints.
 
-        :param name: Name of the data source.
+        :param id: Data source identifier.
+        :param query_expr: Query expression which may be used if *ìd* is unknown.
         :param monitor:  A progress monitor.
         :return: Sequence of data sources.
         """
@@ -437,14 +446,17 @@ class DataStoreRegistry:
 DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
-def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
+def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
+                      id: str = None,
+                      query_expr: str = None) -> Sequence[DataSource]:
     """
-    Find data sources in the given data store(s) matching the given query string.
+    Find data sources in the given data store(s) matching the given *id* or *query_expr*.
 
     See also :py:func:`open_dataset`.
 
     :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
-    :param name:  The name of a data source.
+    :param id:  A data source identifier.
+    :param query_expr:  A query expression.
     :return: All data sources matching the given constrains.
     """
     results = []
@@ -456,9 +468,9 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         primary_data_store = data_stores
     else:
         data_store_list = data_stores
-    if not primary_data_store and name and name.count('.') > 0:
+    if not primary_data_store and id and id.count('.') > 0:
         primary_data_store_index = -1
-        primary_data_store_name, data_source_name = name.split('.', 1)
+        primary_data_store_name, data_source_name = id.split('.', 1)
         for idx, data_store in enumerate(data_store_list):
             if data_store.name == primary_data_store_name:
                 primary_data_store_index = idx
@@ -466,11 +478,11 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
             primary_data_store = data_store_list.pop(primary_data_store_index)
 
     if primary_data_store:
-        results.extend(primary_data_store.query(name))
+        results.extend(primary_data_store.query(id=id, query_expr=query_expr))
     if not results:
         # noinspection PyTypeChecker
         for data_store in data_store_list:
-            results.extend(data_store.query(name))
+            results.extend(data_store.query(id=id, query_expr=query_expr))
     return results
 
 
@@ -495,7 +507,7 @@ def open_dataset(data_source: Union[DataSource, str],
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = find_data_sources(data_store_list, name=data_source)
+        data_sources = find_data_sources(data_store_list, id=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:

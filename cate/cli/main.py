@@ -1165,7 +1165,7 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def _execute_info(cls, command_args):
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in find_data_sources(name=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.name == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -1222,7 +1222,7 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ref_ds
-        data_source = next(iter(find_data_sources(None, ds_name)), None)
+        data_source = next(iter(find_data_sources(None, id=ds_name)), None)
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 

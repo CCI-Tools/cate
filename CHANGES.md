@@ -44,7 +44,10 @@
 
 ### Other Changes
 
-* renamed function `cate.core.ds.query_data_sources` to `find_data_sources`
+* renamed and changed signature of function `cate.core.ds.DataStore.query_data_sources(..., name=None)` 
+  to `query_data_sources(..., id=None, query_expr=None)`
+* changed signature of method `cate.core.ds.DataStore.query(name, ...)` to `query(id=None, query_expr=None, ...)`
+* renamed and changed signature of method `cate.core.ds.DataSource.matches_filter(name)` to `matches(id=None, query_expr=None)`
 
 ### Issues Fixed/Resolved
 

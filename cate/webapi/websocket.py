@@ -147,7 +147,7 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(name=data_source_id)
+        data_sources = data_store.query(id=data_source_id)
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]
@@ -176,7 +176,7 @@ class WebSocketService:
         :return: JSON-serializable list of 'local' data sources, sorted by name.
         """
         with monitor.starting('Making data source local', 100):
-            data_sources = find_data_sources(name=data_source_name)
+            data_sources = find_data_sources(id=data_source_name)
             if not data_sources:
                 raise ValueError('data source "%s" not found' % data_source_name)
             if len(data_sources) > 1:

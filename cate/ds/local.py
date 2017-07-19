@@ -340,7 +340,7 @@ class LocalDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = find_data_sources(None, local_id)  # type: Sequence['DataSource']
+        data_sources = find_data_sources(None, id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.name == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -606,13 +606,11 @@ class LocalDataStore(DataStore):
     def data_store_path(self):
         return self._store_dir
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalDataSource]:
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalDataSource]:
         self._init_data_sources()
-        if name:
-            result = [ds for ds in self._data_sources if ds.matches_filter(name)]
-        else:
-            result = self._data_sources
-        return result
+        if id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        return self._data_sources
 
     def __repr__(self):
         return "LocalFilePatternDataStore(%s)" % repr(self.name)

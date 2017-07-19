@@ -544,8 +544,10 @@ class FileSetDataStore(DataStore):
         """Optional URL of the data store's remote service."""
         return self._remote_url
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
-        return [ds for ds in self._data_sources if ds.matches_filter(name)]
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+        if id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        return self._data_sources
 
     def load_from_json(self, json_fp_or_str: Union[str, IOBase]):
         if isinstance(json_fp_or_str, str):
