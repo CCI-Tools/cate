@@ -13,10 +13,39 @@
   performing correlation of a single timeseries against all spatial points in the
   other dataset.
 * External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
-  the *MPI Climate Data Operators* can now be registered as operations. (ONGOING)
+  the *MPI Climate Data Operators* can now be registered as operations.
+* In summary, workflows can now have steps of the following types:
+  - A step that invokes a registered Cate operation, which is the default
+    ```json
+    {
+         "op": <qualified op name>
+    } 
+    ```
+  - A step that invokes an external executable
+    ```json
+    {
+         "command": <command pattern>,
+         "cwd": <current working directory>
+         "env": <dict of environment variables>
+    } 
+    ```
+  - A step that invokes another (JSON) workflow
+    ```json
+    {
+         "workflow": <workflow JSON path>
+    } 
+    ```
+  - A step that executes a Python expression
+    ```json
+    {
+         "expression": <Python expression>
+    } 
+    ```
 
-### Issues Fixed
+### Issues Fixed/Resolved
 
+* Fixed [#286](https://github.com/CCI-Tools/cate-core/issues/286)
+* Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
 * Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
 * Fixed [#283](https://github.com/CCI-Tools/cate-core/issues/283)
 * Fixed [#281](https://github.com/CCI-Tools/cate-core/issues/281)
