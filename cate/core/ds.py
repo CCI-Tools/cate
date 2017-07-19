@@ -437,8 +437,9 @@ class DataStoreRegistry:
 DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
-def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
-    """Query the data store(s) for data sources matching the given constrains.
+def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
+    """
+    Find data sources in the given data store(s) matching the given query string.
 
     See also :py:func:`open_dataset`.
 
@@ -494,7 +495,7 @@ def open_dataset(data_source: Union[DataSource, str],
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = query_data_sources(data_store_list, name=data_source)
+        data_sources = find_data_sources(data_store_list, name=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:

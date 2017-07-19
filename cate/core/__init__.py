@@ -24,7 +24,7 @@ Cate's core API.
 """
 
 # noinspection PyUnresolvedReferences
-from .ds import DataStore, DataSource, open_dataset, query_data_sources, DATA_STORE_REGISTRY
+from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY
 
 # noinspection PyUnresolvedReferences
 from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \

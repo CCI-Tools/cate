@@ -29,7 +29,7 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_sources
 from cate.core.op import OP_REGISTRY
 from cate.core.wsmanag import WorkspaceManager
 from cate.core.workspace import OpKwArgs
@@ -176,7 +176,7 @@ class WebSocketService:
         :return: JSON-serializable list of 'local' data sources, sorted by name.
         """
         with monitor.starting('Making data source local', 100):
-            data_sources = query_data_sources(name=data_source_name)
+            data_sources = find_data_sources(name=data_source_name)
             if not data_sources:
                 raise ValueError('data source "%s" not found' % data_source_name)
             if len(data_sources) > 1:

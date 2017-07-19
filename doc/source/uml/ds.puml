@@ -2,7 +2,7 @@
 
 object globals {
     DATA_STORE_REGISTRY: DataStoreRegistry
-    query_data_sources(data_stores, constraints)
+    find_data_sources(data_stores, constraints)
     open_dataset(data_source, name, time_range)
 }
 

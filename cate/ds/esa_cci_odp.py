@@ -59,7 +59,7 @@ from owslib.namespaces import Namespaces
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-    open_xarray_dataset, get_data_stores_path, query_data_sources
+    open_xarray_dataset, get_data_stores_path, find_data_sources
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
@@ -574,7 +574,7 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
+        data_sources = find_data_sources(None, local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.name == local_id), None)  # type: LocalDataSource
         if not data_source:

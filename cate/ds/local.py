@@ -55,7 +55,7 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset, find_data_sources
 from cate.core.ds import get_data_stores_path
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
@@ -340,7 +340,7 @@ class LocalDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = query_data_sources(None, local_id)  # type: Sequence['DataSource']
+        data_sources = find_data_sources(None, local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.name == local_id), None)  # type: LocalDataSource
         if not data_source:

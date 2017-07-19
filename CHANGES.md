@@ -42,6 +42,10 @@
     } 
     ```
 
+### Other Changes
+
+* renamed function `cate.core.ds.query_data_sources` to `find_data_sources`
+
 ### Issues Fixed/Resolved
 
 * Fixed [#294](https://github.com/CCI-Tools/cate-core/issues/294)
