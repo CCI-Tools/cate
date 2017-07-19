@@ -63,10 +63,6 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
                                                                'resources/datasources/local/'))
         data_sources = local_data_store.query()
         self.assertEqual(len(data_sources), 2)
-        print("-------------------")
-        print(data_sources[0].name, "\n", data_sources[0])
-        print(data_sources[1].name, "\n", data_sources[1])
-        print("-------------------")
 
         data_sources = local_data_store.query('local')
         self.assertEqual(len(data_sources), 2)
