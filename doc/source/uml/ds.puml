@@ -20,14 +20,14 @@ class DataStoreRegistry {
 }
 
 interface DataStore {
-    name: str
+    id: str
     {abstract} query(id, query_expr): DataSource
 }
 
 interface DataSource {
-    name: str
+    id: str
     {abstract} get_dataset_schema(): cdm.Schema
-    {abstract} open_dataset(name, time_range): xarray.Dataset
+    {abstract} open_dataset(id, time_range): xarray.Dataset
     {abstract} sync(time_range)
 }
 

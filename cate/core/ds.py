@@ -366,11 +366,11 @@ class DataSource(metaclass=ABCMeta):
 class DataStore(metaclass=ABCMeta):
     """Represents a data store of data sources."""
 
-    def __init__(self, name: str):
-        self._id = name
+    def __init__(self, id: str):
+        self._id = id
 
     @property
-    def name(self) -> str:
+    def id(self) -> str:
         """
         Return the name of this data store.
         """
@@ -418,17 +418,17 @@ class DataStoreRegistry:
     def __init__(self):
         self._data_stores = dict()
 
-    def get_data_store(self, name: str) -> Optional[DataStore]:
-        return self._data_stores.get(name, None)
+    def get_data_store(self, id: str) -> Optional[DataStore]:
+        return self._data_stores.get(id)
 
     def get_data_stores(self) -> Sequence[DataStore]:
         return list(self._data_stores.values())
 
     def add_data_store(self, data_store: DataStore):
-        self._data_stores[data_store.name] = data_store
+        self._data_stores[data_store.id] = data_store
 
-    def remove_data_store(self, name: str):
-        del self._data_stores[name]
+    def remove_data_store(self, id: str):
+        del self._data_stores[id]
 
     def __len__(self):
         return len(self._data_stores)
@@ -442,8 +442,8 @@ class DataStoreRegistry:
 
     def _repr_html_(self):
         rows = []
-        for name, data_store in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(data_store)))
+        for id, data_store in self._data_stores.items():
+            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (id, repr(data_store)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
@@ -476,9 +476,9 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         data_store_list = data_stores
     if not primary_data_store and id and id.count('.') > 0:
         primary_data_store_index = -1
-        primary_data_store_name, data_source_name = id.split('.', 1)
+        primary_data_store_id, data_source_name = id.split('.', 1)
         for idx, data_store in enumerate(data_store_list):
-            if data_store.name == primary_data_store_name:
+            if data_store.id == primary_data_store_id:
                 primary_data_store_index = idx
         if primary_data_store_index >= 0:
             primary_data_store = data_store_list.pop(primary_data_store_index)

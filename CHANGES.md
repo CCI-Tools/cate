@@ -44,7 +44,8 @@
 
 ### Other Changes
 
-* renamed property `cate.core.ds.DataStource.name` to `id` 
+* renamed property `cate.core.ds.DataSource.name` to `id` 
+* renamed property `cate.core.ds.DataStore.name` to `id` 
 * renamed and changed signature of function `cate.core.ds.DataStore.query_data_sources(..., name=None)` 
   to `find_data_sources(..., id=None, query_expr=None)`
 * changed signature of method `cate.core.ds.DataStore.query(name, ...)` to `query(id=None, query_expr=None, ...)`

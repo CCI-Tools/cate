@@ -41,7 +41,7 @@ class FileSetDataSourceTest(TestCase):
         data_store = FileSetDataStore.from_json('test', 'TEST_ROOT_DIR', FileSetDataSourceTest.JSON)
         self.assertIsNotNone(data_store)
         self.assertEqual(2, len(data_store._data_sources))
-        self.assertEqual('test', data_store.name)
+        self.assertEqual('test', data_store.id)
         self.ds0 = data_store._data_sources[0]
         self.ds1 = data_store._data_sources[1]
 

@@ -532,13 +532,13 @@ class LocalDataSource(DataSource):
 
 
 class LocalDataStore(DataStore):
-    def __init__(self, name: str, store_dir: str):
-        super().__init__(name)
+    def __init__(self, id: str, store_dir: str):
+        super().__init__(id)
         self._store_dir = store_dir
         self._data_sources = None
 
-    def add_pattern(self, name: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
-        data_source = self.create_data_source(name)
+    def add_pattern(self, data_source_id: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
+        data_source = self.create_data_source(data_source_id)
         if isinstance(files, str):
             files = [files]
         is_first_file = True
@@ -550,8 +550,8 @@ class LocalDataStore(DataStore):
                 data_source.add_dataset(file)
         return data_source
 
-    def remove_data_source(self, name: str, remove_files: bool = True):
-        data_sources = self.query(name)
+    def remove_data_source(self, data_source_id: str, remove_files: bool = True):
+        data_sources = self.query(id=data_source_id)
         if not data_sources or len(data_sources) != 1:
             return
         data_source = data_sources[0]
@@ -561,18 +561,18 @@ class LocalDataStore(DataStore):
             shutil.rmtree(os.path.join(self._store_dir, data_source.id))
         self._data_sources.remove(data_source)
 
-    def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
+    def create_data_source(self, data_source_id: str, region: PolygonLike.TYPE = None,
                            reference_type: str = None, reference_name: str = None,
                            time_range: TimeRangeLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
                            meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
-        if not name.startswith('%s.' % self.name):
-            name = '%s.%s' % (self.name, name)
-        lock_filename = '{}.lock'.format(name)
+        if not data_source_id.startswith('%s.' % self.id):
+            data_source_id = '%s.%s' % (self.id, data_source_id)
+        lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
         existing_ds = None
         for ds in self._data_sources:
-            if ds.id == name:
+            if ds.id == data_source_id:
                 if lock_file and os.path.isfile(lock_filepath):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
@@ -585,11 +585,11 @@ class LocalDataStore(DataStore):
                             existing_ds = ds
                             break
                 raise ValueError("Local data store '{}' already contains a data source named '{}'"
-                                 .format(self.name, name))
+                                 .format(self.id, data_source_id))
         if existing_ds:
             data_source = existing_ds
         else:
-            data_source = LocalDataSource(name, files=[], data_store=self, spatial_coverage=region,
+            data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           reference_type=reference_type, reference_name=reference_name,
                                           meta_info=meta_info)
         if lock_file:
@@ -613,7 +613,7 @@ class LocalDataStore(DataStore):
         return self._data_sources
 
     def __repr__(self):
-        return "LocalFilePatternDataStore(%s)" % repr(self.name)
+        return "LocalFilePatternDataStore(%s)" % repr(self.id)
 
     def _repr_html_(self):
         self._init_data_sources()
@@ -623,7 +623,7 @@ class LocalDataStore(DataStore):
             row_count += 1
             # noinspection PyProtectedMember
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
-        return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.name, '\n'.join(rows))
+        return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
     def _init_data_sources(self):
         if self._data_sources:

@@ -108,8 +108,8 @@ class WebSocketService:
         data_stores = DATA_STORE_REGISTRY.get_data_stores()
         data_store_list = []
         for data_store in data_stores:
-            data_store_list.append(dict(id=data_store.name,
-                                        name=data_store.name,
+            data_store_list.append(dict(id=data_store.id,
+                                        name=data_store.id,  # TODO (forman): issue #299
                                         description=''))
 
         return sorted(data_store_list, key=lambda ds: ds['name'])
@@ -130,7 +130,7 @@ class WebSocketService:
         data_source_list = []
         for data_source in data_sources:
             data_source_list.append(dict(id=data_source.id,
-                                         name=data_source.id,
+                                         name=data_source.id, # TODO (forman): issue #299
                                          meta_info=data_source.meta_info))
 
         return sorted(data_source_list, key=lambda ds: ds['name'])
@@ -214,7 +214,7 @@ class WebSocketService:
             raise ValueError('Unknown data store: "%s"' % 'local')
         with monitor.starting('Making data source local', 100):
             # TODO use monitor, while extracting metadata
-            data_store.add_pattern(name=data_source_name, files=file_path_pattern)
+            data_store.add_pattern(data_source_id=data_source_name, files=file_path_pattern)
             return self.get_data_sources('local', monitor=monitor.child(100))
 
     def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
