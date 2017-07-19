@@ -26,8 +26,8 @@ Description
 ===========
 
 This modules provides classes and functions allowing to maintain *operations*. Operations can be called from
-the Cate command-line interface, may be referenced from within processing workflows, or may be called remotely 
-e.g. from graphical user interface or web frontend. An operation (:py:class:`Operation`) comprises a Python callable 
+the Cate command-line interface, may be referenced from within processing workflows, or may be called remotely
+e.g. from graphical user interface or web frontend. An operation (:py:class:`Operation`) comprises a Python callable
 and some additional meta-information (:py:class:`OpMetaInfo`) that allows for automatic input validation,
 input value conversion, monitoring, and inter-connection of multiple operations using processing workflows and steps.
 
@@ -64,11 +64,11 @@ Technical Requirements
 **Add extra meta-information to operations**
 
 :Description: Initial operation meta-information will be derived from Python code introspection. It shall include
-    the user function's docstring and information about the arguments an its return values, exploiting any 
+    the user function's docstring and information about the arguments an its return values, exploiting any
     type annotations.
     For example, the following properties can be associated with input arguments: data type, default value, value set,
     valid range, if it is mandatory or optional, expected dataset schema so that operations can be ECV-specific.
-    Meta-information is required to let an operation explain itself when used in a (IPython) 
+    Meta-information is required to let an operation explain itself when used in a (IPython)
     REPL or when web service is requested to respond with an operations's capabilities.
     API users shall be able to extend the initial meta-information derived from Python code.
 
@@ -89,7 +89,7 @@ Technical Requirements
 **Operation monitoring**
 
 :Description: Operation registration should recognise an optional *monitor* argument of a user function:
-    ``f(*args, monitor=Monitor.NONE, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`) 
+    ``f(*args, monitor=Monitor.NONE, **kwargs)``. In this case the a monitor (of type :py:class:`Monitor`)
     will be passed by the framework to the user function in order to observe the progress and to cancel an operation.
 
 ----
@@ -97,8 +97,8 @@ Technical Requirements
 Verification
 ============
 
-The module's unit-tests are located in 
-`test/test_op.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_op.py>`_ and may be executed using 
+The module's unit-tests are located in
+`test/test_op.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_op.py>`_ and may be executed using
 ``$ py.test test/test_op.py --cov=cate/core/plugin.py`` for extra code coverage information.
 
 
