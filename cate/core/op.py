@@ -104,17 +104,15 @@ Components
 ==========
 """
 
-import platform
-import shlex
-import sys
 from collections import OrderedDict
+import sys
 from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
 from ..version import __version__
 from ..util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
-from ..util.process import execute, ProcessOutputMonitor
+from ..util.process import run_subprocess, ProcessOutputMonitor
 from ..util.tmpfile import new_temp_file, del_temp_file
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -637,26 +635,28 @@ def _adjust_input_properties(input_properties):
         input_properties['data_type'] = type(default_value)
 
 
-def new_executable_op(op_meta_info: OpMetaInfo,
-                      command_line_pattern: str,
+def new_subprocess_op(op_meta_info: OpMetaInfo,
+                      command_pattern: str,
                       run_python: bool = False,
                       cwd: Optional[str] = None,
                       env: Dict[str, str] = None,
+                      shell: bool = False,
                       started: Union[str, Callable] = None,
                       progress: Union[str, Callable] = None,
                       done: Union[str, Callable] = None) -> Operation:
     """
-    Create an operation from an executable program.
+    Create an operation for a child program run in a new process.
 
     :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
-    :param command_line_pattern: A pattern that will be interpolated to obtain the actual command line pattern.
+    :param command_pattern: A pattern that will be interpolated to obtain the actual command to be executed.
            May contain "{input_name}" fields which will be replaced by the actual input value converted to text.
            *input_name* must refer to a valid operation input name in *op_meta_info.input* or it must be
            the value of either the "write_to" or "read_from" property of another input's property map.
-    :param run_python: If True, *command_line_pattern* refers to a Python script which will be executed with
+    :param run_python: If True, *command_pattern* refers to a Python script which will be executed with
            the Python interpreter that Cate uses.
     :param cwd: Current working directory to run the command line in.
     :param env: Environment variables passed to the shell that executes the command line.
+    :param shell: Whether to use the shell as the program to execute.
     :param started: Either a callable that receives a text line from the executable's stdout
            and returns a tuple (label, total_work) or a regex that must match
            in order to signal the start of progress monitoring.
@@ -718,22 +718,21 @@ def new_executable_op(op_meta_info: OpMetaInfo,
         if _MONITOR in format_kwargs:
             monitor = format_kwargs.pop(_MONITOR)
 
-        command_line = command_line_pattern.format(**format_kwargs)
+        command = command_pattern.format(**format_kwargs)
 
         stdout_handler = None
         if monitor:
             stdout_handler = ProcessOutputMonitor(monitor,
-                                                  label=command_line,
+                                                  label=command,
                                                   started=started, progress=progress, done=done)
 
-        command_line_args = shlex.split(command_line, posix=platform.system() != 'Windows')
         if run_python:
-            command_line_args = [sys.executable] + command_line_args
+            command = '"{}" {}'.format(sys.executable, command)
 
-        exit_code = execute(command_line_args,
-                            cwd=cwd, env=env,
-                            stdout_handler=stdout_handler,
-                            is_cancelled=monitor.is_cancelled if monitor else None)
+        exit_code = run_subprocess(command,
+                                   cwd=cwd, env=env, shell=shell,
+                                   stdout_handler=stdout_handler,
+                                   is_cancelled=monitor.is_cancelled if monitor else None)
 
         for file in temp_input_files.values():
             del_temp_file(file)
@@ -748,7 +747,7 @@ def new_executable_op(op_meta_info: OpMetaInfo,
 
         if exit_code:
             # There is output specified, but exit code signals error
-            raise ValueError('command [{}] exited with code {}'.format(command_line, exit_code))
+            raise ValueError('command [{}] exited with code {}'.format(command_pattern, exit_code))
 
         if len(return_value) == 1 and 'return' in return_value:
             # Single output
@@ -775,23 +774,20 @@ def new_expression_op(op_meta_info: OpMetaInfo, expression: str) -> Operation:
     if not op_meta_info:
         raise ValueError('op_meta_info must be given')
     if not expression:
-        raise ValueError('expr must be given')
+        raise ValueError('expression must be given')
 
-    def eval_expression(ctx=None, **kwargs):
-        if ctx:
-            value_cache = ctx.get('value_cache')
-            if value_cache:
-                kwargs.update(value_cache)
+    def eval_expression(**kwargs):
         return safe_eval(expression, local_namespace=kwargs)
 
-    inputs = dict(op_meta_info.inputs)
-    # noinspection PyArgumentList
-    inputs.update(context={'context': True, 'default_value': None})
+    inputs = OrderedDict(op_meta_info.inputs)
+    outputs = OrderedDict(op_meta_info.outputs)
+    if len(outputs) == 0:
+        outputs[_RETURN] = {}
     op_meta_info = OpMetaInfo(op_meta_info.qualified_name,
                               has_monitor=op_meta_info.has_monitor,
                               header=dict(op_meta_info.header),
                               inputs=inputs,
-                              outputs=dict(op_meta_info.outputs))
+                              outputs=outputs)
 
     eval_expression.__name__ = op_meta_info.qualified_name
     eval_expression.__doc__ = op_meta_info.header.get('description')

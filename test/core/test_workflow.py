@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from cate.core.op import op_input, op_output, Operation
-from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep, ValueCache, \
+from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExpressionStep, NoOpStep, SubProcessStep, ValueCache, \
     SourceRef, new_workflow_op
 from cate.util import UNDEFINED
 from cate.util.misc import object_to_qualified_name
@@ -368,18 +368,17 @@ class ExprStepTest(TestCase):
     expression = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"
 
     def test_init(self):
-        node = ExprStep(self.expression,
-                        OrderedDict([('a', {}), ('b', {}), ('c', {})]),
-                        OrderedDict([('x', {}), ('y', {})]),
-                        node_id='bibo_8')
+        node = ExpressionStep(self.expression,
+                              OrderedDict([('a', {}), ('b', {}), ('c', {})]),
+                              OrderedDict([('x', {}), ('y', {})]),
+                              node_id='bibo_8')
         self.assertEqual(node.id, 'bibo_8')
-        self.assertEqual(node.expression, self.expression)
         self.assertEqual(str(node),
                          node.id + ' = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"(a=None, b=None, c=None) '
-                                   '-> (x, y) [ExprStep]')
-        self.assertEqual(repr(node), "ExprNode('%s', node_id='bibo_8')" % self.expression)
+                                   '-> (x, y) [ExpressionStep]')
+        self.assertEqual(repr(node), "ExpressionStep('%s', node_id='bibo_8')" % self.expression)
 
-        node = ExprStep(self.expression)
+        node = ExpressionStep(self.expression)
         self.assertEqual(node.op_meta_info.inputs, {})
         self.assertEqual(node.op_meta_info.outputs, {'return': {}})
 
@@ -402,11 +401,10 @@ class ExprStepTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node = ExprStep.from_json_dict(json_dict)
+        node = ExpressionStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node, ExprStep)
+        self.assertIsInstance(node, ExpressionStep)
         self.assertEqual(node.id, "bibo_8")
-        self.assertEqual(node.expression, self.expression)
         self.assertIn('a', node.inputs)
         self.assertIn('b', node.inputs)
         self.assertIn('c', node.inputs)
@@ -430,7 +428,7 @@ class ExprStepTest(TestCase):
         }
         """ % self.expression
 
-        step = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        step = ExpressionStep(self.expression, inputs=OrderedDict(a={}, b={}, c={}), outputs=OrderedDict(x={}, y={}), node_id='bibo_8')
         actual_json_dict = step.to_json_dict()
 
         actual_json_text = json.dumps(actual_json_dict, indent=4)
@@ -443,7 +441,7 @@ class ExprStepTest(TestCase):
                               120 * '-', actual_json_text))
 
     def test_invoke(self):
-        step = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        step = ExpressionStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
         a = 1.5
         b = -2.6
         c = 4.3
@@ -581,7 +579,7 @@ class OpStepTest(TestCase):
     def test_init(self):
         step = OpStep(op3)
 
-        self.assertRegex(step.id, '^op_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^opstep_[0-9a-f]+$')
 
         self.assertTrue(len(step.inputs), 2)
         self.assertTrue(len(step.outputs), 1)
@@ -599,7 +597,7 @@ class OpStepTest(TestCase):
         self.assertEqual(step.outputs.w.name, 'w')
 
         self.assertEqual(str(step), step.id + ' = test.core.test_workflow.op3(u=None, v=None, c=0) -> (w) [OpStep]')
-        self.assertEqual(repr(step), "OpStep(test.core.test_workflow.op3, node_id='%s')" % step.id)
+        self.assertEqual(repr(step), "OpStep('test.core.test_workflow.op3', node_id='%s')" % step.id)
 
     def test_init_operation_and_name_are_equivalent(self):
         step3 = OpStep(op3)
@@ -815,7 +813,7 @@ class NoOpStepTest(TestCase):
         step = NoOpStep(inputs=OrderedDict([('a', {}), ('b', {})]),
                         outputs=OrderedDict([('c', {}), ('d', {})]))
 
-        self.assertRegex(step.id, '^no_op_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^noopstep_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
@@ -884,10 +882,10 @@ class NoOpStepTest(TestCase):
 
 class SubProcessStepTest(TestCase):
     def test_init(self):
-        step = SubProcessStep(['cd', '{{dir}}'],
+        step = SubProcessStep('cd {dir}',
                               inputs=OrderedDict(dir=dict(data_type=str)))
 
-        self.assertRegex(step.id, '^sub_process_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^subprocessstep_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
@@ -901,11 +899,12 @@ class SubProcessStepTest(TestCase):
         self.assertTrue(hasattr(step.outputs, 'return'))
         self.assertIs(step.outputs['return'].node, step)
 
-        self.assertEqual(str(step), step.id + ' = "cd {{dir}}"(dir=None) [SubProcessStep]')
-        self.assertEqual(repr(step), "SubProcessStep(['cd', '{{dir}}'], node_id='%s')" % step.id)
+        self.assertEqual(str(step), step.id + ' = "cd {dir}"(dir=None) [SubProcessStep]')
+        self.assertEqual(repr(step), "SubProcessStep('cd {dir}', node_id='%s')" % step.id)
 
     def test_invoke(self):
-        step = SubProcessStep(['cd', '{{dir}}'],
+        step = SubProcessStep('cd {dir}',
+                              shell=True,
                               inputs=OrderedDict([('dir', dict(data_type=str))]))
 
         step.inputs.dir.value = '..'
@@ -917,7 +916,12 @@ class SubProcessStepTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "sub_process_arguments": ["cd", "{{dir}}"],
+            "command": "cd {dir}",
+            "cwd": ".",
+            "env": {
+                "JDK_HOME": "."
+            },
+            "shell": true,
             "inputs": {
                 "dir": {"value": "."}
             }
@@ -934,8 +938,26 @@ class SubProcessStepTest(TestCase):
         self.assertIn('return', step.outputs)
         self.assertEqual(step.inputs.dir.value, '.')
 
-        # json_dict_2 = step.to_json_dict()
-        # self.assertEqual(json_dict, json_dict_2)
+        expected_json_text = """
+                {
+                    "id": "op3",
+                    "command": "cd {dir}",
+                    "cwd": ".",
+                    "env": {
+                        "JDK_HOME": "."
+                    },
+                    "shell": true,
+                    "inputs": {
+                        "dir": {"value": "."}
+                    },
+                    "outputs": {
+                        "return": {}
+                    }
+                }
+                """
+        expected_json_dict = json.loads(expected_json_text)
+        actual_json_dict = step.to_json_dict()
+        self.assertEqual(actual_json_dict, expected_json_dict)
 
 
 class NodePortTest(TestCase):

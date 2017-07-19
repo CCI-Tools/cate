@@ -2,7 +2,7 @@ import os.path
 import sys
 from unittest import TestCase
 
-from cate.util.process import execute, ProcessOutputMonitor
+from cate.util.process import run_subprocess, ProcessOutputMonitor
 from .test_monitor import RecordingMonitor
 
 DIR = os.path.dirname(__file__)
@@ -34,9 +34,9 @@ class ProcessTest(TestCase):
         self.line_count += 1
 
     def test_execute_with_handler(self):
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1],
-                            stdout_handler=self.store_stdout_line,
-                            stderr_handler=self.store_stderr_line)
+        exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.1'],
+                                   stdout_handler=self.store_stdout_line,
+                                   stderr_handler=self.store_stderr_line)
         self.assertEqual(exit_code, 0)
         self.assertEqual(self.stdout_lines, ['mkentropy: Running 5 steps',
                                              'mkentropy: Did 1 of 5 steps: 20.0%',
@@ -49,9 +49,9 @@ class ProcessTest(TestCase):
         self.assertEqual(self.stderr_lines, [''])
 
     def test_execute_with_handler_failing(self):
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1, 3],
-                            stdout_handler=self.store_stdout_line,
-                            stderr_handler=self.store_stderr_line)
+        exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.1', '3'],
+                                   stdout_handler=self.store_stdout_line,
+                                   stderr_handler=self.store_stderr_line)
         self.assertEqual(exit_code, 1)
         self.assertEqual(self.stdout_lines, ['mkentropy: Running 5 steps',
                                              'mkentropy: Did 1 of 5 steps: 20.0%',
@@ -63,26 +63,26 @@ class ProcessTest(TestCase):
         self.assertEqual(self.stderr_lines[-1], '')
 
     def test_execute_with_handler_and_cancellation(self):
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.2],
-                            started_handler=self.on_started,
-                            stdout_handler=self.store_stdout_line_and_cancel,
-                            stderr_handler=self.store_stderr_line,
-                            is_cancelled=self.monitor.is_cancelled,
-                            cancelled_check_period=0.02,
-                            kill_on_cancel=False)
+        exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.2'],
+                                   started_handler=self.on_started,
+                                   stdout_handler=self.store_stdout_line_and_cancel,
+                                   stderr_handler=self.store_stderr_line,
+                                   is_cancelled=self.monitor.is_cancelled,
+                                   cancelled_check_period=0.02,
+                                   kill_on_cancel=False)
         self.assertTrue(self.started)
         self.assertTrue(exit_code != 0)
         self.assertTrue(len(self.stdout_lines) > 1)
         self.assertEqual(self.stderr_lines, [''])
 
     def test_execute_with_handler_and_kill_cancellation(self):
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.2],
-                            started_handler=self.on_started,
-                            stdout_handler=self.store_stdout_line_and_cancel,
-                            stderr_handler=self.store_stderr_line,
-                            is_cancelled=self.monitor.is_cancelled,
-                            cancelled_check_period=0.02,
-                            kill_on_cancel=True)
+        exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.2'],
+                                   started_handler=self.on_started,
+                                   stdout_handler=self.store_stdout_line_and_cancel,
+                                   stderr_handler=self.store_stderr_line,
+                                   is_cancelled=self.monitor.is_cancelled,
+                                   cancelled_check_period=0.02,
+                                   kill_on_cancel=True)
         self.assertTrue(self.started)
         self.assertTrue(exit_code != 0)
         self.assertTrue(len(self.stdout_lines) > 1)
@@ -93,7 +93,7 @@ class ProcessTest(TestCase):
                                        started='mkentropy: Running (?P<total_work>\d+)',
                                        progress='mkentropy: Did (?P<work>\d+)',
                                        done=lambda line: 'Done' in line)
-        exit_code = execute([sys.executable, MAKE_ENTROPY, 5, 0.1], stdout_handler=handler)
+        exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.1'], stdout_handler=handler)
         self.assertEqual(exit_code, 0)
         self.assertEqual(self.monitor.records, [('start', 'Process running', 5.0),
                                                 ('progress', 1.0, None, 20),

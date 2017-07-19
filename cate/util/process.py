@@ -19,46 +19,60 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import concurrent.futures
+import platform
 import re
 import subprocess
+import shlex
 import time
 from typing import Callable, Optional, Tuple, Union, Dict, Sequence
 
 from . import Monitor
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
-def execute(command_line_args: Sequence[str],
-            cwd: Optional[str] = None,
-            env: Optional[Dict[str, str]] = None,
-            started_handler: Optional[Callable[[subprocess.Popen], None]] = None,
-            stdout_handler: Optional[Callable[[str], None]] = None,
-            stderr_handler: Optional[Callable[[str], None]] = None,
-            done_handler: Optional[Callable[[str], None]] = None,
-            is_cancelled: Optional[Callable[[], bool]] = None,
-            cancelled_check_period: float = 0.1,
-            kill_on_cancel=False):
+
+def run_subprocess(command: Union[str, Sequence[str]],
+                   cwd: Optional[str] = None,
+                   env: Optional[Dict[str, str]] = None,
+                   shell: bool = False,
+                   started_handler: Optional[Callable[[subprocess.Popen], None]] = None,
+                   stdout_handler: Optional[Callable[[str], None]] = None,
+                   stderr_handler: Optional[Callable[[str], None]] = None,
+                   done_handler: Optional[Callable[[str], None]] = None,
+                   is_cancelled: Optional[Callable[[], bool]] = None,
+                   cancelled_check_period: float = 0.1,
+                   kill_on_cancel=False):
     """
     Execute a child program in a new process.
 
-    :param command_line_args: The command line arguments.
+    :param command: The command to be executed, may be a string or sequence of string arguments.
     :param cwd: Optional current working directory.
     :param env: Optional dictionary of environment variables.
-    :param started_handler: An optional callable that is called with the program's process (a ``subprocess.Popen`` object)
+    :param shell: Whether to use the shell as the program to execute.
+    :param started_handler: An optional callable that is called with the program's process
+           (a ``subprocess.Popen`` object)
     :param stdout_handler: An optional callable that receives the process' stdout as lines of UTF-8 encoded text.
     :param stderr_handler: An optional callable that receives the process' stderr as lines of UTF-8 encoded text.
     :param done_handler: An optional callable that is called with the program's exit code
-    :param is_cancelled: An optional callable that is called to determine whether the program's process should be killed
-    :param cancelled_check_period: The time to sleep between subsequent *is_cancelled()* calls. Defaults to 0.1 seconds.
-    :param kill_on_cancel: Whether to send a SIGKILL rather than a SIGTERM signal when cancellation is requested (Unix only)
+    :param is_cancelled: An optional callable that is called to determine whether the program's process
+           should be killed
+    :param cancelled_check_period: The time to sleep between subsequent *is_cancelled()* calls.
+           Defaults to 0.1 seconds.
+    :param kill_on_cancel: Whether to send a SIGKILL rather than a SIGTERM signal when cancellation
+           is requested (Unix only)
     :return: the program's return code (an `int`) or `None` if it could not be determined.
     """
 
-    assert command_line_args, "command_line_args must be provided"
+    assert command, "command must be provided"
 
-    process = subprocess.Popen(map(str, command_line_args),
+    if isinstance(command, str) and not shell:
+        args = shlex.split(command, posix=platform.system() != 'Windows')
+    else:
+        args = command
+
+    process = subprocess.Popen(args,
+                               shell=shell,
                                cwd=cwd,
                                env=env,
                                stdout=subprocess.PIPE,

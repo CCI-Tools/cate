@@ -117,14 +117,12 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
 from io import IOBase
 from itertools import chain
-from typing import Sequence, Optional, Union, List, Dict
+from typing import Optional, Union, List, Dict
 
-from .op import OP_REGISTRY, Operation, Monitor
+from .op import OP_REGISTRY, Operation, Monitor, new_expression_op, new_subprocess_op
 from ..util import Namespace, UNDEFINED, safe_eval, OpMetaInfo
 
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 
 #: Version number of Workflow JSON schema.
 #: Will be incremented with the first schema change after public release.
@@ -142,19 +140,14 @@ class Node(metaclass=ABCMeta):
     Inputs and outputs are exposed as attributes of the :py:attr:`input` and :py:attr:`output` properties and
     are both of type :py:class:`NodePort`.
 
-    :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
-    :param node_id: A node ID. If None, a unique name will be generated.
+    :param node_id: A node ID. If None, a name will be generated.
     """
 
-    def __init__(self,
-                 op_meta_info: OpMetaInfo,
-                 node_id: str):
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
         if not op_meta_info:
             raise ValueError('op_meta_info must be given')
-        if not node_id:
-            raise ValueError('node_id must be given')
         self._op_meta_info = op_meta_info
-        self._id = node_id
+        self._id = node_id or self.gen_id()
         self._persistent = False
         self._inputs = self._new_input_namespace()
         self._outputs = self._new_output_namespace()
@@ -169,13 +162,16 @@ class Node(metaclass=ABCMeta):
         """The node's identifier. """
         return self._id
 
+    def gen_id(self):
+        return type(self).__name__.lower() + '_' + hex(id(self))[2:]
+
     def set_id(self, node_id: str) -> None:
         """
         Set the node's identifier.
 
         :param node_id: The new node identifier. Must be unique within a workflow.
         """
-        if not id:
+        if not node_id:
             raise ValueError('id must be given')
         old_id = self._id
         if node_id == old_id:
@@ -232,7 +228,7 @@ class Node(metaclass=ABCMeta):
     def max_distance_to(self, other_node: 'Node') -> int:
         """
         If *other_node* is a source of this node, then return the number of connections from this node to *node*.
-        If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, cate.
+        If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, etc.
         If *other_node* is this node, return 0.
         If *other_node* is not a source of this node, return -1.
 
@@ -464,15 +460,12 @@ class Workflow(Node):
     """
     A workflow of (connected) steps.
 
-    :param name_or_op_meta_info: Qualified operation name or meta-information object of type :py:class:`OpMetaInfo`.
+    :param op_meta_info: Meta-information object of type :py:class:`OpMetaInfo`.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, name_or_op_meta_info: Union[str, OpMetaInfo]):
-        if isinstance(name_or_op_meta_info, str):
-            op_meta_info = OpMetaInfo(name_or_op_meta_info)
-        else:
-            op_meta_info = name_or_op_meta_info
-        super(Workflow, self).__init__(op_meta_info, op_meta_info.qualified_name)
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
+        super(Workflow, self).__init__(op_meta_info, node_id=node_id or op_meta_info.qualified_name)
         # The list of steps
         self._steps = []
         self._steps_dict = {}
@@ -490,8 +483,10 @@ class Workflow(Node):
     @classmethod
     def sort_steps(cls, steps: List['Step']):
         """Sorts the list of workflow steps in the order they they can be executed."""
-        # TODO (forman 20170222): Try find a replacement for this expensive, brute-force sorting algorithm.
-        #                         It is ok for a small number of steps only.
+        # Note: Try find a replacement for this brute-force sorting algorithm.
+        #       It is ok for a small number of steps only.
+        #       order(sort_steps, N, Ni) = order(sorted, N) + N^2 * Ni^2
+        #       where N is the number of steps and Ni is the number of inputs per step
         n = len(steps)
         if n < 2:
             return steps
@@ -536,7 +531,7 @@ class Workflow(Node):
                 return other_node
         return None
 
-    def add_steps(self, *steps: Sequence['Step'], can_exist: bool = False) -> None:
+    def add_steps(self, *steps: 'Step', can_exist: bool = False) -> None:
         for step in steps:
             self.add_step(step, can_exist=can_exist)
 
@@ -694,7 +689,7 @@ class Workflow(Node):
         for step_json_dict in steps_json_list:
             step_count += 1
             node = None
-            for node_class in [OpStep, WorkflowStep, ExprStep, NoOpStep, SubProcessStep]:
+            for node_class in [OpStep, WorkflowStep, ExpressionStep, NoOpStep, SubProcessStep]:
                 node = node_class.from_json_dict(step_json_dict, registry=registry)
                 if node is not None:
                     steps.append(node)
@@ -765,12 +760,11 @@ class Step(Node):
     """
     A step is an inner node of a workflow.
 
-    :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
-    :param node_id: A node ID. If None, a unique name will be generated.
+    :param node_id: A node ID. If None, a name will be generated.
     """
 
-    def __init__(self, op_meta_info: OpMetaInfo, node_id: str):
-        super(Step, self).__init__(op_meta_info, node_id)
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
+        super(Step, self).__init__(op_meta_info, node_id=node_id)
         self._parent_node = None
 
     @property
@@ -876,16 +870,15 @@ class WorkflowStep(Step):
 
     :param workflow: The referenced workflow.
     :param resource: A resource (e.g. file path, URL) from which the workflow was loaded.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, workflow, resource, node_id=None):
+    def __init__(self, workflow: Workflow, resource: str, node_id: str = None):
         if not workflow:
             raise ValueError('workflow must be given')
         if not resource:
             raise ValueError('resource must be given')
-        node_id = node_id if node_id else 'workflow_step_' + hex(id(self))[2:]
-        super(WorkflowStep, self).__init__(workflow.op_meta_info, node_id)
+        super(WorkflowStep, self).__init__(workflow.op_meta_info, node_id=node_id)
         self._workflow = workflow
         self._resource = resource
         # Connect the workflow's inputs with this node's input sources
@@ -943,34 +936,24 @@ class WorkflowStep(Step):
         return "WorkflowStep(%s, '%s', node_id='%s')" % (repr(self._workflow), self.resource, self.id)
 
 
-class OpStep(Step):
+class OpStepBase(Step, metaclass=ABCMeta):
     """
-    An `OpStep` is a step node that invokes a registered operation of type :py:class:`Operation`.
+    Base class for concrete steps based on an :py:class:`Operation`.
 
-    :param operation: A fully qualified operation name or operation object such as a class or callable.
-    :param registry: An operation registry to be used to lookup the operation, if given by name.
+    :param op: An :py:class:`Operation` object.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, operation, node_id=None, registry=OP_REGISTRY):
-        if not operation:
-            raise ValueError('operation must be given')
-        if isinstance(operation, str):
-            op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        elif isinstance(operation, Operation):
-            op_registration = operation
-        else:
-            op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        assert op_registration is not None
-        node_id = node_id if node_id else 'op_step_' + hex(id(self))[2:]
-        op_meta_info = op_registration.op_meta_info
-        super(OpStep, self).__init__(op_meta_info, node_id)
-        self._op_registration = op_registration
+    def __init__(self, op: Operation, node_id: str = None):
+        if not op:
+            raise ValueError('op must be given')
+        self._op = op
+        super(OpStepBase, self).__init__(op.op_meta_info, node_id=node_id)
 
     @property
-    def op(self):
+    def op(self) -> Operation:
         """The operation registration. See :py:class:`cate.core.op.Operation`"""
-        return self._op_registration
+        return self._op
 
     def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
@@ -992,7 +975,7 @@ class OpStep(Step):
         if value_cache is not None and self.id in value_cache and value_cache[self.id] is not UNDEFINED:
             return_value = value_cache[self.id]
         else:
-            return_value = self._op_registration(monitor=monitor, **input_values)
+            return_value = self._op(monitor=monitor, **input_values)
             if value_cache is not None:
                 value_cache[self.id] = return_value
 
@@ -1015,7 +998,28 @@ class OpStep(Step):
         """
         if self.op_meta_info.has_monitor:
             input_values[OpMetaInfo.MONITOR_INPUT_NAME] = monitor
-        return self._op_registration(**input_values)
+        return self._op(**input_values)
+
+
+class OpStep(OpStepBase):
+    """
+    An `OpStep` is a step node that invokes a registered operation of type :py:class:`Operation`.
+
+    :param operation: A fully qualified operation name or operation object such as a class or callable.
+    :param registry: An operation registry to be used to lookup the operation, if given by name.
+    :param node_id: A node ID. If None, a unique ID will be generated.
+    """
+
+    def __init__(self, operation, node_id: str = None, registry=OP_REGISTRY):
+        if not operation:
+            raise ValueError('operation must be given')
+        if isinstance(operation, str):
+            op = registry.get_op(operation, fail_if_not_exists=True)
+        elif isinstance(operation, Operation):
+            op = operation
+        else:
+            op = registry.get_op(operation, fail_if_not_exists=True)
+        super(OpStep, self).__init__(op, node_id=node_id)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1047,62 +1051,26 @@ class OpStep(Step):
         return None
 
     def __repr__(self):
-        return "OpStep(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
+        return "OpStep(%s, node_id='%s')" % (repr(self.op_meta_info.qualified_name), self.id)
 
 
-class ExprStep(Step):
+class ExpressionStep(OpStepBase):
     """
     An ``ExprStep`` is a step node that computes its output from a simple (Python) *expression* string.
 
     :param expression: A simple (Python) expression string.
     :param inputs: input name to input properties mapping.
     :param outputs: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
     def __init__(self, expression: str, inputs=None, outputs=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
-        node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
-        if len(op_meta_info.outputs) == 0:
-            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(ExprStep, self).__init__(op_meta_info, node_id)
         self._expression = expression
-
-    @property
-    def expression(self) -> str:
-        """The expression."""
-        return self._expression
-
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
-        """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
-
-        :param context: The current execution context. Should always be given.
-        :param monitor: An optional progress monitor.
-        """
-        input_values = OrderedDict()
-        for node_input in self.inputs[:]:
-            input_values[node_input.name] = node_input.value
-
-        self._set_context_values(context, input_values)
-
-        value_cache = self._get_value_cache(context)
-        if value_cache is not None and self.id in value_cache:
-            return_value = value_cache[self.id]
-        else:
-            return_value = safe_eval(self.expression, input_values)
-            if value_cache is not None:
-                value_cache[self.id] = return_value
-
-        if self.op_meta_info.has_named_outputs:
-            for output_name, output_value in return_value.items():
-                self.outputs[output_name].value = output_value
-        else:
-            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
+        op = new_expression_op(op_meta_info, expression)
+        super(ExpressionStep, self).__init__(op, node_id=op_meta_info.qualified_name)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1112,13 +1080,125 @@ class ExprStep(Step):
         return cls(expression, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['expression'] = self.expression
+        node_dict['expression'] = self._expression
 
     def _body_string(self):
-        return '"%s"' % self.expression
+        return '"%s"' % self._expression
 
     def __repr__(self):
-        return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
+        return "ExpressionStep(%s, node_id='%s')" % (repr(self._expression), self.id)
+
+
+class SubProcessStep(OpStepBase):
+    """
+    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
+    given *program*.
+
+    :param command: A pattern that will be interpolated by input values to obtain the actual command
+           (program with arguments) to be executed.
+           May contain "{input_name}" fields which will be replaced by the actual input value converted to text.
+           *input_name* must refer to a valid operation input name in *op_meta_info.input* or it must be
+           the value of either the "write_to" or "read_from" property of another input's property map.
+    :param run_python: If True, *command_line_pattern* refers to a Python script which will be executed with
+           the Python interpreter that Cate uses.
+    :param cwd: Current working directory to run the command line in.
+    :param env: Environment variables passed to the shell that executes the command line.
+    :param shell: Whether to use the shell as the program to execute.
+    :param started_re: A regex that must match a text line from the process' stdout
+           in order to signal the start of progress monitoring.
+           The regex must provide the group names "label" or "total_work" or both,
+           e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
+    :param progress_re: A regex that must match a text line from the process' stdout
+           in order to signal process.
+           The regex must provide group names "work" or "msg" or both,
+           e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
+    :param done_re: A regex that must match a text line from the process' stdout
+           in order to signal the end of progress monitoring.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
+    :param node_id: A node ID. If None, an ID will be generated.
+    """
+
+    def __init__(self,
+                 command: str,
+                 run_python: bool = False,
+                 env: Dict[str, str] = None,
+                 cwd: str = None,
+                 shell: bool = False,
+                 started_re: str = None,
+                 progress_re: str = None,
+                 done_re: str = None,
+                 inputs: Dict[str, Dict] = None,
+                 outputs: Dict[str, Dict] = None,
+                 node_id: str = None):
+        if not command:
+            raise ValueError('command must be given')
+        if not outputs:
+            outputs = {OpMetaInfo.RETURN_OUTPUT_NAME: {}}
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
+        self._command = command
+        self._run_python = run_python
+        self._cwd = cwd
+        self._env = env
+        self._shell = shell
+        self._started_re = started_re
+        self._progress_re = progress_re
+        self._done_re = done_re
+        op = new_subprocess_op(op_meta_info,
+                               command,
+                               run_python=run_python,
+                               cwd=cwd,
+                               env=env,
+                               shell=shell,
+                               started=started_re,
+                               progress=progress_re,
+                               done=done_re)
+        super(SubProcessStep, self).__init__(op, node_id=op_meta_info.qualified_name)
+
+    @classmethod
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        command = json_dict.get('command')
+        if command is None:
+            return None
+        run_python = json_dict.get('run_python')
+        cwd = json_dict.get('cwd')
+        env = json_dict.get('env')
+        shell = json_dict.get('shell', False)
+        started_re = json_dict.get('started_re')
+        progress_re = json_dict.get('progress_re')
+        done_re = json_dict.get('done_re')
+        return cls(command,
+                   run_python=run_python,
+                   cwd=cwd,
+                   env=env,
+                   shell=shell,
+                   started_re=started_re,
+                   progress_re=progress_re,
+                   done_re=done_re,
+                   node_id=json_dict.get('id'))
+
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        node_dict['command'] = self._command
+        if self._run_python:
+            node_dict['run_python'] = self._run_python
+        if self._cwd:
+            node_dict['cwd'] = self._cwd
+        if self._env:
+            node_dict['env'] = self._env
+        if self._shell:
+            node_dict['shell'] = self._shell
+        if self._started_re:
+            node_dict['started_re'] = self._started_re
+        if self._progress_re:
+            node_dict['progress_re'] = self._progress_re
+        if self._done_re:
+            node_dict['done_re'] = self._done_re
+
+    def _body_string(self):
+        return '"%s"' % self._command
+
+    def __repr__(self):
+        return "SubProcessStep(%s, node_id='%s')" % (repr(self._command), self.id)
 
 
 class NoOpStep(Step):
@@ -1131,28 +1211,22 @@ class NoOpStep(Step):
 
     :param inputs: input name to input properties mapping.
     :param outputs: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, inputs=None, outputs=None, node_id=None):
-        node_id = node_id if node_id else 'no_op_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
+    def __init__(self, inputs: dict = None, outputs: dict = None, node_id: str = None):
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
         if len(op_meta_info.outputs) == 0:
             op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(NoOpStep, self).__init__(op_meta_info, node_id)
+        super(NoOpStep, self).__init__(op_meta_info, node_id=op_meta_info.qualified_name)
 
     def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
+        No-op.
 
         :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
-        input_values = OrderedDict()
-        for node_input in self.inputs[:]:
-            input_values[node_input.name] = node_input.value
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1169,102 +1243,6 @@ class NoOpStep(Step):
 
     def __repr__(self):
         return "NoOpStep(node_id='%s')" % self.id
-
-
-class SubProcessStep(Step):
-    """
-    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
-    given *sub_process_arguments*.
-
-    :param sub_process_arguments: The sub process' arguments as list where the first entry is usually an executable and
-           remaining entries are the executable's arguments.
-    :param inputs: input name to input properties mapping.
-    :param outputs: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
-    """
-
-    def __init__(self,
-                 sub_process_arguments: List[str],
-                 environment_variables: Dict[str, str] = None,
-                 working_directory: str = '',
-                 inputs=None,
-                 outputs=None,
-                 node_id=None):
-        if not sub_process_arguments:
-            raise ValueError('sub_process_arguments must be given')
-        node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, inputs=inputs, outputs=outputs)
-        if len(op_meta_info.outputs) == 0:
-            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(SubProcessStep, self).__init__(op_meta_info, node_id)
-        self._sub_process_arguments = sub_process_arguments
-        # noinspection PyArgumentList
-        self._environment_variables = dict(**environment_variables) if environment_variables else {}
-        self._working_directory = working_directory
-
-    @property
-    def sub_process_arguments(self) -> List[str]:
-        """The sub process' arguments."""
-        return self._sub_process_arguments
-
-    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
-        """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
-
-        :param context: The current execution context. Should always be given.
-        :param monitor: An optional progress monitor.
-        """
-        input_values = OrderedDict()
-        for node_input in self.inputs[:]:
-            input_values[node_input.name] = node_input.value
-
-        # TODO (forman, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
-        #                      from given input values
-        # For example: 1) use input as new argument (replacement) --> DONE
-        #              2) generate text file (e.g. parameter / config file) from template and from input values
-        #                 use new filename as new argument
-        # TODO (forman, 20160625): SubProcessStep: add option to generate dictionary of named output values
-        # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
-        #              2) send all stdout lines to monitor as textual messages
-        # TODO (forman, 20160625): SubProcessStep: use monitor here
-
-        interpolated_arguments = []
-        for arg in self._sub_process_arguments:
-            for key, value in input_values.items():
-                arg = arg.replace('{{%s}}' % key, str(value))
-            interpolated_arguments.append(arg)
-
-        import subprocess
-        return_value = subprocess.run(interpolated_arguments, shell=True).returncode
-
-        if self.op_meta_info.has_named_outputs:
-            # will never reach this code, see to-do above
-            for output_name, output_value in return_value.items():
-                self.outputs[output_name].value = output_value
-        else:
-            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
-
-    @classmethod
-    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
-        sub_process_arguments = json_dict.get('sub_process_arguments', None)
-        # working_directory = json_dict.get('working_directory', None)
-        # environment_variables = json_dict.get('environment_variables', None)
-        if sub_process_arguments is None:
-            return None
-        return cls(sub_process_arguments, node_id=json_dict.get('id', None))
-
-    def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['sub_process_arguments'] = self._sub_process_arguments
-        node_dict['working_directory'] = self._working_directory
-        node_dict['environment_variables'] = self._environment_variables
-
-    def _body_string(self):
-        return '"%s"' % ' '.join(self.sub_process_arguments)
-
-    def __repr__(self):
-        return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
 
 
 SourceRef = namedtuple('SourceRef', ['node_id', 'port_name'])
@@ -1640,10 +1618,10 @@ class ValueCache(dict):
             self._del(child_key)
             self._set(new_key + '._child', child_cache)
 
-    def pop(self, key):
+    def pop(self, key, default=None):
         """Override the ``dict`` method to close the value and remove its ID."""
         existed_before = key in self
-        value = super(ValueCache, self).pop(key)
+        value = super(ValueCache, self).pop(key, default=default)
         if existed_before:
             self._close_value(value)
             del self._id_infos[key]

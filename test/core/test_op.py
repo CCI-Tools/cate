@@ -6,7 +6,7 @@ from unittest import TestCase
 import xarray as xr
 
 from cate.core.op import OpRegistry, op, op_input, op_return, op_output, OP_REGISTRY
-from cate.core.op import new_executable_op, new_expression_op
+from cate.core.op import new_subprocess_op, new_expression_op
 from cate.core.types import FileLike, VarName
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
@@ -31,7 +31,7 @@ class OpTest(TestCase):
         self.registry = None
 
     def test_new_executable_op_without_ds(self):
-        op = new_executable_op(OpMetaInfo('make_entropy',
+        op = new_subprocess_op(OpMetaInfo('make_entropy',
                                           inputs={
                                               'num_steps': {'data_type': int},
                                               'period': {'data_type': float},
@@ -44,7 +44,7 @@ class OpTest(TestCase):
         self.assertEqual(exit_code, 0)
 
     def test_new_executable_op_with_ds_file(self):
-        op = new_executable_op(OpMetaInfo('filter_ds',
+        op = new_subprocess_op(OpMetaInfo('filter_ds',
                                           inputs={
                                               'ifile': {'data_type': FileLike},
                                               'ofile': {'data_type': FileLike},
@@ -63,7 +63,7 @@ class OpTest(TestCase):
         os.remove(ofile)
 
     def test_new_executable_op_with_ds_in_mem(self):
-        op = new_executable_op(OpMetaInfo('filter_ds',
+        op = new_subprocess_op(OpMetaInfo('filter_ds',
                                           inputs={
                                               'ds': {
                                                   'data_type': xr.Dataset,
@@ -97,6 +97,16 @@ class OpTest(TestCase):
                                'x + y')
         z = op(x=1.2, y=2.4)
         self.assertEqual(z, 1.2 + 2.4)
+
+        op = new_expression_op(OpMetaInfo('add_xy',
+                                          inputs={
+                                              'x': {},
+                                              'y': {},
+                                          }),
+                               'x * y')
+        z = op(x=1.2, y=2.4)
+        self.assertEqual(z, 1.2 * 2.4)
+        self.assertIn('return', op.op_meta_info.outputs)
 
     def test_plain_function(self):
         def f(a: float, b, c, u=3, v='A', w=4.9) -> str:

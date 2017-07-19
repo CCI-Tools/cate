@@ -28,10 +28,10 @@ from .ds import DataStore, DataSource, open_dataset, query_data_sources, DATA_ST
 
 # noinspection PyUnresolvedReferences
 from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \
-    new_expression_op, new_executable_op
+    new_expression_op, new_subprocess_op
 
 # noinspection PyUnresolvedReferences
-from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExprStep, WorkflowStep, NodePort, \
+from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExpressionStep, WorkflowStep, NodePort, \
     new_workflow_op
 
 # noinspection PyUnresolvedReferences
