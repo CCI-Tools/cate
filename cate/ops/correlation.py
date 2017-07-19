@@ -39,6 +39,8 @@ from scipy.special import betainc
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DatasetLike
 
+from cate.ops.normalize import adjust_spatial_attrs
+
 
 @op(tags=['utility', 'correlation'])
 @op_input('ds_x', data_type=DatasetLike)
@@ -189,7 +191,7 @@ def pearson_correlation(ds_x: xr.Dataset,
     retset = _pearsonr(array_x, array_y)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
-    return retset
+    return adjust_spatial_attrs(retset)
 
 
 def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:

@@ -271,18 +271,23 @@ examined in ``cate/ops/outliers.py``.
 
 Also, when an operation modifies spatiotemporal extents and/or resolution of
 the dataset, the corresponding global attributes from `Attribute Convention for
-Data Discovery`_ should be updated or added if these do not exist. For example:
+Data Discovery`_ should be updated or added. There are dedicated functions in
+``cate/ops/normalize.py`` for this purpose.
 
 .. code-block:: python
+
+  from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
+
 
   @op()
   def dummy_op(ds: xr.Dataset):
       rs = ds.copy()
+
       # Do some science
-      rs.attrs['geospatial_lat_min'] = new_lat_min
-      rs.attrs['geospatial_lon_min'] = new_lon_min
-      rs.attrs['geospatial_lat_max'] = new_lat_max
-      rs.attrs['geospatial_lon_max'] = new_lon_max
+
+      # Adjust global attributes
+      rs = adjust_spatial_attrs(rs)
+      rs = adjust_temporal_attrs(rs)
 
       return rs
 

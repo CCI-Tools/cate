@@ -41,6 +41,7 @@ from cate.core.op import op_input, op, op_return
 from cate.util import Monitor
 
 from cate.ops import resampling
+from cate.ops.normalize import adjust_spatial_attrs
 
 
 @op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'],
@@ -264,7 +265,10 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
                                           ds_slave['lon'].values,
                                           global_bounds=(-180, 180))
 
-    # Subset slave dataset and master grid
+    # Subset slave dataset and master grid. We're not using here the subset
+    # operation, because the subset operation may produce datasets that cross
+    # the anti-meridian by design. However, such a disjoint dataset can not be
+    # resampled using our current resampling methods.
     lat_slice = slice(lat_min, lat_max)
     lon_slice = slice(lon_min, lon_max)
 
@@ -275,16 +279,7 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
         kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'parent_monitor': monitor}
         retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)
 
-    # Set/Update global geospatial attributes
-    retset.attrs['geospatial_lat_min'] = retset.lat.values[0]
-    retset.attrs['geospatial_lat_max'] = retset.lat.values[-1]
-    retset.attrs['geospatial_lon_min'] = retset.lon.values[0]
-    retset.attrs['geospatial_lon_max'] = retset.lon.values[-1]
-    retset.attrs['geospatial_lon_resolution'] = abs(retset.lon.values[1] -
-                                                    retset.lon.values[0])
-    retset.attrs['geospatial_lat_resolution'] = abs(retset.lat.values[1] -
-                                                    retset.lat.values[0])
-    return retset
+    return adjust_spatial_attrs(retset)
 
 
 def _find_intersection(first: np.ndarray,

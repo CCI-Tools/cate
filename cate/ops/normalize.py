@@ -161,3 +161,155 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     ds.time.attrs['calendar'] = 'standard'
 
     return ds
+
+
+def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Adjust the global spatial attributes of the dataset by doing some
+    introspection of the dataset and adjusting the appropriate attributes
+    accordingly.
+
+    In case the determined attributes do not exist in the dataset, these will
+    be added.
+
+    For more information on suggested global attributes see
+    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    ds = ds.copy()
+
+    for dim in ('lon', 'lat'):
+        geoattrs = _get_spatial_props(ds, dim)
+
+        for key in geoattrs:
+            if geoattrs[key]:
+                ds.attrs[key] = geoattrs[key]
+
+    lon_min = ds.attrs['geospatial_lon_min']
+    lat_min = ds.attrs['geospatial_lat_min']
+    lon_max = ds.attrs['geospatial_lon_max']
+    lat_max = ds.attrs['geospatial_lat_max']
+
+    ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {},\
+ {} {}, {} {}))'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
+                        lon_max, lat_min, lon_min, lat_min)
+
+    # Determination of the following attributes from introspection in a general
+    # way is ambiguous, hence it is safer to drop them than to risk preserving
+    # out of date attributes.
+    drop = ['geospatial_bounds_crs', 'geospatial_bounds_vertical_crs',
+            'geospatial_vertical_min', 'geospatial_vertical_max',
+            'geospatial_vertical_positive', 'geospatial_vertical_units',
+            'geospatial_vertical_resolution']
+
+    for key in drop:
+        ds.attrs.pop(key, None)
+
+    return ds
+
+
+def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Adjust the global temporal attributes of the dataset by doing some
+    introspection of the dataset and adjusting the appropriate attributes
+    accordingly.
+
+    In case the determined attributes do not exist in the dataset, these will
+    be added.
+
+    For more information on suggested global attributes see
+    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    ds = ds.copy()
+
+    ds.attrs['time_coverage_start'] = str(ds.time.values[0])
+    ds.attrs['time_coverage_end'] = str(ds.time.values[-1])
+    ds.attrs['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
+    ds.attrs['time_coverage_duration'] = _get_duration(ds.time.values)
+
+    return ds
+
+
+def _get_spatial_props(ds: xr.Dataset, dim: str) -> tuple:
+    """
+    Get spatial boundaries, resolution and units of the given dimension of the given
+    dataset. If the 'bounds' are explicitly defined, these will be used for
+    boundary calculation, otherwise it will rest purely on information gathered
+    from 'dim' itself.
+
+    :param ds: Dataset
+    :param dim: Dimension name
+    :return: A dictionary {'attr_name': attr_value}
+    """
+    ret = dict()
+
+    try:
+        dim_res = abs(ds[dim].values[1] - ds[dim].values[0])
+        res_name = 'geospatial_{}_resolution'.format(dim)
+        ret[res_name] = dim_res
+    except KeyError:
+        raise ValueError('Dimension {} not found in the provided'
+                         ' dataset.').format(dim)
+
+    min_name = 'geospatial_{}_min'.format(dim)
+    max_name = 'geospatial_{}_max'.format(dim)
+    units_name = 'geospatial_{}_units'.format(dim)
+
+    try:
+        # According to CF Conventions the corresponding 'bounds' variable name
+        # should be in the attributes of the coordinate variable
+        bnds = ds[dim].attrs['bounds']
+        dim_min = min(ds[bnds].values[0][0], ds[bnds].values[-1][1])
+        dim_max = max(ds[bnds].values[0][0], ds[bnds].values[-1][1])
+    except KeyError:
+        dim_min = min(ds[dim].values[0], ds[dim].values[-1]) - dim_res * 0.5
+        dim_max = max(ds[dim].values[0], ds[dim].values[-1]) + dim_res * 0.5
+
+    ret[max_name] = dim_max
+    ret[min_name] = dim_min
+
+    try:
+        dim_units = ds[dim].attrs['units']
+    except KeyError:
+        dim_units = None
+
+    ret[units_name] = dim_units
+
+    return ret
+
+
+def _get_temporal_res(time: np.ndarray) -> str:
+    """
+    Determine temporal resolution of the given datetimes array.
+
+    See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
+
+    :param time: A numpy array containing np.datetime64 objects
+    :return: Temporal resolution formatted as an ISO 8601:2004 duration string
+    """
+    delta = time[1] - time[0]
+    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+
+    if (27 < days) and (days < 32):
+        return 'P1M'
+    else:
+        return 'P{}D'.format(int(days))
+
+
+def _get_duration(time: np.ndarray) -> str:
+    """
+    Determine the duration of the given datetimes array.
+
+    See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
+
+    :param time: A numpy array containing np.datetime64 objects
+    :return: Temporal resolution formatted as an ISO 8601:2004 duration string
+    """
+    delta = time[-1] - time[0]
+    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+    return 'P{}D'.format(int(days))

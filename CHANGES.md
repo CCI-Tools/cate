@@ -6,14 +6,14 @@
   * `pearson_correlation_simple` that produces a single pair of a correlation
     coefficient and a probability value for the given timeseries.
   * `pearson_correlation_map` produces a map of correlation coefficients and p-values
-    and outputs this as a dataset that can be worked with further.
-    
+    and outputs this as a dataset that can be worked with further.    
   Performance of pearson correlation has been radically improved. In addition, the operations can now
   accept both, a dataset and a dataframe and a map can be created also by
   performing correlation of a single timeseries against all spatial points in the
   other dataset.
+* A uniform way of handling spatiotemporal global attributes has been introduced
 * External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
-  the *MPI Climate Data Operators* can now be registered as operations.
+  the *MPI Climate Data Operators* can now be registered as operations. (ONGOING)
 * In summary, workflows can now have steps of the following types:
   - A step that invokes a registered Cate operation, which is the default
     ```json
@@ -44,8 +44,8 @@
 
 ### Issues Fixed/Resolved
 
+* Fixed [#294](https://github.com/CCI-Tools/cate-core/issues/294)
 * Fixed [#286](https://github.com/CCI-Tools/cate-core/issues/286)
-* Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
 * Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
 * Fixed [#283](https://github.com/CCI-Tools/cate-core/issues/283)
 * Fixed [#281](https://github.com/CCI-Tools/cate-core/issues/281)
@@ -53,6 +53,7 @@
 * Fixed [#273](https://github.com/CCI-Tools/cate-core/issues/273)
 * Fixed [#262](https://github.com/CCI-Tools/cate-core/issues/262)
 * Fixed [#201](https://github.com/CCI-Tools/cate-core/issues/201)
+* Fixed [#223](https://github.com/CCI-Tools/cate-core/issues/223)
 * Fixed a problem with getting the variable statistics for variables with more that 3 dimensions
 
 ## Changes in version 0.9.0.dev3
