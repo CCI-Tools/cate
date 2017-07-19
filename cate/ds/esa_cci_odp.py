@@ -18,9 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -63,6 +60,10 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
@@ -141,6 +142,7 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
         while True:
             monitor.progress(work=1)
             paging_query_args = dict(query_args or {})
+            # noinspection PyArgumentList
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
             with urllib.request.urlopen(url, timeout=timeout) as response:
@@ -205,6 +207,7 @@ def _load_or_fetch_json(fetch_json_function,
     if json_obj is None:
         # noinspection PyArgumentList
         try:
+            # noinspection PyArgumentList
             json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
             if cache_used:
                 os.makedirs(cache_dir, exist_ok=True)
@@ -438,7 +441,7 @@ class EsaCciOdpDataSource(DataSource):
         self._meta_info = None
 
     @property
-    def name(self) -> str:
+    def id(self) -> str:
         return self._master_id
 
     @property
@@ -454,7 +457,6 @@ class EsaCciOdpDataSource(DataSource):
         if self._catalogue_data \
                 and self._catalogue_data.get('bbox_minx', None) and self._catalogue_data.get('bbox_miny', None) \
                 and self._catalogue_data.get('bbox_maxx', None) and self._catalogue_data.get('bbox_maxy', None):
-
             return PolygonLike.convert([
                 self._catalogue_data.get('bbox_minx'),
                 self._catalogue_data.get('bbox_miny'),
@@ -574,7 +576,7 @@ class EsaCciOdpDataSource(DataSource):
 
         data_sources = find_data_sources(None, id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
-                            ds.name == local_id), None)  # type: LocalDataSource
+                            ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
 
@@ -598,10 +600,13 @@ class EsaCciOdpDataSource(DataSource):
         if to_remove:
             for time_range_to_remove in to_remove:
                 data_source.reduce_temporal_coverage(time_range_to_remove)
-        if to_add:
 
+        if to_add:
             for time_range_to_add in to_add:
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+
+        # TODO (chris): forman added False (?) to make signature happy
+        return False
 
     def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
 
@@ -650,7 +655,7 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.name)
+            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
             raise IOError(msg)
@@ -692,8 +697,7 @@ class EsaCciOdpDataSource(DataSource):
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
-        # local_name = local_ds.name
-        local_id = local_ds.name
+        local_id = local_ds.id
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = PolygonLike.convert(region) if region else None
@@ -719,7 +723,7 @@ class EsaCciOdpDataSource(DataSource):
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
             files = self._get_urls_list(selected_file_list, protocol)
-            monitor.start('Sync ' + self.name, total_work=len(files))
+            monitor.start('Sync ' + self.id, total_work=len(files))
             for idx, dataset_uri in enumerate(files):
                 child_monitor = monitor.child(work=1)
 
@@ -751,8 +755,8 @@ class EsaCciOdpDataSource(DataSource):
                         geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
                                                                             'geospatial_lat_resolution')
                         if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
-                                isnan(geo_lon_min) or isnan(geo_lon_max) or
-                                isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                    isnan(geo_lon_min) or isnan(geo_lon_max) or
+                                    isnan(geo_lat_res) or isnan(geo_lon_res)):
                             process_region = True
 
                             [lon_min, lat_min, lon_max, lat_max] = region.bounds
@@ -843,7 +847,7 @@ class EsaCciOdpDataSource(DataSource):
                     outdated_file_list.append(file_rec)
 
             if outdated_file_list:
-                with monitor.starting('Sync ' + self.name, len(outdated_file_list)):
+                with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
                     bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
                     dl_stat = _DownloadStatistics(bytes_to_download)
 
@@ -889,7 +893,7 @@ class EsaCciOdpDataSource(DataSource):
             del local_meta_info['uuid']
             local_meta_info['ref_uuid'] = self.meta_info['uuid']
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
                                                   time_range, var_names, meta_info=local_meta_info, lock_file=True)
         self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
         return local_ds
@@ -936,10 +940,10 @@ class EsaCciOdpDataSource(DataSource):
         return self.info_string
 
     def _repr_html_(self):
-        return self.name
+        return self.id
 
     def __repr__(self):
-        return self.name
+        return self.id
 
 
 class _DownloadStatistics:
@@ -952,7 +956,7 @@ class _DownloadStatistics:
         self.bytes_done += chunk
 
     @staticmethod
-    def _to_mibs(bytes_count):
+    def _to_mibs(bytes_count: int) -> float:
         return bytes_count / (1024 * 1024)
 
     def __str__(self):
@@ -966,7 +970,6 @@ class _DownloadStatistics:
 
 
 class EsaCciCatalogueService:
-
     def __init__(self, catalogue_url: str):
 
         self._catalogue_url = catalogue_url
@@ -1021,20 +1024,20 @@ class EsaCciCatalogueService:
 
         self._catalogue = {
             record.identification.uricode[0]: {
-                    'abstract': record.identification.abstract,
-                    'bbox_minx': record.identification.bbox.minx if record.identification.bbox else None,
-                    'bbox_miny': record.identification.bbox.miny if record.identification.bbox else None,
-                    'bbox_maxx': record.identification.bbox.maxx if record.identification.bbox else None,
-                    'bbox_maxy': record.identification.bbox.maxy if record.identification.bbox else None,
-                    'creation_date':
+                'abstract': record.identification.abstract,
+                'bbox_minx': record.identification.bbox.minx if record.identification.bbox else None,
+                'bbox_miny': record.identification.bbox.miny if record.identification.bbox else None,
+                'bbox_maxx': record.identification.bbox.maxx if record.identification.bbox else None,
+                'bbox_maxy': record.identification.bbox.maxy if record.identification.bbox else None,
+                'creation_date':
                     next(iter(e.date for e in record.identification.date if e and e.type == 'creation'), None),
-                    'publication_date':
+                'publication_date':
                     next(iter(e.date for e in record.identification.date if e and e.type == 'publication'), None),
-                    'title': record.identification.title,
-                    'data_sources': record.identification.uricode[1:],
-                    'licences': record.identification.uselimitation,
-                    'temporal_coverage_start': record.identification.temporalextent_start,
-                    'temporal_coverage_end': record.identification.temporalextent_end
+                'title': record.identification.title,
+                'data_sources': record.identification.uricode[1:],
+                'licences': record.identification.uselimitation,
+                'temporal_coverage_start': record.identification.temporalextent_start,
+                'temporal_coverage_end': record.identification.temporalextent_end
             }
             for record in catalogue_metadata.values()
             if record.identification and len(record.identification.uricode) > 0

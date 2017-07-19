@@ -129,8 +129,8 @@ class WebSocketService:
         data_sources = data_store.query(monitor=monitor)
         data_source_list = []
         for data_source in data_sources:
-            data_source_list.append(dict(id=data_source.name,
-                                         name=data_source.name,
+            data_source_list.append(dict(id=data_source.id,
+                                         name=data_source.id,
                                          meta_info=data_source.meta_info))
 
         return sorted(data_source_list, key=lambda ds: ds['name'])

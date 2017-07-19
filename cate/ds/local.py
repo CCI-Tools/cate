@@ -18,9 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 """
 Description
@@ -60,6 +57,10 @@ from cate.core.ds import get_data_stores_path
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
+
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
 
@@ -74,11 +75,11 @@ def add_to_data_store_registry():
 
 
 class LocalDataSource(DataSource):
-    def __init__(self, name: str, files: Union[Sequence[str], OrderedDict], data_store: 'LocalDataStore',
+    def __init__(self, id: str, files: Union[Sequence[str], OrderedDict], data_store: 'LocalDataStore',
                  temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None,
                  meta_info: dict = None):
-        self._name = name
+        self._id = id
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
         else:
@@ -127,11 +128,10 @@ class LocalDataSource(DataSource):
             for i in range(len(time_series)):
                 if time_series[i]:
                     if isinstance(time_series[i], Tuple) and \
-                            time_series[i][0] >= time_range[0] and \
-                            time_series[i][1] <= time_range[1]:
+                                    time_series[i][0] >= time_range[0] and time_series[i][1] <= time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
                     elif isinstance(time_series[i], datetime) and \
-                            time_range[0] <= time_series[i] < time_range[1]:
+                                            time_range[0] <= time_series[i] < time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
         else:
             for file in self._files.items():
@@ -165,8 +165,7 @@ class LocalDataSource(DataSource):
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
-        # local_name = local_ds.name
-        local_id = local_ds.name
+        local_id = local_ds.id
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         region = PolygonLike.convert(region) if region else None
@@ -184,7 +183,7 @@ class LocalDataSource(DataSource):
         if not os.path.exists(local_path):
             os.makedirs(local_path)
 
-        monitor.start("Sync " + self.name, total_work=len(self._files.items()))
+        monitor.start("Sync " + self.id, total_work=len(self._files.items()))
         for remote_relative_filepath, coverage in self._files.items():
             child_monitor = monitor.child(work=1)
 
@@ -227,7 +226,7 @@ class LocalDataSource(DataSource):
                                 geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
                                                                                     'geospatial_lat_resolution')
                                 if not (isnan(geo_lat_min) or isnan(geo_lat_max) or isnan(geo_lon_min) or
-                                        isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                            isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
                                     process_region = True
 
                                     [lon_min, lat_min, lon_max, lat_max] = region.bounds
@@ -330,7 +329,7 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.name,
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
                                                   meta_info=self.meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         return local_ds
@@ -342,7 +341,7 @@ class LocalDataSource(DataSource):
 
         data_sources = find_data_sources(None, id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
-                            ds.name == local_id), None)  # type: LocalDataSource
+                            ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
             raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
 
@@ -447,6 +446,18 @@ class LocalDataSource(DataSource):
         return self._spatial_coverage
 
     @property
+    def data_store(self) -> DataStore:
+        return self._data_store
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def meta_info(self) -> OrderedDict:
+        return self._meta_info
+
+    @property
     def variables_info(self):
         return self._variables
 
@@ -459,19 +470,7 @@ class LocalDataSource(DataSource):
         return '<table style="border:0;">\n' \
                '<tr><td>Name</td><td><strong>%s</strong></td></tr>\n' \
                '<tr><td>Files</td><td><strong>%s</strong></td></tr>\n' \
-               '</table>\n' % (html.escape(self._name), html.escape(' '.join(self._files)))
-
-    @property
-    def data_store(self) -> DataStore:
-        return self._data_store
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def meta_info(self) -> OrderedDict:
-        return self._meta_info
+               '</table>\n' % (html.escape(self._id), html.escape(' '.join(self._files)))
 
     def to_json_dict(self):
         """
@@ -480,7 +479,7 @@ class LocalDataSource(DataSource):
         :return: A JSON-serializable dictionary
         """
         config = OrderedDict({
-            'name': self._name,
+            'name': self._id,
             'meta_data': {
                 'deprecated': 'to be merged with meta_info in the future',
                 'temporal_covrage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
@@ -521,8 +520,8 @@ class LocalDataSource(DataSource):
                     file_details_length = len(files[0])
                     if file_details_length > 2:
                         files_dict = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
-                                                 parser.parse(item[2]).replace(microsecond=0))
-                                                 if item[1] and item[2] else None) for item in files)
+                                                            parser.parse(item[2]).replace(microsecond=0))
+                        if item[1] and item[2] else None) for item in files)
                     elif file_details_length > 0:
                         files_dict = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
                                                  if len(item) > 1 else (item[0], None) for item in files)
@@ -556,10 +555,10 @@ class LocalDataStore(DataStore):
         if not data_sources or len(data_sources) != 1:
             return
         data_source = data_sources[0]
-        file_name = os.path.join(self._store_dir, data_source.name + '.json')
+        file_name = os.path.join(self._store_dir, data_source.id + '.json')
         os.remove(file_name)
         if remove_files:
-            shutil.rmtree(os.path.join(self._store_dir, data_source.name))
+            shutil.rmtree(os.path.join(self._store_dir, data_source.id))
         self._data_sources.remove(data_source)
 
     def create_data_source(self, name: str, region: PolygonLike.TYPE = None,
@@ -573,13 +572,13 @@ class LocalDataStore(DataStore):
         lock_filepath = os.path.join(self._store_dir, lock_filename)
         existing_ds = None
         for ds in self._data_sources:
-            if ds.name == name:
+            if ds.id == name:
                 if lock_file and os.path.isfile(lock_filepath):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
                         if psutil.pid_exists(int(writer_pid)):
                             raise ValueError("Cannot access data source {}, another process is using it (pid:{}"
-                                             .format(ds.name, writer_pid))
+                                             .format(ds.id, writer_pid))
                         # ds.temporal_coverage() == time_range and
                         if ds.spatial_coverage() == region \
                                 and ds.variables_info == var_names:
@@ -606,7 +605,8 @@ class LocalDataStore(DataStore):
     def data_store_path(self):
         return self._store_dir
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[LocalDataSource]:
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[
+        LocalDataSource]:
         self._init_data_sources()
         if id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
@@ -641,14 +641,14 @@ class LocalDataStore(DataStore):
         self._save_data_source(data_source)
         if unlock:
             try:
-                os.remove(os.path.join(self._store_dir, '{}.lock'.format(data_source.name)))
+                os.remove(os.path.join(self._store_dir, '{}.lock'.format(data_source.id)))
             except FileNotFoundError:
                 pass
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
-        file_name = os.path.join(self._store_dir, data_source.name + '.json')
+        file_name = os.path.join(self._store_dir, data_source.id + '.json')
         with open(file_name, 'w') as fp:
             json.dump(json_dict, fp, **dump_kwargs)
 

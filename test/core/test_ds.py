@@ -26,8 +26,8 @@ class SimpleDataStore(ds.DataStore):
 
 
 class SimpleDataSource(ds.DataSource):
-    def __init__(self, name: str):
-        self._name = name
+    def __init__(self, id: str):
+        self._id = id
         self._data_store = None
 
     @property
@@ -39,8 +39,8 @@ class SimpleDataSource(ds.DataSource):
         return None
 
     @property
-    def name(self) -> str:
-        return self._name
+    def id(self) -> str:
+        return self._id
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -59,10 +59,10 @@ class SimpleDataSource(ds.DataSource):
         return None
 
     def __repr__(self):
-        return "SimpleDataSource(%s)" % repr(self._name)
+        return "SimpleDataSource(%s)" % repr(self._id)
 
     def _repr_html_(self):
-        return self._name
+        return self._id
 
 
 class InMemoryDataSource(SimpleDataSource):
@@ -109,7 +109,7 @@ class IOTest(TestCase):
             data_sources = ds.find_data_sources()
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 98)
-            self.assertEqual(data_sources[0].name, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
+            self.assertEqual(data_sources[0].id, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
 
             data_sources = ds.find_data_sources(id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
             self.assertIsNotNone(data_sources)
@@ -128,28 +128,28 @@ class IOTest(TestCase):
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
-        self.assertEqual(data_sources[0].name, "aerosol")
-        self.assertEqual(data_sources[1].name, "ozone")
+        self.assertEqual(data_sources[0].id, "aerosol")
+        self.assertEqual(data_sources[1].id, "ozone")
 
     def test_find_data_sources_with_data_store_list(self):
         data_stores = [self.TEST_DATA_STORE, self.TEST_DATA_STORE_SST]
         data_sources = ds.find_data_sources(data_stores=data_stores)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 3)
-        self.assertEqual(data_sources[0].name, "aerosol")
-        self.assertEqual(data_sources[1].name, "ozone")
-        self.assertEqual(data_sources[2].name, "sst")
+        self.assertEqual(data_sources[0].id, "aerosol")
+        self.assertEqual(data_sources[1].id, "ozone")
+        self.assertEqual(data_sources[2].id, "sst")
 
     def test_find_data_sources_with_constrains(self):
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].name, "aerosol")
+        self.assertEqual(data_sources[0].id, "aerosol")
 
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="ozone")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].name, "ozone")
+        self.assertEqual(data_sources[0].id, "ozone")
 
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="Z")
         self.assertIsNotNone(data_sources)

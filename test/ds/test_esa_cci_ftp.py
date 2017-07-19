@@ -46,7 +46,7 @@ class FileSetDataSourceTest(TestCase):
         self.ds1 = data_store._data_sources[1]
 
     def test_from_json(self):
-        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.2_DAILY', self.ds0.name)
+        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.2_DAILY', self.ds0.id)
         json_dict = self.ds0.to_json_dict()
 
         self.assertEqual('aerosol/data/ATSR2_SU/L3/v4.2/DAILY', json_dict['base_dir'])
@@ -59,7 +59,7 @@ class FileSetDataSourceTest(TestCase):
         self.assertEqual(2631, fileset_info['num_files'])
         self.assertEqual(42338, fileset_info['size_in_mb'])
 
-        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.21_MONTHLY', self.ds1.name)
+        self.assertEqual('AEROSOL_ATSR2_SU_L3_V4.21_MONTHLY', self.ds1.id)
         json_dict = self.ds1.to_json_dict()
 
         self.assertEqual('aerosol/data/ATSR2_SU/L3/v4.21/MONTHLY', json_dict['base_dir'])

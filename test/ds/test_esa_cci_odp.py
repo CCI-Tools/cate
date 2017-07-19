@@ -127,18 +127,18 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 except:
                     raise ValueError(reference_path, os.listdir(reference_path))
 
-                self.assertEqual(new_ds.name, 'local.local_ds_test')
+                self.assertEqual(new_ds.id, 'local.local_ds_test')
                 self.assertEqual(new_ds.temporal_coverage(),
                                  (datetime.datetime(1978, 11, 14, 0, 0),
                                   datetime.datetime(1978, 11, 15, 23, 59)))
 
-                self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 15, 00, 00),
+                self.data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
                                                             datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 15, 0, 0),
                                   datetime.datetime(1978, 11, 16, 23, 59))))
 
-                self.data_source.update_local(new_ds.name, (datetime.datetime(1978, 11, 14, 00, 00),
+                self.data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
                                                             datetime.datetime(1978, 11, 15, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 14, 0, 0),
@@ -152,7 +152,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_w_one_variable = self.data_source.make_local(
                     'local_ds_test_2', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                               datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
-                self.assertEqual(new_ds_w_one_variable.name, 'local.local_ds_test_2')
+                self.assertEqual(new_ds_w_one_variable.id, 'local.local_ds_test_2')
                 ds = new_ds_w_one_variable.open_dataset()
                 self.assertSetEqual(set(ds.variables), {'sm', 'lat', 'lon', 'time'})
 
@@ -160,7 +160,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     'from_local_to_local_region', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                                          datetime.datetime(1978, 11, 15, 23, 59)),
                     "10,10,20,20", ['sm'])  # type: LocalDataSource
-                self.assertEqual(new_ds_w_region.name, 'local.from_local_to_local_region')
+                self.assertEqual(new_ds_w_region.id, 'local.from_local_to_local_region')
                 self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
                 data_set = new_ds_w_region.open_dataset()
                 self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
@@ -170,7 +170,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.data_source.name,
+        self.assertEqual(self.data_source.id,
                          'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2')
 
     def test_schema(self):

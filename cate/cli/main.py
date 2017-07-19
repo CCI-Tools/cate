@@ -1154,23 +1154,23 @@ class DataSourceCommand(SubCommandCommand):
     def _execute_list(cls, command_args):
         ds_name = command_args.name
         if command_args.coverage:
-            ds_names = OrderedDict(sorted(((ds.name, TimeRangeLike.format(ds.temporal_coverage())
+            ds_names = OrderedDict(sorted(((ds.id, TimeRangeLike.format(ds.temporal_coverage())
                                            if ds.temporal_coverage() else None)
                                            for ds in find_data_sources()),
                                           key=lambda item: item[0]))
         else:
-            ds_names = sorted(data_source.name for data_source in find_data_sources())
+            ds_names = sorted(data_source.id for data_source in find_data_sources())
         _list_items('data source', 'data sources', ds_names, ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.id == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
         data_source = data_sources[0]
-        title = 'Data source %s' % data_source.name
+        title = 'Data source %s' % data_source.id
         print()
         print(title)
         print('=' * len(title))
@@ -1197,7 +1197,7 @@ class DataSourceCommand(SubCommandCommand):
         ds_name = command_args.ds_name
         files = command_args.file
         ds = local_store.add_pattern(ds_name, files)
-        print("Local data source with name '%s' added." % ds.name)
+        print("Local data source with name '%s' added." % ds.id)
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -1234,7 +1234,7 @@ class DataSourceCommand(SubCommandCommand):
 
         ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
-        print("Local data source with name '%s' has been created." % ds.name)
+        print("Local data source with name '%s' has been created." % ds.id)
 
 
 class PluginCommand(SubCommandCommand):

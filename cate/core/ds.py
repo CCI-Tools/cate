@@ -115,8 +115,14 @@ class DataSource(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def name(self) -> str:
-        """Human-readable data source name."""
+    def id(self) -> str:
+        """Data source identifier."""
+
+    # TODO (forman): see issue #299
+    # @property
+    # @abstractmethod
+    # def title(self) -> str:
+    #     """Human-readable data source title."""
 
     @property
     def schema(self) -> Optional[Schema]:
@@ -156,7 +162,7 @@ class DataSource(metaclass=ABCMeta):
         """
         if query_expr:
             raise NotImplementedError('query_expr not yet supported')
-        if id and id.lower() not in self.name.lower():
+        if id and id.lower() not in self.id.lower():
             return False
         return True
 
@@ -361,14 +367,14 @@ class DataStore(metaclass=ABCMeta):
     """Represents a data store of data sources."""
 
     def __init__(self, name: str):
-        self._name = name
+        self._id = name
 
     @property
     def name(self) -> str:
         """
         Return the name of this data store.
         """
-        return self._name
+        return self._id
 
     @property
     def data_store_path(self) -> Optional[str]:
