@@ -389,7 +389,15 @@ class TimeRangeLikeTest(TestCase):
 
     def test_convert(self):
         self.assertEqual(TimeRangeLike.convert(None), None)
+        self.assertEqual(TimeRangeLike.convert((None, None)), None)
+        self.assertEqual(TimeRangeLike.convert([None, None]), None)
         self.assertEqual(TimeRangeLike.convert(''), None)
+        self.assertEqual(TimeRangeLike.convert((datetime(2001, 1, 1), datetime(2002, 2, 1))),
+                         (datetime(2001, 1, 1), datetime(2002, 2, 1)))
+        self.assertEqual(TimeRangeLike.convert([datetime(2001, 1, 1), datetime(2002, 2, 1)]),
+                         (datetime(2001, 1, 1), datetime(2002, 2, 1)))
+        self.assertEqual(TimeRangeLike.convert('2001-01-01, 2002-01-01'),
+                         (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59)))
         self.assertEqual(TimeRangeLike.convert('2001-01-01, 2002-01-01'),
                          (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59)))
 

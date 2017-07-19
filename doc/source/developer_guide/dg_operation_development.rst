@@ -134,9 +134,9 @@ must be provided to the ``@op`` decorator as well.
       # Do some science
       return {'name1': ds1, 'name2': ds2}
 
-Here history information will be added only to the ``name2`` output. We could
+Here history information will be added only to the ``name2`` outputs. We could
 have added ``add_history=True`` to both outputs. Adding history information to
-the only output, if this output is a dataset, can be achieved by using
+the only outputs, if this outputs is a dataset, can be achieved by using
 ``@op_return`` in a similar manner.
 
 
@@ -374,7 +374,7 @@ bones test set up for any operation should be the following:
               dummy_op(param='will error')
 
 It is absolutely crucial to at least have a nominal test that runs the
-operation with expected inputs that asserts if the output is what was expected,
+operation with expected inputs that asserts if the outputs is what was expected,
 the imported operation will automatically be invoked through the operation
 registry and this will also work in validating if the decorators have been used
 properly.
@@ -543,7 +543,7 @@ Operation development checklist
   * Does the operation drop valuable global or variable attributes when it
     shouldn't?
 
-* Does the operation produce an output of an appropriate type?
+* Does the operation produce an outputs of an appropriate type?
 * Are other operations imported correctly if used?
 * Is the operation well tested?
 

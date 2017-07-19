@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 This module defines the ``Workspace`` class and the ``WorkspaceError`` exception type.
 """
@@ -36,13 +34,17 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
-from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
-from cate.core.op import OP_REGISTRY
-from cate.core.workflow import Workflow, OpStep, NodePort, ValueCache
-from cate.util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
-from cate.util.im import ImagePyramid, get_chunk_size
-from cate.util.opmetainf import OpMetaInfo
+from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
+from ..core.cdm import get_lon_dim_name, get_lat_dim_name
+from ..core.op import OP_REGISTRY
+from .workflow import Workflow, OpStep, NodePort, ValueCache
+from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
+from ..util.im import ImagePyramid, get_chunk_size
+from ..util.opmetainf import OpMetaInfo
+
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 
 #: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
 #: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
@@ -148,10 +150,10 @@ class Workspace:
         return os.path.join(cls.get_workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
-    def new_workflow(cls, header_dict: dict = None) -> Workflow:
+    def new_workflow(cls, header: dict = None) -> Workflow:
         return Workflow(OpMetaInfo('workspace_workflow',
                                    has_monitor=True,
-                                   header_dict=header_dict or {}))
+                                   header=header or {}))
 
     @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':
@@ -305,8 +307,9 @@ class Workspace:
                 variable = resource.coords[var_name]
                 coords_descriptors.append(self._get_xarray_variable_descriptor(variable, is_coord=True))
 
+            # noinspection PyArgumentList
             resource_json.update(dimSizes=to_json(resource.dims),
-                                 attributes=self._attrs_to_json_dict(resource.attrs),
+                                 attributes=Workspace._attrs_to_json_dict(resource.attrs),
                                  variables=variable_descriptors,
                                  coordVariables=coords_descriptors)
 
@@ -316,6 +319,7 @@ class Workspace:
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
+            # noinspection PyArgumentList
             resource_json.update(variables=variable_descriptors)
 
         elif isinstance(resource, fiona.Collection):
@@ -330,18 +334,21 @@ class Workspace:
                         'isFeatureAttribute': True,
                     })
             geometry = resource.schema.get('geometry')
+            # noinspection PyArgumentList
             resource_json.update(variables=variable_descriptors,
                                  geometry=geometry,
                                  numFeatures=num_features)
         return resource_json
 
-    def _attrs_to_json_dict(self, attrs: dict) -> Dict[str, Any]:
+    @staticmethod
+    def _attrs_to_json_dict(attrs: dict) -> Dict[str, Any]:
         attr_json_dict = {}
         for name, value in attrs.items():
             attr_json_dict[name] = to_json(value)
         return attr_json_dict
 
-    def _get_pandas_variable_descriptor(self, variable: pd.Series):
+    @staticmethod
+    def _get_pandas_variable_descriptor(variable: pd.Series):
         return {
             'name': variable.name,
             'dataType': object_to_qualified_name(variable.dtype),
@@ -367,7 +374,7 @@ class Workspace:
             # 'long_name': self._get_unicode_attr(attrs, 'long_name'),
             # 'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
             # 'comment': self._get_unicode_attr(attrs, 'comment'),
-            'attributes': self._attrs_to_json_dict(attrs),
+            'attributes': Workspace._attrs_to_json_dict(attrs),
             'isCoord': is_coord
         }
 
@@ -529,7 +536,7 @@ class Workspace:
         # to be referenced anyway.
         namespace = dict()
         for step in workflow.steps:
-            output_namespace = step.output
+            output_namespace = step.outputs
             namespace[step.id] = output_namespace
 
         does_exist = res_name in namespace
@@ -542,9 +549,9 @@ class Workspace:
 
         # Wire new op_step with outputs from existing steps
         for input_name, input_value in op_kwargs.items():
-            if input_name not in new_step.input:
+            if input_name not in new_step.inputs:
                 raise WorkspaceError('"%s" is not an input of operation "%s"' % (input_name, op_name))
-            input_port = new_step.input[input_name]
+            input_port = new_step.inputs[input_name]
 
             if 'source' in input_value:
                 source = input_value['source']
@@ -565,7 +572,7 @@ class Workspace:
                 raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
 
         if validate_args:
-            inputs = new_step.input
+            inputs = new_step.inputs
             input_values = {kw: inputs[kw].source or inputs[kw].value for kw, v in op_kwargs.items()}
             # Validate all values except those of type NodePort (= the sources)
             op.op_meta_info.validate_input_values(input_values, [NodePort])
@@ -633,6 +640,7 @@ class Workspace:
             raise WorkspaceError('Workspace is already closed: ' + self._base_dir)
 
 
+# noinspection PyArgumentList
 class WorkspaceError(Exception):
     def __init__(self, cause, *args, **kwargs):
         if isinstance(cause, Exception):

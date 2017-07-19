@@ -151,7 +151,7 @@ Data Stores and Data Sources API
 Operation Registration API
 ==========================
 
-.. autoclass:: cate.core.OpRegistration
+.. autoclass:: cate.core.Operation
     :members:
 
 .. autoclass:: cate.core.OpMetaInfo

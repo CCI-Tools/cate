@@ -108,13 +108,14 @@ from typing import Tuple, Union, List, Dict, Any
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike
-from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
+from cate.ops.io import open_dataset
 from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
@@ -394,8 +395,8 @@ def _get_op_info_str(op_meta_info: OpMetaInfo):
         op_info_str += str(version)
         op_info_str += '\n'
 
-    op_info_str += _get_op_io_info_str(op_meta_info.input, 'Input', 'Inputs', 'Operation does not have any inputs.')
-    op_info_str += _get_op_io_info_str(op_meta_info.output, 'Output', 'Outputs', 'Operation does not have any outputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.inputs, 'Input', 'Inputs', 'Operation does not have any inputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.outputs, 'Output', 'Outputs', 'Operation does not have any outputs.')
 
     return op_info_str
 
@@ -495,9 +496,9 @@ class RunCommand(Command):
                 raise CommandError('unknown operation "%s"' % op_name)
 
         op_args, op_kwargs = _parse_op_args(command_args.op_args,
-                                            input_props=op.op_meta_info.input, namespace=namespace)
+                                            input_props=op.op_meta_info.inputs, namespace=namespace)
         if op_args and is_workflow:
-            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments are not yet supported, please provide keyword=value pairs only")
 
         write_args = None
         if command_args.write_args:
@@ -506,7 +507,7 @@ class RunCommand(Command):
                 for out_name, file, format_name in write_args:
                     if not out_name:
                         raise CommandError("all --write options must have a NAME")
-                    if out_name not in op.op_meta_info.output:
+                    if out_name not in op.op_meta_info.outputs:
                         raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
             else:
                 if len(write_args) > 1:
@@ -550,7 +551,7 @@ class RunCommand(Command):
                 else:
                     raise CommandError("unknown format for --write option")
             else:
-                return_type = op.op_meta_info.output['return'].get('data_type', object)
+                return_type = op.op_meta_info.outputs['return'].get('data_type', object)
                 is_void = return_type is None or issubclass(return_type, type(None))
                 if not is_void:
                     pprint.pprint(return_value)
@@ -730,7 +731,7 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_run(cls, command_args):
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
         if op_args:
             raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.run_op_in_workspace(_base_dir(command_args.base_dir),
@@ -947,7 +948,7 @@ class ResourceCommand(SubCommandCommand):
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
         if op_args:
             raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),

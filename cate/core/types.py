@@ -19,10 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway), " \
-             "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -45,12 +41,17 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
+import pandas as pd
+import xarray as xr
 from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
-from cate.util.misc import to_list, to_datetime_range, to_datetime
-from cate.util.safe import safe_eval
+from ..util import safe_eval, to_list, to_datetime_range, to_datetime
+
+__author__ = "Janis Gailis (S[&]T Norway), " \
+             "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 T = TypeVar('T')
 
@@ -523,20 +524,20 @@ class TimeRangeLike(Like[TimeRange]):
         if value is None or value == '':
             return None
 
-        # noinspection PyBroadException
+        if isinstance(value, str):
+            value = [x.strip() for x in value.split(',')]
+
         try:
-            _range = None
-            if isinstance(value, tuple):
-                _range = to_datetime_range(value[0], value[1])
-            elif isinstance(value, str):
-                val = [x.strip() for x in value.split(',')]
-                _range = to_datetime_range(val[0], val[1])
-            if _range:
-                # Check if start date is before end date
-                if _range[0] < _range[1]:
-                    return _range
-        except Exception:
-            pass
+            t1, t2 = value[0], value[1]
+        except IndexError:
+            cls.assert_value_ok(False, value)
+            return
+
+        time_range = to_datetime_range(t1, t2)
+
+        # Check if start date is before end date
+        if not time_range or time_range[0] < time_range[1]:
+            return time_range
 
         cls.assert_value_ok(False, value)
 
@@ -545,10 +546,6 @@ class TimeRangeLike(Like[TimeRange]):
         if not value:
             return ''
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
-
-
-import xarray as xr
-import pandas as pd
 
 
 class DatasetLike(Like[xr.Dataset]):

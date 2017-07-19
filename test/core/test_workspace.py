@@ -25,9 +25,9 @@ class WorkspaceTest(unittest.TestCase):
 
         try:
             op_reg = OP_REGISTRY.add_op(some_op)
-            op_reg.op_meta_info.input['ctx']['context'] = True
+            op_reg.op_meta_info.inputs['ctx']['context'] = True
 
-            ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+            ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
             ws.set_resource('new_ctx', op_reg.op_meta_info.qualified_name, {})
             ws.execute_workflow('new_ctx')
 
@@ -80,7 +80,7 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.add_op(data_frame_op)
             OP_REGISTRY.add_op(int_op)
             OP_REGISTRY.add_op(str_op)
-            workflow = Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!')))
+            workflow = Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!')))
             workflow.add_step(OpStep(dataset_op, node_id='ds'))
             workflow.add_step(OpStep(data_frame_op, node_id='df'))
             workflow.add_step(OpStep(int_op, node_id='i'))
@@ -169,11 +169,11 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.remove_op(str_op)
 
     def test_execute_empty_workflow(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
         ws.execute_workflow()
 
     def test_set_and_execute_step(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
         ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
         ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"))
@@ -205,7 +205,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('Y', ws.resource_cache)
 
     def test_set_and_rename_and_execute_step(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=1))
         ws.set_resource('Y', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
@@ -258,18 +258,18 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_example(self):
         expected_json_text = """{
-            "schema": 1,
+            "schema_version": 1,
             "qualified_name": "workspace_workflow",
             "header": {
                 "description": "Test!"
             },
-            "input": {},
-            "output": {},
+            "inputs": {},
+            "outputs": {},
             "steps": [
                 {
                     "id": "p",
                     "op": "cate.ops.io.read_netcdf",
-                    "input": {
+                    "inputs": {
                         "file": {
                             "value": "%s"
                         }
@@ -278,10 +278,8 @@ class WorkspaceTest(unittest.TestCase):
                 {
                     "id": "ts",
                     "op": "cate.ops.timeseries.tseries_mean",
-                    "input": {
-                        "ds": {
-                            "source": "p"
-                        },
+                    "inputs": {
+                        "ds": "p",
                         "var": {
                           "value": "precipitation"
                         }
@@ -293,7 +291,7 @@ class WorkspaceTest(unittest.TestCase):
 
         expected_json_dict = json.loads(expected_json_text)
 
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header_dict=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('p', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))

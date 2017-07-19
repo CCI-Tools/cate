@@ -29,67 +29,89 @@ in section :ref:`about_workspaces`.
 Example
 =======
 
-This workflow opens a dataset, creates a spatial subset, and writes the result into a new NetCDF file.
-The parameters to this workflow are:
+This workflow reflects Use Case 9 and comprises 4 steps:
 
-* the input file path
-* the subset region
-* the output file name
+1. Making a spatial subset of a (e.g. Aerosol ECV) dataset
+2. Making a spatial subset of a (e.g. Cloud ECV) dataset
+3. Co-registering the first dataset subset with the second
+4. Performing a *Pearson Correlation* on two variables of the co-registered subsets
+
 
 .. code-block:: console
 
     {
-      "qualified_name": "subset_netcdf",
+      "schema_version": 1,
+      "qualified_name": "uc09_workflow",
       "header": {
-        "description": "This workflow creates a spatial subset of a dataset read from a NetCDF file."
+        "description": "Correlation of two variables"
       },
-      "input": {
-        "input_file": {
-          "data_type": "string",
-          "description": "Input NetCDF file path"
+      "inputs": {
+        "ds_x": {
+          "data_type": "cate.core.types.DatasetLike",
+          "description": "The first dataset"
+        },
+        "ds_y": {
+          "data_type": "cate.core.types.DatasetLike",
+          "description": "The second dataset"
+        },
+        "var_x": {
+          "data_type": "cate.core.types.VarName",
+          "description": "Name of a variable in the first dataset",
+          "value_set_source": "ds_x"
+        },
+        "var_y": {
+          "data_type": "cate.core.types.VarName",
+          "description": "Name of a variable in the second dataset",
+          "value_set_source": "ds_y"
         },
         "region": {
-          "data_type": "string",
-          "description": "Subset region (as Geometry WKT)"
-        },
-        "output_file": {
-          "data_type": "string",
-          "description": "Output NetCDF file path"
-        },
+          "data_type": "cate.core.types.PolygonLike",
+          "description": "Region given as lon_min,lat_min,lon_max,lat_max or Polygon WKT"
+        }
       },
-      "output": {
+      "outputs": {
         "return": {
-          "source": "subset.return",
-          "data_type": "xr.Dataset",
-          "description": "The spatial subsetted dataset"
+          "source": "corr_x_y"
         }
       },
       "steps": [
         {
-          "id": "read",
-          "op": "read_netcdf",
-          "input": {
-            "file": { "source": "subset_netcdf.input_file" }
+          "id": "ds_x_sub",
+          "op": "cate.ops.subset.subset_spatial",
+          "inputs": {
+            "ds": "uc09_workflow.ds_x",
+            "region": "uc09_workflow.region"
           }
         },
         {
-          "id": "subset",
-          "op": "subset_spatial",
-          "input": {
-            "ds": { "source": "read" }
-            "region": { "source": "subset_netcdf.region" }
+          "id": "ds_y_sub",
+          "op": "cate.ops.subset.subset_spatial",
+          "inputs": {
+            "ds": "uc09_workflow.ds_y",
+            "region": "uc09_workflow.region"
           }
         },
         {
-          "id": "write",
-          "op": "write_netcdf4",
-          "input": {
-            "obj": { "source": "subset" }
-            "file": { "source": "subset_netcdf.output_file" }
+          "id": "ds_y_sub_reg",
+          "op": "cate.ops.coregistration.coregister",
+          "inputs": {
+            "ds_master": "ds_x_sub",
+            "ds_slave": "ds_y_sub"
           }
         },
+        {
+          "id": "corr_x_y",
+          "op": "cate.ops.correlation.pearson_correlation",
+          "inputs": {
+            "ds_x": "ds_x_sub",
+            "ds_y": "ds_y_sub_reg",
+            "var_x": "uc09_workflow.var_x",
+            "var_y": "uc09_workflow.var_y"
+          }
+        }
       ]
     }
+
 
 
 JSON-format
@@ -99,8 +121,8 @@ The workflow is represented in JSON format that uses five different keywords on 
 
 * ``qualified_name``
 * ``header``
-* ``input``
-* ``output``
+* ``inputs``
+* ``outputs``
 * ``steps``
 
 The ``qualified_name`` contains a name under which the workflow can be referenced. This is the workflow's operation name.
