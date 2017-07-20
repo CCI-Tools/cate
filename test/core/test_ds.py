@@ -97,16 +97,18 @@ class IOTest(TestCase):
         self.TEST_DATA_STORE = SimpleDataStore('test_aero_ozone', [self.DS_AEROSOL, self.DS_OZONE])
         self.DS_AEROSOL._data_store = self.TEST_DATA_STORE
         self.DS_OZONE._data_store = self.TEST_DATA_STORE
-        self.DS_SST = SimpleDataSource('sst')
+        self.DS_SST = SimpleDataSource('sst', meta_info=dict())
         self.TEST_DATA_STORE_SST = SimpleDataStore('test_sst', [self.DS_SST])
 
     def test_title(self):
         self.assertEqual(self.DS_AEROSOL.title, None)
         self.assertEqual(self.DS_OZONE.title, 'This is pure Ozone')
+        self.assertEqual(self.DS_SST.title, None)
 
     def test_meta_info(self):
         self.assertEqual(self.DS_AEROSOL.meta_info, None)
         self.assertEqual(self.DS_OZONE.meta_info, dict(title='This is pure Ozone'))
+        self.assertEqual(self.DS_SST.meta_info, dict())
 
     def test_find_data_sources_default_data_store(self):
         size_before = len(ds.DATA_STORE_REGISTRY)

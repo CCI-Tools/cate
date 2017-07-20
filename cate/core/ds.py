@@ -272,7 +272,9 @@ class DataSource(metaclass=ABCMeta):
         The default implementation tries to retrieve the title from ``meta_info['title']``.
         """
         meta_info = self.meta_info
-        return meta_info and meta_info.get('title')
+        if meta_info is None:
+            return None
+        return meta_info.get('title')
 
     @property
     def meta_info(self) -> Optional[dict]:
