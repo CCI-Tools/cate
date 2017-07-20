@@ -5,7 +5,7 @@ API Reference
 Datasets
 ========
 
-.. autofunction:: cate.core.query_data_sources
+.. autofunction:: cate.core.find_data_sources
 
 .. autofunction:: cate.core.open_dataset
 

@@ -73,19 +73,19 @@ The following examples shall help you understand the basic concepts behind the v
 Manage datasets
 ---------------
 
-To query all available datasets, type::
+To list all available data sources, type::
 
     cate ds list
 
-To query all datasets that have ``ozone`` in their name, type::
+To query all data sources that have ``ozone`` in their name, type::
 
     cate ds list -n ozone
 
-To get more detailed information on a specific dataset, e.g. ``esacci.OZONE.mon.L3...``, type::
+To get more detailed information on a specific data source, e.g. ``esacci.OZONE.mon.L3...``, type::
 
     cate ds info esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1
 
-To add a local Dataset from all netCDF files in e.g. ``data/sst_v3`` and name it e.g. ``SSTV3``, type::
+To add a local data source from all NetCDF files in e.g. ``data/sst_v3`` and name it e.g. ``SSTV3``, type::
 
     cate ds def SSTV3 data/sst_v3/*.nc
 
@@ -93,12 +93,12 @@ Make sure it is there::
 
     cate ds list -n SSTV3
 
-To make a temporal subset ECV dataset locally available, i.e. avoid remote data access during its usage::
+To make a temporal subset ECV data source locally available, i.e. avoid remote data access during its usage::
 
     cate ds copy esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 -t 2006-01-01,2007-12-31
 
-The section :doc:`um_config` describes, how to configure the directory where ``cate`` stores such synchronised
-data.
+The section :doc:`um_config` describes, how to configure the location of directory in which
+Cate stores such synchronised data.
 
 Inspect available operations
 ----------------------------

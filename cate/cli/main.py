@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -108,7 +105,7 @@ from typing import Tuple, Union, List, Dict, Any
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike
-from cate.core.ds import DATA_STORE_REGISTRY, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
@@ -123,6 +120,8 @@ from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from cate.version import __version__
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 #: Name of the Cate CLI executable (= ``cate``).
 CLI_NAME = 'cate'
@@ -287,18 +286,23 @@ def _parse_op_args(raw_args: List[str],
         else:
             # For any non-None value and any data type we perform basic type validation:
             if value is not None and data_type:
+                # noinspection PyTypeChecker
                 if issubclass(data_type, Like):
-                    # For XXXLike-types call accepts()
+                    # noinspection PyUnresolvedReferences
                     compatible = data_type.accepts(value)
                 else:
+                    # noinspection PyTypeChecker
                     compatible = isinstance(value, data_type)
                     if not compatible:
+                        # noinspection PyTypeChecker
                         if issubclass(data_type, float):
                             # Allow assigning bool and int to a float
                             compatible = isinstance(value, bool) or isinstance(value, int)
+                        # noinspection PyTypeChecker
                         elif issubclass(data_type, int):
                             # Allow assigning bool and float to an int
                             compatible = isinstance(value, bool) or isinstance(value, float)
+                        # noinspection PyTypeChecker
                         elif issubclass(data_type, bool):
                             # Allow assigning anything to a bool
                             compatible = True
@@ -396,7 +400,8 @@ def _get_op_info_str(op_meta_info: OpMetaInfo):
         op_info_str += '\n'
 
     op_info_str += _get_op_io_info_str(op_meta_info.inputs, 'Input', 'Inputs', 'Operation does not have any inputs.')
-    op_info_str += _get_op_io_info_str(op_meta_info.outputs, 'Output', 'Outputs', 'Operation does not have any outputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.outputs, 'Output', 'Outputs',
+                                       'Operation does not have any outputs.')
 
     return op_info_str
 
@@ -558,12 +563,12 @@ class RunCommand(Command):
 
 
 OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
-                        'depends on the expected data type of an OP input. It can be either a value or ' \
-                        'a reference an existing resource prefixed by the add character "@". ' \
-                        'The latter connects to operation steps with each other. To provide a (constant)' \
-                        'value you can use boolean literals True and False, strings, or numeric values. ' \
-                        'Type "cate op info OP" to print information about the supported OP ' \
-                        'input names to be used as KEY and their data types to be used as VALUE. '
+                   'depends on the expected data type of an OP input. It can be either a value or ' \
+                   'a reference an existing resource prefixed by the add character "@". ' \
+                   'The latter connects to operation steps with each other. To provide a (constant)' \
+                   'value you can use boolean literals True and False, strings, or numeric values. ' \
+                   'Type "cate op info OP" to print information about the supported OP ' \
+                   'input names to be used as KEY and their data types to be used as VALUE. '
 
 
 class WorkspaceCommand(SubCommandCommand):
@@ -920,10 +925,13 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         op_args = dict(ds_name=command_args.ds_name)
         if command_args.var_names:
+            # noinspection PyArgumentList
             op_args.update(var_names=command_args.var_names)
         if command_args.region:
+            # noinspection PyArgumentList
             op_args.update(region=command_args.region)
         if command_args.start_date or command_args.end_date:
+            # noinspection PyArgumentList
             op_args.update(time_range="%s,%s" % (command_args.start_date or '',
                                                  command_args.end_date or ''))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
@@ -937,6 +945,7 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         op_args = dict(file=command_args.file_path)
         if command_args.format_name:
+            # noinspection PyArgumentList
             op_args.update(format=command_args.format_name)
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
@@ -1154,23 +1163,23 @@ class DataSourceCommand(SubCommandCommand):
     def _execute_list(cls, command_args):
         ds_name = command_args.name
         if command_args.coverage:
-            ds_names = OrderedDict(sorted(((ds.name, TimeRangeLike.format(ds.temporal_coverage())
+            ds_names = OrderedDict(sorted(((ds.id, TimeRangeLike.format(ds.temporal_coverage())
                                            if ds.temporal_coverage() else None)
-                                           for ds in query_data_sources()),
+                                           for ds in find_data_sources()),
                                           key=lambda item: item[0]))
         else:
-            ds_names = sorted(data_source.name for data_source in query_data_sources())
+            ds_names = sorted(data_source.id for data_source in find_data_sources())
         _list_items('data source', 'data sources', ds_names, ds_name)
 
     @classmethod
     def _execute_info(cls, command_args):
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in query_data_sources(name=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.id == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
         data_source = data_sources[0]
-        title = 'Data source %s' % data_source.name
+        title = 'Data source %s' % data_source.id
         print()
         print(title)
         print('=' * len(title))
@@ -1197,7 +1206,7 @@ class DataSourceCommand(SubCommandCommand):
         ds_name = command_args.ds_name
         files = command_args.file
         ds = local_store.add_pattern(ds_name, files)
-        print("Local data source with name '%s' added." % ds.name)
+        print("Local data source with name '%s' added." % ds.id)
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -1213,7 +1222,7 @@ class DataSourceCommand(SubCommandCommand):
         if not answer or answer.lower() == 'y':
             keep_files = command_args.keep_files
             ds = local_store.remove_data_source(ds_name, not keep_files)
-            print("Local data source with name '%s' removed." % ds.name)
+            print("Local data source with name '%s' removed." % ds.id)
 
     @classmethod
     def _execute_copy(cls, command_args):
@@ -1222,7 +1231,7 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ref_ds
-        data_source = next(iter(query_data_sources(None, ds_name)), None)
+        data_source = next(iter(find_data_sources(None, id=ds_name)), None)
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 
@@ -1234,7 +1243,7 @@ class DataSourceCommand(SubCommandCommand):
 
         ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
-        print("Local data source with name '%s' has been created." % ds.name)
+        print("Local data source with name '%s' has been created." % ds.id)
 
 
 class PluginCommand(SubCommandCommand):
@@ -1295,11 +1304,13 @@ def _trim_error_message(message: str) -> str:
 # use by 'sphinxarg' to generate the documentation
 def _make_cate_parser():
     from cate.util.cli import _make_parser
+    # noinspection PyTypeChecker
     return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE,
                         docs_url=_DOCS_URL)
 
 
 def main(args=None) -> int:
+    # noinspection PyTypeChecker
     return run_main(CLI_NAME,
                     CLI_DESCRIPTION,
                     __version__,

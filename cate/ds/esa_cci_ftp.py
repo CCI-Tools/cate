@@ -20,10 +20,6 @@
 # SOFTWARE.
 
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespacio VEGA UK Inc.)"
-
 """
 Description
 ===========
@@ -61,6 +57,10 @@ from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util import to_datetime, Monitor, Cancellation
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespacio VEGA UK Inc.)"
+
 Time = Union[str, datetime]
 TimeRange = Tuple[Time, Time]
 
@@ -85,7 +85,7 @@ class FileSetDataSource(DataSource):
 
     Parameters
     ----------
-    name : str
+    id : str
         The name of the file set
     base_dir : str
         The base directory
@@ -101,19 +101,19 @@ class FileSetDataSource(DataSource):
 
     def __init__(self,
                  file_set_data_store: 'FileSetDataStore',
-                 name: str,
+                 id: str,
                  base_dir: str,
                  file_pattern: str,
                  fileset_info: 'FileSetInfo' = None):
         self._file_set_data_store = file_set_data_store
-        self._name = name
+        self._id = id
         self._base_dir = base_dir
         self._file_pattern = file_pattern
         self._fileset_info = fileset_info
 
     @property
-    def name(self):
-        return self._name
+    def id(self):
+        return self._id
 
     @property
     def schema(self) -> Schema:
@@ -153,7 +153,7 @@ class FileSetDataSource(DataSource):
         :return: A JSON-serializable dictionary
         """
         fsds_dict = OrderedDict()
-        fsds_dict['name'] = self.name
+        fsds_dict['name'] = self.id
         fsds_dict['base_dir'] = self._base_dir
         fsds_dict['file_pattern'] = self._file_pattern
         if self._fileset_info:
@@ -234,7 +234,7 @@ class FileSetDataSource(DataSource):
 
         num_of_synchronised_files = 0
         num_of_expected_remote_files = len(list(chain.from_iterable(list(expected_remote_files.values()))))
-        with monitor.starting('Sync %s' % self._name, num_of_expected_remote_files):
+        with monitor.starting('Sync %s' % self._id, num_of_expected_remote_files):
             try:
                 with ftplib.FTP(ftp_host_name) as ftp:
                     ftp.login()
@@ -318,7 +318,7 @@ class FileSetDataSource(DataSource):
         return expected_remote_files
 
     def __repr__(self):
-        return "FileSetDataSource(%s, %s, %s)" % (repr(self._name), repr(self._base_dir), repr(self._file_pattern))
+        return "FileSetDataSource(%s, %s, %s)" % (repr(self._id), repr(self._base_dir), repr(self._file_pattern))
 
     @property
     def info_string(self):
@@ -338,7 +338,7 @@ class FileSetDataSource(DataSource):
         return '<table style="border:0;">%s</table>' % rows
 
     def get_table_data(self):
-        return OrderedDict([('Name', self._name),
+        return OrderedDict([('Name', self._id),
                             ('Base directory', self._base_dir),
                             ('File pattern', self._file_pattern)])
 
@@ -524,8 +524,8 @@ class FileSetDataStore(DataStore):
     :param remote_url: Optional URL of the data store's remote service.
     """
 
-    def __init__(self, name: str, root_dir: str, remote_url: str = None):
-        super().__init__(name)
+    def __init__(self, id: str, root_dir: str, remote_url: str = None):
+        super().__init__(id)
         self._root_dir = root_dir
         self._remote_url = remote_url
         self._data_sources = []
@@ -544,8 +544,10 @@ class FileSetDataStore(DataStore):
         """Optional URL of the data store's remote service."""
         return self._remote_url
 
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
-        return [ds for ds in self._data_sources if ds.matches_filter(name)]
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+        if id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        return self._data_sources
 
     def load_from_json(self, json_fp_or_str: Union[str, IOBase]):
         if isinstance(json_fp_or_str, str):
