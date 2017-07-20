@@ -73,11 +73,30 @@ def add_to_data_store_registry():
     data_store = LocalDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
-
+# TODO (kbernat): document this class
 class LocalDataSource(DataSource):
-    def __init__(self, id: str, files: Union[Sequence[str], OrderedDict], data_store: 'LocalDataStore',
-                 temporal_coverage: TimeRangeLike.TYPE = None, spatial_coverage: PolygonLike.TYPE = None,
-                 variables: VarNamesLike.TYPE = None, reference_type: str = None, reference_name: str = None,
+    """
+
+    :param id:
+    :param files:
+    :param data_store:
+    :param temporal_coverage:
+    :param spatial_coverage:
+    :param variables:
+    :param reference_type:
+    :param reference_name:
+    :param meta_info:
+    """
+
+    def __init__(self,
+                 id: str,
+                 files: Union[Sequence[str], OrderedDict],
+                 data_store: 'LocalDataStore',
+                 temporal_coverage: TimeRangeLike.TYPE = None,
+                 spatial_coverage: PolygonLike.TYPE = None,
+                 variables: VarNamesLike.TYPE = None,
+                 reference_type: str = None,
+                 reference_name: str = None,
                  meta_info: dict = None):
         self._id = id
         if isinstance(files, Sequence):
