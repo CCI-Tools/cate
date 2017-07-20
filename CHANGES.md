@@ -42,17 +42,18 @@
     } 
     ```
 
-### Other Changes
-
-* renamed property `cate.core.ds.DataSource.name` to `id` 
-* renamed property `cate.core.ds.DataStore.name` to `id` 
-* renamed and changed signature of function `cate.core.ds.DataStore.query_data_sources(..., name=None)` 
-  to `find_data_sources(..., id=None, query_expr=None)`
-* changed signature of method `cate.core.ds.DataStore.query(name, ...)` to `query(id=None, query_expr=None, ...)`
-* renamed and changed signature of method `cate.core.ds.DataSource.matches_filter(name)` to `matches(id=None, query_expr=None)`
-
 ### Issues Fixed/Resolved
 
+* Fixed [#299](https://github.com/CCI-Tools/cate-core/issues/299)
+    * renamed property `cate.core.ds.DataSource.name` to `id` 
+    * renamed property `cate.core.ds.DataStore.name` to `id` 
+    * renamed and changed signature of function `cate.core.ds.DataStore.query_data_sources(..., name=None)` 
+      to `find_data_sources(..., id=None, query_expr=None)`
+    * changed signature of method `cate.core.ds.DataStore.query(name, ...)` to `query(id=None, query_expr=None, ...)`
+    * renamed and changed signature of method `cate.core.ds.DataSource.matches_filter(name)` to `matches(id=None, query_expr=None)`
+    * added `title` property to `cate.core.ds.DataStore` and `cate.core.ds.DataSource`
+    * made use of the new `id` and `title` properties of both `DataStore` and `DataSource` in their 
+      JSON representations.
 * Fixed [#294](https://github.com/CCI-Tools/cate-core/issues/294)
 * Fixed [#286](https://github.com/CCI-Tools/cate-core/issues/286)
 * Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
