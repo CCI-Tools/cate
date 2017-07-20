@@ -31,8 +31,8 @@ from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_sources
 from cate.core.op import OP_REGISTRY
-from cate.core.wsmanag import WorkspaceManager
 from cate.core.workspace import OpKwArgs
+from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd
 
 
@@ -105,12 +105,9 @@ class WebSocketService:
 
         :return: JSON-serializable list of data stores, sorted by name.
         """
-        data_stores = DATA_STORE_REGISTRY.get_data_stores()
-        data_store_list = []
-        for data_store in data_stores:
-            data_store_list.append(dict(id=data_store.id, title=data_store.title))
-
-        return sorted(data_store_list, key=lambda ds: ds['name'])
+        data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
+        return [dict(id=data_store.id,
+                     title=data_store.title) for data_store in data_stores]
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
         """
@@ -123,15 +120,10 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-
-        data_sources = data_store.query(monitor=monitor)
-        data_source_list = []
-        for data_source in data_sources:
-            data_source_list.append(dict(id=data_source.id,
-                                         title=data_source.title,
-                                         meta_info=data_source.meta_info))
-
-        return sorted(data_source_list, key=lambda ds: ds['name'])
+        data_sources = sorted(data_store.query(monitor=monitor), key=lambda ds: ds.title or ds.id)
+        return [dict(id=data_source.id,
+                     title=data_source.title,
+                     meta_info=data_source.meta_info) for data_source in data_sources]
 
     def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
