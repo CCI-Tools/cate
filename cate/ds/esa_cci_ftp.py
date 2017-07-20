@@ -524,8 +524,8 @@ class FileSetDataStore(DataStore):
     :param remote_url: Optional URL of the data store's remote service.
     """
 
-    def __init__(self, name: str, root_dir: str, remote_url: str = None):
-        super().__init__(name)
+    def __init__(self, id: str, root_dir: str, remote_url: str = None):
+        super().__init__(id)
         self._root_dir = root_dir
         self._remote_url = remote_url
         self._data_sources = []

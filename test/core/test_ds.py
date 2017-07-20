@@ -1,4 +1,4 @@
-from typing import Sequence, Any
+from typing import Sequence, Any, Optional
 from unittest import TestCase, skipIf
 import os.path as op
 import os
@@ -14,8 +14,8 @@ _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
 
 
 class SimpleDataStore(ds.DataStore):
-    def __init__(self, name: str, data_sources: Sequence[ds.DataSource]):
-        super().__init__(name)
+    def __init__(self, id: str, data_sources: Sequence[ds.DataSource]):
+        super().__init__(id, title='Simple Test Store')
         self._data_sources = list(data_sources)
 
     def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
@@ -26,21 +26,26 @@ class SimpleDataStore(ds.DataStore):
 
 
 class SimpleDataSource(ds.DataSource):
-    def __init__(self, id: str):
+    def __init__(self, id: str, meta_info: dict = None):
         self._id = id
         self._data_store = None
+        self._meta_info = meta_info
 
     @property
     def data_store(self) -> ds.DataStore:
         return self.data_store
 
     @property
-    def schema(self) -> ds.Schema:
+    def schema(self) -> Optional[ds.Schema]:
         return None
 
     @property
     def id(self) -> str:
         return self._id
+
+    @property
+    def meta_info(self) -> Optional[dict]:
+        return self._meta_info
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
@@ -88,12 +93,20 @@ class InMemoryDataSource(SimpleDataSource):
 class IOTest(TestCase):
     def setUp(self):
         self.DS_AEROSOL = SimpleDataSource('aerosol')
-        self.DS_OZONE = SimpleDataSource('ozone')
+        self.DS_OZONE = SimpleDataSource('ozone', meta_info=dict(title='This is pure Ozone'))
         self.TEST_DATA_STORE = SimpleDataStore('test_aero_ozone', [self.DS_AEROSOL, self.DS_OZONE])
         self.DS_AEROSOL._data_store = self.TEST_DATA_STORE
         self.DS_OZONE._data_store = self.TEST_DATA_STORE
         self.DS_SST = SimpleDataSource('sst')
         self.TEST_DATA_STORE_SST = SimpleDataStore('test_sst', [self.DS_SST])
+
+    def test_title(self):
+        self.assertEqual(self.DS_AEROSOL.title, None)
+        self.assertEqual(self.DS_OZONE.title, 'This is pure Ozone')
+
+    def test_meta_info(self):
+        self.assertEqual(self.DS_AEROSOL.meta_info, None)
+        self.assertEqual(self.DS_OZONE.meta_info, dict(title='This is pure Ozone'))
 
     def test_find_data_sources_default_data_store(self):
         size_before = len(ds.DATA_STORE_REGISTRY)

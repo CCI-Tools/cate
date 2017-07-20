@@ -118,12 +118,6 @@ class DataSource(metaclass=ABCMeta):
     def id(self) -> str:
         """Data source identifier."""
 
-    # TODO (forman): see issue #299
-    # @property
-    # @abstractmethod
-    # def title(self) -> str:
-    #     """Human-readable data source title."""
-
     @property
     def schema(self) -> Optional[Schema]:
         """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
@@ -272,7 +266,16 @@ class DataSource(metaclass=ABCMeta):
         return 0
 
     @property
-    def meta_info(self) -> Union[dict, None]:
+    def title(self) -> Optional[str]:
+        """
+        Human-readable data source title.
+        The default implementation tries to retrieve the title from ``meta_info['title']``.
+        """
+        meta_info = self.meta_info
+        return meta_info and meta_info.get('title')
+
+    @property
+    def meta_info(self) -> Optional[dict]:
         """
         Return meta-information about this data source.
         The returned dict, if any, is JSON-serializable.
@@ -280,7 +283,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def cache_info(self) -> Union[dict, None]:
+    def cache_info(self) -> Optional[dict]:
         """
         Return information about cached, locally available data sets.
         The returned dict, if any, is JSON-serializable.
@@ -288,7 +291,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def variables_info(self) -> Union[dict, None]:
+    def variables_info(self) -> Optional[dict]:
         """
         Return meta-information about the variables contained in this data source.
         The returned dict, if any, is JSON-serializable.
@@ -296,7 +299,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def info_string(self):
+    def info_string(self) -> str:
         """
         Return a textual representation of the meta-information about this data source.
         Useful for CLI / REPL applications.
@@ -317,8 +320,9 @@ class DataSource(metaclass=ABCMeta):
 
         return '\n'.join(info_lines)
 
+    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
     @property
-    def variables_info_string(self):
+    def variables_info_string(self) -> str:
         """
         Return some textual information about the variables contained in this data source.
         Useful for CLI / REPL applications.
@@ -337,8 +341,9 @@ class DataSource(metaclass=ABCMeta):
 
         return '\n'.join(info_lines)
 
+    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
     @property
-    def cached_datasets_coverage_string(self):
+    def cached_datasets_coverage_string(self) -> str:
         """
         Return a textual representation of information about cached, locally available data sets.
         Useful for CLI / REPL applications.
@@ -364,17 +369,30 @@ class DataSource(metaclass=ABCMeta):
 
 
 class DataStore(metaclass=ABCMeta):
-    """Represents a data store of data sources."""
+    """
+    Represents a data store of data sources.
 
-    def __init__(self, id: str):
+    :param id: Unique data store identifier.
+    :param title: A human-readable tile.
+    """
+
+    def __init__(self, id: str, title: str = None):
         self._id = id
+        self._title = title or id
 
     @property
     def id(self) -> str:
         """
-        Return the name of this data store.
+        Return the unique identifier for this data store.
         """
         return self._id
+
+    @property
+    def title(self) -> str:
+        """
+        Return a human-readable tile for this data store.
+        """
+        return self._title
 
     @property
     def data_store_path(self) -> Optional[str]:

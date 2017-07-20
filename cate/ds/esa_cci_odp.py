@@ -280,11 +280,12 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
 
 class EsaCciOdpDataStore(DataStore):
     def __init__(self,
-                 name: str = 'esa_cci_odp',
+                 id: str = 'esa_cci_odp',
+                 title: str = 'ESA CCI Open Data Portal',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None):
-        super().__init__(name)
+        super().__init__(id, title=title)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._index_json_dict = index_cache_json_dict
