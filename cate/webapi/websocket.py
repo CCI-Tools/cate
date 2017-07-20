@@ -108,9 +108,7 @@ class WebSocketService:
         data_stores = DATA_STORE_REGISTRY.get_data_stores()
         data_store_list = []
         for data_store in data_stores:
-            data_store_list.append(dict(id=data_store.id,
-                                        name=data_store.id,  # TODO (forman): issue #299
-                                        description=''))
+            data_store_list.append(dict(id=data_store.id, title=data_store.title))
 
         return sorted(data_store_list, key=lambda ds: ds['name'])
 
@@ -130,7 +128,7 @@ class WebSocketService:
         data_source_list = []
         for data_source in data_sources:
             data_source_list.append(dict(id=data_source.id,
-                                         name=data_source.id, # TODO (forman): issue #299
+                                         title=data_source.title,
                                          meta_info=data_source.meta_info))
 
         return sorted(data_source_list, key=lambda ds: ds['name'])
