@@ -36,6 +36,9 @@ from .jsonrpcmonitor import JsonRpcWebSocketMonitor
 
 _DEBUG_WEB_SOCKET_RPC = False
 
+CANCEL_METHOD_NAME = '__cancel__'
+CANCEL_CODE = 999
+
 
 # noinspection PyAbstractClass
 class JsonRpcWebSocketHandler(WebSocketHandler):
@@ -59,6 +62,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         self._application = application
         self._service_factory = service_factory
         self._service = None
+        self._service_method_meta_infos = None
         self._thread_pool = concurrent.futures.ThreadPoolExecutor()
         self._active_monitors = {}
         self._active_futures = {}
@@ -66,8 +70,10 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         self._report_defer_period = report_defer_period
 
     def open(self):
-        print("JsonRpcWebSocketHandler.open")
+        if _DEBUG_WEB_SOCKET_RPC:
+            print("DEBUG: JsonRpcWebSocketHandler.open")
         self._service = self._service_factory(self._application)
+        self._service_method_meta_infos = {}
 
         # noinspection PyBroadException
         try:
@@ -78,15 +84,18 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             pass
 
     def on_close(self):
-        print("JsonRpcWebSocketHandler.on_close")
+        if _DEBUG_WEB_SOCKET_RPC:
+            print("DEBUG: JsonRpcWebSocketHandler.on_close")
         self._service = None
+        self._service_method_meta_infos = None
 
     # We must override this to return True (= all origins are ok), otherwise we get
     #   WebSocket connection to 'ws://localhost:9090/app' failed:
     #   Error during WebSocket handshake:
     #   Unexpected response code: 403 (forbidden)
     def check_origin(self, origin):
-        print("JsonRpcWebSocketHandler.check_origin(%s)" % repr(origin))
+        if _DEBUG_WEB_SOCKET_RPC:
+            print("DEBUG: JsonRpcWebSocketHandler.check_origin(%s)" % repr(origin))
         return True
 
     # TODO: notify connected client on any of the following error cases
@@ -96,33 +105,37 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         try:
             message_obj = json.loads(message)
         except:
-            print("Failed to parse incoming JSON-RPC message: %s" % message)
+            print("ERROR: Failed to parse incoming JSON-RPC message: {}".format(message))
             traceback.print_exc(file=sys.stdout)
-            return
+            return 1
 
         if not isinstance(message_obj, type({})):
-            print('Received invalid JSON-RPC message of unexpected type "%s": %s' % (type(message_obj), message))
-            return
+            print('ERROR: Received invalid JSON-RPC message '
+                  'of unexpected type "{}": {}'.format(type(message_obj), message))
+            return 2
 
         method_id = message_obj.get('id', None)
         if not isinstance(method_id, int):
-            print('Received invalid JSON-RPC message: missing or invalid "id" value: %s' % message)
-            return
+            print('ERROR: Received invalid JSON-RPC message: '
+                  'missing or invalid "id" value: {}'.format(message))
+            return 3
 
         method_name = message_obj.get('method', None)
         # noinspection PyTypeChecker
         if not isinstance(method_name, str) or len(method_name) == 0:
-            print('Received invalid JSON-RPC message: missing or invalid "method" value: %s' % message)
-            return
+            print('ERROR: Received invalid JSON-RPC message: '
+                  'missing or invalid "method" value: {}'.format(message))
+            return 4
 
         if _DEBUG_WEB_SOCKET_RPC:
-            print("RPC[%s] ==> %s: %s" % (method_id, method_name, message))
+            print("DEBUG: RPC [%s] ==> %s: %s" % (method_id, method_name, message))
 
         method_params = message_obj.get('params', None)
 
         if hasattr(self._service, method_name):
             self._job_start[method_id] = time.time()
-            future = self._thread_pool.submit(self.call_service_method, method_id, method_name, method_params)
+            future = self._thread_pool.submit(self.call_service_method,
+                                              method_id, method_name, method_params)
             self._active_futures[method_id] = future
 
             def _send_service_method_result(f: concurrent.futures.Future) -> None:
@@ -131,11 +144,13 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                 self.send_service_method_result(method_id, f)
 
             IOLoop.current().add_future(future=future, callback=_send_service_method_result)
-        elif method_name == '__cancelJob__':
-            job_id = method_params.get('jobId', None)
+        elif method_name == CANCEL_METHOD_NAME:
+            job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
-                print('Received invalid JSON-RPC message: missing or invalid "jobId" value: %s' % message)
-                return
+                print('ERROR: Received invalid JSON-RPC message: '
+                      'missing or invalid "id" parameter for method "{}": {}'
+                      .format(CANCEL_METHOD_NAME, message))
+                return 5
             # TODO: check if the following code requires thread sync
             # cancel progress monitor
             if job_id in self._active_monitors:
@@ -152,11 +167,14 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             response = dict(jsonrpc='2.0', id=method_id)
             self._write_response(json.dumps(response), method_id)
         else:
+            print('ERROR: Received invalid JSON-RPC message: '
+                  'unsupported method: {}'.format(message))
             response = dict(jsonrpc='2.0',
                             id=method_id,
                             error=dict(code=20,
-                                       message='Unsupported method: %s' % method_name))
+                                       message='Unsupported method: {}'.format(method_name)))
             self._write_response(json.dumps(response), method_id)
+            return 6
 
     def send_service_method_result(self, method_id: int, future: concurrent.futures.Future):
         try:
@@ -190,7 +208,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         except Exception as e:
             stack_trace = traceback.format_exc()
             print(stack_trace, file=sys.stderr, flush=True)
-            message = 'INTERNAL ERROR: response could not be converted to JSON: %s' % e
+            message = 'ERROR: Response could not be converted to JSON: %s' % e
             json_text = json.dumps(dict(jsonrpc='2.0',
                                         id=method_id,
                                         error=dict(code=30,
@@ -200,14 +218,21 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
 
     def _write_response(self, json_text: str, method_id: int):
         if _DEBUG_WEB_SOCKET_RPC:
-            print("RPC[%s] <== %s" % (method_id, json_text))
+            print("DEBUG: RPC [%s] <== %s" % (method_id, json_text))
         self.write_message(json_text)
 
     def call_service_method(self, method_id: int, method_name: str, method_params: list):
+
+        assert self._service
         method = getattr(self._service, method_name)
 
+        assert self._service_method_meta_infos
+        op_meta_info = self._service_method_meta_infos.get(method_name)
+        if op_meta_info is None:
+            op_meta_info = OpMetaInfo.introspect_operation(method)
+            self._service_method_meta_infos[method_name] = op_meta_info
+
         # Check if we need a ProgressMonitor impl. here.
-        op_meta_info = OpMetaInfo.introspect_operation(method)
         if op_meta_info.has_monitor:
             # The impl. will send "progress" messages via the web-socket.
             monitor = JsonRpcWebSocketMonitor(method_id, self, report_defer_period=self._report_defer_period)
