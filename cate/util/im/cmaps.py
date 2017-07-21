@@ -113,7 +113,8 @@ def get_cmaps():
                     # print("INFO: new colormap '" + new_name + "'")
                 elif type(cmap) == matplotlib.colors.ListedColormap:
                     new_name = cmap.name + '_alpha'
-                    # print("TODO: create colormap '" + new_name + "'")
+                    print("WARNING: could not create colormap '{}' because '{}' is has type ListedColormap"
+                          .format(new_name, cmap.name))
 
                 gradient = np.linspace(0, 1, 256)
                 gradient = np.vstack((gradient, gradient))

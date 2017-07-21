@@ -852,7 +852,7 @@ class ResourceCommand(SubCommandCommand):
                                  choices=READ_FORMAT_NAMES,
                                  help='File format. Possible FORMAT values are {format}.'
                                       ''.format(format=', '.join(READ_FORMAT_NAMES)))
-        # TODO (forman, 20160913): support reader-specific arguments
+        # We may support reader-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
         #                                'Type "cate res read -h" to list format-specific read arguments')
@@ -869,7 +869,7 @@ class ResourceCommand(SubCommandCommand):
                                   choices=WRITE_FORMAT_NAMES,
                                   help='File format. Possible FORMAT values are {format}.'
                                        ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
-        # TODO (forman, 20160913): support writer-specific arguments
+        # We may support writer-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
         #                                'Type "cate res write -h" to list format-specific write arguments')
@@ -1114,7 +1114,7 @@ class DataSourceCommand(SubCommandCommand):
                                       "The comparison is case insensitive.")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
-        # TODO (marcoz, 20160905): implement "cate ds list --var"
+        # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
         #                               "with variables that have NAME in their name. "

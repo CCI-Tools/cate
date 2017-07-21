@@ -981,8 +981,6 @@ class NodePortTest(TestCase):
         step2 = OpStep(op2, node_id='op2')
 
         x_port = NodePort(step1, 'x')
-        # TODO (gailis): this fails Flake8
-        # y_port = NodePort(step1, 'y')
         b_port = NodePort(step2, 'b')
 
         self.assertEqual(x_port.is_source, False)
@@ -1020,7 +1018,7 @@ class NodePortTest(TestCase):
             x_port.source = x_port
         self.assertEqual(str(cm.exception), "cannot connect 'op1.x' with itself")
 
-        # TODO (forman): check cyclic dependency
+        # TODO (forman): must check for cyclic dependency
         # with self.assertRaises(ValueError) as cm:
         #     x_port.source = y_port
         # self.assertEqual(str(cm.exception), "AAAAA")

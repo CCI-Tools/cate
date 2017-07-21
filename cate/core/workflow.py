@@ -383,7 +383,6 @@ class Node(metaclass=ABCMeta):
     def remove_orphaned_sources(self, orphaned_node: 'Node'):
         # Set all input/output ports to None, whose source are still old_step.
         # This will also set each port's source to None.
-        # TODO (forman, 20160929): Actually, we should remove ports that still refer to old_step.
         for port in chain(self._outputs[:], self._inputs[:]):
             if port.source is not None and port.source.node is orphaned_node:
                 port.value = None

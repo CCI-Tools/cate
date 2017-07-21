@@ -55,6 +55,7 @@ from cate.version import __version__
 from .geojson import write_feature_collection
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
+#                We can use the Workspace.user_data dict for this purpose.
 #                However, a global cache is fine as long as we have just one workspace open at a time.
 #
 MEM_TILE_CACHE = Cache(MemoryCacheStore(),

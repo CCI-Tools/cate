@@ -307,7 +307,6 @@ class Schema:
         def from_json_dict(cls, json_dict) -> 'Schema.Attribute':
             name = json_dict.get('name', None)
             data_type = qualified_name_to_object(json_dict.get('data_type', None))
-            # TODO (nf, 20160627): convert JSON value to Python value
             value = json_dict.get('value', None)
             return Schema.Attribute(name, data_type, value=value)
 
@@ -315,7 +314,6 @@ class Schema:
             json_dict = OrderedDict()
             json_dict['name'] = self.name
             json_dict['data_type'] = object_to_qualified_name(self.data_type)
-            # TODO (nf, 20160627): convert self.value to JSON value
             json_dict['value'] = self.value
             return json_dict
 
