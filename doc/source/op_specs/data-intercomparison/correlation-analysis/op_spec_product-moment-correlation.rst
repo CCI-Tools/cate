@@ -11,8 +11,8 @@ Operation
 
 :Operation name: Product-Moment Correlation (Pearson) 
 .. :Algorithm name: *XXX*
-:Algorithm reference: `Wikipedia entry on Pearson product-moment correlation coefficient <https://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient>`_
-:Description: This Operation performs a correlation analysis for metrically scaled data (assumption: normal distribution). 
+:Algorithm reference: `Wikipedia entry on Pearson product-moment correlation coefficient <https://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient>`
+:Description: This Operation performs a correlation analysis for metrically scaled data (assumption: normal distribution).
 :Utilised in: :doc:`../../uc_workflows/uc09_workflow`
 
 --------------------------

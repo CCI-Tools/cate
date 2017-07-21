@@ -215,7 +215,7 @@ following elements and follows the `Unidata Common Data Model`_:
    of type `xarray.DataArray`_ which behave quite like `numpy ndarrays`_. The dataset variables are accessible through
    the ``data_vars`` attribute, which is mapping from variable name to the multi-dimensional data arrays.
 
-:Coordinates: To label the grid points contained in the variable arrays, **coordinates* are used. Coordinates are also
+:Coordinates: To label the grid points contained in the variable arrays, *coordinates* are used. Coordinates are also
    `xarray.DataArray`_ instances and are accessible through the ``coords`` attribute, which is a mapping from coordinate
    names to the usually one-dimensional label arrays.
 

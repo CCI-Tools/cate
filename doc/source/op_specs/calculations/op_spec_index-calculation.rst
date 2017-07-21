@@ -109,7 +109,7 @@ Output data
 .. :name: lon1, x1 (longitudinal position)
 .. :type: floating point number
 .. :valid values: [-180.; +180.] respectively [0.; 360.]
-:default value: minimum longitude of input data
+.. :default value: minimum longitude of input data
 .. :description: longitudinal coordinate limiting rectangular area of interest
 
 .. --------------------------

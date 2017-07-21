@@ -154,6 +154,7 @@ Example
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
 ::
+
 	# ny number of years
 	# variable: var(year, month)
 
