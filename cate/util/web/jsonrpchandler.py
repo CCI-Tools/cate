@@ -284,4 +284,3 @@ def set_debug_web_socket_rpc(value: bool):
     """ For testing only """
     global _DEBUG_WEB_SOCKET_RPC
     _DEBUG_WEB_SOCKET_RPC = value
-

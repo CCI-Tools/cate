@@ -5,6 +5,7 @@ from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler, set_debug_web_
 
 set_debug_web_socket_rpc(True)
 
+
 class ApplicationMock:
     def __init__(self):
         self.ui_methods = {}

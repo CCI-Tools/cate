@@ -13,7 +13,7 @@ Operation
 .. :Algorithm name: *XXX*
 .. :Algorithm reference: *XXX*
 :Description: This Operations serves for displaying of tables.
-:Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow` 
+:Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow`
 
 --------------------------
 
