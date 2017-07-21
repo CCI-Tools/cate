@@ -35,7 +35,7 @@ from ..opmetainf import OpMetaInfo
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
-_DEBUG_WEB_SOCKET_RPC = True
+_DEBUG_WEB_SOCKET_RPC = False
 
 CANCEL_METHOD_NAME = '__cancel__'
 
@@ -278,3 +278,10 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                 result = method()
 
         return result
+
+
+def set_debug_web_socket_rpc(value: bool):
+    """ For testing only """
+    global _DEBUG_WEB_SOCKET_RPC
+    _DEBUG_WEB_SOCKET_RPC = value
+

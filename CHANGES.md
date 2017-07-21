@@ -13,7 +13,7 @@
   other dataset.
 * A uniform way of handling spatiotemporal global attributes has been introduced
 * External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
-  the *MPI Climate Data Operators* can now be registered as operations. (ONGOING)
+  the *MPI Climate Data Operators* can now be registered as operations.
 * In summary, workflows can now have steps of the following types:
   - A step that invokes a registered Cate operation, which is the default
     ```json

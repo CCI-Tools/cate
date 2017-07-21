@@ -1,8 +1,9 @@
 import unittest
 
 from cate.util import Monitor
-from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler
+from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler, set_debug_web_socket_rpc
 
+set_debug_web_socket_rpc(True)
 
 class ApplicationMock:
     def __init__(self):
