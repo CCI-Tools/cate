@@ -306,6 +306,7 @@ better in the GUI, on the CLI, as well as in Jupyter notebooks.
 Cate supports returning multiple named outputs as a Python dictionary.
 
 .. code-block:: python
+
   ...
   @op_output('dataset', data_type=xr.Dataset, description='...')
   @op_output('table', data_type=gpd.GeoDataFrame, description='...')
