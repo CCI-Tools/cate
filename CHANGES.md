@@ -69,6 +69,8 @@
 * Fixed [#267](https://github.com/CCI-Tools/cate-core/issues/267)
 * Fixed a problem with getting the variable statistics for variables with more that 3 dimensions
 * Switch CSW to same URL as the ODP
+* JSON-RPC protocol changed slightly: method `__cancelJob__` has been renamed to `__cancel__`
+  and its only parameter `jobId` became `id`.
 
 ## Changes in version 0.9.0.dev3
 
