@@ -28,7 +28,7 @@ import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
                 'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'matplotlib.backends.backend_webagg_core',
-                'pyproj', 'scipy', 'scipy.stats',
+                'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
                 'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
                 'dask', 'dask.callbacks',
                 'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
