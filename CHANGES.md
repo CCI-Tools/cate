@@ -41,6 +41,8 @@
          "expression": <Python expression>
     } 
     ```
+* Searching data sources from the CLI using "cate ds list -n" now matches against id and title
+
 
 ### Issues Fixed/Resolved
 
@@ -64,6 +66,7 @@
 * Fixed [#262](https://github.com/CCI-Tools/cate-core/issues/262)
 * Fixed [#201](https://github.com/CCI-Tools/cate-core/issues/201)
 * Fixed [#223](https://github.com/CCI-Tools/cate-core/issues/223)
+* Fixed [#267](https://github.com/CCI-Tools/cate-core/issues/267)
 * Fixed a problem with getting the variable statistics for variables with more that 3 dimensions
 
 ## Changes in version 0.9.0.dev3

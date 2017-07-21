@@ -154,11 +154,14 @@ class DataSource(metaclass=ABCMeta):
         :param query_expr: A query expression. Currently, only simple search strings are supported.
         :return: True, if this data sources matches the given *id* or *query_expr*.
         """
+        if id and id.lower() == self.id.lower():
+            return True
         if query_expr:
-            raise NotImplementedError('query_expr not yet supported')
-        if id and id.lower() not in self.id.lower():
-            return False
-        return True
+            if query_expr.lower() in self.id.lower():
+                return True
+            if self.title and query_expr.lower() in self.title.lower():
+                return True
+        return False
 
     @abstractmethod
     def open_dataset(self,

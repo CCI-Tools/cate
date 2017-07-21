@@ -50,7 +50,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 61)
 
     def test_query_with_string(self):
-        data_sources = self.data_store.query('OC')
+        data_sources = self.data_store.query(query_expr='OC')
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 20)
 
@@ -58,10 +58,10 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
-        data_sources = self.data_store.query('OC')
-        self.assertIsNotNone(data_sources)
-        self.assertIsNotNone(data_sources[0])
-        self.data_source = data_sources[0]
+        oc_data_sources = self.data_store.query(query_expr='OC')
+        self.assertIsNotNone(oc_data_sources)
+        self.assertIsNotNone(oc_data_sources[0])
+        self.fist_oc_data_source = oc_data_sources[0]
         self.tmp_dir = tempfile.mkdtemp()
 
         self._existing_local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
@@ -125,9 +125,9 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
             with unittest.mock.patch.object(EsaCciOdpDataStore, 'query', return_value=[]):
                 try:
-                    new_ds = self.data_source.make_local('local_ds_test', None,
-                                                         (datetime.datetime(1978, 11, 14, 0, 0),
-                                                          datetime.datetime(1978, 11, 15, 23, 59)))
+                    new_ds = self.fist_oc_data_source.make_local('local_ds_test', None,
+                                                                 (datetime.datetime(1978, 11, 14, 0, 0),
+                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
                 except:
                     raise ValueError(reference_path, os.listdir(reference_path))
 
@@ -136,31 +136,31 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                  (datetime.datetime(1978, 11, 14, 0, 0),
                                   datetime.datetime(1978, 11, 15, 23, 59)))
 
-                self.data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                            datetime.datetime(1978, 11, 16, 23, 59)))
+                self.fist_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                  datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 15, 0, 0),
                                   datetime.datetime(1978, 11, 16, 23, 59))))
 
-                self.data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
-                                                            datetime.datetime(1978, 11, 15, 23, 59)))
+                self.fist_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
+                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 14, 0, 0),
                                   datetime.datetime(1978, 11, 15, 23, 59))))
 
                 with self.assertRaises(ValueError) as context:
-                    self.data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                    datetime.datetime(1978, 11, 16, 23, 59)))
+                    self.fist_oc_data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                            datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
 
-                new_ds_w_one_variable = self.data_source.make_local(
+                new_ds_w_one_variable = self.fist_oc_data_source.make_local(
                     'local_ds_test_2', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                               datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
                 self.assertEqual(new_ds_w_one_variable.id, 'local.local_ds_test_2')
                 ds = new_ds_w_one_variable.open_dataset()
                 self.assertSetEqual(set(ds.variables), {'sm', 'lat', 'lon', 'time'})
 
-                new_ds_w_region = self.data_source.make_local(
+                new_ds_w_region = self.fist_oc_data_source.make_local(
                     'from_local_to_local_region', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                                          datetime.datetime(1978, 11, 15, 23, 59)),
                     "10,10,20,20", ['sm'])  # type: LocalDataSource
@@ -170,31 +170,31 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
     def test_data_store(self):
-        self.assertIs(self.data_source.data_store,
+        self.assertIs(self.fist_oc_data_source.data_store,
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.data_source.id,
+        self.assertEqual(self.fist_oc_data_source.id,
                          'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2')
 
     def test_schema(self):
-        self.assertEqual(self.data_source.schema,
+        self.assertEqual(self.fist_oc_data_source.schema,
                          None)
 
     @unittest.skip(reason='outdated info string')
     def test_info_string(self):
         self.assertIn('product_string:          MERGED\n',
-                      self.data_source.info_string)
+                      self.fist_oc_data_source.info_string)
 
     def test_variables_info_string(self):
         self.assertIn('kd_490 (m-1):\n',
-                      self.data_source.variables_info_string)
+                      self.fist_oc_data_source.variables_info_string)
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
-                      self.data_source.variables_info_string)
+                      self.fist_oc_data_source.variables_info_string)
 
     @unittest.skip(reason='ssl error on windows')
     def test_temporal_coverage(self):
-        self.assertEqual(self.data_source.temporal_coverage(),
+        self.assertEqual(self.fist_oc_data_source.temporal_coverage(),
                          (datetime.datetime(1997, 9, 4, 0, 0), datetime.datetime(2000, 6, 24, 0, 0)))
 
     def assert_tf(self, filename: str, expected_time_format: str):

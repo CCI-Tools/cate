@@ -19,7 +19,9 @@ class SimpleDataStore(ds.DataStore):
         self._data_sources = list(data_sources)
 
     def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
-        return [ds for ds in self._data_sources if ds.matches(id=id)]
+        if id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        return self._data_sources
 
     def _repr_html_(self):
         return ''
@@ -155,7 +157,7 @@ class IOTest(TestCase):
         self.assertEqual(data_sources[1].id, "ozone")
         self.assertEqual(data_sources[2].id, "sst")
 
-    def test_find_data_sources_with_constrains(self):
+    def test_find_data_sources_with_id_constrains(self):
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
@@ -168,7 +170,41 @@ class IOTest(TestCase):
 
         data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="Z")
         self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 0)
+
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="x")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 0)
+
+    def test_find_data_sources_with_query_expr_constrains(self):
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="aerosol")
+        self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
+        self.assertEqual(data_sources[0].id, "aerosol")
+
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="Z")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 1)
+        self.assertEqual(data_sources[0].id, "ozone")
+
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="x")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 0)
+
+    def test_find_data_sources_with_id_and_query_expr_constrains(self):
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="foo", query_expr="aerosol")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 1)
+        self.assertEqual(data_sources[0].id, "aerosol")
+
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol", query_expr="foo")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 1)
+        self.assertEqual(data_sources[0].id, "aerosol")
+
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="foo", query_expr="bar")
+        self.assertIsNotNone(data_sources)
+        self.assertEqual(len(data_sources), 0)
 
     @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):

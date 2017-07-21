@@ -64,11 +64,11 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_sources = local_data_store.query()
         self.assertEqual(len(data_sources), 2)
 
-        data_sources = local_data_store.query('local')
-        self.assertEqual(len(data_sources), 2)
+        data_sources = local_data_store.query(id='local')
+        self.assertEqual(len(data_sources), 1)
         self.assertIsNone(data_sources[0].temporal_coverage())
 
-        data_sources = local_data_store.query('local_w_temporal')
+        data_sources = local_data_store.query(id='local_w_temporal')
         self.assertEqual(len(data_sources), 1)
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
@@ -255,7 +255,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                  datetime.datetime(1978, 11, 15, 23, 59))))
 
             data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                   datetime.datetime(1978, 11, 16, 23, 59)))
+                                                 datetime.datetime(1978, 11, 16, 23, 59)))
             self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                 (datetime.datetime(1978, 11, 15, 0, 0),
                  datetime.datetime(1978, 11, 16, 23, 59))))

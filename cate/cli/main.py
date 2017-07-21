@@ -101,7 +101,7 @@ import os.path
 import pprint
 import sys
 from collections import OrderedDict
-from typing import Tuple, Union, List, Dict, Any
+from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike
@@ -319,12 +319,7 @@ def _parse_op_args(raw_args: List[str],
     return op_args, op_kwargs
 
 
-def _list_items(category_singular_name: str, category_plural_name: str,
-                names: Union[List, OrderedDict], pattern: str):
-    extra_data = names
-    extra = isinstance(names, OrderedDict)
-    if extra:
-        names = list(names.keys())
+def _list_items(category_singular_name: str, category_plural_name: str, names: List, pattern: Optional[str]):
     if pattern:
         pattern = pattern.lower()
         names = [name for name in names if pattern in name.lower()]
@@ -336,11 +331,7 @@ def _list_items(category_singular_name: str, category_plural_name: str,
     else:
         print('No %s found' % category_plural_name)
     for no, item in enumerate(names):
-        if extra:
-            value = extra_data.get(item)
-            print('%4d: %s [%s]' % (no, item, value if value else 'None'))
-        else:
-            print('%4d: %s' % (no, item))
+        print('%4d: %s' % (no, item))
 
 
 def _get_op_data_type_str(data_type: str):
@@ -1162,14 +1153,18 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def _execute_list(cls, command_args):
         ds_name = command_args.name
+        data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
         if command_args.coverage:
-            ds_names = OrderedDict(sorted(((ds.id, TimeRangeLike.format(ds.temporal_coverage())
-                                           if ds.temporal_coverage() else None)
-                                           for ds in find_data_sources()),
-                                          key=lambda item: item[0]))
+            ds_names = []
+            for ds in data_sources:
+                time_range = 'None'
+                temporal_coverage = ds.temporal_coverage()
+                if temporal_coverage:
+                    time_range = TimeRangeLike.format(temporal_coverage)
+                ds_names.append('%s [%s]' % (ds.id, time_range))
         else:
-            ds_names = sorted(data_source.id for data_source in find_data_sources())
-        _list_items('data source', 'data sources', ds_names, ds_name)
+            ds_names = [ds.id for ds in data_sources]
+        _list_items('data source', 'data sources', ds_names, None)
 
     @classmethod
     def _execute_info(cls, command_args):
@@ -1231,7 +1226,7 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ref_ds
-        data_source = next(iter(find_data_sources(None, id=ds_name)), None)
+        data_source = next(iter(find_data_sources(id=ds_name)), None)
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 

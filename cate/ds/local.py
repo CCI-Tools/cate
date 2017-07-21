@@ -73,6 +73,7 @@ def add_to_data_store_registry():
     data_store = LocalDataStore('local', get_data_store_path())
     DATA_STORE_REGISTRY.add_data_store(data_store)
 
+
 # TODO (kbernat): document this class
 class LocalDataSource(DataSource):
     """
@@ -147,10 +148,10 @@ class LocalDataSource(DataSource):
             for i in range(len(time_series)):
                 if time_series[i]:
                     if isinstance(time_series[i], Tuple) and \
-                                    time_series[i][0] >= time_range[0] and time_series[i][1] <= time_range[1]:
+                                    time_series[i][0] >= time_range[0] and \
+                                    time_series[i][1] <= time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
-                    elif isinstance(time_series[i], datetime) and \
-                                            time_range[0] <= time_series[i] < time_range[1]:
+                    elif isinstance(time_series[i], datetime) and time_range[0] <= time_series[i] < time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
         else:
             for file in self._files.items():
@@ -245,7 +246,7 @@ class LocalDataSource(DataSource):
                                 geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
                                                                                     'geospatial_lat_resolution')
                                 if not (isnan(geo_lat_min) or isnan(geo_lat_max) or isnan(geo_lon_min) or
-                                            isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                        isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
                                     process_region = True
 
                                     [lon_min, lat_min, lon_max, lat_max] = region.bounds
@@ -358,7 +359,7 @@ class LocalDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = find_data_sources(None, id=local_id)  # type: Sequence['DataSource']
+        data_sources = find_data_sources(id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -540,7 +541,7 @@ class LocalDataSource(DataSource):
                     if file_details_length > 2:
                         files_dict = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
                                                             parser.parse(item[2]).replace(microsecond=0))
-                        if item[1] and item[2] else None) for item in files)
+                                                  if item[1] and item[2] else None) for item in files)
                     elif file_details_length > 0:
                         files_dict = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
                                                  if len(item) > 1 else (item[0], None) for item in files)
@@ -624,8 +625,8 @@ class LocalDataStore(DataStore):
     def data_store_path(self):
         return self._store_dir
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[
-        LocalDataSource]:
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
+            -> Sequence[LocalDataSource]:
         self._init_data_sources()
         if id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
