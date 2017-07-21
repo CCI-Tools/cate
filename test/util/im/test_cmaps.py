@@ -4,6 +4,7 @@ from cate.util.im.cmaps import get_cmaps
 
 
 class CmapsTest(TestCase):
+
     def test_get_cmaps_returns_singleton(self):
         cmaps = get_cmaps()
         self.assertIs(cmaps, get_cmaps())
@@ -43,3 +44,46 @@ class CmapsTest(TestCase):
         self.assertEqual(category_tuple[1][0], 'inferno')
         self.assertEqual(category_tuple[2][0], 'plasma')
         self.assertEqual(category_tuple[3][0], 'magma')
+
+
+def main():
+
+    cmaps = get_cmaps()
+
+    html_head = '<!DOCTYPE html>\n' + \
+                '<html lang="en">\n' + \
+                '<head>' + \
+                '<meta charset="UTF-8">' + \
+                '<title>matplotlib Color Maps</title>' + \
+                '</head>\n' + \
+                '<body style="padding: 0.2em">\n'
+
+    html_body = ''
+
+    html_foot = '</body>\n' + \
+                '</html>\n'
+
+    for cmap_cat, cmap_desc, cmap_bars in cmaps:
+        html_body += '    <h2>%s</h2>\n' % cmap_cat
+        html_body += '    <p><i>%s</i></p>\n' % cmap_desc
+        html_body += '    <table style=border: 0">\n'
+        for cmap_bar in cmap_bars:
+            cmap_name, cmap_data = cmap_bar
+            cmap_image = '<img src="data:image/png;base64,%s" width="100%%" height="20px"/>' % cmap_data
+
+            html_body += '        <tr><td style="width: 5em">%s:</td><td style="width: 40em">%s</td></tr>\n' % (
+                cmap_name, cmap_image)
+        html_body += '    </table>\n'
+
+    html_page = html_head + html_body + html_foot
+
+    html_filename = 'test_cmaps.html'
+    with open(html_filename, 'w') as fp:
+        fp.write(html_page)
+
+    import webbrowser
+    webbrowser.open_new_tab(html_filename)
+
+
+if __name__ == '__main__':
+    main()
