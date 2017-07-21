@@ -26,7 +26,7 @@ Description
 ===========
 
 The ``cate.util.web`` package provides application-independent utility functions for implementing
-`JSON-RCP <http://www.jsonrpc.org/specification>`_ web services using the
+`JSON-RPC <http://www.jsonrpc.org/specification>`_ web services using the
 `Tornado <http://www.tornadoweb.org/en/stable/>`_ web server.
 
 This package is independent of other ``cate.*``packages, but it depends on the external ``tornado`` package.
@@ -42,5 +42,5 @@ Components
 ==========
 """
 
-from .jsonrpchandler import JsonRcpWebSocketHandler
-from .jsonrpcmonitor import JsonRcpWebSocketMonitor
+from .jsonrpchandler import JsonRpcWebSocketHandler
+from .jsonrpcmonitor import JsonRpcWebSocketMonitor

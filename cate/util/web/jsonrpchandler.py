@@ -32,15 +32,15 @@ from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
 from cate.util import OpMetaInfo, Cancellation
-from .jsonrpcmonitor import JsonRcpWebSocketMonitor
+from .jsonrpcmonitor import JsonRpcWebSocketMonitor
 
 _DEBUG_WEB_SOCKET_RPC = False
 
 
 # noinspection PyAbstractClass
-class JsonRcpWebSocketHandler(WebSocketHandler):
+class JsonRpcWebSocketHandler(WebSocketHandler):
     """
-    A Tornado WebSockets handler that represents a JSON-RCP 2.0 endpoint.
+    A Tornado WebSockets handler that represents a JSON-RPC 2.0 endpoint.
 
     :param application: Tornado application object
     :param request: Tornado request
@@ -53,7 +53,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
                  service_factory=None,
                  report_defer_period: float = None,
                  **kwargs):
-        super(JsonRcpWebSocketHandler, self).__init__(application, request, **kwargs)
+        super(JsonRpcWebSocketHandler, self).__init__(application, request, **kwargs)
         if not service_factory:
             raise ValueError('service_factory must be provided')
         self._application = application
@@ -66,7 +66,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         self._report_defer_period = report_defer_period
 
     def open(self):
-        print("JsonRcpWebSocketHandler.open")
+        print("JsonRpcWebSocketHandler.open")
         self._service = self._service_factory(self._application)
 
         # noinspection PyBroadException
@@ -78,7 +78,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
             pass
 
     def on_close(self):
-        print("JsonRcpWebSocketHandler.on_close")
+        print("JsonRpcWebSocketHandler.on_close")
         self._service = None
 
     # We must override this to return True (= all origins are ok), otherwise we get
@@ -86,7 +86,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
     #   Error during WebSocket handshake:
     #   Unexpected response code: 403 (forbidden)
     def check_origin(self, origin):
-        print("JsonRcpWebSocketHandler.check_origin(%s)" % repr(origin))
+        print("JsonRpcWebSocketHandler.check_origin(%s)" % repr(origin))
         return True
 
     # TODO: notify connected client on any of the following error cases
@@ -96,23 +96,23 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         try:
             message_obj = json.loads(message)
         except:
-            print("Failed to parse incoming JSON-RCP message: %s" % message)
+            print("Failed to parse incoming JSON-RPC message: %s" % message)
             traceback.print_exc(file=sys.stdout)
             return
 
         if not isinstance(message_obj, type({})):
-            print('Received invalid JSON-RCP message of unexpected type "%s": %s' % (type(message_obj), message))
+            print('Received invalid JSON-RPC message of unexpected type "%s": %s' % (type(message_obj), message))
             return
 
         method_id = message_obj.get('id', None)
         if not isinstance(method_id, int):
-            print('Received invalid JSON-RCP message: missing or invalid "id" value: %s' % message)
+            print('Received invalid JSON-RPC message: missing or invalid "id" value: %s' % message)
             return
 
         method_name = message_obj.get('method', None)
         # noinspection PyTypeChecker
         if not isinstance(method_name, str) or len(method_name) == 0:
-            print('Received invalid JSON-RCP message: missing or invalid "method" value: %s' % message)
+            print('Received invalid JSON-RPC message: missing or invalid "method" value: %s' % message)
             return
 
         if _DEBUG_WEB_SOCKET_RPC:
@@ -134,7 +134,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         elif method_name == '__cancelJob__':
             job_id = method_params.get('jobId', None)
             if not isinstance(job_id, int):
-                print('Received invalid JSON-RCP message: missing or invalid "jobId" value: %s' % message)
+                print('Received invalid JSON-RPC message: missing or invalid "jobId" value: %s' % message)
                 return
             # TODO: check if the following code requires thread sync
             # cancel progress monitor
@@ -210,7 +210,7 @@ class JsonRcpWebSocketHandler(WebSocketHandler):
         op_meta_info = OpMetaInfo.introspect_operation(method)
         if op_meta_info.has_monitor:
             # The impl. will send "progress" messages via the web-socket.
-            monitor = JsonRcpWebSocketMonitor(method_id, self, report_defer_period=self._report_defer_period)
+            monitor = JsonRpcWebSocketMonitor(method_id, self, report_defer_period=self._report_defer_period)
             self._active_monitors[method_id] = monitor
             if isinstance(method_params, type([])):
                 result = method(*method_params, monitor=monitor)

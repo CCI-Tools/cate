@@ -54,7 +54,7 @@ from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX,  \
     WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.wsmanag import FSWorkspaceManager
-from cate.util.web import JsonRcpWebSocketHandler
+from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
 from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
@@ -105,7 +105,7 @@ def create_application():
 
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/api'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
+        (url_pattern('/api'), JsonRpcWebSocketHandler, dict(service_factory=service_factory,
                                                             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
