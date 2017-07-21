@@ -67,7 +67,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
-_CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
+# _CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
+_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -575,7 +576,7 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = find_data_sources(None, id=local_id)  # type: Sequence['DataSource']
+        data_sources = find_data_sources(id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -756,8 +757,8 @@ class EsaCciOdpDataSource(DataSource):
                         geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
                                                                             'geospatial_lat_resolution')
                         if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
-                                    isnan(geo_lon_min) or isnan(geo_lon_max) or
-                                    isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                isnan(geo_lon_min) or isnan(geo_lon_max) or
+                                isnan(geo_lat_res) or isnan(geo_lon_res)):
                             process_region = True
 
                             [lon_min, lat_min, lon_max, lat_max] = region.bounds
