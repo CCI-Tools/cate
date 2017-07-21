@@ -215,9 +215,9 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                                                      id=method_id,
                                                      response=result))
         if not success:
-            _new_json_rcp_error_response(method_id, ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
-                                         '{}() call returned a value that could not be converted to JSON'
-                                         .format(method_name))
+            self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
+                                                '{}() call returned a value that could not be converted to JSON'
+                                                .format(method_name))
         return success
 
     def _write_json_rpc_error_response(self, method_id: int, code: int, message: str, data=None) -> bool:
@@ -278,33 +278,3 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                 result = method()
 
         return result
-
-
-def _new_json_rcp_result_response(method_id: int, method_name: str, result=None):
-    json_dict = dict(jsonrpc='2.0',
-                     id=method_id,
-                     response=result)
-    # noinspection PyBroadException
-    try:
-        return json.dumps(json_dict)
-    except Exception:
-        stack_trace = traceback.format_exc()
-        print(stack_trace, file=sys.stderr, flush=True)
-        return _new_json_rcp_error_response(method_id, ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
-                                            '{}() call returned a value that could not be converted to JSON'
-                                            .format(method_name),
-                                            data=stack_trace)
-
-
-def _new_json_rcp_error_response(method_id: int, code: int, message: str, data=None):
-    json_dict = dict(jsonrpc='2.0',
-                     id=method_id,
-                     error=dict(code=code,
-                                message=message,
-                                data=data))
-    # noinspection PyBroadException
-    try:
-        return json.dumps(json_dict)
-    except Exception:
-        stack_trace = traceback.format_exc()
-        print(stack_trace, file=sys.stderr, flush=True)
