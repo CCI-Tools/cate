@@ -340,7 +340,7 @@ into the dataset outputs for processing traceability and later data history reco
 * A ``Workflow`` is a ``Node`` that is composed of ``Step`` objects.
 * A ``Step`` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
 * A ``OpStep`` is a ``Step`` that invokes an ``Operation``.
-* A ``ExprStep`` is a ``Step`` that executes a Python expression string.
+* An ``ExpressionStep`` is a ``Step`` that executes a Python expression string.
 * A ``WorkflowStep`` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
 
 .. _uml_workflow:

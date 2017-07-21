@@ -26,7 +26,7 @@ class OpStep extends Step {
     op_registration : Operation
 }
 
-class ExprStep extends Step {
+class ExpressionStep extends Step {
     expression : str
 }
 

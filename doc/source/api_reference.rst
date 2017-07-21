@@ -178,7 +178,7 @@ Workflow API
 .. autoclass:: cate.core.NoOpStep
     :members:
 
-.. autoclass:: cate.core.ExprStep
+.. autoclass:: cate.core.ExpressionStep
     :members:
 
 .. autoclass:: cate.core.SubProcessStep

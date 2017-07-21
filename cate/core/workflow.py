@@ -32,7 +32,7 @@ This module provides the following data types:
 * A :py:class:`Workflow` is a ``Node`` that is composed of ``Step`` objects
 * A :py:class:`Step` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
 * A :py:class:`OpStep` is a ``Step`` that invokes a Python operation (any callable).
-* A :py:class:`ExprStep` is a ``Step`` that executes a Python expression string.
+* A :py:class:`ExpressionStep` is a ``Step`` that executes a Python expression string.
 * A :py:class:`WorkflowStep` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
 * A :py:class:`NodePort` belongs to exactly one ``Node``. Node ports represent both the named inputs and
   outputs of node. A node port has a name, a property ``source``, and a property ``value``.
@@ -1055,7 +1055,7 @@ class OpStep(OpStepBase):
 
 class ExpressionStep(OpStepBase):
     """
-    An ``ExprStep`` is a step node that computes its output from a simple (Python) *expression* string.
+    An ``ExpressionStep`` is a step node that computes its output from a simple (Python) *expression* string.
 
     :param expression: A simple (Python) expression string.
     :param inputs: input name to input properties mapping.
