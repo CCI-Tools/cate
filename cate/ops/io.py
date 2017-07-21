@@ -255,8 +255,7 @@ def read_geo_data_frame(file: str) -> gpd.GeoDataFrame:
     """
     Returns a GeoDataFrame from a file.
 
-    :param file: Is either the absolute or relative path to the file to be
-    opened
+    :param file: Is either the absolute or relative path to the file to be opened
     :return: A GeoDataFrame
     """
     return gpd.read_file(file, mode="r", enabled_drivers=['GeoJSON', 'ESRI Shapefile'])
@@ -270,8 +269,7 @@ def read_geo_data_collection(file: str) -> fiona.Collection:
     """
     Returns a GeoDataFrame from a file.
 
-    :param file: Is either the absolute or relative path to the file to be
-    opened
+    :param file: Is either the absolute or relative path to the file to be opened
     :return: A GeoDataFrame
     """
     return fiona.open(file, mode="r")

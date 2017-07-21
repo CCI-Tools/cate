@@ -75,17 +75,6 @@ Complex Computations
    op_specs/complex-computations/op_spec_category_complex-computations
    op_specs/complex-computations/op_spec_eof
 
-Filtering and Selections
-========================
-
-.. toctree::
-   :maxdepth: 1
-
-   op_specs/subsetting_selections/op_spec_category_subsetting_selections
-   op_specs/subsetting_selections/op_spec_spatial-subsetting
-   op_specs/subsetting_selections/op_spec_temporal-subsetting
-
-
 Univariate Descriptive Statistics
 =================================
 
