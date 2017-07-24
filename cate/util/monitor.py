@@ -374,33 +374,33 @@ class ConsoleMonitor(Monitor):
                 # If not on main thread, we may receive ValueError: signal only works in main thread
                 pass
 
+if _has_dask:
+    class _DaskMonitor(Callback):
+        """
+        A ``dask.Callback`` that reports the task level notification that the
+        dask scheduler generates to the provided ``Monitor``.
 
-class _DaskMonitor(Callback):
-    """
-    A ``dask.Callback`` that reports the task level notification that the
-    dask scheduler generates to the provided ``Monitor``.
+        This allows for tracking then progress inside dask compute/get calls and
+        the possibility to cancel them.
+        """
 
-    This allows for tracking then progress inside dask compute/get calls and
-    the possibility to cancel them.
-    """
+        def __init__(self, label: str, monitor: Monitor):
+            super().__init__()
+            self._label = label
+            self._monitor = monitor
 
-    def __init__(self, label: str, monitor: Monitor):
-        super().__init__()
-        self._label = label
-        self._monitor = monitor
+        def _start_state(self, dsk, state):
+            num_tasks = sum(len(state[k]) for k in ['ready', 'waiting'])
+            self._monitor.start(label=self._label, total_work=num_tasks)
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.start_state: num_tasks=", num_tasks)
 
-    def _start_state(self, dsk, state):
-        num_tasks = sum(len(state[k]) for k in ['ready', 'waiting'])
-        self._monitor.start(label=self._label, total_work=num_tasks)
-        if _DEBUG_DASK_PROGRESS:
-            print("DaskMonitor.start_state: num_tasks=", num_tasks)
+        def _posttask(self, key, result, dsk, state, worker_id):
+            self._monitor.progress(work=1)
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.posttask: key=", key)
 
-    def _posttask(self, key, result, dsk, state, worker_id):
-        self._monitor.progress(work=1)
-        if _DEBUG_DASK_PROGRESS:
-            print("DaskMonitor.posttask: key=", key)
-
-    def _finish(self, dsk, state, failed):
-        self._monitor.done()
-        if _DEBUG_DASK_PROGRESS:
-            print("DaskMonitor.finish")
+        def _finish(self, dsk, state, failed):
+            self._monitor.done()
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.finish")
