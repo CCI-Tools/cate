@@ -374,6 +374,7 @@ class ConsoleMonitor(Monitor):
                 # If not on main thread, we may receive ValueError: signal only works in main thread
                 pass
 
+
 if _has_dask:
     class _DaskMonitor(Callback):
         """
