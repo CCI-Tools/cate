@@ -184,7 +184,7 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
         geoattrs = _get_spatial_props(ds, dim)
 
         for key in geoattrs:
-            if geoattrs[key]:
+            if geoattrs[key] is not None:
                 ds.attrs[key] = geoattrs[key]
 
     lon_min = ds.attrs['geospatial_lon_min']
@@ -235,7 +235,7 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def _get_spatial_props(ds: xr.Dataset, dim: str) -> tuple:
+def _get_spatial_props(ds: xr.Dataset, dim: str) -> dict:
     """
     Get spatial boundaries, resolution and units of the given dimension of the given
     dataset. If the 'bounds' are explicitly defined, these will be used for
@@ -253,8 +253,7 @@ def _get_spatial_props(ds: xr.Dataset, dim: str) -> tuple:
         res_name = 'geospatial_{}_resolution'.format(dim)
         ret[res_name] = dim_res
     except KeyError:
-        raise ValueError('Dimension {} not found in the provided'
-                         ' dataset.').format(dim)
+        raise ValueError('Dimension {} not found in the provided dataset.'.format(dim))
 
     min_name = 'geospatial_{}_min'.format(dim)
     max_name = 'geospatial_{}_max'.format(dim)
