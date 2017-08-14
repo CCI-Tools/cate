@@ -1,6 +1,10 @@
 ## Changes in version 0.9.0.dev5
 
+### Operation Improvements
 
+### Issues Fixed/Resolved
+
+* Fixed [#309](https://github.com/CCI-Tools/cate-core/issues/309)
 
 ## Changes in version 0.9.0.dev4
 
