@@ -4,6 +4,7 @@ import unittest
 
 from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
 from cate.core.workspace import mk_op_kwargs
+from ..util.test_monitor import RecordingMonitor
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
@@ -85,6 +86,8 @@ class WorkspaceManagerTestMixin:
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.new_workspace(base_dir, description='test clean workspace')
+        self.assertEqual(workspace1.workflow.op_meta_info.header.get('description', None), 'test clean workspace')
+
         workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
         workspace_manager.set_workspace_resource(base_dir, res_name='SST',
@@ -105,6 +108,35 @@ class WorkspaceManagerTestMixin:
         # Test that header info is kept
         self.assertEqual(workspace3.workflow.op_meta_info.header.get('description', None), 'test clean workspace')
 
+        self.del_base_dir(base_dir)
+
+    def test_resource_progress(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace1.save()
+        self.assertTrue(os.path.exists(base_dir))
+        rm = RecordingMonitor()
+        workspace_manager.set_workspace_resource(base_dir, res_name='noop',
+                                                 op_name='cate.ops.utility.no_op',
+                                                 op_args=dict(),
+                                                 monitor=rm)
+        print(rm)
+        self.assertEquals([
+            ('start', 'Computing nothing', 10),
+            ('progress', 1.0, 'Step 1 of 10 doing nothing', 10),
+            ('progress', 1.0, 'Step 2 of 10 doing nothing', 20),
+            ('progress', 1.0, 'Step 3 of 10 doing nothing', 30),
+            ('progress', 1.0, 'Step 4 of 10 doing nothing', 40),
+            ('progress', 1.0, 'Step 5 of 10 doing nothing', 50),
+            ('progress', 1.0, 'Step 6 of 10 doing nothing', 60),
+            ('progress', 1.0, 'Step 7 of 10 doing nothing', 70),
+            ('progress', 1.0, 'Step 8 of 10 doing nothing', 80),
+            ('progress', 1.0, 'Step 9 of 10 doing nothing', 90),
+            ('progress', 1.0, 'Step 10 of 10 doing nothing', 100)
+        ], rm.records[:11])
+        # in ws case 'done' is not transmitted
         self.del_base_dir(base_dir)
 
 

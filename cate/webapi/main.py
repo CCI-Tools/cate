@@ -57,13 +57,8 @@ from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
-from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
-    WorkspaceCloseHandler, WorkspaceGetOpenHandler, WorkspaceCleanHandler, \
-    WorkspaceCloseAllHandler, WorkspaceDeleteHandler, WorkspaceRunOpHandler, \
-    WorkspaceSaveAllHandler, WorkspaceSaveAsHandler, WorkspaceSaveHandler, \
-    ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
-    ResourcePrintHandler, ResourceWriteHandler, CountriesGeoJSONHandler, \
-    ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
+from cate.webapi.rest import WorkspaceRunOpHandler, ResourcePlotHandler, ResourcePrintHandler, \
+    CountriesGeoJSONHandler, ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 
@@ -107,21 +102,7 @@ def create_application():
         (url_pattern('/exit'), WebAPIExitHandler),
         (url_pattern('/api'), JsonRpcWebSocketHandler, dict(service_factory=service_factory,
                                                             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
-        (url_pattern('/ws/new'), WorkspaceNewHandler),
-        (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
-        (url_pattern('/ws/get/{{base_dir}}'), WorkspaceGetHandler),
-        (url_pattern('/ws/open/{{base_dir}}'), WorkspaceOpenHandler),
-        (url_pattern('/ws/close/{{base_dir}}'), WorkspaceCloseHandler),
-        (url_pattern('/ws/close_all'), WorkspaceCloseAllHandler),
-        (url_pattern('/ws/save/{{base_dir}}'), WorkspaceSaveHandler),
-        (url_pattern('/ws/save_as/{{base_dir}}'), WorkspaceSaveAsHandler),
-        (url_pattern('/ws/save_all'), WorkspaceSaveAllHandler),
-        (url_pattern('/ws/del/{{base_dir}}'), WorkspaceDeleteHandler),
-        (url_pattern('/ws/clean/{{base_dir}}'), WorkspaceCleanHandler),
         (url_pattern('/ws/run_op/{{base_dir}}'), WorkspaceRunOpHandler),
-        (url_pattern('/ws/res/set/{{base_dir}}/{{res_name}}'), ResourceSetHandler),
-        (url_pattern('/ws/res/del/{{base_dir}}/{{res_name}}'), ResourceDeleteHandler),
-        (url_pattern('/ws/res/write/{{base_dir}}/{{res_name}}'), ResourceWriteHandler),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
         (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/countries/{{zoom}}'), CountriesGeoJSONHandler),
