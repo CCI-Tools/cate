@@ -52,7 +52,8 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
         return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
-    def _ws_json_rpc(self, method, params, error_type=WorkspaceError, timeout: float = None, monitor: Monitor = Monitor.NONE):
+    def _ws_json_rpc(self, method, params, error_type=WorkspaceError, timeout: float = None,
+                     monitor: Monitor = Monitor.NONE):
         json_rpc_response = self.ws_client.speak(method, params, timeout=timeout, monitor=monitor)
         json_response = json.loads(json_rpc_response)
         if 'error' in json_response:
@@ -119,8 +120,9 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return Workspace.from_json_dict(json_dict)
 
     def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        # TODO use monitor
-        json_dict = self._ws_json_rpc("open_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        json_dict = self._ws_json_rpc("open_workspace", dict(base_dir=base_dir),
+                                      timeout=WEBAPI_WORKSPACE_TIMEOUT,
+                                      monitor=monitor)
         return Workspace.from_json_dict(json_dict)
 
     def close_workspace(self, base_dir: str) -> None:
@@ -130,20 +132,20 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         self._ws_json_rpc("close_all_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
     def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        # TODO use monitor
         json_dict = self._ws_json_rpc("save_workspace_as",
                                       dict(base_dir=base_dir, to_dir=to_dir),
-                                      timeout=WEBAPI_WORKSPACE_TIMEOUT)
+                                      timeout=WEBAPI_WORKSPACE_TIMEOUT,
+                                      monitor=monitor)
         return Workspace.from_json_dict(json_dict)
 
     def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        # TODO use monitor
-        json_dict = self._ws_json_rpc("save_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        json_dict = self._ws_json_rpc("save_workspace", dict(base_dir=base_dir),
+                                      timeout=WEBAPI_WORKSPACE_TIMEOUT,
+                                      monitor=monitor)
         return Workspace.from_json_dict(json_dict)
 
     def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
-        # TODO use monitor
-        self._ws_json_rpc("save_all_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        self._ws_json_rpc("save_all_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT, monitor=monitor)
 
     def delete_workspace(self, base_dir: str) -> None:
         self._ws_json_rpc("delete_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)
@@ -152,13 +154,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_dict = self._ws_json_rpc("clean_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: OpKwArgs,
+    def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Workspace:
-        url = self._url('/ws/run_op/{base_dir}',
-                        path_args=dict(base_dir=base_dir))
-        json_dict = self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT,
-                                     data=self._post_data(op_name=op_name, op_args=json.dumps(op_args)))
+        json_dict = self._ws_json_rpc("run_op_in_workspace",
+                                      dict(base_dir=base_dir, op_name=op_name, op_args=op_args),
+                                      timeout=WEBAPI_WORKSPACE_TIMEOUT,
+                                      monitor=monitor)
         return Workspace.from_json_dict(json_dict)
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
@@ -201,17 +202,18 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
-        url = self._url('/ws/res/plot/{base_dir}/{res_name}',
-                        path_args=dict(base_dir=base_dir, res_name=res_name),
-                        query_args=self._query(var_name=var_name, file_path=file_path))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
+        self._ws_json_rpc("plot_workspace_resource",
+                          dict(base_dir=base_dir, res_name=res_name,
+                               var_name=var_name, file_path=file_path),
+                          timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT,
+                          monitor=monitor)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        url = self._url('/ws/res/print/{base_dir}',
-                        path_args=dict(base_dir=base_dir),
-                        query_args=self._query(res_name_or_expr=res_name_or_expr))
-        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT)
+        self._ws_json_rpc("print_workspace_resource",
+                          dict(base_dir=base_dir, res_name_or_expr=res_name_or_expr),
+                          timeout=WEBAPI_RESOURCE_TIMEOUT,
+                          monitor=monitor)
 
 
 class WebSocketClient(object):

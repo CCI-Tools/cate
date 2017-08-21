@@ -22,10 +22,8 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
-import concurrent
 import concurrent.futures
 import datetime
-import json
 import os.path
 import time
 import traceback
@@ -49,7 +47,6 @@ from cate.util import Monitor
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
-from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
 from .geojson import write_feature_collection
@@ -71,49 +68,6 @@ THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
 __import__('cate.ops')
-
-
-# noinspection PyAbstractClass
-class WorkspaceRunOpHandler(WebAPIRequestHandler):
-    def post(self, base_dir):
-        op_name = self.get_body_argument('op_name')
-        op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else dict()
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args,
-                                                                  monitor=_new_monitor())
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourcePlotHandler(WebAPIRequestHandler):
-    def get(self, base_dir, res_name):
-        var_name = self.get_query_argument('var_name', default=None)
-        file_path = self.get_query_argument('file_path', default=None)
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourcePrintHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        res_name_or_expr = self.get_query_argument('res_name_or_expr', default=None)
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
 
 
 # noinspection PyAbstractClass

@@ -57,8 +57,8 @@ from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
-from cate.webapi.rest import WorkspaceRunOpHandler, ResourcePlotHandler, ResourcePrintHandler, \
-    CountriesGeoJSONHandler, ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
+from cate.webapi.rest import CountriesGeoJSONHandler, ResVarTileHandler, ResVarGeoJSONHandler, \
+    ResVarCsvHandler, NE2Handler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 
@@ -102,9 +102,6 @@ def create_application():
         (url_pattern('/exit'), WebAPIExitHandler),
         (url_pattern('/api'), JsonRpcWebSocketHandler, dict(service_factory=service_factory,
                                                             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
-        (url_pattern('/ws/run_op/{{base_dir}}'), WorkspaceRunOpHandler),
-        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
-        (url_pattern('/ws/res/print/{{base_dir}}'), ResourcePrintHandler),
         (url_pattern('/ws/countries/{{zoom}}'), CountriesGeoJSONHandler),
         (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_name}}/{{zoom}}'), ResVarGeoJSONHandler),
         (url_pattern('/ws/res/csv/{{base_dir}}/{{res_name}}'), ResVarCsvHandler),

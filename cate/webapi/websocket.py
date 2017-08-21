@@ -312,6 +312,25 @@ class WebSocketService:
             self.workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
                                                             format_name=format_name, monitor=monitor)
 
+    def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
+                            monitor: Monitor = Monitor.NONE) -> dict:
+        with cwd(base_dir):
+            workspace = self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
+            return workspace.to_json_dict()
+
+    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        with cwd(base_dir):
+            self.workspace_manager.print_workspace_resource(base_dir,
+                                                            res_name_or_expr=res_name_or_expr, monitor=monitor)
+
+    def plot_workspace_resource(self, base_dir: str, res_name: str,
+                                var_name: str = None, file_path: str = None,
+                                monitor: Monitor = Monitor.NONE) -> None:
+        with cwd(base_dir):
+            self.workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name,
+                                                           file_path=file_path, monitor=monitor)
+
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()
