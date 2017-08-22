@@ -352,6 +352,8 @@ class LocalDataSource(DataSource):
         local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
                                                   meta_info=self.meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
+        if local_ds.is_empty:
+            local_store.remove_data_source(local_ds)
         return local_ds
 
     def update_local(self,
@@ -485,6 +487,14 @@ class LocalDataSource(DataSource):
     def info_string(self):
         return 'Files: %s' % (' '.join(self._files))
 
+    @property
+    def is_empty(self) -> []:
+        """
+        Check if DataSource is empty
+
+        """
+        return not self._files or len(self._files) == 0
+
     def _repr_html_(self):
         import html
         return '<table style="border:0;">\n' \
@@ -570,11 +580,12 @@ class LocalDataStore(DataStore):
                 data_source.add_dataset(file)
         return data_source
 
-    def remove_data_source(self, data_source_id: str, remove_files: bool = True):
-        data_sources = self.query(id=data_source_id)
-        if not data_sources or len(data_sources) != 1:
-            return
-        data_source = data_sources[0]
+    def remove_data_source(self, data_source: Union[str, DataSource], remove_files: bool = True):
+        if isinstance(data_source, str):
+            data_sources = self.query(id=data_source)
+            if not data_sources or len(data_sources) != 1:
+                return
+            data_source = data_sources[0]
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
         os.remove(file_name)
         if remove_files:
