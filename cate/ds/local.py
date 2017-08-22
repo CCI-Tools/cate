@@ -354,6 +354,7 @@ class LocalDataSource(DataSource):
         self._make_local(local_ds, time_range, region, var_names, monitor)
         if local_ds.is_empty:
             local_store.remove_data_source(local_ds)
+            return None
         return local_ds
 
     def update_local(self,
@@ -488,7 +489,7 @@ class LocalDataSource(DataSource):
         return 'Files: %s' % (' '.join(self._files))
 
     @property
-    def is_empty(self) -> []:
+    def is_empty(self) -> bool:
         """
         Check if DataSource is empty
 
@@ -589,7 +590,7 @@ class LocalDataStore(DataStore):
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
         os.remove(file_name)
         if remove_files:
-            shutil.rmtree(os.path.join(self._store_dir, data_source.id))
+            shutil.rmtree(os.path.join(self._store_dir, data_source.id), ignore_errors=True)
         self._data_sources.remove(data_source)
 
     def create_data_source(self, data_source_id: str, region: PolygonLike.TYPE = None,
