@@ -281,3 +281,32 @@ class LocalFilePatternSourceTest(unittest.TestCase):
             self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
             data_set = new_ds_w_region.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
+
+            no_data = data_source.make_local('no_data', None,
+                                             (datetime.datetime(2020, 11, 14, 0, 0),
+                                              datetime.datetime(2020, 11, 15, 23, 59)))
+            self.assertIsNone(no_data)
+
+    def test_remove_data_source_by_id(self):
+
+            data_sources = self._local_data_store.query('local_w_temporal')
+            data_sources_len_before_remove = len(data_sources)
+            self.assertGreater(data_sources_len_before_remove, 0)
+
+            with unittest.mock.patch.object(os, 'remove', return_value=None):
+                self._local_data_store.remove_data_source('local_w_temporal')
+            data_sources = self._local_data_store.query('local_w_temporal')
+            data_sources_len_after_remove = len(data_sources)
+            self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
+
+    def test_remove_data_source(self):
+
+            data_sources = self._local_data_store.query('local_w_temporal')
+            data_sources_len_before_remove = len(data_sources)
+            self.assertGreater(data_sources_len_before_remove, 0)
+
+            with unittest.mock.patch.object(os, 'remove', return_value=None):
+                self._local_data_store.remove_data_source(data_sources[0])
+            data_sources = self._local_data_store.query('local_w_temporal')
+            data_sources_len_after_remove = len(data_sources)
+            self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
