@@ -191,7 +191,7 @@ class DataSource(metaclass=ABCMeta):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> Optional['DataSource']:
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
         optional constraints.
