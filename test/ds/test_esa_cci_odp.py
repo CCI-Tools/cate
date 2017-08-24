@@ -130,6 +130,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                    datetime.datetime(1978, 11, 15, 23, 59)))
                 except:
                     raise ValueError(reference_path, os.listdir(reference_path))
+                self.assertIsNotNone(new_ds)
 
                 self.assertEqual(new_ds.id, 'local.local_ds_test')
                 self.assertEqual(new_ds.temporal_coverage(),
@@ -156,6 +157,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_w_one_variable = self.first_oc_data_source.make_local(
                     'local_ds_test_2', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                               datetime.datetime(1978, 11, 15, 23, 59)), None, ['sm'])
+                self.assertIsNotNone(new_ds_w_one_variable)
                 self.assertEqual(new_ds_w_one_variable.id, 'local.local_ds_test_2')
                 ds = new_ds_w_one_variable.open_dataset()
                 self.assertSetEqual(set(ds.variables), {'sm', 'lat', 'lon', 'time'})
@@ -164,6 +166,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     'from_local_to_local_region', None, (datetime.datetime(1978, 11, 14, 0, 0),
                                                          datetime.datetime(1978, 11, 15, 23, 59)),
                     "10,10,20,20", ['sm'])  # type: LocalDataSource
+                self.assertIsNotNone(new_ds_w_region)
                 self.assertEqual(new_ds_w_region.id, 'local.from_local_to_local_region')
                 self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
                 data_set = new_ds_w_region.open_dataset()

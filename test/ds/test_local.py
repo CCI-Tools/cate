@@ -249,6 +249,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
             new_ds = data_source.make_local('from_local_to_local', None,
                                             (datetime.datetime(1978, 11, 14, 0, 0),
                                              datetime.datetime(1978, 11, 15, 23, 59)))
+            self.assertIsNotNone(new_ds)
             self.assertEqual(new_ds.id, 'local.from_local_to_local')
             self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                 (datetime.datetime(1978, 11, 14, 0, 0),
@@ -269,6 +270,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                            (datetime.datetime(1978, 11, 14, 0, 0),
                                                             datetime.datetime(1978, 11, 15, 23, 59)),
                                                            None, ['sm'])
+            self.assertIsNotNone(new_ds_w_one_variable)
             self.assertEqual(new_ds_w_one_variable.id, 'local.from_local_to_local_var')
             data_set = new_ds_w_one_variable.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
@@ -277,6 +279,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                      (datetime.datetime(1978, 11, 14, 0, 0),
                                                       datetime.datetime(1978, 11, 15, 23, 59)),
                                                      "10,10,20,20", ['sm'])  # type: LocalDataSource
+            self.assertIsNotNone(new_ds_w_region)
             self.assertEqual(new_ds_w_region.id, 'local.from_local_to_local_region')
             self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
             data_set = new_ds_w_region.open_dataset()

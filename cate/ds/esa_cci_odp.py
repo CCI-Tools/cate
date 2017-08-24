@@ -877,7 +877,7 @@ class EsaCciOdpDataSource(DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
         if not local_name:
             raise ValueError('local_name is required')
         elif len(local_name) == 0:
