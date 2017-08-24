@@ -64,6 +64,9 @@ class CardinalDivRoundTest(TestCase):
 
 
 class TileSizeTest(TestCase):
+    def test_lc_cci(self):
+        self.assertEqual(180, utils.compute_tile_size(129600, chunk_size=3600, int_div=True))
+
     def test_int_div(self):
         # print('----------- test_int_div:')
         for s in range(270, 64 * 270, 270):

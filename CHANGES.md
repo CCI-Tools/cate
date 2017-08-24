@@ -6,6 +6,7 @@
 
 * Fixed [#309](https://github.com/CCI-Tools/cate-core/issues/309)
 * Ensure that our tile size matches the expected tile size: resize and fill in background value.
+* Take tile size from dask, this should yield to better performance
 
 ## Changes in version 0.9.0.dev4
 
