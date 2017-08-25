@@ -35,14 +35,19 @@ class WorkspaceManagerTestMixin:
 
     def test_new_save_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
+        to_dir = self.new_base_dir('TESTOMAT2')
 
         workspace_manager = self.new_workspace_manager()
         workspace = workspace_manager.new_workspace(base_dir)
-        workspace.save()
+        workspace_manager.save_workspace(base_dir)
         self.assertTrue(os.path.exists(base_dir))
         self.assertIsNotNone(workspace)
 
+        workspace_manager.save_workspace_as(base_dir, to_dir)
+        self.assertTrue(os.path.exists(to_dir))
+
         self.del_base_dir(base_dir)
+        self.del_base_dir(to_dir)
 
     def test_delete_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
@@ -147,7 +152,7 @@ class WorkspaceManagerTestMixin:
         self.assertIsNotNone(workspace1)
         self.assertEqual(workspace1.base_dir, base_dir)
         self.assertEqual(workspace1.workflow.op_meta_info.header.get('description', None), 'session workspace')
-        workspace1.save()
+        workspace_manager.save_workspace(base_dir)
         self.assertTrue(os.path.exists(base_dir))
 
         res_name = 'ds'
@@ -172,6 +177,11 @@ class WorkspaceManagerTestMixin:
         workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, res_name, True)
         sst_step = workspace3.workflow.find_node(res_name)
         self.assertTrue(sst_step.persistent)
+
+        workspaces = workspace_manager.get_open_workspaces()
+        self.assertIsNotNone(workspaces)
+        self.assertEqual(len(workspaces), 1)
+        self.assertEqual(workspaces[0].base_dir, base_dir)
 
         workspace4 = workspace_manager.delete_workspace_resource(base_dir, res_name)
         self.assertEqual(len(workspace4.workflow.steps), 0)
