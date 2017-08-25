@@ -170,7 +170,6 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
 
-
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def new_workspace_manager(self):
         return FSWorkspaceManager()
