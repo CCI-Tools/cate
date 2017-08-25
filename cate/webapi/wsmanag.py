@@ -202,11 +202,10 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
-        self._ws_json_rpc("plot_workspace_resource",
-                          dict(base_dir=base_dir, res_name=res_name,
-                               var_name=var_name, file_path=file_path),
-                          timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT,
-                          monitor=monitor)
+        url = self._url('/ws/res/plot/{base_dir}/{res_name}',
+                        path_args=dict(base_dir=base_dir, res_name=res_name),
+                        query_args=self._query(var_name=var_name, file_path=file_path))
+        self._fetch_json(url, timeout=WEBAPI_RESOURCE_TIMEOUT + WEBAPI_PLOT_TIMEOUT)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:

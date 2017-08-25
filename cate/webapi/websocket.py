@@ -324,13 +324,6 @@ class WebSocketService:
             self.workspace_manager.print_workspace_resource(base_dir,
                                                             res_name_or_expr=res_name_or_expr, monitor=monitor)
 
-    def plot_workspace_resource(self, base_dir: str, res_name: str,
-                                var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> None:
-        with cwd(base_dir):
-            self.workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name,
-                                                           file_path=file_path, monitor=monitor)
-
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()

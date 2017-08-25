@@ -47,6 +47,7 @@ from cate.util import Monitor
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
 from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from cate.util.im.ds import NaturalEarth2Image
+from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
 from cate.version import __version__
 from .geojson import write_feature_collection
@@ -231,6 +232,21 @@ class ResVarTileHandler(WebAPIRequestHandler):
                     if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
                         return dim_var
         return None
+
+
+# noinspection PyAbstractClass
+class ResourcePlotHandler(WebAPIRequestHandler):
+    def get(self, base_dir, res_name):
+        var_name = self.get_query_argument('var_name', default=None)
+        file_path = self.get_query_argument('file_path', default=None)
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name,
+                                                          file_path=file_path)
+            self.write_status_ok()
+        except Exception as e:
+            self.write_status_error(exception=e)
 
 
 # noinspection PyAbstractClass
