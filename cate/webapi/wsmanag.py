@@ -54,7 +54,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def _ws_json_rpc(self, method, params, error_type=WorkspaceError, timeout: float = None,
                      monitor: Monitor = Monitor.NONE):
-        json_rpc_response = self.ws_client.speak(method, params, timeout=timeout, monitor=monitor)
+        json_rpc_response = self.ws_client.invokeMethod(method, params, timeout=timeout, monitor=monitor)
         json_response = json.loads(json_rpc_response)
         if 'error' in json_response:
             error_details = json_response.get('error')
@@ -229,10 +229,10 @@ class WebSocketClient(object):
     def connect(self):
         self.ioloop.run_sync(self._connect, timeout=5)
 
-    def speak(self, method, params, timeout, monitor: Monitor):
+    def invokeMethod(self, method, params, timeout, monitor: Monitor):
         self.json_rpc_request = self._format_rpc_request(method, params)
         self.monitor = monitor
-        return self.ioloop.run_sync(self._speak, timeout=timeout)
+        return self.ioloop.run_sync(self._invokeMethod, timeout=timeout)
 
     def close(self):
         if self.ws:
@@ -247,7 +247,7 @@ class WebSocketClient(object):
             raise e
 
     @gen.coroutine
-    def _speak(self):
+    def _invokeMethod(self):
         self.ws.write_message(self.json_rpc_request)
         work_reported = 0
         while True:
