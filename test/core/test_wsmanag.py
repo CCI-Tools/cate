@@ -139,6 +139,37 @@ class WorkspaceManagerTestMixin:
         # in ws case 'done' is not transmitted
         self.del_base_dir(base_dir)
 
+    def test_session(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.new_workspace(base_dir, description='session workspace')
+        self.assertIsNotNone(workspace1)
+        self.assertEqual(workspace1.base_dir, workspace1.base_dir)
+        self.assertEqual(workspace1.workflow.op_meta_info.header.get('description', None), 'session workspace')
+        workspace1.save()
+        self.assertTrue(os.path.exists(base_dir))
+
+        res_name = 'ds'
+
+        workspace_manager.set_workspace_resource(base_dir, res_name=res_name,
+                                                 op_name='cate.ops.io.read_netcdf',
+                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
+        workspace2 = workspace_manager.get_workspace(base_dir)
+
+        self.assertEqual(workspace2.base_dir, workspace1.base_dir)
+        self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
+        sst_step = workspace2.workflow.find_node(res_name)
+        self.assertIsNotNone(sst_step)
+
+        file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_copy.nc'))
+        workspace_manager.write_workspace_resource(base_dir, res_name, file_path=file_path)
+
+        self.assertTrue(os.path.isfile(file_path))
+
+        self.del_base_dir(base_dir)
+
+
 
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def new_workspace_manager(self):
