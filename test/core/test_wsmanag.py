@@ -145,7 +145,7 @@ class WorkspaceManagerTestMixin:
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.new_workspace(base_dir, description='session workspace')
         self.assertIsNotNone(workspace1)
-        self.assertEqual(workspace1.base_dir, workspace1.base_dir)
+        self.assertEqual(workspace1.base_dir, base_dir)
         self.assertEqual(workspace1.workflow.op_meta_info.header.get('description', None), 'session workspace')
         workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
@@ -157,15 +157,24 @@ class WorkspaceManagerTestMixin:
                                                  op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
         workspace2 = workspace_manager.get_workspace(base_dir)
 
-        self.assertEqual(workspace2.base_dir, workspace1.base_dir)
+        self.assertEqual(workspace2.base_dir, base_dir)
         self.assertEqual(workspace2.workflow.id, workspace1.workflow.id)
+        self.assertEqual(len(workspace2.workflow.steps), 1)
+
         sst_step = workspace2.workflow.find_node(res_name)
         self.assertIsNotNone(sst_step)
+        self.assertFalse(sst_step.persistent)
 
         file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_copy.nc'))
         workspace_manager.write_workspace_resource(base_dir, res_name, file_path=file_path)
-
         self.assertTrue(os.path.isfile(file_path))
+
+        workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, res_name, True)
+        sst_step = workspace3.workflow.find_node(res_name)
+        self.assertTrue(sst_step.persistent)
+
+        workspace4 = workspace_manager.delete_workspace_resource(base_dir, res_name)
+        self.assertEqual(len(workspace4.workflow.steps), 0)
 
         self.del_base_dir(base_dir)
 
