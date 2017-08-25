@@ -191,7 +191,7 @@ class DataSource(metaclass=ABCMeta):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> Optional['DataSource']:
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
         optional constraints.
@@ -567,7 +567,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     #
     # netCDF files can also feature a significant level of compression rendering
     # the known file size on disk useless to determine if the default dask chunk
-    # will be small enough that a few of them ccould comfortably fit in memory for
+    # will be small enough that a few of them could comfortably fit in memory for
     # parallel processing.
     #
     # Hence we open the first file of the dataset, find out its uncompressed size
@@ -599,6 +599,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
     if n_chunks == 1:
+        temp_ds.close()
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.

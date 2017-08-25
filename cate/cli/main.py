@@ -1238,7 +1238,10 @@ class DataSourceCommand(SubCommandCommand):
 
         ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
-        print("Local data source with name '%s' has been created." % ds.id)
+        if ds:
+            print("Local data source with name '%s' has been created." % ds.id)
+        else:
+            print("Local data source not created. It would have been empty. Please check constraint.")
 
 
 class PluginCommand(SubCommandCommand):

@@ -877,7 +877,7 @@ class EsaCciOdpDataSource(DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
         if not local_name:
             raise ValueError('local_name is required')
         elif len(local_name) == 0:
@@ -898,6 +898,9 @@ class EsaCciOdpDataSource(DataSource):
         local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
                                                   time_range, var_names, meta_info=local_meta_info, lock_file=True)
         self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+        if local_ds.is_empty:
+            local_store.remove_data_source(local_ds)
+            return None
         return local_ds
 
     def _init_file_list(self, monitor: Monitor = Monitor.NONE):

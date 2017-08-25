@@ -654,13 +654,23 @@ class FastNdarrayDownsamplingImage(OpImage):
         # We do the resampling to lower resolution after loading the data, which is MUCH faster, see note above.
         tile = tile[..., ::zoom, ::zoom]
 
-        actual_tile_size = tile.shape[-1], tile.shape[-2]
+        # ensure that our tile size is w x h: resize and fill in background value.
+        return self.pad_tile(tile, self.tile_size)
 
-        # TODO (forman): ensure that our tile size is w x h: resize and fill in background value.
-        # For time being raise error
-        assert self.tile_size == actual_tile_size, "unexpected tile size: " \
-                                                   "expected %s, but got %s" % (self.tile_size, actual_tile_size)
-
+    @staticmethod
+    def pad_tile(tile: Tile, target_tile_size: Size2D, fill_value: float = np.nan) -> Tile:
+        (target_width, target_height) = target_tile_size
+        tile_width, tile_heigth = tile.shape[-1], tile.shape[-2]
+        if target_width > tile_width:
+            # expand in width
+            h_pad = np.empty((tile_heigth, target_width - tile_width))
+            h_pad.fill(fill_value)
+            tile = np.hstack((tile, h_pad))
+        if target_height > tile_heigth:
+            # expand in height
+            v_pad = np.empty((target_height - tile_heigth, target_width))
+            v_pad.fill(fill_value)
+            tile = np.vstack((tile, v_pad))
         return tile
 
 

@@ -124,6 +124,24 @@ class NdarrayImageTest(TestCase):
         self.assertEqual(target_image.size, (6, 4))
         self.assertEqual(target_image.num_tiles, (3, 2))
 
+    def test_pad_tile(self):
+        a = np.arange(0, 6, dtype=np.float32)
+        a.shape = 2, 3
+        b = FastNdarrayDownsamplingImage.pad_tile(a, (3, 2))
+        np.testing.assert_equal(b, np.array([[0., 1., 2.],
+                                             [3., 4., 5.]]))
+        b = FastNdarrayDownsamplingImage.pad_tile(a, (4, 2))
+        np.testing.assert_equal(b, np.array([[0., 1., 2., np.nan],
+                                             [3., 4., 5., np.nan]]))
+        b = FastNdarrayDownsamplingImage.pad_tile(a, (3, 3))
+        np.testing.assert_equal(b, np.array([[0., 1., 2.],
+                                             [3., 4., 5.],
+                                             [np.nan, np.nan, np.nan]]))
+        b = FastNdarrayDownsamplingImage.pad_tile(a, (4, 3))
+        np.testing.assert_equal(b, np.array([[0., 1., 2., np.nan],
+                                             [3., 4., 5., np.nan],
+                                             [np.nan, np.nan, np.nan, np.nan]]))
+
 
 class ImagePyramidTest(TestCase):
     def test_create_from_image(self):
