@@ -599,6 +599,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
     if n_chunks == 1:
+        temp_ds.close()
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
