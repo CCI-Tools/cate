@@ -13,7 +13,7 @@ Operation
 .. :Algorithm name: *XXX*
 .. :Algorithm reference: *XXX*
 :Description: This Operation serves for simple arithmetic data manipulation (log transformation, adding/subtracting/multiplying/dividing constants etc.) by defining equations.
-:Utilised in: :doc:`../uc_workflows/uc06_workflow` 
+:Utilised in: :doc:`../uc_workflows/uc06_workflow`
 
 --------------------------
 

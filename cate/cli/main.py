@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -104,24 +101,27 @@ import os.path
 import pprint
 import sys
 from collections import OrderedDict
-from typing import Tuple, Union, List, Dict, Any
+from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike
-from cate.core.ds import DATA_STORE_REGISTRY, open_dataset, query_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import to_list, Monitor
+from cate.ops.io import open_dataset
+from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from cate.version import __version__
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 #: Name of the Cate CLI executable (= ``cate``).
 CLI_NAME = 'cate'
@@ -277,7 +277,7 @@ def _parse_op_args(raw_args: List[str],
                 # noinspection PyBroadException
                 try:
                     # Eval with given namespace as locals
-                    value = eval(raw_value, None, namespace)
+                    value = safe_eval(raw_value, namespace)
                 except Exception:
                     value = raw_value
 
@@ -286,18 +286,23 @@ def _parse_op_args(raw_args: List[str],
         else:
             # For any non-None value and any data type we perform basic type validation:
             if value is not None and data_type:
+                # noinspection PyTypeChecker
                 if issubclass(data_type, Like):
-                    # For XXXLike-types call accepts()
+                    # noinspection PyUnresolvedReferences
                     compatible = data_type.accepts(value)
                 else:
+                    # noinspection PyTypeChecker
                     compatible = isinstance(value, data_type)
                     if not compatible:
+                        # noinspection PyTypeChecker
                         if issubclass(data_type, float):
                             # Allow assigning bool and int to a float
                             compatible = isinstance(value, bool) or isinstance(value, int)
+                        # noinspection PyTypeChecker
                         elif issubclass(data_type, int):
                             # Allow assigning bool and float to an int
                             compatible = isinstance(value, bool) or isinstance(value, float)
+                        # noinspection PyTypeChecker
                         elif issubclass(data_type, bool):
                             # Allow assigning anything to a bool
                             compatible = True
@@ -314,12 +319,7 @@ def _parse_op_args(raw_args: List[str],
     return op_args, op_kwargs
 
 
-def _list_items(category_singular_name: str, category_plural_name: str,
-                names: Union[List, OrderedDict], pattern: str):
-    extra_data = names
-    extra = isinstance(names, OrderedDict)
-    if extra:
-        names = list(names.keys())
+def _list_items(category_singular_name: str, category_plural_name: str, names: List, pattern: Optional[str]):
     if pattern:
         pattern = pattern.lower()
         names = [name for name in names if pattern in name.lower()]
@@ -331,11 +331,7 @@ def _list_items(category_singular_name: str, category_plural_name: str,
     else:
         print('No %s found' % category_plural_name)
     for no, item in enumerate(names):
-        if extra:
-            value = extra_data.get(item)
-            print('%4d: %s [%s]' % (no, item, value if value else 'None'))
-        else:
-            print('%4d: %s' % (no, item))
+        print('%4d: %s' % (no, item))
 
 
 def _get_op_data_type_str(data_type: str):
@@ -394,8 +390,9 @@ def _get_op_info_str(op_meta_info: OpMetaInfo):
         op_info_str += str(version)
         op_info_str += '\n'
 
-    op_info_str += _get_op_io_info_str(op_meta_info.input, 'Input', 'Inputs', 'Operation does not have any inputs.')
-    op_info_str += _get_op_io_info_str(op_meta_info.output, 'Output', 'Outputs', 'Operation does not have any outputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.inputs, 'Input', 'Inputs', 'Operation does not have any inputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.outputs, 'Output', 'Outputs',
+                                       'Operation does not have any outputs.')
 
     return op_info_str
 
@@ -495,9 +492,9 @@ class RunCommand(Command):
                 raise CommandError('unknown operation "%s"' % op_name)
 
         op_args, op_kwargs = _parse_op_args(command_args.op_args,
-                                            input_props=op.op_meta_info.input, namespace=namespace)
+                                            input_props=op.op_meta_info.inputs, namespace=namespace)
         if op_args and is_workflow:
-            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments are not yet supported, please provide keyword=value pairs only")
 
         write_args = None
         if command_args.write_args:
@@ -506,7 +503,7 @@ class RunCommand(Command):
                 for out_name, file, format_name in write_args:
                     if not out_name:
                         raise CommandError("all --write options must have a NAME")
-                    if out_name not in op.op_meta_info.output:
+                    if out_name not in op.op_meta_info.outputs:
                         raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
             else:
                 if len(write_args) > 1:
@@ -550,19 +547,19 @@ class RunCommand(Command):
                 else:
                     raise CommandError("unknown format for --write option")
             else:
-                return_type = op.op_meta_info.output['return'].get('data_type', object)
+                return_type = op.op_meta_info.outputs['return'].get('data_type', object)
                 is_void = return_type is None or issubclass(return_type, type(None))
                 if not is_void:
                     pprint.pprint(return_value)
 
 
 OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
-                        'depends on the expected data type of an OP input. It can be either a value or ' \
-                        'a reference an existing resource prefixed by the add character "@". ' \
-                        'The latter connects to operation steps with each other. To provide a (constant)' \
-                        'value you can use boolean literals True and False, strings, or numeric values. ' \
-                        'Type "cate op info OP" to print information about the supported OP ' \
-                        'input names to be used as KEY and their data types to be used as VALUE. '
+                   'depends on the expected data type of an OP input. It can be either a value or ' \
+                   'a reference an existing resource prefixed by the add character "@". ' \
+                   'The latter connects to operation steps with each other. To provide a (constant)' \
+                   'value you can use boolean literals True and False, strings, or numeric values. ' \
+                   'Type "cate op info OP" to print information about the supported OP ' \
+                   'input names to be used as KEY and their data types to be used as VALUE. '
 
 
 class WorkspaceCommand(SubCommandCommand):
@@ -730,7 +727,7 @@ class WorkspaceCommand(SubCommandCommand):
     def _execute_run(cls, command_args):
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
         if op_args:
             raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.run_op_in_workspace(_base_dir(command_args.base_dir),
@@ -764,6 +761,11 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_exit(cls, command_args):
+        service_info = read_service_info(WEBAPI_INFO_FILE)
+        if not service_info or \
+                not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
+            return
+
         if command_args.yes:
             answer = 'y'
         else:
@@ -841,7 +843,7 @@ class ResourceCommand(SubCommandCommand):
                                  choices=READ_FORMAT_NAMES,
                                  help='File format. Possible FORMAT values are {format}.'
                                       ''.format(format=', '.join(READ_FORMAT_NAMES)))
-        # TODO (forman, 20160913): support reader-specific arguments
+        # We may support reader-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
         #                                'Type "cate res read -h" to list format-specific read arguments')
@@ -858,7 +860,7 @@ class ResourceCommand(SubCommandCommand):
                                   choices=WRITE_FORMAT_NAMES,
                                   help='File format. Possible FORMAT values are {format}.'
                                        ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
-        # TODO (forman, 20160913): support writer-specific arguments
+        # We may support writer-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
         #                                'Type "cate res write -h" to list format-specific write arguments')
@@ -914,10 +916,13 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         op_args = dict(ds_name=command_args.ds_name)
         if command_args.var_names:
+            # noinspection PyArgumentList
             op_args.update(var_names=command_args.var_names)
         if command_args.region:
+            # noinspection PyArgumentList
             op_args.update(region=command_args.region)
         if command_args.start_date or command_args.end_date:
+            # noinspection PyArgumentList
             op_args.update(time_range="%s,%s" % (command_args.start_date or '',
                                                  command_args.end_date or ''))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
@@ -931,6 +936,7 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager = _new_workspace_manager()
         op_args = dict(file=command_args.file_path)
         if command_args.format_name:
+            # noinspection PyArgumentList
             op_args.update(format=command_args.format_name)
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.res_name,
@@ -942,7 +948,7 @@ class ResourceCommand(SubCommandCommand):
     def _execute_set(cls, command_args):
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.input)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
         if op_args:
             raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
@@ -1099,7 +1105,7 @@ class DataSourceCommand(SubCommandCommand):
                                       "The comparison is case insensitive.")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
-        # TODO (marcoz, 20160905): implement "cate ds list --var"
+        # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
         #                               "with variables that have NAME in their name. "
@@ -1116,7 +1122,7 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display temporal coverage of cached datasets.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Define a local data source using a file pattern.')
+        add_parser = subparsers.add_parser('add', help='Add a new local data source using a file pattern.')
         add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '
@@ -1147,24 +1153,28 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def _execute_list(cls, command_args):
         ds_name = command_args.name
+        data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
         if command_args.coverage:
-            ds_names = OrderedDict(sorted(((ds.name, TimeRangeLike.format(ds.temporal_coverage())
-                                           if ds.temporal_coverage() else None)
-                                           for ds in query_data_sources()),
-                                          key=lambda item: item[0]))
+            ds_names = []
+            for ds in data_sources:
+                time_range = 'None'
+                temporal_coverage = ds.temporal_coverage()
+                if temporal_coverage:
+                    time_range = TimeRangeLike.format(temporal_coverage)
+                ds_names.append('%s [%s]' % (ds.id, time_range))
         else:
-            ds_names = sorted(data_source.name for data_source in query_data_sources())
-        _list_items('data source', 'data sources', ds_names, ds_name)
+            ds_names = [ds.id for ds in data_sources]
+        _list_items('data source', 'data sources', ds_names, None)
 
     @classmethod
     def _execute_info(cls, command_args):
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in query_data_sources(name=ds_name) if data_source.name == ds_name]
+        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.id == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
         data_source = data_sources[0]
-        title = 'Data source %s' % data_source.name
+        title = 'Data source %s' % data_source.id
         print()
         print(title)
         print('=' * len(title))
@@ -1191,7 +1201,7 @@ class DataSourceCommand(SubCommandCommand):
         ds_name = command_args.ds_name
         files = command_args.file
         ds = local_store.add_pattern(ds_name, files)
-        print("Local data source with name '%s' added." % ds.name)
+        print("Local data source with name '%s' added." % ds.id)
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -1207,7 +1217,7 @@ class DataSourceCommand(SubCommandCommand):
         if not answer or answer.lower() == 'y':
             keep_files = command_args.keep_files
             ds = local_store.remove_data_source(ds_name, not keep_files)
-            print("Local data source with name '%s' removed." % ds.name)
+            print("Local data source with name '%s' removed." % ds.id)
 
     @classmethod
     def _execute_copy(cls, command_args):
@@ -1216,7 +1226,7 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ref_ds
-        data_source = next(iter(query_data_sources(None, ds_name)), None)
+        data_source = next(iter(find_data_sources(id=ds_name)), None)
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 
@@ -1228,7 +1238,10 @@ class DataSourceCommand(SubCommandCommand):
 
         ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
-        print("Local data source with name '%s' has been created." % ds.name)
+        if ds:
+            print("Local data source with name '%s' has been created." % ds.id)
+        else:
+            print("Local data source not created. It would have been empty. Please check constraint.")
 
 
 class PluginCommand(SubCommandCommand):
@@ -1289,11 +1302,13 @@ def _trim_error_message(message: str) -> str:
 # use by 'sphinxarg' to generate the documentation
 def _make_cate_parser():
     from cate.util.cli import _make_parser
+    # noinspection PyTypeChecker
     return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE,
                         docs_url=_DOCS_URL)
 
 
 def main(args=None) -> int:
+    # noinspection PyTypeChecker
     return run_main(CLI_NAME,
                     CLI_DESCRIPTION,
                     __version__,

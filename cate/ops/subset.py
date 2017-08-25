@@ -36,6 +36,7 @@ from shapely.wkt import loads, dumps
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import PolygonLike, TimeRangeLike
+from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
 
 @op(tags=['geometric', 'subset', 'spatial', 'geom'], version='1.0')
@@ -96,18 +97,18 @@ def subset_spatial(ds: xr.Dataset,
         if mask:
             # Preserve the original longitude dimension, masking elements that
             # do not belong to the polygon with NaN.
-            return retset.reindex_like(ds.lon)
+            return adjust_spatial_attrs(retset.reindex_like(ds.lon))
         else:
             # Return the dataset with no NaNs and with a disjoint longitude
             # dimension
-            return retset
+            return adjust_spatial_attrs(retset)
 
     if not mask or simple_polygon:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
         lat_slice = slice(lat_min, lat_max)
         lon_slice = slice(lon_min, lon_max)
         indexers = {'lat': lat_slice, 'lon': lon_slice}
-        return ds.sel(**indexers)
+        return adjust_spatial_attrs(ds.sel(**indexers))
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all values falling in the region or on its boundary are denoted with True
@@ -120,7 +121,7 @@ def subset_spatial(ds: xr.Dataset,
                         dims=['lat', 'lon'])
 
     # Mask values outside the polygon with NaN, crop the dataset
-    return ds.where(mask, drop=True)
+    return adjust_spatial_attrs(ds.where(mask, drop=True))
 
 
 def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
@@ -191,7 +192,7 @@ def subset_temporal(ds: xr.Dataset,
     try:
         time_slice = slice(time_range[0], time_range[1])
         indexers = {'time': time_slice}
-        return ds.sel(**indexers)
+        return adjust_temporal_attrs(ds.sel(**indexers))
     except TypeError:
         raise ValueError('Time subset operation expects a dataset with the'
                          ' time coordinate of type datetime64[ns], but received'

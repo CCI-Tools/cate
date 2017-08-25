@@ -13,7 +13,7 @@ Operation
 .. :Algorithm name: *XXX*
 .. :Algorithm reference: *XXX*
 :Description: This Operation serves for the calculation of long-term averages as reference.
-:Utilised in: :doc:`../uc_workflows/uc06_workflow` 
+:Utilised in: :doc:`../../uc_workflows/uc06_workflow`
 
 --------------------------
 
@@ -154,6 +154,7 @@ Example
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
 ::
+
 	# ny number of years
 	# variable: var(year, month)
 

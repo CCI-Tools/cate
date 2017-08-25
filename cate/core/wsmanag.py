@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import os
 import pprint
 import shutil
@@ -29,11 +27,13 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List, Union
 
-from cate.conf.defaults import SCRATCH_WORKSPACES_PATH
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
-from ..util import UNDEFINED, Monitor
+from ..util import UNDEFINED, Monitor, safe_eval
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -54,7 +54,8 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+    def open_workspace(self, base_dir: str,
+                       monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
@@ -71,11 +72,13 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def save_workspace(self, base_dir: str) -> Workspace:
+    def save_workspace(self, base_dir: str,
+                       monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
+    def save_all_workspaces(self,
+                            monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
@@ -108,20 +111,24 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        pass
+
+    @abstractmethod
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> Workspace:
+                                monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
 
@@ -177,9 +184,10 @@ class FSWorkspaceManager(WorkspaceManager):
             assert not workspace.is_closed
             # noinspection PyTypeChecker
             return workspace
-        workspace = Workspace.open(base_dir)
-        assert base_dir not in self._open_workspaces
-        workspace.execute_workflow(monitor=monitor)
+        with monitor.starting("Opening workspace", 100):
+            workspace = Workspace.open(base_dir, monitor=monitor.child(50))
+            assert base_dir not in self._open_workspaces
+            workspace.execute_workflow(monitor=monitor.child(50))
         self._open_workspaces[base_dir] = workspace
         return workspace
 
@@ -219,9 +227,8 @@ class FSWorkspaceManager(WorkspaceManager):
                 monitor.progress(work=5)
 
             # Save and close current workspace
-            workspace.save()
+            workspace.save(monitor=monitor.child(work=25))
             workspace.close()
-            monitor.progress(work=5)
 
             try:
                 # if the given directory exists and is empty, we must delete it because
@@ -233,7 +240,7 @@ class FSWorkspaceManager(WorkspaceManager):
                 shutil.copytree(base_dir, to_dir)
                 monitor.progress(work=10)
                 # Reopen from new location
-                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=70))
+                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
                 # If it was a scratch workspace, delete the original
                 if workspace.is_scratch:
                     shutil.rmtree(base_dir)
@@ -242,11 +249,11 @@ class FSWorkspaceManager(WorkspaceManager):
             except (IOError, OSError) as e:
                 raise WorkspaceError(e)
 
-    def save_workspace(self, base_dir: str) -> Workspace:
+    def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
         if workspace:
-            workspace.save()
+            workspace.save(monitor=monitor)
         return workspace
 
     def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
@@ -254,8 +261,7 @@ class FSWorkspaceManager(WorkspaceManager):
         n = len(workspaces)
         with monitor.starting('Saving %s workspace(s)' % n, n):
             for workspace in workspaces:
-                workspace.save()
-                monitor.progress(work=1)
+                workspace.save(monitor=monitor.child(work=1))
 
     def clean_workspace(self, base_dir: str) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -275,7 +281,7 @@ class FSWorkspaceManager(WorkspaceManager):
         if old_workspace:
             old_workspace.resource_cache.close()
         # Create new workflow but keep old header info
-        workflow = Workspace.new_workflow(header_dict=old_workflow.op_meta_info.header if old_workflow else None)
+        workflow = Workspace.new_workflow(header=old_workflow.op_meta_info.header if old_workflow else None)
         workspace = Workspace(base_dir, workflow)
         self._open_workspaces[base_dir] = workspace
         workspace.save()
@@ -318,26 +324,33 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.delete_resource(res_name)
         return workspace
 
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+        workspace = self.get_workspace(base_dir)
+        workspace.set_resource_persistence(res_name, persistent)
+        return workspace
+
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
-            write_object(obj, file_path, format_name=format_name)
-            monitor.progress(work=1, msg='Writing file %s' % file_path)
-        return workspace
+            if obj is not None:
+                write_object(obj, file_path, format_name=format_name)
+                monitor.progress(work=1, msg='Writing file %s' % file_path)
+            else:
+                monitor.progress(work=1, msg='No output, file %s NOT written' % file_path)
 
     def plot_workspace_resource(self, base_dir: str, res_name: str,
                                 var_name: str = None, file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> Workspace:
+                                monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         obj = self._get_resource_value(workspace, res_name, monitor)
 
         import xarray as xr
         import numpy as np
         import matplotlib
-        matplotlib.use('Qt4Agg')
+        matplotlib.use('Qt5Agg')
         import matplotlib.pyplot as plt
 
         if isinstance(obj, xr.Dataset):
@@ -362,14 +375,12 @@ class FSWorkspaceManager(WorkspaceManager):
             plt.show()
         else:
             raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
-        return workspace
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> Workspace:
+                                 monitor: Monitor = Monitor.NONE) -> None:
         workspace = self.get_workspace(base_dir)
         value = self._get_resource_value(workspace, res_name_or_expr, monitor)
         pprint.pprint(value)
-        return workspace
 
     # noinspection PyMethodMayBeStatic
     def _get_resource_value(self, workspace, res_name_or_expr, monitor):
@@ -379,5 +390,5 @@ class FSWorkspaceManager(WorkspaceManager):
         elif res_name_or_expr.isidentifier() and workspace.workflow.find_node(res_name_or_expr) is not None:
             value = workspace.execute_workflow(res_name=res_name_or_expr, monitor=monitor)
         if value is UNDEFINED:
-            value = eval(res_name_or_expr, None, workspace.resource_cache)
+            value = safe_eval(res_name_or_expr, workspace.resource_cache)
         return value

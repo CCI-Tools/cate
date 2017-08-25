@@ -3,33 +3,31 @@ import os.path
 from collections import OrderedDict
 from unittest import TestCase
 
-from cate.core.op import op_input, op_output, OpRegistration
-from cate.util.opmetainf import OpMetaInfo
-from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExprStep, NoOpStep, SubProcessStep
-from cate.util.misc import object_to_qualified_name
+from cate.core.op import op_input, op_output, Operation
+from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExpressionStep, NoOpStep, SubProcessStep, ValueCache, \
+    SourceRef, new_workflow_op
 from cate.util import UNDEFINED
+from cate.util.misc import object_to_qualified_name
+from cate.util.opmetainf import OpMetaInfo
 
 
 @op_input('x')
 @op_output('y')
-class Op1:
-    def __call__(self, x):
-        return {'y': x + 1}
+def op1(x):
+    return {'y': x + 1}
 
 
 @op_input('a')
 @op_output('b')
-class Op2:
-    def __call__(self, a):
-        return {'b': 2 * a}
+def op2(a):
+    return {'b': 2 * a}
 
 
 @op_input('u')
 @op_input('v')
 @op_output('w')
-class Op3:
-    def __call__(self, u, v):
-        return {'w': 2 * u + 3 * v}
+def op3(u, v, c=0):
+    return {'w': 2 * u + 3 * v + c}
 
 
 def get_resource(rel_path):
@@ -39,16 +37,16 @@ def get_resource(rel_path):
 class WorkflowTest(TestCase):
     @classmethod
     def create_example_3_steps_workflow(cls):
-        step1 = OpStep(Op1, node_id='op1')
-        step2 = OpStep(Op2, node_id='op2')
-        step3 = OpStep(Op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('myWorkflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        step1 = OpStep(op1, node_id='op1')
+        step2 = OpStep(op2, node_id='op2')
+        step3 = OpStep(op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('myWorkflow', inputs=OrderedDict(p={}), outputs=OrderedDict(q={})))
         workflow.add_steps(step1, step2, step3)
-        step1.input.x.source = workflow.input.p
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
-        workflow.output.q.source = step3.output.w
+        step1.inputs.x.source = workflow.inputs.p
+        step2.inputs.a.source = step1.outputs.y
+        step3.inputs.u.source = step1.outputs.y
+        step3.inputs.v.source = step2.outputs.b
+        workflow.outputs.q.source = step3.outputs.w
         return step1, step2, step3, workflow
 
     def test_sorted_steps(self):
@@ -121,18 +119,18 @@ class WorkflowTest(TestCase):
         step1, step2, step3, workflow = self.create_example_3_steps_workflow()
 
         self.assertEqual(workflow.id, 'myWorkflow')
-        self.assertEqual(len(workflow.input), 1)
-        self.assertEqual(len(workflow.output), 1)
-        self.assertIn('p', workflow.input)
-        self.assertIn('q', workflow.output)
+        self.assertEqual(len(workflow.inputs), 1)
+        self.assertEqual(len(workflow.outputs), 1)
+        self.assertIn('p', workflow.inputs)
+        self.assertIn('q', workflow.outputs)
 
         self.assertEqual(workflow.steps, [step1, step2, step3])
 
-        self.assertIsNone(workflow.input.p.source)
-        self.assertIsNone(workflow.input.p.value)
+        self.assertIsNone(workflow.inputs.p.source)
+        self.assertIsNone(workflow.inputs.p.value)
 
-        self.assertIs(workflow.output.q.source, step3.output.w)
-        self.assertIsNone(workflow.output.q.value)
+        self.assertIs(workflow.outputs.q.source, step3.outputs.w)
+        self.assertIsNone(workflow.outputs.q.value)
 
         self.assertEqual(str(workflow), workflow.id + ' = myWorkflow(p=None) -> (q=@op3.w) [Workflow]')
         self.assertEqual(repr(workflow), "Workflow('myWorkflow')")
@@ -140,20 +138,58 @@ class WorkflowTest(TestCase):
     def test_invoke(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
 
-        workflow.input.p.value = 3
+        workflow.inputs.p.value = 3
         workflow.invoke()
-        output_value = workflow.output.q.value
+        output_value = workflow.outputs.q.value
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
 
     def test_invoke_with_cache(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
 
         value_cache = dict()
-        workflow.input.p.value = 3
-        workflow.invoke(value_cache=value_cache)
-        output_value = workflow.output.q.value
+        workflow.inputs.p.value = 3
+        workflow.invoke(context=dict(value_cache=value_cache))
+        output_value = workflow.outputs.q.value
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
         self.assertEqual(value_cache, dict(op1={'y': 4}, op2={'b': 8}, op3={'w': 32}))
+
+    def test_invoke_with_context_inputs(self):
+        def some_op(context, workflow, workflow_id, step, step_id, invalid):
+            return dict(context=context,
+                        workflow=workflow,
+                        workflow_id=workflow_id,
+                        step=step,
+                        step_id=step_id,
+                        invalid=invalid)
+
+        from cate.core.op import OP_REGISTRY
+
+        try:
+            op_reg = OP_REGISTRY.add_op(some_op)
+            op_reg.op_meta_info.inputs['context']['context'] = True
+            op_reg.op_meta_info.inputs['workflow']['context'] = 'workflow'
+            op_reg.op_meta_info.inputs['workflow_id']['context'] = 'workflow.id'
+            op_reg.op_meta_info.inputs['step']['context'] = 'step'
+            op_reg.op_meta_info.inputs['step_id']['context'] = 'step.id'
+            op_reg.op_meta_info.inputs['invalid']['context'] = 'gnarz[8]'
+
+            step = OpStep(op_reg, node_id='test_step')
+
+            workflow = Workflow(OpMetaInfo('test_workflow'))
+            workflow.add_step(step)
+            workflow.invoke()
+
+            output = step.outputs['return'].value
+            self.assertIsInstance(output, dict)
+            self.assertIsInstance(output.get('context'), dict)
+            self.assertIs(output.get('workflow'), workflow)
+            self.assertEqual(output.get('workflow_id'), 'test_workflow')
+            self.assertIs(output.get('step'), step)
+            self.assertEqual(output.get('step_id'), 'test_step')
+            self.assertEqual(output.get('invalid', 1), None)
+
+        finally:
+            OP_REGISTRY.remove_op(some_op)
 
     def test_call(self):
         _, _, _, workflow = self.create_example_3_steps_workflow()
@@ -164,6 +200,13 @@ class WorkflowTest(TestCase):
         output_value_2 = workflow.call(input_values=dict(p=3))
         self.assertEqual(output_value_1, output_value_2)
 
+    def test_new_workflow_op(self):
+        _, _, _, workflow = self.create_example_3_steps_workflow()
+
+        op = new_workflow_op(workflow)
+        self.assertEqual(op.op_meta_info.qualified_name, 'myWorkflow')
+        self.assertEqual(op(p=3), dict(q=2 * (3 + 1) + 3 * (2 * (3 + 1))))
+
     def test_from_json_dict(self):
         workflow_json_text = """
         {
@@ -171,31 +214,32 @@ class WorkflowTest(TestCase):
             "header": {
                 "description": "My workflow is not too bad."
             },
-            "input": {
+            "inputs": {
                 "p": {"description": "Input 'p'"}
             },
-            "output": {
+            "outputs": {
                 "q": {"source": "op3.w", "description": "Output 'q'"}
             },
             "steps": [
                 {
                     "id": "op1",
-                    "op": "test.core.test_workflow.Op1",
-                    "input": {
+                    "op": "test.core.test_workflow.op1",
+                    "inputs": {
                         "x": { "source": ".p" }
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.core.test_workflow.Op2",
-                    "input": {
+                    "op": "test.core.test_workflow.op2",
+                    "inputs": {
                         "a": {"source": "op1"}
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.core.test_workflow.Op3",
-                    "input": {
+                    "persistent": true,
+                    "op": "test.core.test_workflow.op3",
+                    "inputs": {
                         "u": {"source": "op1.y"},
                         "v": {"source": "op2.b"}
                     }
@@ -211,16 +255,16 @@ class WorkflowTest(TestCase):
 
         self.assertEqual(workflow.op_meta_info.qualified_name, workflow.id)
         self.assertEqual(workflow.op_meta_info.header, dict(description="My workflow is not too bad."))
-        self.assertEqual(len(workflow.op_meta_info.input), 1)
-        self.assertEqual(len(workflow.op_meta_info.output), 1)
-        self.assertEqual(workflow.op_meta_info.input['p'], dict(description="Input 'p'"))
-        self.assertEqual(workflow.op_meta_info.output['q'], dict(source="op3.w", description="Output 'q'"))
+        self.assertEqual(len(workflow.op_meta_info.inputs), 1)
+        self.assertEqual(len(workflow.op_meta_info.outputs), 1)
+        self.assertEqual(workflow.op_meta_info.inputs['p'], dict(description="Input 'p'"))
+        self.assertEqual(workflow.op_meta_info.outputs['q'], dict(source="op3.w", description="Output 'q'"))
 
-        self.assertEqual(len(workflow.input), 1)
-        self.assertEqual(len(workflow.output), 1)
+        self.assertEqual(len(workflow.inputs), 1)
+        self.assertEqual(len(workflow.outputs), 1)
 
-        self.assertIn('p', workflow.input)
-        self.assertIn('q', workflow.output)
+        self.assertIn('p', workflow.inputs)
+        self.assertIn('q', workflow.outputs)
 
         self.assertEqual(len(workflow.steps), 3)
         step1 = workflow.steps[0]
@@ -231,11 +275,15 @@ class WorkflowTest(TestCase):
         self.assertEqual(step2.id, 'op2')
         self.assertEqual(step3.id, 'op3')
 
-        self.assertIs(step1.input.x.source, workflow.input.p)
-        self.assertIs(step2.input.a.source, step1.output.y)
-        self.assertIs(step3.input.u.source, step1.output.y)
-        self.assertIs(step3.input.v.source, step2.output.b)
-        self.assertIs(workflow.output.q.source, step3.output.w)
+        self.assertIs(step1.inputs.x.source, workflow.inputs.p)
+        self.assertIs(step2.inputs.a.source, step1.outputs.y)
+        self.assertIs(step3.inputs.u.source, step1.outputs.y)
+        self.assertIs(step3.inputs.v.source, step2.outputs.b)
+        self.assertIs(workflow.outputs.q.source, step3.outputs.w)
+
+        self.assertEqual(step1.persistent, False)
+        self.assertEqual(step2.persistent, False)
+        self.assertEqual(step3.persistent, True)
 
     def test_from_json_dict_empty(self):
         json_dict = json.loads('{"qualified_name": "hello"}')
@@ -249,59 +297,56 @@ class WorkflowTest(TestCase):
         self.assertEqual(str(cm.exception), 'missing mandatory property "qualified_name" in Workflow-JSON')
 
     def test_to_json_dict(self):
-        step1 = OpStep(Op1, node_id='op1')
-        step2 = OpStep(Op2, node_id='op2')
-        step3 = OpStep(Op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
+        step1 = OpStep(op1, node_id='op1')
+        step2 = OpStep(op2, node_id='op2')
+        step3 = OpStep(op3, node_id='op3')
+        workflow = Workflow(OpMetaInfo('my_workflow', inputs=OrderedDict(p={}), outputs=OrderedDict(q={})))
         workflow.add_steps(step1, step2, step3)
-        step1.input.x.source = workflow.input.p
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
-        workflow.output.q.source = step3.output.w
+        step1.inputs.x.source = workflow.inputs.p
+        step2.inputs.a.source = step1.outputs.y
+        step3.inputs.u.source = step1.outputs.y
+        step3.inputs.v.source = step2.outputs.b
+        workflow.outputs.q.source = step3.outputs.w
+
+        step2.persistent = True
 
         workflow_dict = workflow.to_json_dict()
 
         expected_json_text = """
         {
+            "schema_version": 1,
             "qualified_name": "my_workflow",
             "header": {},
-            "input": {
+            "inputs": {
                 "p": {}
             },
-            "output": {
-                "q": {"source": "op3.w"}
+            "outputs": {
+                "q": {
+                    "source": "op3.w"
+                }
             },
             "steps": [
                 {
                     "id": "op1",
-                    "op": "test.core.test_workflow.Op1",
-                    "input": {
-                        "x": { "source": "my_workflow.p" }
-                    },
-                    "output": {
-                        "y": {}
+                    "op": "test.core.test_workflow.op1",
+                    "inputs": {
+                        "x": "my_workflow.p"
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.core.test_workflow.Op2",
-                    "input": {
-                        "a": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "b": {}
+                    "persistent": true,
+                    "op": "test.core.test_workflow.op2",
+                    "inputs": {
+                        "a": "op1.y"
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.core.test_workflow.Op3",
-                    "input": {
-                        "v": {"source": "op2.b"},
-                        "u": {"source": "op1.y"}
-                    },
-                    "output": {
-                        "w": {}
+                    "op": "test.core.test_workflow.op3",
+                    "inputs": {
+                        "v": "op2.b",
+                        "u": "op1.y"
                     }
                 }
             ]
@@ -317,52 +362,35 @@ class WorkflowTest(TestCase):
                              (120 * '-', expected_json_text,
                               120 * '-', actual_json_text))
 
-    def test_repr_svg(self):
-        step1 = OpStep(Op1, node_id='op1')
-        step2 = OpStep(Op2, node_id='op2')
-        step3 = OpStep(Op3, node_id='op3')
-        workflow = Workflow(OpMetaInfo('my_workflow', input_dict=OrderedDict(p={}), output_dict=OrderedDict(q={})))
-        workflow.add_steps(step1, step2, step3)
-        step1.input.x.source = workflow.input.p
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
-        workflow.output.q.source = step3.output.w
 
-        workflow_json = workflow._repr_svg_()
-        # print('\n\n%s\n\n' % workflow_json)
-        self.assertIsNotNone(workflow_json)
-
-
-class ExprStepTest(TestCase):
+class ExpressionStepTest(TestCase):
     expression = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"
 
     def test_init(self):
-        node = ExprStep(self.expression,
-                        OrderedDict([('a', {}), ('b', {}), ('c', {})]),
-                        OrderedDict([('x', {}), ('y', {})]),
-                        node_id='bibo_8')
+        node = ExpressionStep(self.expression,
+                              OrderedDict([('a', {}), ('b', {}), ('c', {})]),
+                              OrderedDict([('x', {}), ('y', {})]),
+                              node_id='bibo_8')
         self.assertEqual(node.id, 'bibo_8')
-        self.assertEqual(node.expression, self.expression)
         self.assertEqual(str(node),
                          node.id + ' = "dict(x = 1 + 2 * a, y = 3 * b ** 2 + 4 * c ** 3)"(a=None, b=None, c=None) '
-                                   '-> (x, y) [ExprStep]')
-        self.assertEqual(repr(node), "ExprNode('%s', node_id='bibo_8')" % self.expression)
+                                   '-> (x, y) [ExpressionStep]')
+        self.assertEqual(repr(node), "ExpressionStep('%s', node_id='bibo_8')" % self.expression)
 
-        node = ExprStep(self.expression)
-        self.assertEqual(node.op_meta_info.input, {})
-        self.assertEqual(node.op_meta_info.output, {'return': {}})
+        node = ExpressionStep(self.expression)
+        self.assertEqual(node.op_meta_info.inputs, {})
+        self.assertEqual(node.op_meta_info.outputs, {'return': {}})
 
     def test_from_json_dict(self):
         json_text = """
         {
             "id": "bibo_8",
-            "input": {
+            "inputs": {
                 "a": {},
                 "b": {},
                 "c": {}
             },
-            "output": {
+            "outputs": {
                 "x": {},
                 "y": {}
             },
@@ -372,27 +400,26 @@ class ExprStepTest(TestCase):
 
         json_dict = json.loads(json_text)
 
-        node = ExprStep.from_json_dict(json_dict)
+        node = ExpressionStep.from_json_dict(json_dict)
 
-        self.assertIsInstance(node, ExprStep)
+        self.assertIsInstance(node, ExpressionStep)
         self.assertEqual(node.id, "bibo_8")
-        self.assertEqual(node.expression, self.expression)
-        self.assertIn('a', node.input)
-        self.assertIn('b', node.input)
-        self.assertIn('c', node.input)
-        self.assertIn('x', node.output)
-        self.assertIn('y', node.output)
+        self.assertIn('a', node.inputs)
+        self.assertIn('b', node.inputs)
+        self.assertIn('c', node.inputs)
+        self.assertIn('x', node.outputs)
+        self.assertIn('y', node.outputs)
 
     def test_to_json_dict(self):
         expected_json_text = """
         {
             "id": "bibo_8",
-            "input": {
+            "inputs": {
                 "a": {},
                 "b": {},
                 "c": {}
             },
-            "output": {
+            "outputs": {
                 "x": {},
                 "y": {}
             },
@@ -400,7 +427,7 @@ class ExprStepTest(TestCase):
         }
         """ % self.expression
 
-        step = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        step = ExpressionStep(self.expression, inputs=OrderedDict(a={}, b={}, c={}), outputs=OrderedDict(x={}, y={}), node_id='bibo_8')
         actual_json_dict = step.to_json_dict()
 
         actual_json_text = json.dumps(actual_json_dict, indent=4)
@@ -413,16 +440,16 @@ class ExprStepTest(TestCase):
                               120 * '-', actual_json_text))
 
     def test_invoke(self):
-        step = ExprStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
+        step = ExpressionStep(self.expression, OrderedDict(a={}, b={}, c={}), OrderedDict(x={}, y={}), node_id='bibo_8')
         a = 1.5
         b = -2.6
         c = 4.3
-        step.input.a.value = a
-        step.input.b.value = b
-        step.input.c.value = c
+        step.inputs.a.value = a
+        step.inputs.b.value = b
+        step.inputs.c.value = c
         step.invoke()
-        output_value_x = step.output.x.value
-        output_value_y = step.output.y.value
+        output_value_x = step.outputs.x.value
+        output_value_y = step.outputs.y.value
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
@@ -432,12 +459,12 @@ class ExprStepTest(TestCase):
         a = 1.5
         b = -2.6
         c = 4.3
-        workflow.input.a.value = a
-        workflow.input.b.value = b
-        workflow.input.c.value = c
+        workflow.inputs.a.value = a
+        workflow.inputs.b.value = b
+        workflow.inputs.c.value = c
         workflow.invoke()
-        output_value_x = workflow.output.x.value
-        output_value_y = workflow.output.y.value
+        output_value_x = workflow.outputs.x.value
+        output_value_y = workflow.outputs.y.value
         self.assertEqual(output_value_x, 1 + 2 * a)
         self.assertEqual(output_value_y, 3 * b ** 2 + 4 * c ** 3)
 
@@ -453,8 +480,8 @@ class WorkflowStepTest(TestCase):
         self.assertEqual(repr(step), "WorkflowStep(Workflow('cool_workflow'), '%s', node_id='jojo_87')" % resource)
 
         self.assertIsNotNone(step.workflow)
-        self.assertIn('p', step.workflow.input)
-        self.assertIn('q', step.workflow.output)
+        self.assertIn('p', step.workflow.inputs)
+        self.assertIn('q', step.workflow.outputs)
 
     def test_from_json_dict(self):
         resource = get_resource('workflows/three_ops.json')
@@ -462,7 +489,7 @@ class WorkflowStepTest(TestCase):
         {
             "id": "workflow_ref_89",
             "workflow": "%s",
-            "input": {
+            "inputs": {
                 "p": {"value": 2.8}
             }
         }
@@ -475,16 +502,16 @@ class WorkflowStepTest(TestCase):
         self.assertIsInstance(step, WorkflowStep)
         self.assertEqual(step.id, "workflow_ref_89")
         self.assertEqual(step.resource, resource)
-        self.assertIn('p', step.input)
-        self.assertIn('q', step.output)
-        self.assertEqual(step.input.p.value, 2.8)
-        self.assertEqual(step.output.q.value, None)
+        self.assertIn('p', step.inputs)
+        self.assertIn('q', step.outputs)
+        self.assertEqual(step.inputs.p.value, 2.8)
+        self.assertEqual(step.outputs.q.value, None)
 
         self.assertIsNotNone(step.workflow)
-        self.assertIn('p', step.workflow.input)
-        self.assertIn('q', step.workflow.output)
+        self.assertIn('p', step.workflow.inputs)
+        self.assertIn('q', step.workflow.outputs)
 
-        self.assertIs(step.workflow.input.p.source, step.input.p)
+        self.assertIs(step.workflow.inputs.p.source, step.inputs.p)
 
     def test_to_json_dict(self):
         resource = get_resource('workflows/three_ops.json')
@@ -496,10 +523,10 @@ class WorkflowStepTest(TestCase):
         {
             "id": "jojo_87",
             "workflow": "%s",
-            "input": {
+            "inputs": {
                 "p": {}
             },
-            "output": {
+            "outputs": {
                 "q": {}
             }
         }
@@ -520,9 +547,9 @@ class WorkflowStepTest(TestCase):
         step = WorkflowStep(workflow, resource, node_id='jojo_87')
 
         value_cache = {}
-        step.input.p.value = 3
-        step.invoke(value_cache=value_cache)
-        output_value = step.output.q.value
+        step.inputs.p.value = 3
+        step.invoke(context=dict(value_cache=value_cache))
+        output_value = step.outputs.q.value
         self.assertEqual(output_value, 2 * (3 + 1) + 3 * (2 * (3 + 1)))
         self.assertEqual(value_cache, {'op1': {'y': 4}, 'op2': {'b': 8}, 'op3': {'w': 32}})
 
@@ -533,84 +560,83 @@ class WorkflowStepTest(TestCase):
 
         workflow = Workflow(OpMetaInfo('contains_jojo_87',
                                        has_monitor=True,
-                                       input_dict=OrderedDict(x={}),
-                                       output_dict=OrderedDict(y={})))
+                                       inputs=OrderedDict(x={}),
+                                       outputs=OrderedDict(y={})))
         workflow.add_step(step)
-        step.input.p.source = workflow.input.x
-        workflow.output.y.source = step.output.q
+        step.inputs.p.source = workflow.inputs.x
+        workflow.outputs.y.source = step.outputs.q
 
-        from cate.core.workflow import ValueCache
         value_cache = ValueCache()
-        workflow.input.x.value = 4
-        workflow.invoke(value_cache=value_cache)
-        output_value = workflow.output.y.value
+        workflow.inputs.x.value = 4
+        workflow.invoke(context=dict(value_cache=value_cache))
+        output_value = workflow.outputs.y.value
         self.assertEqual(output_value, 2 * (4 + 1) + 3 * (2 * (4 + 1)))
-        self.assertEqual(value_cache, {'jojo_87.__child__': {'op1': {'y': 5}, 'op2': {'b': 10}, 'op3': {'w': 40}}})
+        self.assertEqual(value_cache, {'jojo_87._child': {'op1': {'y': 5}, 'op2': {'b': 10}, 'op3': {'w': 40}}})
 
 
 class OpStepTest(TestCase):
     def test_init(self):
-        step = OpStep(Op3)
+        step = OpStep(op3)
 
-        self.assertRegex(step.id, '^op_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^opstep_[0-9a-f]+$')
 
-        self.assertTrue(len(step.input), 2)
-        self.assertTrue(len(step.output), 1)
+        self.assertTrue(len(step.inputs), 2)
+        self.assertTrue(len(step.outputs), 1)
 
-        self.assertTrue(hasattr(step.input, 'u'))
-        self.assertIs(step.input.u.node, step)
-        self.assertEqual(step.input.u.name, 'u')
+        self.assertTrue(hasattr(step.inputs, 'u'))
+        self.assertIs(step.inputs.u.node, step)
+        self.assertEqual(step.inputs.u.name, 'u')
 
-        self.assertTrue(hasattr(step.input, 'v'))
-        self.assertIs(step.input.v.node, step)
-        self.assertEqual(step.input.v.name, 'v')
+        self.assertTrue(hasattr(step.inputs, 'v'))
+        self.assertIs(step.inputs.v.node, step)
+        self.assertEqual(step.inputs.v.name, 'v')
 
-        self.assertTrue(hasattr(step.output, 'w'))
-        self.assertIs(step.output.w.node, step)
-        self.assertEqual(step.output.w.name, 'w')
+        self.assertTrue(hasattr(step.outputs, 'w'))
+        self.assertIs(step.outputs.w.node, step)
+        self.assertEqual(step.outputs.w.name, 'w')
 
-        self.assertEqual(str(step), step.id + ' = test.core.test_workflow.Op3(u=None, v=None) -> (w) [OpStep]')
-        self.assertEqual(repr(step), "OpStep(test.core.test_workflow.Op3, node_id='%s')" % step.id)
+        self.assertEqual(str(step), step.id + ' = test.core.test_workflow.op3(u=None, v=None, c=0) -> (w) [OpStep]')
+        self.assertEqual(repr(step), "OpStep('test.core.test_workflow.op3', node_id='%s')" % step.id)
 
     def test_init_operation_and_name_are_equivalent(self):
-        step3 = OpStep(Op3)
+        step3 = OpStep(op3)
         self.assertIsNotNone(step3.op)
         self.assertIsNotNone(step3.op_meta_info)
-        node31 = OpStep(object_to_qualified_name(Op3))
+        node31 = OpStep(object_to_qualified_name(op3))
         self.assertIs(node31.op, step3.op)
         self.assertIs(node31.op_meta_info, step3.op_meta_info)
 
     def test_invoke(self):
-        step1 = OpStep(Op1)
-        step1.input.x.value = 3
+        step1 = OpStep(op1)
+        step1.inputs.x.value = 3
         step1.invoke()
-        output_value = step1.output.y.value
+        output_value = step1.outputs.y.value
         self.assertEqual(output_value, 3 + 1)
 
-        step2 = OpStep(Op2)
-        step2.input.a.value = 3
+        step2 = OpStep(op2)
+        step2.inputs.a.value = 3
         step2.invoke()
-        output_value = step2.output.b.value
+        output_value = step2.outputs.b.value
         self.assertEqual(output_value, 2 * 3)
 
-        step3 = OpStep(Op3)
-        step3.input.u.value = 4
-        step3.input.v.value = 5
+        step3 = OpStep(op3)
+        step3.inputs.u.value = 4
+        step3.inputs.v.value = 5
         step3.invoke()
-        output_value = step3.output.w.value
+        output_value = step3.outputs.w.value
         self.assertEqual(output_value, 2 * 4 + 3 * 5)
 
     def test_call(self):
-        step1 = OpStep(Op1)
-        step1.input.x.value = 3
+        step1 = OpStep(op1)
+        step1.inputs.x.value = 3
         output_value = step1(x=3)
         self.assertEqual(output_value, dict(y=3 + 1))
 
-        step2 = OpStep(Op2)
+        step2 = OpStep(op2)
         output_value = step2(a=3)
         self.assertEqual(output_value, dict(b=2 * 3))
 
-        step3 = OpStep(Op3)
+        step3 = OpStep(op3)
         output_value = step3(u=4, v=5)
         self.assertEqual(output_value, dict(w=2 * 4 + 3 * 5))
 
@@ -632,51 +658,51 @@ class OpStepTest(TestCase):
             OpStep(None)
 
     def test_connect_source(self):
-        step1 = OpStep(Op1)
-        step2 = OpStep(Op2)
-        step3 = OpStep(Op3)
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
+        step1 = OpStep(op1)
+        step2 = OpStep(op2)
+        step3 = OpStep(op3)
+        step2.inputs.a.source = step1.outputs.y
+        step3.inputs.u.source = step1.outputs.y
+        step3.inputs.v.source = step2.outputs.b
         self.assertConnectionsAreOk(step1, step2, step3)
 
         with self.assertRaises(AttributeError) as cm:
-            step1.input.a.source = step3.input.u
+            step1.inputs.a.source = step3.inputs.u
         self.assertEqual(str(cm.exception), "attribute 'a' not found")
 
     def test_disconnect_source(self):
-        step1 = OpStep(Op1)
-        step2 = OpStep(Op2)
-        step3 = OpStep(Op3)
+        step1 = OpStep(op1)
+        step2 = OpStep(op2)
+        step3 = OpStep(op3)
 
-        step2.input.a.source = step1.output.y
-        step3.input.u.source = step1.output.y
-        step3.input.v.source = step2.output.b
+        step2.inputs.a.source = step1.outputs.y
+        step3.inputs.u.source = step1.outputs.y
+        step3.inputs.v.source = step2.outputs.b
         self.assertConnectionsAreOk(step1, step2, step3)
 
-        step3.input.v.source = None
+        step3.inputs.v.source = None
 
-        self.assertIs(step2.input.a.source, step1.output.y)
-        self.assertIs(step3.input.u.source, step1.output.y)
+        self.assertIs(step2.inputs.a.source, step1.outputs.y)
+        self.assertIs(step3.inputs.u.source, step1.outputs.y)
 
-        step2.input.a.source = None
+        step2.inputs.a.source = None
 
-        self.assertIs(step3.input.u.source, step1.output.y)
-        self.assertIs(step3.input.u.source, step1.output.y)
+        self.assertIs(step3.inputs.u.source, step1.outputs.y)
+        self.assertIs(step3.inputs.u.source, step1.outputs.y)
 
-        step3.input.u.source = None
+        step3.inputs.u.source = None
 
     def assertConnectionsAreOk(self, step1, step2, step3):
-        self.assertIs(step2.input.a.source, step1.output.y)
-        self.assertIs(step3.input.u.source, step1.output.y)
-        self.assertIs(step3.input.v.source, step2.output.b)
+        self.assertIs(step2.inputs.a.source, step1.outputs.y)
+        self.assertIs(step3.inputs.u.source, step1.outputs.y)
+        self.assertIs(step3.inputs.v.source, step2.outputs.b)
 
     def test_from_json_dict_value(self):
         json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.Op3",
-            "input": {
+            "op": "test.core.test_workflow.op3",
+            "inputs": {
                 "u": {"value": 647},
                 "v": {"value": 2.9}
             }
@@ -689,20 +715,20 @@ class OpStepTest(TestCase):
 
         self.assertIsInstance(step3, OpStep)
         self.assertEqual(step3.id, "op3")
-        self.assertIsInstance(step3.op, OpRegistration)
-        self.assertIn('u', step3.input)
-        self.assertIn('v', step3.input)
-        self.assertIn('w', step3.output)
+        self.assertIsInstance(step3.op, Operation)
+        self.assertIn('u', step3.inputs)
+        self.assertIn('v', step3.inputs)
+        self.assertIn('w', step3.outputs)
 
-        self.assertEqual(step3.input.u.value, 647)
-        self.assertEqual(step3.input.v.value, 2.9)
+        self.assertEqual(step3.inputs.u.value, 647)
+        self.assertEqual(step3.inputs.v.value, 2.9)
 
     def test_from_json_dict_source(self):
         json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.Op3",
-            "input": {
+            "op": "test.core.test_workflow.op3",
+            "inputs": {
                 "u": {"source": "stat_op.stats"},
                 "v": {"source": ".latitude"}
             }
@@ -715,31 +741,29 @@ class OpStepTest(TestCase):
 
         self.assertIsInstance(step3, OpStep)
         self.assertEqual(step3.id, "op3")
-        self.assertIsInstance(step3.op, OpRegistration)
-        self.assertIn('u', step3.input)
-        self.assertIn('v', step3.input)
-        self.assertIn('w', step3.output)
-        self.assertEqual(step3.input.u._source_ref, ('stat_op', 'stats'))
-        self.assertEqual(step3.input.u.source, None)
-        self.assertEqual(step3.input.v._source_ref, (None, 'latitude'))
-        self.assertEqual(step3.input.v.source, None)
+        self.assertIsInstance(step3.op, Operation)
+        self.assertIn('u', step3.inputs)
+        self.assertIn('v', step3.inputs)
+        self.assertIn('w', step3.outputs)
+        self.assertEqual(step3.inputs.u._source_ref, ('stat_op', 'stats'))
+        self.assertEqual(step3.inputs.u.source, None)
+        self.assertEqual(step3.inputs.v._source_ref, (None, 'latitude'))
+        self.assertEqual(step3.inputs.v.source, None)
 
     def test_to_json_dict(self):
-        step3 = OpStep(Op3, node_id='op3')
-        step3.input.u.value = 2.8
+        step3 = OpStep(op3, node_id='op3')
+        step3.inputs.u.value = 2.8
+        step3.inputs.c.value = 1
 
         step3_dict = step3.to_json_dict()
 
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.Op3",
-            "input": {
-                "v": {},
-                "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
+            "op": "test.core.test_workflow.op3",
+            "inputs": {
+                "u": {"value": 2.8},
+                "c": {"value": 1}
             }
         }
         """
@@ -755,21 +779,19 @@ class OpStepTest(TestCase):
                               120 * '-', actual_json_text))
 
         # Invoke OpStep, and assert that output values are NOT serialized to JSON
-        step3.input.u.value = 2.8
-        step3.input.v.value = 1.2
+        step3.inputs.u.value = 2.8
+        step3.inputs.v.value = 1.2
         step3.invoke()
         step3_dict = step3.to_json_dict()
 
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.Op3",
-            "input": {
+            "op": "test.core.test_workflow.op3",
+            "inputs": {
                 "v": {"value": 1.2},
-                "u": {"value": 2.8}
-            },
-            "output": {
-                "w": {}
+                "u": {"value": 2.8},
+                "c": {"value": 1}
             }
         }
         """
@@ -787,50 +809,50 @@ class OpStepTest(TestCase):
 
 class NoOpStepTest(TestCase):
     def test_init(self):
-        step = NoOpStep(input_dict=OrderedDict([('a', {}), ('b', {})]),
-                        output_dict=OrderedDict([('c', {}), ('d', {})]))
+        step = NoOpStep(inputs=OrderedDict([('a', {}), ('b', {})]),
+                        outputs=OrderedDict([('c', {}), ('d', {})]))
 
-        self.assertRegex(step.id, '^no_op_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^noopstep_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
 
-        self.assertTrue(len(step.input), 2)
-        self.assertTrue(len(step.output), 2)
+        self.assertTrue(len(step.inputs), 2)
+        self.assertTrue(len(step.outputs), 2)
 
-        self.assertTrue(hasattr(step.input, 'a'))
-        self.assertIs(step.input.a.node, step)
+        self.assertTrue(hasattr(step.inputs, 'a'))
+        self.assertIs(step.inputs.a.node, step)
 
-        self.assertTrue(hasattr(step.output, 'd'))
-        self.assertIs(step.output.d.node, step)
+        self.assertTrue(hasattr(step.outputs, 'd'))
+        self.assertIs(step.outputs.d.node, step)
 
         self.assertEqual(str(step), step.id + ' = noop(a=None, b=None) -> (c, d) [NoOpStep]')
         self.assertEqual(repr(step), "NoOpStep(node_id='%s')" % step.id)
 
     def test_invoke(self):
-        step = NoOpStep(input_dict=OrderedDict([('a', {}), ('b', {})]),
-                        output_dict=OrderedDict([('c', {}), ('d', {})]))
+        step = NoOpStep(inputs=OrderedDict([('a', {}), ('b', {})]),
+                        outputs=OrderedDict([('c', {}), ('d', {})]))
 
         # Operation: Swap input
-        step.output.c.source = step.input.b
-        step.output.d.source = step.input.a
+        step.outputs.c.source = step.inputs.b
+        step.outputs.d.source = step.inputs.a
 
-        step.input.a.value = 'A'
-        step.input.b.value = 'B'
+        step.inputs.a.value = 'A'
+        step.inputs.b.value = 'B'
         step.invoke()
-        self.assertEqual(step.output.c.value, 'B')
-        self.assertEqual(step.output.d.value, 'A')
+        self.assertEqual(step.outputs.c.value, 'B')
+        self.assertEqual(step.outputs.d.value, 'A')
 
     def test_from_and_to_json(self):
         json_text = """
         {
             "id": "op3",
             "no_op": true,
-            "input": {
+            "inputs": {
                 "a": {"value": 647},
                 "b": {"value": 2.9}
             },
-            "output": {
+            "outputs": {
                 "c": {"source": "op3.b"},
                 "d": {"source": "op3.a"}
             }
@@ -843,15 +865,15 @@ class NoOpStepTest(TestCase):
 
         self.assertIsInstance(step, NoOpStep)
         self.assertEqual(step.id, "op3")
-        self.assertIn('a', step.input)
-        self.assertIn('b', step.input)
-        self.assertIn('c', step.output)
-        self.assertIn('d', step.output)
+        self.assertIn('a', step.inputs)
+        self.assertIn('b', step.inputs)
+        self.assertIn('c', step.outputs)
+        self.assertIn('d', step.outputs)
 
-        self.assertEqual(step.input.a.value, 647)
-        self.assertEqual(step.input.b.value, 2.9)
-        self.assertEqual(step.output.c._source_ref, ('op3', 'b'))
-        self.assertEqual(step.output.d._source_ref, ('op3', 'a'))
+        self.assertEqual(step.inputs.a.value, 647)
+        self.assertEqual(step.inputs.b.value, 2.9)
+        self.assertEqual(step.outputs.c._source_ref, ('op3', 'b'))
+        self.assertEqual(step.outputs.d._source_ref, ('op3', 'a'))
 
         # json_dict_2 = step.to_json_dict()
         # self.assertEqual(json_dict, json_dict_2)
@@ -859,41 +881,47 @@ class NoOpStepTest(TestCase):
 
 class SubProcessStepTest(TestCase):
     def test_init(self):
-        step = SubProcessStep(['cd', '{{dir}}'],
-                              input_dict=OrderedDict(dir=dict(data_type=str)))
+        step = SubProcessStep('cd {dir}',
+                              inputs=OrderedDict(dir=dict(data_type=str)))
 
-        self.assertRegex(step.id, '^sub_process_step_[0-9a-f]+$')
+        self.assertRegex(step.id, '^subprocessstep_[0-9a-f]+$')
 
         self.assertIsNotNone(step.op_meta_info)
         self.assertEqual(step.op_meta_info.qualified_name, step.id)
 
-        self.assertTrue(len(step.input), 1)
-        self.assertTrue(len(step.output), 1)
+        self.assertTrue(len(step.inputs), 1)
+        self.assertTrue(len(step.outputs), 1)
 
-        self.assertTrue(hasattr(step.input, 'dir'))
-        self.assertIs(step.input.dir.node, step)
+        self.assertTrue(hasattr(step.inputs, 'dir'))
+        self.assertIs(step.inputs.dir.node, step)
 
-        self.assertTrue(hasattr(step.output, 'return'))
-        self.assertIs(step.output['return'].node, step)
+        self.assertTrue(hasattr(step.outputs, 'return'))
+        self.assertIs(step.outputs['return'].node, step)
 
-        self.assertEqual(str(step), step.id + ' = "cd {{dir}}"(dir=None) [SubProcessStep]')
-        self.assertEqual(repr(step), "SubProcessStep(['cd', '{{dir}}'], node_id='%s')" % step.id)
+        self.assertEqual(str(step), step.id + ' = "cd {dir}"(dir=None) [SubProcessStep]')
+        self.assertEqual(repr(step), "SubProcessStep('cd {dir}', node_id='%s')" % step.id)
 
     def test_invoke(self):
-        step = SubProcessStep(['cd', '{{dir}}'],
-                              input_dict=OrderedDict([('dir', dict(data_type=str))]))
+        step = SubProcessStep('cd {dir}',
+                              shell=True,
+                              inputs=OrderedDict([('dir', dict(data_type=str))]))
 
-        step.input.dir.value = '..'
+        step.inputs.dir.value = '..'
 
         step.invoke()
-        self.assertEqual(step.output['return'].value, 0)
+        self.assertEqual(step.outputs['return'].value, 0)
 
     def test_from_and_to_json(self):
         json_text = """
         {
             "id": "op3",
-            "sub_process_arguments": ["cd", "{{dir}}"],
-            "input": {
+            "command": "cd {dir}",
+            "cwd": ".",
+            "env": {
+                "JDK_HOME": "."
+            },
+            "shell": true,
+            "inputs": {
                 "dir": {"value": "."}
             }
         }
@@ -905,99 +933,168 @@ class SubProcessStepTest(TestCase):
 
         self.assertIsInstance(step, SubProcessStep)
         self.assertEqual(step.id, "op3")
-        self.assertIn('dir', step.input)
-        self.assertIn('return', step.output)
-        self.assertEqual(step.input.dir.value, '.')
+        self.assertIn('dir', step.inputs)
+        self.assertIn('return', step.outputs)
+        self.assertEqual(step.inputs.dir.value, '.')
 
-        # json_dict_2 = step.to_json_dict()
-        # self.assertEqual(json_dict, json_dict_2)
+        expected_json_text = """
+                {
+                    "id": "op3",
+                    "command": "cd {dir}",
+                    "cwd": ".",
+                    "env": {
+                        "JDK_HOME": "."
+                    },
+                    "shell": true,
+                    "inputs": {
+                        "dir": {"value": "."}
+                    },
+                    "outputs": {
+                        "return": {}
+                    }
+                }
+                """
+        expected_json_dict = json.loads(expected_json_text)
+        actual_json_dict = step.to_json_dict()
+        self.assertEqual(actual_json_dict, expected_json_dict)
 
 
 class NodePortTest(TestCase):
     def test_init(self):
-        step = OpStep(Op1, node_id='myop')
-        source = NodePort(step, 'x')
+        step = OpStep(op1, node_id='myop')
+        x_port = NodePort(step, 'x')
 
-        self.assertIs(source.node, step)
-        self.assertEqual(source.node_id, 'myop')
-        self.assertEqual(source.name, 'x')
-        self.assertEqual(source.source, None)
-        self.assertEqual(source.value, None)
-        self.assertEqual(str(source), 'myop.x')
-        self.assertEqual(repr(source), "NodePort('myop', 'x')")
+        self.assertIs(x_port.node, step)
+        self.assertEqual(x_port.node_id, 'myop')
+        self.assertEqual(x_port.name, 'x')
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+        self.assertEqual(str(x_port), 'myop.x')
+        self.assertEqual(repr(x_port), "NodePort('myop', 'x')")
+
+    def test_source_and_value(self):
+        step1 = OpStep(op1, node_id='op1')
+        step2 = OpStep(op2, node_id='op2')
+
+        x_port = NodePort(step1, 'x')
+        b_port = NodePort(step2, 'b')
+
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+
+        x_port.value = 11
+        self.assertEqual(x_port.is_source, False)
+        self.assertEqual(x_port.source, None)
+        self.assertEqual(x_port.source_ref, None)
+        self.assertEqual(x_port.is_value, True)
+        self.assertEqual(x_port.has_value, True)
+        self.assertEqual(x_port.value, 11)
+
+        x_port.source = b_port
+        self.assertEqual(x_port.is_source, True)
+        self.assertEqual(x_port.source, b_port)
+        self.assertEqual(x_port.source_ref, SourceRef(node_id='op2', port_name='b'))
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, False)
+        self.assertEqual(x_port.value, None)
+
+        b_port.value = 67382
+        self.assertEqual(x_port.is_source, True)
+        self.assertEqual(x_port.source, b_port)
+        self.assertEqual(x_port.source_ref, SourceRef(node_id='op2', port_name='b'))
+        self.assertEqual(x_port.is_value, False)
+        self.assertEqual(x_port.has_value, True)
+        self.assertEqual(x_port.value, 67382)
+
+        with self.assertRaises(ValueError) as cm:
+            x_port.source = x_port
+        self.assertEqual(str(cm.exception), "cannot connect 'op1.x' with itself")
+
+        # TODO (forman): must check for cyclic dependency
+        # with self.assertRaises(ValueError) as cm:
+        #     x_port.source = y_port
+        # self.assertEqual(str(cm.exception), "AAAAA")
 
     def test_resolve_source_ref(self):
-        step1 = OpStep(Op1, node_id='myop1')
-        step2 = OpStep(Op2, node_id='myop2')
-        step2.input.a._source_ref = ('myop1', 'y')
+        step1 = OpStep(op1, node_id='myop1')
+        step2 = OpStep(op2, node_id='myop2')
+        step2.inputs.a._source_ref = ('myop1', 'y')
 
         g = Workflow(OpMetaInfo('myWorkflow',
                                 has_monitor=True,
-                                input_dict=OrderedDict(x={}),
-                                output_dict=OrderedDict(b={})))
+                                inputs=OrderedDict(x={}),
+                                outputs=OrderedDict(b={})))
         g.add_steps(step1, step2)
 
-        step2.input.a.update_source()
+        step2.inputs.a.update_source()
 
-        self.assertEqual(step2.input.a._source_ref, ('myop1', 'y'))
-        self.assertIs(step2.input.a.source, step1.output.y)
-        self.assertIs(step2.input.a.value, None)
+        self.assertEqual(step2.inputs.a._source_ref, ('myop1', 'y'))
+        self.assertIs(step2.inputs.a.source, step1.outputs.y)
+        self.assertIs(step2.inputs.a.value, None)
 
     def test_from_json_dict(self):
-        step2 = OpStep(Op2, node_id='myop2')
+        step2 = OpStep(op2, node_id='myop2')
         port2 = NodePort(step2, 'a')
 
-        port2.from_json_dict(json.loads('{"a": {"value": 2.6}}'))
+        port2.from_json(json.loads('{"value": 2.6}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, 2.6)
 
-        port2.from_json_dict(json.loads('{"a": {"source": "myop1.y"}}'))
+        port2.from_json(json.loads('{"source": "myop1.y"}'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1.y" is a shorthand for {"source": "myop1.y"}
-        port2.from_json_dict(json.loads('{"a": "myop1.y"}'))
+        port2.from_json(json.loads('"myop1.y"'))
         self.assertEqual(port2._source_ref, ('myop1', 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
-        port2.from_json_dict(json.loads('{"a": {"source": ".y"}}'))
+        port2.from_json(json.loads('{"source": ".y"}'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # ".x" is a shorthand for {"source": ".x"}
-        port2.from_json_dict(json.loads('{"a": ".y"}'))
+        port2.from_json(json.loads('".y"'))
         self.assertEqual(port2._source_ref, (None, 'y'))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # "myop1" is a shorthand for {"source": "myop1"}
-        port2.from_json_dict(json.loads('{"a": "myop1"}'))
+        port2.from_json(json.loads('"myop1"'))
         self.assertEqual(port2._source_ref, ('myop1', None))
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is defined, but neither "source" nor "value" is given, it will neither have a source nor a value
-        port2.from_json_dict(json.loads('{"a": {}}'))
+        port2.from_json(json.loads('{}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
-        port2.from_json_dict(json.loads('{"a": null}'))
+        port2.from_json(json.loads('null'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         # if "a" is not defined at all, it will neither have a source nor a value
-        port2.from_json_dict(json.loads('{}'))
+        port2.from_json(json.loads('{}'))
         self.assertEqual(port2._source_ref, None)
         self.assertEqual(port2._source, None)
         self.assertEqual(port2._value, UNDEFINED)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"value": 2.6, "source": "y"}}'))
+            port2.from_json(json.loads('{"value": 2.6, "source": "y"}'))
         self.assertEqual(str(cm.exception),
                          "error decoding 'myop2.a' because \"source\" and \"value\" are mutually exclusive")
 
@@ -1005,28 +1102,195 @@ class NodePortTest(TestCase):
                        "neither \"<node-id>.<name>\", \"<node-id>\", nor \".<name>\""
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": ""}}'))
+            port2.from_json(json.loads('{"source": ""}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": "."}}'))
+            port2.from_json(json.loads('{"source": "."}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
         with self.assertRaises(ValueError) as cm:
-            port2.from_json_dict(json.loads('{"a": {"source": "var."}}'))
+            port2.from_json(json.loads('{"source": "var."}'))
         self.assertEqual(str(cm.exception), expected_msg)
 
     def test_to_json_dict(self):
-        step1 = OpStep(Op1, node_id='myop1')
-        step2 = OpStep(Op2, node_id='myop2')
+        step1 = OpStep(op1, node_id='myop1')
+        step2 = OpStep(op2, node_id='myop2')
 
-        self.assertEqual(step2.input.a.to_json_dict(), dict())
+        self.assertEqual(step2.inputs.a.to_json(), dict())
 
-        step2.input.a.value = 982
-        self.assertEqual(step2.input.a.to_json_dict(), dict(value=982))
+        step2.inputs.a.value = 982
+        self.assertEqual(step2.inputs.a.to_json(), dict(value=982))
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict(value=982))
 
-        step2.input.a.source = step1.output.y
-        self.assertEqual(step2.input.a.to_json_dict(), dict(source='myop1.y'))
+        step2.inputs.a.source = step1.outputs.y
+        self.assertEqual(step2.inputs.a.to_json(), 'myop1.y')
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict(source='myop1.y'))
 
-        step2.input.a.source = None
-        self.assertEqual(step2.input.a.to_json_dict(), dict())
+        step2.inputs.a.source = None
+        self.assertEqual(step2.inputs.a.to_json(), dict())
+        self.assertEqual(step2.inputs.a.to_json(force_dict=True), dict())
+
+
+class ValueCacheTest(TestCase):
+    class ClosableBibo:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    def test_close(self):
+        bibo1 = ValueCacheTest.ClosableBibo()
+        bibo2 = ValueCacheTest.ClosableBibo()
+        bibo3 = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo1'] = bibo1
+        vc['bibo2'] = bibo2
+        vc['bibo3'] = bibo3
+
+        self.assertFalse(bibo1.closed)
+        self.assertFalse(bibo2.closed)
+        self.assertFalse(bibo3.closed)
+        vc.close()
+        self.assertTrue(bibo1.closed)
+        self.assertTrue(bibo2.closed)
+        self.assertTrue(bibo3.closed)
+
+    def test_close_with_child(self):
+        bibo1 = ValueCacheTest.ClosableBibo()
+        bibo2 = ValueCacheTest.ClosableBibo()
+        bibo3 = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo1'] = bibo1
+        vc['bibo2'] = bibo2
+        bibo2_child = vc.child('bibo2')
+        bibo2_child['bibo3'] = bibo3
+
+        self.assertFalse(bibo1.closed)
+        self.assertFalse(bibo2.closed)
+        self.assertFalse(bibo3.closed)
+        vc.close()
+        self.assertTrue(bibo1.closed)
+        self.assertTrue(bibo2.closed)
+        self.assertTrue(bibo3.closed)
+
+    def test_set(self):
+        bibo = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+
+        self.assertFalse(bibo.closed)
+        vc['bibo'] = None
+        self.assertTrue(bibo.closed)
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], None)
+
+    def test_del(self):
+        bibo = ValueCacheTest.ClosableBibo()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+
+        self.assertFalse(bibo.closed)
+        del vc['bibo']
+        self.assertTrue(bibo.closed)
+        self.assertNotIn('bibo', vc)
+
+    def test_child(self):
+        bibo = object()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+
+        child_vc = vc.child('bibo')
+        self.assertIsInstance(child_vc, ValueCache)
+        self.assertIn('bibo', vc)
+        self.assertIs(vc['bibo'], bibo)
+        self.assertIn('bibo._child', vc)
+        self.assertIs(vc['bibo._child'], child_vc)
+        self.assertIsNot(child_vc, vc)
+
+    def test_get_id(self):
+        vc = ValueCache()
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 1)
+        self.assertEqual(vc.get_id('bibo2'), 2)
+        self.assertEqual(vc.get_id('bibo3'), 3)
+
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 1)
+        self.assertEqual(vc.get_id('bibo2'), 2)
+        self.assertEqual(vc.get_id('bibo3'), 3)
+
+        vc.clear()
+
+        self.assertEqual(vc.get_id('bibo1'), None)
+        self.assertEqual(vc.get_id('bibo2'), None)
+        self.assertEqual(vc.get_id('bibo3'), None)
+
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_id('bibo1'), 4)
+        self.assertEqual(vc.get_id('bibo2'), 5)
+        self.assertEqual(vc.get_id('bibo3'), 6)
+
+    def test_get_update_count(self):
+        vc = ValueCache()
+        vc['bibo1'] = object()
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+
+        self.assertEqual(vc.get_update_count('bibo1'), 0)
+        self.assertEqual(vc.get_update_count('bibo2'), 0)
+        self.assertEqual(vc.get_update_count('bibo3'), 0)
+
+        vc['bibo2'] = object()
+        vc['bibo3'] = object()
+        vc['bibo2'] = object()
+        vc['bibo2'] = None
+
+        self.assertEqual(vc.get_update_count('bibo1'), 0)
+        self.assertEqual(vc.get_update_count('bibo2'), 3)
+        self.assertEqual(vc.get_update_count('bibo3'), 1)
+
+        vc.clear()
+
+        self.assertEqual(vc.get_update_count('bibo1'), None)
+        self.assertEqual(vc.get_update_count('bibo2'), None)
+        self.assertEqual(vc.get_update_count('bibo3'), None)
+
+    def test_rename_key(self):
+        bibo = object()
+
+        vc = ValueCache()
+        vc['bibo'] = bibo
+
+        bibo_id = vc.get_id('bibo')
+        bibo_child = vc.child('bibo')
+
+        vc.rename_key('bibo', 'bert')
+
+        self.assertNotIn('bibo', vc)
+        self.assertNotIn('bibo._child', vc)
+
+        self.assertIn('bert', vc)
+        self.assertIs(vc['bert'], bibo)
+        self.assertIn('bert._child', vc)
+        self.assertIs(vc['bert._child'], bibo_child)
+        self.assertEqual(vc.get_id('bert'), bibo_id)

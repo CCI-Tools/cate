@@ -31,137 +31,235 @@ Functions
 
 import xarray as xr
 import numpy as np
+import pandas as pd
+
 from scipy.stats import pearsonr
+from scipy.special import betainc
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName
+from cate.core.types import VarName, DatasetLike
+
+from cate.ops.normalize import adjust_spatial_attrs
 
 
-_ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
-
-
-@op(tags=['correlation'])
-@op_input('corr_type', value_set=['pixel_by_pixel'])
+@op(tags=['utility', 'correlation'])
+@op_input('ds_x', data_type=DatasetLike)
+@op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[_ALL_FILE_FILTER])
-def pearson_correlation(ds_x: xr.Dataset,
-                        ds_y: xr.Dataset,
-                        var_x: VarName.TYPE,
-                        var_y: VarName.TYPE,
-                        file: str = None,
-                        corr_type: str = 'pixel_by_pixel') -> xr.Dataset:
+def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
+                               ds_y: DatasetLike.TYPE,
+                               var_x: VarName.TYPE,
+                               var_y: VarName.TYPE) -> pd.DataFrame:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
+
+    Performs a simple correlation analysis on two timeseries and returns
+    a correlation coefficient and the corresponding p_value.
+
+    Positive correlation implies that as x grows, so does y. Negative
+    correlation implies that as x increases, y decreases.
 
     For more information how to interpret the results, see
     `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_,
     and `here <https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.pearsonr.html>`_.
 
-    The provided variables have to have the same shape, but depending on the
-    type of variables and chosen correlation type, not necessarily the same
-    definition for all dimensions. E.g., it is possible to correlate two
-    datasets of the same area at different times.
-
-    If two 1D or 2D variables are provided, a single pair of correlation
-    coefficient and p_value will be calculated and returned, as well as
-    optionally saved in a text file.
-
-    In case 3D time/lat/lon variables are provided, a correlation will be
-    perfomed according to the given correlation type. In case a pixel_by_pixel
-    correlation is chosen, the datasets have to have the same lat/lon
-    definition, so that a 2D lat/lon map of correlation coefficients, as well
-    as p_values can be constructed.
-
-    There are 'x' and 'y' datasets. Positive correlations imply that as x
-    grows, so does y. Negative correlations imply that as x increases, y
-    decreases.
-
-    :param ds_y: The 'y' dataset
     :param ds_x: The 'x' dataset
-    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
-    :param file: Filepath variable. If given, this is where the results will be saved in a text file.
-    :param corr_type: Correlation type to use for 3D time/lat/lon variables.
+    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
+    ds_x = DatasetLike.convert(ds_x)
+    ds_y = DatasetLike.convert(ds_y)
     var_x = VarName.convert(var_x)
     var_y = VarName.convert(var_y)
 
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if len(array_x.dims) > 3 or len(array_y.dims) > 3:
-        raise NotImplementedError('Pearson correlation for multi-dimensional variables is not yet implemented.')
+    if ((len(array_x.dims) != len(array_y.dims)) and
+       (len(array_x.dims) != 1)):
+        raise ValueError('To calculate simple correlation, both provided'
+                         ' datasets should be simple 1d timeseries. To'
+                         ' create a map of correlation coefficients, use'
+                         ' pearson_correlation operation instead.')
 
-    if array_x.values.shape != array_y.values.shape:
-        raise ValueError('The provided variables {} and {} do not have the same shape, '
-                         'Pearson correlation can not be performed.'.format(var_x, var_y))
+    if len(array_x['time']) != len(array_y['time']):
+        raise ValueError('The length of the time dimension differs between'
+                         ' the given datasets. Can not perform the calculation'
+                         ', please review operation documentation.')
 
-    # Perform a simple Pearson correlation that returns just a coefficient and
-    # a p_value.
-    if len(array_x.dims) < 3:
-        return _pearson_simple(ds_x, ds_y, var_x, var_y, file)
+    if len(array_x['time']) < 3:
+        raise ValueError('The length of the time dimension should not be less'
+                         ' than three to run the calculation.')
 
-    if corr_type != 'pixel_by_pixel':
-        raise NotImplementedError('Only pixel by pixel Pearson correlation is currently implemented for '
-                                  'time/lat/lon dataset variables.')
+    cc, pv = pearsonr(array_x.values, array_y.values)
+    return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
 
-    if (not ds_x['lat'].equals(ds_y['lat']) or
-            not ds_x['lon'].equals(ds_y['lon'])):
-        raise ValueError('When performing a pixel by pixel correlation the datasets have to have the same '
-                         'lat/lon definition.')
+
+@op(tags=['utility', 'correlation'])
+@op_input('ds_x', data_type=DatasetLike)
+@op_input('ds_y', data_type=DatasetLike)
+@op_input('var_x', value_set_source='ds_x', data_type=VarName)
+@op_input('var_y', value_set_source='ds_y', data_type=VarName)
+def pearson_correlation(ds_x: xr.Dataset,
+                        ds_y: xr.Dataset,
+                        var_x: VarName.TYPE,
+                        var_y: VarName.TYPE) -> xr.Dataset:
+    """
+    Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
+
+    Perform Pearson correlation on two datasets and produce a lon/lat map of
+    correlation coefficients and the correspoding p_values.
+
+    In case two 3D lon/lat/time datasets are provided, pixel by pixel
+    correlation will be performed. It is also possible two pro
+    Perform Pearson correlation analysis on two time/lat/lon datasets and
+    produce a lat/lon map of correlation coefficients and p_values of
+    underlying timeseries in the provided datasets.
+
+    The lat/lon definition of both datasets has to be the same. The length of
+    the time dimension should be equal, but not neccessarily have the same
+    definition. E.g., it is possible to correlate different times of the same
+    area.
+
+    There are 'x' and 'y' datasets. Positive correlations imply that as x
+    grows, so does y. Negative correlations imply that as x increases, y
+    decreases.
+
+    For more information how to interpret the results, see
+    `here <http://support.minitab.com/en-us/minitab-express/1/help-and-how-to/modeling-statistics/regression/how-to/correlation/interpret-the-results/>`_,
+    and `here <https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.pearsonr.html>`_.
+
+    :param ds_x: The 'x' dataset
+    :param ds_y: The 'y' dataset
+    :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
+    :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :returns: a dataset containing a map of correlation coefficients and p_values
+    """
+    ds_x = DatasetLike.convert(ds_x)
+    ds_y = DatasetLike.convert(ds_y)
+    var_x = VarName.convert(var_x)
+    var_y = VarName.convert(var_y)
+
+    array_y = ds_y[var_y]
+    array_x = ds_x[var_x]
+
+    # Further validate inputs
+    if array_x.dims == array_y.dims:
+        if len(array_x.dims) != 3 or len(array_y.dims) != 3:
+            raise ValueError('A correlation coefficient map can only be produced'
+                             ' if both provided datasets are 3D datasets with'
+                             ' lon/lat/time dimensionality, or if a combination'
+                             ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                             ' is provided.')
+
+        if array_x.values.shape != array_y.values.shape:
+            raise ValueError('The provided variables {} and {} do not have the'
+                             ' same shape, Pearson correlation can not be'
+                             ' performed. Please review operation'
+                             ' documentation'.format(var_x, var_y))
+
+        if (not ds_x['lat'].equals(ds_y['lat']) or
+                not ds_x['lon'].equals(ds_y['lon'])):
+            raise ValueError('When performing a pixel by pixel correlation the'
+                             ' datasets have to have the same lat/lon'
+                             ' definition. Consider running coregistration'
+                             ' first')
+
+    elif (((len(array_x.dims) == 3) and (len(array_y.dims) != 1)) or
+          ((len(array_x.dims) == 1) and (len(array_y.dims) != 3)) or
+          ((len(array_x.dims) != 3) and (len(array_y.dims) == 1)) or
+          ((len(array_x.dims) != 1) and (len(array_y.dims) == 3))):
+        raise ValueError('A correlation coefficient map can only be produced'
+                         ' if both provided datasets are 3D datasets with'
+                         ' lon/lat/time dimensionality, or if a combination'
+                         ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                         ' is provided.')
+
+    if len(array_x['time']) != len(array_y['time']):
+        raise ValueError('The length of the time dimension differs between'
+                         ' the given datasets. Can not perform the calculation'
+                         ', please review operation documentation.')
+
+    if len(array_x['time']) < 3:
+        raise ValueError('The length of the time dimension should not be less'
+                         ' than three to run the calculation.')
 
     # Do pixel by pixel correlation
-
-    lat = ds_x['lat']
-    lon = ds_y['lon']
-
-    corr_coef = np.zeros([len(lat), len(lon)])
-    p_value = np.zeros([len(lat), len(lon)])
-
-    for lai in range(0, len(lat)):
-        for loi in range(0, len(lon)):
-            x = array_x.isel(lat=lai, lon=loi).values
-            y = array_y.isel(lat=lai, lon=loi).values
-            corr_coef[lai, loi], p_value[lai, loi] = pearsonr(x, y)
-
-    retset = xr.Dataset({
-        'corr_coef': (['lat', 'lon'], corr_coef),
-        'p_value': (['lat', 'lon'], p_value),
-        'lat': lat,
-        'lon': lon})
+    retset = _pearsonr(array_x, array_y)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
-    if file:
-        with open(file, "w") as text_file:
-            print(retset, file=text_file)
-            print(retset['corr_coef'], file=text_file)
-            print(retset['p_value'], file=text_file)
-
-    return retset
+    return adjust_spatial_attrs(retset)
 
 
-def _pearson_simple(ds_x: xr.Dataset,
-                    ds_y: xr.Dataset,
-                    var_x: str,
-                    var_y: str,
-                    file: str = None) -> xr.Dataset:
+def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     """
-    Perform a simple Pearson correlation that gets just the coefficient and
-    the p_value, as well as creates a dataset to return, and saves the result
-    in the given file.
+    Calculates Pearson correlation coefficients and p-values for testing
+    non-correlation of lon/lat/time xarray datasets for each lon/lat point.
+
+    Heavily influenced by scipy.stats.pearsonr
+
+    The Pearson correlation coefficient measures the linear relationship
+    between two datasets. Strictly speaking, Pearson's correlation requires
+    that each dataset be normally distributed, and not necessarily zero-mean.
+    Like other correlation coefficients, this one varies between -1 and +1
+    with 0 implying no correlation. Correlations of -1 or +1 imply an exact
+    linear relationship. Positive correlations imply that as x increases, so
+    does y. Negative correlations imply that as x increases, y decreases.
+
+    The p-value roughly indicates the probability of an uncorrelated system
+    producing datasets that have a Pearson correlation at least as extreme
+    as the one computed from these datasets. The p-values are not entirely
+    reliable but are probably reasonable for datasets larger than 500 or so.
+
+    :param x: lon/lat/time xr.DataArray
+    :param y: xr.DataArray of the same spatiotemporal extents and resolution as
+    x.
+    :return: A dataset containing the correlation coefficients and p_values on
+    the lon/lat grid of x and y.
+
+    References
+    ----------
+    http://www.statsoft.com/textbook/glosp.html#Pearson%20Correlation
     """
-    corr_coef, p_value = pearsonr(ds_x[var_x].values,
-                                  ds_y[var_y].values)
+    n = len(x['time'])
 
-    retset = xr.Dataset()
-    retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
-    retset['corr_coef'] = corr_coef
-    retset['p_value'] = p_value
+    xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
+    xm_ym = xm * ym
+    r_num = xm_ym.sum(dim='time')
+    xm_squared = xr.ufuncs.square(xm)
+    ym_squared = xr.ufuncs.square(ym)
+    r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') *
+                           ym_squared.sum(dim='time'))
+    r_den = r_den.where(r_den != 0)
+    r = r_num / r_den
 
-    # Save the result if file path is given
-    if file:
-        with open(file, "w") as text_file:
-            print(retset, file=text_file)
+    # Presumably, if abs(r) > 1, then it is only some small artifact of floating
+    # point arithmetic.
+    # At this point r should be a lon/lat dataArray, so it should be safe to
+    # load it in memory explicitly. This may take time as it will kick-start
+    # deferred processing.
+    # Comparing with NaN produces warnings that can be safely ignored
+    default_warning_settings = np.seterr(invalid='ignore')
+    r.values[r.values < -1.0] = -1.0
+    r.values[r.values > 1.0] = 1.0
+    np.seterr(**default_warning_settings)
+    r.attrs = {'description': 'Correlation coefficients between'
+               ' {} and {}.'.format(x.name, y.name)}
 
+    df = n - 2
+    t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
+                                             (1.0 + r.where(r != -1))))
+    prob = df / (df + t_squared)
+    prob.values = betainc(0.5 * df, 0.5, prob.values)
+    prob.attrs = {'description': 'Rough indicator of probability of an'
+                  ' uncorrelated system producing datasets that have a Pearson'
+                  ' correlation at least as extreme as the one computed from'
+                  ' these datsets. Not entirely reliable, but reasonable for'
+                  ' datasets larger than 500 or so.'}
+
+    retset = xr.Dataset({'corr_coef': r,
+                         'p_value': prob})
     return retset

@@ -40,6 +40,20 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from shutil import get_terminal_size
 
+try:
+    from dask.callbacks import Callback
+
+    _has_dask = True
+except ImportError:
+    _has_dask = False
+
+_DEBUG_DASK_PROGRESS = False
+
+
+class Cancellation(Exception):
+    """The operations was cancelled by the user."""
+    pass
+
 
 class Monitor(metaclass=ABCMeta):
     """
@@ -51,7 +65,7 @@ class Monitor(metaclass=ABCMeta):
     Derived classes must implement also the following two abstract methods, if they want cancellation support:
     :py:meth:`cancel` and :py:meth:`is_cancelled`.
 
-    Pass ``Monitor.NULL`` to functions that expect a monitor instead of passing ``None``.
+    Pass ``Monitor.NONE`` to functions that expect a monitor instead of passing ``None``.
 
     Given here is an example of how progress monitors should be used by functions:::
 
@@ -73,7 +87,7 @@ class Monitor(metaclass=ABCMeta):
 
     """
 
-    #: A valid monitor that effectively does nothing. Use ``Monitor.NULL`` it instead of passing ``None`` to
+    #: A valid monitor that effectively does nothing. Use ``Monitor.NONE`` it instead of passing ``None`` to
     #: functions and methods that expect an argument of type ``Monitor``.
     NONE = None
 
@@ -93,6 +107,21 @@ class Monitor(metaclass=ABCMeta):
             yield self
         finally:
             self.done()
+
+    @contextmanager
+    def observing(self, label: str):
+        """
+        A context manager for easier use of progress monitors.
+        Observes a ``dask`` task and reports back to the monitor.
+
+        :param label: Passed to the monitor's ``start`` method
+        :return:
+        """
+        if _has_dask:
+            with _DaskMonitor(label=label, monitor=self):
+                yield
+        else:
+            raise NotImplementedError("dask could not be loaded.")
 
     @abstractmethod
     def start(self, label: str, total_work: float = None):
@@ -156,6 +185,13 @@ class Monitor(metaclass=ABCMeta):
         """
         return False
 
+    def check_for_cancellation(self):
+        """
+        Checks if the monitor has been cancelled and raises a ``Cancellation`` in that case.
+        """
+        if self.is_cancelled():
+            raise Cancellation()
+
 
 class _NullMonitor(Monitor):
     def __repr__(self):
@@ -216,6 +252,7 @@ class ChildMonitor(Monitor):
         return self._parent_monitor.is_cancelled()
 
 
+# noinspection PyAbstractClass
 class ConsoleMonitor(Monitor):
     """
     A simple console monitor that directly writes to ``sys.stdout`` and detects user cancellation requests via CTRL+C.
@@ -239,19 +276,24 @@ class ConsoleMonitor(Monitor):
         self._msg = None
         self._term_size = 0
 
+    def __del__(self):
+        self._register_ctrl_c_handler(self._old_ctrl_c_handler)
+
     def start(self, label: str, total_work: float = None):
+        self.check_for_cancellation()
         if not label:
             raise ValueError('label must be given')
         self._label = label
         self._worked = 0.
         self._percentage = None
         self._total_work = total_work
-        self._old_ctrl_c_handler = signal.signal(signal.SIGINT, self._on_ctrl_c)
+        self._register_ctrl_c_handler(self._on_ctrl_c)
         # if self._stay_in_line:
         #    sys.stdout.write('\n')
         self._report_progress(msg='started')
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         percentage = None
         if work is not None:
             self._worked += work
@@ -263,13 +305,20 @@ class ConsoleMonitor(Monitor):
         self._msg = msg
 
     def done(self):
-        signal.signal(signal.SIGINT, self._old_ctrl_c_handler)
+        self.check_for_cancellation()
+        self._register_ctrl_c_handler(self._old_ctrl_c_handler)
         if self.is_cancelled():
             self._report_progress(msg='cancelled')
         else:
             self._report_progress(msg='done' if self._msg is None else self._msg)
         if self._stay_in_line:
             sys.stdout.write('\n')
+
+    def cancel(self):
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
 
     def _report_progress(self, percentage=None, msg=None):
         term_size = get_terminal_size().columns
@@ -313,12 +362,46 @@ class ConsoleMonitor(Monitor):
         return round(100. * self._worked / self._total_work) \
             if self._worked is not None and self._total_work is not None else None
 
-    def cancel(self):
-        self._cancelled = True
-
-    def is_cancelled(self) -> bool:
-        return self._cancelled
-
     # noinspection PyUnusedLocal,PyShadowingNames
     def _on_ctrl_c(self, signal, frame):
         self.cancel()
+
+    def _register_ctrl_c_handler(self, ctrl_c_handler):
+        if ctrl_c_handler:
+            try:
+                signal.signal(signal.SIGINT, ctrl_c_handler)
+            except ValueError:
+                # If not on main thread, we may receive ValueError: signal only works in main thread
+                pass
+
+
+if _has_dask:
+    class _DaskMonitor(Callback):
+        """
+        A ``dask.Callback`` that reports the task level notification that the
+        dask scheduler generates to the provided ``Monitor``.
+
+        This allows for tracking then progress inside dask compute/get calls and
+        the possibility to cancel them.
+        """
+
+        def __init__(self, label: str, monitor: Monitor):
+            super().__init__()
+            self._label = label
+            self._monitor = monitor
+
+        def _start_state(self, dsk, state):
+            num_tasks = sum(len(state[k]) for k in ['ready', 'waiting'])
+            self._monitor.start(label=self._label, total_work=num_tasks)
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.start_state: num_tasks=", num_tasks)
+
+        def _posttask(self, key, result, dsk, state, worker_id):
+            self._monitor.progress(work=1)
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.posttask: key=", key)
+
+        def _finish(self, dsk, state, failed):
+            self._monitor.done()
+            if _DEBUG_DASK_PROGRESS:
+                print("DaskMonitor.finish")

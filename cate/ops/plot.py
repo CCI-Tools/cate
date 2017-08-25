@@ -55,13 +55,23 @@ svgz, tif, tiff
 """
 
 import matplotlib
-import xarray as xr
-import pandas as pd
+
+has_qt5agg = False
+# noinspection PyBroadException
+try:
+    if not matplotlib.__version__.startswith('1.'):
+        matplotlib.use('Qt5Agg')
+        has_qt5agg = True
+except:
+    pass
+if not has_qt5agg:
+    matplotlib.use('Qt4Agg')
+
+import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-matplotlib.use('Qt4Agg')
-import matplotlib.pyplot as plt
-
+import xarray as xr
+import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
@@ -73,29 +83,35 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
 
-@op(tags=['plot', 'map'], no_cache=True)
+@op(tags=['plot', 'map'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('index', data_type=DictLike)
+@op_input('indexers', data_type=DictLike)
 @op_input('time', data_type=TimeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
+@op_input('title')
+@op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
-             index: DictLike.TYPE = None,
+             indexers: DictLike.TYPE = None,
              time: TimeLike.TYPE = None,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
-             file: str = None) -> None:
+             title: str = None,
+             properties: DictLike.TYPE = None,
+             file: str = None) -> Figure:
     """
-    Plot the given variable from the given dataset on a map with coastal lines.
+    Create a geographic map plot for the variable given by dataset *ds* and variable name *var*.
+
+    Plots the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the
-    dataset is plotted. In case no time index is given, the first time slice
+    dataset is plotted. In case no *time* is given, the first time slice
     is taken. It is also possible to set extents of the plot. If no extents
     are given, a global plot is created.
 
@@ -104,21 +120,26 @@ def plot_map(ds: xr.Dataset,
     are supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
     svgz, tif, tiff
 
-    :param ds: xr.Dataset to plot
-    :param var: variable name in the dataset to plot
-    :param index: Optional index into the variable's data array. The *index* is a dictionary
-                  that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
-                  e.g. "lat=12.4, time='2012-05-02'".
-    :param time: time slice index to plot
+    :param ds: the dataset containing the variable to plot
+    :param var: the variable's name
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "layer=4".
+    :param time: time slice index to plot, can be a string "YYYY-MM-DD" or an integer number
     :param region: Region to plot
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
+    :param title: an optional title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5)"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
+    :return a matplotlib figure object or None if in IPython mode
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only raster datasets are currently supported')
+        raise NotImplementedError('Only gridded datasets are currently supported')
 
     var_name = None
     if not var:
@@ -127,28 +148,11 @@ def plot_map(ds: xr.Dataset,
             break
     else:
         var_name = VarName.convert(var)
-
     var = ds[var_name]
-    index = DictLike.convert(index)
 
-    # Validate time
     time = TimeLike.convert(time)
-
-    sel_method = None
-    if time is not None:
-        if 'time' not in var.coords:
-            raise ValueError('"time" is not a coordinate variable')
-        sel_method = 'nearest'
-
-    for dim_name in var.dims:
-        if dim_name not in ('lat', 'lon'):
-            if not index:
-                index = dict()
-            if dim_name not in index:
-                if dim_name in var.coords:
-                    index[dim_name] = var.coords[dim_name][0]
-                else:
-                    index[dim_name] = 0
+    indexers = DictLike.convert(indexers) or {}
+    properties = DictLike.convert(properties) or {}
 
     extents = None
     region = PolygonLike.convert(region)
@@ -183,16 +187,7 @@ def plot_map(ds: xr.Dataset,
     else:
         raise ValueError('illegal projection: "%s"' % projection)
 
-    try:
-        if index:
-            var_data = var.sel(method=sel_method, **index)
-        else:
-            var_data = var
-    except ValueError as e:
-        print(e)
-        var_data = var
-
-    fig = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
         ax.set_extent(extents)
@@ -200,52 +195,259 @@ def plot_map(ds: xr.Dataset,
         ax.set_global()
 
     ax.coastlines()
-    var_data.plot.contourf(ax=ax, transform=proj)
+    var_data = _get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
+    var_data.plot.contourf(ax=ax, transform=proj, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
 
-
-@op(tags=['plot'], no_cache=True)
-@op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
-                                  'area', 'pie', 'scatter', 'hexbin'])
-@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot_dataframe(df: pd.DataFrame,
-                   plot_type: str = 'line',
-                   file: str = None,
-                   **kwargs) -> None:
-    """
-    Plot a dataframe.
-
-    This is a wrapper of pandas.DataFrame.plot() function.
-
-    For further documentation please see
-    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
-
-    :param df: A pandas dataframe to plot
-    :param plot_type: Plot type
-    :param file: path to a file in which to save the plot
-    :param kwargs: Keyword arguments to pass to the underlying
-    pandas.DataFrame.plot function
-    """
-    if not isinstance(df, pd.DataFrame):
-        raise NotImplementedError('Only pandas dataframes are currently'
-                                  ' supported')
-
-    ax = df.plot(kind=plot_type, figsize=(16, 8), **kwargs)
-    if file:
-        fig = ax.get_figure()
-        fig.savefig(file)
+    return figure if not in_notebook() else None
 
 
 @op(tags=['plot'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('index', data_type=DictLike)
+@op_input('time', data_type=TimeLike)
+@op_input('indexers', data_type=DictLike)
+@op_input('title')
+@op_input('filled')
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_contour(ds: xr.Dataset,
+                 var: VarName.TYPE,
+                 time: TimeLike.TYPE = None,
+                 indexers: DictLike.TYPE = None,
+                 title: str = None,
+                 filled: bool = True,
+                 properties: DictLike.TYPE = None,
+                 file: str = None) -> Figure:
+    """
+    Create a contour plot of a variable given by dataset *ds* and variable name *var*.
+
+    :param ds: the dataset containing the variable to plot
+    :param var: the variable's name
+    :param time: time slice index to plot, can be a string "YYYY-MM-DD" or an integer number
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "layer=4".
+    :param title: an optional title
+    :param filled: whether the regions between two contours shall be filled
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    :return a matplotlib figure object or None if in IPython mode
+    """
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+    var = ds[var_name]
+
+    time = TimeLike.convert(time)
+    indexers = DictLike.convert(indexers) or {}
+    properties = DictLike.convert(properties) or {}
+
+    figure = plt.figure(figsize=(8, 4))
+    ax = figure.add_subplot(111)
+
+    var_data = _get_var_data(var, indexers, time=time)
+    if filled:
+        var_data.plot.contourf(ax=ax, **properties)
+    else:
+        var_data.plot.contour(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('title')
+@op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: xr.Dataset,
          var: VarName.TYPE,
-         index: DictLike.TYPE = None,
-         fig: Figure = None,
+         indexers: DictLike.TYPE = None,
+         title: str = None,
+         properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
+    """
+    Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *var*.
+
+    :param ds: Dataset that contains the variable named by *var*.
+    :param var: The name of the variable to plot
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
+    :param title: an optional plot title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    :return a matplotlib figure object or None if in IPython mode
+    """
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+    var = ds[var_name]
+
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
+
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+
+    var_data = _get_var_data(var, indexers)
+    var_data.plot(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'])
+@op_input('ds1')
+@op_input('ds2')
+@op_input('var1', value_set_source='ds1', data_type=VarName)
+@op_input('var2', value_set_source='ds2', data_type=VarName)
+@op_input('indexers1', data_type=DictLike)
+@op_input('indexers2', data_type=DictLike)
+@op_input('title')
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_scatter(ds1: xr.Dataset,
+                 ds2: xr.Dataset,
+                 var1: VarName.TYPE,
+                 var2: VarName.TYPE,
+                 indexers1: DictLike.TYPE = None,
+                 indexers2: DictLike.TYPE = None,
+                 title: str = None,
+                 properties: DictLike.TYPE = None,
+                 file: str = None) -> Figure:
+    """
+    Create a scatter plot of two variables of two variables given by datasets *ds1*, *ds2* and the
+    variable names *var1*, *var2*.
+
+    :param ds1: Dataset that contains the variable named by *var1*.
+    :param ds2: Dataset that contains the variable named by *var2*.
+    :param var1: The name of the first variable to plot
+    :param var2: The name of the second variable to plot
+    :param indexers1: Optional indexers into data array *var1*. The *indexers1* is a dictionary
+           or comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
+    :param indexers2: Optional indexers into data array *var2*.
+    :param title: optional plot title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    :return a matplotlib figure object or None if in IPython mode
+    """
+
+    var_name1 = VarName.convert(var1)
+    var_name2 = VarName.convert(var2)
+    if not var_name1:
+        raise ValueError("Missing value for 'var1'")
+    if not var_name2:
+        raise ValueError("Missing value for 'var2'")
+    var1 = ds1[var_name1]
+    var2 = ds2[var_name2]
+
+    indexers1 = DictLike.convert(indexers1) or {}
+    indexers2 = DictLike.convert(indexers2) or {}
+    properties = DictLike.convert(properties) or {}
+
+    try:
+        if indexers1:
+            var_data1 = var1.sel(method='nearest', **indexers1)
+            if not indexers2:
+                indexers2 = indexers1
+
+            var_data2 = var2.sel(method='nearest', **indexers2)
+            remaining_dims = list(set(var1.dims) ^ set(indexers1.keys()))
+            min_dim = max(var_data1[remaining_dims[0]].min(), var_data2[remaining_dims[0]].min())
+            max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
+            print(min_dim, max_dim)
+            var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) & (var_data1[remaining_dims[0]] <= max_dim),
+                                        drop=True)
+            var_data2 = var_data2.where(
+                (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
+                drop=True)
+            print(var_data1)
+            print(var_data2)
+            if len(remaining_dims) is 1:
+                print(remaining_dims)
+                indexer3 = {remaining_dims[0]: var_data1[remaining_dims[0]].data}
+                var_data2.reindex(method='nearest', **indexer3)
+            else:
+                print("Err!")
+        else:
+            var_data1 = var1
+            var_data2 = var2
+    except ValueError:
+        var_data1 = var1
+        var_data2 = var2
+
+    figure = plt.figure(figsize=(12, 8))
+    ax = figure.add_subplot(111)
+
+    # var_data1.plot(ax = ax, **properties)
+    ax.plot(var_data1.values, var_data2.values, '.', **properties)
+    # var_data1.plot(ax=ax, **properties)
+    xlabel_txt = "".join(", " + str(key) + " = " + str(value) for key, value in indexers1.items())
+    xlabel_txt = var_name1 + xlabel_txt
+    ylabel_txt = "".join(", " + str(key) + " = " + str(value) for key, value in indexers2.items())
+    ylabel_txt = var_name2 + ylabel_txt
+    ax.set_xlabel(xlabel_txt)
+    ax.set_ylabel(ylabel_txt)
+    figure.tight_layout()
+
+    if title:
+        ax.set_title(title)
+
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'])
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('title')
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_hist(ds: xr.Dataset,
+              var: VarName.TYPE,
+              indexers: DictLike.TYPE = None,
+              title: str = None,
+              properties: DictLike.TYPE = None,
+              file: str = None) -> Figure:
     """
     Plot a variable, optionally save the figure in a file.
 
@@ -256,34 +458,80 @@ def plot(ds: xr.Dataset,
 
     :param ds: Dataset that contains the variable named by *var*.
     :param var: The name of the variable to plot
-    :param index: Optional index into the variable's data array. The *index* is a dictionary
-                  that maps the variable's dimension names to constant labels. For example,
-                  ``lat`` and ``lon`` are given in decimal degrees, while a ``time`` value may be provided as
-                  datetime object or a date string. *index* may also be a comma-separated string of key-value pairs,
-                  e.g. "lat=12.4, time='2012-05-02'".
-    :param fig: optional figure from a previous ``plot`` call
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lon=12.6, layer=3, time='2012-05-02'".
+    :param title: an optional title
+    :param properties: optional histogram plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
+    :return a matplotlib figure object or None if in IPython mode
     """
 
-    var = VarName.convert(var)
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValueError("Missing value for 'var'")
+
     var = ds[var]
 
-    index = DictLike.convert(index)
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
 
-    try:
-        if index:
-            var_data = var.sel(method='nearest', **index)
-        else:
-            var_data = var
-    except ValueError:
-        var_data = var
+    figure = plt.figure(figsize=(8, 4))
+    ax = figure.add_subplot(111)
+    figure.tight_layout()
 
-    fig = fig or plt.figure(figsize=(16, 8))
-    var_data.plot()
+    var_data = _get_var_data(var, indexers)
+    var_data.plot.hist(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
     if file:
-        fig.savefig(file)
+        figure.savefig(file)
 
-    return fig if not in_notebook() else None
+    return figure if not in_notebook() else None
+
+
+# TODO (forman): remove the 'plot_data_frame' operation. It is too specific.
+# Instead, make other 'plot_' ops accept xarray and pandas objects.
+
+@op(tags=['plot'])
+@op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
+                                  'area', 'pie', 'scatter', 'hexbin'])
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_data_frame(df: pd.DataFrame,
+                    plot_type: str = 'line',
+                    file: str = None,
+                    **kwargs) -> Figure:
+    """
+    Plot a data frame.
+
+    This is a wrapper of pandas.DataFrame.plot() function.
+
+    For further documentation please see
+    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
+
+    :param df: A pandas dataframe to plot
+    :param plot_type: Plot type
+    :param file: path to a file in which to save the plot
+    :param kwargs: Keyword arguments to pass to the underlying
+                   pandas.DataFrame.plot function
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise NotImplementedError('"df" must be of type "pandas.DataFrame"')
+
+    ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
+    figure = ax.get_figure()
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
 
 
 def _check_bounding_box(lat_min: float,
@@ -322,5 +570,21 @@ def in_notebook():
     """
     import sys
     ipykernel_in_sys_modules = 'ipykernel' in sys.modules
-    print('###########################################', ipykernel_in_sys_modules)
+    # print('###########################################', ipykernel_in_sys_modules)
     return ipykernel_in_sys_modules
+
+
+def _get_var_data(var, indexers: dict, time=None, remaining_dims=None):
+
+    if time is not None:
+        indexers = dict(indexers) if indexers else dict()
+        indexers['time'] = time
+
+    if indexers:
+        var = var.sel(method='nearest', **indexers)
+
+    if remaining_dims:
+        isel_indexers = {dim_name: 0 for dim_name in var.dims if dim_name not in remaining_dims}
+        var = var.isel(**isel_indexers)
+
+    return var

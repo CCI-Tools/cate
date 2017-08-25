@@ -132,22 +132,24 @@ def compute_tile_size(total_size,
             best_tile_size = ts
 
     if not best_tile_size:
-        raise ValueError('tile size could not be computed')
-
+        # if no suitable tile size can be found, use the image untiled
+        best_tile_size = total_size
     return best_tile_size
 
 
 def get_chunk_size(array):
     chunk_size = None
     try:
-        # xarray DataArray
-        chunk_size = array.encoding['chunksizes']
+        # xarray DataArray with dask, returns the size of each individual tile
+        chunk_size = array.chunks
+        if chunk_size:
+            chunk_size = tuple([c[0] if isinstance(c, tuple) else c for c in chunk_size])
     except:
         pass
     if not chunk_size:
         try:
-            # netCDF4 data array
-            chunk_size = array.chunks
+            # netcdf 4
+            chunk_size = array.encoding['chunksizes']
         except:
             pass
     return chunk_size

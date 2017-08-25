@@ -27,9 +27,11 @@ from cate.version import __version__ as cate_version
 import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
-                'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'pyproj', 'scipy', 'scipy.stats',
+                'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot', 'matplotlib.backends.backend_webagg_core',
+                'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
                 'shapely', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'xarray', 'xarray.backends',
-                'numpy', 'jdcal', 'dateutil']
+                'dask', 'dask.callbacks',
+                'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
@@ -88,8 +90,9 @@ doc_title = 'ESA CCI Toolbox Documentation'
 
 # General information about the project.
 software_name = 'cate'
+project = software_name
 project_title = 'ESA CCI Toolbox'
-copyright = '2016 by the ESA CCI Toolbox Development Team'
+copyright = '2016, 2017 by the ESA CCI Toolbox Development Team'
 author = software_name + ' Development Team'
 
 # If true, figures, tables and code-blocks are automatically numbered if they have a caption.

@@ -22,14 +22,18 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import os.path
+from ..version import __version__
 
 DEFAULT_DATA_DIR_NAME = '.cate'
 DEFAULT_DATA_PATH = os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME)
-DEFAULT_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
+DEFAULT_VERSION_DATA_PATH = os.path.join(DEFAULT_DATA_PATH, __version__)
 
+VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
+GLOBAL_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
 LOCAL_CONF_FILE = 'cate-conf.py'
+LOCATION_FILE = 'cate.location'
 
-SCRATCH_WORKSPACES_DIR_NAME = 'scratch-workspaces'
+SCRATCH_WORKSPACES_DIR_NAME = 'scratch'
 SCRATCH_WORKSPACES_PATH = os.path.join(DEFAULT_DATA_PATH, SCRATCH_WORKSPACES_DIR_NAME)
 
 WORKSPACE_CACHE_DIR_NAME = '.cate-cache'
@@ -51,10 +55,10 @@ WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY = 1 * _ONE_GIB
 WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB
 
 #: where the information about a running WebAPI service is stored
-WEBAPI_INFO_FILE = os.path.join(DEFAULT_DATA_PATH, 'webapi.json')
+WEBAPI_INFO_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.json')
 
 #: where a running WebAPI service logs to
-WEBAPI_LOG_FILE_PREFIX = os.path.join(DEFAULT_DATA_PATH, 'webapi.log')
+WEBAPI_LOG_FILE_PREFIX = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.log')
 
 #: allow a 100 ms period between two progress messages sent to the client
 WEBAPI_PROGRESS_DEFER_PERIOD = 0.5

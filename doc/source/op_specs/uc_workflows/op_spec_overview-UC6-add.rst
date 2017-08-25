@@ -5,39 +5,39 @@ Operations  UC6 MEI
 
 - Geometric Adjustments
 
-	- Co-Registration
+    - Co-Registration
 
 
 - Subsetting and Selections
 	
-	- Spatial Subsetting
-	- Temporal Subsetting
-	- *Selection of a season of interest* *(-> Calculations)*	
+    - Spatial Subsetting
+    - Temporal Subsetting
+    - *Selection of a season of interest* *(-> Calculations)*
 
 **Statistics and Calculations**
 
 - Calculations
 
-	- Seasonal Values	
-	- Arithmetics
-	- Index Calculation
+    - Seasonal Values
+    - Arithmetics
+    - Index Calculation
 
 - Univariate Descriptive Statistics
 
-	- Location Parameters
+    - Location Parameters
 	
-		- Arithmetic Mean *(weighting option)*
+        - Arithmetic Mean *(weighting option)*
 
-	- Comparison
+    - Comparison
 	
-		- Anomalies
-		- Long-term average
+        - Anomalies
+        - Long-term average
 	
 - Data Intercomparison *(= Bivariate Statistics)*
 
-	- Correlation Analysis
+    - Correlation Analysis
 	
-		- Product-Moment Correlation Coefficient (Pearson)
+        - Product-Moment Correlation Coefficient (Pearson)
 
 
 		
@@ -46,10 +46,10 @@ Operations  UC6 MEI
 
 - Visualisation
 
-	- Table 
-	- Scatter Plot
-	- Animated Map
-    - Map	
+    - Table
+    - Scatter Plot
+    - Animated Map
+    - Map
 
 **not specified as operations**
 

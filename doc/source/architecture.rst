@@ -215,7 +215,7 @@ following elements and follows the `Unidata Common Data Model`_:
    of type `xarray.DataArray`_ which behave quite like `numpy ndarrays`_. The dataset variables are accessible through
    the ``data_vars`` attribute, which is mapping from variable name to the multi-dimensional data arrays.
 
-:Coordinates: To label the grid points contained in the variable arrays, **coordinates* are used. Coordinates are also
+:Coordinates: To label the grid points contained in the variable arrays, *coordinates* are used. Coordinates are also
    `xarray.DataArray`_ instances and are accessible through the ``coords`` attribute, which is a mapping from coordinate
    names to the usually one-dimensional label arrays.
 
@@ -281,7 +281,7 @@ The CCI Toolbox ``cate.core.op`` module allows for the registration, lookup and 
 may be referenced from within processing *workflows* (see next section :ref:`workflow`), or may be invoked from
 from the WebAPI (see :numref:`uml_modules`) as a result of a GUI request.
 
-An operation is represented by the ``OpRegistration`` type which comprises any Python
+An operation is represented by the ``Operation`` type which comprises any Python
 callable (function, lambda expression, etc.) and some additional meta-information ``OpMetaInfo`` that describes the
 operation and allows for automatic input validation, input value conversion, monitoring. The ``OpMetaInfo`` object
 specifies an operation's signature in terms of its expected inputs and produced outputs.
@@ -296,7 +296,7 @@ operation.
    :scale: 75 %
    :align: center
 
-   OpRegistry, OpRegistration, OpMetaInfo
+   OpRegistry, Operation, OpMetaInfo
 
 
 Operations are registered in operation registries of type ``OpRegistry``, the default operation registry is
@@ -339,8 +339,8 @@ into the dataset outputs for processing traceability and later data history reco
 * A ``Node`` has zero or more *inputs* and zero or more *outputs* and can be invoked.
 * A ``Workflow`` is a ``Node`` that is composed of ``Step`` objects.
 * A ``Step`` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
-* A ``OpStep`` is a ``Step`` that invokes an ``OpRegistration``.
-* A ``ExprStep`` is a ``Step`` that executes a Python expression string.
+* A ``OpStep`` is a ``Step`` that invokes an ``Operation``.
+* An ``ExpressionStep`` is a ``Step`` that executes a Python expression string.
 * A ``WorkflowStep`` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
 
 .. _uml_workflow:
@@ -351,7 +351,7 @@ into the dataset outputs for processing traceability and later data history reco
 
    Workflow, Node, Step
 
-Like the ``OpRegistration``, every ``Node`` has an associated ``OpMetaInfo`` object specifying the node's
+Like the ``Operation``, every ``Node`` has an associated ``OpMetaInfo`` object specifying the node's
 signature in terms of its inputs and outputs. The actual ``Node`` inputs and outputs are modelled by the
 ``NodePort`` class. As shown in :numref:`uml_workflow_node_port`, a given node port belongs to exactly
 one ``Node`` and represents either a named input or output of that node. A node port has a name, a property
@@ -434,7 +434,7 @@ API clients for a given context. The ``monitor`` module defines two useful imple
 * ``ConsoleMonitor``: a monitor that is used by the command-line interface
 * ``ChildMonitor``: a sub-monitor that can be passed to sub-tasks called from the current task
 
-In addition, the ``Monitor.NULL`` object, is a monitor singleton that basically does nothing. It is used instead
+In addition, the ``Monitor.NONE`` object, is a monitor singleton that basically does nothing. It is used instead
 of passing ``None`` into methods that don't require monitoring but expect a non-``None`` argument value.
 
 
@@ -481,7 +481,7 @@ A CCI Toolbox *plugin* is actually any Python module that extend one of the regi
 previous sections:
 
 * Add a new ``cate.core.ds.DataStore`` object to ``cate.core.ds.DATA_STORE_REGISTRY``
-* Add a new ``cate.core.op.OpRegistration`` object to ``cate.core.op.OP_REGISTRY``
+* Add a new ``cate.core.op.Operation`` object to ``cate.core.op.OP_REGISTRY``
 * Add a new ``cate.core.objectio.ObjectIO`` object to ``cate.core.objectio.OBJECT_IO_REGISTRY``
 * Add a new ``cate.util.cli.Command`` object to ``cate.cli.COMMAND_REGISTRY``
 

@@ -10,7 +10,7 @@ Operation
 
 :Operation name: Spatial Subsetting
 .. :Algorithm name: *XXX*
-.. :Algorithm reference: *XXX* 
+.. :Algorithm reference: *XXX*
 :Description: This Operation provides the functionality to select data of a region of interest. All data outside will be discarded.
 :Utilised in: :doc:`../uc_workflows/uc09_workflow`
 

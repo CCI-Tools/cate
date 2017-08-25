@@ -29,21 +29,23 @@ from setuptools import setup, find_packages
 # in alphabetical oder
 requirements = [
     'cartopy',
-    'dask >= 0.14',
-    'geopandas >= 0.2',
-    'fiona >= 1.7',
-    'jdcal >= 1.3',
-    'matplotlib >= 1.5,<2',
-    'netcdf4 >= 1.2',
-    'numba >= 0.26',
-    'numpy >= 1.7',
-    'pandas >= 0.18',
-    'pillow >= 4.0',
-    'pyproj >= 1.9',
-    'scipy >= 0.17',
-    'shapely >= 1.5',
-    'tornado >= 4.4',
-    'xarray >= 0.9.5',
+    'dask',
+    'geopandas',
+    'fiona',
+    'jdcal',
+    'matplotlib',
+    'netcdf4',
+    'numba',
+    'numpy',
+    'owslib',
+    'pandas',
+    'pillow',
+    'psutil',
+    'pyproj',
+    'scipy',
+    'shapely',
+    'tornado',
+    'xarray',
 ]
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
@@ -66,7 +68,10 @@ setup(
     license='MIT',
     author='Cate Development Team',
     packages=packages,
-    data_files=[('cate/ds', ['cate/ds/esa_cci_ftp.json'])],
+    package_data={
+        'cate.ds': ['esa_cci_ftp.json'],
+        'cate.ds.data.countries': ['countries.geojson'],
+    },
     entry_points={
         'console_scripts': [
             'cate = cate.cli.main:main',

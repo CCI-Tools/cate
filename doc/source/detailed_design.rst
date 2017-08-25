@@ -26,6 +26,8 @@ Module ``cate.core.ds``
 .. automodule:: cate.core.ds
     :members:
 
+.. _dd-cate-core-op:
+
 Module ``cate.core.op``
 =======================
 

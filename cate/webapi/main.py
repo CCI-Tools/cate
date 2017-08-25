@@ -48,12 +48,13 @@ Components
 import sys
 from datetime import date
 
-from tornado.web import Application
+from tornado.web import Application, StaticFileHandler
+from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX,  \
     WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.wsmanag import FSWorkspaceManager
-from cate.util.web import JsonRcpWebSocketHandler
+from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
 from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, WorkspaceOpenHandler, \
@@ -63,6 +64,7 @@ from cate.webapi.rest import WorkspaceGetHandler, WorkspaceNewHandler, Workspace
     ResourceSetHandler, ResourceDeleteHandler, ResourcePlotHandler, \
     ResourcePrintHandler, ResourceWriteHandler, CountriesGeoJSONHandler, \
     ResVarTileHandler, ResVarGeoJSONHandler, ResVarCsvHandler, NE2Handler
+from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
@@ -95,9 +97,15 @@ def service_factory(application):
 
 def create_application():
     application = Application([
+        ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
+        ('/mpl.js', MplJavaScriptHandler),
+
+        (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
+        (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+
         (url_pattern('/'), WebAPIVersionHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/app'), JsonRcpWebSocketHandler, dict(service_factory=service_factory,
+        (url_pattern('/api'), JsonRpcWebSocketHandler, dict(service_factory=service_factory,
                                                             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
         (url_pattern('/ws/new'), WorkspaceNewHandler),
         (url_pattern('/ws/get_open'), WorkspaceGetOpenHandler),
@@ -121,6 +129,7 @@ def create_application():
         (url_pattern('/ws/res/csv/{{base_dir}}/{{res_name}}'), ResVarCsvHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_name}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+
     ])
     application.workspace_manager = FSWorkspaceManager()
     return application

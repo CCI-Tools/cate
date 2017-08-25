@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
-             "Janis Gailis (S[&]T Norway)"
-
 """
 Description
 ===========
@@ -56,7 +53,8 @@ Technical Requirements
 :URD References:
     * CCIT-UR-DM0001: a) access, b) ingest, c) display, d) process different kinds and sizes of data
     * CCIT-UR-DM0003: multi-dimensional data
-    * CCIT-UR-DM0005: access all ECV data products and metadata via standard user-community interfaces, protocols, and tools
+    * CCIT-UR-DM0005: access all ECV data products and metadata via standard user-community interfaces,
+                      protocols, and tools
     * CCIT-UR-DM0006: access to and ingestion of ESA CCI datasets
     * CCIT-UR-DM0011: access to and ingestion of non-CCI data
     * CCIT-UR-DM0012: handle different input file formats
@@ -114,8 +112,10 @@ from collections import OrderedDict
 from typing import List, Optional, Sequence, Union
 import xarray as xr
 
+from ..util.misc import object_to_qualified_name, qualified_name_to_object
 
-from cate.util.misc import object_to_qualified_name, qualified_name_to_object
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
+             "Janis Gailis (S[&]T Norway)"
 
 
 class Schema:
@@ -307,7 +307,6 @@ class Schema:
         def from_json_dict(cls, json_dict) -> 'Schema.Attribute':
             name = json_dict.get('name', None)
             data_type = qualified_name_to_object(json_dict.get('data_type', None))
-            # TODO (nf, 20160627): convert JSON value to Python value
             value = json_dict.get('value', None)
             return Schema.Attribute(name, data_type, value=value)
 
@@ -315,7 +314,6 @@ class Schema:
             json_dict = OrderedDict()
             json_dict['name'] = self.name
             json_dict['data_type'] = object_to_qualified_name(self.data_type)
-            # TODO (nf, 20160627): convert self.value to JSON value
             json_dict['value'] = self.value
             return json_dict
 

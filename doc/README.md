@@ -6,8 +6,8 @@ RST
 
 To install Sphinx and required plugins run:
 
-     $ conda install Sphinx sphinx_rtd_theme
-     $ conda install -c conda-forge sphinx-argparse
+     $ conda install sphinx sphinx_rtd_theme
+     $ conda install -c conda-forge sphinx-argparse mock
      $ pip install sphinx-autodoc-annotation
 
 

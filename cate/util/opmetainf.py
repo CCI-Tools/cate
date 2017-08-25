@@ -23,10 +23,11 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import re
 from collections import OrderedDict
-from inspect import isclass
 from typing import Tuple, Dict, List, Any, Optional
 
-from cate.util import object_to_qualified_name, qualified_name_to_object
+from .misc import object_to_qualified_name, qualified_name_to_object
+
+Props = Dict[str, Any]
 
 
 class OpMetaInfo:
@@ -46,24 +47,27 @@ class OpMetaInfo:
 
     :param op_qualified_name: The operation's qualified name.
     :param has_monitor: Whether the operation supports a :py:class:`Monitor` keyword argument named ``monitor``.
-    :param header_dict: Header information dictionary.
-    :param input_dict: Input information dictionary.
-    :param output_dict: Output information dictionary.
+    :param header: Header information dictionary.
+    :param input_names: Input information dictionary.
+    :param inputs: Input information dictionary.
+    :param outputs: Output information dictionary.
     """
 
     def __init__(self,
-                 op_qualified_name: str,
+                 qualified_name: str,
                  has_monitor: bool = False,
-                 header_dict: dict = None,
-                 input_dict: OrderedDict = None,
-                 output_dict: OrderedDict = None):
-        if not op_qualified_name:
-            raise ValueError("argument 'op_qualified_name' is required")
-        self._qualified_name = op_qualified_name
+                 header: dict = None,
+                 input_names: List[str] = None,
+                 inputs: Dict[str, Props] = None,
+                 outputs: Dict[str, Props] = None):
+        if not qualified_name:
+            raise ValueError("qualified_name must be given")
+        self._qualified_name = qualified_name
         self._has_monitor = True if has_monitor else False
-        self._header = header_dict if header_dict else dict()
-        self._input = OrderedDict(input_dict if input_dict else {})
-        self._output = OrderedDict(output_dict if output_dict else {})
+        self._header = header if header else dict()
+        self._inputs = OrderedDict(inputs if inputs else {})
+        self._outputs = OrderedDict(outputs if outputs else {})
+        self._input_names = input_names or self._get_input_names(self._inputs)
 
     #: The constant ``'monitor'``, which is the name of an operation input that will
     #: receive a :py:class:`Monitor` object as value.
@@ -87,22 +91,31 @@ class OpMetaInfo:
         return self._header
 
     @property
-    def input(self) -> Dict[str, Dict[str, Any]]:
+    def input_names(self) -> List[str]:
+        """
+        The input names in the order they have been declared.
+
+        :return: List of input names.
+        """
+        return self._input_names
+
+    @property
+    def inputs(self) -> Dict[str, Props]:
         """
         Mapping from an input name to a dictionary of properties describing the input.
 
         :return: Named inputs.
         """
-        return self._input
+        return self._inputs
 
     @property
-    def output(self) -> Dict[str, Dict[str, Any]]:
+    def outputs(self) -> Dict[str, Props]:
         """
         Mapping from an output name to a dictionary of properties describing the output.
 
         :return: Named outputs.
         """
-        return self._output
+        return self._outputs
 
     @property
     def has_monitor(self) -> bool:
@@ -118,7 +131,7 @@ class OpMetaInfo:
         :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
                  to output values.
         """
-        return not (len(self._output) == 1 and self.RETURN_OUTPUT_NAME in self._output)
+        return not (len(self._outputs) == 1 and self.RETURN_OUTPUT_NAME in self._outputs)
 
     @property
     def can_cache(self) -> bool:
@@ -137,8 +150,8 @@ class OpMetaInfo:
             json_dict['has_monitor'] = True
         if self.header:
             json_dict['header'] = dict(self.header)
-        json_dict['input'] = self.object_dict_to_json_dict(self.input, data_type_to_json)
-        json_dict['output'] = self.object_dict_to_json_dict(self.output, data_type_to_json)
+        json_dict['inputs'] = self.object_dict_to_json_dict(self.inputs, data_type_to_json)
+        json_dict['outputs'] = self.object_dict_to_json_dict(self.outputs, data_type_to_json)
         return json_dict
 
     @classmethod
@@ -146,13 +159,13 @@ class OpMetaInfo:
         qualified_name = json_dict.get('qualified_name', kwargs.get('qualified_name', None))
         header_obj = json_dict.get('header', kwargs.get('header', None))
         has_monitor = json_dict.get('has_monitor', kwargs.get('has_monitor', False))
-        input_dict = json_dict.get('input', kwargs.get('input', None))
-        output_dict = json_dict.get('output', kwargs.get('output', None))
+        input_dict = json_dict.get('inputs', kwargs.get('inputs', None))
+        output_dict = json_dict.get('outputs', kwargs.get('outputs', None))
         return OpMetaInfo(qualified_name,
-                          header_dict=header_obj,
+                          header=header_obj,
                           has_monitor=has_monitor,
-                          input_dict=cls.json_dict_to_object_dict(input_dict, json_to_data_type),
-                          output_dict=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
+                          inputs=cls.json_dict_to_object_dict(input_dict, json_to_data_type),
+                          outputs=cls.json_dict_to_object_dict(output_dict, json_to_data_type))
 
     @classmethod
     def object_dict_to_json_dict(cls, obj_dict, data_type_to_json=None):
@@ -189,15 +202,9 @@ class OpMetaInfo:
 
         op_qualified_name = object_to_qualified_name(operation, fail=True)
 
-        input_dict, has_monitor = OrderedDict(), False
+        arg_inputs, input_dict, has_monitor = [], OrderedDict(), False
         if hasattr(operation, '__code__'):
-            input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
-        elif isclass(operation):
-            if hasattr(operation, '__call__'):
-                call_method = getattr(operation, '__call__')
-                input_dict, has_monitor = cls._introspect_inputs_from_callable(call_method, True)
-            else:
-                raise ValueError('operations of type class must define a __call__(self, ...) method')
+            arg_inputs, input_dict, has_monitor = cls._introspect_inputs_from_callable(operation, False)
 
         return_name = OpMetaInfo.RETURN_OUTPUT_NAME
 
@@ -232,19 +239,21 @@ class OpMetaInfo:
                     output_dict[return_name]['description'] = return_description
 
         return OpMetaInfo(op_qualified_name,
-                          header_dict=header,
+                          header=header,
                           has_monitor=has_monitor,
-                          input_dict=input_dict,
-                          output_dict=output_dict)
+                          inputs=input_dict,
+                          outputs=output_dict)
 
     @classmethod
-    def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> Tuple[OrderedDict, bool]:
+    def _introspect_inputs_from_callable(cls, operation, is_method: bool) -> \
+            Tuple[List[Tuple[str, Props]], Props, bool]:
+        arg_inputs = []
         input_dict = OrderedDict()
         has_monitor = False
         # code object containing compiled function bytecode
         if not hasattr(operation, '__code__'):
             # Check: throw exception here?
-            return input_dict, has_monitor
+            return arg_inputs, input_dict, has_monitor
         code = operation.__code__
         # number of arguments (not including * or ** args)
         arg_count = code.co_argcount
@@ -257,7 +266,9 @@ class OpMetaInfo:
         arg_pos = 0
         for arg_name in arg_names:
             if cls.MONITOR_INPUT_NAME != arg_name:
-                input_dict[arg_name] = dict(position=arg_pos)
+                input_props = dict(position=arg_pos)
+                arg_inputs.append((arg_name, input_props))
+                input_dict[arg_name] = input_props
                 arg_pos += 1
             else:
                 has_monitor = True
@@ -271,9 +282,11 @@ class OpMetaInfo:
                 if cls.MONITOR_INPUT_NAME != arg_name:
                     default_value = default_values[i]
                     input_dict[arg_name]['default_value'] = default_value
-                    if 'position' in input_dict[arg_name]:
-                        del input_dict[arg_name]['position']
-        return input_dict, has_monitor
+                    if default_value is None:
+                        input_dict[arg_name]['nullable'] = True
+                    else:
+                        input_dict[arg_name]['data_type'] = type(default_value)
+        return arg_inputs, input_dict, has_monitor
 
     def set_default_input_values(self, input_values: Dict):
         """
@@ -281,7 +294,7 @@ class OpMetaInfo:
 
         :param input_values: The dictionary of input values that will be modified.
         """
-        for name, properties in self.input.items():
+        for name, properties in self.inputs.items():
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
@@ -295,10 +308,12 @@ class OpMetaInfo:
                such as ``data_type``, ``nullable``, ``value_set``, ``value_range``.
         :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
         """
-        inputs = self.input
+        inputs = self.inputs
         # Ensure required input values have values (even None is a value).
         for name, properties in inputs.items():
-            required = 'position' in properties
+            has_no_default = 'default_value' not in properties
+            is_auto = 'context' in properties
+            required = has_no_default and not is_auto
             if required and (name not in input_values):
                 raise ValueError("input '%s' for operation '%s' required" %
                                  (name, self.qualified_name))
@@ -309,10 +324,13 @@ class OpMetaInfo:
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
-            data_type = input_properties.get('data_type', None)
+            if input_properties.get('context'):
+                # Context values will be set by framework
+                continue
+            data_type = input_properties.get('data_type')
             if value is None:
                 default_is_none = input_properties.get('default_value', 1) is None
-                value_set = input_properties.get('value_set', None)
+                value_set = input_properties.get('value_set')
                 value_set_has_none = value_set and (None in value_set)
                 nullable = input_properties.get('nullable', False)
                 if not (default_is_none or value_set_has_none or nullable):
@@ -339,7 +357,7 @@ class OpMetaInfo:
         :param output_values: The dictionary of output values.
         :raise ValueError: If *output_values* are invalid w.r.t. to the operation's output properties.
         """
-        outputs = self.output
+        outputs = self.outputs
         for name, value in output_values.items():
             if name not in outputs:
                 raise ValueError("'%s' is not an output of operation '%s'" % (name, self.qualified_name))
@@ -352,11 +370,11 @@ class OpMetaInfo:
     @classmethod
     def _validate_value_against_data_type(cls, data_type, value, op_name: str, port_type: str, port_name: str):
         try:
-            value_accepted = cls._is_value_accepted(data_type, value)
+            value, can_convert = cls._convert_value(data_type, value)
         except ValueError as e:
             raise ValueError(
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
-        if not value_accepted:
+        if not can_convert and value is not None:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if not is_float_type and not isinstance(value, data_type):
                 raise ValueError(
@@ -364,13 +382,13 @@ class OpMetaInfo:
                         port_type, port_name, op_name, data_type.__name__, type(value).__name__))
 
     @classmethod
-    def _is_value_accepted(cls, data_type: Any, value: Optional[Any]) -> Optional[bool]:
+    def _convert_value(cls, data_type: Any, value: Optional[Any]) -> Tuple[Any, bool]:
         """Check if the given type has an "convert(value)" method, i.e. our XXXLike types, if so return its result."""
         # noinspection PyBroadException
         try:
-            return data_type.convert(value)
+            return data_type.convert(value), True
         except AttributeError:
-            return None
+            return value, False
 
     @classmethod
     def _parse_docstring(cls, docstring):
@@ -439,6 +457,28 @@ class OpMetaInfo:
             .replace(':py:func:', '') \
             .replace(':py:attr:', '') \
             .replace('`', '')
+
+    @classmethod
+    def _get_input_names(cls, inputs: Dict[str, Props]) -> List[str]:
+        num_inputs = len(inputs)
+        if not num_inputs:
+            return []
+        input_names = num_inputs * ['']
+        index = 0
+        for name, props in inputs.items():
+            position = props.get('position', index)
+            if 0 <= position < num_inputs:
+                if input_names[position]:
+                    raise ValueError("illegal input property, position={} used twice".format(position))
+            else:
+                raise ValueError(
+                    "illegal input property, expected position={} to {}, but was {}".format(0, num_inputs - 1, position))
+            input_names[position] = name
+            index += 1
+        for position in range(num_inputs):
+            if not input_names[position]:
+                raise ValueError("illegal input properties, position={} is undefined".format(position))
+        return input_names
 
 
 _SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")

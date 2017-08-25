@@ -28,11 +28,11 @@ from typing import List, Sequence
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import DEFAULT_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, query_data_sources
+from cate.conf.defaults import GLOBAL_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_sources
 from cate.core.op import OP_REGISTRY
-from cate.core.wsmanag import WorkspaceManager
 from cate.core.workspace import OpKwArgs
+from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd
 
 
@@ -41,7 +41,7 @@ class WebSocketService:
     """
     Object which implements Cate's server-side methods.
 
-    All methods receive inputs deserialized from JSON-RCP requests and must
+    All methods receive inputs deserialized from JSON-RPC requests and must
     return JSON-serializable outputs.
 
     :param: workspace_manager The current workspace manager.
@@ -62,7 +62,7 @@ class WebSocketService:
         # noinspection PyBroadException
         conf_text = ''
         try:
-            with open(DEFAULT_CONF_FILE, 'r') as fp:
+            with open(GLOBAL_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
         except:
             # ok
@@ -96,7 +96,7 @@ class WebSocketService:
 
         # Now join lines back again and write modified config file
         conf_text = '\n'.join(conf_lines)
-        with open(DEFAULT_CONF_FILE, 'w') as fp:
+        with open(GLOBAL_CONF_FILE, 'w') as fp:
             fp.write(conf_text)
 
     def get_data_stores(self) -> list:
@@ -105,14 +105,9 @@ class WebSocketService:
 
         :return: JSON-serializable list of data stores, sorted by name.
         """
-        data_stores = DATA_STORE_REGISTRY.get_data_stores()
-        data_store_list = []
-        for data_store in data_stores:
-            data_store_list.append(dict(id=data_store.name,
-                                        name=data_store.name,
-                                        description=''))
-
-        return sorted(data_store_list, key=lambda ds: ds['name'])
+        data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
+        return [dict(id=data_store.id,
+                     title=data_store.title) for data_store in data_stores]
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
         """
@@ -125,15 +120,10 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-
-        data_sources = data_store.query(monitor=monitor)
-        data_source_list = []
-        for data_source in data_sources:
-            data_source_list.append(dict(id=data_source.name,
-                                         name=data_source.name,
-                                         meta_info=data_source.meta_info))
-
-        return sorted(data_source_list, key=lambda ds: ds['name'])
+        data_sources = sorted(data_store.query(monitor=monitor), key=lambda ds: ds.title or ds.id)
+        return [dict(id=data_source.id,
+                     title=data_source.title,
+                     meta_info=data_source.meta_info) for data_source in data_sources]
 
     def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
@@ -147,7 +137,7 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(name=data_source_id)
+        data_sources = data_store.query(id=data_source_id)
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]
@@ -176,7 +166,7 @@ class WebSocketService:
         :return: JSON-serializable list of 'local' data sources, sorted by name.
         """
         with monitor.starting('Making data source local', 100):
-            data_sources = query_data_sources(name=data_source_name)
+            data_sources = find_data_sources(id=data_source_name)
             if not data_sources:
                 raise ValueError('data source "%s" not found' % data_source_name)
             if len(data_sources) > 1:
@@ -214,7 +204,7 @@ class WebSocketService:
             raise ValueError('Unknown data store: "%s"' % 'local')
         with monitor.starting('Making data source local', 100):
             # TODO use monitor, while extracting metadata
-            data_store.add_pattern(name=data_source_name, files=file_path_pattern)
+            data_store.add_pattern(data_source_id=data_source_name, files=file_path_pattern)
             return self.get_data_sources('local', monitor=monitor.child(100))
 
     def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
@@ -241,8 +231,8 @@ class WebSocketService:
         for op_name, op_reg in OP_REGISTRY.op_registrations.items():
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
-            op_json_dict['input'] = [dict(name=name, **props) for name, props in op_json_dict['input'].items()]
-            op_json_dict['output'] = [dict(name=name, **props) for name, props in op_json_dict['output'].items()]
+            op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()]
+            op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()]
             op_list.append(op_json_dict)
 
         return sorted(op_list, key=lambda op: op['name'])
@@ -262,8 +252,12 @@ class WebSocketService:
         self.workspace_manager.close_workspace(base_dir)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def save_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.save_workspace(base_dir)
+    def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
+        workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
+        return workspace.to_json_dict()
+
+    def clean_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.clean_workspace(base_dir)
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
@@ -275,6 +269,10 @@ class WebSocketService:
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
         return workspace.to_json_dict()
 
+    def delete_workspace_resource(self, base_dir: str, res_name: str, ) -> dict:
+        workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
+        return workspace.to_json_dict()
+
     def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: OpKwArgs,
                                monitor: Monitor) -> dict:
         with cwd(base_dir):
@@ -283,6 +281,11 @@ class WebSocketService:
                                                                       op_name,
                                                                       op_args,
                                                                       monitor=monitor)
+            return workspace.to_json_dict()
+
+    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
+        with cwd(base_dir):
+            workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
             return workspace.to_json_dict()
 
     def get_color_maps(self):
@@ -304,7 +307,7 @@ class WebSocketService:
 
         variable = dataset[var_name]
         if var_index:
-            variable = variable[var_index]
+            variable = variable[tuple(var_index)]
 
         valid_min = variable.min(skipna=True)
         valid_max = variable.max(skipna=True)

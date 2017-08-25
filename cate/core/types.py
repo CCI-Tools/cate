@@ -19,10 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway), " \
-             "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -39,16 +35,23 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
+import io
 import ast
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
+import pandas as pd
+import xarray as xr
 from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
-from cate.util.misc import to_list, to_datetime_range, to_datetime
+from ..util import safe_eval, to_list, to_datetime_range, to_datetime
+
+__author__ = "Janis Gailis (S[&]T Norway), " \
+             "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 T = TypeVar('T')
 
@@ -256,6 +259,32 @@ class VarName(Like[str]):
         return value
 
 
+class FileLike(Like[dict]):
+    """
+    Type class for file-like objects
+
+    Accepts:
+        1. a string
+        2. an io.IOBase object
+
+    Does not convert at all.
+    """
+
+    TYPE = Union[str, io.IOBase]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[Union[str, io.IOBase]]:
+        if not value:
+            return None
+        if not isinstance(value, str) and not isinstance(value, io.IOBase):
+            raise ValueError('File must be a path or a file handler')
+        return value
+
+    @classmethod
+    def format(cls, value: Optional[Union[str, io.IOBase]]) -> str:
+        return "{}".format(value) if isinstance(value, str) else ''
+
+
 class DictLike(Like[dict]):
     """
     Type class for dictionary objects
@@ -277,11 +306,12 @@ class DictLike(Like[dict]):
         if isinstance(value, dict):
             return value
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, str):
                 if value.strip() == '':
                     return None
-                return eval('dict(%s)' % value, None, None)
+                return safe_eval('dict(%s)' % value, {})
             raise ValueError()
         except Exception:
             cls.assert_value_ok(False, value)
@@ -289,10 +319,6 @@ class DictLike(Like[dict]):
     @classmethod
     def format(cls, value: Optional[dict]) -> str:
         return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()]) if value else ''
-
-    @classmethod
-    def to_json(cls, value: Optional[T]):
-        return value
 
 
 class PointLike(Like[Point]):
@@ -313,6 +339,7 @@ class PointLike(Like[Point]):
         if value is None:
             return None
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, Point):
                 return value
@@ -352,6 +379,7 @@ class PolygonLike(Like[Polygon]):
         if value is None:
             return None
 
+        # noinspection PyBroadException
         try:
             if isinstance(value, Polygon):
                 if value.is_valid:
@@ -368,6 +396,7 @@ class PolygonLike(Like[Polygon]):
                 if polygon.is_valid:
                     return polygon
             else:
+                # noinspection PyBroadException
                 try:
                     polygon = Polygon(value)
                     if polygon.is_valid:
@@ -447,6 +476,7 @@ class TimeLike(Like[datetime]):
             return None
 
         if isinstance(value, date) or isinstance(value, str):
+            # noinspection PyBroadException
             try:
                 return to_datetime(value)
             except Exception:
@@ -494,19 +524,20 @@ class TimeRangeLike(Like[TimeRange]):
         if value is None or value == '':
             return None
 
+        if isinstance(value, str):
+            value = [x.strip() for x in value.split(',')]
+
         try:
-            _range = None
-            if isinstance(value, tuple):
-                _range = to_datetime_range(value[0], value[1])
-            elif isinstance(value, str):
-                val = [x.strip() for x in value.split(',')]
-                _range = to_datetime_range(val[0], val[1])
-            if _range:
-                # Check if start date is before end date
-                if _range[0] < _range[1]:
-                    return _range
-        except Exception:
-            pass
+            t1, t2 = value[0], value[1]
+        except IndexError:
+            cls.assert_value_ok(False, value)
+            return
+
+        time_range = to_datetime_range(t1, t2)
+
+        # Check if start date is before end date
+        if not time_range or time_range[0] < time_range[1]:
+            return time_range
 
         cls.assert_value_ok(False, value)
 
@@ -515,10 +546,6 @@ class TimeRangeLike(Like[TimeRange]):
         if not value:
             return ''
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
-
-
-import xarray as xr
-import pandas as pd
 
 
 class DatasetLike(Like[xr.Dataset]):

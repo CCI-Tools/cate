@@ -654,13 +654,23 @@ class FastNdarrayDownsamplingImage(OpImage):
         # We do the resampling to lower resolution after loading the data, which is MUCH faster, see note above.
         tile = tile[..., ::zoom, ::zoom]
 
-        actual_tile_size = tile.shape[-1], tile.shape[-2]
+        # ensure that our tile size is w x h: resize and fill in background value.
+        return self.pad_tile(tile, self.tile_size)
 
-        # TODO (forman): ensure that our tile size is w x h: resize and fill in background value.
-        # For time being raise error
-        assert self.tile_size == actual_tile_size, "unexpected tile size: " \
-                                                   "expected %s, but got %s" % (self.tile_size, actual_tile_size)
-
+    @staticmethod
+    def pad_tile(tile: Tile, target_tile_size: Size2D, fill_value: float = np.nan) -> Tile:
+        (target_width, target_height) = target_tile_size
+        tile_width, tile_heigth = tile.shape[-1], tile.shape[-2]
+        if target_width > tile_width:
+            # expand in width
+            h_pad = np.empty((tile_heigth, target_width - tile_width))
+            h_pad.fill(fill_value)
+            tile = np.hstack((tile, h_pad))
+        if target_height > tile_heigth:
+            # expand in height
+            v_pad = np.empty((target_height - tile_heigth, target_width))
+            v_pad.fill(fill_value)
+            tile = np.vstack((tile, v_pad))
         return tile
 
 
@@ -758,7 +768,7 @@ class ImagePyramid:
         :param array: Numpy ndarray-like array of data
         :param max_size: maximum image size as (width, height)
         :param tile_size: optional tile size (tile_width, tile_height)
-        :param int_div: mux_size must be integer-divisible by tile size
+        :param int_div: max_size must be integer-divisible by tile size
         :param num_level_zero_tiles: optional number of level zero tiles
         :param num_levels: optional number of levels
         :return: pyramid layout as tuple (max_size, tile_size, num_level_zero_tiles, num_levels)
@@ -784,8 +794,15 @@ class ImagePyramid:
                          compute_tile_size(max_height, int_div=int_div))
         tile_width, tile_height = tile_size
         if not num_level_zero_tiles:
-            num_level_zero_tiles = cardinal_div_round(max_width, max_height), \
-                                   cardinal_div_round(max_height, max_width)
+            num_levels = 1
+            while True:
+                num_level_zero_tiles = cardinal_div_round(max_width, tile_width * 2 ** (num_levels - 1)), \
+                                       cardinal_div_round(max_height, tile_height * 2 ** (num_levels - 1))
+                if num_level_zero_tiles[0] == 1 or num_level_zero_tiles[1] == 1:
+                    break
+                else:
+                    num_levels += 1
+
         if not num_levels:
             num_levels = 1
             num_tiles_x = num_level_zero_tiles[0]

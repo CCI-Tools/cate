@@ -3,7 +3,7 @@
   "header": {
     "description": "This workflow wraps the 'timeseries' operation."
   },
-  "input": {
+  "inputs": {
     "lat": {
       "data_type": "float",
       "valid_range": [
@@ -31,9 +31,9 @@
       "description": "Interpolation method"
     }
   },
-  "output": {
+  "outputs": {
     "return": {
-      "source": "timeseries_op.return",
+      "source": "timeseries_op",
       "data_type": "list",
       "description": "Time series as list of values"
     }
@@ -42,7 +42,7 @@
     {
       "id": "timeseries_op",
       "op": "test.cli.test_cli.timeseries",
-      "input": {
+      "inputs": {
         "lat": "timeseries.lat",
         "lon": "timeseries.lon",
         "method": "timeseries.method"

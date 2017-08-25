@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -63,8 +61,10 @@ The return values are ignored.
 Verification
 ============
 
-The module's unit-tests are located in `test/test_plugin.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_plugin.py>`_
-and may be executed using ``$ py.test test/test_plugin.py --cov=cate/core/plugin.py`` for extra code coverage information.
+The module's unit-tests are located in
+`test/test_plugin.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_plugin.py>`_
+and may be executed using
+``$ py.test test/test_plugin.py --cov=cate/core/plugin.py`` for extra code coverage information.
 
 Components
 ==========
@@ -76,11 +76,14 @@ from collections import OrderedDict
 
 from pkg_resources import iter_entry_points
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 
 def _load_plugins():
     plugins = OrderedDict()
     for entry_point in iter_entry_points(group='cate_plugins', name=None):
 
+        # noinspection PyBroadException
         try:
             plugin = entry_point.load()
         except Exception:
@@ -89,6 +92,7 @@ def _load_plugins():
             continue
 
         if callable(plugin):
+            # noinspection PyBroadException
             try:
                 plugin()
             except Exception:

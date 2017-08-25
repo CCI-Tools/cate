@@ -82,19 +82,24 @@ def object_to_qualified_name(value, fail=False, default_module_name='builtins') 
     :raise ValueError: if *fail* is ``True`` and the name cannot be derived.
     """
 
-    module_name = value.__module__ if hasattr(value, '__module__') else None
+    try:
+        module_name = value.__module__
+    except AttributeError:
+        module_name = None
     if module_name == default_module_name:
         module_name = None
 
-    # Not sure, if '__qualname__' is the better choice - no Pythons docs available
-    name = value.__name__ if hasattr(value, '__name__') else None
+    try:
+        name = value.__name__
+    except AttributeError:
+        name = None
+
     if name:
         return module_name + '.' + name if module_name else name
-
-    if fail:
+    elif fail:
         raise ValueError("missing attribute '__name__'")
-
-    return str(value)
+    else:
+        return str(value)
 
 
 @contextmanager
@@ -284,6 +289,11 @@ def cwd(path: str):
         os.chdir(old_dir)
 
 
+_DATETIME64 = np.dtype('datetime64')
+_ZERO_THMS_POSTFIX = 'T00:00:00'
+_ZERO_MICR_POSTFIX = '.000000000'
+
+
 def to_json(v):
     if v is None:
         return v
@@ -293,12 +303,40 @@ def to_json(v):
         return v
     if t == complex:
         return [v.real, v.imag]
-
     if isinstance(v, type):
         return object_to_qualified_name(v)
 
+    # TODO (forman): handle dtype=uint64/int64 here, as JSON does not support 64-bit ints
+
+    is_datetime64 = False
     try:
-        return np.asscalar(v)
+        is_datetime64 = np.issubdtype(v.dtype, np.datetime64)
+    except AttributeError:
+        pass
+
+    if is_datetime64:
+        # Convert time values to time strings
+        is_scalar = False
+        try:
+            is_scalar = v.size == 1
+        except AttributeError:
+            pass
+        if is_scalar:
+            time_str = str(v)
+            if time_str.endswith(_ZERO_MICR_POSTFIX):
+                time_str = time_str[0: -len(_ZERO_MICR_POSTFIX)]
+            if time_str.endswith(_ZERO_THMS_POSTFIX):
+                time_str = time_str[0: -len(_ZERO_THMS_POSTFIX)]
+            return time_str
+
+    if isinstance(v, np.ndarray) and not np.issubdtype(v.dtype, np.datetime64):
+        try:
+            return v.tolist()
+        except AttributeError:
+            pass
+
+    try:
+        return v.item()
     except (AttributeError, ValueError):
         pass
 

@@ -154,11 +154,24 @@ class ToJsonTest(TestCase):
 
     def test_numpy(self):
         import numpy as np
-        self.assertEqual(to_json(np.array([])), [])
-        self.assertEqual(to_json(np.array([1])), 1)
-        self.assertEqual(to_json(np.array([1, 2, 3])), [1, 2, 3])
-        self.assertEqual(to_json(np.array([[1, 2], [3, 4]])), [[1, 2], [3, 4]])
-        self.assertEqual(to_json(np.ndarray), 'numpy.ndarray')
+        self.assertEqual(to_json(np.array([])),
+                         [])
+        self.assertEqual(to_json(np.array([1])),
+                         [1])
+        self.assertEqual(to_json(np.array([1, 2, 3])),
+                         [1, 2, 3])
+        self.assertEqual(to_json(np.array([[1, 2], [3, 4]])),
+                         [[1, 2], [3, 4]])
+        self.assertEqual(to_json(np.array([1, 2, 3])[2]),
+                         3)
+        self.assertEqual(to_json(np.array([np.datetime64('2005-02-21'),
+                                           np.datetime64('2005-02-23'),
+                                           np.datetime64('2005-02-25')])),
+                         ['2005-02-21',
+                          '2005-02-23',
+                          '2005-02-25'])
+        self.assertEqual(to_json(np.ndarray),
+                         'numpy.ndarray')
 
     def test_types(self):
         self.assertEqual(to_json(str), "str")

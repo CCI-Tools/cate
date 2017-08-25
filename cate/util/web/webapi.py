@@ -358,7 +358,7 @@ class WebAPI:
             exit_code = webapi.poll()
             if exit_code is not None:
                 # Process terminated, we can return now, as there will be no running service
-                raise ValueError('WebAPI service terminated with _exit code %d' % exit_code)
+                raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
             # noinspection PyBroadException
             try:
                 urllib.request.urlopen(webapi_url, timeout=2)
@@ -392,7 +392,7 @@ class WebAPI:
         command = cls._join_subprocess_command(module, 'stop', port, address, caller, service_info_file, None)
         exit_code = subprocess.call(command, shell=True, timeout=timeout)
         if exit_code != 0:
-            raise ValueError('WebAPI service terminated with _exit code %d' % exit_code)
+            raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
 
     @classmethod
     def _join_subprocess_command(cls, module, sub_command, port, address, caller, service_info_file, auto_stop_after):
@@ -441,7 +441,7 @@ class WebAPIRequestHandler(RequestHandler):
 
     def on_finish(self):
         """
-        Store time of last activity so we can measure time of inactivity and then optionally auto-_exit.
+        Store time of last activity so we can measure time of inactivity and then optionally auto-exit.
         """
         self.application.time_of_last_activity = time.clock()
 

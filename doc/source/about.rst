@@ -19,15 +19,30 @@ Interfaces
 
 Cate comprises three major software interfaces:
 
-1. The Cate **Python API** allows you using Cate functions in your Python programs. Cate is
-   programmed in Python 3.
+1. **Cate Desktop** is a user-friendly desktop application. It provides a graphical user interface
+   to all the functionality provided by the CLI. In addition, the GUI
+   allows for visualising data on 3D globes and 2D maps.
+
+
+.. figure:: _static/figures/about-gui.png
+   :scale: 100 %
+   :align: center
+
+   Cate Desktop, this is GUI of the CCI Toolbox
+
 2. The Cate **Command-Line Interface** (CLI) used to access and process data through a command shell or
    console terminal. Almost all Cate functionality is accessible through its CLI. You may decide to use the CLI
    if you don't like programming in Python. The CLI may also be used to write batch processing scripts for
    automation.
-3. **Cate Desktop** is a user-friendly desktop application. It provides a graphical user interface
-   to all the functionality provided by the CLI. In addition, the GUI
-   allows for visualising data on 3D globes and 2D maps.
+
+.. figure:: _static/figures/about-cli.png
+   :scale: 100 %
+   :align: center
+
+   Cate CLI, this is the CLI of the CCI Toolbox
+
+3. The Cate **Python API** allows you using Cate functions in your Python programs. Cate is
+   programmed in Python 3.
 
 Concepts
 ========
@@ -53,13 +68,13 @@ In Cate's CLI, ``cate ds`` is used to perform numerous dataset-related tasks. Ty
 
     $ cate ds --help
 
-to get an overview of the supported sub-comands. For example, use
+to get an overview of the supported sub-comands. For example, use:::
 
     $ cate ds list
 
-to list and query available data sources.
+to list available data sources.
 
-In the GUI, the panel **DATA SOURCES** lets you query and open all available data sources.
+In the GUI, the panel **DATA SOURCES** lets you query and open available data sources.
 
 Note that all remote CCI data source identifiers are prefixed by "esacci.", for example
 ``esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-0.r1``. Local data source identifiers are
@@ -108,6 +123,8 @@ to list and query available operation.
 In the GUI, the panel OPERATIONS lets you query and apply all available operations. Applying an operation creates a
 new *workflow* step in the current *workspace*.
 
+.. _about_workspaces:
+
 Workflows, Resources, and Workspaces
 ------------------------------------
 
@@ -134,17 +151,35 @@ Later versions of Cate will also support the following step types:
 * Any shell executables
 * Other workflows
 
-Worflows can be saved and reopened as part of a **workspace**. A workspace is just a directory in the
-user's file system. The workflow is saved as a JSON file within that directory together with any other files
-serving as input or output for the workflow. Relative file paths used as operation parameters are resolved
-against the current workspace directory. If a workspace is closed all of its in-memory resources are closed
-and disposed.
+Workflows are also saved and reopened as part of a Cate **workspace**. A Cate workspace refers to a directory in the
+user's file system containing a ``.cate-workspace`` sub-directory, where Cate stores workspace-specific
+data such as the workspace's workflow. The workflow is saved as a JSON file within that sub-directory together
+with any other files serving as input or output for the workflow. Relative file paths used as operation parameters are
+resolved against the current workspace directory. If a workspace is closed, all of its in-memory resources are closed
+and released.
+
+The following figure :numref:`about_workspace_fig` shows the workspace with its contained workflow steps and the
+associated in-memory resource objects.
+
+.. _about_workspace_fig:
+
+.. figure:: _static/figures/about-workspace.png
+   :scale: 100 %
+   :align: center
+
+   Cate's workspace/workflow concept
 
 In Cate's CLI, you'll find all workspace- and resource-related commands by using the ``cate ws`` and ``cate res``
 commands::
 
     $ cate ws --help
     $ cate res --help
+
+Using the CLI run command, workflows can be directly executed when given as a JSON-formatted text file::
+
+    $ cate run <my-workflow.json>
+
+More on workflows and its file format can be found in a dedicated chapter :doc:`workflows`.
 
 In Cate's GUI, workspace commands are available in the *File* menu. Furthermore
 

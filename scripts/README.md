@@ -31,11 +31,11 @@ To run any script on **Linux** and **OS X**:
     $ python setup.py develop
     $ cd scripts
     
-    $ source ./<script-1>.sh
-    $ source ./<script-2>.sh
+    $ ./<script-1>.sh
+    $ ./<script-2>.sh
     $ ...
       
-You don't need to source on **Windows**:
+On **Windows**:
 
     > activate cate
     > python setup.py develop

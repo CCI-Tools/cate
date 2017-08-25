@@ -363,7 +363,7 @@ class RunCommandTest(CliTestCase):
                              expected_stdout='')
 
         finally:
-            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+            OP_REGISTRY.remove_op(op_reg, fail_if_not_exists=True)
 
     def test_run_workflow(self):
 
@@ -389,7 +389,7 @@ class RunCommandTest(CliTestCase):
             os.remove('timeseries_data.json')
 
         finally:
-            OP_REGISTRY.remove_op(op_reg.operation, fail_if_not_exists=True)
+            OP_REGISTRY.remove_op(op_reg, fail_if_not_exists=True)
 
     def test_main_options(self):
         self.assert_main(['run', '-h'])
@@ -403,7 +403,7 @@ class ParseOpArgsTest(TestCase):
     def test_existing_method(self):
         op = OP_REGISTRY.get_op('cate.ops.timeseries.tseries_point', True)
         op_args, op_kwargs = _parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
-                                            input_props=op.op_meta_info.input)
+                                            input_props=op.op_meta_info.inputs)
         self.assertEqual(op_args, [])
         self.assertEqual(op_kwargs, OrderedDict([('ds', dict(source='ds')),
                                                  ('point', dict(value=(12.2, 54.3))),

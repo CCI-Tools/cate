@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import base64
 import io
 from threading import Lock
@@ -29,6 +27,8 @@ import matplotlib
 import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 # Have colormaps separated into categories:
 # (taken from http://matplotlib.org/examples/color/colormaps_reference.html)
@@ -113,7 +113,8 @@ def get_cmaps():
                     # print("INFO: new colormap '" + new_name + "'")
                 elif type(cmap) == matplotlib.colors.ListedColormap:
                     new_name = cmap.name + '_alpha'
-                    # print("TODO: create colormap '" + new_name + "'")
+                    print("WARNING: could not create colormap '{}' because '{}' is has type ListedColormap"
+                          .format(new_name, cmap.name))
 
                 gradient = np.linspace(0, 1, 256)
                 gradient = np.vstack((gradient, gradient))
@@ -139,45 +140,3 @@ def get_cmaps():
         # import pprint
         # pprint.pprint(_CMAPS)
     return _CMAPS
-
-
-def main():
-    cmaps = get_cmaps()
-
-    html_head = '<!DOCTYPE html>\n' + \
-                '<html lang="en">\n' + \
-                '<head>' + \
-                '<meta charset="UTF-8">' + \
-                '<title>matplotlib Color Maps</title>' + \
-                '</head>\n' + \
-                '<body style="padding: 0.2em">\n'
-
-    html_body = ''
-
-    html_foot = '</body>\n' + \
-                '</html>\n'
-
-    for cmap_cat, cmap_desc, cmap_bars in cmaps:
-        html_body += '    <h2>%s</h2>\n' % cmap_cat
-        html_body += '    <p><i>%s</i></p>\n' % cmap_desc
-        html_body += '    <table style=border: 0">\n'
-        for cmap_bar in cmap_bars:
-            cmap_name, cmap_data = cmap_bar
-            cmap_image = '<img src="data:image/png;base64,%s" width="100%%" height="100%%"/>' % cmap_data
-
-            html_body += '        <tr><td style="width: 5em">%s:</td><td style="width: 40em">%s</td></tr>\n' % (
-                cmap_name, cmap_image)
-        html_body += '    </table>\n'
-
-    html_page = html_head + html_body + html_foot
-
-    html_filename = 'test_cmaps.html'
-    with open(html_filename, 'w') as fp:
-        fp.write(html_page)
-
-    import webbrowser
-    webbrowser.open_new_tab(html_filename)
-
-
-if __name__ == '__main__':
-    main()

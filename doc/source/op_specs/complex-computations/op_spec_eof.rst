@@ -11,8 +11,8 @@ Operation
 
 :Operation name: EOF Analysis
 .. :Algorithm name: *XXX*
-:Algorithm reference: `wikipedia entry on Principal Component Analysis <https://en.wikipedia.org/wiki/Principal_component_analysis>`, `Blog entry on step by step PCA implementation in Python <http://sebastianraschka.com/Articles/2014_pca_step_by_step.html>`, 
-:Description: This Operations serves for the application of Empricial Orthogonal Function (EOF) Analysis, also known as Principal Component Analysis (PCA), for data analysis regarding spatial patterns/modes. EOF Analysis implies the removal of redundancy. 
+:Algorithm reference: `Wikipedia entry on Principal Component Analysis <https://en.wikipedia.org/wiki/Principal_component_analysis>`, `Blog entry on step by step PCA implementation in Python <http://sebastianraschka.com/Articles/2014_pca_step_by_step.html>`,
+:Description: This Operations serves for the application of Empricial Orthogonal Function (EOF) Analysis, also known as Principal Component Analysis (PCA), for data analysis regarding spatial patterns/modes. EOF Analysis implies the removal of redundancy.
 :Utilised in: :doc:`../uc_workflows/uc06_workflow` 
 
 --------------------------

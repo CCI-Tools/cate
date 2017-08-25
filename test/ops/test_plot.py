@@ -2,24 +2,22 @@
 Tests for plotting operations
 """
 
+import itertools
 import os
+import shutil
 import sys
+import tempfile
 import unittest
+from contextlib import contextmanager
 from unittest import TestCase
 
 import numpy as np
-import xarray as xr
 import pandas as pd
-import tempfile
-import shutil
-from contextlib import contextmanager
-import itertools
+import xarray as xr
 
 from cate.core.op import OP_REGISTRY
+from cate.ops.plot import plot, plot_map, plot_data_frame
 from cate.util.misc import object_to_qualified_name
-
-from cate.ops.plot import plot, plot_map, plot_dataframe
-
 
 _counter = itertools.count()
 ON_WIN = sys.platform == 'win32'
@@ -47,6 +45,7 @@ class TestPlotMap(TestCase):
     """
     Test plot_map() function
     """
+
     def test_plot_map(self):
         # Test the nominal functionality. This doesn't check that the plot is what is expected,
         # rather, it simply tests if it seems to have been created
@@ -85,8 +84,11 @@ class TestPlotMap(TestCase):
 
         # Test value error is raised when passing an unexpected dataset type
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(ValueError) as cm:
                 plot_map([1, 2, 4], file=tmp_file)
+            self.assertEqual(str(cm.exception),
+                             "input 'ds' for operation 'cate.ops.plot.plot_map' "
+                             "must be of type 'Dataset', but got type 'list'")
             self.assertFalse(os.path.isfile(tmp_file))
 
         # Test the extensions bound checking
@@ -146,6 +148,7 @@ class TestPlot(TestCase):
     """
     Test plot() function
     """
+
     def test_plot(self):
         # Test plot
         dataset = xr.Dataset({
@@ -173,8 +176,9 @@ class TestPlot(TestCase):
                  reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
 class TestPlotDataFrame(TestCase):
     """
-    Test plot_dataframe() function.
+    Test plot_data_frame() function.
     """
+
     def test_nominal(self):
         """
         Test nominal execution
@@ -185,14 +189,14 @@ class TestPlotDataFrame(TestCase):
                                                          periods=10))
 
         with create_tmp_file('remove_me', 'png') as tmp_file:
-            plot_dataframe(df, file=tmp_file)
+            plot_data_frame(df, file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
         Test the method when run as a registered operation
         """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_dataframe))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_data_frame))
 
         data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}

@@ -5,7 +5,7 @@ API Reference
 Datasets
 ========
 
-.. autofunction:: cate.core.query_data_sources
+.. autofunction:: cate.core.find_data_sources
 
 .. autofunction:: cate.core.open_dataset
 
@@ -43,6 +43,8 @@ Coregistration
 
 Correlation
 -----------
+
+.. autofunction:: cate.ops.pearson_correlation_scalar
 
 .. autofunction:: cate.ops.pearson_correlation
 
@@ -86,7 +88,7 @@ Data visualization
 
 .. autofunction:: cate.ops.plot
 
-.. autofunction:: cate.ops.plot_dataframe
+.. autofunction:: cate.ops.plot_data_frame
 
 
 Resampling
@@ -123,7 +125,7 @@ Timeseries
 Misc
 ----
 
-.. autofunction:: cate.ops.harmonize
+.. autofunction:: cate.ops.normalize
 
 .. autofunction:: cate.ops.sel
 
@@ -149,7 +151,7 @@ Data Stores and Data Sources API
 Operation Registration API
 ==========================
 
-.. autoclass:: cate.core.OpRegistration
+.. autoclass:: cate.core.Operation
     :members:
 
 .. autoclass:: cate.core.OpMetaInfo
@@ -176,7 +178,7 @@ Workflow API
 .. autoclass:: cate.core.NoOpStep
     :members:
 
-.. autoclass:: cate.core.ExprStep
+.. autoclass:: cate.core.ExpressionStep
     :members:
 
 .. autoclass:: cate.core.SubProcessStep
@@ -193,6 +195,8 @@ Workflow API
 
 .. autoclass:: cate.core.NodePort
     :members:
+
+.. _api-monitoring:
 
 Task Monitoring API
 ===================

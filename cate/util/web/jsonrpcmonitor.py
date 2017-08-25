@@ -29,9 +29,9 @@ import tornado.websocket
 from cate.util import Monitor
 
 
-class JsonRcpWebSocketMonitor(Monitor):
+class JsonRpcWebSocketMonitor(Monitor):
     """
-    A Monitor implementation that reports progress as non-standard JSON-RCP messages of the form:
+    A Monitor implementation that reports progress as non-standard JSON-RPC messages of the form:
 
     {
         jsonrpc: "2.0",
@@ -44,7 +44,7 @@ class JsonRcpWebSocketMonitor(Monitor):
         }
     }
 
-    :param method_id: The JSON-RCP method id
+    :param method_id: The JSON-RPC method id
     :param handler: The Tornado WebSocket handler
     :param report_defer_period: The time in seconds between two subsequent progress reports
     """
@@ -91,6 +91,7 @@ class JsonRcpWebSocketMonitor(Monitor):
         self.last_time = None
 
     def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
         if work:
             self.worked = (self.worked or 0.0) + work
         self._write_progress(message=msg)

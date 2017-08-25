@@ -19,10 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
-
 """
 Description
 ===========
@@ -81,6 +77,7 @@ and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` fo
 Components
 ==========
 """
+
 import glob
 import os.path
 from abc import ABCMeta, abstractmethod
@@ -89,11 +86,15 @@ from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
 
-from cate.conf import get_config_path
-from cate.conf.defaults import DEFAULT_DATA_PATH
-from cate.core.cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
-from cate.util.monitor import Monitor
+from ..conf import get_config_path
+from ..conf.defaults import DEFAULT_DATA_PATH
+from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
+from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from ..util import Monitor
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH), " \
+             "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 
 def get_data_stores_path() -> str:
@@ -114,8 +115,8 @@ class DataSource(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def name(self) -> str:
-        """Human-readable data source name."""
+    def id(self) -> str:
+        """Data source identifier."""
 
     @property
     def schema(self) -> Optional[Schema]:
@@ -144,11 +145,23 @@ class DataSource(metaclass=ABCMeta):
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
 
-    def matches_filter(self, name=None) -> bool:
-        """Test if this data source matches the given *constraints*."""
-        if name and name.lower() not in self.name.lower():
-            return False
-        return True
+    def matches(self, id: str = None, query_expr: str = None) -> bool:
+        """
+        Test if this data source matches the given *id* or *query_expr*.
+        If neither *id* nor *query_expr* are given, the method returns True.
+
+        :param id: A data source identifier.
+        :param query_expr: A query expression. Currently, only simple search strings are supported.
+        :return: True, if this data sources matches the given *id* or *query_expr*.
+        """
+        if id and id.lower() == self.id.lower():
+            return True
+        if query_expr:
+            if query_expr.lower() in self.id.lower():
+                return True
+            if self.title and query_expr.lower() in self.title.lower():
+                return True
+        return False
 
     @abstractmethod
     def open_dataset(self,
@@ -178,7 +191,7 @@ class DataSource(metaclass=ABCMeta):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> 'DataSource':
+                   monitor: Monitor = Monitor.NONE) -> Optional['DataSource']:
         """
         Turns this (likely remote) data source into a local data source given a name and a number of
         optional constraints.
@@ -256,7 +269,18 @@ class DataSource(metaclass=ABCMeta):
         return 0
 
     @property
-    def meta_info(self) -> Union[dict, None]:
+    def title(self) -> Optional[str]:
+        """
+        Human-readable data source title.
+        The default implementation tries to retrieve the title from ``meta_info['title']``.
+        """
+        meta_info = self.meta_info
+        if meta_info is None:
+            return None
+        return meta_info.get('title')
+
+    @property
+    def meta_info(self) -> Optional[dict]:
         """
         Return meta-information about this data source.
         The returned dict, if any, is JSON-serializable.
@@ -264,7 +288,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def cache_info(self) -> Union[dict, None]:
+    def cache_info(self) -> Optional[dict]:
         """
         Return information about cached, locally available data sets.
         The returned dict, if any, is JSON-serializable.
@@ -272,7 +296,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def variables_info(self) -> Union[dict, None]:
+    def variables_info(self) -> Optional[dict]:
         """
         Return meta-information about the variables contained in this data source.
         The returned dict, if any, is JSON-serializable.
@@ -280,7 +304,7 @@ class DataSource(metaclass=ABCMeta):
         return None
 
     @property
-    def info_string(self):
+    def info_string(self) -> str:
         """
         Return a textual representation of the meta-information about this data source.
         Useful for CLI / REPL applications.
@@ -301,8 +325,9 @@ class DataSource(metaclass=ABCMeta):
 
         return '\n'.join(info_lines)
 
+    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
     @property
-    def variables_info_string(self):
+    def variables_info_string(self) -> str:
         """
         Return some textual information about the variables contained in this data source.
         Useful for CLI / REPL applications.
@@ -321,8 +346,9 @@ class DataSource(metaclass=ABCMeta):
 
         return '\n'.join(info_lines)
 
+    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
     @property
-    def cached_datasets_coverage_string(self):
+    def cached_datasets_coverage_string(self) -> str:
         """
         Return a textual representation of information about cached, locally available data sets.
         Useful for CLI / REPL applications.
@@ -348,17 +374,30 @@ class DataSource(metaclass=ABCMeta):
 
 
 class DataStore(metaclass=ABCMeta):
-    """Represents a data store of data sources."""
+    """
+    Represents a data store of data sources.
 
-    def __init__(self, name: str):
-        self._name = name
+    :param id: Unique data store identifier.
+    :param title: A human-readable tile.
+    """
+
+    def __init__(self, id: str, title: str = None):
+        self._id = id
+        self._title = title or id
 
     @property
-    def name(self) -> str:
+    def id(self) -> str:
         """
-        Return the name of this data store.
+        Return the unique identifier for this data store.
         """
-        return self._name
+        return self._id
+
+    @property
+    def title(self) -> str:
+        """
+        Return a human-readable tile for this data store.
+        """
+        return self._title
 
     @property
     def data_store_path(self) -> Optional[str]:
@@ -368,11 +407,12 @@ class DataStore(metaclass=ABCMeta):
         return None
 
     @abstractmethod
-    def query(self, name=None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         """
         Retrieve data sources in this data store using the given constraints.
 
-        :param name: Name of the data source.
+        :param id: Data source identifier.
+        :param query_expr: Query expression which may be used if *ìd* is unknown.
         :param monitor:  A progress monitor.
         :return: Sequence of data sources.
         """
@@ -401,17 +441,17 @@ class DataStoreRegistry:
     def __init__(self):
         self._data_stores = dict()
 
-    def get_data_store(self, name: str) -> Optional[DataStore]:
-        return self._data_stores.get(name, None)
+    def get_data_store(self, id: str) -> Optional[DataStore]:
+        return self._data_stores.get(id)
 
     def get_data_stores(self) -> Sequence[DataStore]:
         return list(self._data_stores.values())
 
     def add_data_store(self, data_store: DataStore):
-        self._data_stores[data_store.name] = data_store
+        self._data_stores[data_store.id] = data_store
 
-    def remove_data_store(self, name: str):
-        del self._data_stores[name]
+    def remove_data_store(self, id: str):
+        del self._data_stores[id]
 
     def __len__(self):
         return len(self._data_stores)
@@ -425,8 +465,8 @@ class DataStoreRegistry:
 
     def _repr_html_(self):
         rows = []
-        for name, data_store in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (name, repr(data_store)))
+        for id, data_store in self._data_stores.items():
+            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (id, repr(data_store)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
@@ -435,13 +475,17 @@ class DataStoreRegistry:
 DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
-def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None, name=None) -> Sequence[DataSource]:
-    """Query the data store(s) for data sources matching the given constrains.
+def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
+                      id: str = None,
+                      query_expr: str = None) -> Sequence[DataSource]:
+    """
+    Find data sources in the given data store(s) matching the given *id* or *query_expr*.
 
     See also :py:func:`open_dataset`.
 
     :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
-    :param name:  The name of a data source.
+    :param id:  A data source identifier.
+    :param query_expr:  A query expression.
     :return: All data sources matching the given constrains.
     """
     results = []
@@ -453,21 +497,21 @@ def query_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None
         primary_data_store = data_stores
     else:
         data_store_list = data_stores
-    if not primary_data_store and name and name.count('.') > 0:
+    if not primary_data_store and id and id.count('.') > 0:
         primary_data_store_index = -1
-        primary_data_store_name, data_source_name = name.split('.', 1)
+        primary_data_store_id, data_source_name = id.split('.', 1)
         for idx, data_store in enumerate(data_store_list):
-            if data_store.name == primary_data_store_name:
+            if data_store.id == primary_data_store_id:
                 primary_data_store_index = idx
         if primary_data_store_index >= 0:
             primary_data_store = data_store_list.pop(primary_data_store_index)
 
     if primary_data_store:
-        results.extend(primary_data_store.query(name))
+        results.extend(primary_data_store.query(id=id, query_expr=query_expr))
     if not results:
         # noinspection PyTypeChecker
         for data_store in data_store_list:
-            results.extend(data_store.query(name))
+            results.extend(data_store.query(id=id, query_expr=query_expr))
     return results
 
 
@@ -492,7 +536,7 @@ def open_dataset(data_source: Union[DataSource, str],
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = query_data_sources(data_store_list, name=data_source)
+        data_sources = find_data_sources(data_store_list, id=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:
@@ -523,7 +567,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     #
     # netCDF files can also feature a significant level of compression rendering
     # the known file size on disk useless to determine if the default dask chunk
-    # will be small enough that a few of them ccould comfortably fit in memory for
+    # will be small enough that a few of them could comfortably fit in memory for
     # parallel processing.
     #
     # Hence we open the first file of the dataset, find out its uncompressed size
@@ -555,6 +599,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
     if n_chunks == 1:
+        temp_ds.close()
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
@@ -571,13 +616,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     # temp_ds is no longer used
     temp_ds.close()
-
-    if n_chunks == 1:
-        # The file size is fine
-        return xr.open_mfdataset(paths,
-                                 concat_dim=concat_dim,
-                                 autoclose=True,
-                                 **kwargs)
 
     divisor = sqrt(n_chunks)
 

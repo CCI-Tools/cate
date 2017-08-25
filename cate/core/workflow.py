@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -34,7 +32,7 @@ This module provides the following data types:
 * A :py:class:`Workflow` is a ``Node`` that is composed of ``Step`` objects
 * A :py:class:`Step` is a ``Node`` that is part of a ``Workflow`` and performs some kind of data processing.
 * A :py:class:`OpStep` is a ``Step`` that invokes a Python operation (any callable).
-* A :py:class:`ExprStep` is a ``Step`` that executes a Python expression string.
+* A :py:class:`ExpressionStep` is a ``Step`` that executes a Python expression string.
 * A :py:class:`WorkflowStep` is a ``Step`` that executes a ``Workflow`` loaded from an external (JSON) resource.
 * A :py:class:`NodePort` belongs to exactly one ``Node``. Node ports represent both the named inputs and
   outputs of node. A node port has a name, a property ``source``, and a property ``value``.
@@ -119,15 +117,18 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, namedtuple
 from io import IOBase
 from itertools import chain
-from typing import Sequence, Optional, Union, List, Dict
+from typing import Optional, Union, List, Dict
 
-from cate.util import Namespace, UNDEFINED
-from cate.util.monitor import Monitor
-from .op import OP_REGISTRY, OpRegistration
-from cate.util.opmetainf import OpMetaInfo
-from .workflow_svg import Drawing as _Drawing
-from .workflow_svg import Graph as _Graph
-from .workflow_svg import Node as _Node
+from .op import OP_REGISTRY, Operation, Monitor, new_expression_op, new_subprocess_op
+from ..util import Namespace, UNDEFINED, safe_eval, OpMetaInfo
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+#: Version number of Workflow JSON schema.
+#: Will be incremented with the first schema change after public release.
+WORKFLOW_SCHEMA_VERSION = 1
+
+WORKFLOW_SCHEMA_VERSION_TAG = 'schema_version'
 
 
 class Node(metaclass=ABCMeta):
@@ -139,21 +140,17 @@ class Node(metaclass=ABCMeta):
     Inputs and outputs are exposed as attributes of the :py:attr:`input` and :py:attr:`output` properties and
     are both of type :py:class:`NodePort`.
 
-    :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
-    :param node_id: A node ID. If None, a unique name will be generated.
+    :param node_id: A node ID. If None, a name will be generated.
     """
 
-    def __init__(self,
-                 op_meta_info: OpMetaInfo,
-                 node_id: str):
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
         if not op_meta_info:
             raise ValueError('op_meta_info must be given')
-        if not node_id:
-            raise ValueError('node_id must be given')
         self._op_meta_info = op_meta_info
-        self._id = node_id
-        self._input = self._new_input_namespace()
-        self._output = self._new_output_namespace()
+        self._id = node_id or self.gen_id()
+        self._persistent = False
+        self._inputs = self._new_input_namespace()
+        self._outputs = self._new_output_namespace()
 
     @property
     def op_meta_info(self) -> OpMetaInfo:
@@ -165,13 +162,16 @@ class Node(metaclass=ABCMeta):
         """The node's identifier. """
         return self._id
 
+    def gen_id(self):
+        return type(self).__name__.lower() + '_' + hex(id(self))[2:]
+
     def set_id(self, node_id: str) -> None:
         """
         Set the node's identifier.
 
         :param node_id: The new node identifier. Must be unique within a workflow.
         """
-        if not id:
+        if not node_id:
             raise ValueError('id must be given')
         old_id = self._id
         if node_id == old_id:
@@ -180,14 +180,14 @@ class Node(metaclass=ABCMeta):
         self.root_node.update_sources_node_id(self, old_id)
 
     @property
-    def input(self) -> Namespace:
+    def inputs(self) -> Namespace:
         """The node's inputs."""
-        return self._input
+        return self._inputs
 
     @property
-    def output(self) -> Namespace:
+    def outputs(self) -> Namespace:
         """The node's outputs."""
-        return self._output
+        return self._outputs
 
     @property
     def root_node(self) -> 'Node':
@@ -220,7 +220,7 @@ class Node(metaclass=ABCMeta):
         return other_port.source is self or (other_port.source_ref and other_port.source_ref.node_id == self._id)
 
     def is_direct_source_of(self, other_node: 'Node'):
-        for other_port in other_node._input[:]:
+        for other_port in other_node._inputs[:]:
             if self.is_direct_source_for_port(other_port):
                 return True
         return False
@@ -228,7 +228,7 @@ class Node(metaclass=ABCMeta):
     def max_distance_to(self, other_node: 'Node') -> int:
         """
         If *other_node* is a source of this node, then return the number of connections from this node to *node*.
-        If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, cate.
+        If it is a direct source return ``1``, if it is a source of the source of this node return ``2``, etc.
         If *other_node* is this node, return 0.
         If *other_node* is not a source of this node, return -1.
 
@@ -242,7 +242,7 @@ class Node(metaclass=ABCMeta):
         max_distance = -1
         if other_node.is_direct_source_of(self):
             max_distance = 1
-        for port in self._input[:]:
+        for port in self._inputs[:]:
             if port.source:
                 distance = port.source.node.max_distance_to(other_node)
                 if distance > 0:
@@ -256,22 +256,24 @@ class Node(metaclass=ABCMeta):
         if self in predecessors:
             predecessors.remove(self)
         predecessors.insert(0, self)
-        for port in self.input[:]:
+        for port in self.inputs[:]:
             if port.source is not None:
                 port.source.node.collect_predecessors(predecessors, excludes)
 
-    def __call__(self, value_cache: dict = None, monitor=Monitor.NONE, **input_values):
+    def __call__(self, context: Dict = None, monitor=Monitor.NONE, **input_values):
         """
         Make this class instance's callable. The call is delegated to :py:meth:`call()`.
 
-        :param value_cache: An optional value cache.
+        :param context: An optional execution context. It will be used to automatically set the
+               value of any node input which has a "context" property set to either ``True`` or a
+               context expression string.
         :param monitor: An optional progress monitor.
         :param input_values: The input values.
         :return: The output value.
         """
-        return self.call(value_cache=value_cache, monitor=monitor, input_values=input_values)
+        return self.call(context=context, monitor=monitor, input_values=input_values)
 
-    def call(self, value_cache: dict = None, monitor=Monitor.NONE, input_values: dict = None):
+    def call(self, context: Dict = None, monitor=Monitor.NONE, input_values: Dict = None):
         """
         Calls this workflow with given *input_values* and returns the result.
 
@@ -279,10 +281,12 @@ class Node(metaclass=ABCMeta):
         1. Set default_value where input values are missing in *input_values*
         2. Validate the input_values using this workflows's meta-info
         3. Set this workflow's input port values
-        4. Invoke this workflow with given *value_cache* and *monitor*
+        4. Invoke this workflow with given *context* and *monitor*
         5. Get this workflow's output port values. Named outputs will be returned as dictionary.
 
-        :param value_cache: An optional value cache.
+        :param context: An optional execution context. It will be used to automatically set the
+               value of any node input which has a "context" property set to either ``True`` or a
+               context expression string.
         :param monitor: An optional progress monitor.
         :param input_values: The input values.
         :return: The output values.
@@ -294,32 +298,69 @@ class Node(metaclass=ABCMeta):
         self.op_meta_info.validate_input_values(input_values)
         # 3. Set this workflow's input port values
         self.set_input_values(input_values)
-        # 4. Invoke this workflow with given *value_cache* and *monitor*
-        self.invoke(value_cache=value_cache, monitor=monitor)
+        # 4. Invoke this workflow with given *context* and *monitor*
+        self.invoke(context=context, monitor=monitor)
         # 5. Get this workflow's output port values. Named outputs will be returned as dictionary.
         return self.get_output_value()
 
-    @abstractmethod
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def invoke(self, context: Dict = None, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
-               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param context: An optional execution context.
+        :param monitor: An optional progress monitor.
+        """
+        self._invoke_impl(_new_context(context, step=self), monitor=monitor)
+
+    @abstractmethod
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
+        """
+        Invoke this node's underlying operation with input values from
+        :py:attr:`input`. Output values in :py:attr:`output` will
+        be set from the underlying operation's return value(s).
+
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
 
+    def _set_context_values(self, context, input_values) -> None:
+        """
+        Set certain input values from given execution *context*.
+        For any input that uses the 'context' input property, set the desired *context* values.
+
+        :param context: The execution context.
+        :param input_values: The node's input values.
+        """
+        for input_name, input_props in self.op_meta_info.inputs.items():
+            context_property_value = input_props.get('context')
+            if isinstance(context_property_value, str):
+                # noinspection PyBroadException
+                try:
+                    input_values[input_name] = safe_eval(context_property_value, context)
+                except:
+                    input_values[input_name] = None
+            elif context_property_value:
+                input_values[input_name] = context
+
+    def _get_value_cache(self, context: Dict):
+        """
+        Get the 'value_cache' entry from context
+        only if this node is allowed to cache, otherwise return None.
+        """
+        value_cache = context.get('value_cache')
+        return value_cache if self.op_meta_info.can_cache else None
+
     def set_input_values(self, input_values):
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             node_input.value = input_values[node_input.name]
 
     def get_output_value(self):
         if self.op_meta_info.has_named_outputs:
-            return {output.name: output.value for output in self.output[:]}
+            return {output.name: output.value for output in self.outputs[:]}
         else:
-            return self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value
+            return self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value
 
     @abstractmethod
     def to_json_dict(self):
@@ -331,19 +372,18 @@ class Node(metaclass=ABCMeta):
 
     def update_sources(self):
         """Resolve unresolved source references in inputs and outputs."""
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             port.update_source()
 
     def update_sources_node_id(self, changed_node: 'Node', old_id: str):
         """Update the source references of input and output ports from *old_id* to *new_id*."""
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             port.update_source_node_id(changed_node, old_id)
 
     def remove_orphaned_sources(self, orphaned_node: 'Node'):
         # Set all input/output ports to None, whose source are still old_step.
         # This will also set each port's source to None.
-        # TODO (forman, 20160929): Actually, we should remove ports that still refer to old_step.
-        for port in chain(self._output[:], self._input[:]):
+        for port in chain(self._outputs[:], self._inputs[:]):
             if port.source is not None and port.source.node is orphaned_node:
                 port.value = None
 
@@ -353,10 +393,10 @@ class Node(metaclass=ABCMeta):
         :param name: The port name
         :return: The port, or ``None`` if it couldn't be found.
         """
-        if name in self._output:
-            return self._output[name]
-        if name in self._input:
-            return self._input[name]
+        if name in self._outputs:
+            return self._outputs[name]
+        if name in self._inputs:
+            return self._inputs[name]
         return None
 
     def _body_string(self) -> Optional[str]:
@@ -367,10 +407,10 @@ class Node(metaclass=ABCMeta):
         for port in namespace[:]:
             if port.source:
                 port_assignments.append('%s=@%s' % (port.name, str(port.source)))
-            elif port.has_value:
+            elif port.is_value:
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, port.value)))
             elif is_input:
-                default_value = self.op_meta_info.input[port.name].get('default_value', None)
+                default_value = self.op_meta_info.inputs[port.name].get('default_value', None)
                 port_assignments.append('%s=%s' % (port.name, self._format_port_value(port, is_input, default_value)))
             else:
                 port_assignments.append('%s' % port.name)
@@ -379,10 +419,11 @@ class Node(metaclass=ABCMeta):
     @staticmethod
     def _format_port_value(port: 'NodePort', is_input: bool, value: any):
         op_meta_info = port.node.op_meta_info
-        props = (op_meta_info.input if is_input else op_meta_info.output).get(port.name)
+        props = (op_meta_info.inputs if is_input else op_meta_info.outputs).get(port.name)
         if props:
             data_type = props.get('data_type')
             if data_type:
+                # noinspection PyBroadException
                 try:
                     return data_type.format(value)
                 except:
@@ -393,10 +434,10 @@ class Node(metaclass=ABCMeta):
         """String representation."""
         op_meta_info = self.op_meta_info
         body_string = self._body_string() or op_meta_info.qualified_name
-        input_assignments = self._format_port_assignments(self.input, True)
+        input_assignments = self._format_port_assignments(self.inputs, True)
         output_assignments = ''
         if op_meta_info.has_named_outputs:
-            output_assignments = self._format_port_assignments(self.output, False)
+            output_assignments = self._format_port_assignments(self.outputs, False)
             output_assignments = ' -> (%s)' % output_assignments
         return '%s = %s(%s)%s [%s]' % (self.id, body_string, input_assignments, output_assignments, type(self).__name__)
 
@@ -405,10 +446,10 @@ class Node(metaclass=ABCMeta):
         """String representation for developers."""
 
     def _new_input_namespace(self):
-        return self._new_namespace(self.op_meta_info.input.keys())
+        return self._new_namespace(self.op_meta_info.inputs.keys())
 
     def _new_output_namespace(self):
-        return self._new_namespace(self.op_meta_info.output.keys())
+        return self._new_namespace(self.op_meta_info.outputs.keys())
 
     def _new_namespace(self, names):
         return Namespace([(name, NodePort(self, name)) for name in names])
@@ -418,15 +459,12 @@ class Workflow(Node):
     """
     A workflow of (connected) steps.
 
-    :param name_or_op_meta_info: Qualified operation name or meta-information object of type :py:class:`OpMetaInfo`.
+    :param op_meta_info: Meta-information object of type :py:class:`OpMetaInfo`.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, name_or_op_meta_info: Union[str, OpMetaInfo]):
-        if isinstance(name_or_op_meta_info, str):
-            op_meta_info = OpMetaInfo(name_or_op_meta_info)
-        else:
-            op_meta_info = name_or_op_meta_info
-        super(Workflow, self).__init__(op_meta_info, op_meta_info.qualified_name)
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
+        super(Workflow, self).__init__(op_meta_info, node_id=node_id or op_meta_info.qualified_name)
         # The list of steps
         self._steps = []
         self._steps_dict = {}
@@ -444,8 +482,10 @@ class Workflow(Node):
     @classmethod
     def sort_steps(cls, steps: List['Step']):
         """Sorts the list of workflow steps in the order they they can be executed."""
-        # TODO (forman 20170222): Try find a replacement for this expensive, brute-force sorting algorithm.
-        #                         It is ok for a small number of steps only.
+        # Note: Try find a replacement for this brute-force sorting algorithm.
+        #       It is ok for a small number of steps only.
+        #       order(sort_steps, N, Ni) = order(sorted, N) + N^2 * Ni^2
+        #       where N is the number of steps and Ni is the number of inputs per step
         n = len(steps)
         if n < 2:
             return steps
@@ -490,7 +530,7 @@ class Workflow(Node):
                 return other_node
         return None
 
-    def add_steps(self, *steps: Sequence['Step'], can_exist: bool = False) -> None:
+    def add_steps(self, *steps: 'Step', can_exist: bool = False) -> None:
         for step in steps:
             self.add_step(step, can_exist=can_exist)
 
@@ -556,30 +596,37 @@ class Workflow(Node):
         for step in self._steps:
             step.remove_orphaned_sources(removed_node)
 
-    def invoke(self, value_cache: dict = None, monitor=Monitor.NONE) -> None:
+    def _invoke_impl(self, context: Dict, monitor=Monitor.NONE) -> None:
         """
         Invoke this workflow by invoking all all of its step nodes.
 
-        :param value_cache: An optional dictionary that serves as a cache for node invocation results.
-               A node may put a result into the cache after invocation, or return a value from the cache, if it exists.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
-        self.invoke_steps(self.steps, value_cache=value_cache, monitor=monitor)
+        self.invoke_steps(self.steps, context=context, monitor=monitor)
 
-    @classmethod
-    def invoke_steps(cls,
+    def invoke_steps(self,
                      steps: List['Step'],
-                     value_cache: dict = None,
+                     context: Dict = None,
                      monitor_label: str = None,
-                     monitor=Monitor.NONE):
+                     monitor=Monitor.NONE) -> None:
+        """
+        Invoke just the given steps.
+
+        :param steps: Selected steps of this workflow.
+        :param context: An optional execution context
+        :param monitor_label: An optional label for the progress monitor.
+        :param monitor: The progress monitor.
+        """
+        context = _new_context(context, workflow=self)
         step_count = len(steps)
         if step_count == 1:
-            steps[0].invoke(value_cache=value_cache, monitor=monitor)
+            steps[0].invoke(context=context, monitor=monitor)
         elif step_count > 1:
             monitor_label = monitor_label or "Executing {step_count} workflow step(s)"
             with monitor.starting(monitor_label.format(step_count=step_count), step_count):
                 for step in steps:
-                    step.invoke(value_cache=value_cache, monitor=monitor.child(work=1))
+                    step.invoke(context=context, monitor=monitor.child(work=1))
 
     @classmethod
     def load(cls, file_path_or_fp: Union[str, IOBase], registry=OP_REGISTRY) -> 'Workflow':
@@ -622,18 +669,18 @@ class Workflow(Node):
         if qualified_name is None:
             raise ValueError('missing mandatory property "qualified_name" in Workflow-JSON')
         header_json_dict = workflow_json_dict.get('header', {})
-        input_json_dict = workflow_json_dict.get('input', {})
-        output_json_dict = workflow_json_dict.get('output', {})
+        inputs_json_dict = workflow_json_dict.get('inputs', {})
+        outputs_json_dict = workflow_json_dict.get('outputs', {})
         steps_json_list = workflow_json_dict.get('steps', [])
 
         # convert 'data_type' entries to Python types in op_meta_info_input_json_dict & node_output_json_dict
-        input_obj_dict = OpMetaInfo.json_dict_to_object_dict(input_json_dict)
-        output_obj_dict = OpMetaInfo.json_dict_to_object_dict(output_json_dict)
+        inputs_obj_dict = OpMetaInfo.json_dict_to_object_dict(inputs_json_dict)
+        outputs_obj_dict = OpMetaInfo.json_dict_to_object_dict(outputs_json_dict)
         op_meta_info = OpMetaInfo(qualified_name,
                                   has_monitor=True,
-                                  header_dict=header_json_dict,
-                                  input_dict=input_obj_dict,
-                                  output_dict=output_obj_dict)
+                                  header=header_json_dict,
+                                  inputs=inputs_obj_dict,
+                                  outputs=outputs_obj_dict)
 
         # parse all step nodes
         steps = []
@@ -641,7 +688,7 @@ class Workflow(Node):
         for step_json_dict in steps_json_list:
             step_count += 1
             node = None
-            for node_class in [OpStep, WorkflowStep, ExprStep, NoOpStep, SubProcessStep]:
+            for node_class in [OpStep, WorkflowStep, ExpressionStep, NoOpStep, SubProcessStep]:
                 node = node_class.from_json_dict(step_json_dict, registry=registry)
                 if node is not None:
                     steps.append(node)
@@ -652,10 +699,10 @@ class Workflow(Node):
         workflow = Workflow(op_meta_info)
         workflow.add_steps(*steps)
 
-        for node_input in workflow.input[:]:
-            node_input.from_json_dict(input_json_dict)
-        for node_output in workflow.output[:]:
-            node_output.from_json_dict(output_json_dict)
+        for node_input in workflow.inputs[:]:
+            node_input.from_json(inputs_json_dict.get(node_input.name))
+        for node_output in workflow.outputs[:]:
+            node_output.from_json(outputs_json_dict.get(node_output.name))
 
         workflow.update_sources()
         return workflow
@@ -666,23 +713,23 @@ class Workflow(Node):
 
         :return: A JSON-serializable dictionary
         """
-        # Developer note: keep variable naming consistent with Workflow.from_json_dict() method
+        # Developer note: keep variable naming consistent with Workflow.from_json() method
 
         # convert all inputs to JSON dicts
-        input_json_dict = OrderedDict()
-        for node_input in self._input[:]:
-            node_input_json_dict = node_input.to_json_dict()
-            if node_input.name in self.op_meta_info.input:
-                node_input_json_dict.update(self.op_meta_info.input[node_input.name])
-            input_json_dict[node_input.name] = node_input_json_dict
+        inputs_json_dict = OrderedDict()
+        for node_input in self._inputs[:]:
+            node_input_json_dict = node_input.to_json(force_dict=True)
+            if node_input.name in self.op_meta_info.inputs:
+                node_input_json_dict.update(self.op_meta_info.inputs[node_input.name])
+            inputs_json_dict[node_input.name] = node_input_json_dict
 
         # convert all outputs to JSON dicts
-        output_json_dict = OrderedDict()
-        for node_output in self._output[:]:
-            node_output_json_dict = node_output.to_json_dict()
-            if node_output.name in self.op_meta_info.output:
-                node_output_json_dict.update(self.op_meta_info.output[node_output.name])
-            output_json_dict[node_output.name] = node_output_json_dict
+        outputs_json_dict = OrderedDict()
+        for node_output in self._outputs[:]:
+            node_output_json_dict = node_output.to_json(force_dict=True)
+            if node_output.name in self.op_meta_info.outputs:
+                node_output_json_dict.update(self.op_meta_info.outputs[node_output.name])
+            outputs_json_dict[node_output.name] = node_output_json_dict
 
         # convert all step nodes to JSON dicts
         steps_json_list = []
@@ -691,14 +738,15 @@ class Workflow(Node):
 
         # convert 'data_type' Python types entries to JSON-strings
         header_json_dict = self.op_meta_info.header
-        input_json_dict = OpMetaInfo.object_dict_to_json_dict(input_json_dict)
-        output_json_dict = OpMetaInfo.object_dict_to_json_dict(output_json_dict)
+        inputs_json_dict = OpMetaInfo.object_dict_to_json_dict(inputs_json_dict)
+        outputs_json_dict = OpMetaInfo.object_dict_to_json_dict(outputs_json_dict)
 
         workflow_json_dict = OrderedDict()
+        workflow_json_dict[WORKFLOW_SCHEMA_VERSION_TAG] = WORKFLOW_SCHEMA_VERSION
         workflow_json_dict['qualified_name'] = self.op_meta_info.qualified_name
         workflow_json_dict['header'] = header_json_dict
-        workflow_json_dict['input'] = input_json_dict
-        workflow_json_dict['output'] = output_json_dict
+        workflow_json_dict['inputs'] = inputs_json_dict
+        workflow_json_dict['outputs'] = outputs_json_dict
         workflow_json_dict['steps'] = steps_json_list
 
         return workflow_json_dict
@@ -706,27 +754,39 @@ class Workflow(Node):
     def __repr__(self) -> str:
         return "Workflow(%s)" % repr(self.op_meta_info.qualified_name)
 
-    def _repr_svg_(self) -> str:
-        """
-        Get a SVG-representation for IPython notebooks.
-
-        :return: An SVG-representation of this workflow.
-        """
-        graph = _convert_workflow_to_graph(self)
-        return _Drawing(graph).to_svg()
-
 
 class Step(Node):
     """
     A step is an inner node of a workflow.
 
-    :param op_meta_info: Meta-information about the operation, see :py:class:`OpMetaInfo`.
-    :param node_id: A node ID. If None, a unique name will be generated.
+    :param node_id: A node ID. If None, a name will be generated.
     """
 
-    def __init__(self, op_meta_info: OpMetaInfo, node_id: str):
-        super(Step, self).__init__(op_meta_info, node_id)
+    def __init__(self, op_meta_info: OpMetaInfo, node_id: str = None):
+        super(Step, self).__init__(op_meta_info, node_id=node_id)
         self._parent_node = None
+
+    @property
+    def persistent(self):
+        """
+        Return whether this step is persistent.
+        That is, if the current workspace is saved, the result(s) of a persistent step may be written to
+        a "resource" file in the workspace directory using this step's ID as filename. The file format and filename
+        extension will be chosen according to each result's data type.
+        On next attempt to execute the step again, e.g. if a workspace is opened, persistent steps may read the
+        "resource" file to produce the result rather than performing an expensive re-computation.
+        :return: True, if so, False otherwise
+        """
+        return self._persistent
+
+    @persistent.setter
+    def persistent(self, value: bool):
+        """
+        Set whether this step is persistent. See :py:meth:`persistent`.
+        :param value: True, if so, False otherwise
+        """
+        self._persistent = value
+        # print('persistent: ', self._persistent)
 
     @property
     def parent_node(self):
@@ -735,31 +795,33 @@ class Step(Node):
 
     @classmethod
     def from_json_dict(cls, json_dict, registry=OP_REGISTRY) -> Optional['Step']:
-        node = cls.new_step_from_json_dict(json_dict, registry=registry)
-        if node is None:
+        step = cls.new_step_from_json_dict(json_dict, registry=registry)
+        if step is None:
             return None
 
-        node_input_dict = json_dict.get('input', {})
-        for name, properties in node_input_dict.items():
-            if name not in node.input:
+        step.persistent = json_dict.get('persistent', False)
+
+        step_inputs_json_dict = json_dict.get('inputs', {})
+        for name, step_input_json in step_inputs_json_dict.items():
+            if name not in step.inputs:
                 # update op_meta_info
-                node.op_meta_info.input[name] = node.op_meta_info.input.get(name, {})
+                step.op_meta_info.inputs[name] = step.op_meta_info.inputs.get(name, {})
                 # then create a new port
-                node.input[name] = NodePort(node, name)
-            node_input = node.input[name]
-            node_input.from_json_dict(node_input_dict)
+                step.inputs[name] = NodePort(step, name)
+            step_input = step.inputs[name]
+            step_input.from_json(step_input_json)
 
-        node_output_dict = json_dict.get('output', {})
-        for name, properties in node_output_dict.items():
-            if name not in node.output:
+        step_outputs_json_dict = json_dict.get('outputs', {})
+        for name, step_output_json in step_outputs_json_dict.items():
+            if name not in step.outputs:
                 # first update op_meta_info
-                node.op_meta_info.output[name] = node.op_meta_info.output.get(name, {})
+                step.op_meta_info.outputs[name] = step.op_meta_info.outputs.get(name, {})
                 # then create a new port
-                node.output[name] = NodePort(node, name)
-            node_output = node.output[name]
-            node_output.from_json_dict(node_output_dict)
+                step.outputs[name] = NodePort(step, name)
+            step_output = step.outputs[name]
+            step_output.from_json(step_output_json)
 
-        return node
+        return step
 
     @classmethod
     @abstractmethod
@@ -772,18 +834,29 @@ class Step(Node):
 
         :return: A JSON-serializable dictionary
         """
+        step_json_dict = OrderedDict()
+        step_json_dict['id'] = self.id
 
-        node_dict = OrderedDict()
-        node_dict['id'] = self.id
+        if self.persistent:
+            step_json_dict['persistent'] = True
 
-        self.enhance_json_dict(node_dict)
+        self.enhance_json_dict(step_json_dict)
 
-        node_dict['input'] = OrderedDict(
-            [(node_input.name, node_input.to_json_dict()) for node_input in self.input[:]])
-        node_dict['output'] = OrderedDict(
-            [(node_output.name, node_output.to_json_dict()) for node_output in self.output[:]])
+        inputs_json_dict = self.get_inputs_json_dict()
+        if inputs_json_dict is not None:
+            step_json_dict['inputs'] = inputs_json_dict
 
-        return node_dict
+        outputs_json_dict = self.get_outputs_json_dict()
+        if outputs_json_dict is not None:
+            step_json_dict['outputs'] = outputs_json_dict
+
+        return step_json_dict
+
+    def get_inputs_json_dict(self):
+        return OrderedDict([(node_input.name, node_input.to_json()) for node_input in self.inputs[:]])
+
+    def get_outputs_json_dict(self):
+        return OrderedDict([(node_output.name, node_output.to_json()) for node_output in self.outputs[:]])
 
     @abstractmethod
     def enhance_json_dict(self, node_dict: OrderedDict):
@@ -796,23 +869,22 @@ class WorkflowStep(Step):
 
     :param workflow: The referenced workflow.
     :param resource: A resource (e.g. file path, URL) from which the workflow was loaded.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, workflow, resource, node_id=None):
+    def __init__(self, workflow: Workflow, resource: str, node_id: str = None):
         if not workflow:
             raise ValueError('workflow must be given')
         if not resource:
             raise ValueError('resource must be given')
-        node_id = node_id if node_id else 'workflow_step_' + hex(id(self))[2:]
-        super(WorkflowStep, self).__init__(workflow.op_meta_info, node_id)
+        super(WorkflowStep, self).__init__(workflow.op_meta_info, node_id=node_id)
         self._workflow = workflow
         self._resource = resource
         # Connect the workflow's inputs with this node's input sources
-        for workflow_input in workflow.input[:]:
+        for workflow_input in workflow.inputs[:]:
             name = workflow_input.name
-            assert name in self.input
-            workflow_input.source = self.input[name]
+            assert name in self.inputs
+            workflow_input.source = self.inputs[name]
 
     @property
     def workflow(self) -> 'Workflow':
@@ -824,26 +896,28 @@ class WorkflowStep(Step):
         """The workflow's resource path (file path, URL)."""
         return self._resource
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying :py:attr:`workflow` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying workflow's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
-
+        value_cache = self._get_value_cache(context)
+        # If the value_cache already has a child from a former sub-workflow invocation,
+        # use it as current value_cache
         if value_cache is not None and hasattr(value_cache, 'child'):
-            value_cache = value_cache.child(self.id)
+            context = _new_context(context, value_cache=value_cache.child(self.id))
 
         # Invoke underlying workflow.
-        self._workflow.invoke(value_cache=value_cache, monitor=monitor)
+        self._workflow.invoke(context=context, monitor=monitor)
 
         # transfer workflow output values into this node's output values
-        for workflow_output in self._workflow.output[:]:
-            assert workflow_output.name in self.output
-            node_output = self.output[workflow_output.name]
+        for workflow_output in self._workflow.outputs[:]:
+            assert workflow_output.name in self.outputs
+            node_output = self.outputs[workflow_output.name]
             node_output.value = workflow_output.value
 
     @classmethod
@@ -861,62 +935,54 @@ class WorkflowStep(Step):
         return "WorkflowStep(%s, '%s', node_id='%s')" % (repr(self._workflow), self.resource, self.id)
 
 
-class OpStep(Step):
+class OpStepBase(Step, metaclass=ABCMeta):
     """
-    An `OpStep` is a step node that invokes a registered operation of type :py:class:`OpRegistration`.
+    Base class for concrete steps based on an :py:class:`Operation`.
 
-    :param operation: A fully qualified operation name or operation object such as a class or callable.
-    :param registry: An operation registry to be used to lookup the operation, if given by name.
+    :param op: An :py:class:`Operation` object.
     :param node_id: A node ID. If None, a unique ID will be generated.
     """
 
-    def __init__(self, operation, node_id=None, registry=OP_REGISTRY):
-        if not operation:
-            raise ValueError('operation must be given')
-        if isinstance(operation, str):
-            op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        elif isinstance(operation, OpRegistration):
-            op_registration = operation
-        else:
-            op_registration = registry.get_op(operation, fail_if_not_exists=True)
-        assert op_registration is not None
-        node_id = node_id if node_id else 'op_step_' + hex(id(self))[2:]
-        op_meta_info = op_registration.op_meta_info
-        super(OpStep, self).__init__(op_meta_info, node_id)
-        self._op_registration = op_registration
+    def __init__(self, op: Operation, node_id: str = None):
+        if not op:
+            raise ValueError('op must be given')
+        self._op = op
+        super(OpStepBase, self).__init__(op.op_meta_info, node_id=node_id)
 
     @property
-    def op(self):
-        """The operation registration. See :py:class:`cate.core.op.OpRegistration`"""
-        return self._op_registration
+    def op(self) -> Operation:
+        """The operation registration. See :py:class:`cate.core.op.Operation`"""
+        return self._op
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
         Invoke this node's underlying operation :py:attr:`op` with input values from
         :py:attr:`input`. Output values in :py:attr:`output` will
         be set from the underlying operation's return value(s).
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
         input_values = OrderedDict()
-        for node_input in self.input[:]:
+        for node_input in self.inputs[:]:
             if node_input.has_value:
                 input_values[node_input.name] = node_input.value
 
-        can_cache = value_cache is not None and self.op_meta_info.can_cache
-        if can_cache and self.id in value_cache:
+        self._set_context_values(context, input_values)
+
+        value_cache = self._get_value_cache(context)
+        if value_cache is not None and self.id in value_cache and value_cache[self.id] is not UNDEFINED:
             return_value = value_cache[self.id]
         else:
-            return_value = self._op_registration(monitor=monitor, **input_values)
-            if can_cache:
+            return_value = self._op(monitor=monitor, **input_values)
+            if value_cache is not None:
                 value_cache[self.id] = return_value
 
         if self.op_meta_info.has_named_outputs:
             for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
+                self.outputs[output_name].value = output_value
         else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+            self.outputs[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
 
     def __call__(self, monitor=Monitor.NONE, **input_values):
         """
@@ -931,7 +997,28 @@ class OpStep(Step):
         """
         if self.op_meta_info.has_monitor:
             input_values[OpMetaInfo.MONITOR_INPUT_NAME] = monitor
-        return self._op_registration(**input_values)
+        return self._op(**input_values)
+
+
+class OpStep(OpStepBase):
+    """
+    An `OpStep` is a step node that invokes a registered operation of type :py:class:`Operation`.
+
+    :param operation: A fully qualified operation name or operation object such as a class or callable.
+    :param registry: An operation registry to be used to lookup the operation, if given by name.
+    :param node_id: A node ID. If None, a unique ID will be generated.
+    """
+
+    def __init__(self, operation, node_id: str = None, registry=OP_REGISTRY):
+        if not operation:
+            raise ValueError('operation must be given')
+        if isinstance(operation, str):
+            op = registry.get_op(operation, fail_if_not_exists=True)
+        elif isinstance(operation, Operation):
+            op = operation
+        else:
+            op = registry.get_op(operation, fail_if_not_exists=True)
+        super(OpStep, self).__init__(op, node_id=node_id)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -943,61 +1030,46 @@ class OpStep(Step):
     def enhance_json_dict(self, node_dict: OrderedDict):
         node_dict['op'] = self.op_meta_info.qualified_name
 
+    def get_inputs_json_dict(self):
+        inputs_json_dict = OrderedDict()
+        for node_input in self.inputs[:]:
+            input_json_dict = node_input.to_json()
+            if input_json_dict and node_input.is_value:
+                value = node_input.value
+                input_props = self.op_meta_info.inputs.get(node_input.name)
+                if input_props:
+                    default_value = input_props.get('default_value', UNDEFINED)
+                    if value == default_value:
+                        # If value equals default_value, we don't store it in JSON
+                        input_json_dict = None
+            if input_json_dict:
+                inputs_json_dict[node_input.name] = input_json_dict
+        return inputs_json_dict
+
+    def get_outputs_json_dict(self):
+        return None
+
     def __repr__(self):
-        return "OpStep(%s, node_id='%s')" % (self.op_meta_info.qualified_name, self.id)
+        return "OpStep(%s, node_id='%s')" % (repr(self.op_meta_info.qualified_name), self.id)
 
 
-class ExprStep(Step):
+class ExpressionStep(OpStepBase):
     """
-    An ``ExprStep`` is a step node that computes its output from a simple (Python) *expression* string.
+    An ``ExpressionStep`` is a step node that computes its output from a simple (Python) *expression* string.
 
     :param expression: A simple (Python) expression string.
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, expression: str, input_dict=None, output_dict=None, node_id=None):
+    def __init__(self, expression: str, inputs=None, outputs=None, node_id=None):
         if not expression:
             raise ValueError('expression must be given')
-        node_id = node_id if node_id else 'expr_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(ExprStep, self).__init__(op_meta_info, node_id)
         self._expression = expression
-
-    @property
-    def expression(self) -> str:
-        """The expression."""
-        return self._expression
-
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
-        """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
-
-        :param value_cache: An optional value cache.
-        :param monitor: An optional progress monitor.
-        """
-        input_values = OrderedDict()
-        for node_input in self.input[:]:
-            input_values[node_input.name] = node_input.value
-
-        can_cache = value_cache is not None and self.op_meta_info.can_cache
-        if can_cache and self.id in value_cache:
-            return_value = value_cache[self.id]
-        else:
-            return_value = eval(self.expression, None, input_values)
-            if can_cache:
-                value_cache[self.id] = return_value
-
-        if self.op_meta_info.has_named_outputs:
-            for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
-        else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
+        op = new_expression_op(op_meta_info, expression)
+        super(ExpressionStep, self).__init__(op, node_id=op_meta_info.qualified_name)
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1007,13 +1079,125 @@ class ExprStep(Step):
         return cls(expression, node_id=json_dict.get('id', None))
 
     def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['expression'] = self.expression
+        node_dict['expression'] = self._expression
 
     def _body_string(self):
-        return '"%s"' % self.expression
+        return '"%s"' % self._expression
 
     def __repr__(self):
-        return "ExprNode('%s', node_id='%s')" % (self.expression, self.id)
+        return "ExpressionStep(%s, node_id='%s')" % (repr(self._expression), self.id)
+
+
+class SubProcessStep(OpStepBase):
+    """
+    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
+    given *program*.
+
+    :param command: A pattern that will be interpolated by input values to obtain the actual command
+           (program with arguments) to be executed.
+           May contain "{input_name}" fields which will be replaced by the actual input value converted to text.
+           *input_name* must refer to a valid operation input name in *op_meta_info.input* or it must be
+           the value of either the "write_to" or "read_from" property of another input's property map.
+    :param run_python: If True, *command_line_pattern* refers to a Python script which will be executed with
+           the Python interpreter that Cate uses.
+    :param cwd: Current working directory to run the command line in.
+    :param env: Environment variables passed to the shell that executes the command line.
+    :param shell: Whether to use the shell as the program to execute.
+    :param started_re: A regex that must match a text line from the process' stdout
+           in order to signal the start of progress monitoring.
+           The regex must provide the group names "label" or "total_work" or both,
+           e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
+    :param progress_re: A regex that must match a text line from the process' stdout
+           in order to signal process.
+           The regex must provide group names "work" or "msg" or both,
+           e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
+    :param done_re: A regex that must match a text line from the process' stdout
+           in order to signal the end of progress monitoring.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
+    :param node_id: A node ID. If None, an ID will be generated.
+    """
+
+    def __init__(self,
+                 command: str,
+                 run_python: bool = False,
+                 env: Dict[str, str] = None,
+                 cwd: str = None,
+                 shell: bool = False,
+                 started_re: str = None,
+                 progress_re: str = None,
+                 done_re: str = None,
+                 inputs: Dict[str, Dict] = None,
+                 outputs: Dict[str, Dict] = None,
+                 node_id: str = None):
+        if not command:
+            raise ValueError('command must be given')
+        if not outputs:
+            outputs = {OpMetaInfo.RETURN_OUTPUT_NAME: {}}
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
+        self._command = command
+        self._run_python = run_python
+        self._cwd = cwd
+        self._env = env
+        self._shell = shell
+        self._started_re = started_re
+        self._progress_re = progress_re
+        self._done_re = done_re
+        op = new_subprocess_op(op_meta_info,
+                               command,
+                               run_python=run_python,
+                               cwd=cwd,
+                               env=env,
+                               shell=shell,
+                               started=started_re,
+                               progress=progress_re,
+                               done=done_re)
+        super(SubProcessStep, self).__init__(op, node_id=op_meta_info.qualified_name)
+
+    @classmethod
+    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
+        command = json_dict.get('command')
+        if command is None:
+            return None
+        run_python = json_dict.get('run_python')
+        cwd = json_dict.get('cwd')
+        env = json_dict.get('env')
+        shell = json_dict.get('shell', False)
+        started_re = json_dict.get('started_re')
+        progress_re = json_dict.get('progress_re')
+        done_re = json_dict.get('done_re')
+        return cls(command,
+                   run_python=run_python,
+                   cwd=cwd,
+                   env=env,
+                   shell=shell,
+                   started_re=started_re,
+                   progress_re=progress_re,
+                   done_re=done_re,
+                   node_id=json_dict.get('id'))
+
+    def enhance_json_dict(self, node_dict: OrderedDict):
+        node_dict['command'] = self._command
+        if self._run_python:
+            node_dict['run_python'] = self._run_python
+        if self._cwd:
+            node_dict['cwd'] = self._cwd
+        if self._env:
+            node_dict['env'] = self._env
+        if self._shell:
+            node_dict['shell'] = self._shell
+        if self._started_re:
+            node_dict['started_re'] = self._started_re
+        if self._progress_re:
+            node_dict['progress_re'] = self._progress_re
+        if self._done_re:
+            node_dict['done_re'] = self._done_re
+
+    def _body_string(self):
+        return '"%s"' % self._command
+
+    def __repr__(self):
+        return "SubProcessStep(%s, node_id='%s')" % (repr(self._command), self.id)
 
 
 class NoOpStep(Step):
@@ -1024,30 +1208,24 @@ class NoOpStep(Step):
     ``NoOpStep`` as a placeholder or blackbox for some other real operation that will be put into place at a later
     point in time.
 
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
+    :param inputs: input name to input properties mapping.
+    :param outputs: output name to output properties mapping.
+    :param node_id: A node ID. If None, an ID will be generated.
     """
 
-    def __init__(self, input_dict=None, output_dict=None, node_id=None):
-        node_id = node_id if node_id else 'no_op_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(NoOpStep, self).__init__(op_meta_info, node_id)
+    def __init__(self, inputs: dict = None, outputs: dict = None, node_id: str = None):
+        op_meta_info = OpMetaInfo(node_id or self.gen_id(), inputs=inputs, outputs=outputs)
+        if len(op_meta_info.outputs) == 0:
+            op_meta_info.outputs[op_meta_info.RETURN_OUTPUT_NAME] = {}
+        super(NoOpStep, self).__init__(op_meta_info, node_id=op_meta_info.qualified_name)
 
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
+    def _invoke_impl(self, context: Dict, monitor: Monitor = Monitor.NONE) -> None:
         """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
+        No-op.
 
-        :param value_cache: An optional value cache.
+        :param context: The current execution context. Should always be given.
         :param monitor: An optional progress monitor.
         """
-        input_values = OrderedDict()
-        for node_input in self.input[:]:
-            input_values[node_input.name] = node_input.value
 
     @classmethod
     def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
@@ -1066,103 +1244,7 @@ class NoOpStep(Step):
         return "NoOpStep(node_id='%s')" % self.id
 
 
-class SubProcessStep(Step):
-    """
-    A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
-    given *sub_process_arguments*.
-
-    :param sub_process_arguments: The sub process' arguments as list where the first entry is usually an executable and
-           remaining entries are the executable's arguments.
-    :param input_dict: input name to input properties mapping.
-    :param output_dict: output name to output properties mapping.
-    :param node_id: A node ID. If None, a unique ID will be generated.
-    """
-
-    def __init__(self,
-                 sub_process_arguments: List[str],
-                 environment_variables: Dict[str, str] = None,
-                 working_directory: str = '',
-                 input_dict=None,
-                 output_dict=None,
-                 node_id=None):
-        if not sub_process_arguments:
-            raise ValueError('sub_process_arguments must be given')
-        node_id = node_id if node_id else 'sub_process_step_' + hex(id(self))[2:]
-        op_meta_info = OpMetaInfo(node_id, input_dict=input_dict, output_dict=output_dict)
-        if len(op_meta_info.output) == 0:
-            op_meta_info.output[op_meta_info.RETURN_OUTPUT_NAME] = {}
-        super(SubProcessStep, self).__init__(op_meta_info, node_id)
-        self._sub_process_arguments = sub_process_arguments
-        # noinspection PyArgumentList
-        self._environment_variables = dict(**environment_variables) if environment_variables else {}
-        self._working_directory = working_directory
-
-    @property
-    def sub_process_arguments(self) -> List[str]:
-        """The sub process' arguments."""
-        return self._sub_process_arguments
-
-    def invoke(self, value_cache: dict = None, monitor: Monitor = Monitor.NONE):
-        """
-        Invoke this node's underlying operation :py:attr:`op` with input values from
-        :py:attr:`input`. Output values in :py:attr:`output` will
-        be set from the underlying operation's return value(s).
-
-        :param value_cache: An optional value cache.
-        :param monitor: An optional progress monitor.
-        """
-        input_values = OrderedDict()
-        for node_input in self.input[:]:
-            input_values[node_input.name] = node_input.value
-
-        # TODO (forman, 20160625): SubProcessStep: add more options to transform given arguments list into a new one
-        #                      from given input values
-        # For example: 1) use input as new argument (replacement) --> DONE
-        #              2) generate text file (e.g. parameter / config file) from template and from input values
-        #                 use new filename as new argument
-        # TODO (forman, 20160625): SubProcessStep: add option to generate dictionary of named output values
-        # For example: 1) add parse pattern so that stdout of sub_process can be converted into numeric progress
-        #              2) send all stdout lines to monitor as textual messages
-        # TODO (forman, 20160625): SubProcessStep: use monitor here
-
-        interpolated_arguments = []
-        for arg in self._sub_process_arguments:
-            for key, value in input_values.items():
-                arg = arg.replace('{{%s}}' % key, str(value))
-            interpolated_arguments.append(arg)
-
-        import subprocess
-        return_value = subprocess.run(interpolated_arguments, shell=True).returncode
-
-        if self.op_meta_info.has_named_outputs:
-            # will never reach this code, see to-do above
-            for output_name, output_value in return_value.items():
-                self.output[output_name].value = output_value
-        else:
-            self.output[OpMetaInfo.RETURN_OUTPUT_NAME].value = return_value
-
-    @classmethod
-    def new_step_from_json_dict(cls, json_dict, registry=OP_REGISTRY):
-        sub_process_arguments = json_dict.get('sub_process_arguments', None)
-        # working_directory = json_dict.get('working_directory', None)
-        # environment_variables = json_dict.get('environment_variables', None)
-        if sub_process_arguments is None:
-            return None
-        return cls(sub_process_arguments, node_id=json_dict.get('id', None))
-
-    def enhance_json_dict(self, node_dict: OrderedDict):
-        node_dict['sub_process_arguments'] = self._sub_process_arguments
-        node_dict['working_directory'] = self._working_directory
-        node_dict['environment_variables'] = self._environment_variables
-
-    def _body_string(self):
-        return '"%s"' % ' '.join(self.sub_process_arguments)
-
-    def __repr__(self):
-        return "SubProcessStep(%s, node_id='%s')" % (repr(self._sub_process_arguments), self.id)
-
-
-SourceRef = namedtuple('SourcerRef', ['node_id', 'port_name'])
+SourceRef = namedtuple('SourceRef', ['node_id', 'port_name'])
 
 
 class NodePort:
@@ -1171,7 +1253,7 @@ class NodePort:
     def __init__(self, node: Node, name: str):
         assert node is not None
         assert name is not None
-        assert name in node.op_meta_info.input or name in node.op_meta_info.output
+        assert name in node.op_meta_info.inputs or name in node.op_meta_info.outputs
         self._node = node
         self._name = name
         self._source_ref = None
@@ -1200,6 +1282,10 @@ class NodePort:
             return True
 
     @property
+    def is_value(self) -> bool:
+        return not self._source and self._value is not UNDEFINED
+
+    @property
     def value(self):
         if self._source:
             return self._source.value
@@ -1217,6 +1303,10 @@ class NodePort:
     @property
     def source_ref(self) -> SourceRef:
         return self._source_ref
+
+    @property
+    def is_source(self) -> bool:
+        return self._source is not None
 
     @property
     def source(self) -> 'NodePort':
@@ -1284,14 +1374,14 @@ class NodePort:
                         self, other_node_id, other_name, other_node_id))
             elif other_node_id:
                 if other_node:
-                    if len(other_node.output) == 1:
-                        node_port = other_node.output[0]
+                    if len(other_node.outputs) == 1:
+                        node_port = other_node.outputs[0]
                         self.source = node_port
                         return
                     else:
                         raise ValueError(
                             "cannot connect '%s' with node '%s' because it has %s named outputs" % (
-                                self, other_node_id, len(other_node.output)))
+                                self, other_node_id, len(other_node.outputs)))
                 else:
                     raise ValueError("cannot connect '%s' with output of node '%s' because node '%s' does not exist" % (
                         self, other_node_id, other_node_id))
@@ -1308,15 +1398,11 @@ class NodePort:
                     "cannot connect '%s' with '.%s' because '%s' does not exist in any scope" % (
                         self, other_name, other_name))
 
-    def from_json_dict(self, json_dict):
+    def from_json(self, port_json):
         self._source_ref = None
         self._source = None
         self._value = UNDEFINED
 
-        if json_dict is None:
-            return
-
-        port_json = json_dict.get(self.name, None)
         if port_json is None:
             return
 
@@ -1351,26 +1437,32 @@ class NodePort:
             raise ValueError(source_format_msg % self)
         self._source_ref = node_id, port_name
 
-    def to_json_dict(self):
+    def to_json(self, force_dict=False):
         """
         Return a JSON-serializable dictionary representation of this object.
 
         :return: A JSON-serializable dictionary
         """
-        json_dict = dict()
-        if self.source is not None:
-            json_dict['source'] = '%s.%s' % (self._source.node.id, self._source.name)
-        elif self.has_value:
+        source = self._source
+        if source is not None:
+            # If we have a source, there cannot be a value
+            return dict(source=str(source)) if force_dict else str(source)
+
+        value = self._value
+        # Only serialize defined values
+        if value is not UNDEFINED:
+            is_output = self._name in self._node.op_meta_info.outputs
             # Do not serialize output values, they are temporary and may not be JSON-serializable
-            is_output = self._name in self._node.op_meta_info.output
             if not is_output:
-                json_dict['value'] = self._to_json_value(self._value)
-        return json_dict
+                return dict(value=self._to_json_value(self._value))
+
+        return {}
 
     # noinspection PyBroadException
     def _to_json_value(self, value):
-        input_props = self._node.op_meta_info.input.get(self._name)
+        input_props = self._node.op_meta_info.inputs.get(self._name)
         if input_props:
+            # try converting value using a dedicated method
             data_type = input_props.get('data_type')
             if data_type:
                 try:
@@ -1384,7 +1476,7 @@ class NodePort:
 
     # noinspection PyBroadException
     def _from_json_value(self, json_value):
-        input_props = self._node.op_meta_info.input.get(self._name)
+        input_props = self._node.op_meta_info.inputs.get(self._name)
         if input_props:
             data_type = input_props.get('data_type')
             if data_type:
@@ -1399,39 +1491,20 @@ class NodePort:
 
     def __str__(self):
         if self.name == OpMetaInfo.RETURN_OUTPUT_NAME:
+            # Use short form
             return self._node.id
         else:
+            # Use dot form
             return "%s.%s" % (self._node.id, self._name)
 
     def __repr__(self):
         return "NodePort(%s, %s)" % (repr(self.node_id), repr(self.name))
 
 
-def _convert_workflow_to_graph(workflow: Workflow):
-    graph_nodes = {step.id: _convert_step_to_graph_node(step) for step in workflow.steps}
-    graph = _Graph(workflow.op_meta_info.qualified_name,
-                   [name for name, _ in workflow.input],
-                   [name for name, _ in workflow.output],
-                   list(graph_nodes.values()))
-
-    graph_nodes[workflow.id] = graph
-    _wire_target_node_graph_nodes(workflow, graph_nodes)
-    for step in workflow.steps:
-        _wire_target_node_graph_nodes(step, graph_nodes)
-
-    return graph
-
-
-def _convert_step_to_graph_node(step: Step):
-    return _Node(step.op_meta_info.qualified_name,
-                 [name for name, _ in step.input],
-                 [name for name, _ in step.output])
-
-
 def _wire_target_node_graph_nodes(target_node, graph_nodes):
-    for _, target_port in target_node.input:
+    for _, target_port in target_node.inputs:
         _wire_target_port_graph_nodes(target_port, graph_nodes)
-    for _, target_port in target_node.output:
+    for _, target_port in target_node.outputs:
         _wire_target_port_graph_nodes(target_port, graph_nodes)
 
 
@@ -1446,50 +1519,155 @@ def _wire_target_port_graph_nodes(target_port, graph_nodes):
     source_gnode.find_port(source_port.name).connect(target_gnode.find_port(target_port.name))
 
 
-def _close_value(value):
-    if hasattr(value, 'close'):
-        # noinspection PyBroadException
-        try:
-            value.close()
-        except:
-            pass
-
-
 class ValueCache(dict):
     """
-    A dictionary that can be closed. If closed, all values that have a ``close`` attribute are closed as well.
-    Values are also closed, if they are removed.
+    ``ValueCache`` is a closable dictionary that maintains unique IDs for it's keys.
+    If a ``ValueCache`` is closed, all closable values are also closed.
+    A value is closeable if it has a ``close`` attribute whose value is a callable.
     """
 
     def __init__(self):
         super(ValueCache, self).__init__()
+        self._id_infos = dict()
+        self._last_id = 0
 
     def __del__(self):
+        """Override the ``dict`` method to close any old values."""
         self._close_values()
+
+    def _set(self, key, value):
+        super(ValueCache, self).__setitem__(key, value)
 
     def __setitem__(self, key, value):
+        """
+        Override the ``dict`` method to close any old value and generate a new ID,
+        if *key* didn't exist before.
+        """
         old_value = self.get(key)
-        super(ValueCache, self).__setitem__(key, value)
+        id_info = self._id_infos.get(key)
+        self._set(key, value)
+        if id_info:
+            self._id_infos[key] = id_info[0], id_info[1] + 1
+        else:
+            self._id_infos[key] = self._gen_id(), 0
         if old_value is not value:
-            _close_value(old_value)
+            self._close_value(old_value)
+
+    def _del(self, key):
+        super(ValueCache, self).__delitem__(key)
 
     def __delitem__(self, key):
+        """Override the ``dict`` method to close the value and remove its ID."""
         old_value = self.get(key)
-        super(ValueCache, self).__delitem__(key)
+        self._del(key)
+        del self._id_infos[key]
         if old_value is not None:
-            _close_value(old_value)
+            self._close_value(old_value)
+
+    def get_value_by_id(self, id: int, default=UNDEFINED):
+        """Return the value for the given integer *id* or return *default*."""
+        key = self.get_key(id)
+        return self.get(key, default) if key else default
+
+    def get_id(self, key: str):
+        """Return the integer ID for given *key* or ``None``."""
+        id_info = self._id_infos.get(key)
+        return id_info[0] if id_info else None
+
+    def get_update_count(self, key: str):
+        """Return the integer update count for given *key* or ``None``."""
+        id_info = self._id_infos.get(key)
+        return id_info[1] if id_info else None
+
+    def get_key(self, id: int):
+        """Return the key for given integer *id* or ``None``."""
+        for key, id_info in self._id_infos.items():
+            if id_info[0] == id:
+                return key
+        return None
 
     def child(self, key: str) -> 'ValueCache':
-        child_key = key + '.__child__'
+        """Return the child ``ValueCache`` for given *key*."""
+        child_key = key + '._child'
         if child_key not in self:
-            self[child_key] = ValueCache()
+            self._set(child_key, ValueCache())
         return self[child_key]
 
-    def close(self):
-        self._close_values()
+    def rename_key(self, key: str, new_key: str) -> None:
+        """
+        Rename the given *key* into *new_key* without changing the value of the ID.
 
-    def _close_values(self):
-        values = list(self.values())
+        :param key: The old key.
+        :param new_key: The new key.
+        """
+        if key == new_key:
+            return
+
+        value = self[key]
+        self._del(key)
+        self._set(new_key, value)
+
+        id_info = self._id_infos[key]
+        del self._id_infos[key]
+        self._id_infos[new_key] = id_info
+
+        child_key = key + '._child'
+        if child_key in self:
+            child_cache = self[child_key]
+            self._del(child_key)
+            self._set(new_key + '._child', child_cache)
+
+    def pop(self, key, default=None):
+        """Override the ``dict`` method to close the value and remove its ID."""
+        existed_before = key in self
+        value = super(ValueCache, self).pop(key, default=default)
+        if existed_before:
+            self._close_value(value)
+            del self._id_infos[key]
+        return value
+
+    def clear(self) -> None:
+        """Override the ``dict`` method to closes values and remove all IDs."""
+        self._close_values()
+        super(ValueCache, self).clear()
+        self._id_infos.clear()
+
+    def close(self) -> None:
+        """Close all values and remove all IDs."""
         self.clear()
+
+    def _close_values(self) -> None:
+        values = list(self.values())
         for value in values:
-            _close_value(value)
+            self._close_value(value)
+
+    @classmethod
+    def _close_value(cls, value):
+        if value is not None and hasattr(value, 'close'):
+            # noinspection PyBroadException
+            try:
+                value.close()
+            except:
+                pass
+
+    def _gen_id(self) -> int:
+        new_id = self._last_id + 1
+        self._last_id = new_id
+        return new_id
+
+
+def _new_context(context: Optional[Dict], **kwargs) -> Dict:
+    new_context = dict() if context is None else dict(context)
+    new_context.update(kwargs)
+    return new_context
+
+
+def new_workflow_op(workflow_or_path: Union[str, Workflow]) -> Operation:
+    """
+    Create an operation from a workflow read from the given path.
+
+    :param workflow_or_path: Either a path to Workflow JSON file or :py:class:`Workflow` object.
+    :return: The workflow operation.
+    """
+    workflow = Workflow.load(workflow_or_path) if isinstance(workflow_or_path, str) else workflow_or_path
+    return Operation(workflow, op_meta_info=workflow.op_meta_info)

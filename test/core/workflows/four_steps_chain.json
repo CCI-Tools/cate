@@ -3,14 +3,14 @@
   "header": {
     "description": "This is a test workflow composed of 4 subsequent steps."
   },
-  "input": {
+  "inputs": {
     "a": {},
     "b": {},
     "c": {},
     "d": {},
     "e": {}
   },
-  "output": {
+  "outputs": {
     "u": {
       "source": "op4.p"
     },
@@ -31,11 +31,11 @@
     {
       "id": "op1",
       "no_op": true,
-      "input": {
+      "inputs": {
         "x": ".a",
         "y": ".b"
       },
-      "output": {
+      "outputs": {
         "p": {},
         "q": {}
       }
@@ -43,11 +43,11 @@
     {
       "id": "op2",
       "no_op": true,
-      "input": {
+      "inputs": {
         "x": "op1.p",
         "y": ".c"
       },
-      "output": {
+      "outputs": {
         "p": {},
         "q": {}
       }
@@ -55,11 +55,11 @@
     {
       "id": "op3",
       "no_op": true,
-      "input": {
+      "inputs": {
         "x": "op2.p",
         "y": ".d"
       },
-      "output": {
+      "outputs": {
         "p": {},
         "q": {}
       }
@@ -67,11 +67,11 @@
     {
       "id": "op4",
       "no_op": true,
-      "input": {
+      "inputs": {
         "x": "op3.p",
         "y": ".e"
       },
-      "output": {
+      "outputs": {
         "p": {},
         "q": {}
       }

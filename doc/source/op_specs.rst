@@ -40,7 +40,7 @@ Geometric Adjustments
 .. toctree::
    :maxdepth: 1
 
-   op_specs/geometric-adjustments/op_spec_category_geometric-adjustment
+   op_specs/geometric-adjustments/op_spec_category_geometric-adjustments
    op_specs/geometric-adjustments/op_spec_coregistration
    op_specs/geometric-adjustments/op_spec_geospatial-gap-filling
    op_specs/geometric-adjustments/op_spec_reprojection
@@ -74,17 +74,6 @@ Complex Computations
 
    op_specs/complex-computations/op_spec_category_complex-computations
    op_specs/complex-computations/op_spec_eof
-
-Filtering and Selections
-========================
-
-.. toctree::
-   :maxdepth: 1
-
-   op_specs/filtering_selections/op_spec_category_filtering_selections
-   op_specs/filtering_selections/op_spec_spatial-filtering
-   op_specs/filtering_selections/op_spec_temporal-filtering
-
 
 Univariate Descriptive Statistics
 =================================
