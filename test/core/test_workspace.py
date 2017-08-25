@@ -1,13 +1,14 @@
 import json
 import os
 import unittest
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, mk_op_kwargs
+from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
 from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 
@@ -16,6 +17,18 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
+    def test_utilities(self):
+        self.assertEqual(mk_op_arg(1), {'value': 1})
+        self.assertEqual(mk_op_arg('2'), {'value': '2'})
+        self.assertEqual(mk_op_arg('a'), {'value': 'a'})
+        self.assertEqual(mk_op_arg('@b'), {'source': 'b'})
+
+        self.assertEqual(mk_op_args(), [])
+        self.assertEqual(mk_op_args(1, '2', 'a', '@b'), [{'value': 1}, {'value': '2'}, {'value': 'a'}, {'source': 'b'}])
+
+        self.assertEqual(mk_op_kwargs(a=1), OrderedDict([('a', {'value': 1})]))
+        self.assertEqual(mk_op_kwargs(a=1, b='@c'), OrderedDict([('a', {'value': 1}), ('b', {'source': 'c'})]))
+
     def test_workspace_is_part_of_context(self):
 
         def some_op(ctx: dict) -> dict:
@@ -206,6 +219,7 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_set_and_rename_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        self.assertEqual(ws.user_data, {})
 
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=1))
         ws.set_resource('Y', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
