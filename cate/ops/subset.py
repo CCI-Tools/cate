@@ -196,7 +196,7 @@ def subset_temporal(ds: xr.Dataset,
     except TypeError:
         raise ValueError('Time subset operation expects a dataset with the'
                          ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the harmonization operation on this'
+                         ' {}. Running the normalize operation on this'
                          ' dataset may help'.format(ds.time.dtype))
 
 

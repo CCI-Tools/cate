@@ -66,7 +66,7 @@ def long_term_average(ds: xr.Dataset,
     if 'datetime64[ns]' != ds.time.dtype:
         raise ValueError('Long term average operation expects a dataset with the'
                          ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the harmonization operation on this'
+                         ' {}. Running the normalize operation on this'
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a monthly dataset
@@ -148,7 +148,7 @@ def temporal_aggregation(ds: xr.Dataset,
     if 'datetime64[ns]' != ds.time.dtype:
         raise ValueError('Temporal aggregation operation expects a dataset with the'
                          ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the harmonization operation on this'
+                         ' {}. Running the normalize operation on this'
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a daily dataset
