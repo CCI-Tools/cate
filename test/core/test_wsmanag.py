@@ -206,9 +206,21 @@ class WorkspaceManagerTestMixin:
         workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', True)
         self.assertFalse(workspace3.workflow.find_node('ds').persistent)
         self.assertTrue(workspace3.workflow.find_node('ts').persistent)
+        workspace4 = workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', True)
+        self.assertFalse(workspace4.workflow.find_node('ds').persistent)
+        self.assertTrue(workspace4.workflow.find_node('ts').persistent)
 
         workspace_manager.save_workspace(base_dir)
         self.assertTrue(os.path.isfile(ts_file_path))
+
+        ws4_json = workspace4.to_json_dict()
+        workspace_manager.close_workspace(base_dir)
+        self.assertEqual(len(workspace_manager.get_open_workspaces()), 0)
+
+        workspace5 = workspace_manager.open_workspace(base_dir)
+        ws5_json = workspace5.to_json_dict()
+
+        self.assertEqual(workspace4.workflow.to_json_dict(), workspace5.workflow.to_json_dict())
 
         self.del_base_dir(base_dir)
 
