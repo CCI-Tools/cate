@@ -156,7 +156,6 @@ class WorkspaceManagerTestMixin:
         self.assertTrue(os.path.exists(base_dir))
 
         res_name = 'ds'
-
         workspace_manager.set_workspace_resource(base_dir, res_name=res_name,
                                                  op_name='cate.ops.io.read_netcdf',
                                                  op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
@@ -168,23 +167,48 @@ class WorkspaceManagerTestMixin:
 
         sst_step = workspace2.workflow.find_node(res_name)
         self.assertIsNotNone(sst_step)
-        self.assertFalse(sst_step.persistent)
 
         file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_copy.nc'))
         workspace_manager.write_workspace_resource(base_dir, res_name, file_path=file_path)
         self.assertTrue(os.path.isfile(file_path))
-
-        workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, res_name, True)
-        sst_step = workspace3.workflow.find_node(res_name)
-        self.assertTrue(sst_step.persistent)
 
         workspaces = workspace_manager.get_open_workspaces()
         self.assertIsNotNone(workspaces)
         self.assertEqual(len(workspaces), 1)
         self.assertEqual(workspaces[0].base_dir, base_dir)
 
-        workspace4 = workspace_manager.delete_workspace_resource(base_dir, res_name)
-        self.assertEqual(len(workspace4.workflow.steps), 0)
+        workspace3 = workspace_manager.delete_workspace_resource(base_dir, res_name)
+        self.assertEqual(len(workspace3.workflow.steps), 0)
+
+        self.del_base_dir(base_dir)
+
+    def test_persitence(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace_manager.new_workspace(base_dir)
+        workspace_manager.save_workspace(base_dir)
+        self.assertTrue(os.path.exists(base_dir))
+
+        workspace_manager.set_workspace_resource(base_dir, res_name='ds',
+                                                 op_name='cate.ops.io.read_netcdf',
+                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
+        workspace1 = workspace_manager.set_workspace_resource(base_dir, res_name='ts',
+                                                              op_name='cate.ops.timeseries.tseries_mean',
+                                                              op_args=mk_op_kwargs(ds='@ds', var='temperature'))
+        self.assertEqual(workspace1.base_dir, base_dir)
+        self.assertEqual(len(workspace1.workflow.steps), 2)
+        self.assertFalse(workspace1.workflow.find_node('ds').persistent)
+        self.assertFalse(workspace1.workflow.find_node('ts').persistent)
+        ts_file_path = os.path.abspath(os.path.join('TESTOMAT', '.cate-workspace', 'ts.nc'))
+        self.assertFalse(os.path.isfile(ts_file_path))
+
+        workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', True)
+        self.assertFalse(workspace3.workflow.find_node('ds').persistent)
+        self.assertTrue(workspace3.workflow.find_node('ts').persistent)
+
+        workspace_manager.save_workspace(base_dir)
+        self.assertTrue(os.path.isfile(ts_file_path))
 
         self.del_base_dir(base_dir)
 
