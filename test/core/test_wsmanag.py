@@ -172,6 +172,10 @@ class WorkspaceManagerTestMixin:
         workspace_manager.write_workspace_resource(base_dir, res_name, file_path=file_path)
         self.assertTrue(os.path.isfile(file_path))
 
+        run_file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_runcopy.nc'))
+        workspace_manager.run_op_in_workspace(base_dir, 'write_netcdf4', mk_op_kwargs(obj='@ds', file=run_file_path))
+        self.assertTrue(os.path.isfile(run_file_path))
+
         workspaces = workspace_manager.get_open_workspaces()
         self.assertIsNotNone(workspaces)
         self.assertEqual(len(workspaces), 1)
@@ -215,11 +219,14 @@ class WorkspaceManagerTestMixin:
 
         workspace_manager.close_workspace(base_dir)
         self.assertEqual(len(workspace_manager.get_open_workspaces()), 0)
+        self.assertTrue(os.path.isfile(ts_file_path))
 
         workspace5 = workspace_manager.open_workspace(base_dir)
         self.assertEqual(workspace4.workflow.to_json_dict(), workspace5.workflow.to_json_dict())
-
+        workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', False)
         workspace_manager.close_workspace(base_dir)
+        workspace_manager.close_workspace(base_dir)  # closing a 2nd time should give no error
+        self.assertFalse(os.path.isfile(ts_file_path))
 
         self.del_base_dir(base_dir)
 

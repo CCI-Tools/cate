@@ -600,7 +600,7 @@ class Workspace:
 
     def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name
-        assert op_kwargs
+        assert op_kwargs is not None
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:

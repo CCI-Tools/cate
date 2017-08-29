@@ -310,7 +310,7 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('p', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"))
-        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
 
         self.maxDiff = None
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
@@ -320,3 +320,8 @@ class WorkspaceTest(unittest.TestCase):
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
                                            "cannot convert value <iih!> to PointLike")
+
+        ws2 = Workspace.from_json_dict(ws.to_json_dict())
+        self.assertEqual(ws2.base_dir, ws.base_dir)
+        self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
+        self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))
