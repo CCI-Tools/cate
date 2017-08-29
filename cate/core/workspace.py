@@ -30,7 +30,6 @@ from collections import OrderedDict
 from typing import List, Any, Dict
 
 import fiona
-import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -365,15 +364,6 @@ class Workspace:
             'dimNames': variable.dims,
             'shape': variable.shape,
             'chunkSizes': get_chunk_size(variable),
-            # 'fill_value': self._get_float_attr(attrs, '_FillValue'),
-            # 'valid_min': self._get_float_attr(attrs, 'valid_min'),
-            # 'valid_max': self._get_float_attr(attrs, 'valid_max'),
-            # 'add_offset': self._get_float_attr(attrs, 'add_offset'),
-            # 'scale_factor': self._get_float_attr(attrs, 'scale_factor'),
-            # 'standard_name': self._get_unicode_attr(attrs, 'standard_name'),
-            # 'long_name': self._get_unicode_attr(attrs, 'long_name'),
-            # 'units': self._get_unicode_attr(attrs, 'units', default_value='-'),
-            # 'comment': self._get_unicode_attr(attrs, 'comment'),
             'attributes': Workspace._attrs_to_json_dict(attrs),
             'isCoord': is_coord
         }
@@ -453,28 +443,6 @@ class Workspace:
     def _is_y_flipped(variable):
         lat_coords = variable.coords[get_lat_dim_name(variable)]
         return lat_coords.to_index().is_monotonic_increasing
-
-    # noinspection PyMethodMayBeStatic
-    def _get_unicode_attr(self, attr, key, default_value=''):
-        if key in attr:
-            value = attr.get(key)
-            if type(value) == bytes or type(value) == np.bytes_:
-                return value.decode('unicode_escape')
-            elif type(value) != str:
-                return str(value)
-            else:
-                return value
-        return default_value
-
-    # noinspection PyMethodMayBeStatic
-    def _get_float_attr(self, attr, key, default_value=None):
-        if key in attr:
-            # noinspection PyBroadException
-            try:
-                return float(attr.get(key))
-            except:
-                pass
-        return default_value
 
     def delete(self):
         self.close()
