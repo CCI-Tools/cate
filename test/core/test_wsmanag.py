@@ -4,6 +4,7 @@ import unittest
 
 from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
 from cate.core.workspace import mk_op_kwargs
+from cate.util.misc import fetch_std_streams
 from ..util.test_monitor import RecordingMonitor
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
@@ -127,7 +128,6 @@ class WorkspaceManagerTestMixin:
                                                  op_name='cate.ops.utility.no_op',
                                                  op_args=dict(),
                                                  monitor=rm)
-        print(rm)
         self.assertEquals([
             ('start', 'Computing nothing', 10),
             ('progress', 1.0, 'Step 1 of 10 doing nothing', 10),
@@ -206,6 +206,44 @@ class WorkspaceManagerTestMixin:
         self.assertFalse(workspace1.workflow.find_node('ts').persistent)
         ts_file_path = os.path.abspath(os.path.join('TESTOMAT', '.cate-workspace', 'ts.nc'))
         self.assertFalse(os.path.isfile(ts_file_path))
+
+        with fetch_std_streams() as (stdout, stderr):
+            workspace_manager.print_workspace_resource(base_dir, 'ts')
+            expected = "<xarray.Dataset>\n" \
+                       "Dimensions:          (lat: 2, lon: 4, time: 10)\n" \
+                       "Coordinates:\n" \
+                       "  * lat              (lat) float64 34.5 34.6\n" \
+                       "    reference_time   datetime64[ns] 2014-09-05\n" \
+                       "  * lon              (lon) float64 10.1 10.2 10.3 10.4\n" \
+                       "  * time             (time) datetime64[ns] 2014-09-06 2014-09-07 2014-09-08 ...\n" \
+                       "Data variables:\n" \
+                       "    temperature      (time) float64 16.09 17.23 14.5 12.43 13.49 15.54 17.56 ...\n" \
+                       "    temperature_std  (time) float64 6.215 3.215 6.184 6.683 7.082 9.18 7.715 ...\n"
+            self.assertEqual(stdout.getvalue(), expected)
+
+        with fetch_std_streams() as (stdout, stderr):
+            workspace_manager.print_workspace_resource(base_dir)
+            expected = "{'ds': <xarray.Dataset>\n" \
+                       "Dimensions:         (lat: 2, lon: 4, time: 10)\n" \
+                       "Coordinates:\n" \
+                       "  * lat             (lat) float64 34.5 34.6\n" \
+                       "    reference_time  datetime64[ns] 2014-09-05\n" \
+                       "  * lon             (lon) float64 10.1 10.2 10.3 10.4\n" \
+                       "  * time            (time) datetime64[ns] 2014-09-06 2014-09-07 2014-09-08 ...\n" \
+                       "Data variables:\n" \
+                       "    temperature     (lon, lat, time) float64 20.2 20.4 6.2 17.1 18.0 3.5 ...\n" \
+                       "    precipitation   (lon, lat, time) float64 4.6 3.7 4.4 1.2 6.8 7.3 0.4 8.3 ...,\n" \
+                       " 'ts': <xarray.Dataset>\n" \
+                       "Dimensions:          (lat: 2, lon: 4, time: 10)\n" \
+                       "Coordinates:\n" \
+                       "  * lat              (lat) float64 34.5 34.6\n" \
+                       "    reference_time   datetime64[ns] 2014-09-05\n" \
+                       "  * lon              (lon) float64 10.1 10.2 10.3 10.4\n" \
+                       "  * time             (time) datetime64[ns] 2014-09-06 2014-09-07 2014-09-08 ...\n" \
+                       "Data variables:\n" \
+                       "    temperature      (time) float64 16.09 17.23 14.5 12.43 13.49 15.54 17.56 ...\n" \
+                       "    temperature_std  (time) float64 6.215 3.215 6.184 6.683 7.082 9.18 7.715 ...}\n"
+            self.assertEqual(stdout.getvalue(), expected)
 
         workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', True)
         self.assertFalse(workspace3.workflow.find_node('ds').persistent)
