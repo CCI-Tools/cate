@@ -57,6 +57,15 @@ class TestIO(TestCase):
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
+        raw_data = "time,first_name,last_name,age,preTestScore,postTestScore\n1981-01-01,Jason,Miller,42,4,\"25,000\"\n"
+        file_out = StringIO(raw_data)
+        file_in = StringIO()
+
+        df = read_csv(file_out, index_col='time')
+        df.to_csv(file_in)
+
+        self.assertEqual(file_in.getvalue(), raw_data)
+
     def test_read_geo_data_collection(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
 

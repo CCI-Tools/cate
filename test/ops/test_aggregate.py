@@ -62,7 +62,7 @@ class TestLTA(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
 
-        reg_op(ds=ds)
+        reg_op(dsf=ds)
 
     def test_validation(self):
         """
@@ -75,7 +75,7 @@ class TestLTA(TestCase):
 
         with self.assertRaises(ValueError) as err:
             long_term_average(ds)
-        self.assertIn('harmonization', str(err.exception))
+        self.assertIn('normalize', str(err.exception))
 
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -134,7 +134,7 @@ class TestTemporalAggregation(TestCase):
         ex.first.attrs['cell_methods'] = 'time: mean within years'
         ex.second.attrs['cell_methods'] = 'time: mean within years'
 
-        actual = reg_op(ds=ds)
+        actual = reg_op(dsf=ds)
         self.assertTrue(actual.broadcast_equals(ex))
 
     def test_validation(self):
@@ -148,7 +148,7 @@ class TestTemporalAggregation(TestCase):
 
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
-        self.assertIn('harmonization', str(err.exception))
+        self.assertIn('normalize', str(err.exception))
 
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
