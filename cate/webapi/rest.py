@@ -22,10 +22,8 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
-import concurrent
 import concurrent.futures
 import datetime
-import json
 import os.path
 import time
 import traceback
@@ -71,234 +69,6 @@ THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
 __import__('cate.ops')
-
-
-# noinspection PyAbstractClass
-class WorkspaceGetHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.get_workspace(base_dir)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceGetOpenHandler(WebAPIRequestHandler):
-    def get(self):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace_list = workspace_manager.get_open_workspaces()
-            self.write_status_ok(content=[workspace.to_json_dict() for workspace in workspace_list])
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceNewHandler(WebAPIRequestHandler):
-    def get(self):
-        base_dir = self.get_query_argument('base_dir')
-        description = self.get_query_argument('description', default='')
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.new_workspace(base_dir, description=description)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceOpenHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.open_workspace(base_dir)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceCloseHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace_manager.close_workspace(base_dir)
-            _on_workspace_closed(self.application)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceCloseAllHandler(WebAPIRequestHandler):
-    def get(self):
-        do_save = self.get_query_argument('do_save', default='False').lower() == 'true'
-        workspace_manager = self.application.workspace_manager
-        try:
-            if do_save:
-                workspace_manager.save_all_workspaces()
-            workspace_manager.close_all_workspaces()
-            _on_workspace_closed(self.application)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceSaveHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.save_workspace(base_dir)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceSaveAsHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        to_dir = self.get_query_argument('to_dir')
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.save_workspace_as(base_dir, to_dir)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceSaveAllHandler(WebAPIRequestHandler):
-    def get(self):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace_manager.save_all_workspaces()
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceDeleteHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace_manager.delete_workspace(base_dir)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceCleanHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        workspace_manager = self.application.workspace_manager
-        try:
-            workspace = workspace_manager.clean_workspace(base_dir)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class WorkspaceRunOpHandler(WebAPIRequestHandler):
-    def post(self, base_dir):
-        op_name = self.get_body_argument('op_name')
-        op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else dict()
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace = workspace_manager.run_op_in_workspace(base_dir, op_name, op_args,
-                                                                  monitor=_new_monitor())
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourceDeleteHandler(WebAPIRequestHandler):
-    def get(self, base_dir, res_name):
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace = workspace_manager.delete_workspace_resource(base_dir, res_name)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourceSetHandler(WebAPIRequestHandler):
-    def post(self, base_dir, res_name):
-        op_name = self.get_body_argument('op_name')
-        op_args = self.get_body_argument('op_args', default=None)
-        op_args = json.loads(op_args) if op_args else dict()
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace = workspace_manager.set_workspace_resource(base_dir, res_name, op_name, op_args,
-                                                                     monitor=_new_monitor())
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourceRenameHandler(WebAPIRequestHandler):
-    def get(self, base_dir, res_name):
-        new_res_name = self.get_query_argument('new_res_name')
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace = workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
-            self.write_status_ok(content=workspace.to_json_dict())
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourceWriteHandler(WebAPIRequestHandler):
-    def get(self, base_dir, res_name):
-        file_path = self.get_query_argument('file_path')
-        format_name = self.get_query_argument('format_name', default=None)
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
-                                                           format_name=format_name)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourcePlotHandler(WebAPIRequestHandler):
-    def get(self, base_dir, res_name):
-        var_name = self.get_query_argument('var_name', default=None)
-        file_path = self.get_query_argument('file_path', default=None)
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name, file_path=file_path)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
-
-
-# noinspection PyAbstractClass
-class ResourcePrintHandler(WebAPIRequestHandler):
-    def get(self, base_dir):
-        res_name_or_expr = self.get_query_argument('res_name_or_expr', default=None)
-        workspace_manager = self.application.workspace_manager
-        try:
-            with cwd(base_dir):
-                workspace_manager.print_workspace_resource(base_dir, res_name_or_expr)
-            self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
 
 
 # noinspection PyAbstractClass
@@ -462,6 +232,21 @@ class ResVarTileHandler(WebAPIRequestHandler):
                     if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
                         return dim_var
         return None
+
+
+# noinspection PyAbstractClass
+class ResourcePlotHandler(WebAPIRequestHandler):
+    def get(self, base_dir, res_name):
+        var_name = self.get_query_argument('var_name', default=None)
+        file_path = self.get_query_argument('file_path', default=None)
+        workspace_manager = self.application.workspace_manager
+        try:
+            with cwd(base_dir):
+                workspace_manager.plot_workspace_resource(base_dir, res_name, var_name=var_name,
+                                                          file_path=file_path)
+            self.write_status_ok()
+        except Exception as e:
+            self.write_status_error(exception=e)
 
 
 # noinspection PyAbstractClass

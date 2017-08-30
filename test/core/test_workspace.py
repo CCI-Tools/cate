@@ -1,13 +1,14 @@
 import json
 import os
 import unittest
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, mk_op_kwargs
+from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
 from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 
@@ -16,6 +17,18 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
+    def test_utilities(self):
+        self.assertEqual(mk_op_arg(1), {'value': 1})
+        self.assertEqual(mk_op_arg('2'), {'value': '2'})
+        self.assertEqual(mk_op_arg('a'), {'value': 'a'})
+        self.assertEqual(mk_op_arg('@b'), {'source': 'b'})
+
+        self.assertEqual(mk_op_args(), [])
+        self.assertEqual(mk_op_args(1, '2', 'a', '@b'), [{'value': 1}, {'value': '2'}, {'value': 'a'}, {'source': 'b'}])
+
+        self.assertEqual(mk_op_kwargs(a=1), OrderedDict([('a', {'value': 1})]))
+        self.assertEqual(mk_op_kwargs(a=1, b='@c'), OrderedDict([('a', {'value': 1}), ('b', {'source': 'c'})]))
+
     def test_workspace_is_part_of_context(self):
 
         def some_op(ctx: dict) -> dict:
@@ -206,6 +219,7 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_set_and_rename_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        self.assertEqual(ws.user_data, {})
 
         ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=1))
         ws.set_resource('Y', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
@@ -296,7 +310,7 @@ class WorkspaceTest(unittest.TestCase):
         ws.set_resource('p', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
         ws.set_resource('ts', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"))
-        print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
+        # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
 
         self.maxDiff = None
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
@@ -306,3 +320,8 @@ class WorkspaceTest(unittest.TestCase):
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
                                            "cannot convert value <iih!> to PointLike")
+
+        ws2 = Workspace.from_json_dict(ws.to_json_dict())
+        self.assertEqual(ws2.base_dir, ws.base_dir)
+        self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
+        self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))

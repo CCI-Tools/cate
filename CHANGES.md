@@ -1,6 +1,12 @@
+## Changes in version 0.9.0.dev6
+
+
 ## Changes in version 0.9.0.dev5
 
-### Operation Improvements
+### Improvements and new Features
+
+* Unified backend of CLI and GUI on WebSocket [#120](https://github.com/CCI-Tools/cate-core/issues/120)
+  As the GUI uses WebSocket, this remove a bit of duplicated code.
 
 ### Issues Fixed/Resolved
 

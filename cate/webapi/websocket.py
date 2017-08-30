@@ -237,9 +237,17 @@ class WebSocketService:
 
         return sorted(op_list, key=lambda op: op['name'])
 
+    def get_open_workspaces(self) -> Sequence[dict]:
+        workspace_list = self.workspace_manager.get_open_workspaces()
+        return [workspace.to_json_dict() for workspace in workspace_list]
+
+    def get_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.get_workspace(base_dir)
+        return workspace.to_json_dict()
+
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def new_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.new_workspace(base_dir)
+    def new_workspace(self, base_dir: str, description: str = None) -> dict:
+        workspace = self.workspace_manager.new_workspace(base_dir, description)
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
@@ -251,13 +259,12 @@ class WebSocketService:
     def close_workspace(self, base_dir: str) -> None:
         self.workspace_manager.close_workspace(base_dir)
 
+    def close_all_workspaces(self) -> None:
+        self.workspace_manager.close_all_workspaces()
+
     # see cate-desktop: src/renderer.states.WorkspaceState
     def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
         workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
-        return workspace.to_json_dict()
-
-    def clean_workspace(self, base_dir: str) -> dict:
-        workspace = self.workspace_manager.clean_workspace(base_dir)
         return workspace.to_json_dict()
 
     # see cate-desktop: src/renderer.states.WorkspaceState
@@ -265,11 +272,21 @@ class WebSocketService:
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
 
+    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
+        self.workspace_manager.save_all_workspaces(monitor=monitor)
+
+    def clean_workspace(self, base_dir: str) -> dict:
+        workspace = self.workspace_manager.clean_workspace(base_dir)
+        return workspace.to_json_dict()
+
+    def delete_workspace(self, base_dir: str) -> None:
+        self.workspace_manager.delete_workspace(base_dir)
+
     def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
         return workspace.to_json_dict()
 
-    def delete_workspace_resource(self, base_dir: str, res_name: str, ) -> dict:
+    def delete_workspace_resource(self, base_dir: str, res_name: str) -> dict:
         workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return workspace.to_json_dict()
 
@@ -287,6 +304,25 @@ class WebSocketService:
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
             return workspace.to_json_dict()
+
+    def write_workspace_resource(self, base_dir: str, res_name: str,
+                                 file_path: str, format_name: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        with cwd(base_dir):
+            self.workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
+                                                            format_name=format_name, monitor=monitor)
+
+    def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
+                            monitor: Monitor = Monitor.NONE) -> dict:
+        with cwd(base_dir):
+            workspace = self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
+            return workspace.to_json_dict()
+
+    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+                                 monitor: Monitor = Monitor.NONE) -> None:
+        with cwd(base_dir):
+            self.workspace_manager.print_workspace_resource(base_dir,
+                                                            res_name_or_expr=res_name_or_expr, monitor=monitor)
 
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
