@@ -36,15 +36,16 @@ import numpy as np
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
-from cate.core.types import VarNamesLike
+from cate.core.types import VarNamesLike, DatasetLike
 
-from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
+from cate.ops.normalize import adjust_temporal_attrs
 
 
 @op(tags=['aggregate'], version='1.0')
+@op_input('dsf', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
-def long_term_average(ds: xr.Dataset,
+def long_term_average(dsf: xr.Dataset,
                       var: VarNamesLike.TYPE = None,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
@@ -56,12 +57,13 @@ def long_term_average(ds: xr.Dataset,
     For further information on climatological datasets, see
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#climatological-statistics
 
-    :param ds: A monthly dataset to average
+    :param dsf: A monthly dataset to average
     :param var: If given, only these variables will be preserved in the
     resulting dataset
     :param monitor: A progress monitor
     :return: A climatological long term average dataset
     """
+    ds = DatasetLike.convert(dsf)
     # Check if time dtype is what we want
     if 'datetime64[ns]' != ds.time.dtype:
         raise ValueError('Long term average operation expects a dataset with the'
@@ -73,8 +75,8 @@ def long_term_average(ds: xr.Dataset,
     months = ds.time['time.month'].values
     if (months[1] - months[0]) != 1:
         raise ValueError('Long term average operation expects a monthly dataset'
-                         'running temporal aggregation on this dataset'
-                         'beforehand may help.')
+                         ' running temporal aggregation on this dataset'
+                         ' beforehand may help.')
 
     var = VarNamesLike.convert(var)
     # Shallow
@@ -114,7 +116,7 @@ def long_term_average(ds: xr.Dataset,
         except KeyError:
             retset[var].attrs['cell_methods'] = 'time: mean over years'
 
-    return adjust_spatial_attrs(retset)
+    return retset
 
 
 def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
@@ -133,17 +135,19 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
 @op(tags=['aggregate'], version='1.0')
 @op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
                                'var', 'argmax', 'argmin', 'first', 'last'])
+@op_input('dsf', data_type=DatasetLike)
 @op_return(add_history=True)
-def temporal_aggregation(ds: xr.Dataset,
+def temporal_aggregation(dsf: xr.Dataset,
                          method: str = 'mean') -> xr.Dataset:
     """
     Perform monthly aggregation of a daily dataset according to the given
     method.
 
-    :param ds: Dataset to aggregate
+    :param dsf: Dataset to aggregate
     :param method: Aggregation method
     :return: Aggregated dataset
     """
+    ds = DatasetLike.convert(dsf)
     # Check if time dtype is what we want
     if 'datetime64[ns]' != ds.time.dtype:
         raise ValueError('Temporal aggregation operation expects a dataset with the'

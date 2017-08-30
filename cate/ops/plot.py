@@ -75,7 +75,7 @@ import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike, TimeLike
+from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -274,12 +274,13 @@ def plot_contour(ds: xr.Dataset,
 
 
 @op(tags=['plot'])
-@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('dsf', data_type=DatasetLike)
+@op_input('var', value_set_source='dsf', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot(ds: xr.Dataset,
+def plot(dsf: xr.Dataset,
          var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
          title: str = None,
@@ -288,7 +289,7 @@ def plot(ds: xr.Dataset,
     """
     Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *var*.
 
-    :param ds: Dataset that contains the variable named by *var*.
+    :param dsf: Dataset or Dataframe that contains the variable named by *var*.
     :param var: The name of the variable to plot
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
@@ -302,6 +303,7 @@ def plot(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     :return a matplotlib figure object or None if in IPython mode
     """
+    ds = DatasetLike.convert(dsf)
 
     var_name = VarName.convert(var)
     if not var_name:

@@ -35,7 +35,7 @@ from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads, dumps
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import PolygonLike, TimeRangeLike
+from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
 
@@ -176,17 +176,19 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
 
 
 @op(tags=['subset', 'temporal'], version='1.0')
+@op_input('dsf', data_type=DatasetLike)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_return(add_history=True)
-def subset_temporal(ds: xr.Dataset,
+def subset_temporal(dsf: xr.Dataset,
                     time_range: TimeRangeLike.TYPE) -> xr.Dataset:
     """
     Do a temporal subset of the dataset.
 
-    :param ds: Dataset to subset
+    :param dsf: Dataset or dataframe to subset
     :param time_range: Time range to select
     :return: Subset dataset
     """
+    ds = DatasetLike.convert(dsf)
     time_range = TimeRangeLike.convert(time_range)
     # If it can be selected, go ahead
     try:
@@ -201,18 +203,20 @@ def subset_temporal(ds: xr.Dataset,
 
 
 @op(tags=['subset', 'temporal'], version='1.0')
+@op_input('dsf', data_type=DatasetLike)
 @op_return(add_history=True)
-def subset_temporal_index(ds: xr.Dataset,
+def subset_temporal_index(dsf: xr.Dataset,
                           time_ind_min: int,
                           time_ind_max: int) -> xr.Dataset:
     """
     Do a temporal indices based subset
 
-    :param ds: Dataset to subset
+    :param dsf: Dataset or dataframe to subset
     :param time_ind_min: Minimum time index to select
     :param time_ind_max: Maximum time index to select
     :return: Subset dataset
     """
+    ds = DatasetLike.convert(dsf)
     # we're creating a slice that includes both ends
     # to have the same functionality as subset_temporal
     time_slice = slice(time_ind_min, time_ind_max + 1)
