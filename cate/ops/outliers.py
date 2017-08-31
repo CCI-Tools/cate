@@ -39,10 +39,10 @@ from cate import __version__
 
 
 @op(version='1.0')
-@op_input('dsf', data_type=DatasetLike)
-@op_input('var', value_set_source='dsf', data_type=VarNamesLike)
+@op_input('ds', data_type=DatasetLike)
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
-def detect_outliers(dsf: xr.Dataset,
+def detect_outliers(ds: xr.Dataset,
                     var: VarNamesLike.TYPE,
                     threshold_low: float = 0.05,
                     threshold_high: float = 0.95,
@@ -56,7 +56,7 @@ def detect_outliers(dsf: xr.Dataset,
     all existing nan values will be marked as 'outliers' in the mask data array
     added to the output dataset.
 
-    :param dsf: The dataset or dataframe for which to do outlier detection
+    :param ds: The dataset or dataframe for which to do outlier detection
     :param var: Variable or variables in the dataset to which to do outlier
     detection. Note that when multiple variables are selected, absolute
     threshold values might not make much sense. Wild cards can be used to
@@ -71,7 +71,7 @@ def detect_outliers(dsf: xr.Dataset,
     :param monitor: A progress monitor.
     :return: The dataset with outliers masked or replaced with nan
     """
-    ds = DatasetLike.convert(dsf)
+    ds = DatasetLike.convert(ds)
     # Create a list of variable names on which to perform outlier detection
     # based on the input comma separated list that can contain wildcards
     var_patterns = VarNamesLike.convert(var)

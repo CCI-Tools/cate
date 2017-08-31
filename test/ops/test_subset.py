@@ -202,7 +202,7 @@ class TestSubsetTemporal(TestCase):
             'lat': np.linspace(-89.5, 89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': [datetime(2000, x, 1) for x in range(1, 7)]})
-        actual = reg_op(dsf=dataset, time_range='2000-01-10, 2000-04-01')
+        actual = reg_op(ds=dataset, time_range='2000-01-10, 2000-04-01')
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
@@ -251,7 +251,7 @@ class TestSubsetTemporalIndex(TestCase):
                      '2000-04-01',
                      '2000-05-01',
                      '2000-06-01']})
-        actual = reg_op(dsf=dataset, time_ind_min=2, time_ind_max=4)
+        actual = reg_op(ds=dataset, time_ind_min=2, time_ind_max=4)
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 3])),

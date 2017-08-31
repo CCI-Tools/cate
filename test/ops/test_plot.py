@@ -168,7 +168,7 @@ class TestPlot(TestCase):
             'first': np.random.rand(10)})
 
         with create_tmp_file('remove_me', 'jpg') as tmp_file:
-            reg_op(dsf=dataset, var='first', file=tmp_file)
+            reg_op(ds=dataset, var='first', file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
 

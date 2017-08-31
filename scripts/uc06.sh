@@ -19,11 +19,11 @@ cate res open soil local.SOIL_2007
 cate res open sst local.SST_2006_2007
 
 # Perform temporal aggregation
-cate res set soil_mon temporal_aggregation dsf=@soil
-cate res set sst_mon temporal_aggregation dsf=@sst
+cate res set soil_mon temporal_aggregation ds=@soil
+cate res set sst_mon temporal_aggregation ds=@sst
 
 # Perform Long term averaging
-cate res set sst_lta long_term_average dsf=@sst_mon
+cate res set sst_lta long_term_average ds=@sst_mon
 
 # Save the long term average dataset in the current directory
 cate res write sst_lta sst_lta.nc
@@ -35,8 +35,8 @@ cate res set enso enso_nino34 ds=@sst_mon var='analysed_sst' file='sst_lta.nc'
 cate res set soil_mon_point tseries_point ds=@soil_mon point='78,12' var='sm'
 
 # Subset the datasets with a one month lag
-cate res set soil_jannov subset_temporal dsf=@soil_mon_point time_range='2007-01-01,2007-11-01'
-cate res set enso_decoct subset_temporal dsf=@enso time_range='2006-12-01,2007-10-01'
+cate res set soil_jannov subset_temporal ds=@soil_mon_point time_range='2007-01-01,2007-11-01'
+cate res set enso_decoct subset_temporal ds=@enso time_range='2006-12-01,2007-10-01'
 
 # Perform correlation calculation
 cate res set corr pearson_correlation_scalar ds_x=@enso_decoct ds_y=@soil_jannov var_x='ENSO N3.4 Index' var_y='sm'

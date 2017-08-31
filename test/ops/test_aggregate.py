@@ -62,7 +62,7 @@ class TestLTA(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
 
-        reg_op(dsf=ds)
+        reg_op(ds=ds)
 
     def test_validation(self):
         """
@@ -134,7 +134,7 @@ class TestTemporalAggregation(TestCase):
         ex.first.attrs['cell_methods'] = 'time: mean within years'
         ex.second.attrs['cell_methods'] = 'time: mean within years'
 
-        actual = reg_op(dsf=ds)
+        actual = reg_op(ds=ds)
         self.assertTrue(actual.broadcast_equals(ex))
 
     def test_validation(self):
