@@ -1,5 +1,14 @@
 ## Changes in version 0.9.0.dev6
 
+### Improvements and new Features
+
+* Add use case 2 script [#327](https://github.com/CCI-Tools/cate-core/issues/327)
+  and [#146](https://github.com/CCI-Tools/cate-core/issues/146)
+
+### Issues Fixed/Resolved
+
+* Date and time columns in CSV data are converted into datetime objects
+* Fix use case 6 script
 
 ## Changes in version 0.9.0.dev5
 
