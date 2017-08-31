@@ -96,7 +96,7 @@ def coregister(ds_master: xr.Dataset,
             raise ValueError('The {} dataset grid does not fall into required'
                              ' boundaries. Required boundaries are ({}, {}),'
                              ' dataset boundaries are ({}, {}). Running the'
-                             ' harmonization operation'
+                             ' normalize operation'
                              ' may help.'.format(array[0],
                                                  array[2],
                                                  abs(array[2]),
@@ -119,7 +119,7 @@ def coregister(ds_master: xr.Dataset,
                              ' coregistration. Expected coordinates are (lat,'
                              ' lon, time), received coordinates are'
                              ' {}, consider running select_var and/or'
-                             ' harmonization operations'
+                             ' normalize operations'
                              ' first.'.format(key, ds_slave[key].dims))
 
     # Co-register

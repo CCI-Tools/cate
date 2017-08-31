@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Download soil moisture data
-cate ds copy esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.02-2.r1 --name SOIL_2007 --time '2007-01-01,2007-12-31' --region '72,8,85,17' --vars 'sm,sm_uncertainty'
+cate ds copy esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1 --name SOIL_2007 --time '2007-01-01,2007-12-31' --region '72,8,85,17' --vars 'sm,sm_uncertainty'
 
 # Download sea surface temperature data
 cate ds copy esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1 --name SST_2006_2007 --time '2006-01-01,2007-12-31' --region ' -175,-10,-115,10' --vars 'analysed_sst,analysis_error'
@@ -31,15 +31,12 @@ cate res write sst_lta sst_lta.nc
 # Perform ENSO index calculation
 cate res set enso enso_nino34 ds=@sst_mon var='analysed_sst' file='sst_lta.nc'
 
-# Convert the tabular resource to a dataset
-cate res set enso_ds from_dataframe df=@enso
-
 # Select a point of soil moisture in south of India
 cate res set soil_mon_point tseries_point ds=@soil_mon point='78,12' var='sm'
 
 # Subset the datasets with a one month lag
 cate res set soil_jannov subset_temporal ds=@soil_mon_point time_range='2007-01-01,2007-11-01'
-cate res set enso_decoct subset_temporal ds=@enso_ds time_range='2006-12-01,2007-10-01'
+cate res set enso_decoct subset_temporal ds=@enso time_range='2006-12-01,2007-10-01'
 
 # Perform correlation calculation
 cate res set corr pearson_correlation_scalar ds_x=@enso_decoct ds_y=@soil_jannov var_x='ENSO N3.4 Index' var_y='sm'

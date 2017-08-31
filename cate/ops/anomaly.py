@@ -72,7 +72,7 @@ def anomaly_external(ds: xr.Dataset,
         if ds.time.dtype != 'datetime64[ns]':
             raise ValueError('The dataset provided for anomaly calculation'
                              ' is required to have a time coordinate of'
-                             ' dtype datetime64[ns]. Running the harmonization'
+                             ' dtype datetime64[ns]. Running the normalize'
                              ' operation on this dataset might help.')
     except AttributeError:
         raise ValueError('The dataset provided for anomaly calculation'

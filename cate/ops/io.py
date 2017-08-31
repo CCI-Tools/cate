@@ -244,7 +244,17 @@ def read_csv(file: FileLike.TYPE,
         kwargs.update(comment=comment)
     if index_col:
         kwargs.update(index_col=index_col)
-    return pd.read_csv(file, **kwargs)
+    retframe = pd.read_csv(file, **kwargs)
+    try:
+        if retframe.index.name in ('date', 'time'):
+            # Try to coerce the index column into datetime objects required to work
+            # with the timeseries data
+            retframe.index = pd.to_datetime(retframe.index)
+    except Exception:
+        # We still want to use the data
+        pass
+
+    return retframe
 
 
 @op(tags=['input'])

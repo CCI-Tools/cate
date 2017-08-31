@@ -75,7 +75,7 @@ class TestLTA(TestCase):
 
         with self.assertRaises(ValueError) as err:
             long_term_average(ds)
-        self.assertIn('harmonization', str(err.exception))
+        self.assertIn('normalize', str(err.exception))
 
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
@@ -148,7 +148,7 @@ class TestTemporalAggregation(TestCase):
 
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
-        self.assertIn('harmonization', str(err.exception))
+        self.assertIn('normalize', str(err.exception))
 
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),

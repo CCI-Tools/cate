@@ -31,15 +31,12 @@ cate res write sst_lta sst_lta.nc
 rem Perform ENSO index calculation
 cate res set enso enso_nino34 ds=@sst_mon var="analysed_sst" file="sst_lta.nc"
 
-rem Convert the tabular resource to a dataset
-cate res set enso_ds from_dataframe df=@enso
-
 rem Select a point of soil moisture in south of India
 cate res set soil_mon_point tseries_point ds=@soil_mon point="78,12" var="sm"
 
 rem Subset the datasets with a one month lag
 cate res set soil_jannov subset_temporal ds=@soil_mon_point time_range="2007-01-01,2007-11-01"
-cate res set enso_decoct subset_temporal ds=@enso_ds time_range="2006-12-01,2007-10-01"
+cate res set enso_decoct subset_temporal ds=@enso time_range="2006-12-01,2007-10-01"
 
 rem Perform correlation calculation
 cate res set corr pearson_correlation_scalar ds_x=@enso_decoct ds_y=@soil_jannov var_x="ENSO N3.4 Index" var_y="sm"

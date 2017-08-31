@@ -35,7 +35,7 @@ from shapely.geometry import Point, box, LineString
 from shapely.wkt import loads, dumps
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import PolygonLike, TimeRangeLike
+from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
 
@@ -176,6 +176,7 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
 
 
 @op(tags=['subset', 'temporal'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_return(add_history=True)
 def subset_temporal(ds: xr.Dataset,
@@ -183,10 +184,11 @@ def subset_temporal(ds: xr.Dataset,
     """
     Do a temporal subset of the dataset.
 
-    :param ds: Dataset to subset
+    :param ds: Dataset or dataframe to subset
     :param time_range: Time range to select
     :return: Subset dataset
     """
+    ds = DatasetLike.convert(ds)
     time_range = TimeRangeLike.convert(time_range)
     # If it can be selected, go ahead
     try:
@@ -196,11 +198,12 @@ def subset_temporal(ds: xr.Dataset,
     except TypeError:
         raise ValueError('Time subset operation expects a dataset with the'
                          ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the harmonization operation on this'
+                         ' {}. Running the normalize operation on this'
                          ' dataset may help'.format(ds.time.dtype))
 
 
 @op(tags=['subset', 'temporal'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
 def subset_temporal_index(ds: xr.Dataset,
                           time_ind_min: int,
@@ -208,11 +211,12 @@ def subset_temporal_index(ds: xr.Dataset,
     """
     Do a temporal indices based subset
 
-    :param ds: Dataset to subset
+    :param ds: Dataset or dataframe to subset
     :param time_ind_min: Minimum time index to select
     :param time_ind_max: Maximum time index to select
     :return: Subset dataset
     """
+    ds = DatasetLike.convert(ds)
     # we're creating a slice that includes both ends
     # to have the same functionality as subset_temporal
     time_slice = slice(time_ind_min, time_ind_max + 1)
