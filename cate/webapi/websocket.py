@@ -182,6 +182,9 @@ class WebSocketService:
             var_names = None
             if 'var_names' in args:
                 var_names = args['var_names']
+            # TODO use tile once make_local supports it
+            # if 'title' in args:
+            #    tile = args['title']
 
             data_source.make_local(local_name=local_name,
                                    time_range=time_range,
