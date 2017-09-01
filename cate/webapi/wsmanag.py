@@ -54,7 +54,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
 
     def _ws_json_rpc(self, method, params, error_type=WorkspaceError, timeout: float = None,
                      monitor: Monitor = Monitor.NONE):
-        json_rpc_response = self.ws_client.invokeMethod(method, params, timeout=timeout, monitor=monitor)
+        json_rpc_response = self.ws_client.invoke_method(method, params, timeout=timeout, monitor=monitor)
         json_response = json.loads(json_rpc_response)
         if 'error' in json_response:
             error_details = json_response.get('error')
@@ -228,10 +228,10 @@ class WebSocketClient(object):
     def connect(self):
         self.ioloop.run_sync(self._connect, timeout=5)
 
-    def invokeMethod(self, method, params, timeout, monitor: Monitor):
+    def invoke_method(self, method, params, timeout, monitor: Monitor):
         self.json_rpc_request = self._format_rpc_request(method, params)
         self.monitor = monitor
-        return self.ioloop.run_sync(self._invokeMethod, timeout=timeout)
+        return self.ioloop.run_sync(self._invoke_method, timeout=timeout)
 
     def close(self):
         if self.ws:
@@ -246,7 +246,7 @@ class WebSocketClient(object):
             raise e
 
     @gen.coroutine
-    def _invokeMethod(self):
+    def _invoke_method(self):
         self.ws.write_message(self.json_rpc_request)
         work_reported = 0
         while True:
@@ -254,7 +254,6 @@ class WebSocketClient(object):
             json_response = json.loads(response)
             if 'progress' in json_response and self.monitor:
                 progress = json_response['progress']
-                print(progress)
                 if 'message' in progress:
                     message = progress['message']
                     if message == 'Started':
