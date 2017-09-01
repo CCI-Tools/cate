@@ -355,12 +355,23 @@ class ResVarCsvHandler(WebAPIRequestHandler):
                 traceback.print_exc()
                 self.write_status_error(message='Internal error: %s' % e)
                 return
+        print("type:", type(var_data))
         print(var_data.__dict__)
         try:
-            csv = var_data.to_csv()
+            # assume var_data is a pandas.dataframe
+            dataframe = var_data
+            nRows, nCols = dataframe.shape
+            if nRows > 1000:
+                dataframe = dataframe[:1000]
+            csv = dataframe.to_csv()
         except Exception as e:
             try:
-                csv = var_data.to_dataframe().to_csv()
+                # assume var_data is a xarray.dataset or xarray.dataarray
+                dataframe = var_data.to_dataframe()
+                nRows, nCols = dataframe.shape
+                if nRows > 1000:
+                    dataframe = dataframe[:1000]
+                csv = dataframe.to_csv()
             except Exception as e:
                 try:
                     csv = var_data.to_series().to_csv()
