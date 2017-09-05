@@ -41,6 +41,7 @@ import json
 import os
 import psutil
 import shutil
+import uuid
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
@@ -62,6 +63,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
+
+_NAMESPACE = uuid.UUID(bytes=b"1234567890123456", version=3)
 
 
 def get_data_store_path():
@@ -337,10 +340,8 @@ class LocalDataSource(DataSource):
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-        if not local_name:
-            raise ValueError('local_name is required')
-        elif len(local_name) == 0:
-            raise ValueError('local_name cannot be empty')
+        if not local_name or len(local_name) == 0:
+            local_name = self.title
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
@@ -349,7 +350,10 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
+        self.meta_info.copy()
+
+        local_ds = local_store.create_data_source(self.id, region, _REFERENCE_DATA_SOURCE_TYPE, local_name,
+                                                  time_range=time_range, var_names=var_names,
                                                   meta_info=self.meta_info)
         self._make_local(local_ds, time_range, region, var_names, monitor)
         if local_ds.is_empty:
@@ -593,13 +597,55 @@ class LocalDataStore(DataStore):
             shutil.rmtree(os.path.join(self._store_dir, data_source.id), ignore_errors=True)
         self._data_sources.remove(data_source)
 
-    def create_data_source(self, data_source_id: str, region: PolygonLike.TYPE = None,
+    @classmethod
+    def generate_uuid(cls, ref_id=str,
+                      time_range: TimeRangeLike.TYPE = None,
+                      region: PolygonLike.TYPE = None,
+                      var_names: VarNamesLike.TYPE = None) -> uuid.UUID:
+
+        constrains_str = ref_id
+        if time_range:
+            constrains_str += TimeRangeLike.format(time_range)
+        if region:
+            constrains_str += PolygonLike.format(region)
+        if var_names:
+            constrains_str += VarNamesLike.format(var_names)
+
+        return uuid.uuid3(_NAMESPACE, constrains_str)
+
+    @classmethod
+    def generate_title(cls, ref_id=str,
+                       time_range: TimeRangeLike.TYPE = None,
+                       region: PolygonLike.TYPE = None,
+                       var_names: VarNamesLike.TYPE = None) -> uuid.UUID:
+
+        title = ref_id
+        if time_range:
+            title += " [TimeRange:{}]".format(TimeRangeLike.format(time_range))
+        if region:
+            title += " [Region:{}]".format(PolygonLike.format(region))
+        if var_names:
+            title += " [Variables:{}]".format(VarNamesLike.format(var_names))
+
+        return title
+
+    def create_data_source(self, ref_id: str, region: PolygonLike.TYPE = None,
                            reference_type: str = None, reference_name: str = None,
                            time_range: TimeRangeLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
                            meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
-        if not data_source_id.startswith('%s.' % self.id):
-            data_source_id = '%s.%s' % (self.id, data_source_id)
+
+        if reference_name:
+            reference_name = LocalDataStore.generate_title(reference_name, time_range, region, var_names)
+        else:
+            reference_name = LocalDataStore.generate_title(ref_id, time_range, region, var_names)
+
+        if meta_info:
+            meta_info['title'] = reference_name
+
+        data_source_id = LocalDataStore.generate_uuid(ref_id, time_range, region, var_names)
+        data_source_id = '%s.%s' % (self.id, data_source_id)
+
         lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
         existing_ds = None
@@ -622,6 +668,7 @@ class LocalDataStore(DataStore):
             data_source = existing_ds
         else:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
+                                          variables=var_names, temporal_coverage=time_range,
                                           reference_type=reference_type, reference_name=reference_name,
                                           meta_info=meta_info)
         if lock_file:
