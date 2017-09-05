@@ -43,7 +43,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['index', 'nino34'])
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('var', value_set_source='ds', data_type=VarName)
 def enso_nino34(ds: xr.Dataset,
                 var: VarName.TYPE,
