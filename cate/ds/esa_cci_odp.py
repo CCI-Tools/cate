@@ -70,7 +70,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 # _CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
-_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
+_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -947,10 +947,8 @@ class EsaCciOdpDataSource(DataSource):
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-        if not local_name:
-            raise ValueError('local_name is required')
-        elif len(local_name) == 0:
-            raise ValueError('local_name cannot be empty')
+        if not local_name or len(local_name) == 0:
+            local_name = self.title
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
@@ -964,8 +962,9 @@ class EsaCciOdpDataSource(DataSource):
             del local_meta_info['uuid']
             local_meta_info['ref_uuid'] = self.meta_info['uuid']
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
-                                                  time_range, var_names, meta_info=local_meta_info, lock_file=True)
+        local_ds = local_store.create_data_source(self.id, region, _REFERENCE_DATA_SOURCE_TYPE, local_name,
+                                                  time_range=time_range, var_names=var_names,
+                                                  meta_info=local_meta_info, lock_file=True)
         self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
         if local_ds.is_empty:
             local_store.remove_data_source(local_ds)
