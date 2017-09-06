@@ -1,3 +1,12 @@
+## Changes in version 0.9.0.dev7 (unrelease)
+
+### Improvements and new Features
+
+### Issues Fixed/Resolved
+
+* Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable 
+  [#326](https://github.com/CCI-Tools/cate-core/issues/326)
+
 ## Changes in version 0.9.0.dev6
 
 ### Improvements and new Features

@@ -48,6 +48,8 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil, floor, isnan
 from typing import Sequence, Tuple, Optional, Any
+
+from shapely.geometry import Polygon
 from xarray.backends import NetCDF4DataStore
 
 from owslib.csw import CatalogueServiceWeb
@@ -57,7 +59,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
     open_xarray_dataset, get_data_stores_path, find_data_sources
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource
 from cate.util.monitor import Monitor
 
@@ -714,9 +716,11 @@ class EsaCciOdpDataSource(DataSource):
 
         local_id = local_ds.id
 
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = PolygonLike.convert(region) if region else None
-        var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
+        time_range = TimeRangeLike.convert(time_range)
+        region = PolygonLike.convert(region)
+        var_names = VarNamesLike.convert(var_names)
+
+        time_range, region, var_names = self._apply_make_local_fixes(time_range, region, var_names)
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -883,6 +887,29 @@ class EsaCciOdpDataSource(DataSource):
                         file_number += 1
                         local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
         local_ds.save(True)
+
+    def _apply_make_local_fixes(self,
+                                time_range: Optional[TimeRange],
+                                region: Optional[Polygon],
+                                var_names: Optional[VarNames]):
+        """
+        This method applies fixes to the parameters of a 'make_local' invocation.
+        """
+        SOILMOISTURE_DS = [
+            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
+        ]
+        if self.id:
+            # the 't0' variable in these SOILMOISTURE data sources
+            # can not be decoded by xarray and lead to an unusable dataset
+            # see: https://github.com/CCI-Tools/cate-core/issues/326
+            if self.id in SOILMOISTURE_DS:
+                if not var_names:
+                    var_names = self._json_dict.get('variable', [])
+                if 't0' in var_names:
+                    var_names.remove('t0')
+        return (time_range, region, var_names)
 
     def make_local(self,
                    local_name: str,
