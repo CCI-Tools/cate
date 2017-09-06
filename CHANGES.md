@@ -4,6 +4,7 @@
 
 * Add use case 2 script [#327](https://github.com/CCI-Tools/cate-core/issues/327)
   and [#146](https://github.com/CCI-Tools/cate-core/issues/146)
+* long_term_average, temporal_aggregation, detect_outliers, spatial_subset and plot now work with both - datasets and dataframes.
 
 ### Issues Fixed/Resolved
 
