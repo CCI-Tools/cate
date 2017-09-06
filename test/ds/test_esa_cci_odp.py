@@ -134,10 +134,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     raise ValueError(reference_path, os.listdir(reference_path))
                 self.assertIsNotNone(new_ds)
 
-                test_uuid = LocalDataStore.generate_uuid(self.first_oc_data_source.id, new_ds_time_range)
-                test_ds_id = "local." + str(test_uuid)
-
-                self.assertEqual(new_ds.id, test_ds_id)
+                self.assertEqual(new_ds.id, new_ds_title)
                 self.assertEqual(new_ds.temporal_coverage(), new_ds_time_range)
 
                 self.first_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
@@ -157,7 +154,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                              datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
 
-                new_ds_w_one_variable_title = 'local_ds_test'
+                new_ds_w_one_variable_title = 'local_ds_test_var'
                 new_ds_w_one_variable_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
                                                                          datetime.datetime(1978, 11, 16, 23, 59)))
                 new_ds_w_one_variable_var_names = VarNamesLike.convert(['sm'])
@@ -169,12 +166,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 )
                 self.assertIsNotNone(new_ds_w_one_variable)
 
-                new_ds_w_one_uuid = LocalDataStore.generate_uuid(self.first_oc_data_source.id,
-                                                                 time_range=new_ds_w_one_variable_time_range,
-                                                                 var_names=new_ds_w_one_variable_var_names)
-                new_ds_w_one_ds_id = "local." + str(new_ds_w_one_uuid)
-
-                self.assertEqual(new_ds_w_one_variable.id, new_ds_w_one_ds_id)
+                self.assertEqual(new_ds_w_one_variable.id, new_ds_w_one_variable_title)
                 ds = new_ds_w_one_variable.open_dataset()
 
                 new_ds_w_one_variable_var_names.extend(['lat', 'lon', 'time'])
@@ -196,13 +188,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertIsNotNone(new_ds_w_region)
 
-                new_ds_w_region_uuid = LocalDataStore.generate_uuid(self.first_oc_data_source.id,
-                                                                    time_range=new_ds_w_region_time_range,
-                                                                    var_names=new_ds_w_region_var_names,
-                                                                    region=new_ds_w_region_spatial_coverage)
-                new_ds_w_region_ds_id = "local." + str(new_ds_w_region_uuid)
-
-                self.assertEqual(new_ds_w_region.id, new_ds_w_region_ds_id)
+                self.assertEqual(new_ds_w_region.id, new_ds_w_region_title)
 
                 self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
                 data_set = new_ds_w_region.open_dataset()
@@ -211,10 +197,9 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
 
-                no_data = self.first_oc_data_source.make_local(
-                    'empty_ds', None, (datetime.datetime(2017, 12, 1, 0, 0),
-                                       datetime.datetime(2017, 12, 31, 23, 59)),
-                )
+                no_data = self.first_oc_data_source.make_local('empty_ds',
+                                                               time_range=(datetime.datetime(2017, 12, 1, 0, 0),
+                                                                           datetime.datetime(2017, 12, 31, 23, 59)))
                 self.assertIsNone(no_data)
 
     def test_data_store(self):

@@ -104,7 +104,7 @@ from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-from cate.core.types import Like, TimeRangeLike
+from cate.core.types import Like, TimeRangeLike, PolygonLike, VarNamesLike
 from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
@@ -1230,13 +1230,13 @@ class DataSourceCommand(SubCommandCommand):
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 
-        local_name = command_args.name if command_args.name else ds_name
+        local_name = command_args.name if command_args.name else None
 
-        time_range = command_args.time
-        region = command_args.region
-        var_names = command_args.vars
+        time_range = TimeRangeLike.convert(command_args.time)
+        region = PolygonLike.convert(command_args.region)
+        var_names = VarNamesLike.convert(command_args.vars)
 
-        ds = data_source.make_local(local_name, None, time_range=time_range, region=region, var_names=var_names,
+        ds = data_source.make_local(local_name, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
         if ds:
             print("Local data source with name '%s' has been created." % ds.id)
