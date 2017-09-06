@@ -725,6 +725,10 @@ class EsaCciOdpDataSource(DataSource):
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
 
+        do_update_of_verified_time_coverage_start_once = True
+        verified_time_coverage_start = None
+        verified_time_coverage_end = None
+
         encoding_update = dict()
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
@@ -865,6 +869,11 @@ class EsaCciOdpDataSource(DataSource):
                         local_netcdf.close()
                         local_ds.add_dataset(os.path.join(local_id, file_name),
                                              (time_coverage_start, time_coverage_end))
+
+                        if do_update_of_verified_time_coverage_start_once:
+                            verified_time_coverage_start = time_coverage_start
+                            do_update_of_verified_time_coverage_start_once = False
+                        verified_time_coverage_end = time_coverage_end
                 child_monitor.done()
         else:
             outdated_file_list = []
@@ -898,6 +907,14 @@ class EsaCciOdpDataSource(DataSource):
                             urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                         file_number += 1
                         local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
+
+                        if do_update_of_verified_time_coverage_start_once:
+                            verified_time_coverage_start = coverage_from
+                            do_update_of_verified_time_coverage_start_once = False
+                        verified_time_coverage_end = coverage_to
+
+        local_ds.meta_info['temporal_coverage_start'] = verified_time_coverage_start
+        local_ds.meta_info['temporal_coverage_end'] = verified_time_coverage_end
         local_ds.save(True)
 
     def _apply_make_local_fixes(self,
