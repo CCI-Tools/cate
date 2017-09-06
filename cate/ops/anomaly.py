@@ -40,7 +40,7 @@ from cate.core.types import TimeRangeLike, PolygonLike
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
-@op(tags=['anomaly', 'climatology'], version='1.0')
+@op(tags=['anomaly'], version='1.0')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,

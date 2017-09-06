@@ -37,7 +37,7 @@ from cate.util import Monitor
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('ds_name')
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
@@ -68,7 +68,7 @@ def open_dataset(ds_name: str,
 
 
 # noinspection PyShadowingBuiltins
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('ds')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('format', value_set=['NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_64BIT', 'NETCDF3_CLASSIC'])
@@ -86,7 +86,7 @@ def save_dataset(ds: xr.Dataset, file: str, format: str = None, monitor: Monitor
 
 
 # noinspection PyShadowingBuiltins
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r')
 @op_input('format')
 def read_object(file: str, format: str = None) -> object:
@@ -103,7 +103,7 @@ def read_object(file: str, format: str = None) -> object:
 
 
 # noinspection PyShadowingBuiltins
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('obj')
 @op_input('file', file_open_mode='w', file_filters=[_ALL_FILE_FILTER])
 @op_input('format')
@@ -119,7 +119,7 @@ def write_object(obj, file: str, format: str = None):
     cate.core.objectio.write_object(obj, file, format_name=format)
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def read_text(file: str, encoding: str = None) -> str:
@@ -138,7 +138,7 @@ def read_text(file: str, encoding: str = None) -> str:
         return file.read()
 
 
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('obj')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
 @op_input('encoding')
@@ -158,7 +158,7 @@ def write_text(obj: object, file: str, encoding: str = None):
         return file.write(str(obj))
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def read_json(file: str, encoding: str = None) -> object:
@@ -176,7 +176,7 @@ def read_json(file: str, encoding: str = None) -> object:
         return json.load(file)
 
 
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('obj')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
@@ -197,7 +197,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
         return json.dump(obj, file, indent=indent)
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file',
           data_type=FileLike,
           file_open_mode='r',
@@ -257,7 +257,7 @@ def read_csv(file: FileLike.TYPE,
     return retframe
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
                                                     _ALL_FILE_FILTER])
@@ -271,7 +271,7 @@ def read_geo_data_frame(file: str) -> gpd.GeoDataFrame:
     return gpd.read_file(file, mode="r", enabled_drivers=['GeoJSON', 'ESRI Shapefile'])
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
                                                     _ALL_FILE_FILTER])
@@ -285,7 +285,7 @@ def read_geo_data_collection(file: str) -> fiona.Collection:
     return fiona.open(file, mode="r")
 
 
-@op(tags=['input'])
+@op(tags=['io', 'utility'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
 @op_input('drop_variables', data_type=VarNamesLike)
 @op_input('decode_cf')
@@ -319,7 +319,7 @@ def read_netcdf(file: str,
     return ds
 
 
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('obj')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 3', extensions=['nc'])])
 @op_input('engine')
@@ -334,7 +334,7 @@ def write_netcdf3(obj: xr.Dataset, file: str, engine: str = None):
     obj.to_netcdf(file, format='NETCDF3_64BIT', engine=engine)
 
 
-@op(tags=['output'], no_cache=True)
+@op(tags=['io', 'utility'], no_cache=True)
 @op_input('obj')
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF 4', extensions=['nc'])])
 @op_input('engine')

@@ -38,7 +38,7 @@ from cate.util import Monitor
 from cate import __version__
 
 
-@op(version='1.0')
+@op(tags=['filter'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)

@@ -34,7 +34,7 @@ import pandas as pd
 from cate.core.op import op_input, op
 
 
-@op(tags=['utility'])
+@op(tags=['utility', 'internal'])
 @op_input('method', value_set=['backfill', 'bfill', 'pad', 'ffill'])
 def pandas_fillna(df: pd.DataFrame,
                   value: float=None,

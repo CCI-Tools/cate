@@ -83,7 +83,7 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
 
-@op(tags=['plot', 'map'])
+@op(tags=['plot'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
