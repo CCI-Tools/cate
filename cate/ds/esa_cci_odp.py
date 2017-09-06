@@ -741,7 +741,8 @@ class EsaCciOdpDataSource(DataSource):
         selected_file_list = self._find_files(time_range)
         if protocol == _ODP_PROTOCOL_OPENDAP:
 
-            do_update_of_meta_info_once = True
+            do_update_of_variables_meta_info_once = True
+            do_update_of_region_meta_info_once = True
 
             files = self._get_urls_list(selected_file_list, protocol)
             monitor.start('Sync ' + self.id, total_work=len(files))
@@ -845,16 +846,21 @@ class EsaCciOdpDataSource(DataSource):
                         local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
                         local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
                         local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
-
+                        if do_update_of_region_meta_info_once:
+                            local_ds.meta_info['bbox_maxx'] = geo_lon_max
+                            local_ds.meta_info['bbox_minx'] = geo_lon_min
+                            local_ds.meta_info['bbox_maxy'] = geo_lat_max
+                            local_ds.meta_info['bbox_miny'] = geo_lat_min
+                            do_update_of_region_meta_info_once = False
                 finally:
                     if remote_netcdf:
                         remote_netcdf.close()
-                    if do_update_of_meta_info_once:
+                    if do_update_of_variables_meta_info_once:
                         variables_info = local_ds.meta_info.get('variables', [])
                         local_ds.meta_info['variables'] = [var_info for var_info in variables_info
                                                            if var_info.get('name') in local_netcdf.variables.keys() and
                                                            var_info.get('name') not in local_netcdf.dimensions.keys()]
-                        do_update_of_meta_info_once = False
+                        do_update_of_variables_meta_info_once = False
                     if local_netcdf:
                         local_netcdf.close()
                         local_ds.add_dataset(os.path.join(local_id, file_name),
