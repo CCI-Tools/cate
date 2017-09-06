@@ -715,7 +715,7 @@ class EsaCciOdpDataSource(DataSource):
                     monitor: Monitor = Monitor.NONE):
 
         local_id = local_ds.id
-
+        local_ds.meta_info
         time_range = TimeRangeLike.convert(time_range)
         region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
@@ -740,6 +740,8 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if protocol == _ODP_PROTOCOL_OPENDAP:
+
+            do_update_of_meta_info_once = True
 
             files = self._get_urls_list(selected_file_list, protocol)
             monitor.start('Sync ' + self.id, total_work=len(files))
@@ -826,7 +828,6 @@ class EsaCciOdpDataSource(DataSource):
                                 geo_lon_max_copy = geo_lon_max
                                 geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
                                 geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
-
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
                     var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
@@ -848,11 +849,16 @@ class EsaCciOdpDataSource(DataSource):
                 finally:
                     if remote_netcdf:
                         remote_netcdf.close()
+                    if do_update_of_meta_info_once:
+                        variables_info = local_ds.meta_info.get('variables', [])
+                        local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                           if var_info.get('name') in local_netcdf.variables.keys() and
+                                                           var_info.get('name') not in local_netcdf.dimensions.keys()]
+                        do_update_of_meta_info_once = False
                     if local_netcdf:
                         local_netcdf.close()
                         local_ds.add_dataset(os.path.join(local_id, file_name),
                                              (time_coverage_start, time_coverage_end))
-
                 child_monitor.done()
         else:
             outdated_file_list = []
