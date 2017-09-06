@@ -10,6 +10,7 @@
 
 * Date and time columns in CSV data are converted into datetime objects
 * Fix use case 6 script
+* Fix #320 (wrong file dialog for enso_nino34 operation in GUI)
 
 ## Changes in version 0.9.0.dev5
 
