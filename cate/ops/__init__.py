@@ -63,7 +63,6 @@ from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
 from .outliers import detect_outliers
-from .pandas import pandas_fillna
 
 
 __all__ = [
@@ -126,6 +125,4 @@ __all__ = [
     'oni',
     # .outliers
     'detect_outliers',
-    # .pandas
-    'pandas_fillna'
 ]

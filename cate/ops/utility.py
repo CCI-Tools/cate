@@ -155,3 +155,40 @@ def no_op(num_steps: int = 10,
     if fail_after:
         raise ValueError('Intentionally failed after doing nothing.')
     monitor.done()
+
+
+@op(tags=['utility', 'internal'])
+@op_input('method', value_set=['backfill', 'bfill', 'pad', 'ffill'])
+def pandas_fillna(df: pd.DataFrame,
+                  value: float=None,
+                  method: str=None,
+                  limit: int=None,
+                  **kwargs) -> pd.DataFrame:
+    """
+    Return a new dataframe with NaN values filled according to the given value
+    or method.
+
+    This is a wrapper for the ``pandas.fillna()`` function For additional
+    keyword arguments and information refer to pandas documentation at
+    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.fillna.html
+
+    :param df: The dataframe to fill
+    :param value: Value to fill
+    :param method: Method according to which to fill NaN. ffill/pad will
+    propagate the last valid observation to the next valid observation.
+    backfill/bfill will propagate the next valid observation back to the last
+    valid observation.
+    :param limit: Maximum number of NaN values to forward/backward fill.
+    :return: A dataframe with nan values filled with the given value or
+    according to the given method.
+    """
+    # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
+    kwargs = dict(kwargs)
+    if value:
+        kwargs.update(value=value)
+    if method:
+        kwargs.update(method=method)
+    if limit:
+        kwargs.update(limit=limit)
+
+    return df.fillna(**kwargs)
