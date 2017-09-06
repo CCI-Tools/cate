@@ -89,6 +89,8 @@ _TIME_FREQUENCY_TO_TIME_DELTA = dict([
     ('yr', timedelta(days=365)),
 ])
 
+_YEAR_REALIZATION = re.compile(4 * '\\d')
+
 _ODP_PROTOCOL_HTTP = 'HTTPServer'
 _ODP_PROTOCOL_OPENDAP = 'OPENDAP'
 
@@ -473,6 +475,17 @@ class EsaCciOdpDataSource(DataSource):
             temp_coverage_end = self._catalogue_data.get('temporal_coverage_end', None)
             if temp_coverage_start and temp_coverage_end:
                 self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
+                # ODP datasets that are split into per-year datasets
+                # have the year they are covering in the 'realization' attribute
+                # the CSW does not have separate temporal coverages for them
+                realization = self._json_dict.get('realization', None)
+                if realization and len(realization):
+                    matcher = _YEAR_REALIZATION.match(realization[0])
+                    if matcher:
+                        year = matcher.group(0)
+                        rel_start = max(self._temporal_coverage[0], datetime(int(year), 1, 1))
+                        rel_end = min(self._temporal_coverage[1], datetime(int(year) + 1, 1, 1) - timedelta(seconds=1))
+                        self._temporal_coverage = (rel_start, rel_end)
             else:
                 self.update_file_list(monitor)
         if self._temporal_coverage:

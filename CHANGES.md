@@ -11,6 +11,7 @@
 * Date and time columns in CSV data are converted into datetime objects
 * Fix use case 6 script
 * Fix #320 (wrong file dialog for enso_nino34 operation in GUI)
+* Fix temporal coverage for ODP datasets that are listed as a single dataset in the CSW and as multiple in the ESGF
 
 ## Changes in version 0.9.0.dev5
 
