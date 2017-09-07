@@ -571,6 +571,7 @@ Operation development checklist
   * Do the tests run resonably fast?
 
 * Is the operation properly documented?
+* Is the operation proprely tagged?
 
 When a newly created operation coresponds to this checklist well, it can be said with
 some certainty that the operation behaves well with respect to the Cate
