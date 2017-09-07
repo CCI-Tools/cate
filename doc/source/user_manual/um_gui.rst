@@ -358,6 +358,22 @@ PLACEMARKS Panel
 VIEWS Panel
 -----------
 
+The **VIEWS** panel shows the settings of the currently active *View*. The settings depend non the type of the active
+view.
+
+*World Views* have the following settings:
+
+* Whether to use a 2D map or 3D globe.
+* The projection for the 2D map.
+* Whether to show layer titles (currently 3D globe only).
+* Whether to split the current layer (currently 3D globe only).
+
+*Figures Views* don't provide any special settings yet. However, in future releases, you will be able to
+change plot styles and size.
+
+*Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
+the subset of the data ypou want to see in the table.
+
 .. figure:: ../_static/figures/user_manual/gui_panel_views.png
    :scale: 100 %
    :align: center
@@ -372,12 +388,15 @@ VIEWS Panel
 TASKS Panel
 -----------
 
+The **TASKS** panel shows all active tasks. Long running tasks are usually originating
+from downloading datasets or performing operations on datasets. Some running
+tasks may be cancelled, others not.
+
 .. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
    :scale: 100 %
    :align: center
 
    Tasks Panel
-
 
 
 .. _preferences_dialog:
@@ -386,10 +405,37 @@ TASKS Panel
 Preferences Dialog
 ------------------
 
+On the **General** tab you can specify the following settings:
+
+* Whether to *reopen the last workspace on startup* of Cate
+* The *resource name prefix* which will be used by default for new resources
+  originating from opening datasets or executing operations.
+* Whether to *open a plot view for new Figure resources*. If selected and
+  a newly created resource is of type ``Figure``, a plot view will be opened automatically.
+  Note, ``Figure`` resources are created by operations named ``plot_<type>()``.
+* Whether to *force offline mode* after restart. In this mode Cate does not rely on an internet connection.
+  Therefore the background satellite imagery used for the 2D/3D maps falls back to a static, low resolution
+  map.
+
 .. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
    :scale: 100 %
    :align: center
 
-   Preferences Dialog
+   Preferences Dialog / General
 
+
+On the **Data Management** tab you can specify the following settings:
+
+* The location of the *synchronisation directory for remote data store files*. This
+  directory is used by Cate for downloading and synchronizing remote data.
+  The location shall ensure sufficient disk space for your type of application and the amount
+  of data required locally.
+* Whether to use a *per-workspace imagery cache* which may speed up image display performance.
+  The cache is placed in each workspace directory and requires extra (disk) space.
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog / Data Management
 
