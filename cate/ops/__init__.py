@@ -64,6 +64,8 @@ from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
 from .outliers import detect_outliers
 
+from .test import test_monitor
+
 
 __all__ = [
     # .timeseries
@@ -126,4 +128,6 @@ __all__ = [
     'oni',
     # .outliers
     'detect_outliers',
+    # .test
+    'test_monitor'
 ]

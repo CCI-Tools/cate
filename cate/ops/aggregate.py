@@ -45,7 +45,7 @@ from cate.ops.normalize import adjust_temporal_attrs
 @op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
-def long_term_average(ds: xr.Dataset,
+def long_term_average(ds: DatasetLike.TYPE,
                       var: VarNamesLike.TYPE = None,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
