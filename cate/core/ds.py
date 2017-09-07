@@ -518,7 +518,9 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
 def open_dataset(data_source: Union[DataSource, str],
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
-                 var_names: VarNamesLike.TYPE = None) -> Any:
+                 var_names: VarNamesLike.TYPE = None,
+                 force_local: bool = False,
+                 local_ds_id: str = None) -> Any:
     """
     Open a dataset from a data source.
 
@@ -529,6 +531,10 @@ def open_dataset(data_source: Union[DataSource, str],
             If given, it must be a :py:class:`PolygonLike`.
     :param var_names: Optional names of variables to be included.
             If given, it must be a :py:class:`VarNamesLike`.
+    :param force_local: Optional flag for remote data sources only
+            Whether to make a local copy of data source if it's not present
+    :param local_ds_id: Optional, fpr remote data sources only
+            Local data source ID for newly created copy of remote data source
     :return: An new dataset instance
     """
     if data_source is None:
@@ -542,7 +548,9 @@ def open_dataset(data_source: Union[DataSource, str],
         elif len(data_sources) > 1:
             raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
         data_source = data_sources[0]
-
+        if force_local:
+            data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
+                                                 time_range=time_range, region=region, var_names=var_names)
     return data_source.open_dataset(time_range, region, var_names)
 
 
