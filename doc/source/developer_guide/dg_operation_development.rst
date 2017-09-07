@@ -107,6 +107,22 @@ If the newly created operation is meant to be part of the Cate core operation
 suite, it should be possible to import it when Cate is used programmatically.
 Hence, it should be put in ``cate/ops`` and imported in ``cate/ops/__init__.py``.
 
+Tags
+----
+
+Each operation should have at least one tag. This can be the module name,
+``input`` or ``output`` in case of operations in the ``io`` module, as well as
+a tag from the following list:
+
+  * ``utility`` for any utility operations
+  * ``internal`` for internal operations, they will not be shown in user
+    interfaces
+  * ``geometric`` for geometric operations
+  * ``point`` for operations that operate on single lon/lat points
+  * ``spatial`` for predominantly spatial operations
+  * ``temporal`` for predominantly temporal operations
+  * ``filter`` for operations that filter out things from an input to an output
+
 
 .. _dg-op-history-information:
 
@@ -558,4 +574,6 @@ Operation development checklist
 
 When a newly created operation coresponds to this checklist well, it can be said with
 some certainty that the operation behaves well with respect to the Cate
+
+
 framework, as well as the wider world.

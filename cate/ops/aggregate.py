@@ -41,7 +41,7 @@ from cate.core.types import VarNamesLike, DatasetLike
 from cate.ops.normalize import adjust_temporal_attrs
 
 
-@op(tags=['aggregate'], version='1.0')
+@op(tags=['aggregate', 'temporal'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
@@ -132,7 +132,7 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
     return retset
 
 
-@op(tags=['aggregate'], version='1.0')
+@op(tags=['aggregate', 'temporal'], version='1.0')
 @op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
                                'var', 'argmax', 'argmin', 'first', 'last'])
 @op_input('ds', data_type=DatasetLike)

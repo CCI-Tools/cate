@@ -57,13 +57,12 @@ from .plot import plot_map, plot, plot_data_frame
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
-from .utility import sel, from_dataframe, identity, literal
+from .utility import sel, from_dataframe, identity, literal, pandas_fillna
 from .aggregate import long_term_average, temporal_aggregation
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
 from .outliers import detect_outliers
-from .pandas import pandas_fillna
 
 
 __all__ = [
@@ -111,6 +110,7 @@ __all__ = [
     'from_dataframe',
     'identity',
     'literal',
+    'pandas_fillna',
     # .aggregate
     'long_term_average',
     'temporal_aggregation',
@@ -126,6 +126,4 @@ __all__ = [
     'oni',
     # .outliers
     'detect_outliers',
-    # .pandas
-    'pandas_fillna'
 ]

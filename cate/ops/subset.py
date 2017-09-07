@@ -39,7 +39,7 @@ from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
 
-@op(tags=['geometric', 'subset', 'spatial', 'geom'], version='1.0')
+@op(tags=['geometric', 'spatial', 'subset'], version='1.0')
 @op_input('region', data_type=PolygonLike)
 @op_return(add_history=True)
 def subset_spatial(ds: xr.Dataset,
@@ -175,7 +175,7 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
             return False
 
 
-@op(tags=['subset', 'temporal'], version='1.0')
+@op(tags=['subset', 'temporal', 'filter'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_return(add_history=True)
@@ -202,7 +202,7 @@ def subset_temporal(ds: xr.Dataset,
                          ' dataset may help'.format(ds.time.dtype))
 
 
-@op(tags=['subset', 'temporal'], version='1.0')
+@op(tags=['subset', 'temporal', 'filter', 'utility'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
 def subset_temporal_index(ds: xr.Dataset,

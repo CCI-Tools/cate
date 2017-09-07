@@ -36,7 +36,7 @@ from cate.ops.select import select_var
 from cate.core.types import VarNamesLike, PointLike
 
 
-@op(tags=['timeseries', 'temporal', 'point'])
+@op(tags=['timeseries', 'temporal', 'filter', 'point'])
 @op_input('point', data_type=PointLike)
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
@@ -75,7 +75,7 @@ def tseries_point(ds: xr.Dataset,
     return retset.sel(method=method, **indexers)
 
 
-@op(tags=['timeseries', 'temporal', 'aggregate', 'mean'])
+@op(tags=['timeseries', 'temporal'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 def tseries_mean(ds: xr.Dataset,
