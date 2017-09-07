@@ -12,6 +12,8 @@
   [#277](https://github.com/CCI-Tools/cate-core/issues/277)
 * Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
   [#315](https://github.com/CCI-Tools/cate-core/issues/315)
+* Added option to use open_dataset in workflow with automatic copying remote data source and reusing/re-opening previusly copied data (constraint-aware)
+  [#287](https://github.com/CCI-Tools/cate-core/issues/287)
 
 ## Changes in version 0.9.0.dev6
 
