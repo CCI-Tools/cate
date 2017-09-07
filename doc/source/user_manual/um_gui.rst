@@ -330,11 +330,26 @@ in the Cate context includes functions that
 LAYERS Panel
 ------------
 
+.. figure:: ../_static/figures/user_manual/gui_panel_layers.png
+   :scale: 100 %
+   :align: center
+
+   Layers Panel
+
+
+
 .. _placemarks_panel:
 
 ----------------
 PLACEMARKS Panel
 ----------------
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks.png
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel
+
 
 
 .. _views_panel:
@@ -343,12 +358,26 @@ PLACEMARKS Panel
 VIEWS Panel
 -----------
 
-.. _tasks_panel:
+.. figure:: ../_static/figures/user_manual/gui_panel_views.png
+   :scale: 100 %
+   :align: center
 
+   Views Panel
+
+
+
+.. _tasks_panel:
 
 -----------
 TASKS Panel
 -----------
+
+.. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
+   :scale: 100 %
+   :align: center
+
+   Tasks Panel
+
 
 
 .. _preferences_dialog:
@@ -357,5 +386,10 @@ TASKS Panel
 Preferences Dialog
 ------------------
 
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog
 
 
