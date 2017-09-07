@@ -1,4 +1,4 @@
-## Changes in version 0.9.0.dev7 (unrelease)
+## Changes in version 0.9.0.dev7 (unreleased)
 
 ### Improvements and new Features
 
@@ -6,6 +6,8 @@
 
 * Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable 
   [#326](https://github.com/CCI-Tools/cate-core/issues/326)
+* Use only tags from a predefined set (maybe module name && list in developers' guide)
+  [#280](https://github.com/CCI-Tools/cate-core/issues/280)
 
 ## Changes in version 0.9.0.dev6
 

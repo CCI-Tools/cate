@@ -134,7 +134,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     raise ValueError(reference_path, os.listdir(reference_path))
                 self.assertIsNotNone(new_ds)
 
-                self.assertEqual(new_ds.id, new_ds_title)
+                self.assertEqual(new_ds.id, "local.%s" % new_ds_title)
                 self.assertEqual(new_ds.temporal_coverage(), new_ds_time_range)
 
                 self.first_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
@@ -166,7 +166,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 )
                 self.assertIsNotNone(new_ds_w_one_variable)
 
-                self.assertEqual(new_ds_w_one_variable.id, new_ds_w_one_variable_title)
+                self.assertEqual(new_ds_w_one_variable.id, "local.%s" % new_ds_w_one_variable_title)
                 ds = new_ds_w_one_variable.open_dataset()
 
                 new_ds_w_one_variable_var_names.extend(['lat', 'lon', 'time'])
@@ -188,7 +188,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertIsNotNone(new_ds_w_region)
 
-                self.assertEqual(new_ds_w_region.id, new_ds_w_region_title)
+                self.assertEqual(new_ds_w_region.id, "local.%s" % new_ds_w_region_title)
 
                 self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
                 data_set = new_ds_w_region.open_dataset()

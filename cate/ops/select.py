@@ -38,7 +38,7 @@ from cate.core.op import op, op_input
 from cate.core.types import VarNamesLike
 
 
-@op(tags=['select', 'subset', 'filter', 'var'])
+@op(tags=['filter'])
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 def select_var(ds: xr.Dataset, var: VarNamesLike.TYPE = None) -> xr.Dataset:
@@ -68,7 +68,7 @@ def select_var(ds: xr.Dataset, var: VarNamesLike.TYPE = None) -> xr.Dataset:
     return ds.drop(dropped_var_names)
 
 
-@op(tags=['select', 'filter', 'var'])
+@op(tags=['filter'])
 def select_features(df: gpd.GeoDataFrame, var: dict = None) -> gpd.GeoDataFrame:
     """
     Filter the dataframe, by leaving only the desired features in it. The original dataframe

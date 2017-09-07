@@ -89,10 +89,9 @@ To install Cate for development and for the current user, use
 
     $ python3 setup.py develop --user
 
-Unfortunately, the installation fails on many platforms. In most cases the failure will be caused by the 
-`h5py` module dependency, which expects pre-installed HDF-5 C-libraries to be present on your computer. 
-
-On Windows, you may get around this by pre-installing the Cate dependencies (which you'll find in `setup.py`) 
+There is a **known issue on Windows** when installing into an existing Python environment. Installation may
+fail due to an unresolved dependency to the `h5py` package, which expects pre-installed 
+HDF-5 C-libraries to be present on your computer. You may get around this by pre-installing the Cate dependencies (which you'll find in `setup.py`) 
 on your own, for example by using Christoph Gohlke's 
 [Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
 

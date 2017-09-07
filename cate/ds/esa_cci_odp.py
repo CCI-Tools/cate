@@ -58,7 +58,7 @@ from owslib.namespaces import Namespaces
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-    open_xarray_dataset, get_data_stores_path, find_data_sources
+    open_xarray_dataset, get_data_stores_path
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
@@ -591,7 +591,14 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = find_data_sources(id=local_id)  # type: Sequence['DataSource']
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            add_to_data_store_registry()
+            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            raise ValueError('Cannot initialize `local` DataStore')
+
+        data_sources = local_store.query(id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -621,9 +628,11 @@ class EsaCciOdpDataSource(DataSource):
         if to_add:
             for time_range_to_add in to_add:
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+            data_source.meta_info['temporal_coverage_start'] = time_range[0]
+            data_source.meta_info['temporal_coverage_end'] = time_range[1]
+            data_source.update_temporal_coverage(time_range)
 
-        # TODO (chris): forman added False (?) to make signature happy
-        return False
+        return bool(to_remove or to_add)
 
     def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
 

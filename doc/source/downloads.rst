@@ -13,7 +13,10 @@ Installers
 The Cate software can be downloaded from the `Cate releases page`_ under the terms and conditions of
 the `MIT open source license`_.
 
-We make available separate installers for the Cate Python core and the Cate Desktop application.
+We make available separate installers for *Cate Core* (Cate's Python environment, API, CLI, Service) and the
+*Cate Desktop* application (Cate's GUI).
+
+Please check the [] if you encounter any problems installing Cate.
 
 Source Code
 ===========

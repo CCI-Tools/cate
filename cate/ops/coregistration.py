@@ -44,7 +44,7 @@ from cate.ops import resampling
 from cate.ops.normalize import adjust_spatial_attrs
 
 
-@op(tags=['geometric', 'coregistration', 'geom', 'global', 'resampling'],
+@op(tags=['geometric', 'coregistration'],
     version='1.0')
 @op_input('method_us', value_set=['nearest', 'linear'])
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])

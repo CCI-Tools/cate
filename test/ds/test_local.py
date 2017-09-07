@@ -37,14 +37,14 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         new_ds_name = 'a_name'
         new_ds = self.data_store.add_pattern(new_ds_name, "a_pat")
 
-        self.assertEqual(new_ds_name, new_ds.id)
+        self.assertEqual("test.%s" % new_ds_name, new_ds.id)
 
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)
 
         with self.assertRaises(ValueError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual("Local data store 'test' already contains a data source named '{}'".format(new_ds_name),
+        self.assertEqual("Local data store 'test' already contains a data source named 'test.{}'".format(new_ds_name),
                          str(cm.exception))
 
         data_sources = self.data_store.query()
@@ -52,7 +52,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
     def test__repr_html(self):
         html = self.data_store._repr_html_()
-        self.assertEqual(514, len(html), html)
+        self.assertEqual(524, len(html), html)
 
     def test_init(self):
         data_store2 = LocalDataStore('test', self.tmp_dir)
@@ -254,7 +254,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
             new_ds = data_source.make_local(new_ds_title, time_range=new_ds_time_range)
             self.assertIsNotNone(new_ds)
 
-            self.assertEqual(new_ds.id, new_ds_title)
+            self.assertEqual(new_ds.id, "local.%s" % new_ds_title)
             self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                 (datetime.datetime(1978, 11, 14, 0, 0),
                  datetime.datetime(1978, 11, 15, 23, 59))))
@@ -279,7 +279,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                            time_range=new_ds_2_time_range,
                                                            var_names=new_ds_2_vars)
             self.assertIsNotNone(new_ds_w_one_variable)
-            self.assertEqual(new_ds_w_one_variable.id, new_ds_2_title)
+            self.assertEqual(new_ds_w_one_variable.id, "local.%s" % new_ds_2_title)
             data_set = new_ds_w_one_variable.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
@@ -294,7 +294,7 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                      var_names=new_ds_3_vars,
                                                      region=new_ds_3_region)  # type: LocalDataSource
             self.assertIsNotNone(new_ds_w_region)
-            self.assertEqual(new_ds_w_region.id, new_ds_3_title)
+            self.assertEqual(new_ds_w_region.id, "local.%s" % new_ds_3_title)
             self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
             data_set = new_ds_w_region.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
