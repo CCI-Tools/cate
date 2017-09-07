@@ -146,7 +146,7 @@ explained in the following:
 1. Download the complete remote dataset or a subset and make it a new *local* data source available from the
    ``local`` data store. Open the dataset from the new local data source. **This is currently the recommended way
    to access remote data** as local data stores ensure sufficient I/O performance and are not bound to your internet
-   connection and remote service availablity.
+   connection and remote service availability.
 2. Open the remote dataset without creating a local data copy. **This option should only be used for small subsets
    of the data**, e.g. time series extractions within small spatial areas, as there is currently no way to observe
    the data rate and status of data elements already transferred.
@@ -169,9 +169,15 @@ remote one. You can also provide a name for the new data source. By default, the
 by "local".
 
 .. note::
-   Downloading remote data may require a lot of free space on your local system. By default, Cate stores this data
-   in the user's home directory. On Linux and Mac OS, that is  ``~/.cate/data_stores`, on Windows it is
-   ``%USER_PROFILE%\.cate\data_stores``. Use the :ref:`preferences_dialog` to set an alternative location.
+   We strongly recommend to set the constraints to limit the overall amount of data to be downloaded
+   and stored. We are currently not able to pre-compute the amount of data and the time it will take to
+   fully download it.
+   Also note, that downloading remote data may require a lot of free space on your local system.
+   By default, Cate stores this data in the user's home directory. On Linux and Mac OS, that is
+   ``~/.cate/data_stores`, on Windows it is
+   ``%USER_PROFILE%\.cate\data_stores``.
+   Use the :ref:`preferences_dialog` to set an alternative location.
+
 
 After confirming the dialog, a download task will be started, which can be observed in the **TASKS** panel.
 Once the download is finished, a notification will be displayed and a new local data source will be available for the
