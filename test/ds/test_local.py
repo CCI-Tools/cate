@@ -6,7 +6,7 @@ import unittest.mock
 import datetime
 import shutil
 from cate.core.ds import DATA_STORE_REGISTRY
-from cate.core.types import PolygonLike, TimeRangeLike
+from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore, LocalDataSource
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from collections import OrderedDict
@@ -34,15 +34,17 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
 
-        new_ds = self.data_store.add_pattern("a_name", "a_pat")
-        self.assertEqual('test.a_name', new_ds.id)
+        new_ds_name = 'a_name'
+        new_ds = self.data_store.add_pattern(new_ds_name, "a_pat")
+
+        self.assertEqual("test.%s" % new_ds_name, new_ds.id)
 
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)
 
         with self.assertRaises(ValueError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual("Local data store 'test' already contains a data source named 'test.a_name'",
+        self.assertEqual("Local data store 'test' already contains a data source named 'test.{}'".format(new_ds_name),
                          str(cm.exception))
 
         data_sources = self.data_store.query()
@@ -50,7 +52,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
 
     def test__repr_html(self):
         html = self.data_store._repr_html_()
-        self.assertEqual(524, len(html))
+        self.assertEqual(524, len(html), html)
 
     def test_init(self):
         data_store2 = LocalDataStore('test', self.tmp_dir)
@@ -246,11 +248,13 @@ class LocalFilePatternSourceTest(unittest.TestCase):
         data_source = self._local_data_store.query('local_w_temporal')[0]
 
         with unittest.mock.patch.object(EsaCciOdpDataStore, 'query', return_value=[]):
-            new_ds = data_source.make_local('from_local_to_local', None,
-                                            (datetime.datetime(1978, 11, 14, 0, 0),
-                                             datetime.datetime(1978, 11, 15, 23, 59)))
+            new_ds_title = 'from_local_to_local'
+            new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+            new_ds = data_source.make_local(new_ds_title, time_range=new_ds_time_range)
             self.assertIsNotNone(new_ds)
-            self.assertEqual(new_ds.id, 'local.from_local_to_local')
+
+            self.assertEqual(new_ds.id, "local.%s" % new_ds_title)
             self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                 (datetime.datetime(1978, 11, 14, 0, 0),
                  datetime.datetime(1978, 11, 15, 23, 59))))
@@ -266,28 +270,38 @@ class LocalFilePatternSourceTest(unittest.TestCase):
                                                            datetime.datetime(1978, 11, 16, 23, 59)))
             self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
 
-            new_ds_w_one_variable = data_source.make_local('from_local_to_local_var', None,
-                                                           (datetime.datetime(1978, 11, 14, 0, 0),
-                                                            datetime.datetime(1978, 11, 15, 23, 59)),
-                                                           None, ['sm'])
+            new_ds_2_title = 'from_local_to_local_var'
+            new_ds_2_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                         datetime.datetime(1978, 11, 15, 23, 59)))
+            new_ds_2_vars = VarNamesLike.convert(['sm'])
+
+            new_ds_w_one_variable = data_source.make_local(new_ds_2_title,
+                                                           time_range=new_ds_2_time_range,
+                                                           var_names=new_ds_2_vars)
             self.assertIsNotNone(new_ds_w_one_variable)
-            self.assertEqual(new_ds_w_one_variable.id, 'local.from_local_to_local_var')
+            self.assertEqual(new_ds_w_one_variable.id, "local.%s" % new_ds_2_title)
             data_set = new_ds_w_one_variable.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
-            new_ds_w_region = data_source.make_local('from_local_to_local_region', None,
-                                                     (datetime.datetime(1978, 11, 14, 0, 0),
-                                                      datetime.datetime(1978, 11, 15, 23, 59)),
-                                                     "10,10,20,20", ['sm'])  # type: LocalDataSource
+            new_ds_3_title = 'from_local_to_local_range'
+            new_ds_3_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                         datetime.datetime(1978, 11, 15, 23, 59)))
+            new_ds_3_vars = VarNamesLike.convert(['sm'])
+            new_ds_3_region = PolygonLike.convert("10,10,20,20")
+
+            new_ds_w_region = data_source.make_local(new_ds_3_title,
+                                                     time_range=new_ds_3_time_range,
+                                                     var_names=new_ds_3_vars,
+                                                     region=new_ds_3_region)  # type: LocalDataSource
             self.assertIsNotNone(new_ds_w_region)
-            self.assertEqual(new_ds_w_region.id, 'local.from_local_to_local_region')
+            self.assertEqual(new_ds_w_region.id, "local.%s" % new_ds_3_title)
             self.assertEqual(new_ds_w_region.spatial_coverage(), PolygonLike.convert("10,10,20,20"))
             data_set = new_ds_w_region.open_dataset()
             self.assertSetEqual(set(data_set.variables), {'sm', 'lat', 'lon', 'time'})
 
-            no_data = data_source.make_local('no_data', None,
-                                             (datetime.datetime(2020, 11, 14, 0, 0),
-                                              datetime.datetime(2020, 11, 15, 23, 59)))
+            no_data = data_source.make_local('no_data',
+                                             time_range=(datetime.datetime(2020, 11, 14, 0, 0),
+                                                         datetime.datetime(2020, 11, 15, 23, 59)))
             self.assertIsNone(no_data)
 
     def test_remove_data_source_by_id(self):

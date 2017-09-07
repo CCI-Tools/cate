@@ -41,6 +41,7 @@ import json
 import os
 import psutil
 import shutil
+import uuid
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
@@ -54,7 +55,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.ds import get_data_stores_path
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -62,6 +63,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
+
+_NAMESPACE = uuid.UUID(bytes=b"1234567890123456", version=3)
 
 
 def get_data_store_path():
@@ -338,10 +341,8 @@ class LocalDataSource(DataSource):
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-        if not local_name:
-            raise ValueError('local_name is required')
-        elif len(local_name) == 0:
-            raise ValueError('local_name cannot be empty')
+        if not local_name or len(local_name) == 0:
+            local_name = self.title
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
@@ -350,8 +351,18 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
-                                                  meta_info=self.meta_info)
+        if not local_name or len(local_name) == 0:
+            local_name = "local.{}.{}".format(self.id, LocalDataStore.generate_uuid(ref_id=self.id,
+                                                                                    time_range=time_range,
+                                                                                    region=region,
+                                                                                    var_names=var_names))
+            existing_ds_list = local_store.query(local_name)
+            if len(existing_ds_list) == 1:
+                return existing_ds_list[0]
+
+        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, local_name,
+                                                  time_range=time_range, var_names=var_names,
+                                                  meta_info=self.meta_info.copy())
         if local_ds:
             if not local_ds.is_complete:
                 self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
@@ -642,15 +653,56 @@ class LocalDataStore(DataStore):
         data_source.set_completed(True)
         self._data_sources.append(data_source)
 
+    @classmethod
+    def generate_uuid(cls, ref_id: str,
+                      time_range: Optional[TimeRange] = None,
+                      region: Optional[Polygon] = None,
+                      var_names: Optional[VarNames] = None) -> uuid.UUID:
+
+        if time_range:
+            ref_id += TimeRangeLike.format(time_range)
+        if region:
+            ref_id += PolygonLike.format(region)
+        if var_names:
+            ref_id += VarNamesLike.format(var_names)
+
+        return str(uuid.uuid3(_NAMESPACE, ref_id))
+
+    @classmethod
+    def generate_title(cls, title: str,
+                       time_range: Optional[TimeRange] = None,
+                       region: Optional[Polygon] = None,
+                       var_names: Optional[VarNames] = None) -> uuid.UUID:
+
+        if time_range:
+            title += " [TimeRange:{}]".format(TimeRangeLike.format(time_range))
+        if region:
+            title += " [Region:{}]".format(PolygonLike.format(region))
+        if var_names:
+            title += " [Variables:{}]".format(VarNamesLike.format(var_names))
+
+        return title
+
     def create_data_source(self, data_source_id: str, region: PolygonLike.TYPE = None,
-                           reference_type: str = None, reference_name: str = None,
+                           reference_type: str = None, title: str = None,
                            time_range: TimeRangeLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
                            meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
+
+        if meta_info:
+            meta_info['title'] = title
+
+            if meta_info.get('uuid'):
+                meta_info['ref_uuid'] = meta_info['uuid']
+                del meta_info['uuid']
+
+        lock_filepath = os.path.join(self._store_dir, '{}.lock'.format(data_source_id))
+
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
         lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
+
         data_source = None
         for ds in self._data_sources:
             if ds.id == data_source_id:
@@ -670,7 +722,8 @@ class LocalDataStore(DataStore):
                                  .format(self.id, data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
-                                          reference_type=reference_type, reference_name=reference_name,
+                                          variables=var_names, temporal_coverage=time_range,
+                                          reference_type=reference_type, reference_name=title,
                                           meta_info=meta_info)
             data_source.set_completed(False)
             self._save_data_source(data_source)
