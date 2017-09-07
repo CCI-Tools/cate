@@ -70,7 +70,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 # _CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
-_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw"
+_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
