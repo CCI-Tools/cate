@@ -591,6 +591,8 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
             add_to_data_store_registry()
@@ -956,6 +958,10 @@ class EsaCciOdpDataSource(DataSource):
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        region = PolygonLike.convert(region) if region else None
+        var_names = VarNamesLike.convert(var_names) if var_names else None
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
