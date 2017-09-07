@@ -970,16 +970,24 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_meta_info = self.meta_info.copy()
+        uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
         if not local_name or len(local_name) == 0:
-            local_name = "local.{}.{}".format(self.id, LocalDataStore.generate_uuid(ref_id=self.id,
-                                                                                    time_range=time_range,
-                                                                                    region=region,
-                                                                                    var_names=var_names))
+            local_name = "local.{}.{}".format(self.id, uuid)
             existing_ds_list = local_store.query(local_name)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
+        else:
+            existing_ds_list = local_store.query('local.%s' % local_name)
+            if len(existing_ds_list) == 1:
+                if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
+                    return existing_ds_list[0]
+                else:
+                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
+
+        local_meta_info = self.meta_info.copy()
+        local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
+        local_meta_info['uuid'] = uuid
 
         local_ds = local_store.create_data_source(local_name,
                                                   time_range=time_range, region=region, var_names=var_names,
