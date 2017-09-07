@@ -43,6 +43,8 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
+@op_input('force_local')
+@op_input('local_ds_id')
 def open_dataset(ds_name: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
