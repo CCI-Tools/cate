@@ -8,6 +8,10 @@
   [#326](https://github.com/CCI-Tools/cate-core/issues/326)
 * Use only tags from a predefined set (maybe module name && list in developers' guide)
   [#280](https://github.com/CCI-Tools/cate-core/issues/280)
+* Generate unique default ID for local copies of remote data sources (constraint-aware)
+  [#277](https://github.com/CCI-Tools/cate-core/issues/277)
+* Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
+  [#315](https://github.com/CCI-Tools/cate-core/issues/315)
 
 ## Changes in version 0.9.0.dev6
 
