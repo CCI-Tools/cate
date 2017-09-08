@@ -43,11 +43,15 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
+@op_input('force_local')
+@op_input('local_ds_id')
 def open_dataset(ds_name: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
-                 normalize: bool = True) -> xr.Dataset:
+                 normalize: bool = True,
+                 force_local: bool = False,
+                 local_ds_id: str = None) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 
@@ -56,11 +60,14 @@ def open_dataset(ds_name: str,
     :param region: Optional spatial region of the requested dataset
     :param var_names: Optional names of variables of the requested dataset
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
+    :param force_local: Whether to make a local copy of remote data source if it's not present
+    :param local_ds_id: Optional local ID for newly created local copy of remote data source
     :return: An new dataset instance.
     """
     import cate.core.ds
     ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
-                                   var_names=var_names, region=region)
+                                   var_names=var_names, region=region,
+                                   force_local=force_local, local_ds_id=local_ds_id)
     if ds and normalize:
         return normalize_op(ds)
 

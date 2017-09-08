@@ -221,7 +221,7 @@ class VarNamesLike(Like[VarNames]):
                 raise ValueError('Variable name pattern can only be a string'
                                  ' or a list of strings.')
 
-        return value
+        return value.copy()
 
     @classmethod
     def format(cls, value: Optional[VarNames]) -> str:

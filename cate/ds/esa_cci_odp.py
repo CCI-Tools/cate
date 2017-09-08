@@ -58,9 +58,9 @@ from owslib.namespaces import Namespaces
 from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-    open_xarray_dataset, get_data_stores_path, find_data_sources
+    open_xarray_dataset, get_data_stores_path
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
-from cate.ds.local import add_to_data_store_registry, LocalDataSource
+from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -591,7 +591,16 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE,
                      monitor: Monitor = Monitor.NONE) -> bool:
 
-        data_sources = find_data_sources(id=local_id)  # type: Sequence['DataSource']
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            add_to_data_store_registry()
+            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        if not local_store:
+            raise ValueError('Cannot initialize `local` DataStore')
+
+        data_sources = local_store.query(id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -621,9 +630,11 @@ class EsaCciOdpDataSource(DataSource):
         if to_add:
             for time_range_to_add in to_add:
                 self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+            data_source.meta_info['temporal_coverage_start'] = time_range[0]
+            data_source.meta_info['temporal_coverage_end'] = time_range[1]
+            data_source.update_temporal_coverage(time_range)
 
-        # TODO (chris): forman added False (?) to make signature happy
-        return False
+        return bool(to_remove or to_add)
 
     def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
 
@@ -947,10 +958,10 @@ class EsaCciOdpDataSource(DataSource):
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
                    monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-        if not local_name:
-            raise ValueError('local_name is required')
-        elif len(local_name) == 0:
-            raise ValueError('local_name cannot be empty')
+
+        time_range = TimeRangeLike.convert(time_range) if time_range else None
+        region = PolygonLike.convert(region) if region else None
+        var_names = VarNamesLike.convert(var_names) if var_names else None
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
@@ -959,18 +970,40 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        local_meta_info = self.meta_info.copy()
-        if local_meta_info.get('uuid'):
-            del local_meta_info['uuid']
-            local_meta_info['ref_uuid'] = self.meta_info['uuid']
+        uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, self.id,
-                                                  time_range, var_names, meta_info=local_meta_info, lock_file=True)
-        self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
-        if local_ds.is_empty:
-            local_store.remove_data_source(local_ds)
+        if not local_name or len(local_name) == 0:
+            local_name = "local.{}.{}".format(self.id, uuid)
+            existing_ds_list = local_store.query(local_name)
+            if len(existing_ds_list) == 1:
+                return existing_ds_list[0]
+        else:
+            existing_ds_list = local_store.query('local.%s' % local_name)
+            if len(existing_ds_list) == 1:
+                if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
+                    return existing_ds_list[0]
+                else:
+                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
+
+        local_meta_info = self.meta_info.copy()
+        local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
+        local_meta_info['uuid'] = uuid
+
+        local_ds = local_store.create_data_source(local_name,
+                                                  time_range=time_range, region=region, var_names=var_names,
+                                                  meta_info=local_meta_info, lock_file=True)
+        if local_ds:
+            if not local_ds.is_complete:
+                self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+
+            if local_ds.is_empty:
+                local_store.remove_data_source(local_ds)
+                return None
+
+            local_store.register_ds(local_ds)
+            return local_ds
+        else:
             return None
-        return local_ds
 
     def _init_file_list(self, monitor: Monitor = Monitor.NONE):
         if self._file_list:

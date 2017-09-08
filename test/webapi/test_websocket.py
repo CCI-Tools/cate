@@ -35,6 +35,7 @@ class WebSocketServiceTest(unittest.TestCase):
         keys = sorted(list(open_dataset_op['header'].keys()))
         self.assertEqual(keys, ['description', 'tags'])
         names = [props['name'] for props in open_dataset_op['inputs']]
-        self.assertEqual(names, ['ds_name', 'time_range', 'region', 'var_names', 'normalize'])
+        self.assertEqual(names, ['ds_name', 'time_range', 'region', 'var_names', 'normalize',
+                                 'force_local', 'local_ds_id'])
         names = [props['name'] for props in open_dataset_op['outputs']]
         self.assertEqual(names, ['return'])

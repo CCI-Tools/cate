@@ -134,8 +134,8 @@ The **DATA SOURCES** panel is used to browse, download and open both local and r
 *data stores*.
 
 Using the drop-down list located at the top of the panel, it is possible to switch between the the currently
-available data stores. At the time of writing, two data stores were available in Cate, ``esa_cci_odp`` the remote
-ESA Open Data Portal, and ``local`` representing data sources made available on your local computer.
+available data stores. At the time of writing, two data stores were available in Cate, the remote
+*ESA Open Data Portal*, and *Local Data Sources* representing datasets made available through your file system.
 Below data stores selector, there is a search field, while typing, the list of data sources published through
 the selected data store is narrowed down. Selecting a data source entry will allow displaying its **Details**,
 namely the available (geo-physical) variables and the meta-data associated with the data source.
@@ -144,9 +144,9 @@ In order to start working with remote data from the ``esa_cci_odp`` data store, 
 explained in the following:
 
 1. Download the complete remote dataset or a subset and make it a new *local* data source available from the
-   ``local`` data store. Open the dataset from the new local data source. **This is currently the recommended way
+   local data store. Open the dataset from the new local data source. **This is currently the recommended way
    to access remote data** as local data stores ensure sufficient I/O performance and are not bound to your internet
-   connection and remote service availablity.
+   connection and remote service availability.
 2. Open the remote dataset without creating a local data copy. **This option should only be used for small subsets
    of the data**, e.g. time series extractions within small spatial areas, as there is currently no way to observe
    the data rate and status of data elements already transferred.
@@ -166,16 +166,22 @@ in :ref:`gui_dialog_download_dataset` to use the first option.
 
 Here you can specify a number of optional constraints to create a local data source that is a subset of the original
 remote one. You can also provide a name for the new data source. By default, the original name will be used, prefixed
-by "local".
+by ``local.``.
 
 .. note::
-   Downloading remote data may require a lot of free space on your local system. By default, Cate stores this data
-   in the user's home directory. On Linux and Mac OS, that is  ``~/.cate/data_stores`, on Windows it is
-   ``%USER_PROFILE%\.cate\data_stores``. Use the :ref:`preferences_dialog` to set an alternative location.
+   We strongly recommend to set the constraints to limit the overall amount of data to be downloaded
+   and stored. We are currently not able to pre-compute the amount of data and the time it will take to
+   fully download it.
+   Also note, that downloading remote data may require a lot of free space on your local system.
+   By default, Cate stores this data in the user's home directory. On Linux and Mac OS, that is
+   ``~/.cate/data_stores`, on Windows it is
+   ``%USER_PROFILE%\.cate\data_stores``.
+   Use the :ref:`preferences_dialog` to set an alternative location.
+
 
 After confirming the dialog, a download task will be started, which can be observed in the **TASKS** panel.
 Once the download is finished, a notification will be displayed and a new local data source will be available for the
-``local`` data store.
+``local data store.
 
 To choose the second option described above, press the **Open** button to open the **Open Remote Dataset** dialog shown
 in :ref:`gui_dialog_open_remote_dataset`.
@@ -198,9 +204,9 @@ a new dataset *resource* is available from the :ref:`workspace_panel`.
    :scale: 100 %
    :align: left
 
-   DATA SOURCE panel for ``local``
+   Data Sources panel for ``local``
 
-Switching the data store selector to ``local`` lists all currently available local data sources as shown in
+Switching the data store selector to *Local Data Sources* lists all currently available local data sources as shown in
 :ref:`gui_panel_data_sources_local`. These are the ones downloaded from remote sources, or ones that you can
 create from local data files.
 
@@ -324,25 +330,114 @@ in the Cate context includes functions that
 LAYERS Panel
 ------------
 
+This panel manages the list of visual layers displayed by the currently active 2D map or 3D world view.
+Any number of layers can be added to active view. Two are always available:
+
+* Selected Variable
+* Country Borders
+
+The layer *Selected Variable* displays the data of any selected variable in the **VARIABLES** panel
+if it is gridded and has at least the longitude and latitude dimensions (names ``lon`` and ``lat``).
+The toolbar to the lower right of the layer list offers the following functions (in order):
+
+* Add a new layer (currently you can add layers for other variables available in your workspace)
+* Remove the selected layer
+* Move selected layer up to render it on top of others
+* Move selected layer down so other layers are rendered on top of it
+
+The **Details** of the **LAYERS** panel lists various layer settings. The vailable settings depend on the type
+of the selected layer. For image layers originating from a variable they are for example:
+
+* *Display Range* is the value range to which a given colour map is mapped.
+* *Colour bar* is applied to gridded variables.
+* *Alpha Blending* is used to mask/fade out the lower half of the display range.
+  With *Alpha Blending* switched on, the minimum value of the display range corresponds to full transparency while
+  opacity increases until half of the display range is reached.
+* For any extra dimension of a variable that is not latitude and longitude, an *Index into <Dimension>* slider is
+  displayed and can be used to selected the dimension's index to be displayed as layer.
+* The *Opacity* controls the opacity of the selected layer
+* Various *Image Enhancement* settings, like *Brightness*, * Contrast*, *Hue*.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_layers.png
+   :scale: 100 %
+   :align: center
+
+   Layers Panel
+
+
 .. _placemarks_panel:
 
 ----------------
 PLACEMARKS Panel
 ----------------
 
+This panel manages a list of placemarks - points that have a name and a geographical coordinate.
+Placemarks can be used to create time series plots and to extract data at a given point. The toolbar
+to the lower right of the list of placemarks offers the following functions (in order):
+
+* Click a point on the 3D globe view to add a new placemark
+* Add a new placemark
+* Remove a selected placemark
+* Copy name and/or coordinates of selected placemark to clipboard
+
+In the **Details** of the **PLACEMARKS** panel you can change the selected placemark's name and coordinates.
+Coordinates are given as longitude/latitude pair.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks.png
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel
+
+
+The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
+and restored for every Cate Desktop session.
 
 .. _views_panel:
 
------------
-VIEWS Panel
------------
+----------
+VIEW Panel
+----------
+
+The **VIEW** panel shows the settings of the currently active *View*. The settings depend non the type of the active
+view.
+
+*World Views* have the following settings:
+
+* Whether to use a 2D map or 3D globe.
+* The projection for the 2D map.
+* Whether to show layer titles (currently 3D globe only).
+* Whether to split the current layer (currently 3D globe only).
+
+*Figures Views* don't provide any special settings yet. However, in future releases, you will be able to
+change plot styles and size.
+
+*Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
+the subset of the data ypou want to see in the table.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_views.png
+   :scale: 100 %
+   :align: center
+
+   View Panel
+
+
 
 .. _tasks_panel:
-
 
 -----------
 TASKS Panel
 -----------
+
+The **TASKS** panel shows all active tasks. Long running tasks are usually originating
+from downloading datasets or performing operations on datasets. Some running
+tasks may be cancelled, others not.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
+   :scale: 100 %
+   :align: center
+
+   Tasks Panel
 
 
 .. _preferences_dialog:
@@ -351,5 +446,37 @@ TASKS Panel
 Preferences Dialog
 ------------------
 
+On the **General** tab you can specify the following settings:
 
+* Whether to *reopen the last workspace on startup* of Cate
+* The *resource name prefix* which will be used by default for new resources
+  originating from opening datasets or executing operations.
+* Whether to *open a plot view for new Figure resources*. If selected and
+  a newly created resource is of type ``Figure``, a plot view will be opened automatically.
+  Note, ``Figure`` resources are created by operations named ``plot_<type>()``.
+* Whether to *force offline mode* after restart. In this mode Cate does not rely on an internet connection.
+  Therefore the background satellite imagery used for the 2D/3D maps falls back to a static, low resolution
+  map.
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog / General
+
+
+On the **Data Management** tab you can specify the following settings:
+
+* The location of the *synchronisation directory for remote data store files*. This
+  directory is used by Cate for downloading and synchronizing remote data.
+  The location shall ensure sufficient disk space for your type of application and the amount
+  of data required locally.
+* Whether to use a *per-workspace imagery cache* which may speed up image display performance.
+  The cache is placed in each workspace directory and requires extra (disk) space.
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog / Data Management
 
