@@ -137,7 +137,7 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
                                'var', 'argmax', 'argmin', 'first', 'last'])
 @op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
-def temporal_aggregation(ds: xr.Dataset,
+def temporal_aggregation(ds: DatasetLike.TYPE,
                          method: str = 'mean') -> xr.Dataset:
     """
     Perform monthly aggregation of a daily dataset according to the given
