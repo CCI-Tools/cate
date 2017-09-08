@@ -517,7 +517,7 @@ change plot styles and size.
 *Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
 the subset of the data ypou want to see in the table.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_views.png
+.. figure:: ../_static/figures/user_manual/gui_panel_view.png
    :scale: 100 %
    :align: center
 
