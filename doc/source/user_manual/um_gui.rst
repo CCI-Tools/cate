@@ -2,7 +2,7 @@
 Cate Desktop (GUI)
 ==================
 
-*Applies to Cate Desktop, version 0.8.0*
+*Applies to Cate Desktop, version 0.9.0.dev7*
 
 Overview
 ========
@@ -28,8 +28,6 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
    :align: center
 
    Cate Desktop initial layout
-
-
 
 ------
 Panels
