@@ -325,46 +325,6 @@ class DataSource(metaclass=ABCMeta):
 
         return '\n'.join(info_lines)
 
-    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
-    @property
-    def variables_info_string(self) -> str:
-        """
-        Return some textual information about the variables contained in this data source.
-        Useful for CLI / REPL applications.
-        """
-        meta_info = self.meta_info
-        if not meta_info or meta_info.get('variables', None) is None:
-            return 'No variables information available.'
-
-        variables = meta_info['variables']
-        info_lines = []
-        for variable in variables:
-            info_lines.append('%s (%s):' % (variable.get('name', '?'), variable.get('units', '-')))
-            info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
-            info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
-            info_lines.append('')
-
-        return '\n'.join(info_lines)
-
-    # TODO (forman): No overrides! Remove from DataSource interface, turn into utility function instead
-    @property
-    def cached_datasets_coverage_string(self) -> str:
-        """
-        Return a textual representation of information about cached, locally available data sets.
-        Useful for CLI / REPL applications.
-        """
-        cache_coverage = self.cache_info
-        if not cache_coverage:
-            return 'No information about cached datasets available.'
-
-        info_lines = []
-        for date_from, date_to in sorted(cache_coverage.items()):
-            info_lines.append('{date_from} to {date_to}'
-                              .format(date_from=date_from.strftime('%Y-%m-%d'),
-                                      date_to=date_to.strftime('%Y-%m-%d')))
-
-        return '\n'.join(info_lines)
-
     def __str__(self):
         return self.info_string
 
@@ -642,3 +602,42 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                              chunks=chunks,
                              autoclose=True,
                              **kwargs)
+
+
+def format_variables_info_string(variables: dict):
+    """
+    Return some textual information about the variables contained in this data source.
+    Useful for CLI / REPL applications.
+    :param variables:
+    :return:
+    """
+    if not variables:
+        return 'No variables information available.'
+
+    info_lines = []
+    for variable in variables:
+        info_lines.append('%s (%s):' % (variable.get('name', '?'), variable.get('units', '-')))
+        info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
+        info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
+        info_lines.append('')
+
+    return '\n'.join(info_lines)
+
+
+def format_cached_datasets_coverage_string(cache_coverage: dict) -> str:
+    """
+    Return a textual representation of information about cached, locally available data sets.
+    Useful for CLI / REPL applications.
+    :param cache_coverage:
+    :return:
+    """
+    if not cache_coverage:
+        return 'No information about cached datasets available.'
+
+    info_lines = []
+    for date_from, date_to in sorted(cache_coverage.items()):
+        info_lines.append('{date_from} to {date_to}'
+                          .format(date_from=date_from.strftime('%Y-%m-%d'),
+                                  date_to=date_to.strftime('%Y-%m-%d')))
+
+    return '\n'.join(info_lines)

@@ -495,6 +495,10 @@ class EsaCciOdpDataSource(DataSource):
         return None
 
     @property
+    def variables_info(self):
+        return self._variables_list()
+
+    @property
     def schema(self) -> Schema:
         return self._schema
 
