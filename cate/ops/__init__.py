@@ -64,7 +64,7 @@ from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
 from .outliers import detect_outliers
 
-from .test import test_monitor
+from .test import test_monitor_works, test_monitor_fails
 
 
 __all__ = [
@@ -129,5 +129,6 @@ __all__ = [
     # .outliers
     'detect_outliers',
     # .test
-    'test_monitor'
+    'test_monitor_works',
+    'test_monitor_fails'
 ]
