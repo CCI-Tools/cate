@@ -338,3 +338,23 @@ def _find_intersection(first: np.ndarray,
                          ' coregistration on')
 
     return (minimum, maximum)
+
+
+def _nested_groupby_apply(array: xr.DataArray,
+                          groupby: list,
+                          apply_fn: object):
+    """
+    Perform a nested groupby over given dimensions and apply a function on the
+    last 'slice'
+
+    :param array: xr.DataArray to perform groupby on
+    :param groupby: a list of coordinate labels over which to perform groupby
+    :param apply_fn: The function to apply
+    :return: groupby-split-appy result
+    """
+    if len(groupby) == 1:
+        return array.groupby(groupby[0]).apply(apply_fn)
+    else:
+        return array.groupby(groupby[0]).apply(_nested_groupby_apply,
+                                               groupby=groupby[1:],
+                                               apply_fn=apply_fn)
