@@ -59,7 +59,7 @@ from cate.conf import get_config_value
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
     open_xarray_dataset, get_data_stores_path
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
+from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
 
@@ -928,8 +928,8 @@ class EsaCciOdpDataSource(DataSource):
                             do_update_of_verified_time_coverage_start_once = False
                         verified_time_coverage_end = coverage_to
 
-        local_ds.meta_info['temporal_coverage_start'] = verified_time_coverage_start
-        local_ds.meta_info['temporal_coverage_end'] = verified_time_coverage_end
+        local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
+        local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
         local_ds.save(True)
 
     def _apply_make_local_fixes(self,
