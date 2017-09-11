@@ -68,7 +68,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
 
     def tearDown(self):
-        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        if self._existing_local_data_store:
+            DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def test_make_local_and_update(self):
