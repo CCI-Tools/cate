@@ -560,7 +560,7 @@ Operation development checklist
   * Does the operation drop valuable global or variable attributes when it
     shouldn't?
 
-* Does the operation produce an outputs of an appropriate type?
+* Does the operation produce outputs of appropriate types?
 * Are other operations imported correctly if used?
 * Is the operation well tested?
 
@@ -571,7 +571,7 @@ Operation development checklist
   * Do the tests run resonably fast?
 
 * Is the operation properly documented?
-* Is the operation proprely tagged?
+* Is the operation properly tagged?
 
 When a newly created operation coresponds to this checklist well, it can be said with
 some certainty that the operation behaves well with respect to the Cate
