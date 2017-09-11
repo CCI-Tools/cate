@@ -113,8 +113,29 @@ def get_cmaps():
                     # print("INFO: new colormap '" + new_name + "'")
                 elif type(cmap) == matplotlib.colors.ListedColormap:
                     new_name = cmap.name + '_alpha'
+                    new_colors = list(cmap.colors)
+                    a_slope = 2.0 / cmap.N
+                    a = 0
+                    for i in range(len(new_colors)):
+                        new_color = new_colors[i]
+                        if not isinstance(new_color, str):
+                            if len(new_color) == 3:
+                                r, g, b = new_color
+                                new_colors[i] = r, g, b, a
+                            elif len(new_color) == 4:
+                                r, g, b, a_old = new_color
+                                new_colors[i] = r, g, b, min(a, a_old)
+                        a += a_slope
+                        if a > 1.0:
+                            a = 1.0
+                    new_cmap = matplotlib.colors.ListedColormap(new_colors, name=new_name)
                     print("WARNING: could not create colormap '{}' because '{}' is has type ListedColormap"
                           .format(new_name, cmap.name))
+                    cm.register_cmap(cmap=new_cmap)
+                else:
+                    new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
+                    print("WARNING: could not create colormap '{}' because '{}' is of unknown type {}"
+                          .format(new_name, cmap.name, type(cmap)))
 
                 gradient = np.linspace(0, 1, 256)
                 gradient = np.vstack((gradient, gradient))
