@@ -675,7 +675,7 @@ class FastNdarrayDownsamplingImage(OpImage):
 
 
 LC_STANDARD_NAMES = {'land_cover_lccs algorithmic_confidence', 'land_cover_lccs status_flag', 'land_cover_lccs',
-                 'land_cover_lccs number_of_observations', 'land_cover_lccs status_flag'}
+                     'land_cover_lccs number_of_observations', 'land_cover_lccs status_flag'}
 
 
 class ImagePyramid:
