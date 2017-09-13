@@ -4,7 +4,9 @@
 
 ### Issues Fixed/Resolved
 
-* **Land Cover CCI** data display wrongly positioned (temp. hack!)
+* Land Cover CCI display must use dedicated color map (in progress)
+  [#364](https://github.com/CCI-Tools/cate-core/issues/364)
+* Land Cover CCI** data display wrongly positioned (temp. hack!)
   [#361](https://github.com/CCI-Tools/cate-core/issues/361)
 * Make alpha blending work for all color maps
   [#360](https://github.com/CCI-Tools/cate-core/issues/360)
