@@ -74,6 +74,10 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
 
+        soilmoisture_data_sources = self.data_store.query(
+            query_expr='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.02-1.r1')
+        soilmoisture_data_source = soilmoisture_data_sources[0]
+
         reference_path = os.path.join(os.path.dirname(__file__),
                                       os.path.normpath('resources/datasources/local/files/'))
 
@@ -130,7 +134,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
                                                           datetime.datetime(1978, 11, 16, 23, 59)))
                 try:
-                    new_ds = self.first_oc_data_source.make_local(new_ds_title, time_range=new_ds_time_range)
+                    new_ds = soilmoisture_data_source.make_local(new_ds_title, time_range=new_ds_time_range)
                 except:
                     raise ValueError(reference_path, os.listdir(reference_path))
                 self.assertIsNotNone(new_ds)
@@ -138,21 +142,21 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertEqual(new_ds.id, "local.%s" % new_ds_title)
                 self.assertEqual(new_ds.temporal_coverage(), new_ds_time_range)
 
-                self.first_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                   datetime.datetime(1978, 11, 16, 23, 59)))
+                soilmoisture_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                  datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 15, 0, 0),
                                   datetime.datetime(1978, 11, 16, 23, 59))))
 
-                self.first_oc_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
-                                                                   datetime.datetime(1978, 11, 15, 23, 59)))
+                soilmoisture_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
+                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
                 self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
                                  (datetime.datetime(1978, 11, 14, 0, 0),
                                   datetime.datetime(1978, 11, 15, 23, 59))))
 
                 with self.assertRaises(ValueError) as context:
-                    self.first_oc_data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                             datetime.datetime(1978, 11, 16, 23, 59)))
+                    soilmoisture_data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
+                                                                            datetime.datetime(1978, 11, 16, 23, 59)))
                 self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
 
                 new_ds_w_one_variable_title = 'local_ds_test_var'
@@ -160,7 +164,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                          datetime.datetime(1978, 11, 16, 23, 59)))
                 new_ds_w_one_variable_var_names = VarNamesLike.convert(['sm'])
 
-                new_ds_w_one_variable = self.first_oc_data_source.make_local(
+                new_ds_w_one_variable = soilmoisture_data_source.make_local(
                     new_ds_w_one_variable_title,
                     time_range=new_ds_w_one_variable_time_range,
                     var_names=new_ds_w_one_variable_var_names
@@ -181,7 +185,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_w_region_var_names = VarNamesLike.convert(['sm'])
                 new_ds_w_region_spatial_coverage = PolygonLike.convert("10,10,20,20")
 
-                new_ds_w_region = self.first_oc_data_source.make_local(
+                new_ds_w_region = soilmoisture_data_source.make_local(
                     new_ds_w_region_title,
                     time_range=new_ds_w_region_time_range,
                     var_names=new_ds_w_region_var_names,
@@ -198,9 +202,9 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
 
-                no_data = self.first_oc_data_source.make_local('empty_ds',
-                                                               time_range=(datetime.datetime(2017, 12, 1, 0, 0),
-                                                                           datetime.datetime(2017, 12, 31, 23, 59)))
+                no_data = soilmoisture_data_source.make_local('empty_ds',
+                                                              time_range=(datetime.datetime(2017, 12, 1, 0, 0),
+                                                                          datetime.datetime(2017, 12, 31, 23, 59)))
                 self.assertIsNone(no_data)
 
     def test_data_store(self):
