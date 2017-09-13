@@ -429,7 +429,9 @@ class LocalDataSource(DataSource):
                 data_source.reduce_temporal_coverage(time_range_to_remove)
         if to_add:
             for time_range_to_add in to_add:
-                self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+                self._make_local(data_source, time_range_to_add, None,
+                                 [var.get('name') for var in data_source.variables_info]
+                                 if data_source.variables_info else None, monitor)
             data_source.meta_info['temporal_coverage_start'] = time_range[0]
             data_source.meta_info['temporal_coverage_end'] = time_range[1]
             data_source.update_temporal_coverage(time_range)
@@ -534,7 +536,7 @@ class LocalDataSource(DataSource):
 
     @property
     def variables_info(self):
-        return self._variables
+        return self._meta_info.get('variables', None)
 
     @property
     def info_string(self):
@@ -598,19 +600,26 @@ class LocalDataSource(DataSource):
 
         name = json_dicts.get('name')
         files = json_dicts.get('files', None)
-        meta_data = json_dicts.get('meta_data', {})
+
+        variables = None
+        temporal_coverage = None
+        spatial_coverage = None
+        reference_type = "UNKNOWN"
+        reference_name = None
+
         meta_info = json_dicts.get('meta_info', OrderedDict())
 
-        temporal_coverage = meta_data.get('temporal_coverage', None)
-        # TODO why is this code here, doesn't work, because 'temporal_coverage' is a string
-        # if temporal_coverage and isinstance(temporal_coverage, Sequence):
-        #     temporal_coverage = tuple(temporal_coverage)
+        # TODO: backward compatibility, to be removed once we agree to recreate all local data sources.
+        meta_data = json_dicts.get('meta_data', None)
+        if meta_data:
+            temporal_coverage = meta_data.get('temporal_coverage', None)
+            spatial_coverage = meta_data.get('spatial_coverage', None)
+            reference_type = meta_data.get('reference_type', None)
+            reference_name = meta_data.get('reference_name', None)
+            variables = meta_data.get('variables', None)
 
-        spatial_coverage = meta_data.get('spatial_coverage', None)
-        variables = meta_data.get('variables', None)
-
-        reference_type = meta_data.get('reference_type', None)
-        reference_name = meta_data.get('reference_name', None)
+        if meta_info and not variables:
+            variables = [v.get('name') for v in meta_info.get('variables', dict()) if v.get('name', None)]
 
         files_dict = OrderedDict()
         if name and isinstance(files, list):
