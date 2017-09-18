@@ -28,6 +28,8 @@ import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
+from cate.util.im.cmap_lc import register_lc_color_map, LAND_COVER_CCI_CMAP
+
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 # Have colormaps separated into categories:
@@ -68,7 +70,7 @@ _CMAPS = (('Perceptually Uniform Sequential',
             'Pastel2', 'Set1', 'Set2', 'Set3')),
           ('Miscellaneous',
            'Colormaps that don\'t fit into the categories above.',
-           ('gist_earth', 'terrain', 'ocean', 'gist_stern',
+           (LAND_COVER_CCI_CMAP, 'gist_earth', 'terrain', 'ocean', 'gist_stern',
             'brg', 'CMRmap', 'cubehelix',
             'gnuplot', 'gnuplot2', 'gist_ncar',
             'nipy_spectral', 'jet', 'rainbow',
@@ -85,10 +87,14 @@ def get_cmaps():
     <cbar-png-bytes> are encoded PNG images of size 256 x 2 pixels,
     :return: all known matplotlib color maps
     """
+
     global _CBARS_LOADED, _CMAPS
     if not _CBARS_LOADED:
         _LOCK.acquire()
         _CBARS_LOADED = True
+
+        register_lc_color_map()
+
         new_cmaps = []
         for cmap_category, cmap_description, cmap_names in _CMAPS:
             cbar_list = []
@@ -113,8 +119,27 @@ def get_cmaps():
                     # print("INFO: new colormap '" + new_name + "'")
                 elif type(cmap) == matplotlib.colors.ListedColormap:
                     new_name = cmap.name + '_alpha'
-                    print("WARNING: could not create colormap '{}' because '{}' is has type ListedColormap"
-                          .format(new_name, cmap.name))
+                    new_colors = list(cmap.colors)
+                    a_slope = 2.0 / cmap.N
+                    a = 0
+                    for i in range(len(new_colors)):
+                        new_color = new_colors[i]
+                        if not isinstance(new_color, str):
+                            if len(new_color) == 3:
+                                r, g, b = new_color
+                                new_colors[i] = r, g, b, a
+                            elif len(new_color) == 4:
+                                r, g, b, a_old = new_color
+                                new_colors[i] = r, g, b, min(a, a_old)
+                        a += a_slope
+                        if a > 1.0:
+                            a = 1.0
+                    new_cmap = matplotlib.colors.ListedColormap(new_colors, name=new_name)
+                    cm.register_cmap(cmap=new_cmap)
+                else:
+                    new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
+                    print("WARNING: could not create colormap '{}' because '{}' is of unknown type {}"
+                          .format(new_name, cmap.name, type(cmap)))
 
                 gradient = np.linspace(0, 1, 256)
                 gradient = np.vstack((gradient, gradient))
@@ -135,6 +160,7 @@ def get_cmaps():
 
                 cbar_list.append((cmap_name, cbar_png_bytes))
             new_cmaps.append((cmap_category, cmap_description, tuple(cbar_list)))
+
         _CMAPS = tuple(new_cmaps)
         _LOCK.release()
         # import pprint

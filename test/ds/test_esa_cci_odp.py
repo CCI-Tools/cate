@@ -8,7 +8,7 @@ import unittest.mock
 import urllib.request
 import shutil
 
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, format_variables_info_string
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
 from cate.ds.local import LocalDataStore
@@ -68,7 +68,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         DATA_STORE_REGISTRY.add_data_store(LocalDataStore('local', self.tmp_dir))
 
     def tearDown(self):
-        DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
+        if self._existing_local_data_store:
+            DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def test_make_local_and_update(self):
@@ -221,9 +222,10 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_variables_info_string(self):
         self.assertIn('kd_490 (m-1):\n',
-                      self.first_oc_data_source.variables_info_string)
+                      format_variables_info_string(self.first_oc_data_source.variables_info),
+                      self.first_oc_data_source.variables_info)
         self.assertIn('Long name:        Downwelling attenuation coefficient at 490nm',
-                      self.first_oc_data_source.variables_info_string)
+                      format_variables_info_string(self.first_oc_data_source.variables_info))
 
     @unittest.skip(reason='ssl error on windows')
     def test_temporal_coverage(self):

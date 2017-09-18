@@ -1,8 +1,12 @@
 .. Cate documentation master file
 
-=============================
-ESA CCI Toolbox Documentation
-=============================
+==========================
+Cate - The ESA CCI Toolbox
+==========================
+
+.. figure:: _static/figures/cate_desktop.png
+   :scale: 50%
+   :align: center
 
 
 .. toctree::

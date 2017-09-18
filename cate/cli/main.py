@@ -105,7 +105,8 @@ from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
 from cate.core.types import Like, TimeRangeLike, PolygonLike, VarNamesLike
-from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources, format_cached_datasets_coverage_string, \
+    format_variables_info_string
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
@@ -1184,13 +1185,13 @@ class DataSourceCommand(SubCommandCommand):
             print('\n'
                   'Locally stored datasets:\n'
                   '------------------------\n'
-                  '{info}'.format(info=data_source.cached_datasets_coverage_string))
+                  '{info}'.format(info=format_cached_datasets_coverage_string(data_source.cache_info)))
         if command_args.var:
             print()
             print('Variables')
             print('---------')
             print()
-            print(data_source.variables_info_string)
+            print(format_variables_info_string(data_source.variables_info))
 
     @classmethod
     def _execute_add(cls, command_args):

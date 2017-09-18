@@ -17,7 +17,7 @@
 
 ### Actual behavior
 
-*Describe what you expected Cate to do.*
+*Describe what Cate does instead or doesn't do at all.*
 
 ### Steps to reproduce the problem
 

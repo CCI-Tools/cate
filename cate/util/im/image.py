@@ -674,6 +674,10 @@ class FastNdarrayDownsamplingImage(OpImage):
         return tile
 
 
+LC_STANDARD_NAMES = {'land_cover_lccs algorithmic_confidence', 'land_cover_lccs status_flag', 'land_cover_lccs',
+                     'land_cover_lccs number_of_observations', 'land_cover_lccs status_flag'}
+
+
 class ImagePyramid:
     """
     A stack of tiled images (see TileImage) that form a quadtree image pyramid with increasing levels of detail.
@@ -773,6 +777,18 @@ class ImagePyramid:
         :param num_levels: optional number of levels
         :return: pyramid layout as tuple (max_size, tile_size, num_level_zero_tiles, num_levels)
         """
+
+        # TODO (forman): this is an evil hack for issue # for LC CCI data.
+        # Must replace it by some automatics detection.
+        # This is only for full-size product, it won't work for spatial subsets at all
+        if hasattr(array, 'attrs') and 'standard_name' in array.attrs:
+            standard_name = array.attrs['standard_name']
+            if standard_name in LC_STANDARD_NAMES:
+                w = array.shape[-1]
+                h = array.shape[-2]
+                if w == 129600 and h == 64800:
+                    return (w, h), (675, 675), (6, 3), 6
+
         if array is not None and hasattr(array, 'shape'):
             size = array.shape[-1], array.shape[-2]
             if not max_size:
