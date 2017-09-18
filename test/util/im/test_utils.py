@@ -83,6 +83,94 @@ class TileSizeTest(TestCase):
             utils.cardinal_log2(n * ts)
             # print(s, ts, n, n * ts - s, l2)
 
+    def test_f_and_g(self):
+        import numba as nb
+        from numpy.testing import assert_almost_equal
+
+        @nb.jit(nopython=True)
+        def pyramid_subdivision_count(s_max: int, ts: int, ntl0_max: int = 1):
+            """
+            Compute number of times *w* can be divided by 2 without remainder and while the result is still
+            integer-dividable by *ts*.
+            """
+            count = 0
+            s = s_max
+            while s % 2 == 0 and s % ts == 0 and (s // ts) % 2 == 0 and (s // ts) > ntl0_max:
+                s //= 2
+                count += 1
+            return count
+
+        @nb.jit(nopython=True)
+        def pyramid_subdivision(w_max: int, h_max: int,
+                                ts_min: int, ts_max: int,
+                                tw_out, th_out,
+                                ntl0x_max: int = 1,
+                                ntl0y_max: int = 1):
+            size = ts_max - ts_min + 1
+
+            cx = np.empty(ts_max - ts_min + 1, dtype=np.int32)
+            cy = np.empty(ts_max - ts_min + 1, dtype=np.int32)
+            for i in range(size):
+                ts = ts_min + i
+                cx[i] = pyramid_subdivision_count(w_max, ts, ntl0_max=ntl0x_max)
+                cy[i] = pyramid_subdivision_count(h_max, ts, ntl0_max=ntl0y_max)
+
+            cx_max = -1
+            cy_max = -1
+            for i in range(size):
+                cx_max = max(cx[i], cx_max)
+                cy_max = max(cy[i], cy_max)
+
+            c = min(cx_max, cy_max)
+
+            for ix in range(tw_out.size):
+                tw_out[ix] = 0
+            for iy in range(th_out.size):
+                th_out[iy] = 0
+
+            if c <= 0:
+                return 0
+
+            ix = 0
+            iy = 0
+            for i in range(size):
+                if cx[i] >= c and ix < tw_out.size:
+                    tw_out[ix] = ts_min + i
+                    ix += 1
+                if cy[i] >= c and iy < th_out.size:
+                    th_out[iy] = ts_min + i
+                    iy += 1
+
+            return c
+
+        w = 129600
+        h = w // 2
+
+        self.assertEqual(pyramid_subdivision_count(w, 45), 6)
+        self.assertEqual(pyramid_subdivision_count(w, 90), 5)
+        self.assertEqual(pyramid_subdivision_count(w, 100), 4)
+        self.assertEqual(pyramid_subdivision_count(w, 180), 4)
+        self.assertEqual(pyramid_subdivision_count(w, 225), 6)
+        self.assertEqual(pyramid_subdivision_count(w, 256), 0)
+        self.assertEqual(pyramid_subdivision_count(w, 405), 6)
+        self.assertEqual(pyramid_subdivision_count(w, 675), 6)
+        self.assertEqual(pyramid_subdivision_count(w, 1024), 0)
+        self.assertEqual(pyramid_subdivision_count(w, 1800), 3)
+        self.assertEqual(pyramid_subdivision_count(w, 2048), 0)
+
+        tw_out = np.zeros(10, dtype=np.int32)
+        th_out = np.zeros(10, dtype=np.int32)
+
+        c = pyramid_subdivision(w, h, 180, 2048, tw_out, th_out, ntl0x_max=1, ntl0y_max=1)
+        self.assertEqual(c, 5)
+        assert_almost_equal(tw_out, np.array([225, 270, 405, 450, 675, 810, 1350, 2025, 0, 0]))
+        assert_almost_equal(th_out, np.array([225, 405, 675, 2025, 0, 0, 0, 0, 0, 0]))
+
+        c = pyramid_subdivision(w, h, 180, 2048, tw_out, th_out, ntl0x_max=2, ntl0y_max=1)
+        self.assertEqual(c, 5)
+        assert_almost_equal(tw_out, np.array([225, 270, 405, 450, 675, 810, 1350, 2025, 0, 0]))
+        assert_almost_equal(th_out, np.array([225, 405, 675, 2025, 0, 0, 0, 0, 0, 0]))
+
     def test_chunk_size(self):
         # print('----------- test_chunk_size:')
         for s in range(270, 64 * 270, 270):

@@ -480,7 +480,8 @@ def open_dataset(data_source: Union[DataSource, str],
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
                  force_local: bool = False,
-                 local_ds_id: str = None) -> Any:
+                 local_ds_id: str = None,
+                 monitor: Monitor = Monitor.NONE) -> Any:
     """
     Open a dataset from a data source.
 
@@ -495,6 +496,7 @@ def open_dataset(data_source: Union[DataSource, str],
             Whether to make a local copy of data source if it's not present
     :param local_ds_id: Optional, fpr remote data sources only
             Local data source ID for newly created copy of remote data source
+    :param monitor: A progress monitor
     :return: An new dataset instance
     """
     if data_source is None:
@@ -510,7 +512,8 @@ def open_dataset(data_source: Union[DataSource, str],
         data_source = data_sources[0]
         if force_local:
             data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
-                                                 time_range=time_range, region=region, var_names=var_names)
+                                                 time_range=time_range, region=region, var_names=var_names,
+                                                 monitor=monitor)
     return data_source.open_dataset(time_range, region, var_names)
 
 
