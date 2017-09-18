@@ -74,7 +74,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(len(data_sources), 1)
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
-    def test_load_datasource_from_json_dict(self):
+    def test_load_old_datasource_from_json_dict(self):
         test_data = {  # noqa
             'name': 'local.test_name',
             'meta_data': {
@@ -86,10 +86,51 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
                 'source': 'local.previous_test',
                 'last_update': None
             },
+            "meta_info": {
+            },
             'files': [['file_1', '2002-02-01 00:00:00', '2002-02-01 23:59:59'],
                       ['file_2', '2002-03-01 00:00:00', '2002-03-01 23:59:59']]
         }
-        self.assertEqual(True, True)
+        data_source = LocalDataSource.from_json_dict(json_dict=test_data, data_store=self.data_store)
+        self.assertIsNotNone(data_source)
+        self.assertEqual(data_source.temporal_coverage(),
+                         TimeRangeLike.convert(test_data.get('meta_data').get('temporal_coverage')))
+
+    def test_load_datasource_from_json_dict(self):
+        test_data = {  # noqa
+            'name': 'local.test_name2',
+            'meta_data': {
+                'type': "FILE_PATTERN",
+                'data_store': 'local',
+                'spatial_coverage': "0,10,20,30",
+            },
+            "meta_info": {
+                "temporal_coverage_start": "2001-01-01T00:00:00",
+                "temporal_coverage_end": "2001-01-31T23:59:59",
+                "variables": [
+                    {
+                        "name": "var_1",
+                        "units": "kelvin",
+                        "long_name": "var_1 long name..",
+                        "standard_name": "std_var_1"
+                    },
+                    {
+                        "name": "var_2",
+                        "units": "celsius",
+                        "long_name": "var_2 long name..",
+                        "standard_name": "std_var_2"
+                    }
+                ]
+            },
+            'files': [['file_1', '2002-02-01 00:00:00', '2002-02-01 23:59:59'],
+                      ['file_2', '2002-03-01 00:00:00', '2002-03-01 23:59:59']]
+        }
+        data_source = LocalDataSource.from_json_dict(json_dict=test_data, data_store=self.data_store)
+        self.assertIsNotNone(data_source)
+        self.assertEqual(data_source.temporal_coverage(),
+                         TimeRangeLike.convert("{},{}".format(test_data.get('meta_info').get('temporal_coverage_start'),
+                                                              test_data.get('meta_info').get('temporal_coverage_end'))))
+        self.assertListEqual(data_source.variables_info, test_data.get('meta_info', {}).get('variables'))
 
 
 class LocalFilePatternSourceTest(unittest.TestCase):
