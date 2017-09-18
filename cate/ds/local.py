@@ -124,7 +124,7 @@ class LocalDataSource(DataSource):
 
         self._temporal_coverage = initial_temporal_coverage
         self._spatial_coverage = PolygonLike.convert(spatial_coverage) if spatial_coverage else None
-        self._variables = VarNamesLike.convert(variables) if variables else None
+        self._variables = VarNamesLike.convert(variables) if variables else []
 
         self._reference_type = reference_type if reference_type else None
         self._reference_name = reference_name
@@ -536,7 +536,7 @@ class LocalDataSource(DataSource):
 
     @property
     def variables_info(self):
-        return self._meta_info.get('variables', None)
+        return self._meta_info.get('variables', [])
 
     @property
     def info_string(self):
@@ -596,21 +596,21 @@ class LocalDataSource(DataSource):
         return config
 
     @classmethod
-    def from_json_dict(cls, json_dicts: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
+    def from_json_dict(cls, json_dict: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
 
-        name = json_dicts.get('name')
-        files = json_dicts.get('files', None)
+        name = json_dict.get('name')
+        files = json_dict.get('files', None)
 
-        variables = None
+        variables = []
         temporal_coverage = None
         spatial_coverage = None
         reference_type = "UNKNOWN"
         reference_name = None
 
-        meta_info = json_dicts.get('meta_info', OrderedDict())
+        meta_info = json_dict.get('meta_info', OrderedDict())
 
         # TODO: backward compatibility, to be removed once we agree to recreate all local data sources.
-        meta_data = json_dicts.get('meta_data', None)
+        meta_data = json_dict.get('meta_data', None)
         if meta_data:
             temporal_coverage = meta_data.get('temporal_coverage', None)
             spatial_coverage = meta_data.get('spatial_coverage', None)
@@ -618,8 +618,14 @@ class LocalDataSource(DataSource):
             reference_name = meta_data.get('reference_name', None)
             variables = meta_data.get('variables', None)
 
-        if meta_info and not variables:
-            variables = [v.get('name') for v in meta_info.get('variables', dict()) if v.get('name', None)]
+        if meta_info:
+            if not variables:
+                variables = [v.get('name') for v in meta_info.get('variables', dict()) if not v.get('name', None)]
+            if not temporal_coverage:
+                temporal_coverage_start = meta_info.get('temporal_coverage_start', None)
+                temporal_coverage_end = meta_info.get('temporal_coverage_end', None)
+                if temporal_coverage_start and temporal_coverage_end:
+                    temporal_coverage = temporal_coverage_start, temporal_coverage_end
 
         files_dict = OrderedDict()
         if name and isinstance(files, list):
