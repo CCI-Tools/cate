@@ -63,6 +63,8 @@ from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, Var
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
 
+ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
+
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
@@ -114,7 +116,7 @@ def get_data_store_path():
 
 def get_metadata_store_path():
     return os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
-                          os.path.join(get_data_stores_path(), 'esa_cci_odp'))
+                          os.path.join(get_data_stores_path(), ESA_CCI_ODP_DATA_STORE_ID))
 
 
 def set_default_data_store():
@@ -730,7 +732,6 @@ class EsaCciOdpDataSource(DataSource):
                     monitor: Monitor = Monitor.NONE):
 
         local_id = local_ds.id
-        local_ds.meta_info
         time_range = TimeRangeLike.convert(time_range)
         region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
@@ -823,10 +824,10 @@ class EsaCciOdpDataSource(DataSource):
                                 lon_min = geo_lon_max - lon_max
                                 lon_max = geo_lon_max - lon_min_copy
 
-                            lat_min = floor(lat_min / geo_lat_res)
-                            lat_max = ceil(lat_max / geo_lat_res)
-                            lon_min = floor(lon_min / geo_lon_res)
-                            lon_max = ceil(lon_max / geo_lon_res)
+                            lat_min = int(floor(lat_min / geo_lat_res))
+                            lat_max = int(ceil(lat_max / geo_lat_res))
+                            lon_min = int(floor(lon_min / geo_lon_res))
+                            lon_max = int(ceil(lon_max / geo_lon_res))
 
                             remote_dataset = remote_dataset.isel(drop=False,
                                                                  lat=slice(lat_min, lat_max),
