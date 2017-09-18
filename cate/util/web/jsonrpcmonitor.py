@@ -86,7 +86,7 @@ class JsonRpcWebSocketMonitor(Monitor):
         self.label = label
         self.total = total_work
         self.worked = 0.0 if total_work else None
-        self._write_progress(message='Started')
+        self._write_progress()
         # first progress method should always be sent
         self.last_time = None
 
@@ -98,7 +98,7 @@ class JsonRpcWebSocketMonitor(Monitor):
 
     def done(self):
         self.worked = self.total
-        self._write_progress(message='Done')
+        self._write_progress()
 
     def cancel(self):
         self._cancelled = True
