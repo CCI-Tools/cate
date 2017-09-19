@@ -33,7 +33,7 @@ from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_so
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import Monitor, cwd
+from cate.util import Monitor, cwd, filter_fileset
 
 
 # noinspection PyMethodMayBeStatic
@@ -120,7 +120,12 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = sorted(data_store.query(monitor=monitor), key=lambda ds: ds.title or ds.id)
+        data_sources = data_store.query(monitor=monitor)
+        if data_store_id != 'local':
+            data_sources = filter_fileset(data_sources,
+                                          includes=conf.get_config_value('included_data_sources', default=None),
+                                          excludes=conf.get_config_value('excluded_data_sources', default=None))
+        data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
         return [dict(id=data_source.id,
                      title=data_source.title,
                      meta_info=data_source.meta_info) for data_source in data_sources]
