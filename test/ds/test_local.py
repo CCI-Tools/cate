@@ -81,7 +81,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
                 'type': "FILE_PATTERN",
                 'data_store': 'local',
                 'temporal_coverage': "2001-01-01 00:00:00,2001-01-31 23:59:59",
-                'spatial_coverage': "0,10,20,30",
+                'spatial_coverage': "-180,-90,180,90",
                 'variables': ['var_test_1', 'var_test_2'],
                 'source': 'local.previous_test',
                 'last_update': None
@@ -95,20 +95,25 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_source)
         self.assertEqual(data_source.temporal_coverage(),
                          TimeRangeLike.convert(test_data.get('meta_data').get('temporal_coverage')))
+        self.assertEqual(data_source.spatial_coverage(),
+                         PolygonLike.convert(test_data.get('meta_data').get('spatial_coverage')))
         self.assertListEqual([var.get('name') for var in data_source.variables_info],
                              test_data.get('meta_data').get('variables'))
 
     def test_load_datasource_from_json_dict(self):
-        test_data = {  # noqa
+        test_data = {
             'name': 'local.test_name2',
             'meta_data': {
                 'type': "FILE_PATTERN",
                 'data_store': 'local',
-                'spatial_coverage': "0,10,20,30",
             },
             "meta_info": {
                 "temporal_coverage_start": "2001-01-01T00:00:00",
                 "temporal_coverage_end": "2001-01-31T23:59:59",
+                "bbox_maxx": "180.0",
+                "bbox_maxy": "90.0",
+                "bbox_minx": "-180.0",
+                "bbox_miny": "-90.0",
                 "variables": [
                     {
                         "name": "var_1",
@@ -130,8 +135,17 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_source = LocalDataSource.from_json_dict(json_dict=test_data, data_store=self.data_store)
         self.assertIsNotNone(data_source)
         self.assertEqual(data_source.temporal_coverage(),
-                         TimeRangeLike.convert("{},{}".format(test_data.get('meta_info').get('temporal_coverage_start'),
-                                                              test_data.get('meta_info').get('temporal_coverage_end'))))
+                         TimeRangeLike.convert("{},{}".format(
+                             test_data.get('meta_info').get('temporal_coverage_start'),
+                             test_data.get('meta_info').get('temporal_coverage_end'))
+                         ))
+        self.assertEqual(data_source.spatial_coverage(),
+                         PolygonLike.convert(",".join([
+                             test_data.get('meta_info').get('bbox_minx'),
+                             test_data.get('meta_info').get('bbox_miny'),
+                             test_data.get('meta_info').get('bbox_maxx'),
+                             test_data.get('meta_info').get('bbox_maxy'),
+                         ])))
         self.assertListEqual(data_source.variables_info, test_data.get('meta_info').get('variables'))
 
 
