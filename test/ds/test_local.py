@@ -78,13 +78,9 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         test_data = {
             'name': 'local.test_name',
             'meta_data': {
-                'type': "FILE_PATTERN",
-                'data_store': 'local',
                 'temporal_coverage': "2001-01-01 00:00:00,2001-01-31 23:59:59",
                 'spatial_coverage': "-180,-90,180,90",
                 'variables': ['var_test_1', 'var_test_2'],
-                'source': 'local.previous_test',
-                'last_update': None
             },
             "meta_info": {
             },
@@ -103,10 +99,6 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
     def test_load_datasource_from_json_dict(self):
         test_data = {
             'name': 'local.test_name2',
-            'meta_data': {
-                'type': "FILE_PATTERN",
-                'data_store': 'local',
-            },
             "meta_info": {
                 "temporal_coverage_start": "2001-01-01T00:00:00",
                 "temporal_coverage_end": "2001-01-31T23:59:59",
