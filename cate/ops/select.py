@@ -34,19 +34,20 @@ import fnmatch
 import geopandas as gpd
 import xarray as xr
 
-from cate.core.op import op, op_input
-from cate.core.types import VarNamesLike
+from cate.core.op import op, op_input, op_return
+from cate.core.types import VarNamesLike, DatasetLike
 
 
-@op(tags=['filter'])
-@op_input('ds')
+@op(tags=['filter'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
-def select_var(ds: xr.Dataset, var: VarNamesLike.TYPE = None) -> xr.Dataset:
+@op_return(add_history=True)
+def select_var(ds: DatasetLike.TYPE, var: VarNamesLike.TYPE = None) -> xr.Dataset:
     """
     Filter the dataset, by leaving only the desired variables in it. The original dataset
     information, including original coordinates, is preserved.
 
-    :param ds: The dataset from which to perform selection.
+    :param ds: The dataset or dataframe from which to perform selection.
     :param var: One or more variable names to select and preserve in the dataset. \
     All of these are valid 'var_name' 'var_name1,var_name2,var_name3' ['var_name1', 'var_name2']. \
     One can also use wildcards when doing the selection. E.g., choosing 'var_name*' for selection \
@@ -56,6 +57,8 @@ def select_var(ds: xr.Dataset, var: VarNamesLike.TYPE = None) -> xr.Dataset:
     """
     if not var:
         return ds
+
+    ds = DatasetLike.convert(ds)
 
     var_names = VarNamesLike.convert(var)
     dropped_var_names = list(ds.data_vars.keys())

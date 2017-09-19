@@ -179,7 +179,7 @@ def _crosses_antimeridian(region: PolygonLike.TYPE) -> bool:
 @op_input('ds', data_type=DatasetLike)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_return(add_history=True)
-def subset_temporal(ds: xr.Dataset,
+def subset_temporal(ds: DatasetLike.TYPE,
                     time_range: TimeRangeLike.TYPE) -> xr.Dataset:
     """
     Do a temporal subset of the dataset.
@@ -205,7 +205,7 @@ def subset_temporal(ds: xr.Dataset,
 @op(tags=['subset', 'temporal', 'filter', 'utility'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
-def subset_temporal_index(ds: xr.Dataset,
+def subset_temporal_index(ds: DatasetLike.TYPE,
                           time_ind_min: int,
                           time_ind_max: int) -> xr.Dataset:
     """

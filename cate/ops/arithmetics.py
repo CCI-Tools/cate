@@ -29,13 +29,17 @@ Functions
 =========
 """
 
-from cate.core.op import op
-from xarray import ufuncs as xu
 import xarray as xr
+from xarray import ufuncs as xu
+
+from cate.core.op import op, op_input, op_return
+from cate.core.types import DatasetLike
 
 
-@op(tags=['arithmetic'])
-def ds_arithmetics(ds: xr.Dataset,
+@op(tags=['arithmetic'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
+@op_return(add_history=True)
+def ds_arithmetics(ds: DatasetLike.TYPE,
                    op: str) -> xr.Dataset:
     """
     Do arithmetic operations on the given dataset by providing a list of
@@ -60,6 +64,7 @@ def ds_arithmetics(ds: xr.Dataset,
     :param op: A comma separated list of arithmetic operations to apply
     :return: The dataset with given arithmetic operations applied
     """
+    ds = DatasetLike.convert(ds)
     retset = ds
     for item in op.split(','):
         item = item.strip()
@@ -88,7 +93,8 @@ def ds_arithmetics(ds: xr.Dataset,
     return retset
 
 
-@op(tags=['arithmetic'])
+@op(tags=['arithmetic'], version='1.0')
+@op_return(add_history=True)
 def diff(ds: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
     """
     Calculate the difference of two datasets (ds - ds2). This is done by
