@@ -529,6 +529,14 @@ class LocalDataSource(DataSource):
         return self._temporal_coverage
 
     def spatial_coverage(self):
+        if not self._spatial_coverage and \
+                set(self._meta_info.keys()).issuperset({'bbox_minx', 'bbox_miny', 'bbox_maxx', 'bbox_maxy'}):
+            self._spatial_coverage = PolygonLike.convert(",".join([
+                self._meta_info.get('bbox_minx'),
+                self._meta_info.get('bbox_miny'),
+                self._meta_info.get('bbox_maxx'),
+                self._meta_info.get('bbox_maxy')])
+            )
         return self._spatial_coverage
 
     @property
