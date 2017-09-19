@@ -75,7 +75,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
     def test_load_old_datasource_from_json_dict(self):
-        test_data = {  # noqa
+        test_data = {
             'name': 'local.test_name',
             'meta_data': {
                 'type': "FILE_PATTERN",
@@ -95,6 +95,8 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_source)
         self.assertEqual(data_source.temporal_coverage(),
                          TimeRangeLike.convert(test_data.get('meta_data').get('temporal_coverage')))
+        self.assertListEqual([var.get('name') for var in data_source.variables_info],
+                             test_data.get('meta_data').get('variables'))
 
     def test_load_datasource_from_json_dict(self):
         test_data = {  # noqa
@@ -130,7 +132,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertEqual(data_source.temporal_coverage(),
                          TimeRangeLike.convert("{},{}".format(test_data.get('meta_info').get('temporal_coverage_start'),
                                                               test_data.get('meta_info').get('temporal_coverage_end'))))
-        self.assertListEqual(data_source.variables_info, test_data.get('meta_info', {}).get('variables'))
+        self.assertListEqual(data_source.variables_info, test_data.get('meta_info').get('variables'))
 
 
 class LocalFilePatternSourceTest(unittest.TestCase):

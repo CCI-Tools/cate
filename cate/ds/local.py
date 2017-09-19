@@ -130,6 +130,15 @@ class LocalDataSource(DataSource):
         self._reference_name = reference_name
 
         self._meta_info = meta_info if meta_info else OrderedDict()
+
+        if not self._meta_info.get('variables', None) and self._variables:
+            self._meta_info['variables'] = [
+                {'name': var_name,
+                 'units': '',
+                 'long_name': '',
+                 'standard_name': ''
+                 } for var_name in self._variables]
+
         self._is_complete = True
 
     def _resolve_file_path(self, path) -> Sequence:
