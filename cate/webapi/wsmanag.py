@@ -24,8 +24,9 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import json
 import urllib.parse
 import urllib.request
-from tornado import gen, ioloop, websocket
 from typing import List
+
+from tornado import gen, ioloop, websocket
 
 from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT, WEBAPI_PLOT_TIMEOUT
 from cate.core.workspace import Workspace, WorkspaceError, OpKwArgs
@@ -248,26 +249,36 @@ class WebSocketClient(object):
     @gen.coroutine
     def _invoke_method(self):
         self.ws.write_message(self.json_rpc_request)
-        work_reported = 0
+        work_reported = None
+        started = False
         while True:
             response = yield self.ws.read_message()
             json_response = json.loads(response)
-            if 'progress' in json_response and self.monitor:
-                progress = json_response['progress']
-                if 'message' in progress:
-                    message = progress['message']
-                    if message == 'Started':
-                        total = progress.get('total', 100)
-                        label = progress.get('label', '')
-                        self.monitor.start(label, total)
-                    elif message == 'Done':
-                        self.monitor.done()
-                    else:
-                        worked = progress.get('worked', 0)
-                        msg = progress.get('message', '')
-                        self.monitor.progress(worked - work_reported, msg)
-                        work_reported = worked
+            if 'progress' in json_response:
+                if self.monitor:
+                    progress = json_response['progress']
+                    total = progress.get('total')
+                    label = progress.get('label')
+                    worked = progress.get('worked')
+                    msg = progress.get('message')
+
+                    if not started:
+                        if total is not None or total is not None:
+                            self.monitor.start(label, total_work=total)
+                            started = True
+
+                    if started:
+                        if worked:
+                            if work_reported is None:
+                                work_reported = 0.0
+                            work = worked - work_reported
+                            work_reported = worked
+                        else:
+                            work = None
+                        self.monitor.progress(work=work, msg=msg)
             else:
+                if self.monitor and started:
+                    self.monitor.done()
                 return response
 
     def _format_rpc_request(self, method, params):

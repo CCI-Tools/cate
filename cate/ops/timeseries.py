@@ -31,15 +31,16 @@ Functions
 
 import xarray as xr
 
-from cate.core.op import op_input, op
+from cate.core.op import op_input, op, op_return
 from cate.ops.select import select_var
 from cate.core.types import VarNamesLike, PointLike
 
 
-@op(tags=['timeseries', 'temporal', 'filter', 'point'])
+@op(tags=['timeseries', 'temporal', 'filter', 'point'], version='1.0')
 @op_input('point', data_type=PointLike)
 @op_input('method', value_set=['nearest', 'ffill', 'bfill'])
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
+@op_return(add_history=True)
 def tseries_point(ds: xr.Dataset,
                   point: PointLike.TYPE,
                   var: VarNamesLike.TYPE = None,
@@ -72,12 +73,26 @@ def tseries_point(ds: xr.Dataset,
 
     retset = select_var(ds, var=var)
     indexers = {'lat': lat, 'lon': lon}
-    return retset.sel(method=method, **indexers)
+    retset = retset.sel(method=method, **indexers)
+
+    # The dataset is no longer a spatial dataset -> drop associated global
+    # attributes
+    drop = ['geospatial_bounds_crs', 'geospatial_bounds_vertical_crs',
+            'geospatial_vertical_min', 'geospatial_vertical_max',
+            'geospatial_vertical_positive', 'geospatial_vertical_units',
+            'geospatial_vertical_resolution', 'geospatial_lon_min',
+            'geospatial_lat_min', 'geospatial_lon_max', 'geospatial_lat_max']
+
+    for key in drop:
+        retset.attrs.pop(key, None)
+
+    return retset
 
 
-@op(tags=['timeseries', 'temporal'])
+@op(tags=['timeseries', 'temporal'], version='1.0')
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
+@op_return(add_history=True)
 def tseries_mean(ds: xr.Dataset,
                  var: VarNamesLike.TYPE,
                  std_suffix: str = '_std',
