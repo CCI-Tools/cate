@@ -131,7 +131,7 @@ class LocalDataSource(DataSource):
 
         self._meta_info = meta_info if meta_info else OrderedDict()
 
-        if not self._meta_info.get('variables', None) and self._variables:
+        if self._variables and not self._meta_info.get('variables', None):
             self._meta_info['variables'] = [
                 {'name': var_name,
                  'units': '',
@@ -243,6 +243,11 @@ class LocalDataSource(DataSource):
 
                             remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
+                            geo_lat_min = None
+                            geo_lat_max = None
+                            geo_lon_min = None
+                            geo_lon_max = None
+
                             process_region = False
                             if region:
                                 geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
@@ -285,10 +290,10 @@ class LocalDataSource(DataSource):
                                         lon_min = geo_lon_max - lon_max
                                         lon_max = geo_lon_max - lon_min_copy
 
-                                    lat_min = floor(lat_min / geo_lat_res)
-                                    lat_max = ceil(lat_max / geo_lat_res)
-                                    lon_min = floor(lon_min / geo_lon_res)
-                                    lon_max = ceil(lon_max / geo_lon_res)
+                                    lat_min = int(floor(lat_min / geo_lat_res))
+                                    lat_max = int(ceil(lat_max / geo_lat_res))
+                                    lon_min = int(floor(lon_min / geo_lon_res))
+                                    lon_max = int(ceil(lon_max / geo_lon_res))
 
                                     remote_dataset = remote_dataset.isel(drop=False,
                                                                          lat=slice(lat_min, lat_max),
@@ -362,24 +367,24 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
+        _uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
         if not local_name or len(local_name) == 0:
-            local_name = "local.{}.{}".format(self.id, uuid)
+            local_name = "local.{}.{}".format(self.id, _uuid)
             existing_ds_list = local_store.query(local_name)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
             existing_ds_list = local_store.query('local.%s' % local_name)
             if len(existing_ds_list) == 1:
-                if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
+                if existing_ds_list[0].meta_info.get('uuid', None) == _uuid:
                     return existing_ds_list[0]
                 else:
                     raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
 
         local_meta_info = self.meta_info.copy()
         local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
-        local_meta_info['uuid'] = uuid
+        local_meta_info['uuid'] = _uuid
 
         local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, local_name,
                                                   time_range=time_range, var_names=var_names,
@@ -673,12 +678,13 @@ class LocalDataStore(DataStore):
         if isinstance(files, str):
             files = [files]
         is_first_file = True
-        for file in files:
-            if is_first_file:
-                data_source.add_dataset(file, extract_meta_info=True)
-                is_first_file = False
-            else:
-                data_source.add_dataset(file)
+        if files:
+            for file in files:
+                if is_first_file:
+                    data_source.add_dataset(file, extract_meta_info=True)
+                    is_first_file = False
+                else:
+                    data_source.add_dataset(file)
         self.register_ds(data_source)
         return data_source
 
@@ -695,7 +701,7 @@ class LocalDataStore(DataStore):
         if data_source in self._data_sources:
             self._data_sources.remove(data_source)
 
-    def register_ds(self, data_source: DataSource):
+    def register_ds(self, data_source: LocalDataSource):
         data_source.set_completed(True)
         self._data_sources.append(data_source)
 
@@ -703,7 +709,7 @@ class LocalDataStore(DataStore):
     def generate_uuid(cls, ref_id: str,
                       time_range: Optional[TimeRange] = None,
                       region: Optional[Polygon] = None,
-                      var_names: Optional[VarNames] = None) -> uuid.UUID:
+                      var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
             ref_id += TimeRangeLike.format(time_range)
@@ -718,7 +724,7 @@ class LocalDataStore(DataStore):
     def generate_title(cls, title: str,
                        time_range: Optional[TimeRange] = None,
                        region: Optional[Polygon] = None,
-                       var_names: Optional[VarNames] = None) -> uuid.UUID:
+                       var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
             title += " [TimeRange:{}]".format(TimeRangeLike.format(time_range))
