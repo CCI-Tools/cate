@@ -225,18 +225,39 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
     monitor = parent_monitor.child(1)
 
     kwargs = {'w': width, 'h': height, 'ds_method': method_ds, 'us_method': method_us, 'parent_monitor': monitor}
-    group_by_time = array.groupby('time')
-    num_time_steps = len(group_by_time)
 
-    with monitor.starting("coregister dataarray", total_work=num_time_steps):
-        temp_array = group_by_time.apply(_resample_slice, **kwargs)
-        chunks = list(temp_array.shape[1:])
-        chunks.insert(0, 1)
+    groupby_list = list(array.dims)
+    for dim in ['lon', 'lat']:
+        groupby_list.remove(dim)
+
+    num_steps = 1
+    for dim in groupby_list:
+        num_steps = num_steps * len(array[dim])
+
+    with monitor.starting("coregister dataarray", total_work=num_steps):
+        temp_array = _nested_groupby_apply(array, groupby_list, _resample_slice, kwargs)
+        chunks = {'lat': height, 'lon': width}
+#       chunks = list(temp_array.shape[1:])
+#       chunks.insert(0, 1)
+        coords = {'lat': lat, 'lon': lon}
+        for dim in groupby_list:
+            coords[dim] = array[dim]
+            # One spatial slice is one dask chunk, e.g. chunking is
+            # (1,1,1..1,len(lat),len(lon))
+            chunks[dim] = 1
         return xr.DataArray(temp_array.values,
                             name=array.name,
                             dims=array.dims,
-                            coords={'time': array.time, 'lat': lat, 'lon': lon},
+                            coords=coords,
                             attrs=array.attrs).chunk(chunks=chunks)
+#       temp_array = group_by_time.apply(_resample_slice, **kwargs)
+#       chunks = list(temp_array.shape[1:])
+#       chunks.insert(0, 1)
+#       return xr.DataArray(temp_array.values,
+#                           name=array.name,
+#                           dims=array.dims,
+#                           coords={'time': array.time, 'lat': lat, 'lon': lon},
+#                           attrs=array.attrs).chunk(chunks=chunks)
 
 
 def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int, monitor: Monitor) -> xr.Dataset:
@@ -342,7 +363,8 @@ def _find_intersection(first: np.ndarray,
 
 def _nested_groupby_apply(array: xr.DataArray,
                           groupby: list,
-                          apply_fn: object):
+                          apply_fn: object,
+                          kwargs: dict):
     """
     Perform a nested groupby over given dimensions and apply a function on the
     last 'slice'
@@ -353,8 +375,9 @@ def _nested_groupby_apply(array: xr.DataArray,
     :return: groupby-split-appy result
     """
     if len(groupby) == 1:
-        return array.groupby(groupby[0]).apply(apply_fn)
+        return array.groupby(groupby[0]).apply(apply_fn, **kwargs)
     else:
         return array.groupby(groupby[0]).apply(_nested_groupby_apply,
                                                groupby=groupby[1:],
-                                               apply_fn=apply_fn)
+                                               apply_fn=apply_fn,
+                                               kwargs=kwargs)
