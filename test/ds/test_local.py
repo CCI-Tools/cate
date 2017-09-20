@@ -96,6 +96,27 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertListEqual([var.get('name') for var in data_source.variables_info],
                              test_data.get('meta_data').get('variables'))
 
+        test_data = {
+            'name': 'local.test_name',
+            'meta_data': {
+                'temporal_covrage': "2001-01-01 00:00:00,2001-01-31 23:59:59",
+                'spatial_coverage': "-180,-90,180,90",
+                'variables': ['var_test_1', 'var_test_2'],
+            },
+            "meta_info": {
+            },
+            'files': [['file_1', '2002-02-01 00:00:00', '2002-02-01 23:59:59'],
+                      ['file_2', '2002-03-01 00:00:00', '2002-03-01 23:59:59']]
+        }
+        data_source = LocalDataSource.from_json_dict(json_dict=test_data, data_store=self.data_store)
+        self.assertIsNotNone(data_source)
+        self.assertEqual(data_source.temporal_coverage(),
+                         TimeRangeLike.convert(test_data.get('meta_data').get('temporal_covrage')))
+        self.assertEqual(data_source.spatial_coverage(),
+                         PolygonLike.convert(test_data.get('meta_data').get('spatial_coverage')))
+        self.assertListEqual([var.get('name') for var in data_source.variables_info],
+                             test_data.get('meta_data').get('variables'))
+
     def test_load_datasource_from_json_dict(self):
         test_data = {
             'name': 'local.test_name2',
