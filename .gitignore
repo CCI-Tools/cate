@@ -62,3 +62,6 @@ test_workflow_svg.html
 # vim
 *.swp
 *.swo
+
+# Used by Chris
+cate/bin
