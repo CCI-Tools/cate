@@ -9,6 +9,8 @@
 
 ### Issues Fixed/Resolved
 
+* Merged (removed duplicated) meta information in datasource config file
+  [#301](https://github.com/CCI-Tools/cate-core/issues/301)
 * Land Cover CCI display must use dedicated color map
   [#364](https://github.com/CCI-Tools/cate-core/issues/364)
 * Land Cover CCI data display wrongly positioned (temp. hack!)
