@@ -23,7 +23,7 @@ def test_data_source(data_source, out_dir, result):
     dataset = None
     t0 = time.clock()
     try:
-        dataset = open_dataset(data_source_id,
+        dataset = open_dataset(ds_id=data_source_id,
                                force_local=True,
                                monitor=ConsoleMonitor(stay_in_line=True,
                                                       progress_bar_size=60))
