@@ -232,18 +232,23 @@ class WebSocketService:
         data_store.remove_data_source(data_source_name, remove_files)
         return self.get_data_sources('local', monitor=Monitor.NONE)
 
-    def get_operations(self) -> List[dict]:
+    def get_operations(self, registry=None) -> List[dict]:
         """
         Get registered operations.
 
         :return: JSON-serializable list of data sources, sorted by name.
         """
+        registry = registry or OP_REGISTRY
         op_list = []
-        for op_name, op_reg in OP_REGISTRY.op_registrations.items():
+        for op_name, op_reg in registry.op_registrations.items():
+            if op_reg.op_meta_info.header.get('deprecated'):
+                continue
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
-            op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()]
-            op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()]
+            op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()
+                                      if not props.get('deprecated')]
+            op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()
+                                       if not props.get('deprecated')]
             op_list.append(op_json_dict)
 
         return sorted(op_list, key=lambda op: op['name'])
