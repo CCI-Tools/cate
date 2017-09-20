@@ -37,8 +37,10 @@ from cate.util import Monitor
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
+# TODO (forman): deprecate "ds_name" input and introduce "ds_id" instead, see #381
+
 @op(tags=['input'])
-@op_input('ds_name')
+@op_input('ds_name', nullable=False)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
@@ -62,7 +64,8 @@ def open_dataset(ds_name: str,
     :param var_names: Optional names of variables of the requested dataset
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :param force_local: Whether to make a local copy of remote data source if it's not present
-    :param local_ds_id: Optional local ID for newly created local copy of remote data source
+    :param local_ds_id: Optional local identifier for newly created local copy of remote data source.
+           Used only if force_local=True.
     :param monitor: A progress monitor
     :return: An new dataset instance.
     """
