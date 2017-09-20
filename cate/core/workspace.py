@@ -33,6 +33,7 @@ import fiona
 import pandas as pd
 import xarray as xr
 
+from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_lon_dim_name, get_lat_dim_name
 from ..core.op import OP_REGISTRY
@@ -369,9 +370,9 @@ class Workspace:
         }
 
         if not is_coord:
-            image_config = self._get_variable_image_config(variable)
-            if image_config:
-                variable_info['imageLayout'] = image_config
+            image_layout = self._get_variable_image_layout(variable)
+            if image_layout:
+                variable_info['imageLayout'] = image_layout
                 variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
         elif variable.ndim == 1:
             # Serialize data of coordinate variables.
@@ -379,10 +380,19 @@ class Workspace:
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
+        display_settings = conf.get_variable_display_settings(variable.name)
+        if display_settings:
+            mapping = dict(colorMapName='color_map',
+                           displayMin='display_min',
+                           displayMax='display_max')
+            for var_prop_name, display_settings_name in mapping.items():
+                if display_settings_name in display_settings:
+                    variable_info[var_prop_name] = display_settings[display_settings_name]
+
         return variable_info
 
     # noinspection PyMethodMayBeStatic
-    def _get_variable_image_config(self, variable):
+    def _get_variable_image_layout(self, variable):
         lat_dim_name = get_lat_dim_name(variable)
         lon_dim_name = get_lon_dim_name(variable)
         if not lat_dim_name or not lon_dim_name:
