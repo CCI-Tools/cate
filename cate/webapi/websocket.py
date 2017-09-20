@@ -339,7 +339,9 @@ class WebSocketService:
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()
 
-    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int]):
+    # Note, we should turn this into an operation "actual_min_max(ds, var)"
+    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int],
+                                          monitor=Monitor.NONE):
         workspace_manager = self.workspace_manager
         workspace = workspace_manager.get_workspace(base_dir)
         if res_name not in workspace.resource_cache:
@@ -356,7 +358,10 @@ class WebSocketService:
         if var_index:
             variable = variable[tuple(var_index)]
 
-        valid_min = variable.min(skipna=True)
-        valid_max = variable.max(skipna=True)
+        with monitor.starting('Computing min/max', total_work=100.):
+            with monitor.child(work=50.).observing('Computing min'):
+                actual_min = variable.min(skipna=True)
+            with monitor.child(work=50.).observing('Computing max'):
+                actual_max = variable.max(skipna=True)
 
-        return dict(min=float(valid_min), max=float(valid_max))
+        return dict(min=float(actual_min), max=float(actual_max))
