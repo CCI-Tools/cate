@@ -5,6 +5,7 @@
 # the settings provided here.
 ###############################################################################
 
+
 # 'data_stores_path' is denotes a directory where Cate stores information about data stores and also saves
 # local data files synchronized with their remote versions.
 # Use the tilde '~' (also on Windows) within the path to point to your home directory.
@@ -17,6 +18,7 @@
 # image display, however at the cost of disk space.
 #
 # use_workspace_imagery_cache = False
+
 
 # Include/exclude data sources (currently effective in Cate Desktop GUI only, not used by API, CLI).
 #
@@ -38,3 +40,15 @@ excluded_data_sources = [
     # Exclude Land Cover CCI, see issues #361, #364, #371
     'esacci.LC.*',
 ]
+
+
+# Configure / overwrite default variable display settings as used in various plot_<type>() operations
+# and in the Cate Desktop GUI.
+# Each entry maps a variable name to a dictionary with the following entries:
+#    color_map   - name of a color map taken from from https://matplotlib.org/examples/color/colormaps_reference.html
+#    display_min - minimum variable value that corresponds to the lower end of the color map
+#    display_max - maximum variable value that corresponds to the upper end of the color map
+#
+# variable_display_settings = {
+#     'my_var': dict(color_map='inferno', display_min=0.1, display_max=0.8),
+# }

@@ -77,3 +77,7 @@ WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER = 120 * 60.0
 
 #: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed, if WebAPI auto-exit enabled
 WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
+
+VARIABLE_DISPLAY_SETTINGS = {
+    "lccs_class": dict(color_map='land_cover_cci'),
+}
