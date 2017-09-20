@@ -17,3 +17,24 @@
 # image display, however at the cost of disk space.
 #
 # use_workspace_imagery_cache = False
+
+# Include/exclude data sources (currently effective in Cate Desktop GUI only, not used by API, CLI).
+#
+# If 'included_data_sources' is a list, its entries are expected to be wildcard patterns for the identifiers of data
+# sources to be included. By default, or if 'included_data_sources' is None, all data sources are included.
+# If 'excluded_data_sources' is a list, its entries are expected to be wildcard patterns for the identifiers of data
+# sources to be excluded. By default, or if 'excluded_data_sources' is None, no data sources are excluded.
+# If both 'included_data_sources' and 'excluded_data_sources' are lists, we first include data sources using
+# 'included_data_sources' then remove entries that match any result from applying 'excluded_data_sources'.
+#
+# We put wildcards here that match all data sources that are known to work in GUI
+included_data_sources = [
+    '*',
+]
+# We put wildcards here that match all data sources that are known NOT to work in GUI
+excluded_data_sources = [
+    # Exclude datasets that usually take too long to download or cannot be easily aggregated
+    'esacci.*.day.*', 'esacci.*.satellite-orbit-frequency.*',
+    # Exclude Land Cover CCI, see issues #361, #364, #371
+    'esacci.LC.*',
+]
