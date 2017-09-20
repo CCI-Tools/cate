@@ -9,6 +9,8 @@
 
 ### Issues Fixed/Resolved
 
+* Fixed reading datasource temporal coverage from config file (obsolete format) 
+  [#373](https://github.com/CCI-Tools/cate-core/issues/373)
 * Merged (removed duplicated) meta information in datasource config file
   [#301](https://github.com/CCI-Tools/cate-core/issues/301)
 * Land Cover CCI display must use dedicated color map
