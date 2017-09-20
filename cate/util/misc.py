@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import fnmatch
 from collections import OrderedDict
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -29,7 +30,7 @@ import urllib.parse
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple
+from typing import Union, Tuple, Sequence, Optional
 
 import numpy as np
 
@@ -357,3 +358,31 @@ def to_json(v):
         pass
 
     return str(v)
+
+
+def filter_fileset(names: Sequence[str],
+                   includes: Optional[Sequence[str]] = None,
+                   excludes: Optional[Sequence[str]] = None) -> Sequence[str]:
+    """
+    Filter a fileset given by the sequence *names* using the wildcard patterns in *includes* and *excludes*.
+    :param names: The names of the fileset
+    :param includes: Wildcard patterns that select the file names to be included,
+    :param excludes: Wildcard patterns that select the file names to be excluded,
+    :return: The filtered fileset
+    """
+    if includes is not None:
+        filtered_names = set()
+        for pattern in includes:
+            filtered_names.update(fnmatch.filter(names, pattern))
+        if excludes is not None:
+            filtered_names_old = filtered_names
+            filtered_names = set(filtered_names)
+            for pattern in excludes:
+                filtered_names.difference_update(fnmatch.filter(filtered_names_old, pattern))
+    elif excludes is not None:
+        filtered_names = set(names)
+        for pattern in excludes:
+            filtered_names.difference_update(fnmatch.filter(filtered_names, pattern))
+    else:
+        filtered_names = names
+    return filtered_names
