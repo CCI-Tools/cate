@@ -615,7 +615,7 @@ class LocalDataSource(DataSource):
 
         meta_data = json_dict.get('meta_data', None)
         if meta_data:
-            temporal_coverage = meta_data.get('temporal_coverage', None)
+            temporal_coverage = meta_data.get('temporal_coverage', meta_data.get('temporal_covrage', None))
             spatial_coverage = meta_data.get('spatial_coverage', None)
             variables = meta_data.get('variables', None)
 
