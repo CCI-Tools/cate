@@ -36,7 +36,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from scipy.special import betainc
 
-from cate.core.op import op, op_input
+from cate.core.op import op, op_input, op_return
 from cate.core.types import VarName, DatasetLike
 
 from cate.ops.normalize import adjust_spatial_attrs
@@ -98,13 +98,14 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
 
 
-@op(tags=['utility', 'correlation'])
+@op(tags=['utility', 'correlation'], version='1.0')
 @op_input('ds_x', data_type=DatasetLike)
 @op_input('ds_y', data_type=DatasetLike)
 @op_input('var_x', value_set_source='ds_x', data_type=VarName)
 @op_input('var_y', value_set_source='ds_y', data_type=VarName)
-def pearson_correlation(ds_x: xr.Dataset,
-                        ds_y: xr.Dataset,
+@op_return(add_history=True)
+def pearson_correlation(ds_x: DatasetLike.TYPE,
+                        ds_y: DatasetLike.TYPE,
                         var_x: VarName.TYPE,
                         var_y: VarName.TYPE) -> xr.Dataset:
     """

@@ -11,6 +11,10 @@
 * Make alpha blending work for all color maps
   [#360](https://github.com/CCI-Tools/cate-core/issues/360)
 * Filter out 't0' in the `make_local` step of **Soil Moisture CCI** data sources to make the data usable
+* Verify operations against the operation development checklist to ensure some
+  quality baseline.
+  [#291](https://github.com/CCI-Tools/cate-core/issues/291)
+* Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable
   [#326](https://github.com/CCI-Tools/cate-core/issues/326)
 * Use only tags from a predefined set (maybe module name && list in developers' guide)
   [#280](https://github.com/CCI-Tools/cate-core/issues/280)

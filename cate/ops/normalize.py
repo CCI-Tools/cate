@@ -35,11 +35,12 @@ import numpy as np
 from jdcal import jd2gcal
 from datetime import datetime
 
-from cate.core.op import op
+from cate.core.op import op, op_return
 from cate.core.cdm import get_lon_dim_name, get_lat_dim_name
 
 
-@op(tags=['utility'])
+@op(tags=['utility'], version='1.0')
+@op_return(add_history=True)
 def normalize(ds: xr.Dataset) -> xr.Dataset:
     """
     Normalize the geo- and time-coding upon opening the given dataset w.r.t.
@@ -163,6 +164,7 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+@op(tags=['utility', 'internal'], version='1.0')
 def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
@@ -210,6 +212,7 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+@op(tags=['utility', 'internal'], version='1.0')
 def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     Adjust the global temporal attributes of the dataset by doing some
