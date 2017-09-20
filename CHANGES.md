@@ -9,7 +9,7 @@
 
 ### Issues Fixed/Resolved
 
-* Fixed reading datasource temporal coverage from config file (obsolete format) 
+* Fixed reading datasource temporal coverage from config file (obsolete format)
   [#373](https://github.com/CCI-Tools/cate-core/issues/373)
 * Merged (removed duplicated) meta information in datasource config file
   [#301](https://github.com/CCI-Tools/cate-core/issues/301)
@@ -21,6 +21,8 @@
   [#360](https://github.com/CCI-Tools/cate-core/issues/360)
 * CLI monitor not working
   [#353](https://github.com/CCI-Tools/cate-core/issues/353)
+* GUI-Preferences for data store files do not overwrite conf.py
+  [#350](https://github.com/CCI-Tools/cate-core/issues/350)
 * Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable
   [#326](https://github.com/CCI-Tools/cate-core/issues/326)
 * Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
