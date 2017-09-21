@@ -29,7 +29,7 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import VERSION_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
@@ -157,7 +157,6 @@ class WebSocketService:
             meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
         # TODO mz add available data information
         return meta_info
-
 
     def add_local_datasource(self, data_source_name: str, file_path_pattern: str, monitor: Monitor):
         """
