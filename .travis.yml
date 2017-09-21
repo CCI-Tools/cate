@@ -34,7 +34,7 @@ install:
 
   - conda env create --file environment.yml
   - source activate cate
-  - conda install -y -c conda-forge --override-channels matplotlib==2.0.2
+  - conda install -y -c conda-forge --override-channels matplotlib=2.0.2=py36_2
   - conda list
   - python setup.py install
 
