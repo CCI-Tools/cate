@@ -201,11 +201,11 @@ class WebSocketService:
                                    monitor=monitor.child(98))
             return self.get_data_sources('local', monitor=monitor.child(2))
 
-    def add_local_datasource(self, data_source_name: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
-        Adds a local datas ource made up of the specified files.
+        Adds a local data source made up of the specified files.
 
-        :param data_source_name: The name of the local data source.
+        :param data_source_id: The identifier of the local data source.
         :param file_path_pattern: The files path containing wildcards.
         :param monitor: a progress monitor.
         :return: JSON-serializable list of 'local' data sources, sorted by name.
@@ -213,24 +213,26 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store('local')
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % 'local')
-        with monitor.starting('Making data source local', 100):
+        with monitor.starting('Adding local data source', 100):
             # TODO use monitor, while extracting metadata
-            data_store.add_pattern(data_source_id=data_source_name, files=file_path_pattern)
+            data_store.add_pattern(data_source_id=data_source_id, files=file_path_pattern)
             return self.get_data_sources('local', monitor=monitor.child(100))
 
-    def remove_local_datasource(self, data_source_name: str, remove_files: bool) -> list:
+    def remove_local_data_source(self, data_source_id: str, remove_files: bool, monitor: Monitor) -> list:
         """
         Removes the datasource (and optionally the giles belonging  to it) from the local data store.
 
-        :param data_source_name: The name of the local data source.
+        :param data_source_id: The identifier of the local data source.
         :param remove_files: Wether to remove the files belonging to this data source.
+        :param monitor: a progress monitor.
         :return: JSON-serializable list of 'local' data sources, sorted by name.
         """
         data_store = DATA_STORE_REGISTRY.get_data_store('local')
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % 'local')
-        data_store.remove_data_source(data_source_name, remove_files)
-        return self.get_data_sources('local', monitor=Monitor.NONE)
+        # TODO use monitor, while removing files
+        data_store.remove_data_source(data_source_id, remove_files)
+        return self.get_data_sources('local', monitor=monitor)
 
     def get_operations(self, registry=None) -> List[dict]:
         """
