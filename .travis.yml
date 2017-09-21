@@ -33,6 +33,7 @@ install:
   - conda info -a
 
   - conda env create --file environment.yml
+  - conda install -y -c conda-forge matplotlib==2.0.2
   - source activate cate
   - conda list
   - python setup.py install
