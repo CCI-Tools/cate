@@ -4,17 +4,17 @@ from datetime import datetime
 from unittest import TestCase
 
 import cate.core.ds as io
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
 from cate.ds.esa_cci_ftp import FileSetDataStore, set_default_data_store
 
 
 class EsaCciFtpTest(TestCase):
     def test_set_default_data_store(self):
         set_default_data_store()
+        data_stores_path = get_data_stores_path()
         data_store = DATA_STORE_REGISTRY.get_data_store('esa_cci_ftp')
         self.assertIsInstance(data_store, FileSetDataStore)
-        self.assertEqual(data_store.root_dir,
-                         os.path.expanduser(os.path.join('~', '.cate', 'data_stores', 'esa_cci_ftp')))
+        self.assertEqual(data_store.root_dir, os.path.join(data_stores_path, 'esa_cci_ftp'))
 
 
 class FileSetDataSourceTest(TestCase):

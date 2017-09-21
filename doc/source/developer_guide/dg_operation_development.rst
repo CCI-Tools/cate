@@ -123,6 +123,40 @@ a tag from the following list:
   * ``temporal`` for predominantly temporal operations
   * ``filter`` for operations that filter out things from an input to an output
 
+Deprecations
+------------
+
+Often it is required to change the name or the arguments of an existing operation. To provide
+backward compatibility the "old" operation can still be maintained by *deprecating* it.
+If we need to change a parameter name and possibly its type, we can also keep the old name and type
+and deprecate it.
+
+The ``deprecated`` property is available for the ``@op``, ``@op_input``, and ``@op_output`` decorators.
+Its value may be just ``True`` or a string explaining why the operation/input/output has been deprecated and
+what to do instead.
+
+.. code-block:: python
+
+  @op(deprecated='"some_operation()" was inaccurate; use "some_new_operation()" instead')
+  def some_operation(...):
+      ...
+
+  @op_input('id', nullable=False)
+  @op_input('name', deprecated='Meaning changed; use "id" instead')
+  def some_operation(id:str = None, name:str = None, ...):
+      id = id or name
+      ...
+
+Note, for maximum backward compatibility it is always a good idea to use keyword arguments instead of
+positional arguments.
+
+By default, deprecated operations and deprecated inputs/outputs will not be be shown to
+users in the Cate CLI and Cate Desktop GUI.
+
+To list all deprecated operations in the Cate CLI, type:::
+
+    $ cate op list --deprecated
+
 
 .. _dg-op-history-information:
 

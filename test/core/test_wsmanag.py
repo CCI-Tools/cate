@@ -138,9 +138,9 @@ class WorkspaceManagerTestMixin:
             ('progress', 1.0, 'Step 7 of 10 doing nothing', 70),
             ('progress', 1.0, 'Step 8 of 10 doing nothing', 80),
             ('progress', 1.0, 'Step 9 of 10 doing nothing', 90),
-            ('progress', 1.0, 'Step 10 of 10 doing nothing', 100)
-        ], rm.records[:11])
-        # in ws case 'done' is not transmitted
+            ('progress', 1.0, 'Step 10 of 10 doing nothing', 100),
+            ('done',)
+        ], rm.records)
         self.del_base_dir(base_dir)
 
     def test_session(self):
@@ -185,7 +185,7 @@ class WorkspaceManagerTestMixin:
 
         self.del_base_dir(base_dir)
 
-    def test_persitence(self):
+    def test_persistence(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()

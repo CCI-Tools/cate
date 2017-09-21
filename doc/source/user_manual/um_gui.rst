@@ -2,7 +2,7 @@
 Cate Desktop (GUI)
 ==================
 
-*Applies to Cate Desktop, version 0.8.0*
+*Applies to Cate Desktop, version 0.9.0.dev7*
 
 Overview
 ========
@@ -28,8 +28,6 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
    :align: center
 
    Cate Desktop initial layout
-
-
 
 ------
 Panels
@@ -67,7 +65,7 @@ Views
 The central area is occupied by *views* that can be arranged in rows and columns. Cate currently offers three view
 types:
 
-* The **World view**, displaying imagery data originaling from data variables and placemarks on either a
+* The **world view**, displaying imagery data originaling from data variables and placemarks on either a
   3D globe or a 2D map;
 * The **table view**, displaying tabular resource and variable data in a table;
 * The **figure view**, displaying plots  from special figure resources resulting from the various plotting operations.
@@ -116,6 +114,22 @@ More information regarding workspaces can be found in section :ref:`about_worksp
 Reference
 =========
 
+-----
+Index
+-----
+
+* :ref:`data_sources_panel`
+* :ref:`operations_panel`
+* :ref:`workspace_panel`
+* :ref:`variables_panel`
+* :ref:`placemarks_panel`
+* :ref:`layers_panel`
+* :ref:`view_panel`
+* :ref:`tasks_panel`
+* :ref:`preferences_dialog`
+
+
+
 .. _data_sources_panel:
 
 ------------------
@@ -128,7 +142,7 @@ DATA SOURCES Panel
    :scale: 100 %
    :align: left
 
-   DATA SOURCES panel for ``esa_cci_odp``
+   Data Sources panel for ``ESA CCI Open Data Portal``
 
 The **DATA SOURCES** panel is used to browse, download and open both local and remote data sources published by
 *data stores*.
@@ -140,7 +154,7 @@ Below data stores selector, there is a search field, while typing, the list of d
 the selected data store is narrowed down. Selecting a data source entry will allow displaying its **Details**,
 namely the available (geo-physical) variables and the meta-data associated with the data source.
 
-In order to start working with remote data from the ``esa_cci_odp`` data store, there are two options which are
+In order to start working with remote data from the *ESA CCI Open Data Portal* data store, there are two options which are
 explained in the following:
 
 1. Download the complete remote dataset or a subset and make it a new *local* data source available from the
@@ -154,7 +168,7 @@ explained in the following:
 
 
 After selecting a remote data source, press the **Download** button to open the *Download Dataset** dialog shown
-in :ref:`gui_dialog_download_dataset` to use the first option.
+in :numref:`gui_dialog_download_dataset` to use the first option.
 
 .. _gui_dialog_download_dataset:
 
@@ -207,7 +221,7 @@ a new dataset *resource* is available from the :ref:`workspace_panel`.
    Data Sources panel for ``local``
 
 Switching the data store selector to *Local Data Sources* lists all currently available local data sources as shown in
-:ref:`gui_panel_data_sources_local`. These are the ones downloaded from remote sources, or ones that you can
+:numref:`gui_panel_data_sources_local`. These are the ones downloaded from remote sources, or ones that you can
 create from local data files.
 
 Press the **Add** button to open the **Add Local Data Source** dialog that is used to create a new local data source.
@@ -215,7 +229,7 @@ A data source may be composed of one or more data files that can be stacked toge
 to form a single unique multi-file dataset. At the time of writing, only NetCDF (``*.nc``) data sources are supported.
 
 Pressing the **Open** button will bring up the **Open Local Dataset** dialog as
-shown in the :ref:`gui_dialog_open_local_dataset` below:
+shown in :numref:`gui_dialog_open_local_dataset` below:
 
 .. _gui_dialog_open_local_dataset:
 
@@ -225,45 +239,13 @@ shown in the :ref:`gui_dialog_open_local_dataset` below:
 
    Open Local Dataset dialog
 
-Confirming the dialog will create a new in-memory dataset *resource* which will be available from the
-:ref:`workspace_panel`.
+Confirming the dialog will create a new in-memory dataset *resource* which will be available from the **WORKSPACE**
+panel as shown in :numref:`gui_panel_workspace_res`.
 
 Note, that **Cate will load into memory only those slices of a dataset, which are required to
 perform some action**. For example, to display an image layer on the 3D Globe view, Cate only loads the 2D image for
 a given time index, although the dataset might be composed of multiple such 2D images that form a time series and / or
 a stack of atmospheric layers.
-
-
-.. _workspace_panel:
-
----------------
-WORKSPACE Panel
----------------
-
-.. _gui_panel_workspace:
-
-.. figure:: ../_static/figures/user_manual/gui_panel_workspace.png
-   :scale: 100 %
-   :align: right
-
-   WORKSPACE panel
-
-
-
-.. _variables_panel:
-
----------------
-VARIABLES Panel
----------------
-
-.. _gui_panel_variables:
-
-.. figure:: ../_static/figures/user_manual/gui_panel_variables.png
-   :scale: 100 %
-   :align: right
-
-   VARIABLES panel
-
 
 
 .. _operations_panel:
@@ -280,8 +262,10 @@ in the Cate context includes functions that
 * plot datasets;
 * write datasets to files.
 
+The **Details** section provides a description about the operation including its inputs and outputs.
+
 .. note::
-   For Python programmers: At the time of writing, all Cate operations are plain Python functions.
+   To programmers: At the time of writing, all Cate operations are plain Python functions.
    To let them appear in Cate's GUI and CLI, they are annotated with additional meta-information.
    This also allows for setting specific operation input/output
    properties so that specific user interfaces for a given operation is genereted on-the-fly.
@@ -297,8 +281,21 @@ in the Cate context includes functions that
    :scale: 100 %
    :align: left
 
-   OPERATIONS panel
+   Operations panel
 
+Pressing the **Apply...** button will bring up a dialog that let's you enter the operation's parameter
+values. For most parameter types (numeric, boolean, text), an input field is provided. For the ones that don't have
+a dedicated input field, a *resource selector* is provided that let's you select a *resource* from a drop-down list.
+Only resources are listed whose data type match the required parameter type.
+Most commonly, these will be resources of type
+
+* ``Dataset``: N-dimensional, gridded data as originating from NetCDF file sets or OPeNDAP services
+* ``DataFrame``: two-dimensional, tabular data from CSV files
+* ``GeoDataFrame``: similar to ``DataFrame`` but include geometry data and are originating from
+  ESRI Shapefiles and GeoJSON services.
+
+Note that every parameter value can be set to a resource by checking the switch to right of the parameter field.
+This will exchange the input field by a resource selector.
 
 .. _gui_dialog_new_op_step:
 
@@ -308,6 +305,11 @@ in the Cate context includes functions that
 
    New Operation Step dialog
 
+
+After pressing the **Apply** button, the operation is being invoked and a new *workflow step*
+will be added to the workspace. For any operations returning a value a new *resource* will be added as well.
+
+The new *workflow step* and the new *resource*, if any, are shown in the **WORKSPACE** panel.
 
 .. _gui_dialog_new_op_step_applied:
 
@@ -321,6 +323,104 @@ in the Cate context includes functions that
 .. note::
    Some operations allow or require entering a path to a file or a directory location. When you pass a relative path,
    it is meant to be relative to the current workspace directory.
+
+
+
+.. _workspace_panel:
+
+---------------
+WORKSPACE Panel
+---------------
+
+The **WORKSPACE** panel is used to manage the current Cate workspace whose name is displayed
+in the header line of the panel. To the right of the workspace name there is an indicator whether the
+workspace is modified or not.
+
+In the upper left of the panel are two tools buttons that allow for
+* opening the workspace directory in your operating system's file explorer;
+* copying the workspace workflow into the operating system's clipboard as Python script, shell script or in JSON format.
+
+The *workflow steps* and *resources* of the current workflow are shown in the
+respective **Workflow** and **Resources** sub-panels.
+
+Workspace / Workflow Panel
+--------------------------
+
+This panel lists all the workflow steps originating from opening datasets and applying operations in chronological
+order. The **Details** section displays the used parameter values of a selected workflow step.
+
+
+.. _gui_panel_workspace_steps:
+
+.. figure:: ../_static/figures/user_manual/gui_panel_workspace_steps.png
+   :scale: 100 %
+   :align: left
+
+   Workspace / Workflow panel
+
+
+Workspace / Resources Panel
+---------------------------
+
+This panel lists all the data resources originating from workflow steps. The **Details** section displays the
+properties and metadata of the selected data resource.
+
+A data resource may contain any number of *data variables*. This is usually the case for any resource of type
+``Dataset`` or ``DataFrame``. The contained variables of a selected data resource are shown in the **VARIABLES** panel.
+
+.. _gui_panel_workspace_res:
+
+.. figure:: ../_static/figures/user_manual/gui_panel_workspace_res.png
+   :scale: 100 %
+   :align: right
+
+   Workspace / Resources panel
+
+
+The toolbar to the lower right of the list of workflow steps or resources offers the following functions (in order):
+
+* Show figure. Shows the associated data **resource in a figure view**.
+  Only enabled if the resource is of type ``Figure`` which is the is for example
+  the case for the various ``plot_<type>()`` operations.
+* Show table: Shows the associated data **resource in a table view** if it is two-dimensional data.
+* Edit resource / workflow step properties: Brings up a dialog which lets you **rename a resource** and
+  **make a resource persistent** within the workspace. The latter can drastically speed up workspace loading
+  especially for data resources that are expensive to recompute.
+* **Edit operation parameters** of a selected workflow step or resource: Brings up a the **Edit Operation Step**
+  dialog similar to the
+  :ref:`gui_dialog_new_op_step`. Confirming the dialog by pressing **Apply** will invoke workflow step
+  and compute a new resource value. All workflow step that depend on this resource will also
+  be executed again possibly triggering other workflow step executions.
+* **Remove** a selected workflow step or resource. Removal will fail if other steps depend on it.
+* **Clean** the current workspace which will remove all steps and resources.
+
+
+
+.. _variables_panel:
+
+---------------
+VARIABLES Panel
+---------------
+
+The **VARIABLES** panel lists the data variables of a selected resource in the **WORKSPACE** panel.
+The list entry shows the variable's name and its data type.
+
+The toolbar to the lower right of the list of variables offers the following functions (in order):
+
+* **Toggle layer visibility**: if the variable can be displayed as an image layer in the 3D globe view.
+* **Add new image layer**: adds the selected variable as an image layer to the active world view, if any.
+* **Create time series plot** from selected placemark. Adds a new workflow step which calls the ``plot()`` operation.
+* **Create histogram plot**. Adds a new workflow step which calls the ``plot_hist()`` operation.
+* **Show data in table view**. Displays 2D variables of type ``DataFrame`` in a table view.
+
+.. _gui_panel_variables:
+
+.. figure:: ../_static/figures/user_manual/gui_panel_variables.png
+   :scale: 100 %
+   :align: right
+
+   Variables panel
+
 
 
 
@@ -393,7 +493,7 @@ Coordinates are given as longitude/latitude pair.
 The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
 and restored for every Cate Desktop session.
 
-.. _views_panel:
+.. _view_panel:
 
 ----------
 VIEW Panel
@@ -415,7 +515,7 @@ change plot styles and size.
 *Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
 the subset of the data ypou want to see in the table.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_views.png
+.. figure:: ../_static/figures/user_manual/gui_panel_view.png
    :scale: 100 %
    :align: center
 

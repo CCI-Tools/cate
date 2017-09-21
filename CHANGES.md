@@ -2,21 +2,45 @@
 
 ### Improvements and new Features
 
+* Min/max computation should be monitored
+  [#384](https://github.com/CCI-Tools/cate-core/issues/384)
+* Added API to annotate deprecated operations and operation input/outputs.
+  Refer to `op`, `op_input`, `op_output` decorators in `cate.op`.
+  [#381](https://github.com/CCI-Tools/cate-core/issues/381)
+* Configure default color maps
+  [#372](https://github.com/CCI-Tools/cate-core/issues/372)
+* Hide problematic ODP data sources
+  [#368](https://github.com/CCI-Tools/cate-core/issues/368)
+
 ### Issues Fixed/Resolved
 
+* Fixed reading datasource temporal coverage from config file (obsolete format)
+  [#373](https://github.com/CCI-Tools/cate-core/issues/373)
+* Merged (removed duplicated) meta information in datasource config file
+  [#301](https://github.com/CCI-Tools/cate-core/issues/301)
+* Land Cover CCI display must use dedicated color map
+  [#364](https://github.com/CCI-Tools/cate-core/issues/364)
+* Land Cover CCI data display wrongly positioned (temp. hack!)
+  [#361](https://github.com/CCI-Tools/cate-core/issues/361)
+* Make alpha blending work for all color maps
+  [#360](https://github.com/CCI-Tools/cate-core/issues/360)
+* CLI monitor not working
+  [#353](https://github.com/CCI-Tools/cate-core/issues/353)
+* GUI-Preferences for data store files do not overwrite conf.py
+  [#350](https://github.com/CCI-Tools/cate-core/issues/350)
+* Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable
+  [#326](https://github.com/CCI-Tools/cate-core/issues/326)
+* Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
+  [#315](https://github.com/CCI-Tools/cate-core/issues/315)
 * Verify operations against the operation development checklist to ensure some
   quality baseline.
   [#291](https://github.com/CCI-Tools/cate-core/issues/291)
-* Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable 
-  [#326](https://github.com/CCI-Tools/cate-core/issues/326)
 * Use only tags from a predefined set (maybe module name && list in developers' guide)
   [#280](https://github.com/CCI-Tools/cate-core/issues/280)
-* Generate unique default ID for local copies of remote data sources (constraint-aware)
-  [#277](https://github.com/CCI-Tools/cate-core/issues/277)
-* Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
-  [#315](https://github.com/CCI-Tools/cate-core/issues/315)
 * Added option to use open_dataset in workflow with automatic copying remote data source and reusing/re-opening previusly copied data (constraint-aware)
   [#287](https://github.com/CCI-Tools/cate-core/issues/287)
+* Generate unique default ID for local copies of remote data sources (constraint-aware)
+  [#277](https://github.com/CCI-Tools/cate-core/issues/277)
 
 ## Changes in version 0.9.0.dev6
 

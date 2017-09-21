@@ -87,8 +87,6 @@ class LocalDataSource(DataSource):
     :param temporal_coverage:
     :param spatial_coverage:
     :param variables:
-    :param reference_type:
-    :param reference_name:
     :param meta_info:
     """
 
@@ -99,8 +97,6 @@ class LocalDataSource(DataSource):
                  temporal_coverage: TimeRangeLike.TYPE = None,
                  spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None,
-                 reference_type: str = None,
-                 reference_name: str = None,
                  meta_info: dict = None):
         self._id = id
         if isinstance(files, Sequence):
@@ -124,12 +120,18 @@ class LocalDataSource(DataSource):
 
         self._temporal_coverage = initial_temporal_coverage
         self._spatial_coverage = PolygonLike.convert(spatial_coverage) if spatial_coverage else None
-        self._variables = VarNamesLike.convert(variables) if variables else None
-
-        self._reference_type = reference_type if reference_type else None
-        self._reference_name = reference_name
+        self._variables = VarNamesLike.convert(variables) if variables else []
 
         self._meta_info = meta_info if meta_info else OrderedDict()
+
+        if self._variables and not self._meta_info.get('variables', None):
+            self._meta_info['variables'] = [
+                {'name': var_name,
+                 'units': '',
+                 'long_name': '',
+                 'standard_name': ''
+                 } for var_name in self._variables]
+
         self._is_complete = True
 
     def _resolve_file_path(self, path) -> Sequence:
@@ -234,6 +236,11 @@ class LocalDataSource(DataSource):
 
                             remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
+                            geo_lat_min = None
+                            geo_lat_max = None
+                            geo_lon_min = None
+                            geo_lon_max = None
+
                             process_region = False
                             if region:
                                 geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
@@ -276,10 +283,10 @@ class LocalDataSource(DataSource):
                                         lon_min = geo_lon_max - lon_max
                                         lon_max = geo_lon_max - lon_min_copy
 
-                                    lat_min = floor(lat_min / geo_lat_res)
-                                    lat_max = ceil(lat_max / geo_lat_res)
-                                    lon_min = floor(lon_min / geo_lon_res)
-                                    lon_max = ceil(lon_max / geo_lon_res)
+                                    lat_min = int(floor(lat_min / geo_lat_res))
+                                    lat_max = int(ceil(lat_max / geo_lat_res))
+                                    lon_min = int(floor(lon_min / geo_lon_res))
+                                    lon_max = int(ceil(lon_max / geo_lon_res))
 
                                     remote_dataset = remote_dataset.isel(drop=False,
                                                                          lat=slice(lat_min, lat_max),
@@ -353,26 +360,26 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
+        _uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
         if not local_name or len(local_name) == 0:
-            local_name = "local.{}.{}".format(self.id, uuid)
+            local_name = "local.{}.{}".format(self.id, _uuid)
             existing_ds_list = local_store.query(local_name)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
             existing_ds_list = local_store.query('local.%s' % local_name)
             if len(existing_ds_list) == 1:
-                if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
+                if existing_ds_list[0].meta_info.get('uuid', None) == _uuid:
                     return existing_ds_list[0]
                 else:
                     raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
 
         local_meta_info = self.meta_info.copy()
         local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
-        local_meta_info['uuid'] = uuid
+        local_meta_info['uuid'] = _uuid
 
-        local_ds = local_store.create_data_source(local_name, region, _REFERENCE_DATA_SOURCE_TYPE, local_name,
+        local_ds = local_store.create_data_source(local_name, region, local_name,
                                                   time_range=time_range, var_names=var_names,
                                                   meta_info=self.meta_info.copy())
         if local_ds:
@@ -429,7 +436,9 @@ class LocalDataSource(DataSource):
                 data_source.reduce_temporal_coverage(time_range_to_remove)
         if to_add:
             for time_range_to_add in to_add:
-                self._make_local(data_source, time_range_to_add, None, data_source.variables_info, monitor)
+                self._make_local(data_source, time_range_to_add, None,
+                                 [var.get('name') for var in data_source.variables_info]
+                                 if data_source.variables_info else None, monitor)
             data_source.meta_info['temporal_coverage_start'] = time_range[0]
             data_source.meta_info['temporal_coverage_end'] = time_range[1]
             data_source.update_temporal_coverage(time_range)
@@ -518,6 +527,14 @@ class LocalDataSource(DataSource):
         return self._temporal_coverage
 
     def spatial_coverage(self):
+        if not self._spatial_coverage and \
+                set(self._meta_info.keys()).issuperset({'bbox_minx', 'bbox_miny', 'bbox_maxx', 'bbox_maxy'}):
+            self._spatial_coverage = PolygonLike.convert(",".join([
+                self._meta_info.get('bbox_minx'),
+                self._meta_info.get('bbox_miny'),
+                self._meta_info.get('bbox_maxx'),
+                self._meta_info.get('bbox_maxy')])
+            )
         return self._spatial_coverage
 
     @property
@@ -534,7 +551,7 @@ class LocalDataSource(DataSource):
 
     @property
     def variables_info(self):
-        return self._variables
+        return self._meta_info.get('variables', [])
 
     @property
     def info_string(self):
@@ -579,38 +596,37 @@ class LocalDataSource(DataSource):
         """
         config = OrderedDict({
             'name': self._id,
-            'meta_data': {
-                'deprecated': 'to be merged with meta_info in the future',
-                'temporal_covrage': TimeRangeLike.format(self._temporal_coverage) if self._temporal_coverage else None,
-                'spatial_coverage': PolygonLike.format(self._spatial_coverage) if self._spatial_coverage else None,
-                'variables': VarNamesLike.format(self._variables) if self._variables else None,
-
-                'reference_type': self._reference_type,
-                'reference_name': self._reference_name
-            },
             'meta_info': self._meta_info,
             'files': [[item[0], item[1][0], item[1][1]] if item[1] else [item[0]] for item in self._files.items()]
         })
         return config
 
     @classmethod
-    def from_json_dict(cls, json_dicts: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
+    def from_json_dict(cls, json_dict: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
 
-        name = json_dicts.get('name')
-        files = json_dicts.get('files', None)
-        meta_data = json_dicts.get('meta_data', {})
-        meta_info = json_dicts.get('meta_info', OrderedDict())
+        name = json_dict.get('name')
+        files = json_dict.get('files', None)
 
-        temporal_coverage = meta_data.get('temporal_coverage', None)
-        # TODO why is this code here, doesn't work, because 'temporal_coverage' is a string
-        # if temporal_coverage and isinstance(temporal_coverage, Sequence):
-        #     temporal_coverage = tuple(temporal_coverage)
+        variables = []
+        temporal_coverage = None
+        spatial_coverage = None
 
-        spatial_coverage = meta_data.get('spatial_coverage', None)
-        variables = meta_data.get('variables', None)
+        meta_info = json_dict.get('meta_info', OrderedDict())
 
-        reference_type = meta_data.get('reference_type', None)
-        reference_name = meta_data.get('reference_name', None)
+        meta_data = json_dict.get('meta_data', None)
+        if meta_data:
+            temporal_coverage = meta_data.get('temporal_coverage', meta_data.get('temporal_covrage', None))
+            spatial_coverage = meta_data.get('spatial_coverage', None)
+            variables = meta_data.get('variables', None)
+
+        if meta_info:
+            if not variables:
+                variables = [v.get('name') for v in meta_info.get('variables', dict()) if not v.get('name', None)]
+            if not temporal_coverage:
+                temporal_coverage_start = meta_info.get('temporal_coverage_start', None)
+                temporal_coverage_end = meta_info.get('temporal_coverage_end', None)
+                if temporal_coverage_start and temporal_coverage_end:
+                    temporal_coverage = temporal_coverage_start, temporal_coverage_end
 
         files_dict = OrderedDict()
         if name and isinstance(files, list):
@@ -627,7 +643,7 @@ class LocalDataSource(DataSource):
                 else:
                     files_dict = files
         return LocalDataSource(name, files_dict, data_store, temporal_coverage, spatial_coverage, variables,
-                               reference_type, reference_name, meta_info=meta_info)
+                               meta_info=meta_info)
 
 
 class LocalDataStore(DataStore):
@@ -641,12 +657,13 @@ class LocalDataStore(DataStore):
         if isinstance(files, str):
             files = [files]
         is_first_file = True
-        for file in files:
-            if is_first_file:
-                data_source.add_dataset(file, extract_meta_info=True)
-                is_first_file = False
-            else:
-                data_source.add_dataset(file)
+        if files:
+            for file in files:
+                if is_first_file:
+                    data_source.add_dataset(file, extract_meta_info=True)
+                    is_first_file = False
+                else:
+                    data_source.add_dataset(file)
         self.register_ds(data_source)
         return data_source
 
@@ -663,7 +680,7 @@ class LocalDataStore(DataStore):
         if data_source in self._data_sources:
             self._data_sources.remove(data_source)
 
-    def register_ds(self, data_source: DataSource):
+    def register_ds(self, data_source: LocalDataSource):
         data_source.set_completed(True)
         self._data_sources.append(data_source)
 
@@ -671,7 +688,7 @@ class LocalDataStore(DataStore):
     def generate_uuid(cls, ref_id: str,
                       time_range: Optional[TimeRange] = None,
                       region: Optional[Polygon] = None,
-                      var_names: Optional[VarNames] = None) -> uuid.UUID:
+                      var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
             ref_id += TimeRangeLike.format(time_range)
@@ -686,7 +703,7 @@ class LocalDataStore(DataStore):
     def generate_title(cls, title: str,
                        time_range: Optional[TimeRange] = None,
                        region: Optional[Polygon] = None,
-                       var_names: Optional[VarNames] = None) -> uuid.UUID:
+                       var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
             title += " [TimeRange:{}]".format(TimeRangeLike.format(time_range))
@@ -698,7 +715,7 @@ class LocalDataStore(DataStore):
         return title
 
     def create_data_source(self, data_source_id: str, region: PolygonLike.TYPE = None,
-                           reference_type: str = None, title: str = None,
+                           title: str = None,
                            time_range: TimeRangeLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
                            meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
@@ -731,9 +748,7 @@ class LocalDataStore(DataStore):
                                  .format(self.id, data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
-                                          variables=var_names, temporal_coverage=time_range,
-                                          reference_type=reference_type, reference_name=title,
-                                          meta_info=meta_info)
+                                          variables=var_names, temporal_coverage=time_range, meta_info=meta_info)
             data_source.set_completed(False)
             self._save_data_source(data_source)
 
