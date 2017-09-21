@@ -45,7 +45,7 @@ from cate.ops.normalize import adjust_spatial_attrs
 
 
 @op(tags=['geometric', 'coregistration'],
-    version='1.0')
+    version='1.1')
 @op_input('method_us', value_set=['nearest', 'linear'])
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
 @op_return(add_history=True)
@@ -68,8 +68,8 @@ def coregister(ds_master: xr.Dataset,
     define the middle of a pixel and pixels have the same size across the dataset.
 
     This operation will resample all variables in a dataset, as the lat/lon grid is
-    defined per dataset. It works only if all variables in the dataset have (time/lat/lon)
-    dimensions.
+    defined per dataset. It works only if all variables in the dataset have lat
+    and lon as dimensions.
 
     For an overview of downsampling/upsampling methods used in this operation, please
     see https://github.com/CAB-LAB/gridtools
@@ -84,13 +84,32 @@ def coregister(ds_master: xr.Dataset,
     :param monitor: a progress monitor.
     :return: The slave dataset resampled on the grid of the master
     """
+    try:
+        grids = (('slave', ds_slave['lat'].values, -90),
+                 ('slave', ds_slave['lon'].values, -180),
+                 ('master', ds_master['lat'].values, -90),
+                 ('master', ds_master['lon'].values, -180))
+    except KeyError:
+        raise ValueError('Coregistration requires that both datasets are'
+                         ' spatial datasets with lon and lat dimensions. The'
+                         ' dimensionality of the provided master dataset is: {},'
+                         ' the dimensionality of the provided slave dataset is:'
+                         ' {}. Running the normalize operation might help in'
+                         ' case spatial dimensions have different'
+                         ' names'.format(ds_master.dims, ds_slave.dims))
+
+    # Check if all arrays of the slave dataset have the required dimensionality
+    for key in ds_slave.data_vars:
+        if not _is_valid_array(ds_slave[key]):
+            raise ValueError('{} data array of slave dataset is not valid for'
+                             ' coregistration. The data array is expected to'
+                             ' have lat and lon dimensions. The data array has'
+                             ' the following dimensions: {}. Consider running'
+                             ' select_var operation to exclude this'
+                             ' data array'.format(key, ds_slave[key].dims))
+
     # Check if the grids of the provided datasets are equidistant and pixel
     # registered
-    grids = (('slave', ds_slave['lat'].values, -90),
-             ('slave', ds_slave['lon'].values, -180),
-             ('master', ds_master['lat'].values, -90),
-             ('master', ds_master['lon'].values, -180))
-
     for array in grids:
         if not _within_bounds(array[1], array[2]):
             raise ValueError('The {} dataset grid does not fall into required'
@@ -111,16 +130,6 @@ def coregister(ds_master: xr.Dataset,
             raise ValueError('The {} dataset grid is not'
                              ' pixel-registered, can not perform'
                              ' coregistration'.format(array[0]))
-
-    # Check if all arrays of the slave dataset have lat/lon/time dimensionality
-    for key in ds_slave.data_vars:
-        if not _is_valid_array(ds_slave[key]):
-            raise ValueError('{} data array of slave dataset is not valid for'
-                             ' coregistration. Expected coordinates are (lat,'
-                             ' lon, time), received coordinates are'
-                             ' {}, consider running select_var and/or'
-                             ' normalize operations'
-                             ' first.'.format(key, ds_slave[key].dims))
 
     # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
@@ -160,13 +169,12 @@ def _is_pixel_registered(array: np.ndarray, origin) -> bool:
 def _is_valid_array(array: xr.DataArray) -> bool:
     """
     Check if the provided xarray Data Array is valid for coregistration.
-    Meaning, its dimensionality is lat/lon/time.
+    Meaning, it has more than two dimensions and at least contains lat and lon.
 
     :param array: Array to check for validity
     :return: True if the given array is valid
     """
-    return (3 == len(array.dims) and
-            'time' in array.dims and
+    return (len(array.dims) >= 2 and
             'lat' in array.dims and
             'lon' in array.dims)
 
@@ -196,7 +204,7 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     :return: resampled slice
     """
     monitor = parent_monitor.child(1)
-    with monitor.observing("resample time slice"):
+    with monitor.observing("resample slice"):
         result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
                                         w,
                                         h,
@@ -230,6 +238,17 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
     for dim in ['lon', 'lat']:
         groupby_list.remove(dim)
 
+    if 0 == len(groupby_list):
+        # a 2d dataset, can't do groupby => do a simple slice resample
+        with monitor.starting("coregister dataarray", total_work=1):
+            temp_array = _resample_slice(array, **kwargs)
+            coords = {'lat': lat, 'lon': lon}
+            return xr.DataArray(temp_array.values,
+                                name=array.name,
+                                dims=array.dims,
+                                coords=coords,
+                                attrs=array.attrs).chunk()
+
     num_steps = 1
     for dim in groupby_list:
         num_steps = num_steps * len(array[dim])
@@ -237,8 +256,6 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
     with monitor.starting("coregister dataarray", total_work=num_steps):
         temp_array = _nested_groupby_apply(array, groupby_list, _resample_slice, kwargs)
         chunks = {'lat': height, 'lon': width}
-#       chunks = list(temp_array.shape[1:])
-#       chunks.insert(0, 1)
         coords = {'lat': lat, 'lon': lon}
         for dim in groupby_list:
             coords[dim] = array[dim]
@@ -250,14 +267,6 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
                             dims=array.dims,
                             coords=coords,
                             attrs=array.attrs).chunk(chunks=chunks)
-#       temp_array = group_by_time.apply(_resample_slice, **kwargs)
-#       chunks = list(temp_array.shape[1:])
-#       chunks.insert(0, 1)
-#       return xr.DataArray(temp_array.values,
-#                           name=array.name,
-#                           dims=array.dims,
-#                           coords={'time': array.time, 'lat': lat, 'lon': lon},
-#                           attrs=array.attrs).chunk(chunks=chunks)
 
 
 def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int, monitor: Monitor) -> xr.Dataset:
