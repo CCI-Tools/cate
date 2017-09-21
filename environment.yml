@@ -19,7 +19,7 @@ dependencies:
   - hdf4 >=4.2.12
   - jdcal >=1.3
   # Require specific build numver to prevent downgrade
-  - matplotlib=2.0=py36_2
+  - matplotlib=2.0.2=py36_2
   - netcdf4 >=1.2
   - numba >=0.33
   # numpy 1.12 gave some trouble
