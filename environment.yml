@@ -17,6 +17,8 @@ dependencies:
   - geos >=3.5.1
   # require specific minor version to prevent downgrade
   - hdf4 >=4.2.12
+  # require specific version to prevent downgrade
+  - lxml ==3.8.0
   - jdcal >=1.3
   - matplotlib >=2.0
   - netcdf4 >=1.2
