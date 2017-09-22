@@ -23,7 +23,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 from collections import OrderedDict
-from typing import List, Sequence
+from typing import List, Sequence, Optional, Tuple
 
 import xarray as xr
 
@@ -266,15 +266,15 @@ class WebSocketService:
         workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return workspace.to_json_dict()
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: OpKwArgs,
-                               monitor: Monitor) -> dict:
+    def set_workspace_resource(self, base_dir: str, res_name: Optional[str], op_name: str, op_args: OpKwArgs,
+                               monitor: Monitor) -> list:
         with cwd(base_dir):
-            workspace = self.workspace_manager.set_workspace_resource(base_dir,
+            workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
                                                                       res_name,
                                                                       op_name,
                                                                       op_args,
                                                                       monitor=monitor)
-            return workspace.to_json_dict()
+            return [workspace.to_json_dict(), res_name]
 
     def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
         with cwd(base_dir):

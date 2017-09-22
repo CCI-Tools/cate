@@ -10,6 +10,7 @@ from cate.util.misc import object_to_qualified_name, qualified_name_to_object
 from cate.util.misc import to_datetime, to_datetime_range
 from cate.util.misc import to_list
 from cate.util.misc import to_str_constant, is_str_constant
+from cate.util.misc import new_indexed_name
 
 
 # noinspection PyUnresolvedReferences
@@ -123,6 +124,15 @@ class UtilTest(TestCase):
 
         with self.assertRaises(ValueError):
             to_datetime_range("211", "2012")
+
+    def test_new_indexed_name(self):
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'ds_'), 'ds_1')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'var_'), 'var_3')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'res_'), 'res_5')
+
+        self.assertEqual(new_indexed_name([], 'ds_'), 'ds_1')
+        self.assertEqual(new_indexed_name(['ds5'], 'ds_'), 'ds_1')
+        self.assertEqual(new_indexed_name(['ds_005'], 'ds_'), 'ds_6')
 
 
 class ToListTest(TestCase):

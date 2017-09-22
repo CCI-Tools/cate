@@ -51,6 +51,18 @@ class WorkspaceTest(unittest.TestCase):
         finally:
             OP_REGISTRY.remove_op(some_op)
 
+    def test_workspace_can_create_new_res_names(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        res_name_1 = ws.set_resource(None, 'cate.ops.utility.identity', mk_op_kwargs(value='A'))
+        res_name_2 = ws.set_resource(None, 'cate.ops.utility.identity', mk_op_kwargs(value='B'))
+        res_name_3 = ws.set_resource(None, 'cate.ops.utility.identity', mk_op_kwargs(value='C'))
+        self.assertEqual(res_name_1, 'res_1')
+        self.assertEqual(res_name_2, 'res_2')
+        self.assertEqual(res_name_3, 'res_3')
+        self.assertIsNotNone(ws.workflow.find_node(res_name_1))
+        self.assertIsNotNone(ws.workflow.find_node(res_name_2))
+        self.assertIsNotNone(ws.workflow.find_node(res_name_3))
+
     def test_to_json_dict(self):
 
         def dataset_op() -> xr.Dataset:

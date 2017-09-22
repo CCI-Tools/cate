@@ -25,7 +25,7 @@ import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Union
+from typing import List, Union, Optional, Tuple
 
 from ..conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
@@ -98,7 +98,7 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def set_workspace_resource(self, base_dir: str, res_name: str,
                                op_name: str, op_args: OpKwArgs,
-                               monitor: Monitor = Monitor.NONE) -> Workspace:
+                               monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         pass
 
     @abstractmethod
@@ -305,13 +305,13 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.run_op(op_name, op_args, monitor=monitor)
         return workspace
 
-    def set_workspace_resource(self, base_dir: str, res_name: str,
+    def set_workspace_resource(self, base_dir: str, res_name: Optional[str],
                                op_name: str, op_args: OpKwArgs,
-                               monitor: Monitor = Monitor.NONE) -> Workspace:
+                               monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         workspace = self.get_workspace(base_dir)
-        workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
+        res_name = workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
-        return workspace
+        return workspace, res_name
 
     def rename_workspace_resource(self, base_dir: str,
                                   res_name: str, new_res_name: str) -> Workspace:

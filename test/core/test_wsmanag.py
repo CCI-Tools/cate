@@ -196,7 +196,7 @@ class WorkspaceManagerTestMixin:
         workspace_manager.set_workspace_resource(base_dir, res_name='ds',
                                                  op_name='cate.ops.io.read_netcdf',
                                                  op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
-        workspace1 = workspace_manager.set_workspace_resource(base_dir, res_name='ts',
+        workspace1, _ = workspace_manager.set_workspace_resource(base_dir, res_name='ts',
                                                               op_name='cate.ops.timeseries.tseries_mean',
                                                               op_args=mk_op_kwargs(ds='@ds', var='temperature'))
         self.assertEqual(workspace1.base_dir, base_dir)
