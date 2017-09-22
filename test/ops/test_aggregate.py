@@ -13,6 +13,7 @@ from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import ConsoleMonitor
 
 from cate.ops import long_term_average, temporal_aggregation
+from cate.ops import adjust_temporal_attrs
 
 
 class TestLTA(TestCase):
@@ -29,6 +30,8 @@ class TestLTA(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
+
+        ds = adjust_temporal_attrs(ds)
 
         # Test monitor
         m = ConsoleMonitor()
@@ -62,6 +65,8 @@ class TestLTA(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
 
+        ds = adjust_temporal_attrs(ds)
+
         reg_op(ds=ds)
 
     def test_validation(self):
@@ -73,6 +78,8 @@ class TestLTA(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90)})
 
+        ds = adjust_temporal_attrs(ds)
+
         with self.assertRaises(ValueError) as err:
             long_term_average(ds)
         self.assertIn('normalize', str(err.exception))
@@ -82,6 +89,8 @@ class TestLTA(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', periods=24)})
+
+        ds = adjust_temporal_attrs(ds)
 
         with self.assertRaises(ValueError) as err:
             long_term_average(ds)
@@ -102,6 +111,8 @@ class TestTemporalAggregation(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
         ex = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -125,6 +136,8 @@ class TestTemporalAggregation(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
         ex = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -145,6 +158,7 @@ class TestTemporalAggregation(TestCase):
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90)})
+        ds = adjust_temporal_attrs(ds)
 
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
@@ -155,6 +169,7 @@ class TestTemporalAggregation(TestCase):
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
+        ds = adjust_temporal_attrs(ds)
 
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
