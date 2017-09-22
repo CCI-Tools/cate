@@ -122,7 +122,9 @@ class TestTemporalAggregation(TestCase):
         ex.first.attrs['cell_methods'] = 'time: mean within years'
         ex.second.attrs['cell_methods'] = 'time: mean within years'
 
-        actual = temporal_aggregation(ds)
+        m = ConsoleMonitor()
+        actual = temporal_aggregation(ds, monitor=m)
+
         self.assertTrue(actual.broadcast_equals(ex))
 
     def test_registered(self):
