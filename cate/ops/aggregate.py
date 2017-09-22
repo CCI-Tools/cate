@@ -78,8 +78,9 @@ def long_term_average(ds: DatasetLike.TYPE,
                              ' running temporal aggregation on this dataset'
                              ' beforehand may help.')
     except KeyError:
-        raise ValueError('Could not determine temporal resolution. Running the'
-                         ' normalize operation may help.')
+        raise ValueError('Could not determine temporal resolution. Running'
+                         ' the adjust_temporal_attrs operation beforehand may'
+                         ' help.')
 
     var = VarNamesLike.convert(var)
     # Shallow
@@ -165,7 +166,8 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
             raise ValueError('Temporal aggregation operation expects a daily dataset')
     except KeyError:
         raise ValueError('Could not determine temporal resolution. Running'
-                         ' the normalize operation beforehand may help.')
+                         ' the adjust_temporal_attrs operation beforehand may'
+                         ' help.')
 
     with monitor.observing("resample dataset"):
         retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)

@@ -71,7 +71,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
     except AttributeError:
         pass
 
-    return adjust_temporal_attrs(ds)
+    return ds
 
 
 def _normalize_lat_lon(ds: xr.Dataset) -> xr.Dataset:
@@ -164,7 +164,7 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-@op(tags=['utility', 'internal'], version='1.0')
+@op(tags=['utility'], version='1.0')
 def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
@@ -212,7 +212,7 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-@op(tags=['utility', 'internal'], version='1.0')
+@op(tags=['utility'], version='1.0')
 def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     """
     Adjust the global temporal attributes of the dataset by doing some

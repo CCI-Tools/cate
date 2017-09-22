@@ -32,6 +32,7 @@ from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
 from cate.ops.normalize import normalize as normalize_op
+from cate.ops.normalize import adjust_temporal_attrs
 from cate.util import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -78,7 +79,7 @@ def open_dataset(ds_name: str,
                                    local_ds_id=local_ds_id,
                                    monitor=monitor)
     if ds and normalize:
-        return normalize_op(ds)
+        return adjust_temporal_attrs(normalize_op(ds))
 
     return ds
 
@@ -331,7 +332,7 @@ def read_netcdf(file: str,
                          decode_times=decode_times,
                          engine=engine)
     if ds and normalize:
-        return normalize_op(ds)
+        return adjust_temporal_attrs(normalize_op(ds))
     return ds
 
 
