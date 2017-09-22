@@ -207,6 +207,18 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                                           datetime.datetime(2017, 12, 31, 23, 59)))
                 self.assertIsNone(no_data)
 
+                new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                           datetime.datetime(1978, 11, 14, 23, 59)))
+
+                new_ds = soilmoisture_data_source.make_local("title_test_copy", time_range=new_ds_time_range)
+                self.assertIsNotNone(new_ds)
+                self.assertEqual(new_ds.meta_info['title'], soilmoisture_data_source.meta_info['title'])
+
+                title = "Title Test!"
+                new_ds = soilmoisture_data_source.make_local("title_test_set", title, time_range=new_ds_time_range)
+                self.assertIsNotNone(new_ds)
+                self.assertEqual(new_ds.meta_info['title'], title)
+
     def test_data_store(self):
         self.assertIs(self.first_oc_data_source.data_store,
                       self.data_store)

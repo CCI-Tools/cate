@@ -2,6 +2,9 @@
 
 ### Improvements and new Features
 
+* Added check if copying/downloading DS failed without any progress/complete files
+  if so, remove empty DS
+  [#375](https://github.com/CCI-Tools/cate-core/issues/375)
 * Min/max computation should be monitored
   [#384](https://github.com/CCI-Tools/cate-core/issues/384)
 * Added API to annotate deprecated operations and operation input/outputs.
@@ -11,6 +14,8 @@
   [#372](https://github.com/CCI-Tools/cate-core/issues/372)
 * Hide problematic ODP data sources
   [#368](https://github.com/CCI-Tools/cate-core/issues/368)
+* Coregistration operation now works on n-dimensional datasets
+  [#36](https://github.com/CCI-Tools/cate-core/issues/36)
 
 ### Issues Fixed/Resolved
 
@@ -41,6 +46,9 @@
   [#287](https://github.com/CCI-Tools/cate-core/issues/287)
 * Generate unique default ID for local copies of remote data sources (constraint-aware)
   [#277](https://github.com/CCI-Tools/cate-core/issues/277)
+* Coregistration works with n-dimensional datasets
+  [#36](https://github.com/CCI-Tools/cate-core/issues/36)
+  [#348](https://github.com/CCI-Tools/cate-core/issues/348)
 
 ## Changes in version 0.9.0.dev6
 

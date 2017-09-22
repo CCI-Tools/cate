@@ -850,18 +850,14 @@ class EsaCciOdpDataSource(DataSource):
                                 geo_lon_max_copy = geo_lon_max
                                 geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
                                 geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
-                    print(var_names)
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
                     var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
                                       if coord_name not in var_names])
-                    print(var_names)
                     child_monitor.start(label=file_name, total_work=len(var_names))
                     for sel_var_name in var_names:
                         var_dataset = remote_dataset.drop(
                             [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
-                        print(remote_dataset)
-                        print(var_dataset)
                         if compression_enabled:
                             var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
                         local_netcdf.store_dataset(var_dataset)
@@ -973,6 +969,9 @@ class EsaCciOdpDataSource(DataSource):
         region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
+        ds_id = local_name
+        title = local_id
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
             add_to_data_store_registry()
@@ -982,29 +981,34 @@ class EsaCciOdpDataSource(DataSource):
 
         uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
-        if not local_name or len(local_name) == 0:
-            local_name = "local.{}.{}".format(self.id, uuid)
-            existing_ds_list = local_store.query(local_name)
+        if not ds_id or len(ds_id) == 0:
+            ds_id = "local.{}.{}".format(self.id, uuid)
+            existing_ds_list = local_store.query(ds_id)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % local_name)
+            existing_ds_list = local_store.query('local.%s' % ds_id)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
                     return existing_ds_list[0]
                 else:
-                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
+                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, ds_id))
 
         local_meta_info = self.meta_info.copy()
         local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
         local_meta_info['uuid'] = uuid
 
-        local_ds = local_store.create_data_source(local_name,
+        local_ds = local_store.create_data_source(ds_id, title=title,
                                                   time_range=time_range, region=region, var_names=var_names,
                                                   meta_info=local_meta_info, lock_file=True)
         if local_ds:
             if not local_ds.is_complete:
-                self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                try:
+                    self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                except Exception as e:
+                    if local_ds.is_empty:
+                        local_store.remove_data_source(local_ds)
+                    raise e
 
             if local_ds.is_empty:
                 local_store.remove_data_source(local_ds)

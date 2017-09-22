@@ -39,16 +39,16 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['input'])
-@op_input('ds_id')
-@op_input('ds_name', deprecated=True)
+@op_input('ds_id', nullable=False)
+@op_input('ds_name', nullable=False, deprecated='use "ds_id" instead')
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
 @op_input('force_local')
 @op_input('local_ds_id')
-def open_dataset(ds_name: str,
-                 ds_id: str = None,
+def open_dataset(ds_name: str = '',
+                 ds_id: str = '',
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
@@ -66,7 +66,8 @@ def open_dataset(ds_name: str,
     :param var_names: Optional names of variables of the requested dataset
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :param force_local: Whether to make a local copy of remote data source if it's not present
-    :param local_ds_id: Optional local ID for newly created local copy of remote data source
+    :param local_ds_id: Optional local identifier for newly created local copy of remote data source.
+           Used only if force_local=True.
     :param monitor: A progress monitor
     :return: An new dataset instance.
     """

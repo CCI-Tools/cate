@@ -29,7 +29,7 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import VERSION_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path, find_data_sources
+from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
@@ -59,8 +59,8 @@ class WebSocketService:
     def set_config(self, config: dict) -> None:
 
         # Read existing config file as text
-        # noinspection PyBroadException
         conf_text = ''
+        # noinspection PyBroadException
         try:
             with open(VERSION_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
@@ -123,10 +123,11 @@ class WebSocketService:
         data_sources = data_store.query(monitor=monitor)
         if data_store_id != 'local':
             data_source_dict = {ds.id: ds for ds in data_sources}
+            # noinspection PyTypeChecker
             data_source_ids = filter_fileset(data_source_dict.keys(),
                                              includes=conf.get_config_value('included_data_sources', default=None),
                                              excludes=conf.get_config_value('excluded_data_sources', default=None))
-            data_sources = [data_source_dict[id] for id in data_source_ids]
+            data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
         return [dict(id=data_source.id,
@@ -158,50 +159,7 @@ class WebSocketService:
         # TODO mz add available data information
         return meta_info
 
-    def make_ds_local(self,
-                      data_source_name: str,
-                      local_name: str,
-                      args: dict,
-                      monitor: Monitor = Monitor.NONE) -> list:
-        """
-        Turns a (likely remote) data source into a local data source given a name and a number of
-        optional constraints.
-
-        :param data_source_name: The name of the source data source.
-        :param local_name: A human readable name for the new local data source.
-        :param args: A dict containing the constraints
-        :param monitor: a progress monitor.
-        :return: JSON-serializable list of 'local' data sources, sorted by name.
-        """
-        with monitor.starting('Making data source local', 100):
-            data_sources = find_data_sources(id=data_source_name)
-            if not data_sources:
-                raise ValueError('data source "%s" not found' % data_source_name)
-            if len(data_sources) > 1:
-                raise ValueError('Multiple data sources with the name "%s" found' % data_source_name)
-            data_source = data_sources[0]
-
-            time_range = None
-            if 'time_range' in args:
-                time_range = args['time_range']
-            region = None
-            if 'region' in args:
-                region = args['region']
-            var_names = None
-            if 'var_names' in args:
-                var_names = args['var_names']
-            # TODO use tile once make_local supports it
-            # if 'title' in args:
-            #    tile = args['title']
-
-            data_source.make_local(local_name=local_name,
-                                   time_range=time_range,
-                                   region=region,
-                                   var_names=var_names,
-                                   monitor=monitor.child(98))
-            return self.get_data_sources('local', monitor=monitor.child(2))
-
-    def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_datasource(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
 

@@ -22,6 +22,7 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import os.path
+
 from ..version import __version__
 
 DEFAULT_DATA_DIR_NAME = '.cate'
@@ -79,7 +80,35 @@ WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER = 120 * 60.0
 WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
 
 VARIABLE_DISPLAY_SETTINGS = {
-    "lccs_class": dict(color_map='land_cover_cci'),
+    # LC CCI
+    'lccs_class': dict(color_map='land_cover_cci'),
+
+    # OC CCI
+    'kd_490': dict(display_min=0.0, display_max=0.5),
+    'kd_490_bias': dict(display_min=-0.022, display_max=0.07),
+    'kd_490_rmsd': dict(display_min=0.009, display_max=0.26),
+    'total_nobs_sum': dict(display_min=1, display_max=500),
+    'MERIS_nobs_sum': dict(display_min=1, display_max=500),
+    'MODISA_nobs_sum': dict(display_min=1, display_max=500),
+    'SeaWiFS_nobs_sum': dict(display_min=1, display_max=500),
+
+    # CLOUD CCI
+    'cfc': dict(color_map="bone", display_min=0, display_max=1),
+
+    # AEROSOL CCI
+    'absorbing_aerosol_index': dict(color_map="bwr", display_min=-2, display_max=2),
+    'solar_zenith_angle': dict(color_map="Greys", display_min=35, display_max=80),
+
+    # OZONE CCI
+    'O3_du': dict(display_min=3, display_max=20),
+    'O3_du_tot': dict(display_min=220, display_max=480),
+    'O3_ndens': dict(display_min=1.5e11, display_max=1e12),
+    'O3_vmr': dict(display_min=0.006, display_max=0.045),
+    'O3e_du': dict(display_min=0, display_max=2),
+    'O3e_du_tot': dict(display_min=0, display_max=2),
+    'O3e_ndens': dict(display_min=9e9, display_max=1e11),
+    'O3e_vmr': dict(display_min=0, display_max=0.005),
+    'surface_pressure': dict(display_min=700, display_max=1010),
 }
 
 DEFAULT_COLOR_MAP = 'inferno'
