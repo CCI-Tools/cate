@@ -59,8 +59,8 @@ class WebSocketService:
     def set_config(self, config: dict) -> None:
 
         # Read existing config file as text
-        # noinspection PyBroadException
         conf_text = ''
+        # noinspection PyBroadException
         try:
             with open(VERSION_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
@@ -123,10 +123,11 @@ class WebSocketService:
         data_sources = data_store.query(monitor=monitor)
         if data_store_id != 'local':
             data_source_dict = {ds.id: ds for ds in data_sources}
+            # noinspection PyTypeChecker
             data_source_ids = filter_fileset(data_source_dict.keys(),
                                              includes=conf.get_config_value('included_data_sources', default=None),
                                              excludes=conf.get_config_value('excluded_data_sources', default=None))
-            data_sources = [data_source_dict[id] for id in data_source_ids]
+            data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
         return [dict(id=data_source.id,
@@ -158,7 +159,7 @@ class WebSocketService:
         # TODO mz add available data information
         return meta_info
 
-    def add_local_datasource(self, data_source_name: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_datasource(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
 
