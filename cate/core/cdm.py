@@ -109,10 +109,11 @@ Components
 """
 
 from collections import OrderedDict
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Union
 import xarray as xr
 
 from ..util.misc import object_to_qualified_name, qualified_name_to_object
+from ..util.opimpl import get_lat_dim_name_impl, get_lon_dim_name_impl
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
              "Janis Gailis (S[&]T Norway)"
@@ -324,7 +325,7 @@ def get_lon_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
     :param ds: An xarray Dataset
     :return: the name or None
     """
-    return _get_dim_name(ds, ['lon', 'longitude', 'long'])
+    return get_lon_dim_name_impl(ds)
 
 
 def get_lat_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
@@ -333,11 +334,4 @@ def get_lat_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
     :param ds: An xarray Dataset
     :return: the name or None
     """
-    return _get_dim_name(ds, ['lat', 'latitude'])
-
-
-def _get_dim_name(ds: Union[xr.Dataset, xr.DataArray], possible_names: Sequence[str]) -> Optional[str]:
-    for name in possible_names:
-        if name in ds.dims:
-            return name
-    return None
+    return get_lat_dim_name_impl(ds)
