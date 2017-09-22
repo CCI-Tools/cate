@@ -50,5 +50,12 @@ excluded_data_sources = [
 #    display_max - maximum variable value that corresponds to the upper end of the color map
 #
 # variable_display_settings = {
-#     'my_var': dict(color_map='inferno', display_min=0.1, display_max=0.8),
+#     'my_var': dict(color_map='viridis', display_min=0.1, display_max=0.8),
 # }
+
+
+# Default color map to be used for any variable not configured in 'variable_display_settings'
+# 'default_color_map' must be the name of a color map taken from from
+# https://matplotlib.org/examples/color/colormaps_reference.html
+# default_color_map = 'jet'
+default_color_map = 'inferno'

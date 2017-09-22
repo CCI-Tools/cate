@@ -37,10 +37,9 @@ from cate.util import Monitor
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
-# TODO (forman): deprecate "ds_name" input and introduce "ds_id" instead, see #381
-
 @op(tags=['input'])
-@op_input('ds_name', nullable=False)
+@op_input('ds_id')
+@op_input('ds_name', deprecated=True)
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
@@ -48,6 +47,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('force_local')
 @op_input('local_ds_id')
 def open_dataset(ds_name: str,
+                 ds_id: str = None,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
@@ -58,7 +58,8 @@ def open_dataset(ds_name: str,
     """
     Open a dataset from a data source identified by *ds_name*.
 
-    :param ds_name: The name of data source.
+    :param ds_name: The name of data source. This parameter has been deprecated, please use *ds_id* instead.
+    :param ds_id: The identifier for the data source.
     :param time_range: Optional time range of the requested dataset
     :param region: Optional spatial region of the requested dataset
     :param var_names: Optional names of variables of the requested dataset
@@ -70,9 +71,12 @@ def open_dataset(ds_name: str,
     :return: An new dataset instance.
     """
     import cate.core.ds
-    ds = cate.core.ds.open_dataset(data_source=ds_name, time_range=time_range,
-                                   var_names=var_names, region=region,
-                                   force_local=force_local, local_ds_id=local_ds_id,
+    ds = cate.core.ds.open_dataset(data_source=ds_id or ds_name,
+                                   time_range=time_range,
+                                   var_names=var_names,
+                                   region=region,
+                                   force_local=force_local,
+                                   local_ds_id=local_ds_id,
                                    monitor=monitor)
     if ds and normalize:
         return normalize_op(ds)

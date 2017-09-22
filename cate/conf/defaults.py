@@ -81,3 +81,5 @@ WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
 VARIABLE_DISPLAY_SETTINGS = {
     "lccs_class": dict(color_map='land_cover_cci'),
 }
+
+DEFAULT_COLOR_MAP = 'inferno'

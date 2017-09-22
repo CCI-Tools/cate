@@ -343,8 +343,12 @@ def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plur
     op_info_str = ''
     op_info_str += '\n'
     if inputs_or_outputs:
+        inputs_or_outputs = {name: properties for name, properties in inputs_or_outputs.items()
+                             if not properties.get('deprecated')}
         op_info_str += '%s:' % (title_singular if len(inputs_or_outputs) == 1 else title_plural)
         for name, properties in inputs_or_outputs.items():
+            if properties.get('deprecated'):
+                continue
             op_info_str += '\n'
             op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', object)))
             description = properties.get('description', None)
@@ -1029,6 +1033,8 @@ class OperationCommand(SubCommandCommand):
                                  help="List only operations tagged by TAG or "
                                       "that have TAG in one of their tags. "
                                       "The comparison is case insensitive.")
+        list_parser.add_argument('--deprecated', '-d', action='store_true',
+                                 help="List deprecated operations.")
         list_parser.add_argument('--internal', '-i', action='store_true',
                                  help='List operations tagged "internal".')
         list_parser.set_defaults(sub_command_function=cls._execute_list)
@@ -1042,11 +1048,13 @@ class OperationCommand(SubCommandCommand):
     def _execute_list(cls, command_args):
         op_regs = OP_REGISTRY.op_registrations
 
-        def _is_op_selected(op_reg, tag_part: str, is_internal: bool):
+        def _is_op_selected(op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
+            if deprecated_only and not op_reg.op_meta_info.header.get('deprecated'):
+                return False
             tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
                 # Tagged operations
-                if is_internal:
+                if internal_only:
                     if 'internal' not in tags:
                         return False
                 else:
@@ -1058,13 +1066,13 @@ class OperationCommand(SubCommandCommand):
                         return any(tag_part in tag.lower() for tag in tags)
                     elif isinstance(tags, str):
                         return tag_part in tags.lower()
-            elif is_internal or tag_part:
+            elif internal_only or tag_part:
                 # Untagged operations
                 return False
             return True
 
         op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
-                           _is_op_selected(op_reg, command_args.tag, command_args.internal)])
+                           _is_op_selected(op_reg, command_args.tag, command_args.internal, command_args.deprecated)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name

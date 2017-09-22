@@ -28,6 +28,7 @@ class WebSocketServiceTest(unittest.TestCase):
         ops = self.service.get_operations()
         self.assertIsInstance(ops, list)
         self.assertGreater(len(ops), 20)
+
         self.assertIn('open_dataset', [op['name'] for op in ops])
         open_dataset_op = [op for op in ops if op['name'] == 'open_dataset'][0]
         keys = sorted(list(open_dataset_op.keys()))
@@ -35,7 +36,37 @@ class WebSocketServiceTest(unittest.TestCase):
         keys = sorted(list(open_dataset_op['header'].keys()))
         self.assertEqual(keys, ['description', 'tags'])
         names = [props['name'] for props in open_dataset_op['inputs']]
-        self.assertEqual(names, ['ds_name', 'time_range', 'region', 'var_names', 'normalize',
+        self.assertEqual(names, ['ds_id', 'time_range', 'region', 'var_names', 'normalize',
                                  'force_local', 'local_ds_id'])
         names = [props['name'] for props in open_dataset_op['outputs']]
         self.assertEqual(names, ['return'])
+
+    def test_get_operations_with_deprecations(self):
+        from cate.core.op import op, op_input, op_output, OpRegistry
+
+        registry = OpRegistry()
+
+        @op(registry=registry, deprecated=True)
+        def my_deprecated_op():
+            pass
+
+        @op_input('a', registry=registry)
+        @op_input('b', registry=registry, deprecated=True)
+        @op_output('u', registry=registry, deprecated=True)
+        @op_output('v', registry=registry)
+        def my_op_with_deprecated_io(a, b=None):
+            pass
+
+        self.assertIsNotNone(registry.get_op(my_deprecated_op, fail_if_not_exists=True))
+        self.assertIsNotNone(registry.get_op(my_op_with_deprecated_io, fail_if_not_exists=True))
+
+        ops = self.service.get_operations(registry=registry)
+        op_names = {op['name'] for op in ops}
+        self.assertIn('test.webapi.test_websocket.my_op_with_deprecated_io', op_names)
+        self.assertNotIn('test.webapi.test_websocket.my_deprecated_op', op_names)
+
+        op = [op for op in ops if op['name'] == 'test.webapi.test_websocket.my_op_with_deprecated_io'][0]
+        self.assertEqual(len(op['inputs']), 1)
+        self.assertEqual(op['inputs'][0]['name'], 'a')
+        self.assertEqual(len(op['outputs']), 1)
+        self.assertEqual(op['outputs'][0]['name'], 'v')

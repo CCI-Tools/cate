@@ -24,7 +24,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import os.path
 from typing import Any, Dict, Optional
 
-from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, VARIABLE_DISPLAY_SETTINGS
+from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
+    VARIABLE_DISPLAY_SETTINGS, DEFAULT_COLOR_MAP
 
 _CONFIG = None
 
@@ -60,10 +61,15 @@ def get_variable_display_settings(var_name: str) -> Optional[Dict[str, Any]]:
     Get the global variable display settings which is a combination of defaults.
     :return:
     """
-    d = get_config().get('variable_display_settings', None)
-    if d and var_name in d:
-        return d[var_name]
-    return VARIABLE_DISPLAY_SETTINGS.get(var_name)
+    settings_dict = get_config().get('variable_display_settings', None)
+    if settings_dict and var_name in settings_dict:
+        return settings_dict[var_name]
+
+    settings = VARIABLE_DISPLAY_SETTINGS.get(var_name)
+    if settings:
+        return settings
+
+    return dict(color_map=get_config_value('default_color_map', DEFAULT_COLOR_MAP))
 
 
 def get_config() -> dict:

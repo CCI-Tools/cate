@@ -2,6 +2,8 @@
 
 ### Improvements and new Features
 
+* Min/max computation should be monitored
+  [#384](https://github.com/CCI-Tools/cate-core/issues/384)
 * Added API to annotate deprecated operations and operation input/outputs.
   Refer to `op`, `op_input`, `op_output` decorators in `cate.op`.
   [#381](https://github.com/CCI-Tools/cate-core/issues/381)

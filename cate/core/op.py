@@ -402,7 +402,11 @@ class _DefaultOpRegistry(OpRegistry):
 OP_REGISTRY = _DefaultOpRegistry()
 
 
-def op(registry=OP_REGISTRY, **properties):
+def op(tags=UNDEFINED,
+       version=UNDEFINED,
+       deprecated=UNDEFINED,
+       registry=OP_REGISTRY,
+       **properties):
     """
     ``op`` is a decorator function that registers a Python function or class in the default operation registry or
     the one given by *registry*, if any.
@@ -418,13 +422,22 @@ def op(registry=OP_REGISTRY, **properties):
 
     @op(version='X.x')
 
-    :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
+    :param tags: An optional list of string tags.
+    :param version: An optional version string.
+    :param deprecated: An optional boolean or a string. If a string is used, it should explain
+           why the operation has been deprecated and which new operation to use instead.
+           If set to ``True``, the operation's doc-string should explain the deprecation.
     :param registry: The operation registry.
+    :param properties: Other properties (keyword arguments) that will be added to the meta-information of operation.
     """
 
     def decorator(op_func):
+        new_properties = dict(tags=tags,
+                              version=version,
+                              deprecated=deprecated,
+                              **properties)
         op_registration = registry.add_op(op_func, fail_if_exists=False)
-        op_registration.op_meta_info.header.update({k: v for k, v in properties.items() if v is not UNDEFINED})
+        op_registration.op_meta_info.header.update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
         return op_registration
 
     return decorator
@@ -438,6 +451,7 @@ def op_input(input_name: str,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
+             deprecated=UNDEFINED,
              position=UNDEFINED,
              context=UNDEFINED,
              registry=OP_REGISTRY,
@@ -476,6 +490,9 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param deprecated: An optional boolean or a string. If a string is used, it should explain
+           why the input has been deprecated and which new input to use instead.
+           If set to ``True``, the input's doc-string should explain the deprecation.
     :param position: The zero-based position of an input.
     :param context: If ``True``, the value of the operation input will be a dictionary representing
            the current execution context. For example,
@@ -502,6 +519,7 @@ def op_input(input_name: str,
                               value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range,
+                              deprecated=deprecated,
                               position=position,
                               context=context,
                               **properties)
@@ -515,6 +533,7 @@ def op_input(input_name: str,
 
 def op_output(output_name: str,
               data_type=UNDEFINED,
+              deprecated=UNDEFINED,
               registry=OP_REGISTRY,
               **properties):
     """
@@ -547,6 +566,9 @@ def op_output(output_name: str,
 
     :param output_name: The name of the output.
     :param data_type: The data type of the output value.
+    :param deprecated: An optional boolean or a string. If a string is used, it should explain
+           why the output has been deprecated and which new output to use instead.
+           If set to ``True``, the output's doc-string should explain the deprecation.
     :param properties: Other properties (keyword arguments) that
            will be added to the meta-information of the named output.
     :param registry: Optional operation registry.
@@ -562,7 +584,7 @@ def op_output(output_name: str,
             output_namespace[output_name] = output_properties
         elif output_name not in output_namespace:
             output_namespace[output_name] = dict()
-        new_properties = dict(data_type=data_type, **properties)
+        new_properties = dict(data_type=data_type, deprecated=deprecated, **properties)
         output_namespace[output_name].update({k: v for k, v in new_properties.items() if v is not UNDEFINED})
         return op_registration
 
