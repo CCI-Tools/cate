@@ -317,7 +317,7 @@ class FSWorkspaceManager(WorkspaceManager):
                                overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         workspace = self.get_workspace(base_dir)
-        res_name = workspace.set_resource(res_name, op_name, op_args, overwrite=overwrite, validate_args=True)
+        res_name = workspace.set_resource(op_name, op_args, res_name, overwrite=overwrite, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
         return workspace, res_name
 

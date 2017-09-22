@@ -493,13 +493,11 @@ class Workspace:
         if res_name in self._resource_cache:
             self._resource_cache.rename_key(res_name, new_res_name)
 
-    # TODO (forman): rename set_resource() to add_workflow_step()
-    # TODO (forman): make res_name a kwarg
     def set_resource(self,
-                     res_name: Optional[str],
                      op_name: str,
                      op_kwargs: OpKwArgs,
-                     overwrite=False,
+                     res_name: Optional[str] = None,
+                     overwrite: bool = False,
                      validate_args=False) -> str:
         """
         Set a resource named *res_name* to the result of an operation *op_name* using the given operation arguments
@@ -639,8 +637,7 @@ class Workspace:
             raise WorkspaceError('Workspace is already closed: ' + self._base_dir)
 
     def _new_resource_name(self, op):
-        # TODO (forman): read default_resource_prefix from configuration
-        default_resource_prefix = 'res_'
+        default_resource_prefix = conf.get_default_res_prefix()
         resource_prefix = op.op_meta_info.header.get('resource_prefix', default_resource_prefix)
         return new_indexed_name([step.id for step in self.workflow.steps], resource_prefix)
 

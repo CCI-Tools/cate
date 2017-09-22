@@ -54,7 +54,8 @@ class WebSocketService:
         config = conf.get_config()
         return dict(data_stores_path=get_data_stores_path(),
                     use_workspace_imagery_cache=config.get('use_workspace_imagery_cache',
-                                                           WEBAPI_USE_WORKSPACE_IMAGERY_CACHE))
+                                                           WEBAPI_USE_WORKSPACE_IMAGERY_CACHE),
+                    default_res_prefix=conf.get_default_res_prefix())
 
     def set_config(self, config: dict) -> None:
 
