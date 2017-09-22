@@ -25,7 +25,8 @@ import os.path
 from typing import Any, Dict, Optional
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
-    VARIABLE_DISPLAY_SETTINGS, DEFAULT_COLOR_MAP, DEFAULT_RES_PREFIX
+    VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PREFIX, \
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 
 _CONFIG = None
 
@@ -54,6 +55,21 @@ def get_config_value(name: str, default=None) -> Any:
     if not name:
         raise ValueError('name argument must be given')
     return get_config().get(name, default)
+
+
+def get_data_stores_path() -> str:
+    """
+    Get the default path to where Cate stores local data store information and stores data files synchronized with their
+    remote versions.
+
+    :return: Effectively reads the value of the configuration parameter ``data_stores_path``, if any. Otherwise return
+             the default value ``~/.cate/data_stores``.
+    """
+    return get_config_path('data_stores_path', os.path.join(DEFAULT_DATA_PATH, 'data_stores'))
+
+
+def get_use_workspace_imagery_cache() -> bool:
+    return get_config_value('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 
 def get_default_res_prefix() -> str:

@@ -26,7 +26,7 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import VERSION_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
@@ -52,9 +52,8 @@ class WebSocketService:
 
     def get_config(self) -> dict:
         config = conf.get_config()
-        return dict(data_stores_path=get_data_stores_path(),
-                    use_workspace_imagery_cache=config.get('use_workspace_imagery_cache',
-                                                           WEBAPI_USE_WORKSPACE_IMAGERY_CACHE),
+        return dict(data_stores_path=conf.get_data_stores_path(),
+                    use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
                     default_res_prefix=conf.get_default_res_prefix())
 
     def set_config(self, config: dict) -> None:
@@ -147,7 +146,7 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(id=data_source_id)
+        data_sources = data_store.query(ds_id=data_source_id)
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]

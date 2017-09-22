@@ -20,7 +20,7 @@ class SimpleDataStore(ds.DataStore):
 
     def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
         if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+            return [ds for ds in self._data_sources if ds.matches(ds_id=id, query_expr=query_expr)]
         return self._data_sources
 
     def _repr_html_(self):
@@ -128,11 +128,11 @@ class IOTest(TestCase):
             self.assertEqual(len(data_sources), 98)
             self.assertEqual(data_sources[0].id, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
 
-            data_sources = ds.find_data_sources(id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
+            data_sources = ds.find_data_sources(ds_id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 1)
 
-            data_sources = ds.find_data_sources(id="ZZ")
+            data_sources = ds.find_data_sources(ds_id="ZZ")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 0)
         finally:
@@ -158,21 +158,21 @@ class IOTest(TestCase):
         self.assertEqual(data_sources[2].id, "sst")
 
     def test_find_data_sources_with_id_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="ozone")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="ozone")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "ozone")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="Z")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="Z")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="x")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="x")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
@@ -192,17 +192,17 @@ class IOTest(TestCase):
         self.assertEqual(len(data_sources), 0)
 
     def test_find_data_sources_with_id_and_query_expr_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="foo", query_expr="aerosol")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="aerosol", query_expr="foo")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol", query_expr="foo")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, id="foo", query_expr="bar")
+        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="bar")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 

@@ -52,8 +52,9 @@ from io import StringIO, IOBase
 from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
+from cate.conf.conf import get_data_stores_path
 from cate.core.cdm import Schema
-from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
+from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util import to_datetime, Monitor, Cancellation
 
@@ -546,7 +547,7 @@ class FileSetDataStore(DataStore):
 
     def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+            return [ds for ds in self._data_sources if ds.matches(ds_id=id, query_expr=query_expr)]
         return self._data_sources
 
     def load_from_json(self, json_fp_or_str: Union[str, IOBase]):
