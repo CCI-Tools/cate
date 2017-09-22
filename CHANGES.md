@@ -2,6 +2,9 @@
 
 ### Improvements and new Features
 
+* Added check if copying/downloading DS failed without any progress/complete files
+  if so, remove empty DS
+  [#375](https://github.com/CCI-Tools/cate-core/issues/375)
 * Min/max computation should be monitored
   [#384](https://github.com/CCI-Tools/cate-core/issues/384)
 * Added API to annotate deprecated operations and operation input/outputs.
