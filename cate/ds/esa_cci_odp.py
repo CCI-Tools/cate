@@ -969,6 +969,9 @@ class EsaCciOdpDataSource(DataSource):
         region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
+        ds_id = local_name
+        title = local_id
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if not local_store:
             add_to_data_store_registry()
@@ -978,24 +981,24 @@ class EsaCciOdpDataSource(DataSource):
 
         uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
 
-        if not local_name or len(local_name) == 0:
-            local_name = "local.{}.{}".format(self.id, uuid)
-            existing_ds_list = local_store.query(local_name)
+        if not ds_id or len(ds_id) == 0:
+            ds_id = "local.{}.{}".format(self.id, uuid)
+            existing_ds_list = local_store.query(ds_id)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % local_name)
+            existing_ds_list = local_store.query('local.%s' % ds_id)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
                     return existing_ds_list[0]
                 else:
-                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, local_name))
+                    raise ValueError('Datastore {} already contains dataset {}'.format(local_store.id, ds_id))
 
         local_meta_info = self.meta_info.copy()
         local_meta_info['ref_uuid'] = local_meta_info.get('uuid', None)
         local_meta_info['uuid'] = uuid
 
-        local_ds = local_store.create_data_source(local_name,
+        local_ds = local_store.create_data_source(ds_id, title=title,
                                                   time_range=time_range, region=region, var_names=var_names,
                                                   meta_info=local_meta_info, lock_file=True)
         if local_ds:
