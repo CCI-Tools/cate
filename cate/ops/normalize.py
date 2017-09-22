@@ -71,7 +71,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
     except AttributeError:
         pass
 
-    return ds
+    return adjust_temporal_attrs(ds)
 
 
 def _normalize_lat_lon(ds: xr.Dataset) -> xr.Dataset:

@@ -72,8 +72,7 @@ def long_term_average(ds: DatasetLike.TYPE,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a monthly dataset
-    months = ds.time['time.month'].values
-    if (months[1] - months[0]) != 1:
+    if ds.attrs['time_coverage_resolution'] != 'P1M':
         raise ValueError('Long term average operation expects a monthly dataset'
                          ' running temporal aggregation on this dataset'
                          ' beforehand may help.')
@@ -132,13 +131,14 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
     return retset
 
 
-@op(tags=['aggregate', 'temporal'], version='1.0')
+@op(tags=['aggregate', 'temporal'], version='1.1')
 @op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
                                'var', 'argmax', 'argmin', 'first', 'last'])
 @op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
 def temporal_aggregation(ds: DatasetLike.TYPE,
-                         method: str = 'mean') -> xr.Dataset:
+                         method: str = 'mean',
+                         monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Perform monthly aggregation of a daily dataset according to the given
     method.
@@ -156,11 +156,12 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a daily dataset
-    days = ds.time['time.day'].values
-    if (days[1] - days[0]) != 1:
+    if ds.attrs['time_coverage_resolution'] != 'P1D':
         raise ValueError('Temporal aggregation operation expects a daily dataset')
 
-    retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)
+    with monitor.observing("resample dataset"):
+        retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)
+
     for var in retset.data_vars:
         try:
             retset[var].attrs['cell_methods'] = \
