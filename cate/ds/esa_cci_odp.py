@@ -850,18 +850,14 @@ class EsaCciOdpDataSource(DataSource):
                                 geo_lon_max_copy = geo_lon_max
                                 geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
                                 geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
-                    print(var_names)
                     if not var_names:
                         var_names = [var_name for var_name in remote_netcdf.variables.keys()]
                     var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
                                       if coord_name not in var_names])
-                    print(var_names)
                     child_monitor.start(label=file_name, total_work=len(var_names))
                     for sel_var_name in var_names:
                         var_dataset = remote_dataset.drop(
                             [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
-                        print(remote_dataset)
-                        print(var_dataset)
                         if compression_enabled:
                             var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
                         local_netcdf.store_dataset(var_dataset)
