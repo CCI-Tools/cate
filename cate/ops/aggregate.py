@@ -72,10 +72,14 @@ def long_term_average(ds: DatasetLike.TYPE,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a monthly dataset
-    if ds.attrs['time_coverage_resolution'] != 'P1M':
-        raise ValueError('Long term average operation expects a monthly dataset'
-                         ' running temporal aggregation on this dataset'
-                         ' beforehand may help.')
+    try:
+        if ds.attrs['time_coverage_resolution'] != 'P1M':
+            raise ValueError('Long term average operation expects a monthly dataset'
+                             ' running temporal aggregation on this dataset'
+                             ' beforehand may help.')
+    except KeyError:
+        raise ValueError('Could not determine temporal resolution. Running the'
+                         ' normalize operation may help.')
 
     var = VarNamesLike.convert(var)
     # Shallow
@@ -156,8 +160,12 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
                          ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a daily dataset
-    if ds.attrs['time_coverage_resolution'] != 'P1D':
-        raise ValueError('Temporal aggregation operation expects a daily dataset')
+    try:
+        if ds.attrs['time_coverage_resolution'] != 'P1D':
+            raise ValueError('Temporal aggregation operation expects a daily dataset')
+    except KeyError:
+        raise ValueError('Could not determine temporal resolution. Running'
+                         ' the normalize operation beforehand may help.')
 
     with monitor.observing("resample dataset"):
         retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)
