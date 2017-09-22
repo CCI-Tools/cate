@@ -19,11 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 from collections import OrderedDict
-from typing import List, Sequence, Optional, Tuple
+from typing import List, Sequence, Optional
 
 import xarray as xr
 
@@ -34,6 +31,9 @@ from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd, filter_fileset
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 
 # noinspection PyMethodMayBeStatic
@@ -266,14 +266,20 @@ class WebSocketService:
         workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return workspace.to_json_dict()
 
-    def set_workspace_resource(self, base_dir: str, res_name: Optional[str], op_name: str, op_args: OpKwArgs,
+    def set_workspace_resource(self,
+                               base_dir: str,
+                               op_name: str,
+                               op_args: OpKwArgs,
+                               res_name: Optional[str],
+                               overwrite: bool,
                                monitor: Monitor) -> list:
         with cwd(base_dir):
             workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
-                                                                      res_name,
-                                                                      op_name,
-                                                                      op_args,
-                                                                      monitor=monitor)
+                                                                                op_name,
+                                                                                op_args,
+                                                                                res_name=res_name,
+                                                                                overwrite=overwrite,
+                                                                                monitor=monitor)
             return [workspace.to_json_dict(), res_name]
 
     def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:

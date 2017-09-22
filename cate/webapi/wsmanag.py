@@ -19,12 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import json
 import urllib.parse
 import urllib.request
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from tornado import gen, ioloop, websocket
 
@@ -32,6 +31,8 @@ from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT
 from cate.core.workspace import Workspace, WorkspaceError, OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import encode_url_path, Monitor
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class WebAPIWorkspaceManager(WorkspaceManager):
@@ -175,12 +176,16 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                                       timeout=WEBAPI_RESOURCE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
 
-    def set_workspace_resource(self, base_dir: str, res_name: str,
-                               op_name: str, op_args: OpKwArgs,
+    def set_workspace_resource(self,
+                               base_dir: str,
+                               op_name: str,
+                               op_args: OpKwArgs,
+                               res_name: Optional[str] = None,
+                               overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         json_list = self._ws_json_rpc("set_workspace_resource",
                                       dict(base_dir=base_dir, res_name=res_name, op_name=op_name,
-                                           op_args=op_args),
+                                           op_args=op_args, overwrite=overwrite),
                                       timeout=WEBAPI_RESOURCE_TIMEOUT,
                                       monitor=monitor)
         return Workspace.from_json_dict(json_list[0]), json_list[1]

@@ -244,6 +244,11 @@ class ResourceCommandTest(CliTestCase):
                              'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
 
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
+                         expected_status=1,
+                         expected_stderr=[
+                             'cate res: error: A resource named "ts" already exists'])
+
+        self.assert_main(['res', 'set', '-o', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=[

@@ -27,10 +27,10 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from typing import List, Union, Optional, Tuple
 
-from ..conf.defaults import SCRATCH_WORKSPACES_PATH
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH
 from ..util import UNDEFINED, Monitor, safe_eval
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -96,8 +96,12 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def set_workspace_resource(self, base_dir: str, res_name: str,
-                               op_name: str, op_args: OpKwArgs,
+    def set_workspace_resource(self,
+                               base_dir: str,
+                               op_name: str,
+                               op_args: OpKwArgs,
+                               res_name: Optional[str] = None,
+                               overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         pass
 
@@ -305,11 +309,15 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.run_op(op_name, op_args, monitor=monitor)
         return workspace
 
-    def set_workspace_resource(self, base_dir: str, res_name: Optional[str],
-                               op_name: str, op_args: OpKwArgs,
+    def set_workspace_resource(self,
+                               base_dir: str,
+                               op_name: str,
+                               op_args: OpKwArgs,
+                               res_name: Optional[str] = None,
+                               overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
         workspace = self.get_workspace(base_dir)
-        res_name = workspace.set_resource(res_name, op_name, op_args, overwrite=True, validate_args=True)
+        res_name = workspace.set_resource(res_name, op_name, op_args, overwrite=overwrite, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
         return workspace, res_name
 
