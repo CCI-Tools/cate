@@ -38,16 +38,16 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['input'])
-@op_input('ds_id')
-@op_input('ds_name', deprecated=True)
+@op_input('ds_id', nullable=False)
+@op_input('ds_name', nullable=False, deprecated='use "ds_id" instead')
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
 @op_input('force_local')
 @op_input('local_ds_id')
-def open_dataset(ds_name: str,
-                 ds_id: str = None,
+def open_dataset(ds_name: str = '',
+                 ds_id: str = '',
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,

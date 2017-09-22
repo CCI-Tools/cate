@@ -48,32 +48,32 @@ class TestCoregistration(TestCase):
         ds_coarse_resampled = coregister(ds_fine, ds_coarse, monitor=rm)
         self.assertEqual([('start', 'coregister dataset', 2),
                           ('progress', 0.0, 'coregister dataarray', 0),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 0),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 0),
                           ('progress', 0.125, None, 6),
                           ('progress', 0.125, None, 13),
                           ('progress', 0.125, None, 19),
                           ('progress', 0.125, None, 25),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 25),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 25),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 25),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 25),
                           ('progress', 0.125, None, 31),
                           ('progress', 0.125, None, 38),
                           ('progress', 0.125, None, 44),
                           ('progress', 0.125, None, 50),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 50),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 50),
                           ('progress', 0.0, 'coregister dataarray', 50),
                           ('progress', 0.0, 'coregister dataarray', 50),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 50),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 50),
                           ('progress', 0.125, None, 56),
                           ('progress', 0.125, None, 63),
                           ('progress', 0.125, None, 69),
                           ('progress', 0.125, None, 75),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 75),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 75),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 75),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 75),
                           ('progress', 0.125, None, 81),
                           ('progress', 0.125, None, 88),
                           ('progress', 0.125, None, 94),
                           ('progress', 0.125, None, 100),
-                          ('progress', 0.0, 'coregister dataarray: resample time slice', 100),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 100),
                           ('progress', 0.0, 'coregister dataarray', 100),
                           ('done',)], rm.records)
 
@@ -273,11 +273,10 @@ class TestCoregistration(TestCase):
 
         # Test unexpected dimensionality
         ds_fine = xr.Dataset({
-            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
-            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'first': (['lat', 'longertude'], np.eye(4, 8)),
+            'second': (['lat', 'longertude'], np.eye(4, 8)),
             'lat': np.linspace(-67.5, 67.5, 4),
-            'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])})
+            'longertude': np.linspace(-157.5, 157.5, 8)})
 
         ds_coarse = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
@@ -286,29 +285,12 @@ class TestCoregistration(TestCase):
             'lon': np.linspace(-150, 150, 6),
             'time': np.array([1, 2])})
 
-        # Should run, doesn't apply to master
-        coregister(ds_fine, ds_coarse)
-
-        ds_fine = xr.Dataset({
-            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
-            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
-            'lat': np.linspace(-67.5, 67.5, 4),
-            'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2])})
-
-        ds_coarse = xr.Dataset({
-            'first': (['slime', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
-            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
-            'lat': np.linspace(-60, 60, 3),
-            'lon': np.linspace(-150, 150, 6),
-            'time': np.array([1, 2])})
-
         with self.assertRaises(ValueError) as err:
             coregister(ds_fine, ds_coarse)
-        self.assertIn('slime', str(err.exception))
+        self.assertIn('longertude', str(err.exception))
 
         ds_fine = xr.Dataset({
-            'first': (['slime', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
@@ -316,17 +298,14 @@ class TestCoregistration(TestCase):
 
         ds_coarse = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
-            'second': (['time', 'lat', 'lon', 'histogram'],
-                       np.array([np.arange(36).reshape(3, 6, 2),
-                                 np.arange(36).reshape(3, 6, 2)])),
+            'second': (['time', 'lon'], np.eye(2, 6)),
             'lat': np.linspace(-60, 60, 3),
             'lon': np.linspace(-150, 150, 6),
-            'time': np.array([1, 2]),
-            'histogram': [1, 2]})
+            'time': np.array([1, 2])})
 
         with self.assertRaises(ValueError) as err:
             coregister(ds_fine, ds_coarse)
-        self.assertIn('histogram', str(err.exception))
+        self.assertIn('select_var', str(err.exception))
 
     def test_find_intersection(self):
         """
@@ -431,3 +410,224 @@ class TestCoregistration(TestCase):
                          ds_coarse_resampled.attrs['geospatial_lat_resolution'])
         self.assertEqual(45.0,
                          ds_coarse_resampled.attrs['geospatial_lon_resolution'])
+
+    def test_recursive(self):
+        """
+        Test coregistration with more dimensions than lat/lon/time
+        """
+        slice_fine = np.eye(4, 8)
+        slice_coarse = np.eye(3, 6)
+        ndarr_fine = np.zeros([2, 2, 2, 4, 8])
+        ndarr_coarse = np.zeros([2, 2, 2, 3, 6])
+        ndarr_fine[:] = slice_fine
+        ndarr_coarse[:] = slice_coarse
+
+        ds_fine = xr.Dataset({
+            'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_fine),
+            'second': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_fine),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2]),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse),
+            'second': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2]),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
+
+        # Test that the coarse dataset has been resampled onto the grid
+        # of the finer dataset.
+        rm = RecordingMonitor()
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse, monitor=rm)
+
+        self.assertEqual([('start', 'coregister dataset', 2),
+                          ('progress', 0.0, 'coregister dataarray', 0),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 0),
+                          ('progress', 0.03125, None, 2),
+                          ('progress', 0.03125, None, 3),
+                          ('progress', 0.03125, None, 5),
+                          ('progress', 0.03125, None, 6),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 6),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 6),
+                          ('progress', 0.03125, None, 8),
+                          ('progress', 0.03125, None, 9),
+                          ('progress', 0.03125, None, 11),
+                          ('progress', 0.03125, None, 13),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 13),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 13),
+                          ('progress', 0.03125, None, 14),
+                          ('progress', 0.03125, None, 16),
+                          ('progress', 0.03125, None, 17),
+                          ('progress', 0.03125, None, 19),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 19),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 19),
+                          ('progress', 0.03125, None, 20),
+                          ('progress', 0.03125, None, 22),
+                          ('progress', 0.03125, None, 23),
+                          ('progress', 0.03125, None, 25),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 25),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 25),
+                          ('progress', 0.03125, None, 27),
+                          ('progress', 0.03125, None, 28),
+                          ('progress', 0.03125, None, 30),
+                          ('progress', 0.03125, None, 31),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 31),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 31),
+                          ('progress', 0.03125, None, 33),
+                          ('progress', 0.03125, None, 34),
+                          ('progress', 0.03125, None, 36),
+                          ('progress', 0.03125, None, 38),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 38),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 38),
+                          ('progress', 0.03125, None, 39),
+                          ('progress', 0.03125, None, 41),
+                          ('progress', 0.03125, None, 42),
+                          ('progress', 0.03125, None, 44),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 44),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 44),
+                          ('progress', 0.03125, None, 45),
+                          ('progress', 0.03125, None, 47),
+                          ('progress', 0.03125, None, 48),
+                          ('progress', 0.03125, None, 50),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 50),
+                          ('progress', 0.0, 'coregister dataarray', 50),
+                          ('progress', 0.0, 'coregister dataarray', 50),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 50),
+                          ('progress', 0.03125, None, 52),
+                          ('progress', 0.03125, None, 53),
+                          ('progress', 0.03125, None, 55),
+                          ('progress', 0.03125, None, 56),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 56),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 56),
+                          ('progress', 0.03125, None, 58),
+                          ('progress', 0.03125, None, 59),
+                          ('progress', 0.03125, None, 61),
+                          ('progress', 0.03125, None, 63),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 63),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 63),
+                          ('progress', 0.03125, None, 64),
+                          ('progress', 0.03125, None, 66),
+                          ('progress', 0.03125, None, 67),
+                          ('progress', 0.03125, None, 69),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 69),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 69),
+                          ('progress', 0.03125, None, 70),
+                          ('progress', 0.03125, None, 72),
+                          ('progress', 0.03125, None, 73),
+                          ('progress', 0.03125, None, 75),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 75),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 75),
+                          ('progress', 0.03125, None, 77),
+                          ('progress', 0.03125, None, 78),
+                          ('progress', 0.03125, None, 80),
+                          ('progress', 0.03125, None, 81),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 81),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 81),
+                          ('progress', 0.03125, None, 83),
+                          ('progress', 0.03125, None, 84),
+                          ('progress', 0.03125, None, 86),
+                          ('progress', 0.03125, None, 88),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 88),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 88),
+                          ('progress', 0.03125, None, 89),
+                          ('progress', 0.03125, None, 91),
+                          ('progress', 0.03125, None, 92),
+                          ('progress', 0.03125, None, 94),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 94),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 94),
+                          ('progress', 0.03125, None, 95),
+                          ('progress', 0.03125, None, 97),
+                          ('progress', 0.03125, None, 98),
+                          ('progress', 0.03125, None, 100),
+                          ('progress', 0.0, 'coregister dataarray: resample slice', 100),
+                          ('progress', 0.0, 'coregister dataarray', 100),
+                          ('done',)], rm.records)
+
+        slice_exp = np.array([[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
+                              [0.33333333, 0.57142857, 0.38095238, 0., 0., 0., 0., 0.],
+                              [0., 0.47619048, 0.52380952, 0.28571429, 0.04761905, 0., 0., 0.],
+                              [0., 0., 0.42857143, 0.85714286, 0.14285714, 0., 0., 0.]])
+        ndarr_fine_exp = np.zeros([2, 2, 2, 4, 8])
+        ndarr_fine_exp[:] = slice_exp
+
+        expected = xr.Dataset({
+            'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_fine_exp),
+            'second': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_fine_exp),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2]),
+            'time': np.array([1, 2])})
+        assert_almost_equal(ds_coarse_resampled['first'].values, expected['first'].values)
+
+        # Test that the fine dataset has been resampled (aggregated)
+        # onto the grid of the coarse dataset.
+        ds_fine_resampled = coregister(ds_coarse, ds_fine)
+
+        slice_exp = np.array([[0.625, 0.125, 0., 0., 0., 0.],
+                              [0.125, 0.5, 0.125, 0., 0., 0.],
+                              [0., 0.125, 0.625, 0., 0., 0.]])
+        ndarr_coarse_exp = np.zeros([2, 2, 2, 3, 6])
+        ndarr_coarse_exp[:] = slice_exp
+
+        expected = xr.Dataset({
+            'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse_exp),
+            'second': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse_exp),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2]),
+            'time': np.array([1, 2])})
+
+        assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)
+
+    def test_2D(self):
+        """
+        Test a case where a 2D lat/lon dataset is resampled or used for
+        resampling
+        """
+        # Master dataset is 2D
+        ds_fine = xr.Dataset({
+            'first': (['lat', 'lon'], np.eye(4, 8)),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8)}).chunk()
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
+
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse)
+
+        slice_exp = np.array([[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
+                              [0.33333333, 0.57142857, 0.38095238, 0., 0., 0., 0., 0.],
+                              [0., 0.47619048, 0.52380952, 0.28571429, 0.04761905, 0., 0., 0.],
+                              [0., 0., 0.42857143, 0.85714286, 0.14285714, 0., 0., 0.]])
+        exp_arr = np.zeros([2, 4, 8])
+        exp_arr[:] = slice_exp
+
+        expected = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], exp_arr),
+            'second': (['time', 'lat', 'lon'], exp_arr),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+
+        assert_almost_equal(ds_coarse_resampled['first'].values, expected['first'].values)
+
+        # Slave dataset contains a 2D variable
+        ds_coarse = xr.Dataset({
+            'first': (['lat', 'lon'], np.eye(3, 6)),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
+
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse)
+
+        assert_almost_equal(ds_coarse_resampled['first'].values, slice_exp)
