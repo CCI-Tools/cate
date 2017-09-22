@@ -485,21 +485,22 @@ def open_dataset(data_source: Union[DataSource, str],
     """
     Open a dataset from a data source.
 
-    :param data_source: Strings are interpreted as the identifier of an ECV dataset.
+    :param data_source: A ``DataSource`` object or a string.
+           Strings are interpreted as the identifier of an ECV dataset and must not be empty.
     :param time_range: An optional time constraint comprising start and end date.
-            If given, it must be a :py:class:`TimeRangeLike`.
+           If given, it must be a :py:class:`TimeRangeLike`.
     :param region: An optional region constraint.
-            If given, it must be a :py:class:`PolygonLike`.
+           If given, it must be a :py:class:`PolygonLike`.
     :param var_names: Optional names of variables to be included.
-            If given, it must be a :py:class:`VarNamesLike`.
+           If given, it must be a :py:class:`VarNamesLike`.
     :param force_local: Optional flag for remote data sources only
-            Whether to make a local copy of data source if it's not present
+           Whether to make a local copy of data source if it's not present
     :param local_ds_id: Optional, fpr remote data sources only
-            Local data source ID for newly created copy of remote data source
+           Local data source ID for newly created copy of remote data source
     :param monitor: A progress monitor
     :return: An new dataset instance
     """
-    if data_source is None:
+    if not data_source:
         raise ValueError('No data_source given')
 
     if isinstance(data_source, str):
