@@ -720,7 +720,9 @@ class LocalDataStore(DataStore):
                            meta_info: OrderedDict = None, lock_file: bool = False):
         self._init_data_sources()
 
-        if meta_info:
+        if title:
+            if not meta_info:
+                meta_info = OrderedDict()
             meta_info['title'] = title
 
         if not data_source_id.startswith('%s.' % self.id):
