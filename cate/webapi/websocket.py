@@ -25,7 +25,7 @@ from typing import List, Sequence, Optional
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import VERSION_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from cate.conf.defaults import VERSION_CONF_FILE
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
@@ -51,7 +51,6 @@ class WebSocketService:
         self.workspace_manager = workspace_manager
 
     def get_config(self) -> dict:
-        config = conf.get_config()
         return dict(data_stores_path=conf.get_data_stores_path(),
                     use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
                     default_res_prefix=conf.get_default_res_prefix())

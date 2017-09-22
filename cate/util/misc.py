@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import fnmatch
 import os
 import os.path
@@ -34,6 +32,8 @@ from io import StringIO
 from typing import Union, Tuple, Sequence, Optional
 
 import numpy as np
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
@@ -389,8 +389,6 @@ def filter_fileset(names: Sequence[str],
     return filtered_names
 
 
-
-
 def new_indexed_name(names: Sequence[str], prefix: str) -> str:
     """
     Return a new name that is unique in *names* and which starts with *prefix*.
@@ -399,7 +397,6 @@ def new_indexed_name(names: Sequence[str], prefix: str) -> str:
     :param prefix: Name prefix, e.g. "var_"
     :return: a new name, e.g. "var_3"
     """
-
     pattern = re.compile(prefix + "(\d+)$")
     max_index = 0
     for name in names:
