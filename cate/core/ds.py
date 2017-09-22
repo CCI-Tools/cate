@@ -86,10 +86,10 @@ from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
 
-from ..conf import get_config_path
-from ..conf.defaults import DEFAULT_DATA_PATH
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from ..conf import get_config_path
+from ..conf.defaults import DEFAULT_DATA_PATH
 from ..util import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -97,6 +97,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
 
 
+# TODO (forman): move to cate.conf.conf
 def get_data_stores_path() -> str:
     """
     Get the default path to where Cate stores local data store information and stores data files synchronized with their
