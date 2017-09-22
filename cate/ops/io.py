@@ -65,7 +65,8 @@ def open_dataset(ds_name: str = '',
     :param var_names: Optional names of variables of the requested dataset
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
     :param force_local: Whether to make a local copy of remote data source if it's not present
-    :param local_ds_id: Optional local ID for newly created local copy of remote data source
+    :param local_ds_id: Optional local identifier for newly created local copy of remote data source.
+           Used only if force_local=True.
     :param monitor: A progress monitor
     :return: An new dataset instance.
     """
