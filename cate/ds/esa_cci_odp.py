@@ -1003,7 +1003,12 @@ class EsaCciOdpDataSource(DataSource):
                                                   meta_info=local_meta_info, lock_file=True)
         if local_ds:
             if not local_ds.is_complete:
-                self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                try:
+                    self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                except Exception as e:
+                    if local_ds.is_empty:
+                        local_store.remove_data_source(local_ds)
+                    raise e
 
             if local_ds.is_empty:
                 local_store.remove_data_source(local_ds)
