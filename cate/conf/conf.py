@@ -155,7 +155,7 @@ def _write_default_config_file(default_config_file: str, template_module: str) -
             import sys
             fp.write(sys.prefix)
 
-    with open(default_config_file, 'w') as fp:
+    with open(default_config_file, 'w', newline='') as fp:
         import pkgutil
         parts = template_module.split('.')
         template_package = '.'.join(parts[:-1])
