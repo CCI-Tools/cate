@@ -453,11 +453,11 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
             primary_data_store = data_store_list.pop(primary_data_store_index)
 
     if primary_data_store:
-        results.extend(primary_data_store.query(id=ds_id, query_expr=query_expr))
+        results.extend(primary_data_store.query(ds_id=ds_id, query_expr=query_expr))
     if not results:
         # noinspection PyTypeChecker
         for data_store in data_store_list:
-            results.extend(data_store.query(id=ds_id, query_expr=query_expr))
+            results.extend(data_store.query(ds_id=ds_id, query_expr=query_expr))
     return results
 
 

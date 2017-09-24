@@ -323,10 +323,10 @@ class EsaCciOdpDataStore(DataStore):
                         data_source.update_file_list()
                         child_monitor.progress(work=1)
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
-        if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(ds_id=id, query_expr=query_expr)]
+        if ds_id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
     def _repr_html_(self) -> str:
@@ -982,11 +982,11 @@ class EsaCciOdpDataSource(DataSource):
 
         if not ds_id or len(ds_id) == 0:
             ds_id = "local.{}.{}".format(self.id, uuid)
-            existing_ds_list = local_store.query(ds_id)
+            existing_ds_list = local_store.query(ds_id=ds_id)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % ds_id)
+            existing_ds_list = local_store.query(ds_id='local.%s' % ds_id)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
                     return existing_ds_list[0]

@@ -363,11 +363,11 @@ class LocalDataSource(DataSource):
 
         if not local_name or len(local_name) == 0:
             local_name = "local.{}.{}".format(self.id, _uuid)
-            existing_ds_list = local_store.query(local_name)
+            existing_ds_list = local_store.query(ds_id=local_name)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % local_name)
+            existing_ds_list = local_store.query(ds_id='local.%s' % local_name)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == _uuid:
                     return existing_ds_list[0]
