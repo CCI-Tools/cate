@@ -19,6 +19,8 @@
 
 ### Issues Fixed/Resolved
 
+* Generated resource names not always unique
+  [#391](https://github.com/CCI-Tools/cate-core/issues/391)
 * Fixed reading datasource temporal coverage from config file (obsolete format)
   [#373](https://github.com/CCI-Tools/cate-core/issues/373)
 * Merged (removed duplicated) meta information in datasource config file
