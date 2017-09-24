@@ -133,7 +133,7 @@ class WebSocketService:
                      title=data_source.title,
                      meta_info=data_source.meta_info) for data_source in data_sources]
 
-    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
+    def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
         Get the temporal coverage of the data source.
 
@@ -158,7 +158,7 @@ class WebSocketService:
         # TODO mz add available data information
         return meta_info
 
-    def add_local_datasource(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
 
