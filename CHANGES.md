@@ -5,7 +5,7 @@
 ### Issues Fixed/Resolved
 
 * Generated resource names not always unique
-  [#391](https://github.com/CCI-Tools/cate-core/issues/391)
+  [#391](https://github.com/CCI-Tools/cate/issues/391)
   
 ## Changes in version 0.9.0.dev7
 
@@ -13,58 +13,58 @@
 
 * Added check if copying/downloading DS failed without any progress/complete files
   if so, remove empty DS
-  [#375](https://github.com/CCI-Tools/cate-core/issues/375)
+  [#375](https://github.com/CCI-Tools/cate/issues/375)
 * Min/max computation should be monitored
-  [#384](https://github.com/CCI-Tools/cate-core/issues/384)
+  [#384](https://github.com/CCI-Tools/cate/issues/384)
 * Added API to annotate deprecated operations and operation input/outputs.
   Refer to `op`, `op_input`, `op_output` decorators in `cate.op`.
-  [#381](https://github.com/CCI-Tools/cate-core/issues/381)
+  [#381](https://github.com/CCI-Tools/cate/issues/381)
 * Configure default color maps
-  [#372](https://github.com/CCI-Tools/cate-core/issues/372)
+  [#372](https://github.com/CCI-Tools/cate/issues/372)
 * Hide problematic ODP data sources
-  [#368](https://github.com/CCI-Tools/cate-core/issues/368)
+  [#368](https://github.com/CCI-Tools/cate/issues/368)
 * Coregistration operation now works on n-dimensional datasets
-  [#36](https://github.com/CCI-Tools/cate-core/issues/36)
+  [#36](https://github.com/CCI-Tools/cate/issues/36)
 
 ### Issues Fixed/Resolved
 
 * Fixed reading datasource temporal coverage from config file (obsolete format)
-  [#373](https://github.com/CCI-Tools/cate-core/issues/373)
+  [#373](https://github.com/CCI-Tools/cate/issues/373)
 * Merged (removed duplicated) meta information in datasource config file
-  [#301](https://github.com/CCI-Tools/cate-core/issues/301)
+  [#301](https://github.com/CCI-Tools/cate/issues/301)
 * Land Cover CCI display must use dedicated color map
-  [#364](https://github.com/CCI-Tools/cate-core/issues/364)
+  [#364](https://github.com/CCI-Tools/cate/issues/364)
 * Land Cover CCI data display wrongly positioned (temp. hack!)
-  [#361](https://github.com/CCI-Tools/cate-core/issues/361)
+  [#361](https://github.com/CCI-Tools/cate/issues/361)
 * Make alpha blending work for all color maps
-  [#360](https://github.com/CCI-Tools/cate-core/issues/360)
+  [#360](https://github.com/CCI-Tools/cate/issues/360)
 * CLI monitor not working
-  [#353](https://github.com/CCI-Tools/cate-core/issues/353)
+  [#353](https://github.com/CCI-Tools/cate/issues/353)
 * GUI-Preferences for data store files do not overwrite conf.py
-  [#350](https://github.com/CCI-Tools/cate-core/issues/350)
+  [#350](https://github.com/CCI-Tools/cate/issues/350)
 * Filter 't0' in the `make_local` step of **SOILMOISTURE** data sources to make the data usable
-  [#326](https://github.com/CCI-Tools/cate-core/issues/326)
+  [#326](https://github.com/CCI-Tools/cate/issues/326)
 * Updated information about temporal, spatial coverage and variables of copied from ODP data sources (constraint-aware)
-  [#315](https://github.com/CCI-Tools/cate-core/issues/315)
+  [#315](https://github.com/CCI-Tools/cate/issues/315)
 * Verify operations against the operation development checklist to ensure some
   quality baseline.
-  [#291](https://github.com/CCI-Tools/cate-core/issues/291)
+  [#291](https://github.com/CCI-Tools/cate/issues/291)
 * Use only tags from a predefined set (maybe module name && list in developers' guide)
-  [#280](https://github.com/CCI-Tools/cate-core/issues/280)
+  [#280](https://github.com/CCI-Tools/cate/issues/280)
 * Added option to use open_dataset in workflow with automatic copying remote data source and reusing/re-opening previusly copied data (constraint-aware)
-  [#287](https://github.com/CCI-Tools/cate-core/issues/287)
+  [#287](https://github.com/CCI-Tools/cate/issues/287)
 * Generate unique default ID for local copies of remote data sources (constraint-aware)
-  [#277](https://github.com/CCI-Tools/cate-core/issues/277)
+  [#277](https://github.com/CCI-Tools/cate/issues/277)
 * Coregistration works with n-dimensional datasets
-  [#36](https://github.com/CCI-Tools/cate-core/issues/36)
-  [#348](https://github.com/CCI-Tools/cate-core/issues/348)
+  [#36](https://github.com/CCI-Tools/cate/issues/36)
+  [#348](https://github.com/CCI-Tools/cate/issues/348)
 
 ## Changes in version 0.9.0.dev6
 
 ### Improvements and new Features
 
-* Add use case 2 script [#327](https://github.com/CCI-Tools/cate-core/issues/327)
-  and [#146](https://github.com/CCI-Tools/cate-core/issues/146)
+* Add use case 2 script [#327](https://github.com/CCI-Tools/cate/issues/327)
+  and [#146](https://github.com/CCI-Tools/cate/issues/146)
 * long_term_average, temporal_aggregation, detect_outliers, spatial_subset and plot now work with both - datasets and dataframes.
 
 ### Issues Fixed/Resolved
@@ -78,12 +78,12 @@
 
 ### Improvements and new Features
 
-* Unified backend of CLI and GUI on WebSocket [#120](https://github.com/CCI-Tools/cate-core/issues/120)
+* Unified backend of CLI and GUI on WebSocket [#120](https://github.com/CCI-Tools/cate/issues/120)
   As the GUI uses WebSocket, this remove a bit of duplicated code.
 
 ### Issues Fixed/Resolved
 
-* Fixed [#309](https://github.com/CCI-Tools/cate-core/issues/309)
+* Fixed [#309](https://github.com/CCI-Tools/cate/issues/309)
 * Ensure that our tile size matches the expected tile size: resize and fill in background value.
 * Take tile size from dask, this should yield to better performance
 
@@ -135,7 +135,7 @@
 
 ### Issues Fixed/Resolved
 
-* Fixed [#299](https://github.com/CCI-Tools/cate-core/issues/299)
+* Fixed [#299](https://github.com/CCI-Tools/cate/issues/299)
     * renamed property `cate.core.ds.DataSource.name` to `id` 
     * renamed property `cate.core.ds.DataStore.name` to `id` 
     * renamed and changed signature of function `cate.core.ds.DataStore.query_data_sources(..., name=None)` 
@@ -145,17 +145,17 @@
     * added `title` property to `cate.core.ds.DataStore` and `cate.core.ds.DataSource`
     * made use of the new `id` and `title` properties of both `DataStore` and `DataSource` in their 
       JSON representations.
-* Fixed [#294](https://github.com/CCI-Tools/cate-core/issues/294)
-* Fixed [#286](https://github.com/CCI-Tools/cate-core/issues/286)
-* Fixed [#285](https://github.com/CCI-Tools/cate-core/issues/285)
-* Fixed [#283](https://github.com/CCI-Tools/cate-core/issues/283)
-* Fixed [#281](https://github.com/CCI-Tools/cate-core/issues/281)
-* Fixed [#270](https://github.com/CCI-Tools/cate-core/issues/270)
-* Fixed [#273](https://github.com/CCI-Tools/cate-core/issues/273)
-* Fixed [#262](https://github.com/CCI-Tools/cate-core/issues/262)
-* Fixed [#201](https://github.com/CCI-Tools/cate-core/issues/201)
-* Fixed [#223](https://github.com/CCI-Tools/cate-core/issues/223)
-* Fixed [#267](https://github.com/CCI-Tools/cate-core/issues/267)
+* Fixed [#294](https://github.com/CCI-Tools/cate/issues/294)
+* Fixed [#286](https://github.com/CCI-Tools/cate/issues/286)
+* Fixed [#285](https://github.com/CCI-Tools/cate/issues/285)
+* Fixed [#283](https://github.com/CCI-Tools/cate/issues/283)
+* Fixed [#281](https://github.com/CCI-Tools/cate/issues/281)
+* Fixed [#270](https://github.com/CCI-Tools/cate/issues/270)
+* Fixed [#273](https://github.com/CCI-Tools/cate/issues/273)
+* Fixed [#262](https://github.com/CCI-Tools/cate/issues/262)
+* Fixed [#201](https://github.com/CCI-Tools/cate/issues/201)
+* Fixed [#223](https://github.com/CCI-Tools/cate/issues/223)
+* Fixed [#267](https://github.com/CCI-Tools/cate/issues/267)
 * Fixed a problem with getting the variable statistics for variables with more that 3 dimensions
 * Switch CSW to same URL as the ODP
 * JSON-RPC protocol changed slightly: method `__cancelJob__` has been renamed to `__cancel__`
@@ -169,14 +169,14 @@
 
 ### Improvements and new Features
 
-* Added `plot_scatter` and `plot_contour` operations ([#278](https://github.com/CCI-Tools/cate-core/issues/278)).
+* Added `plot_scatter` and `plot_contour` operations ([#278](https://github.com/CCI-Tools/cate/issues/278)).
 * Most `plot_` operations now have a new `title` parameter.
 
 ### Fixes
 
-* Fixed [#259](https://github.com/CCI-Tools/cate-core/issues/259)
+* Fixed [#259](https://github.com/CCI-Tools/cate/issues/259)
 * Fixed problem when the `lon` or `lat` coordinate variables were empty.
-  See comments in [#276](https://github.com/CCI-Tools/cate-core/issues/276).
+  See comments in [#276](https://github.com/CCI-Tools/cate/issues/276).
 
 ## Changes in version 0.9.0.dev1
 
@@ -198,5 +198,5 @@
 
 * `cate.webapi.websocket` now understands the operations 
   `clean_workspace(base_dir)` and `delete_workspace_resource(basedir, res_name)`.
-* Fixed [#263](https://github.com/CCI-Tools/cate-core/issues/263)
-* Fixed [#257](https://github.com/CCI-Tools/cate-core/issues/257)
+* Fixed [#263](https://github.com/CCI-Tools/cate/issues/263)
+* Fixed [#257](https://github.com/CCI-Tools/cate/issues/257)

@@ -37,7 +37,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/webapi <https://github.com/CCI-Tools/cate-core/blob/master/test/webapi>`_
+`test/webapi <https://github.com/CCI-Tools/cate/blob/master/test/webapi>`_
 and may be executed using ``$ py.test test/webapi --cov=cate/webapi``
 for extra code coverage information.
 

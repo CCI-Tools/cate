@@ -31,7 +31,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using ``$ py.test test/ds/test_esa_cci_ftp.py --cov=cate/ds/esa_cci_ftp.py``
 for extra code coverage information.
 

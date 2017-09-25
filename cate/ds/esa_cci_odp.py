@@ -30,7 +30,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_odp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_odp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using
 ``$ py.test test/ds/test_esa_cci_odp.py --cov=cate/ds/esa_cci_odp.py`` for extra code coverage information.
 
@@ -948,7 +948,7 @@ class EsaCciOdpDataSource(DataSource):
         if self.id:
             # the 't0' variable in these SOILMOISTURE data sources
             # can not be decoded by xarray and lead to an unusable dataset
-            # see: https://github.com/CCI-Tools/cate-core/issues/326
+            # see: https://github.com/CCI-Tools/cate/issues/326
             if self.id in SOILMOISTURE_DS:
                 if not var_names:
                     var_names = self._json_dict.get('variable', [])

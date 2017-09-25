@@ -1,5 +1,5 @@
 .. _Miniconda: http://pythontesting.net/strategy/why-most-unit-testing-is-waste/
-.. _Docs on ReadTheDocs: https://github.com/CCI-Tools/cate-core/wiki/Docs-on-ReadTheDocs
+.. _Docs on ReadTheDocs: https://github.com/CCI-Tools/cate/wiki/Docs-on-ReadTheDocs
 .. _Why Most Unit Testing is Waste: http://pythontesting.net/strategy/why-most-unit-testing-is-waste/
 
 Coding practices

@@ -31,7 +31,7 @@ This is a plugin package automatically imported by the installation script's ent
 Verification
 ============
 
-The module's unit-tests are located in `test/ops <https://github.com/CCI-Tools/cate-core/blob/master/test/ops>`_ and
+The module's unit-tests are located in `test/ops <https://github.com/CCI-Tools/cate/blob/master/test/ops>`_ and
 may be executed using ``$ py.test test/ops/test_<MODULE>.py --cov=cate/ops/<MODULE>.py`` for extra code coverage
 information.
 

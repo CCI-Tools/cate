@@ -1,5 +1,5 @@
 .. _docstrings: https://en.wikipedia.org/wiki/Docstring
-.. _verifying unit-tests: https://github.com/CCI-Tools/cate-core/tree/master/test
+.. _verifying unit-tests: https://github.com/CCI-Tools/cate/tree/master/test
 
 ===============
 Detailed Design

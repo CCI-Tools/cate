@@ -96,7 +96,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/test_op.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_op.py>`_ and may be executed using
+`test/test_op.py <https://github.com/CCI-Tools/cate/blob/master/test/test_op.py>`_ and may be executed using
 ``$ py.test test/test_op.py --cov=cate/core/plugin.py`` for extra code coverage information.
 
 

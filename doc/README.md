@@ -1,7 +1,7 @@
 RST
 ===
 
-``cate-core/doc`` is the Cate documentation folder. Documentation is build from RST files in folder ``source`` using the *Sphinx* tool.
+``cate/doc`` is the Cate documentation folder. Documentation is build from RST files in folder ``source`` using the *Sphinx* tool.
 ``index.rst`` is the main documentation page which pulls other RST files into the documentation by referring to them.
 
 To install Sphinx and required plugins run:
@@ -21,15 +21,15 @@ Therefore, UML diagrams have to be build manually: Type
 
 To build the Cate documentation run:
 
-     $ cd cate-core/doc
+     $ cd cate/doc
      $ make html
 
 or to force regeneration of the documentation, run:
 
-     $ cd cate-core
+     $ cd cate
      $ sphinx-build -E -a -b html doc/source doc/build/html
 
-Then find the HTML documentation in ``cate-core/doc/build/html``.
+Then find the HTML documentation in ``cate/doc/build/html``.
 
 More info:
 * Sphinx Tutorial: http://sphinx-doc.org/tutorial.html
@@ -39,7 +39,7 @@ More info:
 UML
 ===
 
-``cate-core/doc/source/uml`` contains *PlantUML* (https://sourceforge.net/projects/plantuml/) diagrams.
-The PlantUML executable is ``cate-core/doc/plantuml.jar``.
+``cate/doc/source/uml`` contains *PlantUML* (https://sourceforge.net/projects/plantuml/) diagrams.
+The PlantUML executable is ``cate/doc/plantuml.jar``.
 Note there is a very good plugin for editing/rendering PlantUML diagrams in PyCharm and IDEA!
 
