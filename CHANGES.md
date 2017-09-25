@@ -1,3 +1,12 @@
+## Changes in version 1.0.0.dev1 (unreleased)
+
+### Improvements and new Features
+
+### Issues Fixed/Resolved
+
+* Generated resource names not always unique
+  [#391](https://github.com/CCI-Tools/cate-core/issues/391)
+  
 ## Changes in version 0.9.0.dev7
 
 ### Improvements and new Features
@@ -19,8 +28,6 @@
 
 ### Issues Fixed/Resolved
 
-* Generated resource names not always unique
-  [#391](https://github.com/CCI-Tools/cate-core/issues/391)
 * Fixed reading datasource temporal coverage from config file (obsolete format)
   [#373](https://github.com/CCI-Tools/cate-core/issues/373)
 * Merged (removed duplicated) meta information in datasource config file
