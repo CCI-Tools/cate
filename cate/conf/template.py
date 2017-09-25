@@ -22,7 +22,7 @@
 # Default prefix for names generated for new workspace resources originating from opening data sources
 # or executing workflow steps.
 # This prefix is used only if no specific prefix is defined for a given operation.
-# default_res_prefix = 'res_'
+# default_res_pattern = 'res_{index}'
 
 
 # Include/exclude data sources (currently effective in Cate Desktop GUI only, not used by API, CLI).

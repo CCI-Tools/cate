@@ -404,7 +404,7 @@ OP_REGISTRY = _DefaultOpRegistry()
 
 def op(tags=UNDEFINED,
        version=UNDEFINED,
-       res_prefix=UNDEFINED,
+       res_pattern=UNDEFINED,
        deprecated=UNDEFINED,
        registry=OP_REGISTRY,
        **properties):
@@ -425,8 +425,10 @@ def op(tags=UNDEFINED,
 
     :param tags: An optional list of string tags.
     :param version: An optional version string.
-    :param res_prefix: An optional prefix that will be used to generate the names for "resources" that are
-           used to hold a reference to the objects returned by the operation.
+    :param res_pattern: An optional pattern that will be used to generate the names for data resources that are
+           used to hold a reference to the objects returned by the operation and that are cached in a Cate workspace.
+           Currently, the only pattern variable that is supported and that must be present is ``{index}`` which will
+           be replaced by an integer number that is guaranteed to produce a unique resource name.
     :param deprecated: An optional boolean or a string. If a string is used, it should explain
            why the operation has been deprecated and which new operation to use instead.
            If set to ``True``, the operation's doc-string should explain the deprecation.
@@ -437,7 +439,7 @@ def op(tags=UNDEFINED,
     def decorator(op_func):
         new_properties = dict(tags=tags,
                               version=version,
-                              resource_prefix=res_prefix,
+                              res_pattern=res_pattern,
                               deprecated=deprecated,
                               **properties)
         op_registration = registry.add_op(op_func, fail_if_exists=False)

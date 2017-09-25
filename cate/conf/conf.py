@@ -25,7 +25,7 @@ import os.path
 from typing import Any, Dict, Optional
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
-    VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PREFIX, \
+    VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 
 _CONFIG = None
@@ -72,19 +72,19 @@ def get_use_workspace_imagery_cache() -> bool:
     return get_config_value('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 
-def get_default_res_prefix() -> str:
+def get_default_res_pattern() -> str:
     """
     Get the default prefix for names generated for new workspace resources originating from opening data sources
     or executing workflow steps.
     This prefix is used only if no specific prefix is defined for a given operation.
     :return: default resource name prefix.
     """
-    default_res_prefix = get_config().get('default_res_prefix')
-    if default_res_prefix:
-        default_res_prefix = default_res_prefix.strip()
-    if not default_res_prefix:
-        default_res_prefix = DEFAULT_RES_PREFIX
-    return default_res_prefix
+    default_res_pattern = get_config().get('default_res_pattern')
+    if default_res_pattern:
+        default_res_pattern = default_res_pattern.strip()
+    if not default_res_pattern:
+        default_res_pattern = DEFAULT_RES_PATTERN
+    return default_res_pattern
 
 
 def get_variable_display_settings(var_name: str) -> Optional[Dict[str, Any]]:

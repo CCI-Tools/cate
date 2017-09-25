@@ -389,24 +389,29 @@ def filter_fileset(names: Sequence[str],
     return filtered_names
 
 
-def new_indexed_name(names: Sequence[str], prefix: str) -> str:
+def new_indexed_name(names: Sequence[str], pattern: str) -> str:
     """
-    Return a new name that is unique in *names* and which starts with *prefix*.
+    Return a new name that is unique in *names* and that conforms to *pattern*. The argument
+    *pattern* must contain a single ``"{index}"`` substring.
 
     :param names: Sequence of names
-    :param prefix: Name prefix, e.g. "var_"
+    :param pattern: Naming pattern, e.g. "var_{index}"
     :return: a new name, e.g. "var_3"
     """
-    pattern = re.compile(prefix + "(\d+)$")
+    if "{index}" not in pattern:
+        raise ValueError('pattern must contain "{index}"')
+    re_pattern = re.compile(pattern.replace("{index}", "(\d+)"))
     max_index = 0
     for name in names:
-        match_result = pattern.match(name)
+        match_result = re_pattern.match(name)
         if match_result and match_result.group(1):
             max_index = max(max_index, int(match_result.group(1)))
 
     new_index = max_index + 1
     while True:
-        new_name = prefix + str(new_index)
+        new_name = pattern.replace("{index}", str(new_index))
+        if not new_name.isidentifier():
+            raise ValueError('pattern does not yield a valid name')
         if new_name not in names:
             return new_name
         new_index += 1

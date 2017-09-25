@@ -53,7 +53,7 @@ class WebSocketService:
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),
                     use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
-                    default_res_prefix=conf.get_default_res_prefix())
+                    default_res_pattern=conf.get_default_res_pattern())
 
     def set_config(self, config: dict) -> None:
 
