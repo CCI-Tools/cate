@@ -37,7 +37,7 @@ from cate.util import Monitor
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='ds_')
 @op_input('ds_id', nullable=False)
 @op_input('ds_name', nullable=False, deprecated='use "ds_id" instead')
 @op_input('time_range', data_type=TimeRangeLike)
@@ -136,7 +136,7 @@ def write_object(obj, file: str, format: str = None):
     cate.core.objectio.write_object(obj, file, format_name=format)
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='txt_')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
 @op_input('encoding')
 def read_text(file: str, encoding: str = None) -> str:
@@ -214,7 +214,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
         return json.dump(obj, file, indent=indent)
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='df_')
 @op_input('file',
           data_type=FileLike,
           file_open_mode='r',
@@ -274,7 +274,7 @@ def read_csv(file: FileLike.TYPE,
     return retframe
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='gdf_')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
                                                     _ALL_FILE_FILTER])
@@ -288,7 +288,7 @@ def read_geo_data_frame(file: str) -> gpd.GeoDataFrame:
     return gpd.read_file(file, mode="r", enabled_drivers=['GeoJSON', 'ESRI Shapefile'])
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='gdc_')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
                                                     _ALL_FILE_FILTER])
@@ -302,7 +302,7 @@ def read_geo_data_collection(file: str) -> fiona.Collection:
     return fiona.open(file, mode="r")
 
 
-@op(tags=['input'])
+@op(tags=['input'], res_prefix='ds_')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
 @op_input('drop_variables', data_type=VarNamesLike)
 @op_input('decode_cf')

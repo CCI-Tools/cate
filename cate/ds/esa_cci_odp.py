@@ -55,10 +55,9 @@ from xarray.backends import NetCDF4DataStore
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
-from cate.conf import get_config_value
+from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-    open_xarray_dataset, get_data_stores_path
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
@@ -324,10 +323,10 @@ class EsaCciOdpDataStore(DataStore):
                         data_source.update_file_list()
                         child_monitor.progress(work=1)
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
-        if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        if ds_id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
     def _repr_html_(self) -> str:
@@ -606,7 +605,7 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        data_sources = local_store.query(id=local_id)  # type: Sequence['DataSource']
+        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -983,11 +982,11 @@ class EsaCciOdpDataSource(DataSource):
 
         if not ds_id or len(ds_id) == 0:
             ds_id = "local.{}.{}".format(self.id, uuid)
-            existing_ds_list = local_store.query(ds_id)
+            existing_ds_list = local_store.query(ds_id=ds_id)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % ds_id)
+            existing_ds_list = local_store.query(ds_id='local.%s' % ds_id)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
                     return existing_ds_list[0]

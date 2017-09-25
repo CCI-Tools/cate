@@ -4,7 +4,8 @@ from datetime import datetime
 from unittest import TestCase
 
 import cate.core.ds as io
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
+from cate.conf import get_data_stores_path
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.ds.esa_cci_ftp import FileSetDataStore, set_default_data_store
 
 

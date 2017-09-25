@@ -2,8 +2,8 @@ import os
 import shutil
 import unittest
 
-from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
 from cate.core.workspace import mk_op_kwargs
+from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
 from ..util.test_monitor import RecordingMonitor
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
@@ -74,9 +74,10 @@ class WorkspaceManagerTestMixin:
         workspace1 = workspace_manager.new_workspace(base_dir)
         workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir, res_name='SST',
-                                                 op_name='cate.ops.io.read_netcdf',
-                                                 op_args=mk_op_kwargs(file=NETCDF_TEST_FILE))
+        workspace_manager.set_workspace_resource(base_dir,
+                                                 'cate.ops.io.read_netcdf',
+                                                 mk_op_kwargs(file=NETCDF_TEST_FILE),
+                                                 res_name='SST')
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
@@ -95,9 +96,10 @@ class WorkspaceManagerTestMixin:
 
         workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
-        workspace_manager.set_workspace_resource(base_dir, res_name='SST',
+        workspace_manager.set_workspace_resource(base_dir,
                                                  op_name='cate.ops.io.read_netcdf',
-                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
+                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)),
+                                                 res_name='SST')
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, workspace1.base_dir)
@@ -123,9 +125,10 @@ class WorkspaceManagerTestMixin:
         workspace1.save()
         self.assertTrue(os.path.exists(base_dir))
         rm = RecordingMonitor()
-        workspace_manager.set_workspace_resource(base_dir, res_name='noop',
-                                                 op_name='cate.ops.utility.no_op',
-                                                 op_args=dict(),
+        workspace_manager.set_workspace_resource(base_dir,
+                                                 'cate.ops.utility.no_op',
+                                                 dict(),
+                                                 res_name='noop',
                                                  monitor=rm)
         self.assertEquals([
             ('start', 'Computing nothing', 10),
@@ -155,9 +158,10 @@ class WorkspaceManagerTestMixin:
         self.assertTrue(os.path.exists(base_dir))
 
         res_name = 'ds'
-        workspace_manager.set_workspace_resource(base_dir, res_name=res_name,
-                                                 op_name='cate.ops.io.read_netcdf',
-                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
+        workspace_manager.set_workspace_resource(base_dir,
+                                                 'cate.ops.io.read_netcdf',
+                                                 dict(file=dict(value=NETCDF_TEST_FILE)),
+                                                 res_name=res_name)
         workspace2 = workspace_manager.get_workspace(base_dir)
 
         self.assertEqual(workspace2.base_dir, base_dir)
@@ -193,12 +197,14 @@ class WorkspaceManagerTestMixin:
         workspace_manager.save_workspace(base_dir)
         self.assertTrue(os.path.exists(base_dir))
 
-        workspace_manager.set_workspace_resource(base_dir, res_name='ds',
-                                                 op_name='cate.ops.io.read_netcdf',
-                                                 op_args=dict(file=dict(value=NETCDF_TEST_FILE)))
-        workspace1 = workspace_manager.set_workspace_resource(base_dir, res_name='ts',
-                                                              op_name='cate.ops.timeseries.tseries_mean',
-                                                              op_args=mk_op_kwargs(ds='@ds', var='temperature'))
+        workspace_manager.set_workspace_resource(base_dir,
+                                                 'cate.ops.io.read_netcdf',
+                                                 dict(file=dict(value=NETCDF_TEST_FILE)),
+                                                 res_name='ds')
+        workspace1, _ = workspace_manager.set_workspace_resource(base_dir,
+                                                                 'cate.ops.timeseries.tseries_mean',
+                                                                 mk_op_kwargs(ds='@ds', var='temperature'),
+                                                                 res_name='ts')
         self.assertEqual(workspace1.base_dir, base_dir)
         self.assertEqual(len(workspace1.workflow.steps), 2)
         self.assertFalse(workspace1.workflow.find_node('ds').persistent)

@@ -41,7 +41,7 @@ class WorkspaceTest(unittest.TestCase):
             op_reg.op_meta_info.inputs['ctx']['context'] = True
 
             ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
-            ws.set_resource('new_ctx', op_reg.op_meta_info.qualified_name, {})
+            ws.set_resource(op_reg.op_meta_info.qualified_name, {}, res_name='new_ctx')
             ws.execute_workflow('new_ctx')
 
             self.assertTrue('new_ctx' in ws.resource_cache)
@@ -50,6 +50,18 @@ class WorkspaceTest(unittest.TestCase):
 
         finally:
             OP_REGISTRY.remove_op(some_op)
+
+    def test_workspace_can_create_new_res_names(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        res_name_1 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='A'))
+        res_name_2 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='B'))
+        res_name_3 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='C'))
+        self.assertEqual(res_name_1, 'res_1')
+        self.assertEqual(res_name_2, 'res_2')
+        self.assertEqual(res_name_3, 'res_3')
+        self.assertIsNotNone(ws.workflow.find_node(res_name_1))
+        self.assertIsNotNone(ws.workflow.find_node(res_name_2))
+        self.assertIsNotNone(ws.workflow.find_node(res_name_3))
 
     def test_to_json_dict(self):
 
@@ -188,15 +200,15 @@ class WorkspaceTest(unittest.TestCase):
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
-        ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
-        ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"))
+        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
+        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"), res_name='Y')
         self.assertEqual(ws.resource_cache, {})
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('Y', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"),
+        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"), res_name='Y',
                         overwrite=True)
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
@@ -206,8 +218,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('X', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2),
-                        overwrite=True)
+        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2), res_name='X', overwrite=True)
         self.assertIn('X', ws.resource_cache)
         self.assertIs(ws.resource_cache['X'], UNDEFINED)
         self.assertIn('Y', ws.resource_cache)
@@ -221,9 +232,9 @@ class WorkspaceTest(unittest.TestCase):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
         self.assertEqual(ws.user_data, {})
 
-        ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=1))
-        ws.set_resource('Y', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
-        ws.set_resource('Z', 'cate.ops.utility.identity', mk_op_kwargs(value="@X"))
+        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=1), res_name='X')
+        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Y')
+        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Z')
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache, {})
 
@@ -239,7 +250,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 1)
         self.assertEqual(ws.resource_cache.get('Z'), 1)
 
-        ws.set_resource('X', 'cate.ops.utility.identity', mk_op_kwargs(value=9), overwrite=True)
+        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=9), res_name='X', overwrite=True)
         self.assertEqual(len(ws.workflow.steps), 3)
         self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
@@ -258,7 +269,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 9)
         self.assertEqual(ws.resource_cache.get('Z'), 9)
 
-        ws.set_resource('A', 'cate.ops.utility.identity', mk_op_kwargs(value=5), overwrite=True)
+        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=5), res_name='A', overwrite=True)
         self.assertEqual(ws.resource_cache.get('X', '--'), '--')
         self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
         self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
@@ -307,17 +318,17 @@ class WorkspaceTest(unittest.TestCase):
 
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('p', 'cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1))
+        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='p')
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('ts', 'cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"))
+        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"), res_name='ts')
         # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
 
         self.maxDiff = None
         self.assertEqual(ws.workflow.to_json_dict(), expected_json_dict)
 
         with self.assertRaises(ValueError) as e:
-            ws.set_resource('ts2', 'cate.ops.timeseries.tseries_point',
-                            mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), validate_args=True)
+            ws.set_resource('cate.ops.timeseries.tseries_point',
+                            mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2', validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
                                            "cannot convert value <iih!> to PointLike")
 

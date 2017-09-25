@@ -18,21 +18,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import fnmatch
-from collections import OrderedDict
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import os
 import os.path
+import re
 import sys
 import urllib.parse
+from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
 from typing import Union, Tuple, Sequence, Optional
 
 import numpy as np
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
@@ -386,3 +387,26 @@ def filter_fileset(names: Sequence[str],
     else:
         filtered_names = names
     return filtered_names
+
+
+def new_indexed_name(names: Sequence[str], prefix: str) -> str:
+    """
+    Return a new name that is unique in *names* and which starts with *prefix*.
+
+    :param names: Sequence of names
+    :param prefix: Name prefix, e.g. "var_"
+    :return: a new name, e.g. "var_3"
+    """
+    pattern = re.compile(prefix + "(\d+)$")
+    max_index = 0
+    for name in names:
+        match_result = pattern.match(name)
+        if match_result and match_result.group(1):
+            max_index = max(max_index, int(match_result.group(1)))
+
+    new_index = max_index + 1
+    while True:
+        new_name = prefix + str(new_index)
+        if new_name not in names:
+            return new_name
+        new_index += 1
