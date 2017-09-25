@@ -8,7 +8,7 @@
                 
 # cate
 
-The Python core of the ESA CCI Toolbox (Cate).
+ESA CCI Toolbox (Cate) Python package, API and CLI.
 
 ## Contents
 
