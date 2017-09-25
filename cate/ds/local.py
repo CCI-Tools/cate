@@ -42,6 +42,7 @@ import os
 import psutil
 import shutil
 import uuid
+import warnings
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
@@ -53,7 +54,8 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataSourceInitializationError, \
+    DataSourceInitializationWarning, open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -653,16 +655,18 @@ class LocalDataStore(DataStore):
 
     def add_pattern(self, data_source_id: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
         data_source = self.create_data_source(data_source_id)
-        if isinstance(files, str):
+        if isinstance(files, str) and len(files) > 0:
             files = [files]
         is_first_file = True
-        if files:
-            for file in files:
-                if is_first_file:
-                    data_source.add_dataset(file, extract_meta_info=True)
-                    is_first_file = False
-                else:
-                    data_source.add_dataset(file)
+        if not files:
+            raise ValueError("files pattern cannot be empty")
+        for file in files:
+            if is_first_file:
+                data_source.add_dataset(file, extract_meta_info=True)
+                is_first_file = False
+            else:
+                data_source.add_dataset(file)
+
         self.register_ds(data_source)
         return data_source
 
@@ -787,7 +791,12 @@ class LocalDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
         return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
-    def _init_data_sources(self):
+    def _init_data_sources(self, skip_broken: bool=True):
+        """
+
+        :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
+        :return:
+        """
         if self._data_sources:
             return
         os.makedirs(self._store_dir, exist_ok=True)
@@ -795,9 +804,15 @@ class LocalDataStore(DataStore):
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
         self._data_sources = []
         for json_file in json_files:
-            data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
-            if data_source:
-                self._data_sources.append(data_source)
+            try:
+                data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
+                if data_source:
+                    self._data_sources.append(data_source)
+            except DataSourceInitializationError as e:
+                if skip_broken:
+                    warnings.warn(e.cause, DataSourceInitializationWarning, stacklevel=0)
+                else:
+                    raise e
 
     def save_data_source(self, data_source, unlock: bool = False):
         self._save_data_source(data_source)
@@ -822,9 +837,13 @@ class LocalDataStore(DataStore):
     @staticmethod
     def _load_json_file(json_path: str):
         if os.path.isfile(json_path):
-            with open(json_path) as fp:
-                return json.load(fp=fp) or {}
-        return None
+            try:
+                with open(json_path) as fp:
+                    return json.load(fp=fp) or {}
+            except json.decoder.JSONDecodeError:
+                raise DataSourceInitializationError("Cannot load data source config, {}".format(json_path))
+        else:
+            raise DataSourceInitializationError("Data source config does not exists, {}".format(json_path))
 
     @staticmethod
     def _json_default_serializer(obj):
