@@ -99,7 +99,8 @@ VARIABLE_DISPLAY_SETTINGS = {
 
     # AEROSOL CCI
     'absorbing_aerosol_index': dict(color_map="bwr", display_min=-2, display_max=2),
-    'solar_zenith_angle': dict(color_map="Greys", display_min=35, display_max=80),
+    'solar_zenith_angle': dict(color_map="bwr", display_min=35, display_max=80),
+    'number_of_observations': dict(color_map="gray", display_min=0, display_max=150),
 
     # OZONE CCI
     'O3_du': dict(display_min=3, display_max=20),
