@@ -1,4 +1,4 @@
-## Changes in version 0.9.0.dev7 (unreleased)
+## Changes in version 0.9.0.dev7
 
 ### Improvements and new Features
 
