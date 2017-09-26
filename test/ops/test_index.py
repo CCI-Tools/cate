@@ -115,10 +115,10 @@ class TestEnsoNino34(TestCase):
                                         index=expected.index)
         expected['La Nina'] = pd.Series(np.zeros([20], dtype=bool),
                                         index=expected.index)
-        expected['El Nino'][7:10] = pd.Series(np.ones([3], dtype=bool))
-        expected['El Nino'][19] = True
-        expected['La Nina'][2:5] = pd.Series(np.ones([3], dtype=bool))
-        expected['La Nina'][14:17] = pd.Series(np.ones([3], dtype=bool))
+        expected.ix[7:10, 'El Nino'] = True
+        expected.ix[19, 'El Nino'] = True
+        expected.ix[2:5, 'La Nina'] = True
+        expected.ix[14:17, 'La Nina'] = True
 
         with create_tmp_file() as tmp_file:
             lta.to_netcdf(tmp_file)
