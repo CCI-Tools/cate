@@ -1,4 +1,4 @@
-name: cate
+name: cate-env
 channels:
   - conda-forge
   - defaults
@@ -10,7 +10,8 @@ dependencies:
   - cartopy >=0.15
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25
-  - dask >=0.14
+  # dask 0.15.3 broke the build
+  - dask >=0.15.0, <=0.15.2
   - fiona >=1.7
   - geopandas >=0.2
   # require specific minor version to prevent downgrade

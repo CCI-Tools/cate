@@ -26,7 +26,7 @@ Cate's core API.
 import os.path
 import sys
 
-# See https://github.com/CCI-Tools/cate-core/issues/397
+# See https://github.com/CCI-Tools/cate/issues/397
 extra_path = os.path.join(sys.prefix, 'site-packages')
 if os.path.isdir(extra_path) and extra_path not in sys.path:
     sys.path.append(extra_path)

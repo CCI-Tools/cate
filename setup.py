@@ -64,7 +64,7 @@ with open('cate/version.py') as f:
 setup(
     name="cate",
     version=__version__,
-    description='ESA CCI Toolbox (Cate) Python Core',
+    description='ESA CCI Toolbox (Cate) Python package, API and CLI',
     license='MIT',
     author='Cate Development Team',
     packages=packages,

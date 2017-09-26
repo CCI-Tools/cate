@@ -86,7 +86,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/cli/test_main.py <https://github.com/CCI-Tools/cate-core/blob/master/test/cli/test_main.py>`_
+`test/cli/test_main.py <https://github.com/CCI-Tools/cate/blob/master/test/cli/test_main.py>`_
 and may be executed using ``$ py.test test/cli/test_main.py --cov=cate/cli/test_main.py``
 for extra code coverage information.
 
@@ -130,7 +130,7 @@ CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
 CATE_WEBAPI_MAIN_MODULE = 'cate.webapi.main'
 
-_DOCS_URL = 'http://cate-core.readthedocs.io/en/latest/'
+_DOCS_URL = 'http://cate.readthedocs.io/en/latest/'
 
 _LICENSE = """
 Cate, the ESA CCI Toolbox, version %s

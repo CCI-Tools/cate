@@ -29,7 +29,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using ``$ py.test test/ds/test_esa_cci_ftp.py --cov=cate/ds/esa_cci_ftp.py``
 for extra code coverage information.
 
@@ -649,7 +649,7 @@ class LocalDataSource(DataSource):
 
 class LocalDataStore(DataStore):
     def __init__(self, ds_id: str, store_dir: str):
-        super().__init__(ds_id, title='Local Data Sources')
+        super().__init__(ds_id, title='Local Data Sources', is_local=True)
         self._store_dir = store_dir
         self._data_sources = None
 

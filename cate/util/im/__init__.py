@@ -40,7 +40,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/util/im <https://github.com/CCI-Tools/cate-core/blob/master/test/util/im>`_ and may be executed using
+`test/util/im <https://github.com/CCI-Tools/cate/blob/master/test/util/im>`_ and may be executed using
 ``$ py.test test/util/im --cov=cate/util/im`` for extra code coverage information.
 
 Components

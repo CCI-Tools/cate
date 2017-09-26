@@ -15,7 +15,7 @@ _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
 
 class SimpleDataStore(ds.DataStore):
     def __init__(self, id: str, data_sources: Sequence[ds.DataSource]):
-        super().__init__(id, title='Simple Test Store')
+        super().__init__(id, title='Simple Test Store', is_local=True)
         self._data_sources = list(data_sources)
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:

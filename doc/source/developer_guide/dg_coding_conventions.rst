@@ -84,4 +84,4 @@ background info
 
 ::
 
-    # TODO (forman, 20160613): bla bla bla, see https://github.com/CCI-Tools/cate-core/issues/39
+    # TODO (forman, 20160613): bla bla bla, see https://github.com/CCI-Tools/cate/issues/39

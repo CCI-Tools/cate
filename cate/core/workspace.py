@@ -637,9 +637,9 @@ class Workspace:
             raise WorkspaceError('Workspace is already closed: ' + self._base_dir)
 
     def _new_resource_name(self, op):
-        default_resource_prefix = conf.get_default_res_prefix()
-        resource_prefix = op.op_meta_info.header.get('resource_prefix', default_resource_prefix)
-        return new_indexed_name([step.id for step in self.workflow.steps], resource_prefix)
+        default_res_pattern = conf.get_default_res_pattern()
+        res_pattern = op.op_meta_info.header.get('res_pattern', default_res_pattern)
+        return new_indexed_name([step.id for step in self.workflow.steps], res_pattern)
 
 
 # noinspection PyArgumentList

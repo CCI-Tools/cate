@@ -105,7 +105,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/test_workflow.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_workflow.py>`_
+`test/test_workflow.py <https://github.com/CCI-Tools/cate/blob/master/test/test_workflow.py>`_
 and may be executed using ``$ py.test test/test_workflow.py --cov=cate/core/workflow.py`` for extra code
 coverage information.
 

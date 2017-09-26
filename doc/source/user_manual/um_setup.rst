@@ -30,7 +30,7 @@ Using the Installers
 --------------------
 
 Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
-`release page <https://github.com/CCI-Tools/cate-core/releases>`_ on GitHub.
+`release page <https://github.com/CCI-Tools/cate/releases>`_ on GitHub.
 
 The installers are self-contained, so there is no need to install additional software to run the
 CCI Toolbox.
@@ -83,7 +83,7 @@ Installing from Sources
 
 If you are a developer you may wish to build and install the CCI Toolbox from Python sources.
 In this case, please follow the instructions given in the project's
-`README <https://github.com/CCI-Tools/cate-core/blob/master/README.md>`_ on GitHub.
+`README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
 
 
 Configuration

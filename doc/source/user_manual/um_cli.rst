@@ -60,7 +60,7 @@ The following first level sub-commands are used to work interactively with datas
 * :ref:`cli_cate_ws`
 * :ref:`cli_cate_res`
 
-When you encounter any error while using ``cate`` and you want to `report the problem <https://github.com/CCI-Tools/cate-core/issues>`_
+When you encounter any error while using ``cate`` and you want to `report the problem <https://github.com/CCI-Tools/cate/issues>`_
 to the development team, we kindly ask you to rerun the command with option ``--traceback`` and include the Python stack
 traceback with a short description of your problem.
 

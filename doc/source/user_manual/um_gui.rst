@@ -270,7 +270,7 @@ The **Details** section provides a description about the operation including its
    This also allows for setting specific operation input/output
    properties so that specific user interfaces for a given operation is genereted on-the-fly.
    You might be interested to take a look at the various functions in the modules of
-   the `cate.ops <https://github.com/CCI-Tools/cate-core/tree/master/cate/ops>`_ Python package of Cate.
+   the `cate.ops <https://github.com/CCI-Tools/cate/tree/master/cate/ops>`_ Python package of Cate.
    These functions all use Python 3.5 *type annotations* and Cate *decorators* ``@op``, ``@op_input``,
    ``@op_output`` to add that meta-information to turn it into Cate *operations*.
 
