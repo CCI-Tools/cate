@@ -682,7 +682,9 @@ class LocalDataStore(DataStore):
         if os.path.isfile(lock_file):
             os.remove(lock_file)
         if remove_files:
-            shutil.rmtree(os.path.join(self._store_dir, data_source.id), ignore_errors=True)
+            data_source_path = os.path.join(self._store_dir, data_source.id)
+            if os.path.isdir(data_source_path):
+                shutil.rmtree(os.path.join(self._store_dir, data_source.id), ignore_errors=True)
         if data_source in self._data_sources:
             self._data_sources.remove(data_source)
 
