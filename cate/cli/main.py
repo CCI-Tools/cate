@@ -1232,8 +1232,8 @@ class DataSourceCommand(SubCommandCommand):
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             keep_files = command_args.keep_files
-            ds = local_store.remove_data_source(ds_name, not keep_files)
-            print("Local data source with name '%s' removed." % ds.id)
+            local_store.remove_data_source(ds_name, not keep_files)
+            print("Local data source with name '%s' has been removed successfully." % ds_name)
 
     @classmethod
     def _execute_copy(cls, command_args):
