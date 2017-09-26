@@ -1,6 +1,9 @@
 ## Changes in version 1.0.0.dev1 (unreleased)
 
 ### Improvements and new Features
+* Global temporal attributes are adjusted automatically when opening new datasets
+* Global temporal attributes are adjusted automatically when converting from data frames
+* Normalization and subsetting operation implementation logic is refactored out to util so that it can be re-used throughout Cate
 
 ### Issues Fixed/Resolved
 
@@ -8,6 +11,8 @@
   [#391](https://github.com/CCI-Tools/cate/issues/391)
 * Multiple concurrent attempts to load the ODP index now always return the same result
   [#386](https://github.com/CCI-Tools/cate/issues/386)
+* Use global temporal attributes to determine temporal resolution in aggregation operations
+  [#340](https://github.com/CCI-Tools/cate/issues/340)
   
 ## Changes in version 0.9.0.dev7
 
