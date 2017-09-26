@@ -42,7 +42,6 @@ import os
 import psutil
 import shutil
 import uuid
-import warnings
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
