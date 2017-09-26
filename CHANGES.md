@@ -6,6 +6,8 @@
 
 * Generated resource names not always unique
   [#391](https://github.com/CCI-Tools/cate/issues/391)
+* Multiple concurrent attempts to load the ODP index now always return the same result
+  [#386](https://github.com/CCI-Tools/cate/issues/386)
   
 ## Changes in version 0.9.0.dev7
 
