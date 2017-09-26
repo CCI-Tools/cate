@@ -365,8 +365,8 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if crosses_antimeridian and not simple_polygon:
         # Unlikely but plausible
-        raise NotImplementedError('Spatial subset over the International Date'
-                                  ' Line is currently implemented for simple,'
+        raise NotImplementedError('Spatial subsets crossing the anti-meridian'
+                                  ' are currently implemented for simple,'
                                   ' rectangular polygons only.')
 
     if crosses_antimeridian:
