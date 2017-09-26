@@ -40,9 +40,10 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
 
-    def test_id_and_title(self):
+    def test_id_title_and_is_local(self):
         self.assertEqual(self.data_store.id, 'test-odp')
         self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal')
+        self.assertEqual(self.data_store.is_local, False)
 
     def test_query(self):
         data_sources = self.data_store.query()

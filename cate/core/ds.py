@@ -104,11 +104,16 @@ class DataSource(metaclass=ABCMeta):
     def id(self) -> str:
         """Data source identifier."""
 
+    # TODO (forman): issue #399 - remove it, no use
     @property
     def schema(self) -> Optional[Schema]:
-        """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
+        """
+        The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown.
+        Currently unused in c.ate
+        """
         return None
 
+    # TODO (forman): issue #399 - make this a property or call it "get_temporal_coverage(...)"
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         """
         The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
@@ -118,6 +123,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return None
 
+    # TODO (forman): issue #399 - remove it, no actual use (somewhere put into "meta_inf" dict)
     @property
     def protocols(self) -> []:
         """
@@ -131,6 +137,7 @@ class DataSource(metaclass=ABCMeta):
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
 
+    # TODO (forman): issue #399 - remove "ds_id", see TODO on "DataStore.query()"
     def matches(self, ds_id: str = None, query_expr: str = None) -> bool:
         """
         Test if this data source matches the given *id* or *query_expr*.
@@ -220,6 +227,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return False
 
+    # TODO (forman): issue #399 - remove this method, we don't expect to have external API use before 1.0
     # noinspection PyMethodMayBeStatic
     def sync(self,
              time_range: TimeRangeLike.TYPE = None,
@@ -241,6 +249,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return 0, 0
 
+    # TODO (forman): issue #399 - why is this never used? Seem reasonable to let a data source delete itself from local
     def delete_local(self,
                      time_range: TimeRangeLike.TYPE) -> int:
         """
@@ -265,6 +274,7 @@ class DataSource(metaclass=ABCMeta):
             return None
         return meta_info.get('title')
 
+    # TODO (forman): issue #399 - explain expected metadata entries and their formats, e.g."variables"
     @property
     def meta_info(self) -> Optional[dict]:
         """
@@ -314,6 +324,7 @@ class DataSource(metaclass=ABCMeta):
     def __str__(self):
         return self.info_string
 
+    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
@@ -327,9 +338,10 @@ class DataStore(metaclass=ABCMeta):
     :param title: A human-readable tile.
     """
 
-    def __init__(self, ds_id: str, title: str = None):
+    def __init__(self, ds_id: str, title: str = None, is_local: bool = False):
         self._id = ds_id
         self._title = title or ds_id
+        self._is_local = is_local
 
     @property
     def id(self) -> str:
@@ -346,12 +358,34 @@ class DataStore(metaclass=ABCMeta):
         return self._title
 
     @property
+    def is_local(self) -> bool:
+        """
+        Whether this is a remote data source not requiring any internet connection when its ``query()`` method
+        is called or the ``open_dataset()`` and ``make_local()`` methods on one of its data sources.
+        """
+        return self._is_local
+
+    # TODO (forman): issue #399 - remove this method, it has no framework use, hence it is none-API
+    @property
     def data_store_path(self) -> Optional[str]:
         """
         Returns path to data store
         """
         return None
 
+    # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
+    # @abstractmethod
+    # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
+    #     """
+    #     Get data sources by identifier *ds_id*.
+    #
+    #     :param ds_id: Data source identifier.
+    #     :param monitor:  A progress monitor.
+    #     :return: The data sources, or ``None`` if it doesn't exists.
+    #     """
+
+    # TODO (forman): issue #399 - remove "ds_id" keyword, use "get_data_source(ds_id)" instead
+    # TODO (forman): issue #399 - code duplication: almost all implementations are same or very similar
     @abstractmethod
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         """
@@ -363,6 +397,7 @@ class DataStore(metaclass=ABCMeta):
         :return: Sequence of data sources.
         """
 
+    # TODO (forman): issue #399 - remove this method, it has no usages, hence it is none-API
     def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         """
         Update this data store's indices to speed up queries and to fetch meta-information about its
@@ -374,6 +409,7 @@ class DataStore(metaclass=ABCMeta):
         :param monitor:  A progress monitor.
         """
 
+    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""

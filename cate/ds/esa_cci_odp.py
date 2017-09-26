@@ -291,7 +291,7 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None):
-        super().__init__(id, title=title)
+        super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._index_json_dict = index_cache_json_dict

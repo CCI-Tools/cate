@@ -647,7 +647,7 @@ class LocalDataSource(DataSource):
 
 class LocalDataStore(DataStore):
     def __init__(self, ds_id: str, store_dir: str):
-        super().__init__(ds_id, title='Local Data Sources')
+        super().__init__(ds_id, title='Local Data Sources', is_local=True)
         self._store_dir = store_dir
         self._data_sources = None
 
