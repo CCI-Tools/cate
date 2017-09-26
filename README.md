@@ -37,7 +37,7 @@ The first step is to clone latest Cate code and step into the check out director
 Anaconda Python distributions.
 
 Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
-GB on Windows. To create a new Conda environment `cate` in your Anaconda/Miniconda installation directory, type:
+GB on Windows. To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
 
     $ conda env create --file environment.yml
 
@@ -47,14 +47,14 @@ If you want the environment to be installed in another location, e.g. due to dis
 
 Next step is to activate the new environment. On Linux/Darwin type:
 
-    $ source activate cate
+    $ source activate cate-env
 
 In case you used another location use it instead of the name `cate`.
 Windows users can omit the `source` command and just type
 
-    > activate cate
+    > activate cate-env
 
-You can now safely install Cate sources into the new `cate` environment.
+You can now safely install Cate sources into the new `cate-env` environment.
     
     (cate) $ python setup.py install
     

@@ -13,7 +13,7 @@ install:
 
 build_script:
   - conda env create --file environment.yml
-  - call %PYTHON_LOC%\Scripts\activate.bat cate
+  - call %PYTHON_LOC%\Scripts\activate.bat cate-env
   - python setup.py install
   - conda list
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code

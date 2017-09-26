@@ -12,8 +12,11 @@ We use Python 3.6+ and exploit its features. Developers are encouraged
 to use the Miniconda_ 64-bit
 environment. You can create a new development environment by using the
 ``environment.yml`` file located in the project root, type
-``conda env create --file environment.yml``. This is also used by RDT to
-generate our docs, see `Docs on ReadTheDocs`_.
+``conda env create --file environment.yml``. This will create a new dedicated
+Conda environment named ``cate-env``.
+
+(In order to generate Cate's documentation we use a simplified version of the environment
+``environment-rtd.yml`` in the ReadTheDocs (RDT) configuration, see `Docs on ReadTheDocs`_.)
 
 Don't use any platform-specific features of Python!
 

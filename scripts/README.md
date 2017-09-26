@@ -23,11 +23,11 @@ The Cate development team uses Conda and a new environment is created like so
   
     conda env create --file environment.yml
        
-which will create a new Conda environment named `cate`.       
+which will create a new Conda environment named `cate-env`.
 
 To run any script on **Linux** and **OS X**:
  
-    $ source activate cate
+    $ source activate cate-env
     $ python setup.py develop
     $ cd scripts
     
@@ -37,7 +37,7 @@ To run any script on **Linux** and **OS X**:
       
 On **Windows**:
 
-    > activate cate
+    > activate cate-env
     > python setup.py develop
     > cd scripts
     

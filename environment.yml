@@ -1,4 +1,4 @@
-name: cate
+name: cate-env
 channels:
   - conda-forge
   - defaults
