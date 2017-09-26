@@ -54,8 +54,7 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataSourceInitializationError, \
-    DataSourceInitializationWarning, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -793,7 +792,7 @@ class LocalDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
         return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
-    def _init_data_sources(self, skip_broken: bool=True):
+    def _init_data_sources(self):
         """
 
         :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
@@ -806,15 +805,9 @@ class LocalDataStore(DataStore):
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
         self._data_sources = []
         for json_file in json_files:
-            try:
-                data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
-                if data_source:
-                    self._data_sources.append(data_source)
-            except DataSourceInitializationError as e:
-                if skip_broken:
-                    warnings.warn(e.cause, DataSourceInitializationWarning, stacklevel=0)
-                else:
-                    raise e
+            data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
+            if data_source:
+                self._data_sources.append(data_source)
 
     def save_data_source(self, data_source, unlock: bool = False):
         self._save_data_source(data_source)
@@ -839,13 +832,8 @@ class LocalDataStore(DataStore):
     @staticmethod
     def _load_json_file(json_path: str):
         if os.path.isfile(json_path):
-            try:
-                with open(json_path) as fp:
-                    return json.load(fp=fp) or {}
-            except json.decoder.JSONDecodeError:
-                raise DataSourceInitializationError("Cannot load data source config, {}".format(json_path))
-        else:
-            raise DataSourceInitializationError("Data source config does not exists, {}".format(json_path))
+            with open(json_path) as fp:
+                return json.load(fp=fp) or {}
 
     @staticmethod
     def _json_default_serializer(obj):
