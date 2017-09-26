@@ -139,6 +139,7 @@ class UtilTest(TestCase):
         self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'var_{index}'), 'var_3')
         self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'res_{index}'), 'res_5')
         self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2_subs'], 'var_{index}_subs'), 'var_3_subs')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_4_3'], 'var_{index}_{index}'), 'var_5_5')
 
         self.assertEqual(new_indexed_name([], 'ds_{index}'), 'ds_1')
         self.assertEqual(new_indexed_name(['ds5'], 'ds_{index}'), 'ds_1')
