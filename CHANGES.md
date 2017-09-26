@@ -7,6 +7,8 @@
 
 ### Issues Fixed/Resolved
 
+* Fixed displaying broken/incomplete/canceled data sources on local data sources list
+  [#375](https://github.com/CCI-Tools/cate/issues/375)
 * Generated resource names not always unique
   [#391](https://github.com/CCI-Tools/cate/issues/391)
 * Multiple concurrent attempts to load the ODP index now always return the same result
