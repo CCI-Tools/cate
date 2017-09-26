@@ -793,8 +793,6 @@ class LocalDataStore(DataStore):
 
     def _init_data_sources(self):
         """
-
-        :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
         :return:
         """
         if self._data_sources:
@@ -802,6 +800,12 @@ class LocalDataStore(DataStore):
         os.makedirs(self._store_dir, exist_ok=True)
         json_files = [f for f in os.listdir(self._store_dir)
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
+        print(len(json_files), json_files)
+        unfinished_ds = [f for f in os.listdir(self._store_dir)
+                         if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.lock')]
+        print(len(unfinished_ds), unfinished_ds)
+        json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
+        print(len(json_files), json_files)
         self._data_sources = []
         for json_file in json_files:
             data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
