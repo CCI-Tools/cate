@@ -95,10 +95,10 @@ Verification
 
 The module's unit-tests are located
 
-* `test/ops/test_resample_2d.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ops/test_resample_2d.py>`_.
-* `test/ops/test_downsample_2d.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ops/test_downsample_2d.py>`_.
-* `test/ops/test_upsample_2d.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ops/test_upsample_2d.py>`_.
-* `test/ops/test_timeseries.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ops/test_timeseries.py>`_.
+* `test/ops/test_resample_2d.py <https://github.com/CCI-Tools/cate/blob/master/test/ops/test_resample_2d.py>`_.
+* `test/ops/test_downsample_2d.py <https://github.com/CCI-Tools/cate/blob/master/test/ops/test_downsample_2d.py>`_.
+* `test/ops/test_upsample_2d.py <https://github.com/CCI-Tools/cate/blob/master/test/ops/test_upsample_2d.py>`_.
+* `test/ops/test_timeseries.py <https://github.com/CCI-Tools/cate/blob/master/test/ops/test_timeseries.py>`_.
 
 and may be executed using ``$ py.test test/ops/test_<MODULE>.py --cov=cate/ops/<MODULE>.py`` for extra code coverage
 information.

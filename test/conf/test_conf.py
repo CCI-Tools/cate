@@ -11,3 +11,8 @@ class ConfTest(TestCase):
         settings = conf.get_variable_display_settings('lccs_class')
         self.assertIsNotNone(settings)
         self.assertIn('color_map', settings)
+
+    def test_get_default_res_prefix(self):
+        default_res_prefix = conf.get_default_res_pattern()
+        self.assertIsNotNone(default_res_prefix)
+        self.assertTrue(default_res_prefix.strip() != '')

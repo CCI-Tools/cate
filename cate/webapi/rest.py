@@ -124,7 +124,7 @@ class ResVarTileHandler(WebAPIRequestHandler):
             pyramid = ResVarTileHandler.PYRAMIDS[pyramid_id]
         else:
             variable = dataset[var_name]
-            no_data_value = variable.attrs.get('_FillValue', float('nan'))
+            no_data_value = variable.attrs.get('_FillValue')
             is_y_flipped = self.is_y_flipped(dataset, variable)
 
             # Make sure we work with 2D image arrays only

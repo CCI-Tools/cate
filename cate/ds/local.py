@@ -29,7 +29,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using ``$ py.test test/ds/test_esa_cci_ftp.py --cov=cate/ds/esa_cci_ftp.py``
 for extra code coverage information.
 
@@ -51,10 +51,9 @@ from math import ceil, floor, isnan
 from typing import Optional, Sequence, Union, Any, Tuple
 from xarray.backends import NetCDF4DataStore
 
-from cate.conf import get_config_value
+from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
-from cate.core.ds import get_data_stores_path
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -81,7 +80,7 @@ def add_to_data_store_registry():
 class LocalDataSource(DataSource):
     """
 
-    :param id:
+    :param ds_id:
     :param files:
     :param data_store:
     :param temporal_coverage:
@@ -91,14 +90,14 @@ class LocalDataSource(DataSource):
     """
 
     def __init__(self,
-                 id: str,
+                 ds_id: str,
                  files: Union[Sequence[str], OrderedDict],
                  data_store: 'LocalDataStore',
                  temporal_coverage: TimeRangeLike.TYPE = None,
                  spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None,
                  meta_info: dict = None):
-        self._id = id
+        self._id = ds_id
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
         else:
@@ -364,11 +363,11 @@ class LocalDataSource(DataSource):
 
         if not local_name or len(local_name) == 0:
             local_name = "local.{}.{}".format(self.id, _uuid)
-            existing_ds_list = local_store.query(local_name)
+            existing_ds_list = local_store.query(ds_id=local_name)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % local_name)
+            existing_ds_list = local_store.query(ds_id='local.%s' % local_name)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == _uuid:
                     return existing_ds_list[0]
@@ -408,7 +407,7 @@ class LocalDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        data_sources = local_store.query(id=local_id)  # type: Sequence['DataSource']
+        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -647,8 +646,8 @@ class LocalDataSource(DataSource):
 
 
 class LocalDataStore(DataStore):
-    def __init__(self, id: str, store_dir: str):
-        super().__init__(id, title='Local Data Sources')
+    def __init__(self, ds_id: str, store_dir: str):
+        super().__init__(ds_id, title='Local Data Sources', is_local=True)
         self._store_dir = store_dir
         self._data_sources = None
 
@@ -669,7 +668,7 @@ class LocalDataStore(DataStore):
 
     def remove_data_source(self, data_source: Union[str, DataSource], remove_files: bool = True):
         if isinstance(data_source, str):
-            data_sources = self.query(id=data_source)
+            data_sources = self.query(ds_id=data_source)
             if not data_sources or len(data_sources) != 1:
                 return
             data_source = data_sources[0]
@@ -768,11 +767,11 @@ class LocalDataStore(DataStore):
     def data_store_path(self):
         return self._store_dir
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
             -> Sequence[LocalDataSource]:
         self._init_data_sources()
-        if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        if ds_id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
     def __repr__(self):

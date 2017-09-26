@@ -31,7 +31,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_ftp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using ``$ py.test test/ds/test_esa_cci_ftp.py --cov=cate/ds/esa_cci_ftp.py``
 for extra code coverage information.
 
@@ -52,8 +52,9 @@ from io import StringIO, IOBase
 from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
+from cate.conf.conf import get_data_stores_path
 from cate.core.cdm import Schema
-from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY, get_data_stores_path
+from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util import to_datetime, Monitor, Cancellation
 
@@ -544,9 +545,9 @@ class FileSetDataStore(DataStore):
         """Optional URL of the data store's remote service."""
         return self._remote_url
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
-        if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+        if ds_id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
     def load_from_json(self, json_fp_or_str: Union[str, IOBase]):

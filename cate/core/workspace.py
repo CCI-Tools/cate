@@ -27,24 +27,22 @@ import os
 import shutil
 import sys
 from collections import OrderedDict
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 
 import fiona
 import pandas as pd
 import xarray as xr
 
+from .workflow import Workflow, OpStep, NodePort, ValueCache
 from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_lon_dim_name, get_lat_dim_name
 from ..core.op import OP_REGISTRY
-from .workflow import Workflow, OpStep, NodePort, ValueCache
-from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED
+from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED, new_indexed_name
 from ..util.im import ImagePyramid, get_chunk_size
 from ..util.opmetainf import OpMetaInfo
 
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 
 #: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
 #: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
@@ -495,14 +493,33 @@ class Workspace:
         if res_name in self._resource_cache:
             self._resource_cache.rename_key(res_name, new_res_name)
 
-    def set_resource(self, res_name: str, op_name: str, op_kwargs: OpKwArgs, overwrite=False, validate_args=False):
-        assert res_name
+    def set_resource(self,
+                     op_name: str,
+                     op_kwargs: OpKwArgs,
+                     res_name: Optional[str] = None,
+                     overwrite: bool = False,
+                     validate_args=False) -> str:
+        """
+        Set a resource named *res_name* to the result of an operation *op_name* using the given operation arguments
+        *op_kwargs*.
+
+        :param res_name: An optional resource name. If given and not empty, it must be unique within this workspace.
+               If not provided, a workspace-unique resource name will be generated.
+        :param op_name:
+        :param op_kwargs:
+        :param overwrite:
+        :param validate_args:
+        :return: The resource name, either the one passed in or a generated one.
+        """
         assert op_name
         assert op_kwargs is not None
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
             raise WorkspaceError('Unknown operation "%s"' % op_name)
+
+        if not res_name:
+            res_name = self._new_resource_name(op)
 
         new_step = OpStep(op, node_id=res_name)
 
@@ -519,7 +536,7 @@ class Workspace:
 
         does_exist = res_name in namespace
         if not overwrite and does_exist:
-            raise WorkspaceError('Resource "%s" already exists' % res_name)
+            raise WorkspaceError('A resource named "%s" already exists' % res_name)
 
         if does_exist:
             # Prevent resource from self-referencing
@@ -576,6 +593,8 @@ class Workspace:
             if key in self._resource_cache:
                 self._resource_cache[key] = UNDEFINED
 
+        return res_name
+
     def run_op(self, op_name: str, op_kwargs: OpKwArgs, monitor=Monitor.NONE):
         assert op_name
         assert op_kwargs is not None
@@ -616,6 +635,11 @@ class Workspace:
     def _assert_open(self):
         if self._is_closed:
             raise WorkspaceError('Workspace is already closed: ' + self._base_dir)
+
+    def _new_resource_name(self, op):
+        default_res_pattern = conf.get_default_res_pattern()
+        res_pattern = op.op_meta_info.header.get('res_pattern', default_res_pattern)
+        return new_indexed_name([step.id for step in self.workflow.steps], res_pattern)
 
 
 # noinspection PyArgumentList

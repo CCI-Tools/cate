@@ -86,7 +86,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/cli/test_main.py <https://github.com/CCI-Tools/cate-core/blob/master/test/cli/test_main.py>`_
+`test/cli/test_main.py <https://github.com/CCI-Tools/cate/blob/master/test/cli/test_main.py>`_
 and may be executed using ``$ py.test test/cli/test_main.py --cov=cate/cli/test_main.py``
 for extra code coverage information.
 
@@ -104,12 +104,12 @@ from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-from cate.core.types import Like, TimeRangeLike, PolygonLike, VarNamesLike
 from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources, format_cached_datasets_coverage_string, \
     format_variables_info_string
 from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
 from cate.core.op import OP_REGISTRY
 from cate.core.plugin import PLUGIN_REGISTRY
+from cate.core.types import Like, TimeRangeLike, PolygonLike, VarNamesLike
 from cate.core.workflow import Workflow
 from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
 from cate.core.wsmanag import WorkspaceManager
@@ -118,8 +118,8 @@ from cate.util import to_list, Monitor, safe_eval
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
-from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from cate.version import __version__
+from cate.webapi.wsmanag import WebAPIWorkspaceManager
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -130,7 +130,7 @@ CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
 CATE_WEBAPI_MAIN_MODULE = 'cate.webapi.main'
 
-_DOCS_URL = 'http://cate-core.readthedocs.io/en/latest/'
+_DOCS_URL = 'http://cate.readthedocs.io/en/latest/'
 
 _LICENSE = """
 Cate, the ESA CCI Toolbox, version %s
@@ -874,8 +874,10 @@ class ResourceCommand(SubCommandCommand):
         set_parser = subparsers.add_parser('set',
                                            help='Set a resource from the result of an operation.')
         set_parser.add_argument(*base_dir_args, **base_dir_kwargs)
+        set_parser.add_argument('-o', '--overwrite', action='store_true',
+                                help='Overwrite an existing workflow step / target resource with same NAME.')
         set_parser.add_argument('res_name', metavar='NAME',
-                                help='Name of a new or existing target resource.')
+                                help='Name of the target resource to be set. Use -o to overwrite an existing NAME.')
         set_parser.add_argument('op_name', metavar='OP',
                                 help='Operation name. Type "cate op list" to list available operation names.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
@@ -931,9 +933,11 @@ class ResourceCommand(SubCommandCommand):
             op_args.update(time_range="%s,%s" % (command_args.start_date or '',
                                                  command_args.end_date or ''))
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
-                                                 command_args.res_name,
                                                  'cate.ops.io.open_dataset',
-                                                 mk_op_kwargs(**op_args))
+                                                 mk_op_kwargs(**op_args),
+                                                 res_name=command_args.res_name,
+                                                 overwrite=False,
+                                                 monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -944,9 +948,11 @@ class ResourceCommand(SubCommandCommand):
             # noinspection PyArgumentList
             op_args.update(format=command_args.format_name)
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
-                                                 command_args.res_name,
                                                  'cate.ops.io.read_object',
-                                                 mk_op_kwargs(**op_args))
+                                                 mk_op_kwargs(**op_args),
+                                                 res_name=command_args.res_name,
+                                                 overwrite=False,
+                                                 monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
 
     @classmethod
@@ -957,9 +963,10 @@ class ResourceCommand(SubCommandCommand):
         if op_args:
             raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
-                                                 command_args.res_name,
                                                  command_args.op_name,
                                                  op_kwargs,
+                                                 res_name=command_args.res_name,
+                                                 overwrite=command_args.overwrite,
                                                  monitor=cls.new_monitor())
         print('Resource "%s" set.' % command_args.res_name)
 
@@ -1178,7 +1185,7 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def _execute_info(cls, command_args):
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in find_data_sources(id=ds_name) if data_source.id == ds_name]
+        data_sources = [data_source for data_source in find_data_sources(ds_id=ds_name) if data_source.id == ds_name]
         if not data_sources:
             raise CommandError('data source "%s" not found' % ds_name)
 
@@ -1235,7 +1242,7 @@ class DataSourceCommand(SubCommandCommand):
             raise RuntimeError('internal error: no local data store found')
 
         ds_name = command_args.ref_ds
-        data_source = next(iter(find_data_sources(id=ds_name)), None)
+        data_source = next(iter(find_data_sources(ds_id=ds_name)), None)
         if data_source is None:
             raise RuntimeError('internal error: no local data source found: %s' % ds_name)
 

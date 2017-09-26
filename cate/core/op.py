@@ -96,7 +96,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/test_op.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_op.py>`_ and may be executed using
+`test/test_op.py <https://github.com/CCI-Tools/cate/blob/master/test/test_op.py>`_ and may be executed using
 ``$ py.test test/test_op.py --cov=cate/core/plugin.py`` for extra code coverage information.
 
 
@@ -104,16 +104,16 @@ Components
 ==========
 """
 
-from collections import OrderedDict
 import sys
+from collections import OrderedDict
 from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
-from ..version import __version__
 from ..util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
 from ..util.process import run_subprocess, ProcessOutputMonitor
 from ..util.tmpfile import new_temp_file, del_temp_file
+from ..version import __version__
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -404,6 +404,7 @@ OP_REGISTRY = _DefaultOpRegistry()
 
 def op(tags=UNDEFINED,
        version=UNDEFINED,
+       res_pattern=UNDEFINED,
        deprecated=UNDEFINED,
        registry=OP_REGISTRY,
        **properties):
@@ -424,6 +425,10 @@ def op(tags=UNDEFINED,
 
     :param tags: An optional list of string tags.
     :param version: An optional version string.
+    :param res_pattern: An optional pattern that will be used to generate the names for data resources that are
+           used to hold a reference to the objects returned by the operation and that are cached in a Cate workspace.
+           Currently, the only pattern variable that is supported and that must be present is ``{index}`` which will
+           be replaced by an integer number that is guaranteed to produce a unique resource name.
     :param deprecated: An optional boolean or a string. If a string is used, it should explain
            why the operation has been deprecated and which new operation to use instead.
            If set to ``True``, the operation's doc-string should explain the deprecation.
@@ -434,6 +439,7 @@ def op(tags=UNDEFINED,
     def decorator(op_func):
         new_properties = dict(tags=tags,
                               version=version,
+                              res_pattern=res_pattern,
                               deprecated=deprecated,
                               **properties)
         op_registration = registry.add_op(op_func, fail_if_exists=False)

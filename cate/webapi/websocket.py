@@ -19,21 +19,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 from collections import OrderedDict
-from typing import List, Sequence
+from typing import List, Sequence, Optional
 
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import VERSION_CONF_FILE, WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.core.ds import DATA_STORE_REGISTRY, get_data_stores_path
+from cate.conf.defaults import VERSION_CONF_FILE
+from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util import Monitor, cwd, filter_fileset
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 
 # noinspection PyMethodMayBeStatic
@@ -51,10 +51,9 @@ class WebSocketService:
         self.workspace_manager = workspace_manager
 
     def get_config(self) -> dict:
-        config = conf.get_config()
-        return dict(data_stores_path=get_data_stores_path(),
-                    use_workspace_imagery_cache=config.get('use_workspace_imagery_cache',
-                                                           WEBAPI_USE_WORKSPACE_IMAGERY_CACHE))
+        return dict(data_stores_path=conf.get_data_stores_path(),
+                    use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
+                    default_res_pattern=conf.get_default_res_pattern())
 
     def set_config(self, config: dict) -> None:
 
@@ -107,7 +106,8 @@ class WebSocketService:
         """
         data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
         return [dict(id=data_store.id,
-                     title=data_store.title) for data_store in data_stores]
+                     title=data_store.title,
+                     is_local=data_store.is_local) for data_store in data_stores]
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
         """
@@ -134,7 +134,7 @@ class WebSocketService:
                      title=data_source.title,
                      meta_info=data_source.meta_info) for data_source in data_sources]
 
-    def get_ds_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
+    def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
         """
         Get the temporal coverage of the data source.
 
@@ -146,7 +146,7 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(id=data_source_id)
+        data_sources = data_store.query(ds_id=data_source_id)
         if not data_sources:
             raise ValueError('data source "%s" not found' % data_source_id)
         data_source = data_sources[0]
@@ -159,7 +159,7 @@ class WebSocketService:
         # TODO mz add available data information
         return meta_info
 
-    def add_local_datasource(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
 
@@ -266,15 +266,21 @@ class WebSocketService:
         workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return workspace.to_json_dict()
 
-    def set_workspace_resource(self, base_dir: str, res_name: str, op_name: str, op_args: OpKwArgs,
-                               monitor: Monitor) -> dict:
+    def set_workspace_resource(self,
+                               base_dir: str,
+                               op_name: str,
+                               op_args: OpKwArgs,
+                               res_name: Optional[str],
+                               overwrite: bool,
+                               monitor: Monitor) -> list:
         with cwd(base_dir):
-            workspace = self.workspace_manager.set_workspace_resource(base_dir,
-                                                                      res_name,
-                                                                      op_name,
-                                                                      op_args,
-                                                                      monitor=monitor)
-            return workspace.to_json_dict()
+            workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
+                                                                                op_name,
+                                                                                op_args,
+                                                                                res_name=res_name,
+                                                                                overwrite=overwrite,
+                                                                                monitor=monitor)
+            return [workspace.to_json_dict(), res_name]
 
     def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
         with cwd(base_dir):

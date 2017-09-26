@@ -1,14 +1,14 @@
-<img alt="Cate: ESA CCI Toolbox" align="right" src="https://raw.githubusercontent.com/CCI-Tools/cate-core/master/doc/source/_static/logo/cci-toolbox-logo-latex.jpg" />
+<img alt="Cate: ESA CCI Toolbox" align="right" src="https://raw.githubusercontent.com/CCI-Tools/cate/master/doc/source/_static/logo/cci-toolbox-logo-latex.jpg" />
 
 
-[![Build Status](https://travis-ci.org/CCI-Tools/cate-core.svg?branch=master)](https://travis-ci.org/CCI-Tools/cate-core)
-[![Build status](https://ci.appveyor.com/api/projects/status/leugvo8fq7nx6kym?svg=true)](https://ci.appveyor.com/project/ccitools/cate-core)
-[![codecov.io](https://codecov.io/github/CCI-Tools/cate-core/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/cate-core?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/ect-core/badge/?version=latest)](http://ect-core.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/CCI-Tools/cate.svg?branch=master)](https://travis-ci.org/CCI-Tools/cate)
+[![Build status](https://ci.appveyor.com/api/projects/status/leugvo8fq7nx6kym/branch/master?svg=true)](https://ci.appveyor.com/project/ccitools/cate-core)
+[![codecov.io](https://codecov.io/github/CCI-Tools/cate/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/cate?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/cate/badge/?version=latest)](http://cate.readthedocs.io/en/latest/?badge=latest)
                 
-# cate-core
+# cate
 
-The Python core of the ESA CCI Toolbox (Cate).
+ESA CCI Toolbox (Cate) Python package, API and CLI.
 
 ## Contents
 
@@ -27,8 +27,8 @@ issues caused by module native binaries.
 
 The first step is to clone latest Cate code and step into the check out directory: 
 
-    $ git clone https://github.com/CCI-Tools/cate-core.git
-    $ cd cate-core
+    $ git clone https://github.com/CCI-Tools/cate.git
+    $ cd cate
 
 
 ### Using Conda
@@ -37,7 +37,7 @@ The first step is to clone latest Cate code and step into the check out director
 Anaconda Python distributions.
 
 Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
-GB on Windows. To create a new Conda environment `cate` in your Anaconda/Miniconda installation directory, type:
+GB on Windows. To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
 
     $ conda env create --file environment.yml
 
@@ -47,14 +47,14 @@ If you want the environment to be installed in another location, e.g. due to dis
 
 Next step is to activate the new environment. On Linux/Darwin type:
 
-    $ source activate cate
+    $ source activate cate-env
 
 In case you used another location use it instead of the name `cate`.
 Windows users can omit the `source` command and just type
 
-    > activate cate
+    > activate cate-env
 
-You can now safely install Cate sources into the new `cate` environment.
+You can now safely install Cate sources into the new `cate-env` environment.
     
     (cate) $ python setup.py install
     
@@ -102,7 +102,7 @@ To test the installation, first run the Cate command-line interface. Type
     $ cate -h
 
 IPython notebooks for various Cate use cases are on the way, they will appear in the project's
-[notebooks](https://github.com/CCI-Tools/cate-core/tree/master/notebooks) folder.
+[notebooks](https://github.com/CCI-Tools/cate/tree/master/notebooks) folder.
 
 To use them interactively, you'll need to install Jupyter and run its Notebook app:
 
@@ -120,7 +120,7 @@ which provides scripts and configuration files to build Cate's Conda packages an
 
 ### Contributors
 
-Contributors are asked to read and adhere to our [Developer Guide](https://github.com/CCI-Tools/cate-core/wiki/Developer-Guide).
+Contributors are asked to read and adhere to our [Developer Guide](https://github.com/CCI-Tools/cate/wiki/Developer-Guide).
 
 ### Unit-testing
 

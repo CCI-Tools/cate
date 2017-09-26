@@ -30,7 +30,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/ds/test_esa_cci_odp.py <https://github.com/CCI-Tools/cate-core/blob/master/test/ds/test_esa_cci_ftp.py>`_
+`test/ds/test_esa_cci_odp.py <https://github.com/CCI-Tools/cate/blob/master/test/ds/test_esa_cci_ftp.py>`_
 and may be executed using
 ``$ py.test test/ds/test_esa_cci_odp.py --cov=cate/ds/esa_cci_odp.py`` for extra code coverage information.
 
@@ -55,10 +55,9 @@ from xarray.backends import NetCDF4DataStore
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
-from cate.conf import get_config_value
+from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, \
-    open_xarray_dataset, get_data_stores_path
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Monitor
@@ -292,14 +291,13 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None):
-        super().__init__(id, title=title)
+        super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
-        self._index_json_dict = index_cache_json_dict
+        self._esgf_data = index_cache_json_dict
         self._data_sources = []
 
-        self._cci_catalogue_service = None
-        self._cci_catalogue_data_dict = None
+        self._csw_data = None
 
     @property
     def index_cache_used(self):
@@ -324,10 +322,10 @@ class EsaCciOdpDataStore(DataStore):
                         data_source.update_file_list()
                         child_monitor.progress(work=1)
 
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
-        if id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(id=id, query_expr=query_expr)]
+        if ds_id or query_expr:
+            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
     def _repr_html_(self) -> str:
@@ -346,49 +344,53 @@ class EsaCciOdpDataStore(DataStore):
     def _init_data_sources(self):
         if self._data_sources:
             return
-        if self._index_json_dict is None:
+        if self._esgf_data is None:
             self._load_index()
-        docs = self._index_json_dict.get('response', {}).get('docs', [])
-        self._data_sources = []
+        if self._esgf_data is None:
+            return
 
-        if self._cci_catalogue_data_dict:
-            for catalogue_data in self._cci_catalogue_data_dict.values():
+        docs = self._esgf_data.get('response', {}).get('docs', [])
+        data_sources = []
+        if self._csw_data:
+            for catalogue_data in self._csw_data.values():
                 catalogue_item = catalogue_data.copy()
                 catalogue_item.pop('data_sources')
                 for ds_name in catalogue_data.get('data_sources'):
                     for idx, doc in enumerate(docs):
                         instance_id = doc.get('instance_id', None)
                         if ds_name == instance_id:
-                            self._data_sources.append(EsaCciOdpDataSource(self, doc, catalogue_item))
+                            data_sources.append(EsaCciOdpDataSource(self, doc, catalogue_item))
                             del docs[idx]
                             break
         else:
             for doc in docs:
-                self._data_sources.append(EsaCciOdpDataSource(self, doc))
+                data_sources.append(EsaCciOdpDataSource(self, doc))
+        self._data_sources = data_sources
 
     def _load_index(self):
-        self._index_json_dict = _load_or_fetch_json(_fetch_solr_json,
-                                                    fetch_json_args=[
-                                                        _ESGF_CEDA_URL,
-                                                        dict(type='Dataset',
-                                                             replica='false',
-                                                             latest='true',
-                                                             project='esacci')],
-                                                    cache_used=self._index_cache_used,
-                                                    cache_dir=get_metadata_store_path(),
-                                                    cache_json_filename='dataset-list.json',
-                                                    cache_timestamp_filename='dataset-list-timestamp.json',
-                                                    cache_expiration_days=self._index_cache_expiration_days)
+        esgf_json_dict = _load_or_fetch_json(_fetch_solr_json,
+                                             fetch_json_args=[
+                                                 _ESGF_CEDA_URL,
+                                                 dict(type='Dataset',
+                                                      replica='false',
+                                                      latest='true',
+                                                      project='esacci')],
+                                             cache_used=self._index_cache_used,
+                                             cache_dir=get_metadata_store_path(),
+                                             cache_json_filename='dataset-list.json',
+                                             cache_timestamp_filename='dataset-list-timestamp.json',
+                                             cache_expiration_days=self._index_cache_expiration_days)
 
-        if not self._cci_catalogue_service:
-            self._cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
-        self._cci_catalogue_data_dict = _load_or_fetch_json(self._cci_catalogue_service.getrecords,
-                                                            fetch_json_args=[],
-                                                            cache_used=self._index_cache_used,
-                                                            cache_dir=get_metadata_store_path(),
-                                                            cache_json_filename='catalogue.json',
-                                                            cache_timestamp_filename='catalogue-timestamp.json',
-                                                            cache_expiration_days=self._index_cache_expiration_days)
+        cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
+        csw_json_dict = _load_or_fetch_json(cci_catalogue_service.getrecords,
+                                            fetch_json_args=[],
+                                            cache_used=self._index_cache_used,
+                                            cache_dir=get_metadata_store_path(),
+                                            cache_json_filename='catalogue.json',
+                                            cache_timestamp_filename='catalogue-timestamp.json',
+                                            cache_expiration_days=self._index_cache_expiration_days)
+        self._csw_data = csw_json_dict
+        self._esgf_data = esgf_json_dict
 
 
 INFO_FIELD_NAMES = sorted(["realization",
@@ -606,7 +608,7 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        data_sources = local_store.query(id=local_id)  # type: Sequence['DataSource']
+        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
                             ds.id == local_id), None)  # type: LocalDataSource
         if not data_source:
@@ -949,7 +951,7 @@ class EsaCciOdpDataSource(DataSource):
         if self.id:
             # the 't0' variable in these SOILMOISTURE data sources
             # can not be decoded by xarray and lead to an unusable dataset
-            # see: https://github.com/CCI-Tools/cate-core/issues/326
+            # see: https://github.com/CCI-Tools/cate/issues/326
             if self.id in SOILMOISTURE_DS:
                 if not var_names:
                     var_names = self._json_dict.get('variable', [])
@@ -983,11 +985,11 @@ class EsaCciOdpDataSource(DataSource):
 
         if not ds_id or len(ds_id) == 0:
             ds_id = "local.{}.{}".format(self.id, uuid)
-            existing_ds_list = local_store.query(ds_id)
+            existing_ds_list = local_store.query(ds_id=ds_id)
             if len(existing_ds_list) == 1:
                 return existing_ds_list[0]
         else:
-            existing_ds_list = local_store.query('local.%s' % ds_id)
+            existing_ds_list = local_store.query(ds_id='local.%s' % ds_id)
             if len(existing_ds_list) == 1:
                 if existing_ds_list[0].meta_info.get('uuid', None) == uuid:
                     return existing_ds_list[0]

@@ -83,7 +83,7 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
@@ -209,7 +209,7 @@ def plot_map(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('time', data_type=TimeLike)
 @op_input('indexers', data_type=DictLike)
@@ -273,7 +273,7 @@ def plot_contour(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
@@ -330,7 +330,7 @@ def plot(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds1')
 @op_input('ds2')
 @op_input('var1', value_set_source='ds1', data_type=VarName)
@@ -438,7 +438,7 @@ def plot_scatter(ds1: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
@@ -503,7 +503,7 @@ def plot_hist(ds: xr.Dataset,
 # TODO (forman): remove the 'plot_data_frame' operation. It is too specific.
 # Instead, make other 'plot_' ops accept xarray and pandas objects.
 
-@op(tags=['plot'])
+@op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])

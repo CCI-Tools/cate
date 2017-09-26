@@ -66,7 +66,7 @@ extensions = [
 # doesn't work :(
 # see ../README.md
 #
-# plantuml = 'java -jar C:\\Users\\Norman\\IdeaProjects\\ccitools\\cate-core\\doc\\plantuml.jar'
+# plantuml = 'java -jar C:\\Users\\Norman\\IdeaProjects\\ccitools\\cate\\doc\\plantuml.jar'
 # plantuml_output_format = 'svg'
 # plantuml_latex_output_format = 'pdf'
 

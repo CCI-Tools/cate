@@ -390,12 +390,12 @@ More Examples
 -------------
 
 More CLI Examples can be found in the
-`scripts <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ directory within Cate's
+`scripts <https://github.com/CCI-Tools/cate/blob/master/notebooks/cate-uc09.ipynb>`_ directory within Cate's
 GitHub repository.
 
 Using the API
 =============
 
 A demonstration of how to apply the Cate's Python API to the use case described here is given in the
-`cate-uc09.ipynb <https://github.com/CCI-Tools/cate-core/blob/master/notebooks/cate-uc09.ipynb>`_ notebook example.
+`cate-uc09.ipynb <https://github.com/CCI-Tools/cate/blob/master/notebooks/cate-uc09.ipynb>`_ notebook example.
 

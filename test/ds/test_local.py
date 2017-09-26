@@ -12,7 +12,7 @@ from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from collections import OrderedDict
 
 
-class LocalFilePatternDataStoreTest(unittest.TestCase):
+class LocalDataStoreTest(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
         self.data_store = LocalDataStore('test', self.tmp_dir)
@@ -28,6 +28,11 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
     def tearDown(self):
         DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
+
+    def test_name_title_and_is_local(self):
+        self.assertEqual(self.data_store.id, 'test')
+        self.assertEqual(self.data_store.title, 'Local Data Sources')
+        self.assertEqual(self.data_store.is_local, True)
 
     def test_add_pattern(self):
         data_sources = self.data_store.query()
@@ -66,11 +71,11 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         data_sources = local_data_store.query()
         self.assertEqual(len(data_sources), 2)
 
-        data_sources = local_data_store.query(id='local')
+        data_sources = local_data_store.query(ds_id='local')
         self.assertEqual(len(data_sources), 1)
         self.assertIsNone(data_sources[0].temporal_coverage())
 
-        data_sources = local_data_store.query(id='local_w_temporal')
+        data_sources = local_data_store.query(ds_id='local_w_temporal')
         self.assertEqual(len(data_sources), 1)
         self.assertIsNotNone(data_sources[0].temporal_coverage())
 
@@ -162,7 +167,7 @@ class LocalFilePatternDataStoreTest(unittest.TestCase):
         self.assertListEqual(data_source.variables_info, test_data.get('meta_info').get('variables'))
 
 
-class LocalFilePatternSourceTest(unittest.TestCase):
+class LocalDataSourceTest(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
         self._dummy_store = LocalDataStore('dummy', 'dummy')

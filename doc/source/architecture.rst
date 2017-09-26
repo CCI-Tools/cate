@@ -36,7 +36,7 @@ variables describes here and is described in chapter :doc:`api_reference`.
 Overview
 ========
 
-The CCI Toolbox comprises a "Core" (Python) which provides the a command-line interface (CLI), application
+The CCI Toolbox at its basis is a Python package ``cate`` which provides the a command-line interface (CLI), application
 programming interface (API), and a web API interface (WebAPI), and also implements all required climate data
 visualisation, processing, and analysis functions. It defines a common climate data model and provides a common
 framework to register, lookup and invoke operations and workflows on data represented in the common data model.
@@ -52,7 +52,7 @@ climate variables (ECVs) in various spatial and temporal resolutions in netCDF a
 writing (June 2016), the only operational data access service is via FTP. However, the CCI Open Data Portal will soon offer
 also data access via a dedicated THREDDS_ server and will support *OPEeNDAP* and *OGC WCS* services.
 
-The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
+The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Python core, and the CCI Open Data Portal.
 
 .. _uml_modules:
 
@@ -60,12 +60,12 @@ The following :numref:`uml_modules` shows the CCI Toolbox GUI, CCI Toolbox Core,
    :scale: 100 %
    :align: center
 
-   CCI Toolbox GUI, CCI Toolbox Core, and the CCI Open Data Portal.
+   CCI Toolbox GUI, CCI Toolbox ``cate`` package, and the CCI Open Data Portal.
 
-Note that although the CCI Toolbox GUI and Core are shown in :numref:`uml_modules` as separate nodes, they are combined in
-one software installation on the user's computer.
+Note that although the CCI Toolbox GUI and Python core are shown in :numref:`uml_modules` as separate nodes,
+they are combined in one software installation on the user's computer.
 
-The CCI Toolbox Core comprises several sub-packages of which are described in the following four sections.
+The CCI Toolbox Python package comprises several sub-packages of which are described in the following four sections.
 
 .. _cate_core:
 
@@ -443,7 +443,7 @@ of passing ``None`` into methods that don't require monitoring but expect a non-
 Command-Line Interface
 ======================
 
-The primary user interface of the CCI Toolbox Core is a command-line interface (CLI) executable named ``cate``.
+The primary user interface of the CCI Toolbox' Python core is a command-line interface (CLI) executable named ``cate``.
 
 The CLI can be used to list available data sources and to synchronise subsets of remote data store contents on the
 user's computer to make them available to the CCI Toolbox. It also allows for listing available operations as well
@@ -502,13 +502,13 @@ of the standard Python ``setuptools`` module. These entry points can be easily p
 called by the CCI Toolbox at given time. After successful initialisation the plugin is registered
 in the ``PLUGIN_REGISTRY`` singleton.
 
-In fact the ``cate.ds`` and ``cate.ops`` packages of the CCI Toolbox Core are such plugins registered
+In fact the ``cate.ds`` and ``cate.ops`` packages of the CCI Toolbox Python core are such plugins registered
 with the same entry point::
 
    setup(
-       name="cate-core",
+       name="cate",
        version=__version__,
-       description='ESA CCI Toolbox Core',
+       description='ESA CCI Toolbox',
        license='MIT',
        author='ESA CCI Toolbox Development Team',
        packages=['cate'],

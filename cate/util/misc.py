@@ -18,21 +18,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import fnmatch
-from collections import OrderedDict
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import os
 import os.path
+import re
 import sys
 import urllib.parse
+from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
 from typing import Union, Tuple, Sequence, Optional
 
 import numpy as np
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):
@@ -386,3 +387,31 @@ def filter_fileset(names: Sequence[str],
     else:
         filtered_names = names
     return filtered_names
+
+
+def new_indexed_name(names: Sequence[str], pattern: str) -> str:
+    """
+    Return a new name that is unique in *names* and that conforms to *pattern*. The argument
+    *pattern* must contain a single ``"{index}"`` substring.
+
+    :param names: Sequence of names
+    :param pattern: Naming pattern, e.g. "var_{index}"
+    :return: a new name, e.g. "var_3"
+    """
+    if "{index}" not in pattern:
+        raise ValueError('pattern must contain "{index}"')
+    re_pattern = re.compile(pattern.replace("{index}", "(\d+)"))
+    max_index = 0
+    for name in names:
+        match_result = re_pattern.match(name)
+        if match_result and match_result.group(1):
+            max_index = max(max_index, int(match_result.group(1)))
+
+    new_index = max_index + 1
+    while True:
+        new_name = pattern.replace("{index}", str(new_index))
+        if not new_name.isidentifier():
+            raise ValueError('pattern does not yield a valid name')
+        if new_name not in names:
+            return new_name
+        new_index += 1

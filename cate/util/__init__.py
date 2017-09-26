@@ -33,7 +33,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/util <https://github.com/CCI-Tools/cate-core/blob/master/test/util>`_ and may be executed using
+`test/util <https://github.com/CCI-Tools/cate/blob/master/test/util>`_ and may be executed using
 ``$ py.test test/util --cov=cate/util`` for extra code coverage information.
 
 Components

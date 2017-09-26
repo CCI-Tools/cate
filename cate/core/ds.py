@@ -70,7 +70,7 @@ Verification
 ============
 
 The module's unit-tests are located in
-`test/test_ds.py <https://github.com/CCI-Tools/cate-core/blob/master/test/test_ds.py>`_
+`test/test_ds.py <https://github.com/CCI-Tools/cate/blob/master/test/test_ds.py>`_
 and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` for extra code coverage information.
 
 
@@ -79,15 +79,12 @@ Components
 """
 
 import glob
-import os.path
 from abc import ABCMeta, abstractmethod
 from math import ceil, sqrt
 from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
 
-from ..conf import get_config_path
-from ..conf.defaults import DEFAULT_DATA_PATH
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util import Monitor
@@ -95,17 +92,6 @@ from ..util import Monitor
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
-
-
-def get_data_stores_path() -> str:
-    """
-    Get the default path to where Cate stores local data store information and stores data files synchronized with their
-    remote versions.
-
-    :return: Effectively reads the value of the configuration parameter ``data_stores_path``, if any. Otherwise return
-             the default value ``~/.cate/data_stores``.
-    """
-    return get_config_path('data_stores_path', os.path.join(DEFAULT_DATA_PATH, 'data_stores'))
 
 
 class DataSource(metaclass=ABCMeta):
@@ -118,11 +104,16 @@ class DataSource(metaclass=ABCMeta):
     def id(self) -> str:
         """Data source identifier."""
 
+    # TODO (forman): issue #399 - remove it, no use
     @property
     def schema(self) -> Optional[Schema]:
-        """The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown."""
+        """
+        The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown.
+        Currently unused in c.ate
+        """
         return None
 
+    # TODO (forman): issue #399 - make this a property or call it "get_temporal_coverage(...)"
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         """
         The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
@@ -132,6 +123,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return None
 
+    # TODO (forman): issue #399 - remove it, no actual use (somewhere put into "meta_inf" dict)
     @property
     def protocols(self) -> []:
         """
@@ -145,16 +137,17 @@ class DataSource(metaclass=ABCMeta):
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
 
-    def matches(self, id: str = None, query_expr: str = None) -> bool:
+    # TODO (forman): issue #399 - remove "ds_id", see TODO on "DataStore.query()"
+    def matches(self, ds_id: str = None, query_expr: str = None) -> bool:
         """
         Test if this data source matches the given *id* or *query_expr*.
         If neither *id* nor *query_expr* are given, the method returns True.
 
-        :param id: A data source identifier.
+        :param ds_id: A data source identifier.
         :param query_expr: A query expression. Currently, only simple search strings are supported.
         :return: True, if this data sources matches the given *id* or *query_expr*.
         """
-        if id and id.lower() == self.id.lower():
+        if ds_id and ds_id.lower() == self.id.lower():
             return True
         if query_expr:
             if query_expr.lower() in self.id.lower():
@@ -234,6 +227,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return False
 
+    # TODO (forman): issue #399 - remove this method, we don't expect to have external API use before 1.0
     # noinspection PyMethodMayBeStatic
     def sync(self,
              time_range: TimeRangeLike.TYPE = None,
@@ -255,6 +249,7 @@ class DataSource(metaclass=ABCMeta):
         """
         return 0, 0
 
+    # TODO (forman): issue #399 - why is this never used? Seem reasonable to let a data source delete itself from local
     def delete_local(self,
                      time_range: TimeRangeLike.TYPE) -> int:
         """
@@ -279,6 +274,7 @@ class DataSource(metaclass=ABCMeta):
             return None
         return meta_info.get('title')
 
+    # TODO (forman): issue #399 - explain expected metadata entries and their formats, e.g."variables"
     @property
     def meta_info(self) -> Optional[dict]:
         """
@@ -328,6 +324,7 @@ class DataSource(metaclass=ABCMeta):
     def __str__(self):
         return self.info_string
 
+    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
@@ -337,13 +334,14 @@ class DataStore(metaclass=ABCMeta):
     """
     Represents a data store of data sources.
 
-    :param id: Unique data store identifier.
+    :param ds_id: Unique data store identifier.
     :param title: A human-readable tile.
     """
 
-    def __init__(self, id: str, title: str = None):
-        self._id = id
-        self._title = title or id
+    def __init__(self, ds_id: str, title: str = None, is_local: bool = False):
+        self._id = ds_id
+        self._title = title or ds_id
+        self._is_local = is_local
 
     @property
     def id(self) -> str:
@@ -360,23 +358,46 @@ class DataStore(metaclass=ABCMeta):
         return self._title
 
     @property
+    def is_local(self) -> bool:
+        """
+        Whether this is a remote data source not requiring any internet connection when its ``query()`` method
+        is called or the ``open_dataset()`` and ``make_local()`` methods on one of its data sources.
+        """
+        return self._is_local
+
+    # TODO (forman): issue #399 - remove this method, it has no framework use, hence it is none-API
+    @property
     def data_store_path(self) -> Optional[str]:
         """
         Returns path to data store
         """
         return None
 
+    # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
+    # @abstractmethod
+    # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
+    #     """
+    #     Get data sources by identifier *ds_id*.
+    #
+    #     :param ds_id: Data source identifier.
+    #     :param monitor:  A progress monitor.
+    #     :return: The data sources, or ``None`` if it doesn't exists.
+    #     """
+
+    # TODO (forman): issue #399 - remove "ds_id" keyword, use "get_data_source(ds_id)" instead
+    # TODO (forman): issue #399 - code duplication: almost all implementations are same or very similar
     @abstractmethod
-    def query(self, id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
         """
         Retrieve data sources in this data store using the given constraints.
 
-        :param id: Data source identifier.
+        :param ds_id: Data source identifier.
         :param query_expr: Query expression which may be used if *ìd* is unknown.
         :param monitor:  A progress monitor.
         :return: Sequence of data sources.
         """
 
+    # TODO (forman): issue #399 - remove this method, it has no usages, hence it is none-API
     def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
         """
         Update this data store's indices to speed up queries and to fetch meta-information about its
@@ -388,6 +409,7 @@ class DataStore(metaclass=ABCMeta):
         :param monitor:  A progress monitor.
         """
 
+    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
@@ -401,8 +423,8 @@ class DataStoreRegistry:
     def __init__(self):
         self._data_stores = dict()
 
-    def get_data_store(self, id: str) -> Optional[DataStore]:
-        return self._data_stores.get(id)
+    def get_data_store(self, ds_id: str) -> Optional[DataStore]:
+        return self._data_stores.get(ds_id)
 
     def get_data_stores(self) -> Sequence[DataStore]:
         return list(self._data_stores.values())
@@ -410,8 +432,8 @@ class DataStoreRegistry:
     def add_data_store(self, data_store: DataStore):
         self._data_stores[data_store.id] = data_store
 
-    def remove_data_store(self, id: str):
-        del self._data_stores[id]
+    def remove_data_store(self, ds_id: str):
+        del self._data_stores[ds_id]
 
     def __len__(self):
         return len(self._data_stores)
@@ -425,8 +447,8 @@ class DataStoreRegistry:
 
     def _repr_html_(self):
         rows = []
-        for id, data_store in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (id, repr(data_store)))
+        for ds_id, data_store in self._data_stores.items():
+            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (ds_id, repr(data_store)))
         return '<table>%s</table>' % '\n'.join(rows)
 
 
@@ -436,7 +458,7 @@ DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
-                      id: str = None,
+                      ds_id: str = None,
                       query_expr: str = None) -> Sequence[DataSource]:
     """
     Find data sources in the given data store(s) matching the given *id* or *query_expr*.
@@ -444,7 +466,7 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
     See also :py:func:`open_dataset`.
 
     :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
-    :param id:  A data source identifier.
+    :param ds_id:  A data source identifier.
     :param query_expr:  A query expression.
     :return: All data sources matching the given constrains.
     """
@@ -457,9 +479,9 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         primary_data_store = data_stores
     else:
         data_store_list = data_stores
-    if not primary_data_store and id and id.count('.') > 0:
+    if not primary_data_store and ds_id and ds_id.count('.') > 0:
         primary_data_store_index = -1
-        primary_data_store_id, data_source_name = id.split('.', 1)
+        primary_data_store_id, data_source_name = ds_id.split('.', 1)
         for idx, data_store in enumerate(data_store_list):
             if data_store.id == primary_data_store_id:
                 primary_data_store_index = idx
@@ -467,11 +489,11 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
             primary_data_store = data_store_list.pop(primary_data_store_index)
 
     if primary_data_store:
-        results.extend(primary_data_store.query(id=id, query_expr=query_expr))
+        results.extend(primary_data_store.query(ds_id=ds_id, query_expr=query_expr))
     if not results:
         # noinspection PyTypeChecker
         for data_store in data_store_list:
-            results.extend(data_store.query(id=id, query_expr=query_expr))
+            results.extend(data_store.query(ds_id=ds_id, query_expr=query_expr))
     return results
 
 
@@ -505,7 +527,7 @@ def open_dataset(data_source: Union[DataSource, str],
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = find_data_sources(data_store_list, id=data_source)
+        data_sources = find_data_sources(data_store_list, ds_id=data_source)
         if len(data_sources) == 0:
             raise ValueError("No data_source found for the given query term", data_source)
         elif len(data_sources) > 1:

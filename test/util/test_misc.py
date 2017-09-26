@@ -10,6 +10,7 @@ from cate.util.misc import object_to_qualified_name, qualified_name_to_object
 from cate.util.misc import to_datetime, to_datetime_range
 from cate.util.misc import to_list
 from cate.util.misc import to_str_constant, is_str_constant
+from cate.util.misc import new_indexed_name
 
 
 # noinspection PyUnresolvedReferences
@@ -123,6 +124,26 @@ class UtilTest(TestCase):
 
         with self.assertRaises(ValueError):
             to_datetime_range("211", "2012")
+
+    def test_new_indexed_name(self):
+
+        with self.assertRaises(ValueError) as cm:
+            new_indexed_name(['var_1', 'var_2'], 'ds_{id}')
+        self.assertEqual(str(cm.exception), 'pattern must contain "{index}"')
+
+        with self.assertRaises(ValueError) as cm:
+            new_indexed_name(['var_1', 'var_2'], '{index}_plot')
+        self.assertEqual(str(cm.exception), 'pattern does not yield a valid name')
+
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'ds_{index}'), 'ds_1')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'var_{index}'), 'var_3')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2'], 'res_{index}'), 'res_5')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_2_subs'], 'var_{index}_subs'), 'var_3_subs')
+        self.assertEqual(new_indexed_name(['var_1', 'res_4', 'var_4_3'], 'var_{index}_{index}'), 'var_5_5')
+
+        self.assertEqual(new_indexed_name([], 'ds_{index}'), 'ds_1')
+        self.assertEqual(new_indexed_name(['ds5'], 'ds_{index}'), 'ds_1')
+        self.assertEqual(new_indexed_name(['ds_005'], 'ds_{index}'), 'ds_6')
 
 
 class ToListTest(TestCase):
