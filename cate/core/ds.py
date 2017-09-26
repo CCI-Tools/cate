@@ -81,7 +81,6 @@ Components
 import glob
 from abc import ABCMeta, abstractmethod
 from math import ceil, sqrt
-import sys
 from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
@@ -456,33 +455,6 @@ class DataStoreRegistry:
 #: The data data store registry of type :py:class:`DataStoreRegistry`.
 #: Use it add new data stores to Cate.
 DATA_STORE_REGISTRY = DataStoreRegistry()
-
-
-# noinspection PyArgumentList
-class DataSourceInitializationError(Exception):
-    """
-    Exceptions produced by Cate's DataStore during DataSource initialization.
-    """
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(DataSourceInitializationError, self).__init__(str(cause), *args, **kwargs)
-            _, _, traceback = sys.exc_info()
-            self.with_traceback(traceback)
-        elif isinstance(cause, str):
-            super(DataSourceInitializationError, self).__init__(cause, *args, **kwargs)
-        else:
-            super(DataSourceInitializationError, self).__init__(*args, **kwargs)
-        self._cause = cause
-
-    @property
-    def cause(self):
-        return self._cause
-
-
-class DataSourceInitializationWarning(UserWarning):
-    """
-    Warnings produced by Cate's DataStore during DataSource initialization.
-    """
 
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
