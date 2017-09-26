@@ -116,11 +116,11 @@ class WriteObjectTest(TestCase):
 
     def test_write_read_object_NETCDF4(self):
         with create_tmp_file() as tmp_file:
-            self._test_write_read_object(self.new_ds(), tmp_file, 'NETCDF4')
+            self._test_write_read_object_2(self.new_ds(), tmp_file, 'NETCDF4')
 
     def test_write_read_object_NETCDF3(self):
         with create_tmp_file() as tmp_file:
-            self._test_write_read_object(self.new_ds(), tmp_file, 'NETCDF3')
+            self._test_write_read_object_2(self.new_ds(), tmp_file, 'NETCDF3')
 
     def _test_write_read_object(self, obj, file_path, format_name):
         if os.path.exists(file_path):
@@ -135,6 +135,15 @@ class WriteObjectTest(TestCase):
         if hasattr(obj, 'close'):
             obj.close()
         os.remove(file_path)
+
+    def _test_write_read_object_2(self, obj, file_path, format_name):
+        self.assertFalse(os.path.exists(file_path))
+        writer = write_object(obj, file_path, format_name=format_name)
+        self.assertIsNotNone(writer)
+        self.assertTrue(os.path.isfile(file_path))
+        obj, reader = read_object(file_path)
+        self.assertIsNotNone(obj)
+        self.assertIsNotNone(reader)
 
     def new_ds(self):
         periods = 5
