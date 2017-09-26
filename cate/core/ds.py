@@ -459,19 +459,19 @@ DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
 # noinspection PyArgumentList
-class DataSourceInitializationError(Exception):
+class DataAccessError(Exception):
     """
-    Exceptions produced by Cate's DataStore during DataSource initialization.
+    Exceptions produced by Cate's data stores and data sources instances, used to report any problems handling data.
     """
     def __init__(self, cause, *args, **kwargs):
         if isinstance(cause, Exception):
-            super(DataSourceInitializationError, self).__init__(str(cause), *args, **kwargs)
+            super(DataAccessError, self).__init__(str(cause), *args, **kwargs)
             _, _, traceback = sys.exc_info()
             self.with_traceback(traceback)
         elif isinstance(cause, str):
-            super(DataSourceInitializationError, self).__init__(cause, *args, **kwargs)
+            super(DataAccessError, self).__init__(cause, *args, **kwargs)
         else:
-            super(DataSourceInitializationError, self).__init__(*args, **kwargs)
+            super(DataAccessError, self).__init__(*args, **kwargs)
         self._cause = cause
 
     @property
@@ -479,10 +479,11 @@ class DataSourceInitializationError(Exception):
         return self._cause
 
 
-class DataSourceInitializationWarning(UserWarning):
+class DataAccessWarning(UserWarning):
     """
-    Warnings produced by Cate's DataStore during DataSource initialization.
+    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
     """
+    pass
 
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,

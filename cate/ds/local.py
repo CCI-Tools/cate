@@ -54,8 +54,8 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataSourceInitializationError, \
-    DataSourceInitializationWarning, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataAccessError, DataAccessWarning,\
+    open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -744,16 +744,16 @@ class LocalDataStore(DataStore):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
                         if psutil.pid_exists(int(writer_pid)):
-                            raise ValueError("Cannot access data source {}, another process is using it (pid:{}"
-                                             .format(ds.id, writer_pid))
+                            raise DataAccessError("Cannot access data source {}, another process is using it (pid:{}".
+                                                  format(ds.id, writer_pid))
                         # ds.temporal_coverage() == time_range and
                         if ds.spatial_coverage() == region \
                                 and ds.variables_info == var_names:
                             data_source = ds
                             data_source.set_completed(False)
                             break
-                raise ValueError("Local data store '{}' already contains a data source named '{}'"
-                                 .format(self.id, data_source_id))
+                raise DataAccessError("Local data store '{}' already contains a data source named '{}'".
+                                      format(self.id, data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           variables=var_names, temporal_coverage=time_range, meta_info=meta_info)
@@ -808,9 +808,9 @@ class LocalDataStore(DataStore):
                 data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
                 if data_source:
                     self._data_sources.append(data_source)
-            except DataSourceInitializationError as e:
+            except DataAccessError as e:
                 if skip_broken:
-                    warnings.warn(e.cause, DataSourceInitializationWarning, stacklevel=0)
+                    warnings.warn(e.cause, DataAccessWarning, stacklevel=0)
                 else:
                     raise e
 
@@ -826,8 +826,11 @@ class LocalDataStore(DataStore):
         json_dict = data_source.to_json_dict()
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
-        with open(file_name, 'w') as fp:
-            json.dump(json_dict, fp, **dump_kwargs)
+        try:
+            with open(file_name, 'w') as fp:
+                json.dump(json_dict, fp, **dump_kwargs)
+        except EnvironmentError as e:
+            raise DataAccessError("Couldn't save Data Source config file {}\n{}".format(file_name, e.strerror))
 
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
@@ -841,9 +844,9 @@ class LocalDataStore(DataStore):
                 with open(json_path) as fp:
                     return json.load(fp=fp) or {}
             except json.decoder.JSONDecodeError:
-                raise DataSourceInitializationError("Cannot load data source config, {}".format(json_path))
+                raise DataAccessError("Cannot load data source config, {}".format(json_path))
         else:
-            raise DataSourceInitializationError("Data source config does not exists, {}".format(json_path))
+            raise DataAccessError("Data source config does not exists, {}".format(json_path))
 
     @staticmethod
     def _json_default_serializer(obj):
