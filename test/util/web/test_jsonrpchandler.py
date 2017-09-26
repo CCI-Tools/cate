@@ -27,7 +27,7 @@ class RequestMock:
         self.connection = ConnectionMock()
 
 
-class TestService:
+class DoItService:
     def __init__(self, app):
         self.app = app
 
@@ -45,7 +45,7 @@ class JsonRpcWebSocketHandlerTest(unittest.TestCase):
     def setUp(self):
         self.handler = JsonRpcWebSocketHandler(ApplicationMock(),
                                                RequestMock(),
-                                               lambda app: TestService(app))
+                                               lambda app: DoItService(app))
 
     def test_open(self):
         self.assertIsNone(self.handler._service)

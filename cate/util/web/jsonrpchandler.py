@@ -60,7 +60,9 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
     :param kwargs: Keyword-arguments passed to the request handler.
     """
 
-    def __init__(self, application: Application, request,
+    def __init__(self,
+                 application: Application,
+                 request,
                  service_factory=None,
                  report_defer_period: float = None,
                  **kwargs):
