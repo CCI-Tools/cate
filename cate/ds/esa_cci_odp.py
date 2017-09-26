@@ -49,7 +49,6 @@ from datetime import datetime, timedelta
 from math import ceil, floor, isnan
 from typing import Sequence, Tuple, Optional, Any
 
-from numba.tests.test_utils import C
 from shapely.geometry import Polygon
 from xarray.backends import NetCDF4DataStore
 
