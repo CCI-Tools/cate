@@ -500,9 +500,13 @@ class DatasetLikeTest(TestCase):
     def test_convert(self):
         self.assertEqual(DatasetLike.convert(None), None)
 
-        data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
-        xr_ds = xr.Dataset(data_vars=data)
+        data = {'time': ['2000-01-01', '2000-01-02', '2000-01-03'],
+                'c1': [4, 5, 6],
+                'c2': [6, 7, 8]}
         pd_ds = pd.DataFrame(data=data)
+        pd_ds = pd_ds.set_index('time')
+        pd_ds.index = pd.to_datetime(pd_ds.index)
+        xr_ds = xr.Dataset(data_vars=data)
         self.assertIsInstance(DatasetLike.convert(xr_ds), xr.Dataset)
         self.assertIsInstance(DatasetLike.convert(pd_ds), xr.Dataset)
 

@@ -48,6 +48,7 @@ from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
 from ..util import safe_eval, to_list, to_datetime_range, to_datetime
+from cate.util.opimpl import adjust_temporal_attrs_impl
 
 __author__ = "Janis Gailis (S[&]T Norway), " \
              "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -559,7 +560,7 @@ class DatasetLike(Like[xr.Dataset]):
         if isinstance(value, xr.Dataset):
             return value
         if isinstance(value, pd.DataFrame):
-            return xr.Dataset.from_dataframe(value)
+            return adjust_temporal_attrs_impl(xr.Dataset.from_dataframe(value))
         raise ValueError('Value must be an xr.Dataset or pd.DataFrame')
 
     @classmethod
