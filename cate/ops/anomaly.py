@@ -126,7 +126,8 @@ def _group_anomaly(group: xr.Dataset,
 @op_return(add_history=True)
 def anomaly_internal(ds: xr.Dataset,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: PolygonLike.TYPE = None) -> xr.Dataset:
+                     region: PolygonLike.TYPE = None,
+                     monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Calculate anomaly using as reference data the mean of an optional region
     and time slice from the given dataset. If no time slice/spatial region is
@@ -146,5 +147,7 @@ def anomaly_internal(ds: xr.Dataset,
     if region:
         region = PolygonLike.convert(region)
         ref = subset_spatial(ref, region)
-    ref = ref.mean(keep_attrs=True, skipna=True)
-    return ds - ref
+    with monitor.observing("Calculating anomaly"):
+        ref = ref.mean(keep_attrs=True, skipna=True)
+        diff = ds - ref
+    return diff

@@ -34,13 +34,15 @@ from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import DatasetLike
+from cate.util.monitor import Monitor
 
 
 @op(tags=['arithmetic'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_return(add_history=True)
 def ds_arithmetics(ds: DatasetLike.TYPE,
-                   op: str) -> xr.Dataset:
+                   op: str,
+                   monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Do arithmetic operations on the given dataset by providing a list of
     arithmetic operations and the corresponding constant. The operations will
@@ -66,36 +68,41 @@ def ds_arithmetics(ds: DatasetLike.TYPE,
     """
     ds = DatasetLike.convert(ds)
     retset = ds
-    for item in op.split(','):
-        item = item.strip()
-        if item[0] == '+':
-            retset = retset + float(item[1:])
-        elif item[0] == '-':
-            retset = retset - float(item[1:])
-        elif item[0] == '*':
-            retset = retset * float(item[1:])
-        elif item[0] == '/':
-            retset = retset / float(item[1:])
-        elif item[:] == 'log':
-            retset = xu.log(retset)
-        elif item[:] == 'log10':
-            retset = xu.log10(retset)
-        elif item[:] == 'log2':
-            retset = xu.log2(retset)
-        elif item[:] == 'log1p':
-            retset = xu.log1p(retset)
-        elif item[:] == 'exp':
-            retset = xu.exp(retset)
-        else:
-            raise ValueError('Arithmetic operation {} not'
-                             ' implemented.'.format(item[0]))
+    with monitor.starting('Calculate result', total_work=len(op.split(','))):
+        for item in op.split(','):
+            child_mon = monitor.child(1)
+            with child_mon.observing("Calculate"):
+                item = item.strip()
+                if item[0] == '+':
+                    retset = retset + float(item[1:])
+                elif item[0] == '-':
+                    retset = retset - float(item[1:])
+                elif item[0] == '*':
+                    retset = retset * float(item[1:])
+                elif item[0] == '/':
+                    retset = retset / float(item[1:])
+                elif item[:] == 'log':
+                    retset = xu.log(retset)
+                elif item[:] == 'log10':
+                    retset = xu.log10(retset)
+                elif item[:] == 'log2':
+                    retset = xu.log2(retset)
+                elif item[:] == 'log1p':
+                    retset = xu.log1p(retset)
+                elif item[:] == 'exp':
+                    retset = xu.exp(retset)
+                else:
+                    raise ValueError('Arithmetic operation {} not'
+                                     ' implemented.'.format(item[0]))
 
     return retset
 
 
 @op(tags=['arithmetic'], version='1.0')
 @op_return(add_history=True)
-def diff(ds: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
+def diff(ds: xr.Dataset,
+         ds2: xr.Dataset,
+         monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Calculate the difference of two datasets (ds - ds2). This is done by
     matching variable names in the two datasets against each other and taking
@@ -143,4 +150,7 @@ def diff(ds: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
         else:
             raise TypeError(str(e))
 
-    return ds - ds2
+    with monitor.observing("Subtract datasets"):
+        diff = ds - ds2
+
+    return diff
