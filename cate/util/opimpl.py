@@ -242,10 +242,28 @@ def _get_temporal_props(ds: xr.Dataset) -> dict:
     """
     ret = dict()
 
-    ret['time_coverage_start'] = str(ds.time.values[0])
-    ret['time_coverage_end'] = str(ds.time.values[-1])
-    ret['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
-    ret['time_coverage_duration'] = _get_duration(ds.time.values)
+    try:
+        # According to CF conventions, the 'bounds' variable name should be in
+        # the attributes of the coordinate variable
+        bnds = ds['time'].attrs['bounds']
+        time_min = ds[bnds].values[0][0]
+        time_max = ds[bnds].values[-1][1]
+    except KeyError:
+        time_min = ds['time'].values[0]
+        time_max = ds['time'].values[-1]
+
+    if time_min != time_max:
+        ret['time_coverage_duration'] = _get_duration(time_min, time_max)
+    else:
+        ret['time_coverage_duration'] = None
+
+    if ds['time'].values[0] == ds['time'].values[-1]:
+        ret['time_coverage_resolution'] = None
+    else:
+        ret['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
+
+    ret['time_coverage_start'] = str(time_min)
+    ret['time_coverage_end'] = str(time_max)
 
     return ret
 
@@ -315,17 +333,19 @@ def _get_temporal_res(time: np.ndarray) -> str:
         return 'P{}D'.format(int(days))
 
 
-def _get_duration(time: np.ndarray) -> str:
+def _get_duration(tmin: np.datetime64, tmax: np.datetime64) -> str:
     """
-    Determine the duration of the given datetimes array.
+    Determine the duration of the given datetimes.
 
     See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
 
-    :param time: A numpy array containing np.datetime64 objects
+    :param tmin: Time minimum
+    :param tmax: Time maximum
     :return: Temporal resolution formatted as an ISO 8601:2004 duration string
     """
-    delta = time[-1] - time[0]
-    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+    delta = tmax - tmin
+    day = np.timedelta64(1, 'D')
+    days = (delta.astype('timedelta64[D]') / day) + 1
     return 'P{}D'.format(int(days))
 
 

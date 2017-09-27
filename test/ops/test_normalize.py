@@ -284,7 +284,7 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds1.attrs['time_coverage_resolution'],
                          'P1M')
         self.assertEqual(ds1.attrs['time_coverage_duration'],
-                         'P335D')
+                         'P336D')
 
         # Test existing attributes update
         indexers = {'time': slice(datetime(2000, 2, 15), datetime(2000, 6, 15))}
@@ -298,7 +298,7 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds2.attrs['time_coverage_resolution'],
                          'P1M')
         self.assertEqual(ds2.attrs['time_coverage_duration'],
-                         'P92D')
+                         'P93D')
 
     def test_bnds(self):
         """Test a case when time_bnds is available"""
@@ -331,11 +331,11 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds1.attrs['time_coverage_start'],
                          '2000-01-01T00:00:00.000000000')
         self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-12-31:00:00.000000000')
+                         '2000-12-31T00:00:00.000000000')
         self.assertEqual(ds1.attrs['time_coverage_resolution'],
                          'P1M')
         self.assertEqual(ds1.attrs['time_coverage_duration'],
-                         'P365D')
+                         'P366D')
 
     def test_single_slice(self):
         """Test a case when the dataset is a single time slice"""
@@ -362,10 +362,11 @@ class TestAdjustTemporal(TestCase):
                          '2000-01-01T00:00:00.000000000')
         self.assertEqual(ds1.attrs['time_coverage_end'],
                          '2000-01-31T00:00:00.000000000')
-        self.assertEqual(ds1.attrs['time_coverage_resolution'],
-                         'P1M')
         self.assertEqual(ds1.attrs['time_coverage_duration'],
                          'P31D')
+        with self.assertRaises(KeyError):
+            # Resolution is not defined for a single slice
+            ds.attrs['time_coverage_resolution']
 
         # Without bnds
         ds = xr.Dataset({
@@ -380,7 +381,7 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds1.attrs['time_coverage_start'],
                          '2000-01-01T00:00:00.000000000')
         self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-01-01:00:00.000000000')
+                         '2000-01-01T00:00:00.000000000')
         with self.assertRaises(KeyError):
             ds.attrs['time_coverage_resolution']
         with self.assertRaises(KeyError):
