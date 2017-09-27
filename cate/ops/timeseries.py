@@ -34,6 +34,7 @@ import xarray as xr
 from cate.core.op import op_input, op, op_return
 from cate.ops.select import select_var
 from cate.core.types import VarNamesLike, PointLike
+from cate.util import Monitor
 
 
 @op(tags=['timeseries', 'temporal', 'filter', 'point'], version='1.0')
@@ -96,7 +97,8 @@ def tseries_point(ds: xr.Dataset,
 def tseries_mean(ds: xr.Dataset,
                  var: VarNamesLike.TYPE,
                  std_suffix: str = '_std',
-                 calculate_std: bool = True) -> xr.Dataset:
+                 calculate_std: bool = True,
+                 monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Extract spatial mean timeseries of the provided variables, return the
     dataset that in addition to all the information in the given dataset
@@ -111,6 +113,7 @@ def tseries_mean(ds: xr.Dataset,
     :param var: Variables for which to perform timeseries extraction
     :param calculate_std: Whether to calculate std in addition to mean
     :param std_suffix: Std suffix to use for resulting datasets, if std is calculated.
+    :param monitor: a progress monitor.
     :return: Dataset with timeseries variables
     """
     if not var:
@@ -119,13 +122,15 @@ def tseries_mean(ds: xr.Dataset,
     retset = select_var(ds, var)
     names = retset.data_vars.keys()
 
-    for name in names:
-        dims = list(ds[name].dims)
-        dims.remove('time')
-        retset[name] = retset[name].mean(dim=dims, keep_attrs=True)
-        retset[name].attrs['Cate_Description'] = 'Mean aggregated over {} at each point in time.'.format(dims)
-        std_name = name + std_suffix
-        retset[std_name] = ds[name].std(dim=dims)
-        retset[std_name].attrs['Cate_Description'] = 'Accompanying std values for variable \'{}\''.format(name)
+    with monitor.starting("Calculate mean", total_work=len(names)):
+        for name in names:
+            dims = list(ds[name].dims)
+            dims.remove('time')
+            with monitor.child(1).observing("Calculate mean"):
+                retset[name] = retset[name].mean(dim=dims, keep_attrs=True)
+            retset[name].attrs['Cate_Description'] = 'Mean aggregated over {} at each point in time.'.format(dims)
+            std_name = name + std_suffix
+            retset[std_name] = ds[name].std(dim=dims)
+            retset[std_name].attrs['Cate_Description'] = 'Accompanying std values for variable \'{}\''.format(name)
 
     return retset

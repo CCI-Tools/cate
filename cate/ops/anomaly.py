@@ -63,8 +63,9 @@ def anomaly_external(ds: xr.Dataset,
 
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
-    :param str: Apply the given transformation before calculating the anomaly.
+    :param transform: Apply the given transformation before calculating the anomaly.
     For supported operations see help on 'ds_arithmetics' operation.
+    :param monitor: a progress monitor.
     :return: The anomaly dataset
     """
     # Check if the time coordinate is of dtype datetime
@@ -126,7 +127,8 @@ def _group_anomaly(group: xr.Dataset,
 @op_return(add_history=True)
 def anomaly_internal(ds: xr.Dataset,
                      time_range: TimeRangeLike.TYPE = None,
-                     region: PolygonLike.TYPE = None) -> xr.Dataset:
+                     region: PolygonLike.TYPE = None,
+                     monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Calculate anomaly using as reference data the mean of an optional region
     and time slice from the given dataset. If no time slice/spatial region is
@@ -137,6 +139,7 @@ def anomaly_internal(ds: xr.Dataset,
     :param ds: The dataset to calculate anomalies from
     :param time_range: Time range to use for reference data
     :param region: Spatial region to use for reference data
+    :param monitor: a progress monitor.
     :return: The anomaly dataset
     """
     ref = ds.copy()
@@ -146,5 +149,7 @@ def anomaly_internal(ds: xr.Dataset,
     if region:
         region = PolygonLike.convert(region)
         ref = subset_spatial(ref, region)
-    ref = ref.mean(keep_attrs=True, skipna=True)
-    return ds - ref
+    with monitor.observing("Calculating anomaly"):
+        ref = ref.mean(keep_attrs=True, skipna=True)
+        diff = ds - ref
+    return diff
