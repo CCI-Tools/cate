@@ -8,6 +8,7 @@ import xarray as xr
 from jdcal import gcal2jd
 import numpy as np
 from datetime import datetime
+import calendar
 
 from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.core.op import OP_REGISTRY
@@ -298,3 +299,100 @@ class TestAdjustTemporal(TestCase):
                          'P1M')
         self.assertEqual(ds2.attrs['time_coverage_duration'],
                          'P92D')
+
+    def test_bnds(self):
+        """Test a case when time_bnds is available"""
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+
+        month_ends = list()
+        for x in ds.time.values:
+            year = int(str(x)[0:4])
+            month = int(str(x)[5:7])
+            day = calendar.monthrange(year, month)[1]
+            month_ends.append(datetime(year, month, day))
+
+        time_bnds = np.empty([len(ds.time), 2])
+        time_bnds[:, 0] = ds.time.values
+        time_bnds[:, 1] = month_ends
+
+        ds['nv'] = [0, 1]
+        ds['time_bnds'] = (['time', 'nv'], time_bnds)
+        ds.time.attrs['bounds'] = 'time_bnds'
+
+        ds1 = adjust_temporal_attrs(ds)
+
+        # Make sure original dataset is not altered
+        with self.assertRaises(KeyError):
+            ds.attrs['time_coverage_start']
+
+        # Make sure expected values are in the new dataset
+        self.assertEqual(ds1.attrs['time_coverage_start'],
+                         '2000-01-01T00:00:00.000000000')
+        self.assertEqual(ds1.attrs['time_coverage_end'],
+                         '2000-12-31:00:00.000000000')
+        self.assertEqual(ds1.attrs['time_coverage_resolution'],
+                         'P1M')
+        self.assertEqual(ds1.attrs['time_coverage_duration'],
+                         'P365D')
+
+    def test_single_slice(self):
+        """Test a case when the dataset is a single time slice"""
+        # With bnds
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, 1, 1)]})
+
+        year = int(str(ds.time.values[0])[0:4])
+        month = int(str(ds.time.values[0])[5:7])
+        day = calendar.monthrange(year, month)[1]
+
+        time_bnds = np.empty([1, 2])
+        time_bnds[0, 0] = ds.time.values[0]
+        time_bnds[0, 1] = datetime(year, month, day)
+
+        ds['nv'] = [0, 1]
+        ds['time_bnds'] = (['time', 'nv'], time_bnds)
+        ds.time.attrs['bounds'] = 'time_bnds'
+
+        ds1 = adjust_temporal_attrs(ds)
+
+        # Make sure original dataset is not altered
+        with self.assertRaises(KeyError):
+            ds.attrs['time_coverage_start']
+
+        # Make sure expected values are in the new dataset
+        self.assertEqual(ds1.attrs['time_coverage_start'],
+                         '2000-01-01T00:00:00.000000000')
+        self.assertEqual(ds1.attrs['time_coverage_end'],
+                         '2000-01-31T00:00:00.000000000')
+        self.assertEqual(ds1.attrs['time_coverage_resolution'],
+                         'P1M')
+        self.assertEqual(ds1.attrs['time_coverage_duration'],
+                         'P31D')
+
+        # Without bnds
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, 1, 1)]})
+
+        ds1 = adjust_temporal_attrs(ds)
+
+        self.assertEqual(ds1.attrs['time_coverage_start'],
+                         '2000-01-01T00:00:00.000000000')
+        self.assertEqual(ds1.attrs['time_coverage_end'],
+                         '2000-01-01:00:00.000000000')
+        with self.assertRaises(KeyError):
+            ds.attrs['time_coverage_resolution']
+        with self.assertRaises(KeyError):
+            ds.attrs['time_coverage_duration']

@@ -219,12 +219,35 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = ds.copy()
 
-    ds.attrs['time_coverage_start'] = str(ds.time.values[0])
-    ds.attrs['time_coverage_end'] = str(ds.time.values[-1])
-    ds.attrs['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
-    ds.attrs['time_coverage_duration'] = _get_duration(ds.time.values)
+    tempattrs = _get_temporal_props(ds)
+
+    for key in tempattrs:
+        if tempattrs[key] is not None:
+            ds.attrs[key] = tempattrs[key]
+        else:
+            ds.attrs.pop(key, None)
 
     return ds
+
+
+def _get_temporal_props(ds: xr.Dataset) -> dict:
+    """
+    Get temporal boundaries, resolution and duration of the given dataset. If
+    the 'bounds' are explicitly defined, these will be used for calculation,
+    otherwise it will rest on information gathered from the 'time' dimension
+    itself.
+
+    :param ds: Dataset
+    :return: A dictionary {'attr_name': attr_value}
+    """
+    ret = dict()
+
+    ret['time_coverage_start'] = str(ds.time.values[0])
+    ret['time_coverage_end'] = str(ds.time.values[-1])
+    ret['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
+    ret['time_coverage_duration'] = _get_duration(ds.time.values)
+
+    return ret
 
 
 def _get_spatial_props(ds: xr.Dataset, dim: str) -> dict:
