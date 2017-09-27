@@ -70,8 +70,7 @@ def enso_nino34(ds: xr.Dataset,
     """
     n34 = '-170, -5, -120, 5'
     name = 'ENSO N3.4 Index'
-    return _generic_index_calculation(ds, var, n34, 5, file, name, threshold,
-                                      monitor)
+    return _generic_index_calculation(ds, var, n34, 5, file, name, threshold, monitor)
 
 
 @op(tags=['index'])
@@ -117,8 +116,7 @@ def enso(ds: xr.Dataset,
     if 'custom' == region:
         name = 'ENSO Index over ' + PolygonLike.format(converted_region)
 
-    return _generic_index_calculation(ds, var, converted_region, 5, file, name,
-                                      threshold, monitor)
+    return _generic_index_calculation(ds, var, converted_region, 5, file, name, threshold, monitor)
 
 
 @op(tags=['index'])
@@ -146,7 +144,7 @@ def oni(ds: xr.Dataset,
     """
     n34 = '-170, -5, -120, 5'
     name = 'ONI Index'
-    return _generic_index_calculation(ds, var, n34, 3, file, name, threshold)
+    return _generic_index_calculation(ds, var, n34, 3, file, name, threshold, monitor)
 
 
 def _generic_index_calculation(ds: xr.Dataset,
@@ -175,12 +173,11 @@ def _generic_index_calculation(ds: xr.Dataset,
     var = VarName.convert(var)
     region = PolygonLike.convert(region)
 
-    with monitor.starting("Calculate the index"):
-        child_mon = monitor.child(1)
+    with monitor.starting("Calculate the index", total_work=2):
         ds = select_var(ds, var)
         ds_subset = subset_spatial(ds, region)
-        anom = anomaly_external(ds_subset, file, monitor=child_mon)
-        with monitor.observing("Calculate mean"):
+        anom = anomaly_external(ds_subset, file, monitor=monitor.child(1))
+        with monitor.child(1).observing("Calculate mean"):
             ts = anom.mean(dim=['lat', 'lon'])
         df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time)
         retval = df.rolling(window=window, center=True).mean().dropna()

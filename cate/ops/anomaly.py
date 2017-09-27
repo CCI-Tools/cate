@@ -63,8 +63,9 @@ def anomaly_external(ds: xr.Dataset,
 
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
-    :param str: Apply the given transformation before calculating the anomaly.
+    :param transform: Apply the given transformation before calculating the anomaly.
     For supported operations see help on 'ds_arithmetics' operation.
+    :param monitor: a progress monitor.
     :return: The anomaly dataset
     """
     # Check if the time coordinate is of dtype datetime
@@ -138,6 +139,7 @@ def anomaly_internal(ds: xr.Dataset,
     :param ds: The dataset to calculate anomalies from
     :param time_range: Time range to use for reference data
     :param region: Spatial region to use for reference data
+    :param monitor: a progress monitor.
     :return: The anomaly dataset
     """
     ref = ds.copy()

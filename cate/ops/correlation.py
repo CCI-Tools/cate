@@ -70,6 +70,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param monitor: a progress monitor.
     :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
     ds_x = DatasetLike.convert(ds_x)
@@ -96,7 +97,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
         raise ValueError('The length of the time dimension should not be less'
                          ' than three to run the calculation.')
 
-    with monitor.starting("Calculate Pearson correlation", total_work=1):
+    with monitor.observing("Calculate Pearson correlation"):
         cc, pv = pearsonr(array_x.values, array_y.values)
 
     return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
@@ -142,6 +143,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
     :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param monitor: a progress monitor.
     :returns: a dataset containing a map of correlation coefficients and p_values
     """
     ds_x = DatasetLike.convert(ds_x)
@@ -231,7 +233,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
     ----------
     http://www.statsoft.com/textbook/glosp.html#Pearson%20Correlation
     """
-    with monitor.observing("Calculate Pearson correlation"):
+    with monitor.starting("Calculate Pearson correlation", total_work=6):
         n = len(x['time'])
 
         xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
@@ -251,8 +253,14 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
         # deferred processing.
         # Comparing with NaN produces warnings that can be safely ignored
         default_warning_settings = np.seterr(invalid='ignore')
-        r.values[r.values < -1.0] = -1.0
-        r.values[r.values > 1.0] = 1.0
+        with monitor.child(1).observing("task 1"):
+            negativ_r = r.values < -1.0
+        with monitor.child(1).observing("task 2"):
+            r.values[negativ_r] = -1.0
+        with monitor.child(1).observing("task 3"):
+            positiv_r = r.values > 1.0
+        with monitor.child(1).observing("task 4"):
+            r.values[positiv_r] = 1.0
         np.seterr(**default_warning_settings)
         r.attrs = {'description': 'Correlation coefficients between'
                    ' {} and {}.'.format(x.name, y.name)}
@@ -261,7 +269,10 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
         t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
                                                  (1.0 + r.where(r != -1))))
         prob = df / (df + t_squared)
-        prob.values = betainc(0.5 * df, 0.5, prob.values)
+        with monitor.child(1).observing("task 5"):
+            prob_values_in = prob.values
+        with monitor.child(1).observing("task 6"):
+            prob.values = betainc(0.5 * df, 0.5, prob_values_in)
         prob.attrs = {'description': 'Rough indicator of probability of an'
                       ' uncorrelated system producing datasets that have a Pearson'
                       ' correlation at least as extreme as the one computed from'

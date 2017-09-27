@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 
 from cate.ops.correlation import pearson_correlation_scalar, pearson_correlation
+from ..util.test_monitor import RecordingMonitor
 
 
 class TestPearsonScalar(TestCase):
@@ -83,7 +84,7 @@ class TestPearson(TestCase):
                                                          np.ones([4, 8])])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2, 3])})
+            'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
 
         ds2 = xr.Dataset({
             'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]),
@@ -94,9 +95,11 @@ class TestPearson(TestCase):
                                                         np.ones([4, 8])])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
-            'time': np.array([1, 2, 3])})
+            'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
 
-        corr = pearson_correlation(ds1, ds2, 'first', 'first')
+        rm = RecordingMonitor()
+        corr = pearson_correlation(ds1, ds2, 'first', 'first', monitor=rm)
+        self.assertEqual(564, len(rm.records))
 
         self.assertTrue(corr['corr_coef'].max() == corr['corr_coef'].min())
         self.assertTrue(corr['corr_coef'].max() == -0.5)

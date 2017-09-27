@@ -126,7 +126,7 @@ def tseries_mean(ds: xr.Dataset,
         for name in names:
             dims = list(ds[name].dims)
             dims.remove('time')
-            with monitor.observing("Calculate mean"):
+            with monitor.child(1).observing("Calculate mean"):
                 retset[name] = retset[name].mean(dim=dims, keep_attrs=True)
             retset[name].attrs['Cate_Description'] = 'Mean aggregated over {} at each point in time.'.format(dims)
             std_name = name + std_suffix

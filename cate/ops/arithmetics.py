@@ -64,14 +64,14 @@ def ds_arithmetics(ds: DatasetLike.TYPE,
 
     :param ds: The dataset to which to apply arithmetic operations
     :param op: A comma separated list of arithmetic operations to apply
+    :param monitor: a progress monitor.
     :return: The dataset with given arithmetic operations applied
     """
     ds = DatasetLike.convert(ds)
     retset = ds
     with monitor.starting('Calculate result', total_work=len(op.split(','))):
         for item in op.split(','):
-            child_mon = monitor.child(1)
-            with child_mon.observing("Calculate"):
+            with monitor.child(1).observing("Calculate"):
                 item = item.strip()
                 if item[0] == '+':
                     retset = retset + float(item[1:])
@@ -118,6 +118,7 @@ def diff(ds: xr.Dataset,
 
     :param ds: The minuend dataset
     :param ds2: The subtrahend dataset
+    :param monitor: a progress monitor.
     :return: The difference dataset
     """
     try:
