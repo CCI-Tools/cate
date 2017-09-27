@@ -130,6 +130,8 @@ class WorkspaceManagerTestMixin:
                                                  dict(),
                                                  res_name='noop',
                                                  monitor=rm)
+        # the websocket clients send always progress with 'None' arguments after start
+        cleaned_records = [r for r in rm.records if len(r) < 2 or r[1] is not None]
         self.assertEquals([
             ('start', 'Computing nothing', 10),
             ('progress', 1.0, 'Step 1 of 10 doing nothing', 10),
@@ -143,7 +145,7 @@ class WorkspaceManagerTestMixin:
             ('progress', 1.0, 'Step 9 of 10 doing nothing', 90),
             ('progress', 1.0, 'Step 10 of 10 doing nothing', 100),
             ('done',)
-        ], rm.records)
+        ], cleaned_records)
         self.del_base_dir(base_dir)
 
     def test_session(self):
