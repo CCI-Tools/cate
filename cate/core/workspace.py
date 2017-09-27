@@ -505,8 +505,9 @@ class Workspace:
 
         :param res_name: An optional resource name. If given and not empty, it must be unique within this workspace.
                If not provided, a workspace-unique resource name will be generated.
-        :param op_name:
-        :param op_kwargs:
+        :param op_name: The name of a registered operation.
+        :param op_kwargs: The operation's keyword arguments. Each argument must be a dict having either a "source" or
+               "value" key.
         :param overwrite:
         :param validate_args:
         :return: The resource name, either the one passed in or a generated one.
@@ -520,6 +521,11 @@ class Workspace:
 
         if not res_name:
             res_name = self._new_resource_name(op)
+
+        # TODO (forman): #391
+        print('res_name=%s' %res_name)
+        import time
+        time.sleep(0.25)
 
         new_step = OpStep(op, node_id=res_name)
 

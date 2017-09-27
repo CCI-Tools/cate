@@ -281,6 +281,29 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 5)
         self.assertEqual(ws.resource_cache.get('Z'), 5)
 
+    # TODO (forman): #391
+    def test_set_resource_is_reentrant(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+
+        def set_resource_and_execute():
+            res_name = ws.set_resource('cate.ops.utility.no_op',
+                                       op_kwargs=dict(num_steps=dict(value=10),
+                                                      step_duration=dict(value=0.05)))
+            ws.execute_workflow(res_name=res_name)
+            return res_name
+
+        num_res = 5
+        res_names = []
+        with ThreadPoolExecutor(max_workers=2 * num_res) as executor:
+            for i in range(num_res):
+                res_names.append(executor.submit(set_resource_and_execute))
+
+        actual_res_names = {f.result() for f in res_names}
+        expected_res_names = {'res_%s' % (i + 1) for i in range(num_res)}
+        self.assertEqual(actual_res_names, expected_res_names)
+
     def test_example(self):
         expected_json_text = """{
             "schema_version": 1,
@@ -328,7 +351,8 @@ class WorkspaceTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             ws.set_resource('cate.ops.timeseries.tseries_point',
-                            mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2', validate_args=True)
+                            mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
+                            validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
                                            "cannot convert value <iih!> to PointLike")
 
