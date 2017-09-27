@@ -53,7 +53,7 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataSourceStatus, DataStore, DataSource, open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -79,8 +79,8 @@ def add_to_data_store_registry():
 # TODO (kbernat): document this class
 class LocalDataSource(DataSource):
     """
-
-    :param ds_id:
+    Local Data Source implementation provides access to locally stored data sets.
+    :param ds_id: unique ID of data source
     :param files:
     :param data_store:
     :param temporal_coverage:
@@ -131,7 +131,7 @@ class LocalDataSource(DataSource):
                  'standard_name': ''
                  } for var_name in self._variables]
 
-        self._is_complete = True
+        self._state = DataSourceStatus.READY
 
     def _resolve_file_path(self, path) -> Sequence:
         return glob(os.path.join(self._data_store.data_store_path, path))
@@ -541,6 +541,10 @@ class LocalDataSource(DataSource):
         return self._data_store
 
     @property
+    def status(self) -> DataSourceStatus:
+        return self._status
+
+    @property
     def id(self) -> str:
         return self._id
 
@@ -562,7 +566,7 @@ class LocalDataSource(DataSource):
         Return a DataSource creation state
         :return:
         """
-        return self._is_complete
+        return self._state is DataSourceStatus.READY
 
     @property
     def is_empty(self) -> bool:
@@ -574,11 +578,12 @@ class LocalDataSource(DataSource):
 
     def set_completed(self, state: bool):
         """
-        Sets state of DataSource creation/completion
-        :param state: Is DataSource completed
-        :return:
+        Sets state of DataSource completion
         """
-        self._is_complete = state
+        if state:
+            self._state = DataSourceStatus.READY
+        else:
+            self._state = DataSourceStatus.PROCESSING
 
     def _repr_html_(self):
         import html

@@ -80,6 +80,7 @@ Components
 
 import glob
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 from math import ceil, sqrt
 from typing import Sequence, Optional, Union, Tuple, Any
 
@@ -136,6 +137,13 @@ class DataSource(metaclass=ABCMeta):
     @abstractmethod
     def data_store(self) -> 'DataStore':
         """The data store to which this data source belongs."""
+
+    @property
+    def status(self) -> 'DataSourceStatus':
+        """
+        Return information about data source accessibility
+        """
+        return DataSourceStatus.READY
 
     # TODO (forman): issue #399 - remove "ds_id", see TODO on "DataStore.query()"
     def matches(self, ds_id: str = None, query_expr: str = None) -> bool:
@@ -328,6 +336,20 @@ class DataSource(metaclass=ABCMeta):
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
+
+
+class DataSourceStatus(Enum):
+    """
+    Enum stating current state of Data Source accessibility.
+     * READY - data is complete and ready to use
+     * ERROR - data initialization process has been interrupted, causing that data source is incomplete or/and corrupted
+     * PROCESSING - data source initialization process is in progress.
+     * CANCELLED - data initialization process has been intentionally interrupted by user
+    """
+    READY = "READY",
+    ERROR = "ERROR",
+    PROCESSING = "PROCESSING",
+    CANCELLED = "CANCELLED"
 
 
 class DataStore(metaclass=ABCMeta):
