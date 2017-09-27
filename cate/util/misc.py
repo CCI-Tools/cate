@@ -29,7 +29,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple, Sequence, Optional
+from typing import Union, Tuple, Sequence, Optional, Iterable
 
 import numpy as np
 
@@ -389,7 +389,7 @@ def filter_fileset(names: Sequence[str],
     return filtered_names
 
 
-def new_indexed_name(names: Sequence[str], pattern: str) -> str:
+def new_indexed_name(names: Iterable[str], pattern: str) -> str:
     """
     Return a new name that is unique in *names* and that conforms to *pattern*. The argument
     *pattern* must contain a single ``"{index}"`` substring.
