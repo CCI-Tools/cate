@@ -38,6 +38,7 @@ from scipy.special import betainc
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import VarName, DatasetLike
+from cate.util import Monitor
 
 from cate.ops.normalize import adjust_spatial_attrs
 
@@ -50,7 +51,8 @@ from cate.ops.normalize import adjust_spatial_attrs
 def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
                                ds_y: DatasetLike.TYPE,
                                var_x: VarName.TYPE,
-                               var_y: VarName.TYPE) -> pd.DataFrame:
+                               var_y: VarName.TYPE,
+                               monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
@@ -68,6 +70,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param monitor: a progress monitor.
     :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
     ds_x = DatasetLike.convert(ds_x)
@@ -94,7 +97,9 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
         raise ValueError('The length of the time dimension should not be less'
                          ' than three to run the calculation.')
 
-    cc, pv = pearsonr(array_x.values, array_y.values)
+    with monitor.observing("Calculate Pearson correlation"):
+        cc, pv = pearsonr(array_x.values, array_y.values)
+
     return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
 
 
@@ -107,7 +112,8 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
 def pearson_correlation(ds_x: DatasetLike.TYPE,
                         ds_y: DatasetLike.TYPE,
                         var_x: VarName.TYPE,
-                        var_y: VarName.TYPE) -> xr.Dataset:
+                        var_y: VarName.TYPE,
+                        monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
@@ -137,6 +143,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
     :param ds_y: The 'y' dataset
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
+    :param monitor: a progress monitor.
     :returns: a dataset containing a map of correlation coefficients and p_values
     """
     ds_x = DatasetLike.convert(ds_x)
@@ -189,13 +196,13 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
                          ' than three to run the calculation.')
 
     # Do pixel by pixel correlation
-    retset = _pearsonr(array_x, array_y)
+    retset = _pearsonr(array_x, array_y, monitor)
     retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
 
     return adjust_spatial_attrs(retset)
 
 
-def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
+def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
     """
     Calculates Pearson correlation coefficients and p-values for testing
     non-correlation of lon/lat/time xarray datasets for each lon/lat point.
@@ -218,6 +225,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     :param x: lon/lat/time xr.DataArray
     :param y: xr.DataArray of the same spatiotemporal extents and resolution as
     x.
+    :param monitor: Monitor to use for monitoring the calculation
     :return: A dataset containing the correlation coefficients and p_values on
     the lon/lat grid of x and y.
 
@@ -225,42 +233,52 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray) -> xr.Dataset:
     ----------
     http://www.statsoft.com/textbook/glosp.html#Pearson%20Correlation
     """
-    n = len(x['time'])
+    with monitor.starting("Calculate Pearson correlation", total_work=6):
+        n = len(x['time'])
 
-    xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
-    xm_ym = xm * ym
-    r_num = xm_ym.sum(dim='time')
-    xm_squared = xr.ufuncs.square(xm)
-    ym_squared = xr.ufuncs.square(ym)
-    r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') *
-                           ym_squared.sum(dim='time'))
-    r_den = r_den.where(r_den != 0)
-    r = r_num / r_den
+        xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
+        xm_ym = xm * ym
+        r_num = xm_ym.sum(dim='time')
+        xm_squared = xr.ufuncs.square(xm)
+        ym_squared = xr.ufuncs.square(ym)
+        r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') *
+                               ym_squared.sum(dim='time'))
+        r_den = r_den.where(r_den != 0)
+        r = r_num / r_den
 
-    # Presumably, if abs(r) > 1, then it is only some small artifact of floating
-    # point arithmetic.
-    # At this point r should be a lon/lat dataArray, so it should be safe to
-    # load it in memory explicitly. This may take time as it will kick-start
-    # deferred processing.
-    # Comparing with NaN produces warnings that can be safely ignored
-    default_warning_settings = np.seterr(invalid='ignore')
-    r.values[r.values < -1.0] = -1.0
-    r.values[r.values > 1.0] = 1.0
-    np.seterr(**default_warning_settings)
-    r.attrs = {'description': 'Correlation coefficients between'
-               ' {} and {}.'.format(x.name, y.name)}
+        # Presumably, if abs(r) > 1, then it is only some small artifact of floating
+        # point arithmetic.
+        # At this point r should be a lon/lat dataArray, so it should be safe to
+        # load it in memory explicitly. This may take time as it will kick-start
+        # deferred processing.
+        # Comparing with NaN produces warnings that can be safely ignored
+        default_warning_settings = np.seterr(invalid='ignore')
+        with monitor.child(1).observing("task 1"):
+            negativ_r = r.values < -1.0
+        with monitor.child(1).observing("task 2"):
+            r.values[negativ_r] = -1.0
+        with monitor.child(1).observing("task 3"):
+            positiv_r = r.values > 1.0
+        with monitor.child(1).observing("task 4"):
+            r.values[positiv_r] = 1.0
+        np.seterr(**default_warning_settings)
+        r.attrs = {'description': 'Correlation coefficients between'
+                   ' {} and {}.'.format(x.name, y.name)}
 
-    df = n - 2
-    t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
-                                             (1.0 + r.where(r != -1))))
-    prob = df / (df + t_squared)
-    prob.values = betainc(0.5 * df, 0.5, prob.values)
-    prob.attrs = {'description': 'Rough indicator of probability of an'
-                  ' uncorrelated system producing datasets that have a Pearson'
-                  ' correlation at least as extreme as the one computed from'
-                  ' these datsets. Not entirely reliable, but reasonable for'
-                  ' datasets larger than 500 or so.'}
+        df = n - 2
+        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
+                                                 (1.0 + r.where(r != -1))))
+        prob = df / (df + t_squared)
+        with monitor.child(1).observing("task 5"):
+            prob_values_in = prob.values
+        with monitor.child(1).observing("task 6"):
+            prob.values = betainc(0.5 * df, 0.5, prob_values_in)
+        prob.attrs = {'description': 'Rough indicator of probability of an'
+                      ' uncorrelated system producing datasets that have a Pearson'
+                      ' correlation at least as extreme as the one computed from'
+                      ' these datsets. Not entirely reliable, but reasonable for'
+                      ' datasets larger than 500 or so.'}
 
-    retset = xr.Dataset({'corr_coef': r,
-                         'p_value': prob})
+        retset = xr.Dataset({'corr_coef': r,
+                             'p_value': prob})
     return retset

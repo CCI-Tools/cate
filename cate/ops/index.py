@@ -37,6 +37,7 @@ from cate.ops.select import select_var
 from cate.ops.subset import subset_spatial
 from cate.ops.anomaly import anomaly_external
 from cate.core.types import PolygonLike, VarName
+from cate.util import Monitor
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -48,7 +49,8 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 def enso_nino34(ds: xr.Dataset,
                 var: VarName.TYPE,
                 file: str,
-                threshold: float=None) -> pd.DataFrame:
+                threshold: float=None,
+                monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate nino34 index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in Nino3.4 region:: lon_min=-170
@@ -63,11 +65,12 @@ def enso_nino34(ds: xr.Dataset,
     threshold. Where anomaly larger than the positive value of the threshold
     indicates El Nino and anomaly smaller than the negative of the given
     threshold indicates La Nina.
+    :param monitor: a progress monitor.
     :return: A dataset that contains the index timeseries.
     """
     n34 = '-170, -5, -120, 5'
     name = 'ENSO N3.4 Index'
-    return _generic_index_calculation(ds, var, n34, 5, file, name, threshold)
+    return _generic_index_calculation(ds, var, n34, 5, file, name, threshold, monitor)
 
 
 @op(tags=['index'])
@@ -80,7 +83,8 @@ def enso(ds: xr.Dataset,
          file: str,
          region: str='n34',
          custom_region: PolygonLike.TYPE=None,
-         threshold: float=None) -> pd.DataFrame:
+         threshold: float=None,
+         monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate ENSO index, which is defined as a five month running mean of
     anomalies of monthly means of SST data in the given region.
@@ -96,6 +100,7 @@ def enso(ds: xr.Dataset,
     threshold. Where anomaly larger than then positive value of the threshold
     indicates El Nino and anomaly smaller than the negative of the given
     threshold indicates La Nina.
+    :param monitor: a progress monitor.
     :return: A dataset that contains the index timeseries.
     """
     regions = {'N1+2': '-90, -10, -80, 0',
@@ -111,13 +116,17 @@ def enso(ds: xr.Dataset,
     if 'custom' == region:
         name = 'ENSO Index over ' + PolygonLike.format(converted_region)
 
-    return _generic_index_calculation(ds, var, converted_region, 5, file, name, threshold)
+    return _generic_index_calculation(ds, var, converted_region, 5, file, name, threshold, monitor)
 
 
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
-def oni(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=None) -> pd.DataFrame:
+def oni(ds: xr.Dataset,
+        var: VarName.TYPE,
+        file: str,
+        threshold: float=None,
+        monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate ONI index, which is defined as a three month running mean of
     anomalies of monthly means of SST data in the Nino3.4 region.
@@ -130,10 +139,12 @@ def oni(ds: xr.Dataset, var: VarName.TYPE, file: str, threshold: float=None) -> 
     threshold. Where anomaly larger than then positive value of the threshold
     indicates El Nino and anomaly smaller than the negative of the given
     threshold indicates La Nina.
+    :param monitor: a progress monitor.
+    :return: A dataset that containts the index timeseries
     """
     n34 = '-170, -5, -120, 5'
     name = 'ONI Index'
-    return _generic_index_calculation(ds, var, n34, 3, file, name, threshold)
+    return _generic_index_calculation(ds, var, n34, 3, file, name, threshold, monitor)
 
 
 def _generic_index_calculation(ds: xr.Dataset,
@@ -142,7 +153,8 @@ def _generic_index_calculation(ds: xr.Dataset,
                                window: int,
                                file: str,
                                name: str,
-                               threshold: float = None) -> pd.DataFrame:
+                               threshold: float = None,
+                               monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     A generic index calculation. Where an index is defined as an anomaly
     against the given reference of a moving average of the given window size of
@@ -155,16 +167,20 @@ def _generic_index_calculation(ds: xr.Dataset,
     :param file: Path to the reference file
     :param threshold: Absolute threshold that indicates an ENSO event
     :param name: Name of the index
+    :param monitor: a progress monitor.
+    :return: A dataset that contains the index timeseries
     """
     var = VarName.convert(var)
     region = PolygonLike.convert(region)
 
-    ds = select_var(ds, var)
-    ds_subset = subset_spatial(ds, region)
-    anom = anomaly_external(ds_subset, file)
-    ts = anom.mean(dim=['lat', 'lon'])
-    df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time)
-    retval = df.rolling(window=window, center=True).mean().dropna()
+    with monitor.starting("Calculate the index", total_work=2):
+        ds = select_var(ds, var)
+        ds_subset = subset_spatial(ds, region)
+        anom = anomaly_external(ds_subset, file, monitor=monitor.child(1))
+        with monitor.child(1).observing("Calculate mean"):
+            ts = anom.mean(dim=['lat', 'lon'])
+        df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time)
+        retval = df.rolling(window=window, center=True).mean().dropna()
 
     if threshold is None:
         return retval
