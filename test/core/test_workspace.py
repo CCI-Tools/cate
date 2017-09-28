@@ -8,7 +8,7 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
+from cate.core.workspace import Workspace, WorkspaceError, mk_op_arg, mk_op_args, mk_op_kwargs
 from cate.util import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 
@@ -303,6 +303,23 @@ class WorkspaceTest(unittest.TestCase):
         actual_res_names = {f.result() for f in res_names}
         expected_res_names = {'res_%s' % (i + 1) for i in range(num_res)}
         self.assertEqual(actual_res_names, expected_res_names)
+
+    def test_validate_res_name(self):
+        Workspace._validate_res_name("a")
+        Workspace._validate_res_name("A")
+        Workspace._validate_res_name("abc_42")
+        Workspace._validate_res_name("abc42")
+        Workspace._validate_res_name("_abc42")
+        # with self.assertRaises(WorkspaceError):
+        #     Workspace._validate_res_name("0")
+        with self.assertRaises(WorkspaceError):
+            Workspace._validate_res_name("a-b")
+        with self.assertRaises(WorkspaceError):
+            Workspace._validate_res_name("a+b")
+        with self.assertRaises(WorkspaceError):
+            Workspace._validate_res_name("a.b")
+        with self.assertRaises(WorkspaceError):
+            Workspace._validate_res_name("file://path")
 
     def test_example(self):
         expected_json_text = """{
