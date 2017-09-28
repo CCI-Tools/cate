@@ -486,6 +486,7 @@ class Workspace:
                 del self._resource_cache[res_name]
 
     def rename_resource(self, res_name: str, new_res_name: str) -> None:
+        Workspace._validate_res_name(new_res_name)
         with self._lock:
             res_step = self.workflow.find_node(res_name)
             if res_step is None:
@@ -533,6 +534,7 @@ class Workspace:
                 default_res_pattern = conf.get_default_res_pattern()
                 res_pattern = op.op_meta_info.header.get('res_pattern', default_res_pattern)
                 res_name = self._new_resource_name(res_pattern)
+            Workspace._validate_res_name(res_name)
 
             new_step = OpStep(op, node_id=res_name)
 
@@ -655,6 +657,15 @@ class Workspace:
 
     def _new_resource_name(self, res_pattern):
         return new_indexed_name({step.id for step in self.workflow.steps}, res_pattern)
+
+    @staticmethod
+    def _validate_res_name(res_name: str):
+        if not res_name.isidentifier():
+            raise WorkspaceError(
+                "Resource name '%s' is not valid. "
+                "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
+                "except for the first character, the digits 0 through 9." % res_name)
+
 
 
 # noinspection PyArgumentList
