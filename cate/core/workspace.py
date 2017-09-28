@@ -667,7 +667,6 @@ class Workspace:
                 "except for the first character, the digits 0 through 9." % res_name)
 
 
-
 # noinspection PyArgumentList
 class WorkspaceError(Exception):
     def __init__(self, cause, *args, **kwargs):
