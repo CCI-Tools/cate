@@ -96,7 +96,8 @@ class LocalDataSource(DataSource):
                  temporal_coverage: TimeRangeLike.TYPE = None,
                  spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None,
-                 meta_info: dict = None):
+                 meta_info: dict = None,
+                 status: DataSourceStatus = None):
         self._id = ds_id
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
@@ -131,7 +132,7 @@ class LocalDataSource(DataSource):
                  'standard_name': ''
                  } for var_name in self._variables]
 
-        self._state = DataSourceStatus.READY
+        self._status = status if status else DataSourceStatus.READY
 
     def _resolve_file_path(self, path) -> Sequence:
         return glob(os.path.join(self._data_store.data_store_path, path))
@@ -566,7 +567,7 @@ class LocalDataSource(DataSource):
         Return a DataSource creation state
         :return:
         """
-        return self._state is DataSourceStatus.READY
+        return self._status is DataSourceStatus.READY
 
     @property
     def is_empty(self) -> bool:
@@ -581,9 +582,9 @@ class LocalDataSource(DataSource):
         Sets state of DataSource completion
         """
         if state:
-            self._state = DataSourceStatus.READY
+            self._status = DataSourceStatus.READY
         else:
-            self._state = DataSourceStatus.PROCESSING
+            self._status = DataSourceStatus.PROCESSING
 
     def _repr_html_(self):
         import html
@@ -598,6 +599,7 @@ class LocalDataSource(DataSource):
 
         :return: A JSON-serializable dictionary
         """
+        self._meta_info['status'] = self._status.name
         config = OrderedDict({
             'name': self._id,
             'meta_info': self._meta_info,
@@ -607,7 +609,9 @@ class LocalDataSource(DataSource):
 
     @classmethod
     def from_json_dict(cls, json_dict: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
-
+        """
+        Allows to deserialize (load from json) LocalDataSource object.
+        """
         name = json_dict.get('name')
         files = json_dict.get('files', None)
 
@@ -761,7 +765,8 @@ class LocalDataStore(DataStore):
                                  .format(self.id, data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
-                                          variables=var_names, temporal_coverage=time_range, meta_info=meta_info)
+                                          variables=var_names, temporal_coverage=time_range, meta_info=meta_info,
+                                          status=DataSourceStatus.PROCESSING)
             data_source.set_completed(False)
             self._save_data_source(data_source)
 
@@ -796,7 +801,7 @@ class LocalDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
         return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
-    def _init_data_sources(self):
+    def _init_data_sources(self, skip_incomplete=True):
         """
         :return:
         """
@@ -807,7 +812,8 @@ class LocalDataStore(DataStore):
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
         unfinished_ds = [f for f in os.listdir(self._store_dir)
                          if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.lock')]
-        json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
+        if skip_incomplete:
+            json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
         self._data_sources = []
         for json_file in json_files:
             data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
