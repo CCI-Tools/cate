@@ -15,7 +15,9 @@
   [#386](https://github.com/CCI-Tools/cate/issues/386)
 * Use global temporal attributes to determine temporal resolution in aggregation operations
   [#340](https://github.com/CCI-Tools/cate/issues/340)
-  
+* Only allow valid python identifiers as resource names
+  [#436](https://github.com/CCI-Tools/cate/issues/436)
+
 ## Changes in version 0.9.0.dev7
 
 ### Improvements and new Features
