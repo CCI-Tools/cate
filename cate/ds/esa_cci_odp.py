@@ -311,17 +311,6 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return get_metadata_store_path()
 
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
-        with monitor.starting('Updating indices', 100):
-            self._init_data_sources()
-            monitor.progress(work=10 if update_file_lists else 100)
-            if update_file_lists:
-                child_monitor = monitor.child(work=90)
-                with child_monitor.starting('Updating file lists', len(self._data_sources)):
-                    for data_source in self._data_sources:
-                        data_source.update_file_list()
-                        child_monitor.progress(work=1)
-
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
         if ds_id or query_expr:

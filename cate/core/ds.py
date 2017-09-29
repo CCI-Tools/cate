@@ -109,7 +109,7 @@ class DataSource(metaclass=ABCMeta):
     def schema(self) -> Optional[Schema]:
         """
         The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown.
-        Currently unused in c.ate
+        Currently unused in cate.
         """
         return None
 
@@ -122,15 +122,6 @@ class DataSource(metaclass=ABCMeta):
         :return A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
         """
         return None
-
-    # TODO (forman): issue #399 - remove it, no actual use (somewhere put into "meta_inf" dict)
-    @property
-    def protocols(self) -> []:
-        """
-        The list of available protocols.
-
-        """
-        return [None]
 
     @property
     @abstractmethod
@@ -313,14 +304,6 @@ class DataStore(metaclass=ABCMeta):
         """
         return self._is_local
 
-    # TODO (forman): issue #399 - remove this method, it has no framework use, hence it is none-API
-    @property
-    def data_store_path(self) -> Optional[str]:
-        """
-        Returns path to data store
-        """
-        return None
-
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -343,18 +326,6 @@ class DataStore(metaclass=ABCMeta):
         :param query_expr: Query expression which may be used if *ìd* is unknown.
         :param monitor:  A progress monitor.
         :return: Sequence of data sources.
-        """
-
-    # TODO (forman): issue #399 - remove this method, it has no usages, hence it is none-API
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
-        """
-        Update this data store's indices to speed up queries and to fetch meta-information about its
-        contained data sources.
-
-        The default implementation is a no-op.
-
-        :param update_file_lists: To also update the a data source's contained file lists (if any)
-        :param monitor:  A progress monitor.
         """
 
     # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC

@@ -486,7 +486,7 @@ class LocalDataSource(DataSource):
         return self._spatial_coverage
 
     @property
-    def data_store(self) -> DataStore:
+    def data_store(self) -> 'LocalDataStore':
         return self._data_store
 
     @property
@@ -718,6 +718,7 @@ class LocalDataStore(DataStore):
 
     @property
     def data_store_path(self):
+        """Path to directory that stores the local data source files."""
         return self._store_dir
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
