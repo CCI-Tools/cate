@@ -211,58 +211,6 @@ class DataSource(metaclass=ABCMeta):
         """
         pass
 
-    def update_local(self,
-                     local_id: str,
-                     time_range: TimeRangeLike.TYPE,
-                     monitor: Monitor = Monitor.NONE) -> bool:
-        """
-        Update locally stored data.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               a :py:class:`TimeRangeLike`.
-        :param local_id: A unique ID of local data source.
-        :param monitor: a progress monitor.
-        :return: If any update has been performed returns True, otherwise False
-        """
-        return False
-
-    # TODO (forman): issue #399 - remove this method, we don't expect to have external API use before 1.0
-    # noinspection PyMethodMayBeStatic
-    def sync(self,
-             time_range: TimeRangeLike.TYPE = None,
-             protocol: str = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-        """
-        **Deprecated. Use :py:meth:`make_local` instead.**
-        Allows to synchronize remote data with locally stored data.
-        Availability of synchronization feature depends on protocol type and
-        data source implementation.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date,
-                which must be ``datetime.datetime`` objects.
-        :param protocol: Protocol name, if None selected default protocol
-                will be used to access data
-        :param monitor: a progress monitor.
-        :return: a tuple: (synchronized number of selected files, total number of selected files)
-        """
-        return 0, 0
-
-    # TODO (forman): issue #399 - why is this never used? Seem reasonable to let a data source delete itself from local
-    def delete_local(self,
-                     time_range: TimeRangeLike.TYPE) -> int:
-        """
-        **Deprecated. Use :py:meth:`update_local` instead.**
-        Delete locally stored data.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
-        :return: removed number of files
-        """
-        return 0
-
     @property
     def title(self) -> Optional[str]:
         """
