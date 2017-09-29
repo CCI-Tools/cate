@@ -393,57 +393,6 @@ class LocalDataSource(DataSource):
             return local_ds
         return None
 
-    def update_local(self,
-                     local_id: str,
-                     time_range: TimeRangeLike.TYPE,
-                     monitor: Monitor = Monitor.NONE) -> bool:
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            add_to_data_store_registry()
-            local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            raise ValueError('Cannot initialize `local` DataStore')
-
-        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
-        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
-                            ds.id == local_id), None)  # type: LocalDataSource
-        if not data_source:
-            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        to_remove = []
-        to_add = []
-        if time_range and time_range[1] > time_range[0]:
-            if time_range[0] != data_source.temporal_coverage()[0]:
-                if time_range[0] > data_source.temporal_coverage()[0]:
-                    to_remove.append((data_source.temporal_coverage()[0], time_range[0]))
-                else:
-                    to_add.append((time_range[0], data_source.temporal_coverage()[0]))
-
-            if time_range[1] != data_source.temporal_coverage()[1]:
-                if time_range[1] < data_source.temporal_coverage()[1]:
-                    to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
-                else:
-                    to_add.append((data_source.temporal_coverage()[1],
-                                   time_range[1]))
-        if to_remove:
-            for time_range_to_remove in to_remove:
-                data_source.reduce_temporal_coverage(time_range_to_remove)
-        if to_add:
-            for time_range_to_add in to_add:
-                self._make_local(data_source, time_range_to_add, None,
-                                 [var.get('name') for var in data_source.variables_info]
-                                 if data_source.variables_info else None, monitor)
-            data_source.meta_info['temporal_coverage_start'] = time_range[0]
-            data_source.meta_info['temporal_coverage_end'] = time_range[1]
-            data_source.update_temporal_coverage(time_range)
-
-        return bool(to_remove or to_add)
-
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False,
                     extract_meta_info: bool = False):
         if update or self._files.keys().isdisjoint([file]):
