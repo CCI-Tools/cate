@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import io
 import uuid
 from abc import ABCMeta, abstractmethod
@@ -33,6 +31,8 @@ from PIL import Image
 from cate.util.cache import Cache, MemoryCacheStore
 from .utils import downsample_ndarray, compute_tile_size, cardinal_div_round, aggregate_ndarray_first, \
     get_chunk_size
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _DEFAULT_TILE_CACHE = None
 

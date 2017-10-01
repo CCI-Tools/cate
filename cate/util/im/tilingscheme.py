@@ -22,8 +22,11 @@
 
 import functools
 import math
-from typing import Optional, Tuple, Any
+from typing import Optional, Any
+
 from .geospatialrect import GeoSpatialRect
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 MODE_LE = -1
 MODE_EQ = 0

@@ -24,6 +24,8 @@ from typing import Tuple
 
 import numpy as np
 
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
 GeoSpatialRect = Tuple[float, float, float, float]
 
 
