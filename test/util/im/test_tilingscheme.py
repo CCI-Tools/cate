@@ -7,19 +7,19 @@ POS_Y_AXIS_GLOBAL_RECT = (-180., -90., +180., +90.)
 
 
 class TilingSchemeTest(TestCase):
-    def test_to_cesium_json(self):
+    def test_to_json(self):
         ts = TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT)
-        self.assertEqual(ts.to_cesium_json(), {
-            'minimumLevel': 0,
-            'maximumLevel': 3,
+        self.assertEqual(ts.to_json(), {
+            'numLevels': 4,
             'numberOfLevelZeroTilesX': 2,
             'numberOfLevelZeroTilesY': 1,
             'tileHeight': 540,
             'tileWidth': 540,
-            'rectangle': {'east': 3.141592653589793,
-                          'north': 1.5707963267948966,
-                          'south': -1.5707963267948966,
-                          'west': -3.141592653589793},
+            'extend': {'west': -180.,
+                       'east': 180.,
+                       'south': -90.,
+                       'north': 90.,
+                       },
         })
 
     def test_repr(self):

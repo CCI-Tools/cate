@@ -109,18 +109,14 @@ class TilingScheme:
             self.num_levels, self.num_level_zero_tiles_x, self.num_level_zero_tiles_y,
             self.tile_width, self.tile_height, self.geo_rectangle)
 
-    def to_cesium_json(self):
+    def to_json(self):
         west, south, east, north = self.geo_rectangle
         return dict(numberOfLevelZeroTilesX=self.num_level_zero_tiles_x,
                     numberOfLevelZeroTilesY=self.num_level_zero_tiles_y,
                     tileWidth=self.tile_width,
                     tileHeight=self.tile_height,
-                    minimumLevel=0,
-                    maximumLevel=self.num_levels - 1,
-                    rectangle=dict(west=math.radians(west),
-                                   south=math.radians(south),
-                                   east=math.radians(east),
-                                   north=math.radians(north)))
+                    numLevels=self.num_levels,
+                    extend=dict(west=west, south=south, east=east, north=north))
 
     @classmethod
     def create(cls,
