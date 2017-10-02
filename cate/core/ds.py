@@ -81,7 +81,7 @@ Components
 import glob
 from abc import ABCMeta, abstractmethod
 from math import ceil, sqrt
-from typing import Sequence, Optional, Union, Tuple, Any
+from typing import Sequence, Optional, Union, Any
 
 import xarray as xr
 
