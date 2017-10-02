@@ -134,7 +134,7 @@ def no_op(num_steps: int = 10,
           step_duration: float = 0.5,
           fail_before: bool = False,
           fail_after: bool = False,
-          monitor: Monitor = Monitor.NONE):
+          monitor: Monitor = Monitor.NONE) -> bool:
     """
     An operation that basically does nothing but spending configurable time.
     It may be useful for testing purposes.
@@ -144,6 +144,7 @@ def no_op(num_steps: int = 10,
     :param fail_before: If the operation should fail before spending time doing nothing.
     :param fail_after: If the operation should fail after spending time doing nothing.
     :param monitor: A progress monitor.
+    :return: Always True
     """
     import time
     monitor.start('Computing nothing', num_steps)
@@ -155,6 +156,7 @@ def no_op(num_steps: int = 10,
     if fail_after:
         raise ValueError('Intentionally failed after doing nothing.')
     monitor.done()
+    return True
 
 
 @op(tags=['utility', 'internal'])

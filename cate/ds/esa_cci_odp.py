@@ -60,7 +60,7 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
-from cate.util.monitor import Monitor
+from cate.util.monitor import Cancellation, Monitor
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
 
@@ -1007,6 +1007,9 @@ class EsaCciOdpDataSource(DataSource):
             if not local_ds.is_complete:
                 try:
                     self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                except Cancellation as c:
+                    local_store.remove_data_source(local_ds)
+                    raise c
                 except Exception as e:
                     if local_ds.is_empty:
                         local_store.remove_data_source(local_ds)

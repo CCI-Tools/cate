@@ -268,9 +268,10 @@ class WebSocketClient(object):
                     msg = progress.get('message')
 
                     if not started:
-                        if total is not None or total is not None:
-                            self.monitor.start(label, total_work=total)
-                            started = True
+                        if label is None:
+                            label = "start"
+                        self.monitor.start(label, total_work=total)
+                        started = True
 
                     if started:
                         if worked:

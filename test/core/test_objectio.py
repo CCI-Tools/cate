@@ -1,4 +1,10 @@
 import os.path
+from contextlib import contextmanager
+import tempfile
+import shutil
+import itertools
+import sys
+
 from unittest import TestCase
 
 import numpy as np
@@ -8,6 +14,24 @@ import xarray as xr
 from cate.core.objectio import OBJECT_IO_REGISTRY, read_object, write_object
 
 __import__('cate.ops.io')
+
+
+_counter = itertools.count()
+ON_WIN = sys.platform == 'win32'
+
+
+@contextmanager
+def create_tmp_file():
+    tmp_dir = tempfile.mkdtemp()
+    path = os.path.join(tmp_dir, 'tmp_file_{}.nc'.format(next(_counter)))
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(tmp_dir)
+        except OSError:
+            if not ON_WIN:
+                raise
 
 
 class WriterRegistryTest(TestCase):
@@ -91,10 +115,12 @@ class WriteObjectTest(TestCase):
         self._test_write_read_object(dict(a=1, b=2), 'write_obj_JSON.json', 'JSON')
 
     def test_write_read_object_NETCDF4(self):
-        self._test_write_read_object(self.new_ds(), 'write_obj_NETCDF4.nc', 'NETCDF4')
+        with create_tmp_file() as tmp_file:
+            self._test_write_read_object_2(self.new_ds(), tmp_file, 'NETCDF4')
 
     def test_write_read_object_NETCDF3(self):
-        self._test_write_read_object(self.new_ds(), 'write_obj_NETCDF3.nc', 'NETCDF3')
+        with create_tmp_file() as tmp_file:
+            self._test_write_read_object_2(self.new_ds(), tmp_file, 'NETCDF3')
 
     def _test_write_read_object(self, obj, file_path, format_name):
         if os.path.exists(file_path):
@@ -109,6 +135,15 @@ class WriteObjectTest(TestCase):
         if hasattr(obj, 'close'):
             obj.close()
         os.remove(file_path)
+
+    def _test_write_read_object_2(self, obj, file_path, format_name):
+        self.assertFalse(os.path.exists(file_path))
+        writer = write_object(obj, file_path, format_name=format_name)
+        self.assertIsNotNone(writer)
+        self.assertTrue(os.path.isfile(file_path))
+        obj, reader = read_object(file_path)
+        self.assertIsNotNone(obj)
+        self.assertIsNotNone(reader)
 
     def new_ds(self):
         periods = 5
