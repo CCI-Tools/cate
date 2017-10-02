@@ -176,7 +176,11 @@ class LocalDataSource(DataSource):
             except OSError as e:
                 raise IOError("Files: {} caused:\nOSError({}): {}".format(paths, e.errno, e.strerror))
         else:
-            return None
+            if time_range:
+                raise DataAccessError(self, "No data sets available for specified time range {}".format(
+                    TimeRangeLike.format(time_range)), paths)
+            else:
+                raise DataAccessError(self, "No data sets available")
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
@@ -402,12 +406,14 @@ class LocalDataSource(DataSource):
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
 
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        local_store_name = 'local'
+
+        local_store = DATA_STORE_REGISTRY.get_data_store(local_store_name)
         if not local_store:
             add_to_data_store_registry()
-            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+            local_store = DATA_STORE_REGISTRY.get_data_store(local_store_name)
         if not local_store:
-            raise ValueError('Cannot initialize `local` DataStore')
+            raise ValueError('Cannot initialize `{}` DataStore'.format(local_store_name))
 
         data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
         data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
@@ -752,8 +758,7 @@ class LocalDataStore(DataStore):
                             data_source = ds
                             data_source.set_completed(False)
                             break
-                raise DataAccessError("Local data store '{}' already contains a data source named '{}'".
-                                      format(self.id, data_source_id))
+                raise DataAccessError(self, "Data source '{}' already exists.". format(data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           variables=var_names, temporal_coverage=time_range, meta_info=meta_info)

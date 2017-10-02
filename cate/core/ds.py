@@ -81,7 +81,6 @@ Components
 import glob
 from abc import ABCMeta, abstractmethod
 from math import ceil, sqrt
-import sys
 from typing import Sequence, Optional, Union, Tuple, Any
 
 import xarray as xr
@@ -463,16 +462,14 @@ class DataAccessError(Exception):
     """
     Exceptions produced by Cate's data stores and data sources instances, used to report any problems handling data.
     """
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(DataAccessError, self).__init__(str(cause), *args, **kwargs)
-            _, _, traceback = sys.exc_info()
-            self.with_traceback(traceback)
-        elif isinstance(cause, str):
-            super(DataAccessError, self).__init__(cause, *args, **kwargs)
+    def __init__(self, source, cause, *args, **kwargs):
+        if isinstance(source, DataSource) or isinstance(source, DataStore):
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__("{}: {}".format(source, str(cause)), *args, **kwargs)
+            elif isinstance(cause, str):
+                super(DataAccessError, self).__init__("{}: {}".format(source, cause), *args, **kwargs)
         else:
-            super(DataAccessError, self).__init__(*args, **kwargs)
-        self._cause = cause
+            super(DataAccessError, self).__init__(self, cause, *args, **kwargs)
 
     @property
     def cause(self):
