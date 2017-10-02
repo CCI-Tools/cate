@@ -95,6 +95,8 @@ Components
 ==========
 """
 
+import warnings
+warnings.filterwarnings("ignore")  # never print any warnings to users
 import argparse
 import os
 import os.path
