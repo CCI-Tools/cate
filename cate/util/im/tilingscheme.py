@@ -21,10 +21,9 @@
 
 
 import functools
-import math
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 
-from .geospatialrect import GeoSpatialRect
+from .geoextend import GeoExtend
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -40,13 +39,13 @@ class TilingScheme:
                  num_level_zero_tiles_y: int,
                  tile_width: int,
                  tile_height: int,
-                 geo_rectangle: GeoSpatialRect):
+                 geo_extend: GeoExtend):
         self.num_levels = num_levels
         self.tile_width = tile_width
         self.tile_height = tile_height
         self.num_level_zero_tiles_x = num_level_zero_tiles_x
         self.num_level_zero_tiles_y = num_level_zero_tiles_y
-        self.geo_rectangle = geo_rectangle
+        self.geo_extend = geo_extend
 
     def num_tiles_x(self, level: int) -> int:
         return self.num_level_zero_tiles_x * (1 << level)
@@ -54,11 +53,18 @@ class TilingScheme:
     def num_tiles_y(self, level: int) -> int:
         return self.num_level_zero_tiles_y * (1 << level)
 
+    def size(self, level: int) -> Tuple[int, int]:
+        return self.width(level), self.height(level)
+
     def width(self, level: int) -> int:
         return self.num_tiles_x(level) * self.tile_width
 
     def height(self, level: int) -> int:
         return self.num_tiles_y(level) * self.tile_height
+
+    @property
+    def tile_size(self) -> Tuple[int, int]:
+        return self.tile_width, self.tile_height
 
     @property
     def min_width(self) -> int:
@@ -82,7 +88,7 @@ class TilingScheme:
                + 4 * self.tile_height \
                + 8 * self.num_level_zero_tiles_x \
                + 16 * self.num_level_zero_tiles_y \
-               + hash(self.geo_rectangle)
+               + hash(self.geo_extend)
 
     def __eq__(self, o: Any) -> bool:
         try:
@@ -91,7 +97,7 @@ class TilingScheme:
                    and self.tile_height == o.tile_height \
                    and self.num_level_zero_tiles_x == o.num_level_zero_tiles_x \
                    and self.num_level_zero_tiles_y == o.num_level_zero_tiles_y \
-                   and self.geo_rectangle == o.geo_rectangle
+                   and self.geo_extend == o.geo_extend
         except AttributeError:
             return False
 
@@ -107,22 +113,25 @@ class TilingScheme:
     def __repr__(self):
         return 'TilingScheme(%s, %s, %s, %s, %s, %s)' % (
             self.num_levels, self.num_level_zero_tiles_x, self.num_level_zero_tiles_y,
-            self.tile_width, self.tile_height, self.geo_rectangle)
+            self.tile_width, self.tile_height, repr(self.geo_extend))
 
     def to_json(self):
-        west, south, east, north = self.geo_rectangle
         return dict(numberOfLevelZeroTilesX=self.num_level_zero_tiles_x,
                     numberOfLevelZeroTilesY=self.num_level_zero_tiles_y,
                     tileWidth=self.tile_width,
                     tileHeight=self.tile_height,
                     numLevels=self.num_levels,
-                    extend=dict(west=west, south=south, east=east, north=north))
+                    invY=self.geo_extend.inv_y,
+                    extend=dict(west=self.geo_extend.west,
+                                south=self.geo_extend.south,
+                                east=self.geo_extend.east,
+                                north=self.geo_extend.north))
 
     @classmethod
     def create(cls,
                w: int, h: int,
                tile_width: int, tile_height: int,
-               geo_spatial_rect: GeoSpatialRect) -> 'TilingScheme':
+               geo_extend: GeoExtend) -> 'TilingScheme':
         """
         Create a new TilingScheme object for image size given by *w* and *h*.
 
@@ -142,10 +151,10 @@ class TilingScheme:
         :param h: original image height
         :param tile_width: optimal tile width
         :param tile_height: optimal tile height
-        :param geo_spatial_rect: A geo-spatial rectangle (x1, y1, x2, y2)
+        :param geo_extend: The geo-spatial extend
         :return: A new TilingScheme object
         """
-        gsb_x1, gsb_y1, gsb_x2, gsb_y2 = geo_spatial_rect
+        gsb_x1, gsb_y1, gsb_x2, gsb_y2 = geo_extend.coords
 
         if gsb_x1 < gsb_x2:
             # crossing_anti-meridian = False
@@ -154,12 +163,8 @@ class TilingScheme:
             # crossing_anti-meridian = True
             gsb_w = 360. + gsb_x2 - gsb_x1
 
-        if gsb_y1 < gsb_y2:
-            y_axis_flipped = True
-            gsb_h = gsb_y2 - gsb_y1
-        else:
-            y_axis_flipped = False
-            gsb_h = gsb_y1 - gsb_y2
+        inv_y = geo_extend.inv_y
+        gsb_h = gsb_y2 - gsb_y1
 
         w_mode = MODE_GE
         if gsb_x1 == -180. and gsb_x2 == 180.:
@@ -188,27 +193,26 @@ class TilingScheme:
 
         if h_new > h:
             gsb_h_new = h_new * gsb_h / h
-            if y_axis_flipped:
+            if geo_extend.inv_y:
                 # We cannot adjust gsb_y2, because we expect y to decrease with y indices
                 # and hence we would later on have to read from negative y indexes
-                gsb_y1_new = gsb_y1
-                gsb_y2_new = gsb_y1_new + gsb_h_new
-                if gsb_y2_new > 90.:
-                    raise ValueError('illegal latitude coordinate range')
+                gsb_y2_new = gsb_y2
+                gsb_y1_new = gsb_y2_new - gsb_h_new
             else:
                 # We cannot adjust gsb_y1, because we expect y to increase with y indices
                 # and hence we would later on have to read from negative y indexes
-                gsb_y2_new = gsb_y1
-                gsb_y1_new = gsb_y2_new - gsb_h_new
-                if gsb_y1_new < -90.:
-                    raise ValueError('illegal latitude coordinate range')
+                gsb_y1_new = gsb_y1
+                gsb_y2_new = gsb_y1_new + gsb_h_new
         else:
-            if y_axis_flipped:
-                gsb_y1_new, gsb_y2_new = gsb_y1, gsb_y2
-            else:
-                gsb_y1_new, gsb_y2_new = gsb_y2, gsb_y1
+            gsb_y1_new, gsb_y2_new = gsb_y1, gsb_y2
 
-        return TilingScheme(nl, nt0x, nt0y, tw, th, (gsb_x1, gsb_y1_new, gsb_x2_new, gsb_y2_new))
+        new_extend = GeoExtend(east=gsb_x1,
+                               south=gsb_y1_new,
+                               west=gsb_x2_new,
+                               north=gsb_y2_new,
+                               inv_y=geo_extend.inv_y,
+                               eps=geo_extend.eps)
+        return TilingScheme(nl, nt0x, nt0y, tw, th, new_extend)
 
 
 @functools.lru_cache(maxsize=256)

@@ -20,6 +20,7 @@
 # SOFTWARE.
 
 import io
+import time
 import uuid
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Sequence, Union, Any, Callable
@@ -28,15 +29,15 @@ import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
-from cate.util.cache import Cache, MemoryCacheStore
-from util.im.geospatialrect import get_geo_spatial_rect
-from util.im.tilingscheme import TilingScheme
-from .utils import downsample_ndarray, compute_tile_size, cardinal_div_round, aggregate_ndarray_first, \
-    get_chunk_size
+from .geoextend import GeoExtend
+from .tilingscheme import TilingScheme
+from .utils import downsample_ndarray, compute_tile_size, cardinal_div_round, aggregate_ndarray_first, get_chunk_size
+from ..cache import Cache, MemoryCacheStore
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _DEFAULT_TILE_CACHE = None
+_DEBUG_OP_IMAGE = True
 
 X = int
 Y = int
@@ -201,10 +202,6 @@ class AbstractTiledImage(TiledImage, metaclass=ABCMeta):
 
     def get_tile_id(self, tile_x, tile_y):
         return '%s/%d/%d' % (self.id, tile_x, tile_y)
-
-
-_DEBUG_OP_IMAGE = True
-import time
 
 
 class OpImage(AbstractTiledImage, metaclass=ABCMeta):
@@ -692,7 +689,7 @@ class ImagePyramid:
     @staticmethod
     def create_from_image(source_image: TiledImage,
                           level_transformer: LevelTransformer,
-                          geo_spatial_rect=None,
+                          geo_extend: GeoExtend = None,
                           **kwargs) -> 'ImagePyramid':
 
         """
@@ -708,11 +705,11 @@ class ImagePyramid:
         :param kwargs: keyword arguments passed to the level_image_factory function
         :return: a new ImagePyramid instance
         """
-        if geo_spatial_rect is None:
-            geo_spatial_rect = (-180., -90., 180., 90.)
+        if geo_extend is None:
+            geo_extend = GeoExtend()
         tiling_scheme = TilingScheme.create(source_image.size[0], source_image.size[1],
                                             source_image.tile_size[0], source_image.tile_size[1],
-                                            geo_spatial_rect)
+                                            geo_extend)
         level_images = [None] * tiling_scheme.num_levels
         z_index_max = tiling_scheme.num_levels - 1
         level_images[z_index_max] = source_image
@@ -726,9 +723,8 @@ class ImagePyramid:
         return ImagePyramid(tiling_scheme, level_images)
 
     @staticmethod
-    def create_from_array(array,
-                          tile_size: Size2D = None,
-                          geo_spatial_rect = None,
+    def create_from_array(array: np.ndarray,
+                          tiling_scheme: TilingScheme,
                           level_image_id_factory: LevelImageIdFactory = None,
                           **kwargs) -> 'ImagePyramid':
 
@@ -740,25 +736,21 @@ class ImagePyramid:
 
         :param array: numpy-like array that supports stepping in it's subscript operator, e.g.
                       array[..., y::step, x:step]
+        :param tiling_scheme:the tiling scheme
         :param level_image_id_factory: a factory function for unique image identifiers
-        :param tile_size: a tuple (tile_width, tile_height)
         :param kwargs: keyword arguments passed to FastNdarrayDownsamplingImage constructor
         :return: a new ImagePyramid instance
         """
-
-        width, height = array.shape[-1], array.shape[-2]
-        tile_width, tile_height = tile_size if tile_size is not None else 512, 512
-        geo_spatial_rect = geo_spatial_rect if geo_spatial_rect is not None else (-180., -90., 180., 90.)
-
-        tiling_scheme = TilingScheme.create(width, height,
-                                            tile_width, tile_height,
-                                            geo_spatial_rect)
-
-        level_images = [None] * tiling_scheme.num_levels
-        for i in range(0, tiling_scheme.num_levels):
-            z_index = tiling_scheme.num_levels - 1 - i
+        tile_size = tiling_scheme.tile_size
+        num_levels = tiling_scheme.num_levels
+        level_images = [None] * num_levels
+        for i in range(0, num_levels):
+            z_index = num_levels - 1 - i
             image_id = level_image_id_factory(z_index) if level_image_id_factory else None
-            level_images[z_index] = FastNdarrayDownsamplingImage(array, tile_size, z_index, tiling_scheme.num_levels,
+            level_images[z_index] = FastNdarrayDownsamplingImage(array,
+                                                                 tile_size,
+                                                                 z_index,
+                                                                 num_levels,
                                                                  image_id=image_id, **kwargs)
         return ImagePyramid(tiling_scheme, level_images)
 

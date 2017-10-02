@@ -37,10 +37,10 @@ import xarray as xr
 from .workflow import Workflow, OpStep, NodePort, ValueCache
 from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
-from ..core.cdm import get_lon_dim_name, get_lat_dim_name
+from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
 from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED, new_indexed_name
-from ..util.im import ImagePyramid, get_chunk_size
+from ..util.im import get_chunk_size
 from ..util.opmetainf import OpMetaInfo
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -374,10 +374,10 @@ class Workspace:
         }
 
         if not is_coord:
-            image_layout = self._get_variable_image_layout(variable)
-            if image_layout:
-                variable_info['imageLayout'] = image_layout
-                variable_info['isYFlipped'] = Workspace._is_y_flipped(variable)
+            tiling_scheme = get_tiling_scheme(variable)
+            if tiling_scheme:
+                variable_info['imageLayout'] = tiling_scheme.to_json()
+                variable_info['isYFlipped'] = tiling_scheme.geo_extend.inv_y
         elif variable.ndim == 1:
             # Serialize data of coordinate variables.
             # To limit data transfer volume, we serialize data arrays only if they are 1D.
@@ -394,69 +394,6 @@ class Workspace:
                     variable_info[var_prop_name] = display_settings[display_settings_name]
 
         return variable_info
-
-    # noinspection PyMethodMayBeStatic
-    def _get_variable_image_layout(self, variable):
-        lat_dim_name = get_lat_dim_name(variable)
-        lon_dim_name = get_lon_dim_name(variable)
-        if not lat_dim_name or not lon_dim_name:
-            return None
-
-        if lat_dim_name in variable.coords and lon_dim_name in variable.coords:
-            lats = variable.coords[lat_dim_name]
-            lons = variable.coords[lon_dim_name]
-
-            if len(lons) >= 2:
-                lon_delta = 0.5 * abs(lons[1] - lons[0])
-                west = min(lons[0], lons[-1]) - lon_delta
-                east = max(lons[0], lons[-1]) + lon_delta
-            elif len(lons) == 1:
-                west = east = lons[0]
-            else:
-                # Note, this is actually an error condition
-                west = east = 0
-
-            if len(lats) >= 2:
-                lat_delta = 0.5 * abs(lats[1] - lats[0])
-                south = min(lats[0], lats[-1]) - lat_delta
-                north = max(lats[0], lats[-1]) + lat_delta
-            elif len(lats) == 1:
-                south = north = lats[0]
-            else:
-                # Note, this is actually an error condition
-                south = north = 0
-
-            south = 90 if south > 90 else (-90 if south < -90 else float(south))
-            north = 90 if north > 90 else (-90 if north < -90 else float(north))
-            west = 180 if west > 180 else (-180 if west < -180 else float(west))
-            east = 180 if east > 180 else (-180 if east < -180 else float(east))
-            if south == north or west == east:
-                return None
-        else:
-            south = -90
-            north = 90
-            west = -180
-            east = 180
-
-        _, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
-        return {
-            'extend': {
-                'west': west,
-                'south': south,
-                'east': east,
-                'north': north,
-            },
-            'numLevels': num_levels,
-            'numLevelZeroTilesX': num_level_zero_tiles[0],
-            'numLevelZeroTilesY': num_level_zero_tiles[1],
-            'tileWidth': tile_size[0],
-            'tileHeight': tile_size[1]
-        }
-
-    @staticmethod
-    def _is_y_flipped(variable):
-        lat_coords = variable.coords[get_lat_dim_name(variable)]
-        return lat_coords.to_index().is_monotonic_increasing
 
     def delete(self):
         with self._lock:

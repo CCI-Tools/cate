@@ -28,7 +28,7 @@ import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
-from cate.util.im.cmap_lc import register_lc_color_map, LAND_COVER_CCI_CMAP
+from .cmap_lc import register_lc_color_map, LAND_COVER_CCI_CMAP
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 

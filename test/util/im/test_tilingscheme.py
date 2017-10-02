@@ -1,22 +1,24 @@
 from unittest import TestCase
 
+from cate.util.im import GeoExtend
 from cate.util.im.tilingscheme import TilingScheme, pow2_1d_subdivisions, pow2_2d_subdivision
 
-NEG_Y_AXIS_GLOBAL_RECT = (-180., +90., +180., -90.)
-POS_Y_AXIS_GLOBAL_RECT = (-180., -90., +180., +90.)
+POS_Y_AXIS_GLOBAL_RECT = GeoExtend(-180., -90., +180., +90., inv_y=False)
+NEG_Y_AXIS_GLOBAL_RECT = GeoExtend(-180., -90., +180., +90., inv_y=True)
 
 
 class TilingSchemeTest(TestCase):
     def test_to_json(self):
-        ts = TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT)
+        ts = TilingScheme(4, 2, 1, 540, 540, NEG_Y_AXIS_GLOBAL_RECT)
         self.assertEqual(ts.to_json(), {
             'numLevels': 4,
             'numberOfLevelZeroTilesX': 2,
             'numberOfLevelZeroTilesY': 1,
             'tileHeight': 540,
             'tileWidth': 540,
-            'extend': {'west': -180.,
-                       'east': 180.,
+            'invY': True,
+            'extend': {'west': 180.,
+                       'east': -180.,
                        'south': -90.,
                        'north': 90.,
                        },
@@ -24,8 +26,9 @@ class TilingSchemeTest(TestCase):
 
     def test_repr(self):
         ts = TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT)
-        self.assertEqual(repr(ts),
-                         'TilingScheme(4, 2, 1, 540, 540, (-180.0, -90.0, 180.0, 90.0))')
+        self.assertEqual(repr(ts), 'TilingScheme(4, 2, 1, 540, 540, GeoExtend())')
+        ts = TilingScheme(4, 2, 1, 540, 540, NEG_Y_AXIS_GLOBAL_RECT)
+        self.assertEqual(repr(ts), 'TilingScheme(4, 2, 1, 540, 540, GeoExtend(inv_y=True))')
 
     def test_str(self):
         ts = TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT)
@@ -53,48 +56,49 @@ class TilingSchemeTest(TestCase):
         self.assertEqual(ts.num_tiles_y(3), 8)
 
     def test_create_cci_ecv(self):
-        #72, 8, 85, 17
+        # 72, 8, 85, 17
         # Soilmoisture CCI - daily L3S
-        self.assertEqual(TilingScheme.create(1440, 720, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
+        self.assertEqual(TilingScheme.create(1440, 720, 500, 500, POS_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(2, 2, 1, 360, 360, POS_Y_AXIS_GLOBAL_RECT))
         # Aerosol CCI - monthly
-        self.assertEqual(TilingScheme.create(7200, 3600, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
+        self.assertEqual(TilingScheme.create(7200, 3600, 500, 500, POS_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(4, 2, 1, 450, 450, POS_Y_AXIS_GLOBAL_RECT))
         # Cloud CCI - monthly
         self.assertEqual(TilingScheme.create(720, 360, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
-                         TilingScheme(1, 2, 1, 360, 360, POS_Y_AXIS_GLOBAL_RECT))
+                         TilingScheme(1, 2, 1, 360, 360, NEG_Y_AXIS_GLOBAL_RECT))
         # SST CCI - daily L4
-        self.assertEqual(TilingScheme.create(8640, 4320, 500, 500, POS_Y_AXIS_GLOBAL_RECT),
-                         TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT))
+        self.assertEqual(TilingScheme.create(8640, 4320, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
+                         TilingScheme(4, 2, 1, 540, 540, NEG_Y_AXIS_GLOBAL_RECT))
         # Land Cover CCI
-        self.assertEqual(TilingScheme.create(129600, 64800, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
+        self.assertEqual(TilingScheme.create(129600, 64800, 500, 500, POS_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(6, 6, 3, 675, 675, POS_Y_AXIS_GLOBAL_RECT))
 
     def test_create_cci_ecv_subsets(self):
         # Soilmoisture CCI - daily L3S - use case #6
-        self.assertEqual(TilingScheme.create(52, 36, 500, 500, (72, 8, 85, 17)),
-                         TilingScheme(1, 1, 1, 52, 36, (72., 8., 85., 17.)))
+        self.assertEqual(TilingScheme.create(52, 36, 500, 500, GeoExtend(72, 8, 85, 17)),
+                         TilingScheme(1, 1, 1, 52, 36, GeoExtend(72., 8., 85., 17.)))
 
     def test_create_subsets(self):
-        self.assertEqual(TilingScheme.create(4000, 3000, 500, 500, (-20., 70., 60., 10.)),
-                         TilingScheme(4, 1, 1, 500, 375, (-20., 10., 60., 70.)))
-        self.assertEqual(TilingScheme.create(4012, 3009, 500, 500, (-20., 70., 60., 10.)),
-                         TilingScheme(2, 3, 5, 669, 301, (-20.0, 9.980059820538386, 60.03988035892323, 70.)))
-        self.assertEqual(TilingScheme.create(4000, 3000, 500, 500, (170., 70., -160., 10.)),
-                         TilingScheme(4, 1, 1, 500, 375, (170.0, 10.0, -160.0, 70.0)))
+        self.assertEqual(TilingScheme.create(4000, 3000, 500, 500, GeoExtend(-20., 10., 60., 70., inv_y=True)),
+                         TilingScheme(4, 1, 1, 500, 375, GeoExtend(-20., 10., 60., 70., inv_y=True)))
+        self.assertEqual(TilingScheme.create(4012, 3009, 500, 500, GeoExtend(-20., 10., 60., 70., inv_y=True)),
+                         TilingScheme(2, 3, 5, 669, 301,
+                                      GeoExtend(-20.0, 9.980059820538386, 60.03988035892323, 70., inv_y=True)))
+        self.assertEqual(TilingScheme.create(4000, 3000, 500, 500, GeoExtend(170., 10., -160., 70., inv_y=True)),
+                         TilingScheme(4, 1, 1, 500, 375, GeoExtend(170.0, 10.0, -160.0, 70.0, inv_y=True)))
 
     def test_create_illegal(self):
         # legal - explains why the next must fail
-        self.assertEqual(TilingScheme.create(50, 25, 5, 5, (0.0, 90.0, 25.0, 77.5)),
-                         TilingScheme(2, 5, 2, 5, 7, (0.0, 76.0, 25.0, 90.0)))
+        self.assertEqual(TilingScheme.create(50, 25, 5, 5, GeoExtend(0.0, 77.5, 25.0, 90.0, inv_y=True)),
+                         TilingScheme(2, 5, 2, 5, 7, GeoExtend(0.0, 76.0, 25.0, 90.0, inv_y=True)))
         with self.assertRaises(ValueError):
-            TilingScheme.create(50, 25, 5, 5, (0.0, 77.5, 25.0, 90.0))
+            TilingScheme.create(50, 25, 5, 5, GeoExtend(0.0, 77.5, 25.0, 90.0))
 
         # legal - explains why the next must fail
-        self.assertEqual(TilingScheme.create(50, 25, 5, 5, (0., -90.0, 25., -77.5)),
-                         TilingScheme(2, 5, 2, 5, 7, (0.0, -90.0, 25.0, -76.0)))
+        self.assertEqual(TilingScheme.create(50, 25, 5, 5, GeoExtend(0., -90.0, 25., -77.5)),
+                         TilingScheme(2, 5, 2, 5, 7, GeoExtend(0.0, -90.0, 25.0, -76.0)))
         with self.assertRaises(ValueError):
-            TilingScheme.create(50, 25, 5, 5, (0., -77.5, 25., -90.0))
+            TilingScheme.create(50, 25, 5, 5, GeoExtend(0., -90.0, 25., -77.5, inv_y=True))
 
 
 class Subdivision2DTest(TestCase):

@@ -19,11 +19,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 import os
 
+from ..geoextend import GeoExtend
 from ..image import AbstractTiledImage, ImagePyramid
+from ..tilingscheme import TilingScheme
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class NaturalEarth2Image(AbstractTiledImage):
@@ -46,10 +48,8 @@ class NaturalEarth2Image(AbstractTiledImage):
         * tile size: 256 pixels
         * 2 x 1 tiles on level zero
         """
-
         dir_path = os.path.join(os.path.dirname(__file__), 'NaturalEarth2')
-        return ImagePyramid(NaturalEarth2Image.NUM_LEVEL_0_TILES,
-                            (NaturalEarth2Image.TILE_SIZE, NaturalEarth2Image.TILE_SIZE),
+        return ImagePyramid(TilingScheme(3, 2, 1, 256, 256, GeoExtend()),
                             [NaturalEarth2Image(dir_path, level) for level in (0, 1, 2)])
 
     def __init__(self, dir_path, z_index):

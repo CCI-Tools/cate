@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
+from cate.util.im import TilingScheme, GeoExtend
 from cate.util.im.image import ImagePyramid, OpImage, create_ndarray_downsampling_image, \
     TransformArrayImage, FastNdarrayDownsamplingImage
 from cate.util.im.utils import aggregate_ndarray_mean
@@ -218,7 +219,8 @@ class ImagePyramidTest(TestCase):
         # Typical NetCDF shape: time, lat, lon
         array = np.zeros((1, height, width))
 
-        pyramid = ImagePyramid.create_from_array(array, tile_size=(270, 270), geo_spatial_rect=(-180, -90, 180, 90))
+        tiling_scheme = TilingScheme.create(width, height, 270, 270, geo_extend=GeoExtend())
+        pyramid = ImagePyramid.create_from_array(array, tiling_scheme)
 
         self.assertEqual((270, 270), pyramid.tile_size)
         self.assertEqual((2, 1), pyramid.num_level_zero_tiles)
@@ -278,48 +280,3 @@ class ImagePyramidTest(TestCase):
         self.assertEqual((1, 270, 270), tile_0_1_0.shape)
         self.assertAlmostEqual(0, tile_0_1_0[..., 0, 0])
         self.assertAlmostEqual(0, tile_0_1_0[..., 269, 269])
-
-    def test_compute_tile_size_b2(self):
-        self.assertEqual(compute_tile_size_b2(7200), (225, 5))
-        self.assertEqual(compute_tile_size_b2(3600), (225, 4))
-        self.assertEqual(compute_tile_size_b2(8640), (270, 5))
-        self.assertEqual(compute_tile_size_b2(4320), (270, 4))
-        self.assertEqual(compute_tile_size_b2(4096), (256, 4))
-        self.assertEqual(compute_tile_size_b2(2048), (256, 3))
-
-    def test_compute_layout(self):
-        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(4000, 2000))
-        self.assertEqual(max_size, (4000, 2000))
-        self.assertEqual(tile_size, (250, 250))
-        self.assertEqual(num_level_zero_tiles, (2, 1))
-        self.assertEqual(num_levels, 4)
-
-        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(400, 200))
-        self.assertEqual(max_size, (400, 200))
-        self.assertEqual(tile_size, (200, 200))
-        self.assertEqual(num_level_zero_tiles, (2, 1))
-        self.assertEqual(num_levels, 1)
-
-        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(1201, 401))
-        self.assertEqual(max_size, (1201, 401))
-        self.assertEqual(tile_size, (1201, 401))
-        self.assertEqual(num_level_zero_tiles, (1, 1))
-        self.assertEqual(num_levels, 1)
-
-        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=(200, 100))
-        self.assertEqual(max_size, (200, 100))
-        self.assertEqual(tile_size, (200, 100))
-        self.assertEqual(num_level_zero_tiles, (1, 1))
-        self.assertEqual(num_levels, 1)
-
-
-def compute_tile_size_b2(size):
-    s = size
-    n = 0
-    while s % 2 == 0:
-        s2 = s // 2
-        if s2 < 180:
-            break
-        s = s2
-        n += 1
-    return s, n
