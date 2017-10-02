@@ -44,12 +44,10 @@ import json
 import os
 import os.path
 import pkgutil
-import urllib.parse
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from enum import Enum
 from io import StringIO, IOBase
-from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 from cate.conf.conf import get_data_stores_path

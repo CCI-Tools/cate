@@ -572,7 +572,6 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._init_file_list(monitor)
 
-
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
 
