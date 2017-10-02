@@ -683,7 +683,8 @@ class LocalDataStore(DataStore):
                 return
             data_source = data_sources[0]
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
-        os.remove(file_name)
+        if os.path.isfile(file_name):
+            os.remove(file_name)
         lock_file = os.path.join(self._store_dir, data_source.id + '.lock')
         if os.path.isfile(lock_file):
             os.remove(lock_file)
@@ -750,8 +751,8 @@ class LocalDataStore(DataStore):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
                         if psutil.pid_exists(int(writer_pid)):
-                            raise DataAccessError("Cannot access data source {}, another process is using it (pid:{}".
-                                                  format(ds.id, writer_pid))
+                            raise DataAccessError(self, "Cannot access data source {}, another process is using it "
+                                                        "(pid:{}". format(ds.id, writer_pid))
                         # ds.temporal_coverage() == time_range and
                         if ds.spatial_coverage() == region \
                                 and ds.variables_info == var_names:
@@ -822,10 +823,9 @@ class LocalDataStore(DataStore):
     def save_data_source(self, data_source, unlock: bool = False):
         self._save_data_source(data_source)
         if unlock:
-            try:
-                os.remove(os.path.join(self._store_dir, '{}.lock'.format(data_source.id)))
-            except FileNotFoundError:
-                pass
+            lock_file = os.path.join(self._store_dir, data_source.id + '.lock')
+            if os.path.isfile(lock_file):
+                os.remove(lock_file)
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()
@@ -835,7 +835,7 @@ class LocalDataStore(DataStore):
             with open(file_name, 'w') as fp:
                 json.dump(json_dict, fp, **dump_kwargs)
         except EnvironmentError as e:
-            raise DataAccessError("Couldn't save Data Source config file {}\n{}".format(file_name, e.strerror))
+            raise DataAccessError(self, "Couldn't save Data Source config file {}\n{}".format(file_name, e.strerror))
 
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
@@ -849,9 +849,9 @@ class LocalDataStore(DataStore):
                 with open(json_path) as fp:
                     return json.load(fp=fp) or {}
             except json.decoder.JSONDecodeError:
-                raise DataAccessError("Cannot load data source config, {}".format(json_path))
+                raise DataAccessError(None, "Cannot load data source config, {}".format(json_path))
         else:
-            raise DataAccessError("Data source config does not exists, {}".format(json_path))
+            raise DataAccessError(None, "Data source config does not exists, {}".format(json_path))
 
     @staticmethod
     def _json_default_serializer(obj):
