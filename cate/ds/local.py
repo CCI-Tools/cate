@@ -54,7 +54,7 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataAccessError, DataAccessWarning,\
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataStore, DataSource, \
     open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
