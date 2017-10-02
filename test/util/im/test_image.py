@@ -218,7 +218,7 @@ class ImagePyramidTest(TestCase):
         # Typical NetCDF shape: time, lat, lon
         array = np.zeros((1, height, width))
 
-        pyramid = ImagePyramid.create_from_array(array, tile_size=(270, 270))
+        pyramid = ImagePyramid.create_from_array(array, tile_size=(270, 270), geo_spatial_rect=(-180, -90, 180, 90))
 
         self.assertEqual((270, 270), pyramid.tile_size)
         self.assertEqual((2, 1), pyramid.num_level_zero_tiles)

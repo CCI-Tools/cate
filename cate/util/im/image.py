@@ -29,6 +29,8 @@ import numpy as np
 from PIL import Image
 
 from cate.util.cache import Cache, MemoryCacheStore
+from util.im.geospatialrect import get_geo_spatial_rect
+from util.im.tilingscheme import TilingScheme
 from .utils import downsample_ndarray, compute_tile_size, cardinal_div_round, aggregate_ndarray_first, \
     get_chunk_size
 
@@ -45,7 +47,7 @@ Rectangle2D = Tuple[X, Y, Width, Height]
 Number = Union[int, float]
 Tile = Any
 TileQuad = Tuple[Tile, Tile, Tile, Tile]
-TiledImageCollection = Sequence['TileImage']
+TiledImageCollection = Sequence['TiledImage']
 LevelTransformer = Callable[['TiledImage', 'TiledImage', int, int], 'TiledImage']
 LevelMapper = Callable[['TiledImage', int], 'TiledImage']
 TileAggregator = Callable[[Tile, Tile, Tile, Tile], Tile]
@@ -462,10 +464,10 @@ class ColorMappedRgbaImage(DecoratorImage):
         else:
             return image
 
-    def create_pyramid(self) -> 'ImagePyramid':
+    def create_pyramid(self, **kwargs) -> 'ImagePyramid':
         if self._encode:
             raise TypeError("can't create pyramid from encoded hi-res tiles")
-        return ImagePyramid.create_from_image(self, create_pil_downsampling_image)
+        return ImagePyramid.create_from_image(self, create_pil_downsampling_image, **kwargs)
 
 
 class DownsamplingImage(OpImage):
@@ -690,8 +692,7 @@ class ImagePyramid:
     @staticmethod
     def create_from_image(source_image: TiledImage,
                           level_transformer: LevelTransformer,
-                          num_level_zero_tiles: Size2D = None,
-                          num_levels: int = None,
+                          geo_spatial_rect=None,
                           **kwargs) -> 'ImagePyramid':
 
         """
@@ -707,28 +708,28 @@ class ImagePyramid:
         :param kwargs: keyword arguments passed to the level_image_factory function
         :return: a new ImagePyramid instance
         """
-        _, _, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(max_size=source_image.size,
-                                                                             tile_size=source_image.tile_size,
-                                                                             num_level_zero_tiles=num_level_zero_tiles,
-                                                                             num_levels=num_levels)
-        level_images = [None] * num_levels
-        z_index_max = num_levels - 1
+        if geo_spatial_rect is None:
+            geo_spatial_rect = (-180., -90., 180., 90.)
+        tiling_scheme = TilingScheme.create(source_image.size[0], source_image.size[1],
+                                            source_image.tile_size[0], source_image.tile_size[1],
+                                            geo_spatial_rect)
+        level_images = [None] * tiling_scheme.num_levels
+        z_index_max = tiling_scheme.num_levels - 1
         level_images[z_index_max] = source_image
         level_image = source_image
-        for i in range(1, num_levels):
+        for i in range(1, tiling_scheme.num_levels):
             z_index = z_index_max - i
             image_id = '%s/%d' % (source_image.id, z_index)
             level_images[z_index] = level_image = level_transformer(source_image, level_image,
-                                                                    z_index, num_levels,
+                                                                    z_index, tiling_scheme.num_levels,
                                                                     image_id=image_id, **kwargs)
-        return ImagePyramid(num_level_zero_tiles, source_image.tile_size, level_images)
+        return ImagePyramid(tiling_scheme, level_images)
 
     @staticmethod
     def create_from_array(array,
-                          level_image_id_factory: LevelImageIdFactory = None,
                           tile_size: Size2D = None,
-                          num_level_zero_tiles: Size2D = None,
-                          num_levels: int = None,
+                          geo_spatial_rect = None,
+                          level_image_id_factory: LevelImageIdFactory = None,
                           **kwargs) -> 'ImagePyramid':
 
         """
@@ -741,23 +742,25 @@ class ImagePyramid:
                       array[..., y::step, x:step]
         :param level_image_id_factory: a factory function for unique image identifiers
         :param tile_size: a tuple (tile_width, tile_height)
-        :param num_level_zero_tiles: a tuple (num_level_zero_tiles_x, num_level_zero_tiles_y)
-        :param num_levels: number of levels
         :param kwargs: keyword arguments passed to FastNdarrayDownsamplingImage constructor
         :return: a new ImagePyramid instance
         """
-        max_size, tile_size, num_level_zero_tiles, num_levels = \
-            ImagePyramid.compute_layout(array=array,
-                                        tile_size=tile_size,
-                                        num_level_zero_tiles=num_level_zero_tiles,
-                                        num_levels=num_levels)
-        level_images = [None] * num_levels
-        for i in range(0, num_levels):
-            z_index = num_levels - 1 - i
+
+        width, height = array.shape[-1], array.shape[-2]
+        tile_width, tile_height = tile_size if tile_size is not None else 512, 512
+        geo_spatial_rect = geo_spatial_rect if geo_spatial_rect is not None else (-180., -90., 180., 90.)
+
+        tiling_scheme = TilingScheme.create(width, height,
+                                            tile_width, tile_height,
+                                            geo_spatial_rect)
+
+        level_images = [None] * tiling_scheme.num_levels
+        for i in range(0, tiling_scheme.num_levels):
+            z_index = tiling_scheme.num_levels - 1 - i
             image_id = level_image_id_factory(z_index) if level_image_id_factory else None
-            level_images[z_index] = FastNdarrayDownsamplingImage(array, tile_size, z_index, num_levels,
+            level_images[z_index] = FastNdarrayDownsamplingImage(array, tile_size, z_index, tiling_scheme.num_levels,
                                                                  image_id=image_id, **kwargs)
-        return ImagePyramid(num_level_zero_tiles, tile_size, level_images)
+        return ImagePyramid(tiling_scheme, level_images)
 
     @staticmethod
     def compute_layout(array=None,
@@ -834,27 +837,28 @@ class ImagePyramid:
         return max_size, tile_size, num_level_zero_tiles, num_levels
 
     def __init__(self,
-                 num_level_zero_tiles: Size2D,
-                 tile_size: Size2D,
+                 tiling_scheme: TilingScheme,
                  level_images: TiledImageCollection):
-        self._num_level_zero_tiles_x = num_level_zero_tiles[0]
-        self._num_level_zero_tiles_y = num_level_zero_tiles[1]
-        self._tile_width = tile_size[0]
-        self._tile_height = tile_size[1]
-        self._num_levels = len(level_images)
+        if tiling_scheme.num_levels != len(level_images):
+            raise ValueError('level_images do not match tiling_scheme')
+        self._tiling_scheme = tiling_scheme
         self._level_images = list(level_images)
 
     @property
+    def tiling_scheme(self) -> TilingScheme:
+        return self._tiling_scheme
+
+    @property
     def num_level_zero_tiles(self) -> Size2D:
-        return self._num_level_zero_tiles_x, self._num_level_zero_tiles_y
+        return self._tiling_scheme.num_level_zero_tiles_x, self._tiling_scheme.num_level_zero_tiles_y
 
     @property
     def tile_size(self) -> Size2D:
-        return self._tile_width, self._tile_height
+        return self._tiling_scheme.tile_width, self._tiling_scheme.tile_height
 
     @property
     def num_levels(self) -> int:
-        return self._num_levels
+        return self._tiling_scheme.num_levels
 
     def get_level_image(self, z_index: int) -> TiledImage:
         return self._level_images[z_index]
@@ -869,8 +873,7 @@ class ImagePyramid:
 
     def apply(self, level_mapper: LevelMapper, *args, **kwargs):
         level_images = self._level_images
-        return ImagePyramid(self.num_level_zero_tiles,
-                            self.tile_size,
+        return ImagePyramid(self._tiling_scheme,
                             [level_mapper(level_images[level], level, *args, **kwargs)
                              for level in range(len(level_images))])
 

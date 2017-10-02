@@ -45,7 +45,7 @@ from cate.conf.defaults import \
 from cate.util import ConsoleMonitor
 from cate.util import Monitor
 from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
-from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage, get_geo_spatial_rect
 from cate.util.im.ds import NaturalEarth2Image
 from cate.util.misc import cwd
 from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
@@ -125,7 +125,6 @@ class ResVarTileHandler(WebAPIRequestHandler):
         else:
             variable = dataset[var_name]
             no_data_value = variable.attrs.get('_FillValue')
-            is_y_flipped = self.is_y_flipped(dataset, variable)
 
             # Make sure we work with 2D image arrays only
             if variable.ndim == 2:
@@ -162,8 +161,24 @@ class ResVarTileHandler(WebAPIRequestHandler):
             def array_image_id_factory(level):
                 return 'arr-%s/%s' % (array_id, level)
 
+            lon = _get_lon_var(dataset, array)
+            lat = _get_lat_var(dataset, array)
+            if lon is None or lat is None:
+                self.write_status_error(message='Internal error: could not determine lon/lat coordinates')
+                return
+
+            try:
+                geo_spatial_rect = get_geo_spatial_rect(lon, lat, eps=1e-4)
+            except ValueError as e:
+                traceback.print_exc()
+                self.write_status_error(message='Internal error: %s' % e)
+                return
+
+            is_y_flipped = geo_spatial_rect[1] < geo_spatial_rect[3]
+
             pyramid = ImagePyramid.create_from_array(array,
-                                                     level_image_id_factory=array_image_id_factory)
+                                                     level_image_id_factory=array_image_id_factory,
+                                                     geo_spatial_rect=geo_spatial_rect)
             pyramid = pyramid.apply(lambda image, level:
                                     TransformArrayImage(image,
                                                         image_id='tra-%s/%d' % (array_id, level),
@@ -198,40 +213,36 @@ class ResVarTileHandler(WebAPIRequestHandler):
 
             if TRACE_TILE_PERF:
                 print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
-            # GLOBAL_LOCK.release()
+                # GLOBAL_LOCK.release()
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
 
     def is_y_flipped(self, dataset: xr.Dataset, variable: xr.DataArray):
-        lat_var = self.get_lat_var(dataset, variable)
+        lat_var = _get_lat_var(dataset, variable)
         if lat_var is not None:
             return lat_var[0] < lat_var[1]
         return False
 
-    def is_lat_lon_image_variable(self, dataset: xr.Dataset, variable: xr.DataArray):
-        lon_var = self.get_lon_var(dataset, variable)
-        if lon_var is not None and lon_var.shape[0] >= 2:
-            lat_var = self.get_lat_var(dataset, variable)
-            return lat_var is not None and lat_var.shape[0] >= 2
-        return False
 
-    def get_lon_var(self, dataset: xr.Dataset, variable: xr.DataArray):
-        return self.get_dim_var(dataset, variable, ['lon', 'longitude', 'long'], -1)
+def _get_lon_var(dataset: xr.Dataset, variable: xr.DataArray):
+    return _get_dim_var(dataset, variable, ['lon', 'longitude', 'long', 'x'], -1)
 
-    def get_lat_var(self, dataset: xr.Dataset, variable: xr.DataArray):
-        return self.get_dim_var(dataset, variable, ['lat', 'latitude'], -2)
 
-    # noinspection PyMethodMayBeStatic
-    def get_dim_var(self, dataset: xr.Dataset, variable: xr.DataArray, names: List[str], pos: int):
-        if len(variable.dims) >= -pos:
-            dim_name = variable.dims[len(variable.dims) + pos]
-            for name in names:
-                if name == dim_name:
-                    dim_var = dataset.coords[dim_name]
-                    if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
-                        return dim_var
-        return None
+def _get_lat_var(dataset: xr.Dataset, variable: xr.DataArray):
+    return _get_dim_var(dataset, variable, ['lat', 'latitude', 'y'], -2)
+
+
+# noinspection PyMethodMayBeStatic
+def _get_dim_var(dataset: xr.Dataset, variable: xr.DataArray, names: List[str], pos: int):
+    if len(variable.dims) >= -pos:
+        dim_name = variable.dims[len(variable.dims) + pos]
+        for name in names:
+            if name == dim_name:
+                dim_var = dataset.coords[dim_name]
+                if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
+                    return dim_var
+    return None
 
 
 # noinspection PyAbstractClass

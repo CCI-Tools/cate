@@ -438,7 +438,7 @@ class Workspace:
             west = -180
             east = 180
 
-        max_size, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
+        _, tile_size, num_level_zero_tiles, num_levels = ImagePyramid.compute_layout(array=variable)
         return {
             'extend': {
                 'west': west,

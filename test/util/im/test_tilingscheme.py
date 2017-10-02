@@ -53,18 +53,27 @@ class TilingSchemeTest(TestCase):
         self.assertEqual(ts.num_tiles_y(3), 8)
 
     def test_create_cci_ecv(self):
+        #72, 8, 85, 17
+        # Soilmoisture CCI - daily L3S
+        self.assertEqual(TilingScheme.create(1440, 720, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
+                         TilingScheme(2, 2, 1, 360, 360, POS_Y_AXIS_GLOBAL_RECT))
         # Aerosol CCI - monthly
         self.assertEqual(TilingScheme.create(7200, 3600, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(4, 2, 1, 450, 450, POS_Y_AXIS_GLOBAL_RECT))
         # Cloud CCI - monthly
         self.assertEqual(TilingScheme.create(720, 360, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
-                         TilingScheme(2, 1, 1, 360, 180, POS_Y_AXIS_GLOBAL_RECT))
+                         TilingScheme(1, 2, 1, 360, 360, POS_Y_AXIS_GLOBAL_RECT))
         # SST CCI - daily L4
         self.assertEqual(TilingScheme.create(8640, 4320, 500, 500, POS_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(4, 2, 1, 540, 540, POS_Y_AXIS_GLOBAL_RECT))
         # Land Cover CCI
         self.assertEqual(TilingScheme.create(129600, 64800, 500, 500, NEG_Y_AXIS_GLOBAL_RECT),
                          TilingScheme(6, 6, 3, 675, 675, POS_Y_AXIS_GLOBAL_RECT))
+
+    def test_create_cci_ecv_subsets(self):
+        # Soilmoisture CCI - daily L3S - use case #6
+        self.assertEqual(TilingScheme.create(52, 36, 500, 500, (72, 8, 85, 17)),
+                         TilingScheme(1, 1, 1, 52, 36, (72., 8., 85., 17.)))
 
     def test_create_subsets(self):
         self.assertEqual(TilingScheme.create(4000, 3000, 500, 500, (-20., 70., 60., 10.)),

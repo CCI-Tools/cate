@@ -288,8 +288,11 @@ def pow2_1d_subdivisions(s: int,
                          ts_max: Optional[int] = None,
                          nt0_max: Optional[int] = None,
                          nl_max: Optional[int] = None):
-    if s < 1:
+    if s is None or s < 1:
         raise ValueError('invalid s')
+
+    if s == ts_opt:
+        return [(s, s, 1, 1)]
 
     ts_min = ts_min or min(s, (ts_opt // 2 if ts_opt else 200))
     ts_max = ts_max or min(s, (ts_opt * 2 if ts_opt else 1200))
