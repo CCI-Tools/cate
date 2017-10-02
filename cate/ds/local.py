@@ -743,6 +743,8 @@ class LocalDataStore(DataStore):
 
         lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
+        pid = os.getpid()
+        create_time = int(psutil.Process(pid).create_time() * 1_000_000)
 
         data_source = None
         for ds in self._data_sources:
@@ -750,15 +752,22 @@ class LocalDataStore(DataStore):
                 if lock_file and os.path.isfile(lock_filepath):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
-                        if psutil.pid_exists(int(writer_pid)):
-                            raise DataAccessError(self, "Cannot access data source {}, another process is using it "
-                                                        "(pid:{}". format(ds.id, writer_pid))
-                        # ds.temporal_coverage() == time_range and
-                        if ds.spatial_coverage() == region \
-                                and ds.variables_info == var_names:
-                            data_source = ds
-                            data_source.set_completed(False)
-                            break
+                        if writer_pid:
+                            writer_create_time = -1
+                            writer_pid, writer_timestamp = [(int(val) for val in writer_pid.split(":"))
+                                                            if ":" in writer_pid else writer_pid, writer_create_time]
+                            if psutil.pid_exists(writer_pid) and writer_pid != pid:
+                                if writer_timestamp > writer_create_time:
+                                    writer_create_time = int(psutil.Process(writer_pid).create_time() * 1_000_000)
+                                if writer_create_time == writer_timestamp:
+                                    raise DataAccessError(self, "Data source '{}' is currently being created by other "
+                                                                "process (pid:{})". format(ds.id, writer_pid))
+                            # ds.temporal_coverage() == time_range and
+                            if ds.spatial_coverage() == region \
+                                    and ds.variables_info == var_names:
+                                data_source = ds
+                                data_source.set_completed(False)
+                                break
                 raise DataAccessError(self, "Data source '{}' already exists.". format(data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
@@ -767,9 +776,8 @@ class LocalDataStore(DataStore):
             self._save_data_source(data_source)
 
         if lock_file:
-            pid = os.getpid()
             with open(lock_filepath, 'w') as lock_file:
-                lock_file.write(str(pid))
+                lock_file.write("{}:{}".format(pid, create_time))
 
         return data_source
 
