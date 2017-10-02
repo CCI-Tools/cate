@@ -174,7 +174,14 @@ class LocalDataSource(DataSource):
                     ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
                 return ds
             except OSError as e:
-                raise IOError("Files: {} caused:\nOSError({}): {}".format(paths, e.errno, e.strerror))
+                if time_range:
+                    raise DataAccessError(self, "Cannot open local dataset for time range: {}\n"
+                                                "Error details: {}"
+                                          .format(TimeRangeLike.format(time_range), e))
+                else:
+                    raise DataAccessError(self, "Cannot open local dataset\n"
+                                                "Error details: {}"
+                                          .format(TimeRangeLike.format(time_range), e))
         else:
             if time_range:
                 raise DataAccessError(self, "No data sets available for specified time range {}".format(
