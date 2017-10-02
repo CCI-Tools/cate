@@ -3,7 +3,7 @@ from datetime import datetime, date
 from unittest import TestCase
 from xml.etree.ElementTree import ElementTree
 
-from numpy import dtype
+import numpy as np
 
 from cate.util.misc import encode_url_path, to_json
 from cate.util.misc import object_to_qualified_name, qualified_name_to_object
@@ -17,7 +17,7 @@ from cate.util.misc import new_indexed_name
 class UtilTest(TestCase):
     def test_object_to_qualified_name(self):
         self.assertEqual(object_to_qualified_name(float), 'float')
-        self.assertEqual(object_to_qualified_name(dtype('float64')), 'float64')
+        self.assertEqual(object_to_qualified_name(np.dtype('float64')), 'float64')
         self.assertEqual(object_to_qualified_name(TestCase), 'unittest.case.TestCase')
         self.assertEqual(object_to_qualified_name(ElementTree), 'xml.etree.ElementTree.ElementTree')
         self.assertEqual(object_to_qualified_name({}, fail=False), '{}')
@@ -174,7 +174,6 @@ class ToJsonTest(TestCase):
         self.assertEqual(to_json(''), '')
 
     def test_numpy(self):
-        import numpy as np
         self.assertEqual(to_json(np.array([])),
                          [])
         self.assertEqual(to_json(np.array([1])),
@@ -191,6 +190,7 @@ class ToJsonTest(TestCase):
                          ['2005-02-21',
                           '2005-02-23',
                           '2005-02-25'])
+        self.assertEqual(to_json(np.array([np.datetime64('2005-02-21')])), ['2005-02-21'])
         self.assertEqual(to_json(np.ndarray),
                          'numpy.ndarray')
 
@@ -204,6 +204,7 @@ class ToJsonTest(TestCase):
         self.assertEqual(to_json('ohoh'), 'ohoh')
         self.assertEqual(to_json(234), 234)
         self.assertEqual(to_json(4.6), 4.6)
+        self.assertEqual(to_json(np.array(np.datetime64('2005-02-21'))), '2005-02-21')
 
     def test_composite_values(self):
         self.assertEqual(to_json([1, 'no!', 3]), [1, 'no!', 3])

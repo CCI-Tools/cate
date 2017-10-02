@@ -45,6 +45,8 @@ Components
 ==========
 """
 
+import warnings
+warnings.filterwarnings("ignore")  # never print any warnings to users
 import sys
 from datetime import date
 

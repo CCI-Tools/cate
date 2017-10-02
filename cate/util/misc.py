@@ -296,6 +296,15 @@ _ZERO_THMS_POSTFIX = 'T00:00:00'
 _ZERO_MICR_POSTFIX = '.000000000'
 
 
+def date_to_simple_str(v):
+    time_str = str(v)
+    if time_str.endswith(_ZERO_MICR_POSTFIX):
+        time_str = time_str[0: -len(_ZERO_MICR_POSTFIX)]
+    if time_str.endswith(_ZERO_THMS_POSTFIX):
+        time_str = time_str[0: -len(_ZERO_THMS_POSTFIX)]
+    return time_str
+
+
 def to_json(v):
     if v is None:
         return v
@@ -320,16 +329,16 @@ def to_json(v):
         # Convert time values to time strings
         is_scalar = False
         try:
-            is_scalar = v.size == 1
+            is_scalar = v.size == 1 and len(v.shape) == 0
         except AttributeError:
             pass
         if is_scalar:
-            time_str = str(v)
-            if time_str.endswith(_ZERO_MICR_POSTFIX):
-                time_str = time_str[0: -len(_ZERO_MICR_POSTFIX)]
-            if time_str.endswith(_ZERO_THMS_POSTFIX):
-                time_str = time_str[0: -len(_ZERO_THMS_POSTFIX)]
-            return time_str
+            return date_to_simple_str(v)
+        else:
+            l = []
+            for vi in v:
+                l.append(date_to_simple_str(vi))
+            return l
 
     if isinstance(v, np.ndarray) and not np.issubdtype(v.dtype, np.datetime64):
         try:
