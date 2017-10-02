@@ -465,11 +465,16 @@ class DataAccessError(Exception):
     def __init__(self, source, cause, *args, **kwargs):
         if isinstance(source, DataSource) or isinstance(source, DataStore):
             if isinstance(cause, Exception):
-                super(DataAccessError, self).__init__("{}: {}".format(source, str(cause)), *args, **kwargs)
+                super(DataAccessError, self).__init__("{}({}): {}".format(source.__class__, source.id, str(cause)),
+                                                      *args, **kwargs)
             elif isinstance(cause, str):
-                super(DataAccessError, self).__init__("{}: {}".format(source, cause), *args, **kwargs)
+                super(DataAccessError, self).__init__("{}({}): {}".format(source.__class__, source.id, cause),
+                                                      *args, **kwargs)
         else:
-            super(DataAccessError, self).__init__(self, cause, *args, **kwargs)
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__(str(cause), *args, **kwargs)
+            else:
+                super(DataAccessError, self).__init__(cause, *args, **kwargs)
 
     @property
     def cause(self):

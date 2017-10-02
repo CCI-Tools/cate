@@ -706,10 +706,10 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.id)
+            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise DataAccessError(self, msg)
+            raise DataAccessError(None, msg)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
@@ -781,8 +781,14 @@ class EsaCciOdpDataSource(DataSource):
         local_path = os.path.join(local_ds.data_store.data_store_path, local_id)
         if not os.path.exists(local_path):
             os.makedirs(local_path)
+
+        selected_file_list = self._find_files(time_range)
+        if not selected_file_list:
+            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
+            if time_range is not None:
+                msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
+            raise DataAccessError(None, msg)
         try:
-            selected_file_list = self._find_files(time_range)
             if protocol == _ODP_PROTOCOL_OPENDAP:
 
                 do_update_of_variables_meta_info_once = True
