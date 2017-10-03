@@ -785,7 +785,7 @@ class LocalDataStore(DataStore):
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
         unfinished_ds = [f for f in os.listdir(self._store_dir)
                          if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.lock')]
-        if skip_incomplete:
+        if skip_broken:
             json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
         self._data_sources = []
         for json_file in json_files:
