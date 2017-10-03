@@ -54,7 +54,7 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataStore, DataSource, \
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, DataSource, \
     open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
@@ -81,8 +81,8 @@ def add_to_data_store_registry():
 # TODO (kbernat): document this class
 class LocalDataSource(DataSource):
     """
-
-    :param ds_id:
+    Local Data Source implementation provides access to locally stored data sets.
+    :param ds_id: unique ID of data source
     :param files:
     :param data_store:
     :param temporal_coverage:
@@ -98,7 +98,8 @@ class LocalDataSource(DataSource):
                  temporal_coverage: TimeRangeLike.TYPE = None,
                  spatial_coverage: PolygonLike.TYPE = None,
                  variables: VarNamesLike.TYPE = None,
-                 meta_info: dict = None):
+                 meta_info: dict = None,
+                 status: DataSourceStatus = None):
         self._id = ds_id
         if isinstance(files, Sequence):
             self._files = OrderedDict.fromkeys(files)
@@ -133,7 +134,7 @@ class LocalDataSource(DataSource):
                  'standard_name': ''
                  } for var_name in self._variables]
 
-        self._is_complete = True
+        self._status = status if status else DataSourceStatus.READY
 
     def _resolve_file_path(self, path) -> Sequence:
         return glob(os.path.join(self._data_store.data_store_path, path))
@@ -503,6 +504,10 @@ class LocalDataSource(DataSource):
         return self._data_store
 
     @property
+    def status(self) -> DataSourceStatus:
+        return self._status
+
+    @property
     def id(self) -> str:
         return self._id
 
@@ -524,7 +529,7 @@ class LocalDataSource(DataSource):
         Return a DataSource creation state
         :return:
         """
-        return self._is_complete
+        return self._status is DataSourceStatus.READY
 
     @property
     def is_empty(self) -> bool:
@@ -536,11 +541,12 @@ class LocalDataSource(DataSource):
 
     def set_completed(self, state: bool):
         """
-        Sets state of DataSource creation/completion
-        :param state: Is DataSource completed
-        :return:
+        Sets state of DataSource completion
         """
-        self._is_complete = state
+        if state:
+            self._status = DataSourceStatus.READY
+        else:
+            self._status = DataSourceStatus.PROCESSING
 
     def _repr_html_(self):
         import html
@@ -555,6 +561,7 @@ class LocalDataSource(DataSource):
 
         :return: A JSON-serializable dictionary
         """
+        self._meta_info['status'] = self._status.name
         config = OrderedDict({
             'name': self._id,
             'meta_info': self._meta_info,
@@ -564,7 +571,9 @@ class LocalDataSource(DataSource):
 
     @classmethod
     def from_json_dict(cls, json_dict: dict, data_store: 'LocalDataStore') -> Optional['LocalDataSource']:
-
+        """
+        Allows to deserialize (load from json) LocalDataSource object.
+        """
         name = json_dict.get('name')
         files = json_dict.get('files', None)
 
@@ -727,7 +736,8 @@ class LocalDataStore(DataStore):
                 raise DataAccessError(self, "Data source '{}' already exists.". format(data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
-                                          variables=var_names, temporal_coverage=time_range, meta_info=meta_info)
+                                          variables=var_names, temporal_coverage=time_range, meta_info=meta_info,
+                                          status=DataSourceStatus.PROCESSING)
             data_source.set_completed(False)
             self._save_data_source(data_source)
 
@@ -775,7 +785,8 @@ class LocalDataStore(DataStore):
                       if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.json')]
         unfinished_ds = [f for f in os.listdir(self._store_dir)
                          if os.path.isfile(os.path.join(self._store_dir, f)) and f.endswith('.lock')]
-        json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
+        if skip_broken:
+            json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
         self._data_sources = []
         for json_file in json_files:
             try:
