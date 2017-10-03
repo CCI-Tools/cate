@@ -8,7 +8,7 @@ import unittest.mock
 import urllib.request
 import shutil
 
-from cate.core.ds import DATA_STORE_REGISTRY, format_variables_info_string
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
 from cate.ds.local import LocalDataStore
@@ -143,23 +143,6 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertEqual(new_ds.id, "local.%s" % new_ds_title)
                 self.assertEqual(new_ds.temporal_coverage(), new_ds_time_range)
 
-                soilmoisture_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                  datetime.datetime(1978, 11, 16, 23, 59)))
-                self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-                                 (datetime.datetime(1978, 11, 15, 0, 0),
-                                  datetime.datetime(1978, 11, 16, 23, 59))))
-
-                soilmoisture_data_source.update_local(new_ds.id, (datetime.datetime(1978, 11, 14, 00, 00),
-                                                                  datetime.datetime(1978, 11, 15, 23, 59)))
-                self.assertEqual(new_ds.temporal_coverage(), TimeRangeLike.convert(
-                                 (datetime.datetime(1978, 11, 14, 0, 0),
-                                  datetime.datetime(1978, 11, 15, 23, 59))))
-
-                with self.assertRaises(ValueError) as context:
-                    soilmoisture_data_source.update_local("wrong_ds_name", (datetime.datetime(1978, 11, 15, 00, 00),
-                                                                            datetime.datetime(1978, 11, 16, 23, 59)))
-                self.assertTrue("Couldn't find local DataSource", context.exception.args[0])
-
                 new_ds_w_one_variable_title = 'local_ds_test_var'
                 new_ds_w_one_variable_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
                                                                          datetime.datetime(1978, 11, 16, 23, 59)))
@@ -203,10 +186,13 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
 
-                no_data = soilmoisture_data_source.make_local('empty_ds',
-                                                              time_range=(datetime.datetime(2017, 12, 1, 0, 0),
-                                                                          datetime.datetime(2017, 12, 31, 23, 59)))
-                self.assertIsNone(no_data)
+                empty_ds_timerange = (datetime.datetime(2017, 12, 1, 0, 0), datetime.datetime(2017, 12, 31, 23, 59))
+                with self.assertRaises(DataAccessError) as cm:
+                    soilmoisture_data_source.make_local('empty_ds', time_range=empty_ds_timerange)
+                self.assertEqual("Open Data Portal's data source '{}' does not seem to have any data sets in given "
+                                 "time range {}".format(soilmoisture_data_source.id,
+                                                        TimeRangeLike.format(empty_ds_timerange)),
+                                 str(cm.exception))
 
                 new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
                                                            datetime.datetime(1978, 11, 14, 23, 59)))
