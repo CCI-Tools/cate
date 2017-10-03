@@ -166,8 +166,24 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_w_region_title = 'from_local_to_local_region'
                 new_ds_w_region_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
                                                                     datetime.datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
+
+                new_ds_w_region = soilmoisture_data_source.make_local(
+                    new_ds_w_region_title,
+                    time_range=new_ds_w_region_time_range,
+                    region=new_ds_w_region_spatial_coverage)  # type: LocalDataSource
+
+                self.assertIsNotNone(new_ds_w_region)
+
+                self.assertEqual(new_ds_w_region.id, "local.%s" % new_ds_w_region_title)
+
+                self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
+
+                new_ds_w_region_title = 'from_local_to_local_region_one_var'
+                new_ds_w_region_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                                    datetime.datetime(1978, 11, 16, 23, 59)))
                 new_ds_w_region_var_names = VarNamesLike.convert(['sm'])
-                new_ds_w_region_spatial_coverage = PolygonLike.convert("10,10,20,20")
+                new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
 
                 new_ds_w_region = soilmoisture_data_source.make_local(
                     new_ds_w_region_title,
@@ -181,7 +197,28 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
                 data_set = new_ds_w_region.open_dataset()
+                new_ds_w_region_var_names.extend(['lat', 'lon', 'time'])
 
+                self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
+
+                new_ds_w_region_title = 'from_local_to_local_region_two_var_sm_uncertainty'
+                new_ds_w_region_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
+                                                                    datetime.datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_region_var_names = VarNamesLike.convert(['sm', 'sm_uncertainty'])
+                new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
+
+                new_ds_w_region = soilmoisture_data_source.make_local(
+                    new_ds_w_region_title,
+                    time_range=new_ds_w_region_time_range,
+                    var_names=new_ds_w_region_var_names,
+                    region=new_ds_w_region_spatial_coverage)  # type: LocalDataSource
+
+                self.assertIsNotNone(new_ds_w_region)
+
+                self.assertEqual(new_ds_w_region.id, "local.%s" % new_ds_w_region_title)
+
+                self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
+                data_set = new_ds_w_region.open_dataset()
                 new_ds_w_region_var_names.extend(['lat', 'lon', 'time'])
 
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
