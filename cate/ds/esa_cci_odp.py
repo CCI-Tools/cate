@@ -151,8 +151,8 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
             # noinspection PyArgumentList
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-            with urllib.request.urlopen(url, timeout=timeout) as response:
-                try:
+            try:
+                with urllib.request.urlopen(url, timeout=timeout) as response:
                     json_text = response.read()
                     json_dict = json.loads(json_text.decode('utf-8'))
                     if num_found is -1:
@@ -166,12 +166,12 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
                         combined_json_dict.get('response', {}).get('docs', []).extend(docs)
                         if num_found < offset + limit:
                             break
-                except (urllib.error.HTTPError, urllib.error.URLError) as error:
-                    raise DataAccessError(None, "Open Data Portal index download failed, {}\n{}"
-                                                .format(error, base_url))
-                except socket.timeout:
-                    raise DataAccessError(None, "Open Data Portal index download failed, connection timeout\n{}"
-                                                .format(base_url))
+            except (urllib.error.HTTPError, urllib.error.URLError) as error:
+                raise DataAccessError(None, "Open Data Portal index download failed, {}\n{}"
+                                            .format(error, base_url))
+            except socket.timeout:
+                raise DataAccessError(None, "Open Data Portal index download failed, connection timeout\n{}"
+                                            .format(base_url))
             offset += limit
     return combined_json_dict
 
