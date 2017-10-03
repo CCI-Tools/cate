@@ -12,8 +12,8 @@ class TilingSchemeTest(TestCase):
         ts = TilingScheme(4, 2, 1, 540, 540, NEG_Y_AXIS_GLOBAL_RECT)
         self.assertEqual(ts.to_json(), {
             'numLevels': 4,
-            'numberOfLevelZeroTilesX': 2,
-            'numberOfLevelZeroTilesY': 1,
+            'numLevelZeroTilesX': 2,
+            'numLevelZeroTilesY': 1,
             'tileHeight': 540,
             'tileWidth': 540,
             'invY': True,

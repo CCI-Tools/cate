@@ -167,6 +167,7 @@ class ResVarTileHandler(WebAPIRequestHandler):
                     message='Internal error: failed to compute tiling scheme for array_id="%s"' % array_id)
                 return
 
+            print('tiling_scheme =', repr(tiling_scheme))
             pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
                                                      level_image_id_factory=array_image_id_factory)
             pyramid = pyramid.apply(lambda image, level:

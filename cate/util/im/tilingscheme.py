@@ -116,8 +116,8 @@ class TilingScheme:
             self.tile_width, self.tile_height, repr(self.geo_extend))
 
     def to_json(self):
-        return dict(numberOfLevelZeroTilesX=self.num_level_zero_tiles_x,
-                    numberOfLevelZeroTilesY=self.num_level_zero_tiles_y,
+        return dict(numLevelZeroTilesX=self.num_level_zero_tiles_x,
+                    numLevelZeroTilesY=self.num_level_zero_tiles_y,
                     tileWidth=self.tile_width,
                     tileHeight=self.tile_height,
                     numLevels=self.num_levels,
