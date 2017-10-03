@@ -175,7 +175,7 @@ class ResVarTileHandler(WebAPIRequestHandler):
                                                         image_id='tra-%s/%d' % (array_id, level),
                                                         no_data_value=no_data_value,
                                                         force_masked=True,
-                                                        flip_y=tiling_scheme.geo_extend.inv_y,
+                                                        flip_y=tiling_scheme.geo_extent.inv_y,
                                                         tile_cache=mem_tile_cache))
             pyramid = pyramid.apply(lambda image, level:
                                     ColorMappedRgbaImage(image,

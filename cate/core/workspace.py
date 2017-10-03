@@ -377,7 +377,7 @@ class Workspace:
             tiling_scheme = get_tiling_scheme(variable)
             if tiling_scheme:
                 variable_info['imageLayout'] = tiling_scheme.to_json()
-                variable_info['isYFlipped'] = tiling_scheme.geo_extend.inv_y
+                variable_info['isYFlipped'] = tiling_scheme.geo_extent.inv_y
         elif variable.ndim == 1:
             # Serialize data of coordinate variables.
             # To limit data transfer volume, we serialize data arrays only if they are 1D.

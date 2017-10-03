@@ -26,15 +26,26 @@ import numpy as np
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
-
 EPS = 1e-04
 
-class GeoExtend:
+
+class GeoExtent:
+    """
+    A geographical extent given by *east*, *south*, *west*, and *north*.
+
+    :param east: East coordinate
+    :param south: South coordinate
+    :param west: West coordinate
+    :param north: North coordinate
+    :param inv_y: Whether the image's y axis (latitude dimension) is flipped
+    :param eps: Epsilon for coordinate comparisons
+    """
+
     def __init__(self, east=-180., south=-90., west=180., north=90., inv_y=False, eps=EPS):
-        east = _adjust_lon_1(east, eps)
-        south = _adjust_lat(south, eps)
-        west = _adjust_lon_2(west, eps)
-        north = _adjust_lat(north, eps)
+        east = _adjust_lon_1(float(east), eps)
+        south = _adjust_lat(float(south), eps)
+        west = _adjust_lon_2(float(west), eps)
+        north = _adjust_lat(float(north), eps)
         if not _valid_lon(east):
             raise ValueError('east out of bounds: %s' % east)
         if not _valid_lat(south):
@@ -119,7 +130,7 @@ class GeoExtend:
             return False
 
     @classmethod
-    def from_coord_arrays(cls, x: np.ndarray, y: np.ndarray, eps: float = EPS) -> 'GeoExtend':
+    def from_coord_arrays(cls, x: np.ndarray, y: np.ndarray, eps: float = EPS) -> 'GeoExtent':
         if x.ndim > 1:
             x = x[(0,) * (x.ndim - 1)]
 
@@ -167,27 +178,27 @@ class GeoExtend:
             x2 -= 360.0
 
         if y1 < y2:
-            return GeoExtend(east=x1, south=y1, west=x2, north=y2, inv_y=True, eps=eps)
+            return GeoExtent(east=x1, south=y1, west=x2, north=y2, inv_y=True, eps=eps)
         else:
-            return GeoExtend(east=x1, south=y2, west=x2, north=y1, inv_y=False, eps=eps)
+            return GeoExtent(east=x1, south=y2, west=x2, north=y1, inv_y=False, eps=eps)
 
 
-def _adjust_lat(y1, eps):
-    y1 = _adjust(y1, -90., -90., eps)
-    y1 = _adjust(y1, +90., +90., eps)
-    return y1
+def _adjust_lat(lat, eps):
+    lat = _adjust(lat, -90., -90., eps)
+    lat = _adjust(lat, +90., +90., eps)
+    return lat
 
 
-def _adjust_lon_1(x1, eps):
-    x1 = _adjust(x1, -180., -180., eps)
-    x1 = _adjust(x1, +180., -180., eps)
-    return x1
+def _adjust_lon_1(lon, eps):
+    lon = _adjust(lon, -180., -180., eps)
+    lon = _adjust(lon, +180., -180., eps)
+    return lon
 
 
-def _adjust_lon_2(x2, eps):
-    x2 = _adjust(x2, -180., +180., eps)
-    x2 = _adjust(x2, +180., +180., eps)
-    return x2
+def _adjust_lon_2(lon, eps):
+    lon = _adjust(lon, -180., +180., eps)
+    lon = _adjust(lon, +180., +180., eps)
+    return lon
 
 
 def _adjust(x1, x2, x3, eps):

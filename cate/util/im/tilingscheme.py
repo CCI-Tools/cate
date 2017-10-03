@@ -23,7 +23,7 @@
 import functools
 from typing import Optional, Any, Tuple
 
-from .geoextend import GeoExtend
+from .geoextent import GeoExtent
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -33,19 +33,33 @@ MODE_GE = 1
 
 
 class TilingScheme:
+    """
+    Image pyramid tiling scheme.
+
+    :param num_levels: Number of pyramid levels.
+    :param num_level_zero_tiles_x: Number of tiles at level zero in X direction.
+    :param num_level_zero_tiles_y:  Number of tiles at level zero in Y direction.
+    :param tile_width: The tile width.
+    :param tile_height: The tile height.
+    :param geo_extent: The geographical extent.
+    """
+
     def __init__(self,
                  num_levels: int,
                  num_level_zero_tiles_x: int,
                  num_level_zero_tiles_y: int,
                  tile_width: int,
                  tile_height: int,
-                 geo_extend: GeoExtend):
+                 geo_extent: GeoExtent):
         self.num_levels = num_levels
         self.tile_width = tile_width
         self.tile_height = tile_height
         self.num_level_zero_tiles_x = num_level_zero_tiles_x
         self.num_level_zero_tiles_y = num_level_zero_tiles_y
-        self.geo_extend = geo_extend
+        self.geo_extent = geo_extent
+
+    def num_tiles(self, level: int) -> Tuple[int, int]:
+        return self.num_tiles_x(level), self.num_tiles_y(level)
 
     def num_tiles_x(self, level: int) -> int:
         return self.num_level_zero_tiles_x * (1 << level)
@@ -88,7 +102,7 @@ class TilingScheme:
                + 4 * self.tile_height \
                + 8 * self.num_level_zero_tiles_x \
                + 16 * self.num_level_zero_tiles_y \
-               + hash(self.geo_extend)
+               + hash(self.geo_extent)
 
     def __eq__(self, o: Any) -> bool:
         try:
@@ -97,7 +111,7 @@ class TilingScheme:
                    and self.tile_height == o.tile_height \
                    and self.num_level_zero_tiles_x == o.num_level_zero_tiles_x \
                    and self.num_level_zero_tiles_y == o.num_level_zero_tiles_y \
-                   and self.geo_extend == o.geo_extend
+                   and self.geo_extent == o.geo_extent
         except AttributeError:
             return False
 
@@ -113,7 +127,7 @@ class TilingScheme:
     def __repr__(self):
         return 'TilingScheme(%s, %s, %s, %s, %s, %s)' % (
             self.num_levels, self.num_level_zero_tiles_x, self.num_level_zero_tiles_y,
-            self.tile_width, self.tile_height, repr(self.geo_extend))
+            self.tile_width, self.tile_height, repr(self.geo_extent))
 
     def to_json(self):
         return dict(numLevelZeroTilesX=self.num_level_zero_tiles_x,
@@ -121,17 +135,17 @@ class TilingScheme:
                     tileWidth=self.tile_width,
                     tileHeight=self.tile_height,
                     numLevels=self.num_levels,
-                    invY=self.geo_extend.inv_y,
-                    extend=dict(west=self.geo_extend.west,
-                                south=self.geo_extend.south,
-                                east=self.geo_extend.east,
-                                north=self.geo_extend.north))
+                    invY=self.geo_extent.inv_y,
+                    extent=dict(west=self.geo_extent.west,
+                                south=self.geo_extent.south,
+                                east=self.geo_extent.east,
+                                north=self.geo_extent.north))
 
     @classmethod
     def create(cls,
                w: int, h: int,
                tile_width: int, tile_height: int,
-               geo_extend: GeoExtend) -> 'TilingScheme':
+               geo_extent: GeoExtent) -> 'TilingScheme':
         """
         Create a new TilingScheme object for image size given by *w* and *h*.
 
@@ -151,10 +165,10 @@ class TilingScheme:
         :param h: original image height
         :param tile_width: optimal tile width
         :param tile_height: optimal tile height
-        :param geo_extend: The geo-spatial extend
+        :param geo_extent: The geo-spatial extent
         :return: A new TilingScheme object
         """
-        gsb_x1, gsb_y1, gsb_x2, gsb_y2 = geo_extend.coords
+        gsb_x1, gsb_y1, gsb_x2, gsb_y2 = geo_extent.coords
 
         if gsb_x1 < gsb_x2:
             # crossing_anti-meridian = False
@@ -163,7 +177,6 @@ class TilingScheme:
             # crossing_anti-meridian = True
             gsb_w = 360. + gsb_x2 - gsb_x1
 
-        inv_y = geo_extend.inv_y
         gsb_h = gsb_y2 - gsb_y1
 
         w_mode = MODE_GE
@@ -193,7 +206,7 @@ class TilingScheme:
 
         if h_new > h:
             gsb_h_new = h_new * gsb_h / h
-            if geo_extend.inv_y:
+            if geo_extent.inv_y:
                 # We cannot adjust gsb_y2, because we expect y to decrease with y indices
                 # and hence we would later on have to read from negative y indexes
                 gsb_y2_new = gsb_y2
@@ -206,13 +219,13 @@ class TilingScheme:
         else:
             gsb_y1_new, gsb_y2_new = gsb_y1, gsb_y2
 
-        new_extend = GeoExtend(east=gsb_x1,
+        new_extent = GeoExtent(east=gsb_x1,
                                south=gsb_y1_new,
                                west=gsb_x2_new,
                                north=gsb_y2_new,
-                               inv_y=geo_extend.inv_y,
-                               eps=geo_extend.eps)
-        return TilingScheme(nl, nt0x, nt0y, tw, th, new_extend)
+                               inv_y=geo_extent.inv_y,
+                               eps=geo_extent.eps)
+        return TilingScheme(nl, nt0x, nt0y, tw, th, new_extent)
 
 
 @functools.lru_cache(maxsize=256)

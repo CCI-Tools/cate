@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from cate.util.im import TilingScheme, GeoExtend
+from cate.util.im import TilingScheme, GeoExtent
 from cate.util.im.image import ImagePyramid, OpImage, create_ndarray_downsampling_image, \
     TransformArrayImage, FastNdarrayDownsamplingImage
 from cate.util.im.utils import aggregate_ndarray_mean
@@ -10,7 +10,8 @@ from cate.util.im.utils import aggregate_ndarray_mean
 
 class MyTiledImage(OpImage):
     def __init__(self, size, tile_size):
-        super().__init__(size, tile_size=tile_size, mode='int32', format='ndarray')
+        super().__init__(size, tile_size, (size[0] // tile_size[0], size[1] // tile_size[1]),
+                         mode='int32', format='ndarray')
 
     def compute_tile(self, tile_x, tile_y, rectangle):
         w, h = self.size
@@ -23,11 +24,11 @@ class NdarrayImageTest(TestCase):
     def test_default(self):
         a = np.arange(0, 24, dtype=np.int32)
         a.shape = 4, 6
-        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 0)
         target_image = TransformArrayImage(source_image)
 
         self.assertEqual(target_image.size, (6, 4))
-        self.assertEqual(target_image.num_tiles, (3, 2))
+        self.assertEqual(target_image.tile_size, (2, 2))
         self.assertEqual(target_image.num_tiles, (3, 2))
 
         self.assertEqual(target_image.get_tile(0, 0).tolist(), [[0, 1],
@@ -47,11 +48,11 @@ class NdarrayImageTest(TestCase):
     def test_flip_y(self):
         a = np.arange(0, 24, dtype=np.int32)
         a.shape = 4, 6
-        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 0)
         target_image = TransformArrayImage(source_image, flip_y=True)
 
         self.assertEqual(target_image.size, (6, 4))
-        self.assertEqual(target_image.num_tiles, (3, 2))
+        self.assertEqual(target_image.tile_size, (2, 2))
         self.assertEqual(target_image.num_tiles, (3, 2))
 
         self.assertEqual(target_image.get_tile(0, 0).tolist(), [[18, 19],
@@ -68,14 +69,38 @@ class NdarrayImageTest(TestCase):
         self.assertEqual(target_image.get_tile(2, 1).tolist(), [[10, 11],
                                                                 [4, 5]])
 
+    def test_level_2(self):
+        a = np.arange(0, 16 * 24, dtype=np.int32)
+        a.shape = 16, 24
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 2)
+        target_image = TransformArrayImage(source_image)
+
+        self.assertEqual(target_image.size, (6, 4))
+        self.assertEqual(target_image.tile_size, (2, 2))
+        self.assertEqual(target_image.num_tiles, (3, 2))
+
+        self.assertEqual(target_image.get_tile(0, 0).tolist(), [[0, 4],
+                                                                [96, 100]])
+        self.assertEqual(target_image.get_tile(1, 0).tolist(), [[8, 12],
+                                                                [104, 108]])
+        self.assertEqual(target_image.get_tile(2, 0).tolist(), [[16, 20],
+                                                                [112, 116]])
+
+        self.assertEqual(target_image.get_tile(0, 1).tolist(), [[192, 196],
+                                                                [288, 292]])
+        self.assertEqual(target_image.get_tile(1, 1).tolist(), [[200, 204],
+                                                                [296, 300]])
+        self.assertEqual(target_image.get_tile(2, 1).tolist(), [[208, 212],
+                                                                [304, 308]])
+
     def test_force_masked(self):
         a = np.arange(0, 24, dtype=np.int32)
         a.shape = 4, 6
-        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 0)
         target_image = TransformArrayImage(source_image, force_masked=True, no_data_value=14)
 
         self.assertEqual(target_image.size, (6, 4))
-        self.assertEqual(target_image.num_tiles, (3, 2))
+        self.assertEqual(target_image.tile_size, (2, 2))
         self.assertEqual(target_image.num_tiles, (3, 2))
 
         self.assertEqual(target_image.get_tile(0, 0).tolist(), [[0, 1],
@@ -96,7 +121,7 @@ class NdarrayImageTest(TestCase):
         a.shape = 4, 6
         a[1, 2] = np.nan
         a[2, 5] = np.inf
-        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 0)
         target_image = TransformArrayImage(source_image, force_masked=True)
 
         self.assertEqual(target_image.size, (6, 4))
@@ -119,10 +144,11 @@ class NdarrayImageTest(TestCase):
     def test_force_2d(self):
         a = np.arange(0, 48, dtype=np.int32)
         a.shape = 2, 4, 6
-        source_image = FastNdarrayDownsamplingImage(a, tile_size=(2, 2), num_levels=1, z_index=0)
+        source_image = FastNdarrayDownsamplingImage(a, (2, 2), 0)
         target_image = TransformArrayImage(source_image, force_2d=True)
 
         self.assertEqual(target_image.size, (6, 4))
+        self.assertEqual(target_image.tile_size, (2, 2))
         self.assertEqual(target_image.num_tiles, (3, 2))
 
     def test_pad_tile(self):
@@ -219,7 +245,7 @@ class ImagePyramidTest(TestCase):
         # Typical NetCDF shape: time, lat, lon
         array = np.zeros((1, height, width))
 
-        tiling_scheme = TilingScheme.create(width, height, 270, 270, geo_extend=GeoExtend())
+        tiling_scheme = TilingScheme.create(width, height, 270, 270, geo_extent=GeoExtent())
         pyramid = ImagePyramid.create_from_array(array, tiling_scheme)
 
         self.assertEqual((270, 270), pyramid.tile_size)

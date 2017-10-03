@@ -35,7 +35,7 @@ This module provides classes and interfaces used to harmonise the access to and 
 types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
 `ESRI Shapefile`_ files.
 
-The goal of the Cate is to reuse existing, and well-known APIs for a given data type to a maximum extend
+The goal of the Cate is to reuse existing, and well-known APIs for a given data type to a maximum extent
 instead of creating a complex new API. Therefore Cate uses the xarray_ N-D Gridded Datasets Python API
 that represents nicely netCDF, HDF-5 and OPeNDAP data types, i.e. Unidata's `Common Data Model`_.
 For the ESRI Shapefile representation we target at Fiona_, which reads and writes spatial data files.
@@ -113,7 +113,7 @@ from typing import List, Optional, Union
 
 import xarray as xr
 
-from ..util.im import GeoExtend, TilingScheme
+from ..util.im import GeoExtent, TilingScheme
 from ..util.misc import object_to_qualified_name, qualified_name_to_object
 from ..util.opimpl import get_lat_dim_name_impl, get_lon_dim_name_impl
 
@@ -355,8 +355,8 @@ def get_tiling_scheme(var: xr.DataArray) -> Optional[TilingScheme]:
     width, height = var.shape[-1], var.shape[-2]
     lats = var.coords[lat_dim_name]
     lons = var.coords[lon_dim_name]
-    geo_extend = GeoExtend.from_coord_arrays(lons, lats)
+    geo_extent = GeoExtent.from_coord_arrays(lons, lats)
     try:
-        return TilingScheme.create(width, height, 360, 360, geo_extend)
+        return TilingScheme.create(width, height, 360, 360, geo_extent)
     except ValueError:
-        return TilingScheme(1, 1, 1, width, height, geo_extend)
+        return TilingScheme(1, 1, 1, width, height, geo_extent)

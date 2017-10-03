@@ -21,7 +21,7 @@
 
 import os
 
-from ..geoextend import GeoExtend
+from ..geoextent import GeoExtent
 from ..image import AbstractTiledImage, ImagePyramid
 from ..tilingscheme import TilingScheme
 
@@ -49,7 +49,7 @@ class NaturalEarth2Image(AbstractTiledImage):
         * 2 x 1 tiles on level zero
         """
         dir_path = os.path.join(os.path.dirname(__file__), 'NaturalEarth2')
-        return ImagePyramid(TilingScheme(3, 2, 1, 256, 256, GeoExtend()),
+        return ImagePyramid(TilingScheme(3, 2, 1, 256, 256, GeoExtent()),
                             [NaturalEarth2Image(dir_path, level) for level in (0, 1, 2)])
 
     def __init__(self, dir_path, z_index):

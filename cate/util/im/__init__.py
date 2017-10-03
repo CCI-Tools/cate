@@ -47,8 +47,9 @@ Components
 """
 
 from .cmaps import get_cmaps
-from .geoextend import GeoExtend
+from .geoextent import GeoExtent
 from .image import *
 from .tilingscheme import TilingScheme
+from .utils import *
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
