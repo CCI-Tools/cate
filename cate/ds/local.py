@@ -42,6 +42,7 @@ import os
 import psutil
 import shutil
 import uuid
+import warnings
 import xarray as xr
 from collections import OrderedDict
 from datetime import datetime
@@ -53,7 +54,8 @@ from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataStore, DataSource, \
+    open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -172,9 +174,20 @@ class LocalDataSource(DataSource):
                     ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
                 return ds
             except OSError as e:
-                raise IOError("Files: {} caused:\nOSError({}): {}".format(paths, e.errno, e.strerror))
+                if time_range:
+                    raise DataAccessError(self, "Cannot open local dataset for time range: {}\n"
+                                                "Error details: {}"
+                                          .format(TimeRangeLike.format(time_range), e))
+                else:
+                    raise DataAccessError(self, "Cannot open local dataset\n"
+                                                "Error details: {}"
+                                          .format(TimeRangeLike.format(time_range), e))
         else:
-            return None
+            if time_range:
+                raise DataAccessError(self, "No data sets available for specified time range {}".format(
+                    TimeRangeLike.format(time_range)), paths)
+            else:
+                raise DataAccessError(self, "No data sets available")
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
@@ -393,57 +406,6 @@ class LocalDataSource(DataSource):
             return local_ds
         return None
 
-    def update_local(self,
-                     local_id: str,
-                     time_range: TimeRangeLike.TYPE,
-                     monitor: Monitor = Monitor.NONE) -> bool:
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            add_to_data_store_registry()
-            local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            raise ValueError('Cannot initialize `local` DataStore')
-
-        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
-        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
-                            ds.id == local_id), None)  # type: LocalDataSource
-        if not data_source:
-            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        to_remove = []
-        to_add = []
-        if time_range and time_range[1] > time_range[0]:
-            if time_range[0] != data_source.temporal_coverage()[0]:
-                if time_range[0] > data_source.temporal_coverage()[0]:
-                    to_remove.append((data_source.temporal_coverage()[0], time_range[0]))
-                else:
-                    to_add.append((time_range[0], data_source.temporal_coverage()[0]))
-
-            if time_range[1] != data_source.temporal_coverage()[1]:
-                if time_range[1] < data_source.temporal_coverage()[1]:
-                    to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
-                else:
-                    to_add.append((data_source.temporal_coverage()[1],
-                                   time_range[1]))
-        if to_remove:
-            for time_range_to_remove in to_remove:
-                data_source.reduce_temporal_coverage(time_range_to_remove)
-        if to_add:
-            for time_range_to_add in to_add:
-                self._make_local(data_source, time_range_to_add, None,
-                                 [var.get('name') for var in data_source.variables_info]
-                                 if data_source.variables_info else None, monitor)
-            data_source.meta_info['temporal_coverage_start'] = time_range[0]
-            data_source.meta_info['temporal_coverage_end'] = time_range[1]
-            data_source.update_temporal_coverage(time_range)
-
-        return bool(to_remove or to_add)
-
     def add_dataset(self, file, time_coverage: TimeRangeLike.TYPE = None, update: bool = False,
                     extract_meta_info: bool = False):
         if update or self._files.keys().isdisjoint([file]):
@@ -537,7 +499,7 @@ class LocalDataSource(DataSource):
         return self._spatial_coverage
 
     @property
-    def data_store(self) -> DataStore:
+    def data_store(self) -> 'LocalDataStore':
         return self._data_store
 
     @property
@@ -675,7 +637,8 @@ class LocalDataStore(DataStore):
                 return
             data_source = data_sources[0]
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
-        os.remove(file_name)
+        if os.path.isfile(file_name):
+            os.remove(file_name)
         lock_file = os.path.join(self._store_dir, data_source.id + '.lock')
         if os.path.isfile(lock_file):
             os.remove(lock_file)
@@ -736,6 +699,8 @@ class LocalDataStore(DataStore):
 
         lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
+        pid = os.getpid()
+        create_time = int(psutil.Process(pid).create_time() * 1_000_000)
 
         data_source = None
         for ds in self._data_sources:
@@ -743,17 +708,23 @@ class LocalDataStore(DataStore):
                 if lock_file and os.path.isfile(lock_filepath):
                     with open(lock_filepath, 'r') as lock_file:
                         writer_pid = lock_file.readline()
-                        if psutil.pid_exists(int(writer_pid)):
-                            raise ValueError("Cannot access data source {}, another process is using it (pid:{}"
-                                             .format(ds.id, writer_pid))
-                        # ds.temporal_coverage() == time_range and
-                        if ds.spatial_coverage() == region \
-                                and ds.variables_info == var_names:
-                            data_source = ds
-                            data_source.set_completed(False)
-                            break
-                raise ValueError("Local data store '{}' already contains a data source named '{}'"
-                                 .format(self.id, data_source_id))
+                        if writer_pid:
+                            writer_create_time = -1
+                            writer_pid, writer_timestamp = [(int(val) for val in writer_pid.split(":"))
+                                                            if ":" in writer_pid else writer_pid, writer_create_time]
+                            if psutil.pid_exists(writer_pid) and writer_pid != pid:
+                                if writer_timestamp > writer_create_time:
+                                    writer_create_time = int(psutil.Process(writer_pid).create_time() * 1_000_000)
+                                if writer_create_time == writer_timestamp:
+                                    raise DataAccessError(self, "Data source '{}' is currently being created by other "
+                                                                "process (pid:{})". format(ds.id, writer_pid))
+                            # ds.temporal_coverage() == time_range and
+                            if ds.spatial_coverage() == region \
+                                    and ds.variables_info == var_names:
+                                data_source = ds
+                                data_source.set_completed(False)
+                                break
+                raise DataAccessError(self, "Data source '{}' already exists.". format(data_source_id))
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           variables=var_names, temporal_coverage=time_range, meta_info=meta_info)
@@ -761,14 +732,14 @@ class LocalDataStore(DataStore):
             self._save_data_source(data_source)
 
         if lock_file:
-            pid = os.getpid()
             with open(lock_filepath, 'w') as lock_file:
-                lock_file.write(str(pid))
+                lock_file.write("{}:{}".format(pid, create_time))
 
         return data_source
 
     @property
     def data_store_path(self):
+        """Path to directory that stores the local data source files."""
         return self._store_dir
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
@@ -791,8 +762,10 @@ class LocalDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
         return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
-    def _init_data_sources(self):
+    def _init_data_sources(self, skip_broken: bool=True):
         """
+
+        :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
         :return:
         """
         if self._data_sources:
@@ -805,24 +778,32 @@ class LocalDataStore(DataStore):
         json_files = [f for f in json_files if f.replace('.json', '.lock') not in unfinished_ds]
         self._data_sources = []
         for json_file in json_files:
-            data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
-            if data_source:
-                self._data_sources.append(data_source)
+            try:
+                data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
+                if data_source:
+                    self._data_sources.append(data_source)
+            except DataAccessError as e:
+                if skip_broken:
+                    warnings.warn(e.cause, DataAccessWarning, stacklevel=0)
+                else:
+                    raise e
 
     def save_data_source(self, data_source, unlock: bool = False):
         self._save_data_source(data_source)
         if unlock:
-            try:
-                os.remove(os.path.join(self._store_dir, '{}.lock'.format(data_source.id)))
-            except FileNotFoundError:
-                pass
+            lock_file = os.path.join(self._store_dir, data_source.id + '.lock')
+            if os.path.isfile(lock_file):
+                os.remove(lock_file)
 
     def _save_data_source(self, data_source):
         json_dict = data_source.to_json_dict()
         dump_kwargs = dict(indent='  ', default=self._json_default_serializer)
         file_name = os.path.join(self._store_dir, data_source.id + '.json')
-        with open(file_name, 'w') as fp:
-            json.dump(json_dict, fp, **dump_kwargs)
+        try:
+            with open(file_name, 'w') as fp:
+                json.dump(json_dict, fp, **dump_kwargs)
+        except EnvironmentError as e:
+            raise DataAccessError(self, "Couldn't save Data Source config file {}\n{}".format(file_name, e.strerror))
 
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
@@ -832,8 +813,13 @@ class LocalDataStore(DataStore):
     @staticmethod
     def _load_json_file(json_path: str):
         if os.path.isfile(json_path):
-            with open(json_path) as fp:
-                return json.load(fp=fp) or {}
+            try:
+                with open(json_path) as fp:
+                    return json.load(fp=fp) or {}
+            except json.decoder.JSONDecodeError:
+                raise DataAccessError(None, "Cannot load data source config, {}".format(json_path))
+        else:
+            raise DataAccessError(None, "Data source config does not exists, {}".format(json_path))
 
     @staticmethod
     def _json_default_serializer(obj):

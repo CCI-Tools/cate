@@ -454,6 +454,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     # Mask values outside the polygon with NaN, crop the dataset
     return ds.where(mask, drop=True)
 
+
 def _crosses_antimeridian(region: Polygon) -> bool:
     """
     Determine if the given region crosses the Antimeridian line, by converting

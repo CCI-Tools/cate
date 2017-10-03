@@ -81,7 +81,7 @@ Components
 import glob
 from abc import ABCMeta, abstractmethod
 from math import ceil, sqrt
-from typing import Sequence, Optional, Union, Tuple, Any
+from typing import Sequence, Optional, Union, Any
 
 import xarray as xr
 
@@ -109,7 +109,7 @@ class DataSource(metaclass=ABCMeta):
     def schema(self) -> Optional[Schema]:
         """
         The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown.
-        Currently unused in c.ate
+        Currently unused in cate.
         """
         return None
 
@@ -122,15 +122,6 @@ class DataSource(metaclass=ABCMeta):
         :return A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
         """
         return None
-
-    # TODO (forman): issue #399 - remove it, no actual use (somewhere put into "meta_inf" dict)
-    @property
-    def protocols(self) -> []:
-        """
-        The list of available protocols.
-
-        """
-        return [None]
 
     @property
     @abstractmethod
@@ -210,58 +201,6 @@ class DataSource(metaclass=ABCMeta):
         :return: the new local data source
         """
         pass
-
-    def update_local(self,
-                     local_id: str,
-                     time_range: TimeRangeLike.TYPE,
-                     monitor: Monitor = Monitor.NONE) -> bool:
-        """
-        Update locally stored data.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               a :py:class:`TimeRangeLike`.
-        :param local_id: A unique ID of local data source.
-        :param monitor: a progress monitor.
-        :return: If any update has been performed returns True, otherwise False
-        """
-        return False
-
-    # TODO (forman): issue #399 - remove this method, we don't expect to have external API use before 1.0
-    # noinspection PyMethodMayBeStatic
-    def sync(self,
-             time_range: TimeRangeLike.TYPE = None,
-             protocol: str = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-        """
-        **Deprecated. Use :py:meth:`make_local` instead.**
-        Allows to synchronize remote data with locally stored data.
-        Availability of synchronization feature depends on protocol type and
-        data source implementation.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date,
-                which must be ``datetime.datetime`` objects.
-        :param protocol: Protocol name, if None selected default protocol
-                will be used to access data
-        :param monitor: a progress monitor.
-        :return: a tuple: (synchronized number of selected files, total number of selected files)
-        """
-        return 0, 0
-
-    # TODO (forman): issue #399 - why is this never used? Seem reasonable to let a data source delete itself from local
-    def delete_local(self,
-                     time_range: TimeRangeLike.TYPE) -> int:
-        """
-        **Deprecated. Use :py:meth:`update_local` instead.**
-        Delete locally stored data.
-        The default implementation does nothing.
-
-        :param time_range: An optional tuple comprising a start and end date, which must be
-               ``datetime.datetime`` objects.
-        :return: removed number of files
-        """
-        return 0
 
     @property
     def title(self) -> Optional[str]:
@@ -365,14 +304,6 @@ class DataStore(metaclass=ABCMeta):
         """
         return self._is_local
 
-    # TODO (forman): issue #399 - remove this method, it has no framework use, hence it is none-API
-    @property
-    def data_store_path(self) -> Optional[str]:
-        """
-        Returns path to data store
-        """
-        return None
-
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -395,18 +326,6 @@ class DataStore(metaclass=ABCMeta):
         :param query_expr: Query expression which may be used if *ìd* is unknown.
         :param monitor:  A progress monitor.
         :return: Sequence of data sources.
-        """
-
-    # TODO (forman): issue #399 - remove this method, it has no usages, hence it is none-API
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
-        """
-        Update this data store's indices to speed up queries and to fetch meta-information about its
-        contained data sources.
-
-        The default implementation is a no-op.
-
-        :param update_file_lists: To also update the a data source's contained file lists (if any)
-        :param monitor:  A progress monitor.
         """
 
     # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
@@ -455,6 +374,49 @@ class DataStoreRegistry:
 #: The data data store registry of type :py:class:`DataStoreRegistry`.
 #: Use it add new data stores to Cate.
 DATA_STORE_REGISTRY = DataStoreRegistry()
+
+
+# noinspection PyArgumentList
+class DataAccessError(Exception):
+    """
+    Exceptions produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    """
+    def __init__(self, source, cause, *args, **kwargs):
+        self._source = source
+        if isinstance(source, DataSource):
+            source_name = 'DataSource'
+        elif isinstance(source, DataStore):
+            source_name = 'DataStore'
+        else:
+            source_name = ""
+
+        if source_name:
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__("{} '{}' returned error: {}".format(source_name, source.id,
+                                                                                          str(cause)), *args, **kwargs)
+            elif isinstance(cause, str):
+                super(DataAccessError, self).__init__("{} '{}' returned error: {}".format(source_name, source.id,
+                                                                                          cause), *args, **kwargs)
+            else:
+                super(DataAccessError, self).__init__(*args, **kwargs)
+        else:
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__(str(cause), *args, **kwargs)
+            elif isinstance(cause, str):
+                super(DataAccessError, self).__init__(cause, *args, **kwargs)
+            else:
+                super(DataAccessError, self).__init__(*args, **kwargs)
+
+    @property
+    def cause(self):
+        return self._cause
+
+
+class DataAccessWarning(UserWarning):
+    """
+    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    """
+    pass
 
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
