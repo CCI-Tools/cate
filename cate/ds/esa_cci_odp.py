@@ -349,7 +349,7 @@ class EsaCciOdpDataStore(DataStore):
         return '<p>Contents of FileSetFileStore</p><table>%s</table>' % ('\n'.join(rows))
 
     def __repr__(self) -> str:
-        return "EsaCciOdpDataStore"
+        return "EsaCciOdpDataStore (%s)" % self.id
 
     def _init_data_sources(self):
         if self._data_sources:
