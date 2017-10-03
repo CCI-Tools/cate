@@ -454,7 +454,6 @@ def subset_spatial_impl(ds: xr.Dataset,
     # Mask values outside the polygon with NaN, crop the dataset
     return ds.where(mask, drop=True)
 
-
 def _crosses_antimeridian(region: Polygon) -> bool:
     """
     Determine if the given region crosses the Antimeridian line, by converting
@@ -463,11 +462,20 @@ def _crosses_antimeridian(region: Polygon) -> bool:
 
     This only works with Polygons without holes
 
-    :param region: PolygonLike to test
+    :param region: Polygon to test
     """
     # Retrieving the points of the Polygon are a bit troublesome, parsing WKT
     # is more straightforward and probably faster
     new_wkt = 'POLYGON (('
+
+    # TODO (forman): @JanisGailis this is probably the most inefficient antimeridian-crossing-test I've ever seen :D
+    #      What is the problem in using the exterior longitude coordinates?
+    #      Please note:
+    #      - WKT parsing and formatting is actually NEVER faster than direct coordinate access (C-impl.!)
+    #      - The polygon's interior can be neglected, only the exterior is required for the test
+    #      - Area computations as used here are probably expensive.
+    #      - An accurate and really fast test takes the orientation into account (polygon.is_ccw)
+    #        and detects intersections of each segement with the antimeridian line.
 
     # [10:-2] gets rid of POLYGON (( and ))
     for point in dumps(region)[10:-2].split(','):
