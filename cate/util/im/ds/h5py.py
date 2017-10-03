@@ -18,13 +18,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from util.im.tilingscheme import pow2_2d_subdivision
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import numpy as np
 
 from ..image import OpImage, ImagePyramid, create_ndarray_downsampling_image
+from ..tilingscheme import pow2_2d_subdivision
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class H5PyDatasetImage(OpImage):
