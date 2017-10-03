@@ -44,12 +44,10 @@ import json
 import os
 import os.path
 import pkgutil
-import urllib.parse
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from enum import Enum
 from io import StringIO, IOBase
-from itertools import chain
 from typing import Sequence, Union, List, Tuple, Mapping, Any
 
 from cate.conf.conf import get_data_stores_path
@@ -216,36 +214,6 @@ class FileSetDataSource(DataSource):
         resolved_path = resolved_path.replace('{MM}', '%02d' % the_date.month)
         resolved_path = resolved_path.replace('{DD}', '%02d' % the_date.day)
         return self._base_dir + '/' + resolved_path
-
-    def sync(self,
-             time_range: Tuple[datetime, datetime] = None,
-             protocol: str = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-        # TODO (kbernat, 20161221): remove remote_url validation, there is no public interface to modify it
-        assert self._file_set_data_store.remote_url
-        url = urllib.parse.urlparse(self._file_set_data_store.remote_url)
-        if url.scheme != 'ftp':
-            raise ValueError("invalid remote URL: cannot deal with scheme %s" % repr(url.scheme))
-        ftp_host_name = url.hostname
-        ftp_base_dir = url.path
-
-        expected_remote_files = self._get_expected_remote_files(time_range)
-        if len(expected_remote_files) == 0:
-            return 0, 0
-
-        num_of_synchronised_files = 0
-        num_of_expected_remote_files = len(list(chain.from_iterable(list(expected_remote_files.values()))))
-        with monitor.starting('Sync %s' % self._id, num_of_expected_remote_files):
-            try:
-                with ftplib.FTP(ftp_host_name) as ftp:
-                    ftp.login()
-                    num_of_synchronised_files = self._sync_files(ftp, ftp_base_dir, expected_remote_files,
-                                                                 num_of_expected_remote_files, monitor)
-            except ftplib.Error as ftp_err:
-                if not monitor.is_cancelled():
-                    print('FTP error: %s' % ftp_err)
-
-        return num_of_synchronised_files, num_of_expected_remote_files
 
     def _sync_files(self, ftp, ftp_base_dir, expected_remote_files, num_of_expected_remote_files,
                     monitor: Monitor) -> int:

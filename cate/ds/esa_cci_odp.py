@@ -321,17 +321,6 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return get_metadata_store_path()
 
-    def update_indices(self, update_file_lists: bool = False, monitor: Monitor = Monitor.NONE):
-        with monitor.starting('Updating indices', 100):
-            self._init_data_sources()
-            monitor.progress(work=10 if update_file_lists else 100)
-            if update_file_lists:
-                child_monitor = monitor.child(work=90)
-                with child_monitor.starting('Updating file lists', len(self._data_sources)):
-                    for data_source in self._data_sources:
-                        data_source.update_file_list()
-                        child_monitor.progress(work=1)
-
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
         if ds_id or query_expr:
@@ -596,77 +585,6 @@ class EsaCciOdpDataSource(DataSource):
     def update_file_list(self, monitor: Monitor = Monitor.NONE) -> None:
         self._file_list = None
         self._init_file_list(monitor)
-
-    def sync(self,
-             time_range: TimeRangeLike.TYPE = None,
-             protocol: str = None,
-             monitor: Monitor = Monitor.NONE) -> Tuple[int, int]:
-
-        if protocol == _ODP_PROTOCOL_HTTP:
-            self.make_local(self._master_id(), None, time_range, None, None, monitor)
-        else:
-            raise ValueError('Unsupported protocol', protocol)
-        return 0, 0
-
-    def update_local(self,
-                     local_id: str,
-                     time_range: TimeRangeLike.TYPE,
-                     monitor: Monitor = Monitor.NONE) -> bool:
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            add_to_data_store_registry()
-            local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if not local_store:
-            raise ValueError('Cannot initialize `local` DataStore')
-
-        data_sources = local_store.query(ds_id=local_id)  # type: Sequence['DataSource']
-        data_source = next((ds for ds in data_sources if isinstance(ds, LocalDataSource) and
-                            ds.id == local_id), None)  # type: LocalDataSource
-        if not data_source:
-            raise ValueError("Couldn't find local DataSource", (local_id, data_sources))
-
-        time_range = TimeRangeLike.convert(time_range) if time_range else None
-
-        to_remove = []
-        to_add = []
-        if time_range and time_range[1] > time_range[0]:
-            if time_range[0] != data_source.temporal_coverage()[0]:
-                if time_range[0] > data_source.temporal_coverage()[0]:
-                    to_remove.append((data_source.temporal_coverage()[0], time_range[0]))
-                else:
-                    to_add.append((time_range[0], data_source.temporal_coverage()[0]))
-
-            if time_range[1] != data_source.temporal_coverage()[1]:
-                if time_range[1] < data_source.temporal_coverage()[1]:
-                    to_remove.append((time_range[1], data_source.temporal_coverage()[1]))
-                else:
-                    to_add.append((data_source.temporal_coverage()[1],
-                                   time_range[1]))
-        if to_remove:
-            for time_range_to_remove in to_remove:
-                data_source.reduce_temporal_coverage(time_range_to_remove)
-
-        if to_add:
-            for time_range_to_add in to_add:
-                self._make_local(data_source, time_range_to_add, None, [var.get('name') for var
-                                                                        in data_source.variables_info], monitor)
-            data_source.meta_info['temporal_coverage_start'] = time_range[0]
-            data_source.meta_info['temporal_coverage_end'] = time_range[1]
-            data_source.update_temporal_coverage(time_range)
-
-        return bool(to_remove or to_add)
-
-    def delete_local(self, time_range: TimeRangeLike.TYPE) -> int:
-
-        if time_range[0] >= self._temporal_coverage[0] \
-                and time_range[1] <= self._temporal_coverage[1]:
-            if time_range[0] == self._temporal_coverage[0] \
-                    or time_range[1] == self._temporal_coverage[1]:
-                return self.update_local(self._master_id, time_range)
-        return 0
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._master_id)
