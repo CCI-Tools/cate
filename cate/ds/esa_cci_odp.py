@@ -40,6 +40,7 @@ Components
 import json
 import os
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 import socket
@@ -57,7 +58,7 @@ from owslib.namespaces import Namespaces
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, Schema, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
@@ -70,7 +71,6 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 
-# _CSW_CEDA_URL = "http://csw1.cems.rl.ac.uk/geonetwork-CEDA/srv/eng/csw-CEDA-CCI"
 _CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -152,19 +152,26 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
             with urllib.request.urlopen(url, timeout=timeout) as response:
-                json_text = response.read()
-                json_dict = json.loads(json_text.decode('utf-8'))
-                if num_found is -1:
-                    num_found = json_dict.get('response', {}).get('numFound', 0)
-                if not combined_json_dict:
-                    combined_json_dict = json_dict
-                    if num_found < limit:
-                        break
-                else:
-                    docs = json_dict.get('response', {}).get('docs', [])
-                    combined_json_dict.get('response', {}).get('docs', []).extend(docs)
-                    if num_found < offset + limit:
-                        break
+                try:
+                    json_text = response.read()
+                    json_dict = json.loads(json_text.decode('utf-8'))
+                    if num_found is -1:
+                        num_found = json_dict.get('response', {}).get('numFound', 0)
+                    if not combined_json_dict:
+                        combined_json_dict = json_dict
+                        if num_found < limit:
+                            break
+                    else:
+                        docs = json_dict.get('response', {}).get('docs', [])
+                        combined_json_dict.get('response', {}).get('docs', []).extend(docs)
+                        if num_found < offset + limit:
+                            break
+                except (urllib.error.HTTPError, urllib.error.URLError) as error:
+                    raise DataAccessError(None, "Open Data Portal index download failed, {}\n{}"
+                                                .format(error, base_url))
+                except socket.timeout:
+                    raise DataAccessError(None, "Open Data Portal index download failed, connection timeout\n{}"
+                                                .format(base_url))
             offset += limit
     return combined_json_dict
 
@@ -229,7 +236,10 @@ def _load_or_fetch_json(fetch_json_function,
                     json_text = fp.read()
                     json_obj = json.loads(json_text)
             else:
-                raise e
+                if isinstance(e, DataAccessError):
+                    raise DataAccessError(None, "Cannot fetch information from Open Data Portal server.")
+                else:
+                    raise e
 
     return json_obj
 
@@ -328,7 +338,7 @@ class EsaCciOdpDataStore(DataStore):
         return '<p>Contents of FileSetFileStore</p><table>%s</table>' % ('\n'.join(rows))
 
     def __repr__(self) -> str:
-        return "EsaCciOdpDataStore"
+        return "EsaCciOdpDataStore (%s)" % self.id
 
     def _init_data_sources(self):
         if self._data_sources:
@@ -357,27 +367,31 @@ class EsaCciOdpDataStore(DataStore):
         self._data_sources = data_sources
 
     def _load_index(self):
-        esgf_json_dict = _load_or_fetch_json(_fetch_solr_json,
-                                             fetch_json_args=[
-                                                 _ESGF_CEDA_URL,
-                                                 dict(type='Dataset',
-                                                      replica='false',
-                                                      latest='true',
-                                                      project='esacci')],
-                                             cache_used=self._index_cache_used,
-                                             cache_dir=get_metadata_store_path(),
-                                             cache_json_filename='dataset-list.json',
-                                             cache_timestamp_filename='dataset-list-timestamp.json',
-                                             cache_expiration_days=self._index_cache_expiration_days)
+        try:
+            esgf_json_dict = _load_or_fetch_json(_fetch_solr_json,
+                                                 fetch_json_args=[
+                                                     _ESGF_CEDA_URL,
+                                                     dict(type='Dataset',
+                                                          replica='false',
+                                                          latest='true',
+                                                          project='esacci')],
+                                                 cache_used=self._index_cache_used,
+                                                 cache_dir=get_metadata_store_path(),
+                                                 cache_json_filename='dataset-list.json',
+                                                 cache_timestamp_filename='dataset-list-timestamp.json',
+                                                 cache_expiration_days=self._index_cache_expiration_days)
 
-        cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
-        csw_json_dict = _load_or_fetch_json(cci_catalogue_service.getrecords,
-                                            fetch_json_args=[],
-                                            cache_used=self._index_cache_used,
-                                            cache_dir=get_metadata_store_path(),
-                                            cache_json_filename='catalogue.json',
-                                            cache_timestamp_filename='catalogue-timestamp.json',
-                                            cache_expiration_days=self._index_cache_expiration_days)
+            cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
+            csw_json_dict = _load_or_fetch_json(cci_catalogue_service.getrecords,
+                                                fetch_json_args=[],
+                                                cache_used=self._index_cache_used,
+                                                cache_dir=get_metadata_store_path(),
+                                                cache_json_filename='catalogue.json',
+                                                cache_timestamp_filename='catalogue-timestamp.json',
+                                                cache_expiration_days=self._index_cache_expiration_days)
+        except DataAccessError:
+            raise DataAccessError(self, "Cannot download Open Data Portal ECV index")
+
         self._csw_data = csw_json_dict
         self._esgf_data = esgf_json_dict
 
@@ -610,10 +624,10 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Data source \'{}\' does not seem to have any data files'.format(self.id)
+            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise IOError(msg)
+            raise DataAccessError(None, msg)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
@@ -626,7 +640,14 @@ class EsaCciOdpDataSource(DataSource):
             return ds
 
         except OSError as e:
-            raise IOError("Files: {} caused:\nOSError({}): {}".format(files, e.errno, e.strerror))
+            if time_range:
+                raise DataAccessError(self, "Cannot open remote dataset for time range: {}\n"
+                                            "Error details: {}"
+                                      .format(TimeRangeLike.format(time_range), e))
+            else:
+                raise DataAccessError(self, "Cannot open remote dataset\n"
+                                            "Error details: {}"
+                                      .format(TimeRangeLike.format(time_range), e))
 
     @staticmethod
     def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
@@ -680,175 +701,189 @@ class EsaCciOdpDataSource(DataSource):
             os.makedirs(local_path)
 
         selected_file_list = self._find_files(time_range)
-        if protocol == _ODP_PROTOCOL_OPENDAP:
+        if not selected_file_list:
+            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
+            if time_range is not None:
+                msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
+            raise DataAccessError(None, msg)
+        try:
+            if protocol == _ODP_PROTOCOL_OPENDAP:
 
-            do_update_of_variables_meta_info_once = True
-            do_update_of_region_meta_info_once = True
+                do_update_of_variables_meta_info_once = True
+                do_update_of_region_meta_info_once = True
 
-            files = self._get_urls_list(selected_file_list, protocol)
-            monitor.start('Sync ' + self.id, total_work=len(files))
-            for idx, dataset_uri in enumerate(files):
-                child_monitor = monitor.child(work=1)
+                files = self._get_urls_list(selected_file_list, protocol)
+                monitor.start('Sync ' + self.id, total_work=len(files))
+                for idx, dataset_uri in enumerate(files):
+                    child_monitor = monitor.child(work=1)
 
-                file_name = os.path.basename(dataset_uri)
-                local_filepath = os.path.join(local_path, file_name)
+                    file_name = os.path.basename(dataset_uri)
+                    local_filepath = os.path.join(local_path, file_name)
 
-                time_coverage_start = selected_file_list[idx][1]
-                time_coverage_end = selected_file_list[idx][2]
+                    time_coverage_start = selected_file_list[idx][1]
+                    time_coverage_end = selected_file_list[idx][2]
 
-                remote_netcdf = None
-                local_netcdf = None
-                try:
-                    remote_netcdf = NetCDF4DataStore(dataset_uri)
+                    remote_netcdf = None
+                    local_netcdf = None
+                    try:
+                        remote_netcdf = NetCDF4DataStore(dataset_uri)
 
-                    local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
-                    local_netcdf.set_attributes(remote_netcdf.get_attrs())
+                        local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
+                        local_netcdf.set_attributes(remote_netcdf.get_attrs())
 
-                    remote_dataset = xr.Dataset.load_store(remote_netcdf)
+                        remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                    process_region = False
-                    if region:
-                        geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lat_min')
-                        geo_lat_max = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lat_max')
-                        geo_lon_min = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lon_min')
-                        geo_lon_max = self._get_harmonized_coordinate_value(remote_dataset.attrs, 'geospatial_lon_max')
+                        process_region = False
+                        if region:
+                            geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lat_min')
+                            geo_lat_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lat_max')
+                            geo_lon_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lon_min')
+                            geo_lon_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lon_max')
 
-                        geo_lat_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                            'geospatial_lon_resolution')
-                        geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                            'geospatial_lat_resolution')
-                        if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
-                                isnan(geo_lon_min) or isnan(geo_lon_max) or
-                                isnan(geo_lat_res) or isnan(geo_lon_res)):
-                            process_region = True
+                            geo_lat_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lon_resolution')
+                            geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
+                                                                                'geospatial_lat_resolution')
+                            if not (isnan(geo_lat_min) or isnan(geo_lat_max) or
+                                    isnan(geo_lon_min) or isnan(geo_lon_max) or
+                                    isnan(geo_lat_res) or isnan(geo_lon_res)):
+                                process_region = True
 
-                            [lon_min, lat_min, lon_max, lat_max] = region.bounds
+                                [lon_min, lat_min, lon_max, lat_max] = region.bounds
 
-                            descending_data_order = set()
-                            for var in remote_dataset.coords.keys():
-                                if remote_dataset.coords[var][0] > remote_dataset.coords[var][-1]:
-                                    descending_data_order.add(var)
+                                descending_data_order = set()
+                                for var in remote_dataset.coords.keys():
+                                    if remote_dataset.coords[var][0] > remote_dataset.coords[var][-1]:
+                                        descending_data_order.add(var)
 
-                            if 'lat' not in descending_data_order:
-                                lat_min = lat_min - geo_lat_min
-                                lat_max = lat_max - geo_lat_min
-                            else:
-                                lat_min_copy = lat_min
-                                lat_min = geo_lat_max - lat_max
-                                lat_max = geo_lat_max - lat_min_copy
+                                if 'lat' not in descending_data_order:
+                                    lat_min = lat_min - geo_lat_min
+                                    lat_max = lat_max - geo_lat_min
+                                else:
+                                    lat_min_copy = lat_min
+                                    lat_min = geo_lat_max - lat_max
+                                    lat_max = geo_lat_max - lat_min_copy
 
-                            if 'lon' not in descending_data_order:
-                                lon_min = lon_min - geo_lon_min
-                                lon_max = lon_max - geo_lon_min
-                            else:
-                                lon_min_copy = lon_min
-                                lon_min = geo_lon_max - lon_max
-                                lon_max = geo_lon_max - lon_min_copy
+                                if 'lon' not in descending_data_order:
+                                    lon_min = lon_min - geo_lon_min
+                                    lon_max = lon_max - geo_lon_min
+                                else:
+                                    lon_min_copy = lon_min
+                                    lon_min = geo_lon_max - lon_max
+                                    lon_max = geo_lon_max - lon_min_copy
 
-                            lat_min = int(floor(lat_min / geo_lat_res))
-                            lat_max = int(ceil(lat_max / geo_lat_res))
-                            lon_min = int(floor(lon_min / geo_lon_res))
-                            lon_max = int(ceil(lon_max / geo_lon_res))
+                                lat_min = int(floor(lat_min / geo_lat_res))
+                                lat_max = int(ceil(lat_max / geo_lat_res))
+                                lon_min = int(floor(lon_min / geo_lon_res))
+                                lon_max = int(ceil(lon_max / geo_lon_res))
 
-                            remote_dataset = remote_dataset.isel(drop=False,
-                                                                 lat=slice(lat_min, lat_max),
-                                                                 lon=slice(lon_min, lon_max))
-                            if 'lat' not in descending_data_order:
-                                geo_lat_min_copy = geo_lat_min
-                                geo_lat_min = lat_min * geo_lat_res + geo_lat_min_copy
-                                geo_lat_max = lat_max * geo_lat_res + geo_lat_min_copy
-                            else:
-                                geo_lat_max_copy = geo_lat_max
-                                geo_lat_min = geo_lat_max_copy - lat_max * geo_lat_res
-                                geo_lat_max = geo_lat_max_copy - lat_min * geo_lat_res
+                                remote_dataset = remote_dataset.isel(drop=False,
+                                                                     lat=slice(lat_min, lat_max),
+                                                                     lon=slice(lon_min, lon_max))
+                                if 'lat' not in descending_data_order:
+                                    geo_lat_min_copy = geo_lat_min
+                                    geo_lat_min = lat_min * geo_lat_res + geo_lat_min_copy
+                                    geo_lat_max = lat_max * geo_lat_res + geo_lat_min_copy
+                                else:
+                                    geo_lat_max_copy = geo_lat_max
+                                    geo_lat_min = geo_lat_max_copy - lat_max * geo_lat_res
+                                    geo_lat_max = geo_lat_max_copy - lat_min * geo_lat_res
 
-                            if 'lon' not in descending_data_order:
-                                geo_lon_min_copy = geo_lon_min
-                                geo_lon_min = lon_min * geo_lon_res + geo_lon_min_copy
-                                geo_lon_max = lon_max * geo_lon_res + geo_lon_min_copy
-                            else:
-                                geo_lon_max_copy = geo_lon_max
-                                geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
-                                geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
-                    if not var_names:
-                        var_names = [var_name for var_name in remote_netcdf.variables.keys()]
-                    var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
-                                      if coord_name not in var_names])
-                    child_monitor.start(label=file_name, total_work=len(var_names))
-                    for sel_var_name in var_names:
-                        var_dataset = remote_dataset.drop(
-                            [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
-                        if compression_enabled:
-                            var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                        local_netcdf.store_dataset(var_dataset)
-                        child_monitor.progress(work=1, msg=sel_var_name)
-                    if process_region:
-                        local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
-                        local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
-                        local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
-                        local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
-                        if do_update_of_region_meta_info_once:
-                            local_ds.meta_info['bbox_maxx'] = geo_lon_max
-                            local_ds.meta_info['bbox_minx'] = geo_lon_min
-                            local_ds.meta_info['bbox_maxy'] = geo_lat_max
-                            local_ds.meta_info['bbox_miny'] = geo_lat_min
-                            do_update_of_region_meta_info_once = False
-                finally:
-                    if remote_netcdf:
-                        remote_netcdf.close()
-                    if do_update_of_variables_meta_info_once:
-                        variables_info = local_ds.meta_info.get('variables', [])
-                        local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                           if var_info.get('name') in local_netcdf.variables.keys() and
-                                                           var_info.get('name') not in local_netcdf.dimensions.keys()]
-                        do_update_of_variables_meta_info_once = False
-                    if local_netcdf:
-                        local_netcdf.close()
-                        local_ds.add_dataset(os.path.join(local_id, file_name),
-                                             (time_coverage_start, time_coverage_end))
+                                if 'lon' not in descending_data_order:
+                                    geo_lon_min_copy = geo_lon_min
+                                    geo_lon_min = lon_min * geo_lon_res + geo_lon_min_copy
+                                    geo_lon_max = lon_max * geo_lon_res + geo_lon_min_copy
+                                else:
+                                    geo_lon_max_copy = geo_lon_max
+                                    geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
+                                    geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
+                        if not var_names:
+                            var_names = [var_name for var_name in remote_netcdf.variables.keys()]
+                        var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
+                                          if coord_name not in var_names])
+                        child_monitor.start(label=file_name, total_work=len(var_names))
+                        for sel_var_name in var_names:
+                            var_dataset = remote_dataset.drop(
+                                [var_name for var_name in remote_dataset.variables.keys() if var_name != sel_var_name])
+                            if compression_enabled:
+                                var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                            local_netcdf.store_dataset(var_dataset)
+                            child_monitor.progress(work=1, msg=sel_var_name)
+                        if process_region:
+                            local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
+                            local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
+                            local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
+                            local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
+                            if do_update_of_region_meta_info_once:
+                                local_ds.meta_info['bbox_maxx'] = geo_lon_max
+                                local_ds.meta_info['bbox_minx'] = geo_lon_min
+                                local_ds.meta_info['bbox_maxy'] = geo_lat_max
+                                local_ds.meta_info['bbox_miny'] = geo_lat_min
+                                do_update_of_region_meta_info_once = False
+                    finally:
+                        if remote_netcdf:
+                            remote_netcdf.close()
+                        if do_update_of_variables_meta_info_once:
+                            variables_info = local_ds.meta_info.get('variables', [])
+                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                               if var_info.get('name')
+                                                               in local_netcdf.variables.keys() and
+                                                               var_info.get('name')
+                                                               not in local_netcdf.dimensions.keys()]
+                            do_update_of_variables_meta_info_once = False
+                        if local_netcdf:
+                            local_netcdf.close()
+                            local_ds.add_dataset(os.path.join(local_id, file_name),
+                                                 (time_coverage_start, time_coverage_end))
 
-                        if do_update_of_verified_time_coverage_start_once:
-                            verified_time_coverage_start = time_coverage_start
-                            do_update_of_verified_time_coverage_start_once = False
-                        verified_time_coverage_end = time_coverage_end
-                child_monitor.done()
-        else:
-            outdated_file_list = []
-            for file_rec in selected_file_list:
-                filename, _, _, file_size, url = file_rec
-                dataset_file = os.path.join(local_path, filename)
-                # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-                # ... outdated or incomplete or corrupted.
-                # JSON also includes "checksum" and "checksum_type" fields.
-                if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                    outdated_file_list.append(file_rec)
+                            if do_update_of_verified_time_coverage_start_once:
+                                verified_time_coverage_start = time_coverage_start
+                                do_update_of_verified_time_coverage_start_once = False
+                            verified_time_coverage_end = time_coverage_end
+                    child_monitor.done()
+            else:
+                outdated_file_list = []
+                for file_rec in selected_file_list:
+                    filename, _, _, file_size, url = file_rec
+                    dataset_file = os.path.join(local_path, filename)
+                    # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+                    # ... outdated or incomplete or corrupted.
+                    # JSON also includes "checksum" and "checksum_type" fields.
+                    if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                        outdated_file_list.append(file_rec)
 
-            if outdated_file_list:
-                with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
-                    bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                    dl_stat = _DownloadStatistics(bytes_to_download)
+                if outdated_file_list:
+                    with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
+                        bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                        dl_stat = _DownloadStatistics(bytes_to_download)
 
-                    file_number = 1
+                        file_number = 1
 
-                    for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
-                        dataset_file = os.path.join(local_path, filename)
-                        sub_monitor = monitor.child(work=1.0)
+                        for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
+                            dataset_file = os.path.join(local_path, filename)
+                            sub_monitor = monitor.child(work=1.0)
 
-                        # noinspection PyUnusedLocal
-                        def reporthook(block_number, read_size, total_file_size):
-                            dl_stat.handle_chunk(read_size)
-                            sub_monitor.progress(work=read_size, msg=str(dl_stat))
+                            # noinspection PyUnusedLocal
+                            def reporthook(block_number, read_size, total_file_size):
+                                dl_stat.handle_chunk(read_size)
+                                sub_monitor.progress(work=read_size, msg=str(dl_stat))
 
-                        sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                        with sub_monitor.starting(sub_monitor_msg, file_size):
-                            urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
-                        file_number += 1
-                        local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
+                            sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                            with sub_monitor.starting(sub_monitor_msg, file_size):
+                                urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                            file_number += 1
+                            local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
 
-                        if do_update_of_verified_time_coverage_start_once:
-                            verified_time_coverage_start = coverage_from
-                            do_update_of_verified_time_coverage_start_once = False
-                        verified_time_coverage_end = coverage_to
+                            if do_update_of_verified_time_coverage_start_once:
+                                verified_time_coverage_start = coverage_from
+                                do_update_of_verified_time_coverage_start_once = False
+                            verified_time_coverage_end = coverage_to
+        except OSError as error:
+            raise DataAccessError(self, "Copying remote datasource failed, {}".format(error))
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
@@ -875,7 +910,7 @@ class EsaCciOdpDataSource(DataSource):
                     var_names = self._json_dict.get('variable', [])
                 if 't0' in var_names:
                     var_names.remove('t0')
-        return (time_range, region, var_names)
+        return time_range, region, var_names
 
     def make_local(self,
                    local_name: str,

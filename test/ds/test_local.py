@@ -5,7 +5,7 @@ import unittest
 import unittest.mock
 import datetime
 import shutil
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore, LocalDataSource
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
@@ -47,10 +47,10 @@ class LocalDataStoreTest(unittest.TestCase):
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)
 
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(DataAccessError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual("Local data store 'test' already contains a data source named 'test.{}'".format(new_ds_name),
-                         str(cm.exception))
+        self.assertEqual("DataStore '{}' returned error: Data source '{}.{}' already exists.".format(
+            self.data_store.id, self.data_store.id, new_ds_name), str(cm.exception))
 
         data_sources = self.data_store.query()
         self.assertEqual(len(data_sources), 3)
@@ -304,9 +304,9 @@ class LocalDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 3)
 
-        xr = ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
-                                         datetime.datetime(1978, 11, 15)))
-        self.assertIsNone(xr)
+        with self.assertRaises(DataAccessError):
+            ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
+                                        datetime.datetime(1978, 11, 15)))
 
         ds = self._local_data_store.query('local_w_temporal')[0]
 
@@ -318,6 +318,10 @@ class LocalDataSourceTest(unittest.TestCase):
                                          datetime.datetime(1978, 11, 15)))
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 1)
+
+        with self.assertRaises(DataAccessError):
+            ds.open_dataset(time_range=(datetime.datetime(1978, 11, 20),
+                                        datetime.datetime(1978, 11, 21)))
 
     def test_make_local(self):
         data_source = self._local_data_store.query('local_w_temporal')[0]

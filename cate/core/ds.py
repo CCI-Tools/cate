@@ -376,6 +376,49 @@ class DataStoreRegistry:
 DATA_STORE_REGISTRY = DataStoreRegistry()
 
 
+# noinspection PyArgumentList
+class DataAccessError(Exception):
+    """
+    Exceptions produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    """
+    def __init__(self, source, cause, *args, **kwargs):
+        self._source = source
+        if isinstance(source, DataSource):
+            source_name = 'DataSource'
+        elif isinstance(source, DataStore):
+            source_name = 'DataStore'
+        else:
+            source_name = ""
+
+        if source_name:
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__("{} '{}' returned error: {}".format(source_name, source.id,
+                                                                                          str(cause)), *args, **kwargs)
+            elif isinstance(cause, str):
+                super(DataAccessError, self).__init__("{} '{}' returned error: {}".format(source_name, source.id,
+                                                                                          cause), *args, **kwargs)
+            else:
+                super(DataAccessError, self).__init__(*args, **kwargs)
+        else:
+            if isinstance(cause, Exception):
+                super(DataAccessError, self).__init__(str(cause), *args, **kwargs)
+            elif isinstance(cause, str):
+                super(DataAccessError, self).__init__(cause, *args, **kwargs)
+            else:
+                super(DataAccessError, self).__init__(*args, **kwargs)
+
+    @property
+    def cause(self):
+        return self._cause
+
+
+class DataAccessWarning(UserWarning):
+    """
+    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    """
+    pass
+
+
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
                       ds_id: str = None,
                       query_expr: str = None) -> Sequence[DataSource]:
