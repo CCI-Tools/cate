@@ -729,6 +729,7 @@ class EsaCciOdpDataSource(DataSource):
                     remote_netcdf = None
                     local_netcdf = None
                     try:
+                        child_monitor.start(label=file_name, total_work=1)
                         remote_netcdf = NetCDF4DataStore(dataset_uri)
 
                         local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
@@ -765,7 +766,7 @@ class EsaCciOdpDataSource(DataSource):
 
                         local_netcdf.store_dataset(remote_dataset)
 
-                        monitor.progress(work=1, msg=str(time_coverage_start))
+                        child_monitor.progress(work=1, msg=str(time_coverage_start))
                     finally:
                         if remote_netcdf:
                             remote_netcdf.close()
