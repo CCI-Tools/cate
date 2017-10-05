@@ -87,8 +87,8 @@ VARIABLE_DISPLAY_SETTINGS = {
 
     # OC CCI
     'kd_490': dict(display_min=0.0, display_max=0.5),
-    'kd_490_bias': dict(display_min=-0.022, display_max=0.07),
-    'kd_490_rmsd': dict(display_min=0.009, display_max=0.26),
+    'kd_490_bias': dict(display_min=-0.02, display_max=0.07),
+    'kd_490_rmsd': dict(display_min=0.0, display_max=0.25),
     'total_nobs_sum': dict(display_min=1, display_max=500),
     'MERIS_nobs_sum': dict(display_min=1, display_max=500),
     'MODISA_nobs_sum': dict(display_min=1, display_max=500),
@@ -96,6 +96,13 @@ VARIABLE_DISPLAY_SETTINGS = {
 
     # CLOUD CCI
     'cfc': dict(color_map="bone", display_min=0, display_max=1),
+
+    # SST CCI
+    'analysed_sst': dict(color_map="jet", display_min=270., display_max=310.),
+    'analysis_error': dict(display_min=0., display_max=3.),
+    'mask': dict(display_min=0, display_max=9),
+    'sea_ice_fraction': dict(display_min=0., display_max=1.),
+    'sea_ice_fraction_error': dict(display_min=0., display_max=0.2),
 
     # AEROSOL CCI
     'absorbing_aerosol_index': dict(color_map="bwr", display_min=-2, display_max=2),
