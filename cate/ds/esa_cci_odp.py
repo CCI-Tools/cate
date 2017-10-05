@@ -713,6 +713,8 @@ class EsaCciOdpDataSource(DataSource):
                 do_update_of_variables_meta_info_once = True
                 do_update_of_region_meta_info_once = True
 
+                add_coords_once = True
+
                 files = self._get_urls_list(selected_file_list, protocol)
                 monitor.start('Sync ' + self.id, total_work=len(files))
                 for idx, dataset_uri in enumerate(files):
@@ -727,6 +729,7 @@ class EsaCciOdpDataSource(DataSource):
                     remote_netcdf = None
                     local_netcdf = None
                     try:
+                        child_monitor.start(label=file_name, total_work=1)
                         remote_netcdf = NetCDF4DataStore(dataset_uri)
 
                         local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
@@ -734,13 +737,14 @@ class EsaCciOdpDataSource(DataSource):
 
                         remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
-                        child_monitor.start(label=file_name, total_work=1)
-
                         if var_names:
-                            var_names.extend([var_name for var_name in remote_dataset.coords.keys()])
+                            if add_coords_once:
+                                var_names.extend([var_name for var_name in remote_dataset.coords.keys()])
+                                add_coords_once = False
                             remote_dataset = remote_dataset.drop(
                                 [var_name for var_name in remote_netcdf.variables.keys()
                                  if var_name not in var_names])
+
                         if region:
                             remote_dataset = subset_spatial_impl(remote_dataset, region, True)
                             geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
@@ -762,7 +766,7 @@ class EsaCciOdpDataSource(DataSource):
 
                         local_netcdf.store_dataset(remote_dataset)
 
-                        child_monitor.progress(work=1, msg=str(var_names))
+                        child_monitor.progress(work=1, msg=str(time_coverage_start))
                     finally:
                         if remote_netcdf:
                             remote_netcdf.close()
