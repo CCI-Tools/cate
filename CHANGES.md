@@ -1,4 +1,7 @@
-## Changes in version 1.0.0.dev1 (unreleased)
+## Changes in version 1.0.0.dev2 (unreleased)
+
+
+## Changes in version 1.0.0.dev1
 
 ### Improvements and new Features
 * Global temporal attributes are adjusted automatically when opening new datasets
