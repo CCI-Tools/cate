@@ -2,6 +2,8 @@
 
 ### Issues Fixed/Resolved
 
+* Get rid of Python user warnings
+  [#446](https://github.com/CCI-Tools/cate/issues/446)
 * Missing static background map
   [#453](https://github.com/CCI-Tools/cate/issues/453)
 
@@ -13,7 +15,6 @@
 * Normalization and subsetting operation implementation logic is refactored out to util so that it can be re-used throughout Cate
 
 ### Issues Fixed/Resolved
-
 * Fixed displaying broken/incomplete/canceled data sources on local data sources list
   [#375](https://github.com/CCI-Tools/cate/issues/375)
 * Generated resource names not always unique
@@ -24,6 +25,8 @@
   [#340](https://github.com/CCI-Tools/cate/issues/340)
 * Only allow valid python identifiers as resource names
   [#436](https://github.com/CCI-Tools/cate/issues/436)
+* OS X installation error
+  [#438](https://github.com/CCI-Tools/cate/issues/438)
 
 ## Changes in version 0.9.0.dev7
 
