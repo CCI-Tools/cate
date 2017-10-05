@@ -86,7 +86,7 @@ VARIABLE_DISPLAY_SETTINGS = {
     'lccs_class': dict(color_map='land_cover_cci'),
 
     # OC CCI
-    'kd_490': dict(display_min=0.0, display_max=0.5),
+    'kd_490': dict(color_map="bwr", display_min=0.0, display_max=0.5),
     'kd_490_bias': dict(display_min=-0.02, display_max=0.07),
     'kd_490_rmsd': dict(display_min=0.0, display_max=0.25),
     'total_nobs_sum': dict(display_min=1, display_max=500),
