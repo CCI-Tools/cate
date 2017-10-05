@@ -35,7 +35,9 @@ class NaturalEarth2Image(AbstractTiledImage):
     @author Norman Fomferra
     """
 
-    NUM_LEVEL_0_TILES = 2, 1
+    NUM_LEVELS = 3
+    NUM_LEVEL_0_TILES_X = 2
+    NUM_LEVEL_0_TILES_Y = 1
     TILE_SIZE = 256
 
     @staticmethod
@@ -49,13 +51,18 @@ class NaturalEarth2Image(AbstractTiledImage):
         * 2 x 1 tiles on level zero
         """
         dir_path = os.path.join(os.path.dirname(__file__), 'NaturalEarth2')
-        return ImagePyramid(TilingScheme(3, 2, 1, 256, 256, GeoExtent()),
-                            [NaturalEarth2Image(dir_path, level) for level in (0, 1, 2)])
+        return ImagePyramid(TilingScheme(NaturalEarth2Image.NUM_LEVELS,
+                                         NaturalEarth2Image.NUM_LEVEL_0_TILES_X,
+                                         NaturalEarth2Image.NUM_LEVEL_0_TILES_Y,
+                                         NaturalEarth2Image.TILE_SIZE,
+                                         NaturalEarth2Image.TILE_SIZE,
+                                         GeoExtent()),
+                            [NaturalEarth2Image(dir_path, level) for level in range(NaturalEarth2Image.NUM_LEVELS)])
 
     def __init__(self, dir_path, z_index):
         factor = 1 << z_index
-        num_tiles_x = factor * NaturalEarth2Image.NUM_LEVEL_0_TILES[0]
-        num_tiles_y = factor * NaturalEarth2Image.NUM_LEVEL_0_TILES[1]
+        num_tiles_x = factor * NaturalEarth2Image.NUM_LEVEL_0_TILES_X
+        num_tiles_y = factor * NaturalEarth2Image.NUM_LEVEL_0_TILES_Y
         tile_size = NaturalEarth2Image.TILE_SIZE
         self._z_index = z_index
         self._base_path = '%s/%d' % (dir_path, z_index)
