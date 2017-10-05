@@ -219,9 +219,9 @@ class TilingScheme:
         else:
             gsb_y1_new, gsb_y2_new = gsb_y1, gsb_y2
 
-        new_extent = GeoExtent(east=gsb_x1,
+        new_extent = GeoExtent(west=gsb_x1,
                                south=gsb_y1_new,
-                               west=gsb_x2_new,
+                               east=gsb_x2_new,
                                north=gsb_y2_new,
                                inv_y=geo_extent.inv_y,
                                eps=geo_extent.eps)

@@ -17,9 +17,9 @@ class TilingSchemeTest(TestCase):
             'tileHeight': 540,
             'tileWidth': 540,
             'invY': True,
-            'extent': {'west': 180.,
-                       'east': -180.,
+            'extent': {'west': -180.,
                        'south': -90.,
+                       'east': 180.,
                        'north': 90.,
                        },
         })

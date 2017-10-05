@@ -9,9 +9,9 @@ from cate.util.im.geoextent import GeoExtent
 class GeoRectTest(TestCase):
     def test_init(self):
         rect = GeoExtent()
-        self.assertEqual(rect.east, -180.)
+        self.assertEqual(rect.west, -180.)
         self.assertEqual(rect.south, -90.)
-        self.assertEqual(rect.west, 180.)
+        self.assertEqual(rect.east, 180.)
         self.assertEqual(rect.north, 90.)
         self.assertEqual(rect.inv_y, False)
         self.assertEqual(rect.eps, 1e-04)
@@ -20,15 +20,15 @@ class GeoRectTest(TestCase):
         self.assertEqual(rect.crosses_antimeridian, False)
 
         with self.assertRaises(ValueError):
-            GeoExtent(east=-180.1)
+            GeoExtent(west=-180.1)
         with self.assertRaises(ValueError):
             GeoExtent(south=-90.1)
         with self.assertRaises(ValueError):
-            GeoExtent(west=180.1)
+            GeoExtent(east=180.1)
         with self.assertRaises(ValueError):
             GeoExtent(north=90.1)
         with self.assertRaises(ValueError):
-            GeoExtent(east=20, west=20 + 0.9e-6)
+            GeoExtent(west=20, east=20 + 0.9e-6)
         with self.assertRaises(ValueError):
             GeoExtent(south=20, north=20 + 0.9e-6)
         with self.assertRaises(ValueError):
@@ -36,18 +36,18 @@ class GeoRectTest(TestCase):
 
     def test_repr(self):
         self.assertEqual(repr(GeoExtent()), 'GeoExtend()')
-        self.assertEqual(repr(GeoExtent(east=43.2)), 'GeoExtend(east=43.2)')
-        self.assertEqual(repr(GeoExtent(south=43.2)), 'GeoExtend(south=43.2)')
         self.assertEqual(repr(GeoExtent(west=43.2)), 'GeoExtend(west=43.2)')
+        self.assertEqual(repr(GeoExtent(south=43.2)), 'GeoExtend(south=43.2)')
+        self.assertEqual(repr(GeoExtent(east=43.2)), 'GeoExtend(east=43.2)')
         self.assertEqual(repr(GeoExtent(north=43.2)), 'GeoExtend(north=43.2)')
         self.assertEqual(repr(GeoExtent(inv_y=True)), 'GeoExtend(inv_y=True)')
         self.assertEqual(repr(GeoExtent(inv_y=False, eps=0.001)), 'GeoExtend(eps=0.001)')
         self.assertEqual(repr(GeoExtent(12.5, 43.2, 180.0, 64.1, inv_y=True)),
-                         'GeoExtend(east=12.5, south=43.2, north=64.1, inv_y=True)')
+                         'GeoExtend(west=12.5, south=43.2, north=64.1, inv_y=True)')
 
     def test_crosses_antimeridian(self):
-        self.assertEqual(GeoExtent(east=170., west=-160.).crosses_antimeridian, True)
-        self.assertEqual(GeoExtent(east=-170., west=160.).crosses_antimeridian, False)
+        self.assertEqual(GeoExtent(west=170., east=-160.).crosses_antimeridian, True)
+        self.assertEqual(GeoExtent(west=-170., east=160.).crosses_antimeridian, False)
 
     def test_from_coord_arrays(self):
         rect = GeoExtent.from_coord_arrays(np.array([1, 2, 3, 4, 5, 6]), np.array([1, 2, 3]))

@@ -31,27 +31,27 @@ EPS = 1e-04
 
 class GeoExtent:
     """
-    A geographical extent given by *east*, *south*, *west*, and *north*.
+    A geographical extent given by *west*, *south*, *east*, and *north*.
 
-    :param east: East coordinate
-    :param south: South coordinate
     :param west: West coordinate
+    :param south: South coordinate
+    :param east: East coordinate
     :param north: North coordinate
     :param inv_y: Whether the image's y axis (latitude dimension) is flipped
     :param eps: Epsilon for coordinate comparisons
     """
 
-    def __init__(self, east=-180., south=-90., west=180., north=90., inv_y=False, eps=EPS):
-        east = _adjust_lon_1(float(east), eps)
+    def __init__(self, west=-180., south=-90., east=180., north=90., inv_y=False, eps=EPS):
+        west = _adjust_lon_1(float(west), eps)
         south = _adjust_lat(float(south), eps)
-        west = _adjust_lon_2(float(west), eps)
+        east = _adjust_lon_2(float(east), eps)
         north = _adjust_lat(float(north), eps)
-        if not _valid_lon(east):
-            raise ValueError('east out of bounds: %s' % east)
-        if not _valid_lat(south):
-            raise ValueError('south out of bounds: %s' % south)
         if not _valid_lon(west):
             raise ValueError('west out of bounds: %s' % west)
+        if not _valid_lat(south):
+            raise ValueError('south out of bounds: %s' % south)
+        if not _valid_lon(east):
+            raise ValueError('east out of bounds: %s' % east)
         if not _valid_lat(north):
             raise ValueError('north out of bounds: %s' % north)
         if abs(east - west) < eps:
@@ -60,24 +60,24 @@ class GeoExtent:
             raise ValueError('south and north are almost equal: %s, %s' % (south, north))
         if south > north:
             raise ValueError('south is greater than north: %s > %s' % (south, north))
-        self._east = east
-        self._south = south
         self._west = west
+        self._south = south
+        self._east = east
         self._north = north
         self._inv_y = inv_y
         self._eps = eps
 
     @property
-    def east(self):
-        return self._east
+    def west(self):
+        return self._west
 
     @property
     def south(self):
         return self._south
 
     @property
-    def west(self):
-        return self._west
+    def east(self):
+        return self._east
 
     @property
     def north(self):
@@ -93,23 +93,23 @@ class GeoExtent:
 
     @property
     def crosses_antimeridian(self):
-        return self._west < self._east
+        return self._west > self._east
 
     @property
     def coords(self) -> Tuple[float, float, float, float]:
-        return self._east, self._south, self._west, self._north
+        return self._west, self._south, self._east, self._north
 
     def __str__(self):
         return ', '.join([str(c) for c in self.coords])
 
     def __repr__(self):
         args = []
-        if self._east != -180.:
-            args.append('east=%s' % self._east)
+        if self._west != -180.:
+            args.append('west=%s' % self._west)
         if self._south != -90.:
             args.append('south=%s' % self._south)
-        if self._west != 180.:
-            args.append('west=%s' % self._west)
+        if self._east != 180.:
+            args.append('east=%s' % self._east)
         if self._north != 90.:
             args.append('north=%s' % self._north)
         if self._inv_y:
@@ -178,9 +178,9 @@ class GeoExtent:
             x2 -= 360.0
 
         if y1 < y2:
-            return GeoExtent(east=x1, south=y1, west=x2, north=y2, inv_y=True, eps=eps)
+            return GeoExtent(west=x1, south=y1, east=x2, north=y2, inv_y=True, eps=eps)
         else:
-            return GeoExtent(east=x1, south=y2, west=x2, north=y1, inv_y=False, eps=eps)
+            return GeoExtent(west=x1, south=y2, east=x2, north=y1, inv_y=False, eps=eps)
 
 
 def _adjust_lat(lat, eps):
