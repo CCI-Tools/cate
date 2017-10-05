@@ -13,7 +13,7 @@ Operation
 :Algorithm name: *XXX*
 :Algorithm reference: *XXX*
 :Description: This operation serves for the calculation of arithmetic means.
-:Utilised in: :doc:`../uc_workflows/uc09_workflow`,  :doc:`../uc_workflows/uc06_workflow` 
+:Utilised in: :doc:`../../uc_workflows/uc09_workflow`,  :doc:`../../uc_workflows/uc06_workflow`
 
 --------------------------
 

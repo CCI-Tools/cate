@@ -8,7 +8,7 @@ Use Case #9 Relationships between Aerosol and Cloud ECV
 :Exemplary Workflow: 
 
 #.	The user selects CCI data products from a checklist (geophysical quantities: aerosol optical depth or absorbing aerosol index, cloud cover). 
-#.	The user selects the operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the operation category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`.
+#.	The user selects the operation :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>` from the operation category :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 #.	The user selects the particular options (use of grid1 or grid2, interpolation method, propagation of uncertainties analysis).
 #.	The user clicks a button to execute.
 #.	The Toolbox performs a co-registration of one dataset onto the coordinate system of the other. 
@@ -54,7 +54,7 @@ Operations UC9
 	- :doc:`Temporal Filtering <../subsetting_selections/op_spec_temporal-subsetting>`
 	
 	
-- :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustment>`
+- :doc:`Geometric Adjustment <../geometric-adjustments/op_spec_category_geometric-adjustments>`
 
 	- :doc:`Co-Registration <../geometric-adjustments/op_spec_coregistration>`
 	
