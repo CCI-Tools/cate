@@ -177,12 +177,11 @@ def pandas_fillna(df: pd.DataFrame,
     :param df: The dataframe to fill
     :param value: Value to fill
     :param method: Method according to which to fill NaN. ffill/pad will
-    propagate the last valid observation to the next valid observation.
-    backfill/bfill will propagate the next valid observation back to the last
-    valid observation.
+           propagate the last valid observation to the next valid observation.
+           backfill/bfill will propagate the next valid observation back to the last
+           valid observation.
     :param limit: Maximum number of NaN values to forward/backward fill.
-    :return: A dataframe with nan values filled with the given value or
-    according to the given method.
+    :return: A dataframe with nan values filled with the given value or according to the given method.
     """
     # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
     kwargs = dict(kwargs)

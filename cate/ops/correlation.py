@@ -71,7 +71,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param monitor: a progress monitor.
-    :returns: {'corr_coef': correlation coefficient, 'p_value': probability value}
+    :return: {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
     ds_x = DatasetLike.convert(ds_x)
     ds_y = DatasetLike.convert(ds_y)
@@ -144,7 +144,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param monitor: a progress monitor.
-    :returns: a dataset containing a map of correlation coefficients and p_values
+    :return: a dataset containing a map of correlation coefficients and p_values
     """
     ds_x = DatasetLike.convert(ds_x)
     ds_y = DatasetLike.convert(ds_y)
@@ -223,8 +223,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
     reliable but are probably reasonable for datasets larger than 500 or so.
 
     :param x: lon/lat/time xr.DataArray
-    :param y: xr.DataArray of the same spatiotemporal extents and resolution as
-    x.
+    :param y: xr.DataArray of the same spatiotemporal extents and resolution as x.
     :param monitor: Monitor to use for monitoring the calculation
     :return: A dataset containing the correlation coefficients and p_values on
     the lon/lat grid of x and y.

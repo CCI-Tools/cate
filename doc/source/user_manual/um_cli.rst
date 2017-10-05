@@ -6,7 +6,7 @@ Overview
 ========
 
 The CCI Toolbox comprises a single command-line executable, which is called ``cate`` and is available after installing
-the CCI Toolbox on your computer. See section :doc:`um_install` for more information. The command-line
+the CCI Toolbox on your computer. See section :doc:`um_setup` for more information. The command-line
 interface allows for accessing local and remote datasets as well as running virtually all CCI Toolbox
 operations on them.
 
@@ -97,7 +97,7 @@ To make a temporal subset ECV data source locally available, i.e. avoid remote d
 
     cate ds copy esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 -t 2006-01-01,2007-12-31
 
-The section :doc:`um_config` describes, how to configure the location of directory in which
+The section Configuration in :doc:`um_setup` describes, how to configure the location of directory in which
 Cate stores such synchronised data.
 
 Inspect available operations

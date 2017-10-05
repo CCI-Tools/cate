@@ -136,7 +136,7 @@ def plot_map(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only gridded datasets are currently supported')

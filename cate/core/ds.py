@@ -120,7 +120,7 @@ class DataSource(metaclass=ABCMeta):
         The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
 
         :param monitor: a progress monitor.
-        :return A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
+        :return: A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
         """
         return None
 
