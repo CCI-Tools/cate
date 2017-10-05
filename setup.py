@@ -71,6 +71,7 @@ setup(
     package_data={
         'cate.ds': ['esa_cci_ftp.json'],
         'cate.ds.data.countries': ['countries.geojson'],
+        'cate.util.im.ds.NaturalEarth2': ['*/*/*.jpg'],
     },
     entry_points={
         'console_scripts': [
