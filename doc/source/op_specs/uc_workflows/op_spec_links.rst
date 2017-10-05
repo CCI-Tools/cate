@@ -9,7 +9,7 @@ Geometric Adjustments
 
 #.	The user selects the Operation :doc:`Reprojection <../geometric-adjustments/op_spec_reprojection>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 
-#.	The user selects the Operation :doc:`Geospatial Gap Filling <../geometric-adjustments/geospatial-gapfilling>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
+#.	The user selects the Operation :doc:`Geospatial Gap Filling <../geometric-adjustments/op_spec_geospatial-gapfilling>` from the Operation Category :doc:`Geometric Adjustments <../geometric-adjustments/op_spec_category_geometric-adjustments>`.
 
 Subsetting and Selections
 =========================

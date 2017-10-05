@@ -2,7 +2,7 @@ Use Case #6 Workflow
 ====================
 
 This sections describes an exemplary workflow performed to accomplish the climate problem given by
-Use Case #6 :ref:`uc06_workflow`.
+Use Case #6 :ref:`uc_06`.
 Version 1: Niño3.4 Index
 
 #.	The user selects CCI ECV data products from a checklist (geophysical quantities: sea surface temperature, surface soil moisture volumetric absolutes).
