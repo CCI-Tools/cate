@@ -27,7 +27,6 @@ import datetime
 import os.path
 import time
 import traceback
-from typing import List
 
 import fiona
 import numpy as np
@@ -35,22 +34,23 @@ import tornado.gen
 import tornado.web
 import xarray as xr
 
-from cate.conf import get_config
-from cate.conf.defaults import \
+from .geojson import write_feature_collection
+from ..conf import get_config
+from ..conf.defaults import \
     WORKSPACE_CACHE_DIR_NAME, \
     WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
     WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
     WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
-from cate.util import ConsoleMonitor
-from cate.util import Monitor
-from cate.util.cache import Cache, MemoryCacheStore, FileCacheStore
-from cate.util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
-from cate.util.im.ds import NaturalEarth2Image
-from cate.util.misc import cwd
-from cate.util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
-from cate.version import __version__
-from .geojson import write_feature_collection
+from ..core.cdm import get_tiling_scheme
+from ..util import ConsoleMonitor
+from ..util import Monitor
+from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
+from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
+from ..util.im.ds import NaturalEarth2Image
+from ..util.misc import cwd
+from ..util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
+from ..version import __version__
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
 #                We can use the Workspace.user_data dict for this purpose.
@@ -125,7 +125,6 @@ class ResVarTileHandler(WebAPIRequestHandler):
         else:
             variable = dataset[var_name]
             no_data_value = variable.attrs.get('_FillValue')
-            is_y_flipped = self.is_y_flipped(dataset, variable)
 
             # Make sure we work with 2D image arrays only
             if variable.ndim == 2:
@@ -162,14 +161,21 @@ class ResVarTileHandler(WebAPIRequestHandler):
             def array_image_id_factory(level):
                 return 'arr-%s/%s' % (array_id, level)
 
-            pyramid = ImagePyramid.create_from_array(array,
+            tiling_scheme = get_tiling_scheme(variable)
+            if tiling_scheme is None:
+                self.write_status_error(
+                    message='Internal error: failed to compute tiling scheme for array_id="%s"' % array_id)
+                return
+
+            print('tiling_scheme =', repr(tiling_scheme))
+            pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
                                                      level_image_id_factory=array_image_id_factory)
             pyramid = pyramid.apply(lambda image, level:
                                     TransformArrayImage(image,
                                                         image_id='tra-%s/%d' % (array_id, level),
                                                         no_data_value=no_data_value,
                                                         force_masked=True,
-                                                        flip_y=is_y_flipped,
+                                                        flip_y=tiling_scheme.geo_extent.inv_y,
                                                         tile_cache=mem_tile_cache))
             pyramid = pyramid.apply(lambda image, level:
                                     ColorMappedRgbaImage(image,
@@ -198,40 +204,10 @@ class ResVarTileHandler(WebAPIRequestHandler):
 
             if TRACE_TILE_PERF:
                 print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
-            # GLOBAL_LOCK.release()
+                # GLOBAL_LOCK.release()
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
-
-    def is_y_flipped(self, dataset: xr.Dataset, variable: xr.DataArray):
-        lat_var = self.get_lat_var(dataset, variable)
-        if lat_var is not None:
-            return lat_var[0] < lat_var[1]
-        return False
-
-    def is_lat_lon_image_variable(self, dataset: xr.Dataset, variable: xr.DataArray):
-        lon_var = self.get_lon_var(dataset, variable)
-        if lon_var is not None and lon_var.shape[0] >= 2:
-            lat_var = self.get_lat_var(dataset, variable)
-            return lat_var is not None and lat_var.shape[0] >= 2
-        return False
-
-    def get_lon_var(self, dataset: xr.Dataset, variable: xr.DataArray):
-        return self.get_dim_var(dataset, variable, ['lon', 'longitude', 'long'], -1)
-
-    def get_lat_var(self, dataset: xr.Dataset, variable: xr.DataArray):
-        return self.get_dim_var(dataset, variable, ['lat', 'latitude'], -2)
-
-    # noinspection PyMethodMayBeStatic
-    def get_dim_var(self, dataset: xr.Dataset, variable: xr.DataArray, names: List[str], pos: int):
-        if len(variable.dims) >= -pos:
-            dim_name = variable.dims[len(variable.dims) + pos]
-            for name in names:
-                if name == dim_name:
-                    dim_var = dataset.coords[dim_name]
-                    if dim_var is not None and len(dim_var.shape) == 1 and dim_var.shape[0] >= 1:
-                        return dim_var
-        return None
 
 
 # noinspection PyAbstractClass

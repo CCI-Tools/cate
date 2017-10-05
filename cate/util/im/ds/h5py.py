@@ -19,12 +19,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import numpy as np
 
 from ..image import OpImage, ImagePyramid, create_ndarray_downsampling_image
-from ..utils import compute_tile_size
+from ..tilingscheme import pow2_2d_subdivision
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class H5PyDatasetImage(OpImage):
@@ -34,18 +35,23 @@ class H5PyDatasetImage(OpImage):
     :param h5_dataset: The h5py dataset
     :param tile_size: Tile size, if None, it is derived from chunk sizes
     """
+
     def __init__(self, h5_dataset, tile_size=None):
         self._h5_dataset = h5_dataset
-        width, height = h5_dataset.shape[-1], h5_dataset.shape[-2]
+        size = h5_dataset.shape[-1], h5_dataset.shape[-2]
+        width, height = size
         if tile_size is None:
             if h5_dataset.chunks:
                 chunk_width, chunk_height = h5_dataset.chunks[-1], h5_dataset.chunks[-2]
             else:
-                chunk_width, chunk_height = None, None
-            tile_size = (compute_tile_size(width, chunk_size=chunk_width),
-                         compute_tile_size(height, chunk_size=chunk_height))
+                chunk_width, chunk_height = min(width, 512), min(height, 512)
+            try:
+                _, tile_size, _, _ = pow2_2d_subdivision(width, height, tw_opt=chunk_width, th_opt=chunk_height)
+            except ValueError:
+                tile_size = width, height
         mode = str(h5_dataset.dtype)
-        super().__init__((width, height), tile_size=tile_size, format='ndarray', mode=mode)
+        num_tiles = width // tile_size[0], height // tile_size[1]
+        super().__init__(size, tile_size, num_tiles, format='ndarray', mode=mode)
 
     @property
     def h5_dataset(self):

@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
 Description
@@ -47,5 +46,10 @@ Components
 ==========
 """
 
-from .image import *
 from .cmaps import get_cmaps
+from .geoextent import GeoExtent
+from .image import *
+from .tilingscheme import TilingScheme
+from .utils import *
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"

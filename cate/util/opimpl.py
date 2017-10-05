@@ -394,7 +394,7 @@ def subset_spatial_impl(ds: xr.Dataset,
             (not (-90 <= lat_max <= 90)) or \
             (not (-180 <= lon_min <= 180)) or \
             (not (-180 <= lon_max <= 180)):
-        raise ValueError('Provided polygon extends outside of geospatial'
+        raise ValueError('Provided polygon extent outside of geospatial'
                          ' bounds: latitude [-90;90], longitude [-180;180]')
 
     simple_polygon = False

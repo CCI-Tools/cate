@@ -35,7 +35,7 @@ This module provides classes and interfaces used to harmonise the access to and 
 types of climate datasets, for example gridded data stored in `netCDF`_ files and vector data originating from
 `ESRI Shapefile`_ files.
 
-The goal of the Cate is to reuse existing, and well-known APIs for a given data type to a maximum extend
+The goal of the Cate is to reuse existing, and well-known APIs for a given data type to a maximum extent
 instead of creating a complex new API. Therefore Cate uses the xarray_ N-D Gridded Datasets Python API
 that represents nicely netCDF, HDF-5 and OPeNDAP data types, i.e. Unidata's `Common Data Model`_.
 For the ESRI Shapefile representation we target at Fiona_, which reads and writes spatial data files.
@@ -110,8 +110,10 @@ Components
 
 from collections import OrderedDict
 from typing import List, Optional, Union
+
 import xarray as xr
 
+from ..util.im import GeoExtent, TilingScheme
 from ..util.misc import object_to_qualified_name, qualified_name_to_object
 from ..util.opimpl import get_lat_dim_name_impl, get_lon_dim_name_impl
 
@@ -335,3 +337,26 @@ def get_lat_dim_name(ds: Union[xr.Dataset, xr.DataArray]) -> Optional[str]:
     :return: the name or None
     """
     return get_lat_dim_name_impl(ds)
+
+
+def get_tiling_scheme(var: xr.DataArray) -> Optional[TilingScheme]:
+    """
+    Compute a tiling scheme for the given variable *var*.
+
+    :param var: A variable of an xarray dataset.
+    :return:  a new TilingScheme object or None if *var* cannot be represented as a spatial image
+    """
+    lat_dim_name = get_lat_dim_name(var)
+    lon_dim_name = get_lon_dim_name(var)
+    if not lat_dim_name or not lon_dim_name:
+        return None
+    if lat_dim_name not in var.coords or lon_dim_name not in var.coords:
+        return None
+    width, height = var.shape[-1], var.shape[-2]
+    lats = var.coords[lat_dim_name]
+    lons = var.coords[lon_dim_name]
+    geo_extent = GeoExtent.from_coord_arrays(lons, lats)
+    try:
+        return TilingScheme.create(width, height, 360, 360, geo_extent)
+    except ValueError:
+        return TilingScheme(1, 1, 1, width, height, geo_extent)
