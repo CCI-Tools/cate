@@ -1,5 +1,9 @@
 ## Changes in version 1.0.0.dev2 (unreleased)
 
+### Issues Fixed/Resolved
+
+* Missing static background map
+  [#453](https://github.com/CCI-Tools/cate/issues/453)
 
 ## Changes in version 1.0.0.dev1
 
