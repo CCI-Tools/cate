@@ -12,7 +12,7 @@ Operation
 .. :Algorithm name: *XXX*
 .. :Algorithm reference: *XXX*
 :Description: This Operation served for the filling of spatial gaps.
-:Applicable use cases: :doc:`UC11 <../use_cases/UC11>`
+:Applicable use cases: :doc:`UC11 <../uc_workflows/uc11_workflow>`
 
 --------------------------
 

@@ -136,7 +136,7 @@ def plot_map(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only gridded datasets are currently supported')
@@ -242,7 +242,7 @@ def plot_contour(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
     var_name = VarName.convert(var)
     if not var_name:
@@ -301,7 +301,7 @@ def plot(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
     ds = DatasetLike.convert(ds)
 
@@ -368,7 +368,7 @@ def plot_scatter(ds1: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
 
     var_name1 = VarName.convert(var1)
@@ -470,7 +470,7 @@ def plot_hist(ds: xr.Dataset,
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.pyplot.hist.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
-    :return a matplotlib figure object or None if in IPython mode
+    :return: a matplotlib figure object or None if in IPython mode
     """
 
     var_name = VarName.convert(var)

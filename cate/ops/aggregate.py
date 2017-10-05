@@ -58,8 +58,7 @@ def long_term_average(ds: DatasetLike.TYPE,
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#climatological-statistics
 
     :param ds: A monthly dataset to average
-    :param var: If given, only these variables will be preserved in the
-    resulting dataset
+    :param var: If given, only these variables will be preserved in the resulting dataset
     :param monitor: A progress monitor
     :return: A climatological long term average dataset
     """

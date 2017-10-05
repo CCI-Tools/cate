@@ -188,14 +188,14 @@ by ``local.``.
    fully download it.
    Also note, that downloading remote data may require a lot of free space on your local system.
    By default, Cate stores this data in the user's home directory. On Linux and Mac OS, that is
-   ``~/.cate/data_stores`, on Windows it is
+   ``~/.cate/data_stores``, on Windows it is
    ``%USER_PROFILE%\.cate\data_stores``.
    Use the :ref:`preferences_dialog` to set an alternative location.
 
 
 After confirming the dialog, a download task will be started, which can be observed in the **TASKS** panel.
 Once the download is finished, a notification will be displayed and a new local data source will be available for the
-``local data store.
+``local data store``.
 
 To choose the second option described above, press the **Open** button to open the **Open Remote Dataset** dialog shown
 in :ref:`gui_dialog_open_remote_dataset`.

@@ -64,7 +64,7 @@ def anomaly_external(ds: xr.Dataset,
     :param ds: The dataset to calculate anomalies from
     :param file: Path to reference data file
     :param transform: Apply the given transformation before calculating the anomaly.
-    For supported operations see help on 'ds_arithmetics' operation.
+                      For supported operations see help on 'ds_arithmetics' operation.
     :param monitor: a progress monitor.
     :return: The anomaly dataset
     """

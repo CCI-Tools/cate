@@ -709,7 +709,7 @@ class LocalDataStore(DataStore):
         lock_filename = '{}.lock'.format(data_source_id)
         lock_filepath = os.path.join(self._store_dir, lock_filename)
         pid = os.getpid()
-        create_time = int(psutil.Process(pid).create_time() * 1_000_000)
+        create_time = int(psutil.Process(pid).create_time() * 1000000)
 
         data_source = None
         for ds in self._data_sources:
@@ -723,7 +723,7 @@ class LocalDataStore(DataStore):
                                                             if ":" in writer_pid else writer_pid, writer_create_time]
                             if psutil.pid_exists(writer_pid) and writer_pid != pid:
                                 if writer_timestamp > writer_create_time:
-                                    writer_create_time = int(psutil.Process(writer_pid).create_time() * 1_000_000)
+                                    writer_create_time = int(psutil.Process(writer_pid).create_time() * 1000000)
                                 if writer_create_time == writer_timestamp:
                                     raise DataAccessError(self, "Data source '{}' is currently being created by other "
                                                                 "process (pid:{})". format(ds.id, writer_pid))
