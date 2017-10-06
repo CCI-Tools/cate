@@ -374,6 +374,16 @@ def _get_dim_name(ds: Union[xr.Dataset, xr.DataArray], possible_names: Sequence[
     return None
 
 
+def _lat_inverted(lat: xr.DataArray) -> bool:
+    """
+    Determine if the latitude is inverted
+    """
+    if lat.values[0] > lat.values[-1]:
+        return True
+
+    return False
+
+
 def subset_spatial_impl(ds: xr.Dataset,
                         region: Polygon,
                         mask: bool = True) -> xr.Dataset:
@@ -405,6 +415,11 @@ def subset_spatial_impl(ds: xr.Dataset,
         simple_polygon = True
 
     crosses_antimeridian = _crosses_antimeridian(region)
+    lat_inverted = _lat_inverted(ds.lat)
+    if lat_inverted:
+        lat_index = slice(lat_max, lat_min)
+    else:
+        lat_index = slice(lat_min, lat_max)
 
     if crosses_antimeridian and not simple_polygon:
         # Unlikely but plausible
@@ -422,7 +437,8 @@ def subset_spatial_impl(ds: xr.Dataset,
         lon_right_of_idl = slice(-180, lon_max)
         lon_index = xr.concat((ds.lon.sel(lon=lon_right_of_idl),
                                ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
-        indexers = {'lon': lon_index, 'lat': slice(lat_min, lat_max)}
+
+        indexers = {'lon': lon_index, 'lat': lat_index}
         retset = ds.sel(**indexers)
 
         if mask:
@@ -436,9 +452,8 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if not mask or simple_polygon:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
-        lat_slice = slice(lat_min, lat_max)
         lon_slice = slice(lon_min, lon_max)
-        indexers = {'lat': lat_slice, 'lon': lon_slice}
+        indexers = {'lat': lat_index, 'lon': lon_slice}
         return ds.sel(**indexers)
 
     # Create the mask array. The result of this is a lon/lat DataArray where
