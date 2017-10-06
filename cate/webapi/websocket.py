@@ -107,7 +107,7 @@ class WebSocketService:
         data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
         return [dict(id=data_store.id,
                      title=data_store.title,
-                     is_local=data_store.is_local) for data_store in data_stores]
+                     isLocal=data_store.is_local) for data_store in data_stores]
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
         """
