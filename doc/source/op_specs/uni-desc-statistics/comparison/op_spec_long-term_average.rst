@@ -153,7 +153,7 @@ Example
 
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
-.. code-block:: fortran
+.. code-block:: fortranfixed
 
 	# ny number of years
 	# variable: var(year, month)

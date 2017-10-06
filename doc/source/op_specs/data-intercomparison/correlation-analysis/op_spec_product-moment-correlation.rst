@@ -217,7 +217,7 @@ Example
 =======
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
-.. code-block:: fortran
+.. code-block:: fortranfixed
 
   # Fortran subroutine for product moment correlation analysis (includes mean value function)
 
