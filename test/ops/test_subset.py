@@ -38,20 +38,21 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-19.5, 19.5, 40)})
         assert_dataset_equal(expected, actual)
 
-    def test_inverted_dims(self):
+    def test_inverted_dims_nominal(self):
         """
         Test if the implementation is dimension order agnostic.
         """
+        # Inverted lat
         dataset = xr.Dataset({
             'first': (['lon', 'lat', 'time'], np.ones([360, 180, 6])),
             'second': (['lon', 'lat', 'time'], np.ones([360, 180, 6])),
-            'lat': np.linspace(-89.5, 89.5, 180),
+            'lat': np.linspace(89.5, -89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
         expected = xr.Dataset({
             'first': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
             'second': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
-            'lat': np.linspace(-9.5, 9.5, 20),
+            'lat': np.linspace(9.5, -9.5, 20),
             'lon': np.linspace(-19.5, 19.5, 40)})
         assert_dataset_equal(expected, actual)
 
@@ -80,6 +81,32 @@ class TestSubsetSpatial(TestCase):
         # Africa
         self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 20.7, 'lat': 6.15}))
 
+    def test_generic_masked_inverted(self):
+        """
+        Test using a generic Polygon and masking
+        """
+        # Africa
+        a = str('POLYGON((-10.8984375 35.60371874069731,-19.16015625 '
+                '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
+                '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
+                '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
+                '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
+                '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
+                '35.88905007936091,-10.8984375 35.60371874069731))')
+
+        # Inverted lat
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(89.5, -89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+        actual = subset.subset_spatial(dataset, a)
+        # Gulf of Guinea
+        gog = actual.sel(method='nearest', **{'lon': 1.2, 'lat': -1.4})
+        self.assertTrue(np.isnan(gog['first']).all())
+        # Africa
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 20.7, 'lat': 6.15}))
+
     def test_generic_not_masked(self):
         """
         Test using a generic Polygon without masking
@@ -97,6 +124,31 @@ class TestSubsetSpatial(TestCase):
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+        actual = subset.subset_spatial(dataset, a, mask=False)
+        # Gulf of Guinea
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 1.2, 'lat': -1.4}))
+        # Africa
+        self.assertTrue(1 == actual.sel(method='nearest', **{'lon': 20.7, 'lat': 6.15}))
+
+    def test_generic_not_masked_inverted(self):
+        """
+        Test using a generic Polygon without masking
+        """
+        # Africa
+        a = str('POLYGON((-10.8984375 35.60371874069731,-19.16015625 '
+                '23.885837699861995,-20.56640625 17.14079039331665,-18.6328125 '
+                '7.536764322084079,-10.72265625 0.7031073524364783,10.37109375 '
+                '0.3515602939922709,10.37109375 -22.268764039073965,22.8515625 '
+                '-42.29356419217007,37.79296875 -27.21555620902968,49.39453125 '
+                '-3.5134210456400323,54.4921875 14.093957177836236,18.984375 '
+                '35.88905007936091,-10.8984375 35.60371874069731))')
+
+        # Inverted lat
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(89.5, -89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, a, mask=False)
         # Gulf of Guinea
@@ -138,6 +190,23 @@ class TestSubsetSpatial(TestCase):
         actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
         self.assertEqual(20, len(actual.lon))
 
+    def test_antimeridian_simple_inverted(self):
+        # Inverted lat
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(89.5, -89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+
+        # With masking
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=True)
+        masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
+        self.assertTrue(np.isnan(masked['first']).all())
+
+        # With dropping
+        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
+        self.assertEqual(20, len(actual.lon))
+
     def test_antimeridian_arbitrary(self):
         pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
                   '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
@@ -147,6 +216,24 @@ class TestSubsetSpatial(TestCase):
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360)})
+
+        with self.assertRaises(Exception) as cm:
+            subset.subset_spatial(dataset, pol)
+        self.assertEqual(str(cm.exception),
+                         "input 'region' for operation 'cate.ops.subset.subset_spatial': "
+                         "cannot convert value <POLYGON((162.0703125 39.63953756436670...> to PolygonLike")
+
+    def test_antimeridian_arbitrary_inverted(self):
+        pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
+                  '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
+                  '12.897489183755905,161.89453125 26.745610382199025,162.0703125'
+                  '39.639537564366705))')
+        # Inverted lat
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'lat': np.linspace(89.5, -89.5, 180),
             'lon': np.linspace(-179.5, 179.5, 360)})
 
         with self.assertRaises(Exception) as cm:

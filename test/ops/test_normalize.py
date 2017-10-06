@@ -196,6 +196,56 @@ class TestAdjustSpatial(TestCase):
                          'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0'
                          ' -42.0, -20.0 -42.0))')
 
+    def test_nominal_inverted(self):
+        # Inverted lat
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(88, -88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+
+        ds.lon.attrs['units'] = 'degrees_east'
+        ds.lat.attrs['units'] = 'degrees_north'
+
+        ds1 = adjust_spatial_attrs(ds)
+
+        # Make sure original dataset is not altered
+        with self.assertRaises(KeyError):
+            ds.attrs['geospatial_lat_min']
+
+        # Make sure expected values are in the new dataset
+        self.assertEqual(ds1.attrs['geospatial_lat_min'], -90)
+        self.assertEqual(ds1.attrs['geospatial_lat_max'], 90)
+        self.assertEqual(ds1.attrs['geospatial_lat_units'], 'degrees_north')
+        self.assertEqual(ds1.attrs['geospatial_lat_resolution'], 4)
+        self.assertEqual(ds1.attrs['geospatial_lon_min'], -180)
+        self.assertEqual(ds1.attrs['geospatial_lon_max'], 180)
+        self.assertEqual(ds1.attrs['geospatial_lon_units'], 'degrees_east')
+        self.assertEqual(ds1.attrs['geospatial_lon_resolution'], 4)
+        self.assertEqual(ds1.attrs['geospatial_bounds'],
+                         'POLYGON((-180.0 -90.0, -180.0 90.0, 180.0 90.0,'
+                         ' 180.0 -90.0, -180.0 -90.0))')
+
+        # Test existing attributes update
+        lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
+        indexers = {'lon': slice(lon_min, lon_max),
+                    'lat': slice(lat_max, lat_min)}
+        ds2 = ds1.sel(**indexers)
+        ds2 = adjust_spatial_attrs(ds2)
+
+        self.assertEqual(ds2.attrs['geospatial_lat_min'], -42)
+        self.assertEqual(ds2.attrs['geospatial_lat_max'], 42)
+        self.assertEqual(ds2.attrs['geospatial_lat_units'], 'degrees_north')
+        self.assertEqual(ds2.attrs['geospatial_lat_resolution'], 4)
+        self.assertEqual(ds2.attrs['geospatial_lon_min'], -20)
+        self.assertEqual(ds2.attrs['geospatial_lon_max'], 60)
+        self.assertEqual(ds2.attrs['geospatial_lon_units'], 'degrees_east')
+        self.assertEqual(ds2.attrs['geospatial_lon_resolution'], 4)
+        self.assertEqual(ds2.attrs['geospatial_bounds'],
+                         'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0'
+                         ' -42.0, -20.0 -42.0))')
+
     def test_bnds(self):
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
@@ -245,6 +295,71 @@ class TestAdjustSpatial(TestCase):
         lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
         indexers = {'lon': slice(lon_min, lon_max),
                     'lat': slice(lat_min, lat_max)}
+        ds2 = ds1.sel(**indexers)
+        ds2 = adjust_spatial_attrs(ds2)
+
+        self.assertEqual(ds2.attrs['geospatial_lat_min'], -42)
+        self.assertEqual(ds2.attrs['geospatial_lat_max'], 42)
+        self.assertEqual(ds2.attrs['geospatial_lat_units'], 'degrees_north')
+        self.assertEqual(ds2.attrs['geospatial_lat_resolution'], 4)
+        self.assertEqual(ds2.attrs['geospatial_lon_min'], -20)
+        self.assertEqual(ds2.attrs['geospatial_lon_max'], 60)
+        self.assertEqual(ds2.attrs['geospatial_lon_units'], 'degrees_east')
+        self.assertEqual(ds2.attrs['geospatial_lon_resolution'], 4)
+        self.assertEqual(ds2.attrs['geospatial_bounds'],
+                         'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0'
+                         ' -42.0, -20.0 -42.0))')
+
+    def test_bnds_inverted(self):
+        # Inverted lat
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'lat': np.linspace(88, -88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+
+        ds.lon.attrs['units'] = 'degrees_east'
+        ds.lat.attrs['units'] = 'degrees_north'
+
+        lat_bnds = np.empty([len(ds.lat), 2])
+        lon_bnds = np.empty([len(ds.lon), 2])
+        ds['nv'] = [0, 1]
+
+        lat_bnds[:, 0] = ds.lat.values + 2
+        lat_bnds[:, 1] = ds.lat.values - 2
+        lon_bnds[:, 0] = ds.lon.values - 2
+        lon_bnds[:, 1] = ds.lon.values + 2
+
+        ds['lat_bnds'] = (['lat', 'nv'], lat_bnds)
+        ds['lon_bnds'] = (['lon', 'nv'], lon_bnds)
+
+        ds.lat.attrs['bounds'] = 'lat_bnds'
+        ds.lon.attrs['bounds'] = 'lon_bnds'
+
+        ds1 = adjust_spatial_attrs(ds)
+
+        # Make sure original dataset is not altered
+        with self.assertRaises(KeyError):
+            ds.attrs['geospatial_lat_min']
+
+        # Make sure expected values are in the new dataset
+        self.assertEqual(ds1.attrs['geospatial_lat_min'], -90)
+        self.assertEqual(ds1.attrs['geospatial_lat_max'], 90)
+        self.assertEqual(ds1.attrs['geospatial_lat_units'], 'degrees_north')
+        self.assertEqual(ds1.attrs['geospatial_lat_resolution'], 4)
+        self.assertEqual(ds1.attrs['geospatial_lon_min'], -180)
+        self.assertEqual(ds1.attrs['geospatial_lon_max'], 180)
+        self.assertEqual(ds1.attrs['geospatial_lon_units'], 'degrees_east')
+        self.assertEqual(ds1.attrs['geospatial_lon_resolution'], 4)
+        self.assertEqual(ds1.attrs['geospatial_bounds'],
+                         'POLYGON((-180.0 -90.0, -180.0 90.0, 180.0 90.0,'
+                         ' 180.0 -90.0, -180.0 -90.0))')
+
+        # Test existing attributes update
+        lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
+        indexers = {'lon': slice(lon_min, lon_max),
+                    'lat': slice(lat_max, lat_min)}
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_spatial_attrs(ds2)
 
