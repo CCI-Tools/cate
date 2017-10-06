@@ -1,3 +1,10 @@
+## Changes in version 1.0.0.dev3
+
+### Issues Fixed/Resolved
+
+* List only data sources tested by the champion users
+  [#435](https://github.com/CCI-Tools/cate/issues/435)
+
 ## Changes in version 1.0.0.dev2 (unreleased)
 
 ### Issues Fixed/Resolved
