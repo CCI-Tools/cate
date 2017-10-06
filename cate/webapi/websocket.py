@@ -121,7 +121,8 @@ class WebSocketService:
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
         data_sources = data_store.query(monitor=monitor)
-        if data_store_id != 'local':
+        if data_store_id == 'esa_cci_odp':
+            # Filter ESA Open Data Portal data sources
             data_source_dict = {ds.id: ds for ds in data_sources}
             # noinspection PyTypeChecker
             data_source_ids = filter_fileset(data_source_dict.keys(),
