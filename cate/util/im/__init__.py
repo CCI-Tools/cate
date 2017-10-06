@@ -28,7 +28,7 @@ The ``cate.util.im`` package provides application-independent utility functions 
 
 The Cate project uses this package for implementing a RESTful web service that provides image tiles from image pyramids.
 
-This package is independent of other ``cate.*``packages, but it depends on the following external packages
+This package is independent of other ``cate.*`` packages, but it depends on the following external packages
 
 * numpy
 * pillow (for PIL)

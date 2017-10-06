@@ -165,7 +165,7 @@ Package ``cate.util``
 
 The ``cate.util`` package is fully application-independent and can be used stand-alone. Numerous,
 CCI Toolbox API functions take a ``monitor`` argument used for progress monitoring of mostly long-running tasks.
-The ``cate.util.monitor``  package defines the ``Monitor``class.
+The ``cate.util.monitor``  package defines the ``Monitor`` class.
 
 * module ``monitor`` - :ref:`monitor`
 

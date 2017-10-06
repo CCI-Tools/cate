@@ -47,6 +47,7 @@ def cate_init():
     # Left empty because operations are registered automatically via decorators.
     pass
 
+
 from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation_scalar, pearson_correlation
