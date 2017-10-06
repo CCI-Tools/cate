@@ -87,4 +87,5 @@ Univariate Descriptive Statistics
    op_specs/uni-desc-statistics/comparison/op_spec_long-term_average
    op_specs/uni-desc-statistics/location-parameters/op_spec_subcategory_location-parameters
    op_specs/uni-desc-statistics/location-parameters/op_spec_arithmetic-mean
-
+   op_specs/uni-desc-statistics/filtering/op_spec_subcategory_filtering.rst
+   op_specs/uni-desc-statistics/filtering/op_spec_detection_of_outliers.rst

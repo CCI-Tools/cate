@@ -187,7 +187,7 @@ Example
 
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
-::
+.. code-block:: fortran
 
   #     Fortran example code for spatial subsetting/sub-setting
   c     Spatial Subsetting
@@ -213,5 +213,3 @@ Example
           enddo !y
         enddo !t
   c-----------------------------------------------------------
-
-::

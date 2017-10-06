@@ -153,7 +153,7 @@ Example
 
 .. *If there is a code example (Matlab, Python, etc) available, provide it here.*
 
-::
+.. code-block:: fortran
 
 	# ny number of years
 	# variable: var(year, month)
@@ -174,5 +174,3 @@ Example
 
 	#anomaly
 	var(year, month)=var(year,month)-longtermmean
-
-::
