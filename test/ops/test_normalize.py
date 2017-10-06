@@ -230,7 +230,7 @@ class TestAdjustSpatial(TestCase):
         # Test existing attributes update
         lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
         indexers = {'lon': slice(lon_min, lon_max),
-                    'lat': slice(lat_min, lat_max)}
+                    'lat': slice(lat_max, lat_min)}
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_spatial_attrs(ds2)
 
@@ -326,8 +326,8 @@ class TestAdjustSpatial(TestCase):
         lon_bnds = np.empty([len(ds.lon), 2])
         ds['nv'] = [0, 1]
 
-        lat_bnds[:, 0] = ds.lat.values - 2
-        lat_bnds[:, 1] = ds.lat.values + 2
+        lat_bnds[:, 0] = ds.lat.values + 2
+        lat_bnds[:, 1] = ds.lat.values - 2
         lon_bnds[:, 0] = ds.lon.values - 2
         lon_bnds[:, 1] = ds.lon.values + 2
 
@@ -359,7 +359,7 @@ class TestAdjustSpatial(TestCase):
         # Test existing attributes update
         lon_min, lat_min, lon_max, lat_max = -20, -40, 60, 40
         indexers = {'lon': slice(lon_min, lon_max),
-                    'lat': slice(lat_min, lat_max)}
+                    'lat': slice(lat_max, lat_min)}
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_spatial_attrs(ds2)
 
