@@ -634,10 +634,9 @@ class EsaCciOdpDataSource(DataSource):
         try:
             ds = open_xarray_dataset(files)
             if region:
-                [lon_min, lat_min, lon_max, lat_max] = region.bounds
-                ds = ds.sel(drop=False, lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
+                ds = subset_spatial_impl(ds, region)
             if var_names:
-                ds = ds.drop([var_name for var_name in ds.variables.keys() if var_name not in var_names])
+                ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
             return ds
 
         except OSError as e:
@@ -713,8 +712,6 @@ class EsaCciOdpDataSource(DataSource):
                 do_update_of_variables_meta_info_once = True
                 do_update_of_region_meta_info_once = True
 
-                add_coords_once = True
-
                 files = self._get_urls_list(selected_file_list, protocol)
                 monitor.start('Sync ' + self.id, total_work=len(files))
                 for idx, dataset_uri in enumerate(files):
@@ -738,15 +735,12 @@ class EsaCciOdpDataSource(DataSource):
                         remote_dataset = xr.Dataset.load_store(remote_netcdf)
 
                         if var_names:
-                            if add_coords_once:
-                                var_names.extend([var_name for var_name in remote_dataset.coords.keys()])
-                                add_coords_once = False
                             remote_dataset = remote_dataset.drop(
-                                [var_name for var_name in remote_netcdf.variables.keys()
+                                [var_name for var_name in remote_dataset.data_vars.keys()
                                  if var_name not in var_names])
 
                         if region:
-                            remote_dataset = subset_spatial_impl(remote_dataset, region, True)
+                            remote_dataset = subset_spatial_impl(remote_dataset, region)
                             geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
 
                             local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
