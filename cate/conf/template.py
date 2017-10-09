@@ -40,12 +40,8 @@ included_data_sources = [
     'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.03-02.r1',
     'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1',
     'esacci.AEROSOL.day.L3C.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1',
-    'esacci.AEROSOL.mon.L3.AAI.multi-sensor.multi-platform.ms_uvai.1-5-7.r1',
     'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.03-02.r1',
     'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1',
-    'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.03-02.r1',
-    'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1',
-    'esacci.AEROSOL.mon.L3C.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1',
     'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.multi-platform.AVHRR-AM.2-0.r1',
     'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.multi-platform.AVHRR-PM.2-0.r1',
     'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Aqua.MODIS_AQUA.2-0.r1',
@@ -78,17 +74,13 @@ included_data_sources = [
     'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2012-r1',
     'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2013-r1',
     'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.ATSR-2.ERS-2.ATSR2.1-1.1999',
-    'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.ATSR.ERS-1.ATSR1.1-1.1991',
     'esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.2-0.r1',
     'esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.r1',
     'esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1',
     'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1',
     'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
     'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1',
-    'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1_19930401',
-    'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.ATSR.ERS-1.ATSR1.1-1.1994'
+    'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
 ]
 # We put wildcards here that match all data sources that are known NOT to work in GUI
 excluded_data_sources = [
