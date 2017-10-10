@@ -1,7 +1,7 @@
 @echo off
 
 rem Download soil moisture data
-cate ds copy esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.02-2.r1 --name SOIL_2007 --time "2007-01-01,2007-12-31" --region "72,8,85,17" --vars "sm,sm_uncertainty"
+cate ds copy esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1 --name SOIL_2007 --time "2007-01-01,2007-12-31" --region "72,8,85,17" --vars "sm,sm_uncertainty"
 
 rem Download sea surface temperature data
 cate ds copy esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1 --name SST_2006_2007 --time "2006-01-01,2007-12-31" --region " -175,-10,-115,10" --vars "analysed_sst,analysis_error"
