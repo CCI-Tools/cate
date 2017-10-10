@@ -39,11 +39,11 @@ Anaconda Python distributions.
 Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
 GB on Windows. To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
 
-    $ conda env create --file environment.yml
+    $ conda env create
 
 If you want the environment to be installed in another location, e.g. due to disk space limitations, type:
 
-    $ conda env create --file environment.yml --prefix some/other/location/for/cate
+    $ conda env create --prefix some/other/location/for/cate
 
 Next step is to activate the new environment. On Linux/Darwin type:
 
