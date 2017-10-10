@@ -67,7 +67,7 @@ Open the desired datasets, by providing their name and desired time-span.
 
 .. code-block:: console
 
-    $ cate res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1 2007-01-01 2007-12-30
+    $ cate res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.ATSR2-AATSR.2-0.r1
     Resource "cl07" set.
 
 .. code-block:: console
@@ -85,9 +85,9 @@ To select particular geophysical quantities to work with, use the ``select_var``
 
 .. code-block:: console
 
-    $ cate res set cc_tot select_var ds=@cl07 var=cc_total
+    $ cate res set cfc select_var ds=@cl07 var=cfc
     Executing 2 workflow step(s): done
-    Resource "cc_tot" set.
+    Resource "cfc" set.
 
 .. code-block:: console
 
@@ -105,7 +105,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=@cc_tot var=cc_total file=fig1.png
+    $ cate ws run plot_map ds=@cfc var=cfc file=fig1.png
     Running operation 'plot_map': Executing 4 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -132,7 +132,7 @@ The datasets now have different lat/lon definitions. This can be verified by usi
 
 .. code-block:: console
 
-    $ cate res print cc_tot
+    $ cate res print cfc
     <xarray.Dataset>
     Dimensions:       (hist_cot: 7, hist_cot_bin: 6, hist_ctp: 8, hist_ctp_bin: 7, hist_phase: 2, lat: 360, lon: 720, time: 12)
     Coordinates:
@@ -145,7 +145,7 @@ The datasets now have different lat/lon definitions. This can be verified by usi
       * hist_phase    (hist_phase) int32 0 1
       * time          (time) float64 2.454e+06 2.454e+06 2.454e+06 2.454e+06 ...
     Data variables:
-        cc_total      (time, lat, lon) float64 0.1076 0.3423 0.2857 0.2318 ...
+        cfc           (time, lat, lon) float64 0.1076 0.3423 0.2857 0.2318 ...
 
 .. code-block:: console
 
@@ -219,13 +219,13 @@ To carry out coregistration, use ``cate res set`` again with appropriate operati
 
 .. code-block:: console
 
-    $ cate res set cc_tot_res coregister ds_master=@oz_tot ds_slave=@cc_tot
+    $ cate res set cfc_res coregister ds_master=@oz_tot ds_slave=@cfc
     Executing 5 workflow step(s): done
-    Resource "cc_tot_res" set.
+    Resource "cfc_res" set.
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=@cc_tot_res var=cc_total file=fig3.png
+    $ cate ws run plot_map ds=@cfc_res var=cfc file=fig3.png
     Running operation 'plot_map': Executing 5 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -248,13 +248,13 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate res set cc_africa subset_spatial ds=@cc_tot_res region=-20,-40,60,40
+    $ cate res set cc_africa subset_spatial ds=@cfc_res region=-20,-40,60,40
     Executing 6 workflow step(s): done
     Resource "cc_africa" set.
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=@cc_africa var=cc_total file=fig4.png
+    $ cate ws run plot_map ds=@cc_africa var=cfc file=fig4.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -264,7 +264,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
 
 .. code-block:: console
 
-    $ cate ws run plot_map ds=@cc_africa var=cc_total region=-20,-40,60,40 file=fig5.png
+    $ cate ws run plot_map ds=@cc_africa var=cfc region=-20,-40,60,40 file=fig5.png
     Running operation 'plot_map': Executing 7 workflow step(s)
     Operation 'plot_map' executed.
 
@@ -293,7 +293,7 @@ We'll extract spatial mean timeseries from both datasets using ``tseries_mean`` 
 
 .. code-block:: console
 
-    $ cate res set cc_africa_ts tseries_mean ds=@cc_africa_janoct var=cc_total
+    $ cate res set cc_africa_ts tseries_mean ds=@cc_africa_janoct var=cfc
     Executing 8 workflow step(s): done
     Resource "cc_africa_ts" set.
 
@@ -313,7 +313,7 @@ To plot the time-series and save the ``plot`` operation can be used together wit
 
 .. code-block:: console
 
-    $ cate ws run plot ds=@cc_africa_ts var=cc_total file=fig6.png
+    $ cate ws run plot ds=@cc_africa_ts var=cfc file=fig6.png
     Running operation 'plot': Executing 11 workflow step(s)
     Operation 'plot' executed.
 
@@ -347,7 +347,7 @@ To carry out a product-moment correlation on the mean time-series, the ``pearson
 
 .. code-block:: console
 
-    $ cate res set pearson pearson_correlation ds_y=@cc_africa_ts ds_x=@oz_africa_ts var_y=cc_total var_x=O3_du_tot
+    $ cate res set pearson pearson_correlation ds_y=@cc_africa_ts ds_x=@oz_africa_ts var_y=cfc var_x=O3_du_tot
     Executing 12 workflow step(s): done
     Resource "pearson" set.
 
@@ -370,7 +370,7 @@ probability values, one can use ``pearson_correlation``:
 
 .. code-block:: console
 
-    $ cate res set pearson_map pearson_correlation ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cc_total var_x=O3_du_tot
+    $ cate res set pearson_map pearson_correlation ds_y=@cc_africa_janoct ds_x=@oz_africa_janoct var_y=cfc var_x=O3_du_tot
     Executing 10 workflow step(s): done
     Resource "pearson_map" set.
 

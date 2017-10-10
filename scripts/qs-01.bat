@@ -9,10 +9,10 @@ cate res open oz07 local.OZONE_07
 cate ws run plot_map ds=@oz07 var=O3_du_tot file=qs-01-O3_du_tot.png
 cate ws exit -y
 
-cate ds copy -n CLOUD_07 -t 2007-01-01,2007-12-30 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.NOAA-17.AVHRR_NOAA.1-0.r1
+cate ds copy -n CLOUD_07 -t 2007-01-01,2007-12-30 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.ATSR2-AATSR.2-0.r1
 
 cate ws new
 cate res open cl07 local.CLOUD_07
-cate ws run plot_map ds=@cl07 var=cc_total file=qs-01-cc_total.png
+cate ws run plot_map ds=@cl07 var=cfc file=qs-01-cfc.png
 cate ws exit -y
 
