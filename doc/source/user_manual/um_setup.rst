@@ -26,22 +26,32 @@ The CCI Toolbox is supposed to work on up-to-date Windows, Mac OS X, and Linux o
 Installation
 ============
 
-Using the Installers
---------------------
-
 Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
 `release page <https://github.com/CCI-Tools/cate/releases>`_ on GitHub.
 
-The installers are self-contained, so there is no need to install additional software to run the
-CCI Toolbox.
+There are two Cate installers for each of the supported platforms Mac OS X, Linux, Windows:
 
-The CCI Toolbox installers for all platforms are currently
-customized `Anaconda <https://www.continuum.io/why-anaconda>`_ installers. In the following we provide some notes
-regarding its usage on Windows and Unix/Darwin systems.
+1. *Cate Core* including the command-line interface (CLI) and Python API. They are named
+   * ``cate-<version>-<platform>.sh`` for OS X and Linux
+   * ``cate-<version>-<platform>.exe`` for Windows
+2. *Cate Desktop*, Cate's graphical user interface. They are named
+   * ``Cate.Desktop.<version>.dmg`` for OS X
+   * ``Cate.Desktop.<version>.AppImage`` for Linux
+   * ``Cate.Desktop.<version>.exe`` for Windows
 
+
+Note that *Cate Desktop* cannot be run without *Cate Core* installed. This may change in the future.
+
+
+Installing Cate Core
+--------------------
+
+The Cate Core installers are self-contained, so there is no need to install additional software.
+
+The installers for all platforms are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
+installers. In the following we provide some notes regarding its usage on Windows and Unix and Mac OS X systems.
 
 **Windows Installer**
-
 
 When you run the installer on Windows, make sure you un-check **Add Anaconda to my PATH environment variable**.
 Otherwise the Anaconda Python distribution used by the CCI Toolbox would become your system's default Python.
@@ -53,38 +63,73 @@ Otherwise the Anaconda Python distribution used by the CCI Toolbox would become 
 
 **Linux/Darwin Installers**
 
-
-On Linux/Darwin systems, the downloaded installer is a shell script. To run it, open a terminal window,
-``cd`` into the directory where you've downloaded the installer and execute the shell script.
+On Linux and Mac OS X systems, the downloaded installer is a shell script. To run it, open a terminal window,
+``cd`` into the directory where you've downloaded the installer and execute the shell script using ``bash``:
 
 .. code-block:: console
 
     $ cd ~/Downloads
-    $ ./cate-0.6.0-Linux-x86_64.sh
+    $ bash cate-1.0.0-Linux-x86_64.sh
 
-If the installer script is not yet executable, type:
-
-.. code-block:: console
-
-    $ chmod +x cate-0.6.0-Linux-x86_64.sh
-
-By default, the installer will install the CCI Toolbox into ``~/cate``. If you want it in another location, use the
+By default, the installer will install Cate Core into ``~/cate``. If you want it in another location, use the
 ``-p`` (=prefix) option, e.g.
 
 .. code-block:: console
 
-    $ ./cate-0.6.0-Linux-x86_64.sh -p cci-toolbox
+    $ bash cate-1.0.0-Linux-x86_64.sh -p cate-1.0.0
 
 Use the ``-h`` option to display other install options.
 
+After successful installation a link to "Cate CLI" will be created on a Linux desktop (if any) aor as a Startmenu entry
+on Windows.
 
-Installing from Sources
------------------------
+The actual Cate CLI executables ``cate-cli`` can be found in the Cate Python environment:
+
+* ``cate/bin/cate-cli`` on Linux
+* ``cate/bin/cate-cli.app`` on Mac
+* ``cate/Scripts/cate-cli.bat`` on Windows
+
+As ``cate-cli`` is an application Mac, it can started using a double-click.
+
+
+Updating an existing Cate Core
+------------------------------
+
+The Cate Core installers are pretty large files because they include a complete Python 3 environment bundled
+with various "heavy" Python packages such as numpy, pandas, matplotlib, gdal, etc. In order to avoid downloading
+and installing a new Python environment for every Cate software update, it is possible to update a Cate Core
+installation in place.
+
+To update to a specific Cate version, e.g. version 1.0.1, bring up the Cate CLI and type
+
+.. code-block:: console
+
+    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli=1.0.1
+
+To update to the latest Cate, use ``cate-cli`` without version number:
+
+.. code-block:: console
+
+    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli
+
+
+For the future, we are planning to drastically simplifying Cate installation and updates.
+
+Installing Cate Core from Sources
+---------------------------------
 
 If you are a developer you may wish to build and install the CCI Toolbox from Python sources.
 In this case, please follow the instructions given in the project's
 `README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
 
+
+Installing Cate Desktop
+-----------------------
+
+Note, you need a compatible Cate Core installation before you can install and run Cate Desktop.
+
+On all supported platforms, Cate Desktop installers are light-weight and executed by double clicking them.
+They don't require any extra user input.
 
 Configuration
 =============
