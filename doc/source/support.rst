@@ -1,4 +1,5 @@
-.. _Cate Issue Tracker: https://github.com/CCI-Tools/cate/issues
+.. _User Forum: https://groups.google.com/forum/#!forum/cci-tools
+.. _Issue Tracker: https://github.com/CCI-Tools/cate/issues
 
 .. _pull requests: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
 .. _Cate repository on GitHub: https://github.com/CCI-Tools/cate
@@ -14,10 +15,16 @@ Support
 =======
 
 
+User Forum
+==========
+
+Please post any feedback, support requests and ideas for the future to the Cate `User Forum`_.
+
+
 Issue Tracking
 ==============
 
-Please post any support requests, bug report, or feature requests in the `Cate Issue Tracker`_.
+Bugs, feature requests, suggestions for improvements should be reported in the Cate `Issue Tracker`_.
 
 
 Contributing
@@ -41,3 +48,10 @@ Data Access
 2. Not all datasets from offered by the `ESA CCI Open Data Portal`_ can be used in Cate.
    Please check the `ODP Datasets and Data Access Issues`_ page to see whether you problem with
    a dataset is known and if there are already fixes / workarounds.
+
+
+Other
+-----
+
+We have collected all other known issues in the Cate `Issue Tracker`_. If you encounter a problem,
+please search for it there first.
