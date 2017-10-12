@@ -31,30 +31,28 @@ Installers for the Linux, Mac OS X, and Windows platform can be downloaded from 
 web page at `cci-tools.github.io <https://cci-tools.github.io/>`_
 or on Cate's release page on `GitHub <https://github.com/CCI-Tools/cate/releases>`_.
 
-We provide two Cate installers:
-
-1. *Cate Core* including the command-line interface (CLI) and Python API. They are named
-   * ``cate-1.0.0-MacOSX-x86_64.sh`` for OS X
-   * ``cate-1.0.0-Linux-x86_64.sh`` for Linux
-   * ``cate-1.0.0-Windows-x86_64.sh`` for Windows
-2. *Cate Desktop*, Cate's graphical user interface. They are named
-   * ``Cate.Desktop-1.0.0.dmg`` for OS X
-   * ``cate-desktop-1.0.0-x86_64.AppImage`` for Linux
-   * ``Cate.Desktop.Setup.1.0.0.exe`` for Windows
-
+We provide two Cate installers for *Cate Core* and *Cate Desktop*, Cate's graphical user interface.
 Note that *Cate Desktop* cannot be run without *Cate Core* installed. This may change in the future.
 
 Installing Cate Core
 --------------------
 
-Cate Core includes a Python runtime environment, bundled with the Cate package that also provides Cate's Python API.
-The Cate Core installers for all platforms are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
+*Cate Core* includes a Python runtime environment, bundled with the Cate Python package.  The latter provides
+the Cate command-line interface (CLI) and Cate Python API.
+
+The installers for the supported platforms are:
+* ``cate-1.0.0-MacOSX-x86_64.sh`` for OS X
+* ``cate-1.0.0-Linux-x86_64.sh`` for Linux
+* ``cate-1.0.0-Windows-x86_64.sh`` for Windows
+
+
+The Cate Core installers are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
 installers. In the following, we provide some notes regarding its usage on Windows, Mac OS X, and Linux systems.
 
 **Windows Installer**
 
 When you run the installer on Windows, make sure you un-check **Add Anaconda to my PATH environment variable**.
-Otherwise the Anaconda Python distribution used by the CCI Toolbox would become your system's default Python.
+Otherwise the Anaconda Python distribution used by the Cate would become your system's default Python.
 
 .. figure:: ../_static/figures/installer-win.png
    :scale: 100 %
@@ -129,9 +127,15 @@ In this case, please follow the instructions given in the project's
 Installing Cate Desktop
 -----------------------
 
-Note, you need a compatible Cate Core installation before you can install and run Cate Desktop.
+*Cate Desktop* is Cate's graphical user interface and depends on Cate Core.
+Hence, you need a compatible Cate Core installation before you can install and run Cate Desktop.
 
-On all supported platforms, Cate Desktop installers are light-weight and executed by double clicking them.
+The Cate Desktop installers for the supported platforms are:
+* ``Cate.Desktop-1.0.0.dmg`` for OS X
+* ``cate-desktop-1.0.0-x86_64.AppImage`` for Linux
+* ``Cate.Desktop.Setup.1.0.0.exe`` for Windows
+
+All Cate Desktop installers are light-weight and executed by double clicking them.
 They don't require any extra user input.
 
 Configuration
