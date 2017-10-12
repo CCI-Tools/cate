@@ -26,30 +26,30 @@ The CCI Toolbox is supposed to work on up-to-date Windows, Mac OS X, and Linux o
 Installation
 ============
 
-Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
-`release page <https://github.com/CCI-Tools/cate/releases>`_ on GitHub.
 
-There are two Cate installers for each of the supported platforms Mac OS X, Linux, Windows:
+Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
+web page at `cci-tools.github.io <https://cci-tools.github.io/>`_
+or on Cate's release page on `GitHub <https://github.com/CCI-Tools/cate/releases>`_.
+
+We provide two Cate installers:
 
 1. *Cate Core* including the command-line interface (CLI) and Python API. They are named
-   * ``cate-<version>-<platform>.sh`` for OS X and Linux
-   * ``cate-<version>-<platform>.exe`` for Windows
+   * ``cate-1.0.0-MacOSX-x86_64.sh`` for OS X
+   * ``cate-1.0.0-Linux-x86_64.sh`` for Linux
+   * ``cate-1.0.0-Windows-x86_64.sh`` for Windows
 2. *Cate Desktop*, Cate's graphical user interface. They are named
-   * ``Cate.Desktop.<version>.dmg`` for OS X
-   * ``Cate.Desktop.<version>.AppImage`` for Linux
-   * ``Cate.Desktop.<version>.exe`` for Windows
-
+   * ``Cate.Desktop-1.0.0.dmg`` for OS X
+   * ``cate-desktop-1.0.0-x86_64.AppImage`` for Linux
+   * ``Cate.Desktop.Setup.1.0.0.exe`` for Windows
 
 Note that *Cate Desktop* cannot be run without *Cate Core* installed. This may change in the future.
-
 
 Installing Cate Core
 --------------------
 
-The Cate Core installers are self-contained, so there is no need to install additional software.
-
-The installers for all platforms are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
-installers. In the following we provide some notes regarding its usage on Windows and Unix and Mac OS X systems.
+Cate Core includes a Python runtime environment, bundled with the Cate package that also provides Cate's Python API.
+The Cate Core installers for all platforms are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
+installers. In the following, we provide some notes regarding its usage on Windows, Mac OS X, and Linux systems.
 
 **Windows Installer**
 
@@ -61,9 +61,9 @@ Otherwise the Anaconda Python distribution used by the CCI Toolbox would become 
    :align: center
 
 
-**Linux/Darwin Installers**
+**Mac OS X and Linux Installers**
 
-On Linux and Mac OS X systems, the downloaded installer is a shell script. To run it, open a terminal window,
+On Mac OS X and Linux systems, the downloaded installer is a shell script. To run it, open a terminal window,
 ``cd`` into the directory where you've downloaded the installer and execute the shell script using ``bash``:
 
 .. code-block:: console
