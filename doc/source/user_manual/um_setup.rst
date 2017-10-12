@@ -41,6 +41,7 @@ Installing Cate Core
 the Cate command-line interface (CLI) and Cate Python API.
 
 The installers for the supported platforms are:
+
 * ``cate-1.0.0-MacOSX-x86_64.sh`` for OS X
 * ``cate-1.0.0-Linux-x86_64.sh`` for Linux
 * ``cate-1.0.0-Windows-x86_64.sh`` for Windows
@@ -131,6 +132,7 @@ Installing Cate Desktop
 Hence, you need a compatible Cate Core installation before you can install and run Cate Desktop.
 
 The Cate Desktop installers for the supported platforms are:
+
 * ``Cate.Desktop-1.0.0.dmg`` for OS X
 * ``cate-desktop-1.0.0-x86_64.AppImage`` for Linux
 * ``Cate.Desktop.Setup.1.0.0.exe`` for Windows
