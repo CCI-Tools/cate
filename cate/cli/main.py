@@ -96,6 +96,7 @@ Components
 """
 
 import warnings
+
 warnings.filterwarnings("ignore")  # never print any warnings to users
 import argparse
 import os
@@ -1262,6 +1263,105 @@ class DataSourceCommand(SubCommandCommand):
             print("Local data source not created. It would have been empty. Please check constraint.")
 
 
+class UpdateCommand(Command):
+    """
+    The ``update`` command is used to update an existing cate environment to a specific or the latest cate version.
+    """
+
+    @classmethod
+    def name(cls):
+        return 'upd'
+
+    @classmethod
+    def parser_kwargs(cls):
+        return dict(help='Update an existing cate environment to a specific or to the latest cate version',
+                    description='Update an existing cate environment to a specific or to the latest cate version.')
+
+    @classmethod
+    def configure_parser(cls, parser):
+        parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
+                            help='Do not ask for confirmation.')
+        parser.add_argument('-i', '--info', dest='show_info', action='store_true', default=False,
+                            help='Show version information only; do not update yet.')
+        parser.add_argument('version', metavar='VERSION', nargs='?', default=None,
+                            help='A cate version identifier, e.g. "1.0.3"; '
+                                 'the version identifier must have the form "major.minor.micro" and may comprise '
+                                 'a development release suffix, e.g. "1.2.0.dev4"')
+
+    def execute(self, command_args):
+        current_version = __version__
+        desired_version = command_args.version
+        show_info = command_args.show_info
+
+        import subprocess
+
+        package = 'cate-cli'
+        channel = 'ccitools'
+        command = 'conda search -c {channel} {package}'.format(channel=channel, package=package)
+        completed_process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout = completed_process.stdout.decode("utf-8") if completed_process.stdout else None
+        stderr = completed_process.stderr.decode("utf-8") if completed_process.stderr else None
+        if stderr:
+            raise CommandError(stderr)
+
+        available_versions = []
+        latest_version = None
+        if stdout:
+            package_info = [row.split() for row in stdout.split('\n')]
+            package_info.reverse()
+            for entry in package_info:
+                available_version = None
+                if len(entry) == 4 and entry[0] == package and entry[-1] == channel:
+                    available_version = entry[1]
+                elif len(entry) == 3 and entry[-1] == channel:
+                    available_version = entry[0]
+                if available_version:
+                    available_versions.append(available_version)
+                    if not latest_version:
+                        latest_version = available_version
+
+        if not latest_version:
+            raise CommandError('failed to retrieve latest cate version')
+
+        if show_info:
+            print('Latest version is %s' % latest_version)
+            print('Current version is %s' % current_version)
+            if desired_version:
+                available = desired_version in available_versions
+                print('Desired version is %s (%s)' % (desired_version, 'available' if available else 'not available'))
+            print('Available versions:')
+            for available_version in available_versions:
+                print(' ', available_version)
+            return
+
+        if not desired_version:
+            desired_version = latest_version
+
+        if desired_version == current_version:
+            if latest_version == current_version:
+                print('Current cate version is %s; cate is up-to-date' % current_version)
+            else:
+                print('Current cate version is already %s' % current_version)
+            return
+
+        if desired_version not in available_versions:
+            raise CommandError('desired version %s is not available; '
+                               'type "cate upd --info" to show available versions' % desired_version)
+
+        if command_args.yes:
+            answer = 'y'
+        else:
+            prompt = 'Do you really want to change from %s to %s (y/[n])? ' % (current_version, desired_version)
+            answer = input(prompt)
+        if not answer or answer.lower() != 'y':
+            return
+
+        command_pattern = 'conda install --no-shortcuts -c {channel} -c conda-forge {package}={version}'
+        command = command_pattern.format(channel=channel, package=package, version=desired_version)
+        # TODO (forman): implement the update
+        print('executing [%s]...' % command)
+
+
 class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
@@ -1303,6 +1403,7 @@ COMMAND_REGISTRY = [
     WorkspaceCommand,
     ResourceCommand,
     RunCommand,
+    UpdateCommand,
     # PluginCommand,
 ]
 
