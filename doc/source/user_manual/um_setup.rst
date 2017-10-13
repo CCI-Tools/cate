@@ -14,13 +14,13 @@ Hardware
 It is recommended to use an up-to-date computer, with at least 8GB of RAM and a multi-core CPU.
 The most important bottlenecks will first be the data transfer rate from local data caches into the
 executing program, so it is advised to use fast solid state disks. Secondly, the internet connection
-speed matters, because the CCI Toolbox will frequently have to download data from remote services
+speed matters, because Cate will frequently have to download data from remote services
 in order to cache it locally.
 
 Operating Systems
 -----------------
 
-The CCI Toolbox is supposed to work on up-to-date Windows, Mac OS X, and Linux operating systems.
+The Cate is supposed to work on up-to-date Windows, Mac OS X, and Linux operating systems.
 
 
 Installation
@@ -120,7 +120,7 @@ For the future, we are planning to drastically simplifying Cate installation and
 Installing Cate Core from Sources
 ---------------------------------
 
-If you are a developer you may wish to build and install the CCI Toolbox from Python sources.
+If you are a developer you may wish to build and install Cate from Python sources.
 In this case, please follow the instructions given in the project's
 `README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
 
@@ -143,7 +143,7 @@ They don't require any extra user input.
 Configuration
 =============
 
-CCI Toolbox' configuration file is called ``conf.py`` and is located in the ``~/.cate`` directory, where ``~`` is
+Cate's configuration file is called ``conf.py`` and is located in the ``~/.cate/1.0.0`` directory, where ``~`` is
 the current user's home directory.
 
 Given here is an overview of the possible configuration parameters:
