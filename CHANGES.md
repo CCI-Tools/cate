@@ -1,27 +1,27 @@
-## Changes in version 1.0.0.dev3
+
+## Version 1.0.1 (xx.yy.2017)
+
+### Fixes
+
+* Cate wont work if installed on drive other than home drive
+  [#466](https://github.com/CCI-Tools/cate/issues/466)
+
+## Version 1.0.0
 
 ### Improvements and new Features
 
 * List only data sources tested by the champion users
   [#435](https://github.com/CCI-Tools/cate/issues/435)
+* Global temporal attributes are adjusted automatically when opening new datasets
+* Global temporal attributes are adjusted automatically when converting from data frames
+* Normalization and subsetting operation implementation logic is refactored out to util so that it can be re-used throughout Cate
 
-## Changes in version 1.0.0.dev2
-
-### Issues Fixed/Resolved
+### Fixes
 
 * Get rid of Python user warnings
   [#446](https://github.com/CCI-Tools/cate/issues/446)
 * Missing static background map
   [#453](https://github.com/CCI-Tools/cate/issues/453)
-
-## Changes in version 1.0.0.dev1
-
-### Improvements and new Features
-* Global temporal attributes are adjusted automatically when opening new datasets
-* Global temporal attributes are adjusted automatically when converting from data frames
-* Normalization and subsetting operation implementation logic is refactored out to util so that it can be re-used throughout Cate
-
-### Issues Fixed/Resolved
 * Fixed displaying broken/incomplete/canceled data sources on local data sources list
   [#375](https://github.com/CCI-Tools/cate/issues/375)
 * Generated resource names not always unique
@@ -35,7 +35,7 @@
 * OS X installation error
   [#438](https://github.com/CCI-Tools/cate/issues/438)
 
-## Changes in version 0.9.0.dev7
+## Version 0.9.0
 
 ### Improvements and new Features
 
@@ -53,8 +53,63 @@
   [#368](https://github.com/CCI-Tools/cate/issues/368)
 * Coregistration operation now works on n-dimensional datasets
   [#36](https://github.com/CCI-Tools/cate/issues/36)
+* Add use case 2 script [#327](https://github.com/CCI-Tools/cate/issues/327)
+  and [#146](https://github.com/CCI-Tools/cate/issues/146)
+* long_term_average, temporal_aggregation, detect_outliers, spatial_subset and plot now work with both - datasets and dataframes.
+* Unified backend of CLI and GUI on WebSocket [#120](https://github.com/CCI-Tools/cate/issues/120)
+  As the GUI uses WebSocket, this remove a bit of duplicated code.
+* The `pearson_correlation` operation has been split into two operations:
+  * `pearson_correlation_simple` that produces a single pair of a correlation
+    coefficient and a probability value for the given timeseries.
+  * `pearson_correlation_map` produces a map of correlation coefficients and p-values
+    and outputs this as a dataset that can be worked with further.
+  Performance of pearson correlation has been radically improved. In addition, the operations can now
+  accept both, a dataset and a dataframe and a map can be created also by
+  performing correlation of a single timeseries against all spatial points in the
+  other dataset.
+* A uniform way of handling spatiotemporal global attributes has been introduced
+* External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
+  the *MPI Climate Data Operators* can now be registered as operations.
+* In summary, workflows can now have steps of the following types:
+  - A step that invokes a registered Cate operation, which is the default
+    ```json
+    {
+         "op": <qualified op name>
+    }
+    ```
+  - A step that invokes an external executable
+    ```json
+    {
+         "command": <command pattern>,
+         "cwd": <current working directory>
+         "env": <dict of environment variables>
+    }
+    ```
+  - A step that invokes another (JSON) workflow
+    ```json
+    {
+         "workflow": <workflow JSON path>
+    }
+    ```
+  - A step that executes a Python expression
+    ```json
+    {
+         "expression": <Python expression>
+    }
+    ```
+* Searching data sources from the CLI using "cate ds list -n" now matches against id and title
+* Added `plot_scatter` and `plot_contour` operations ([#278](https://github.com/CCI-Tools/cate/issues/278)).
+* Most `plot_` operations now have a new `title` parameter.
+* A function annotated by one of the operator decorators (`@op`, `@op_input`, `@op_return`, `@op_output`)
+  will be turned into an *operation registration* which is also callable.
+  Calling the *operation registration* will validate all inputs and then pass arguments and
+  keyword-arguments to the actual, original function.
+* New `FileLike` type.
+* Changed the JSON object representation of a (xarray/NetCDF-CF) variable to include all variable
+  attributes. This changes the the response of various REST/WebSocket calls that return a workspace.
 
-### Issues Fixed/Resolved
+
+### Fixes
 
 * Fixed reading datasource temporal coverage from config file (obsolete format)
   [#373](https://github.com/CCI-Tools/cate/issues/373)
@@ -86,83 +141,13 @@
 * Coregistration works with n-dimensional datasets
   [#36](https://github.com/CCI-Tools/cate/issues/36)
   [#348](https://github.com/CCI-Tools/cate/issues/348)
-
-## Changes in version 0.9.0.dev6
-
-### Improvements and new Features
-
-* Add use case 2 script [#327](https://github.com/CCI-Tools/cate/issues/327)
-  and [#146](https://github.com/CCI-Tools/cate/issues/146)
-* long_term_average, temporal_aggregation, detect_outliers, spatial_subset and plot now work with both - datasets and dataframes.
-
-### Issues Fixed/Resolved
-
 * Date and time columns in CSV data are converted into datetime objects
 * Fix use case 6 script
 * Fix #320 (wrong file dialog for enso_nino34 operation in GUI)
 * Fix temporal coverage for ODP datasets that are listed as a single dataset in the CSW and as multiple in the ESGF
-
-## Changes in version 0.9.0.dev5
-
-### Improvements and new Features
-
-* Unified backend of CLI and GUI on WebSocket [#120](https://github.com/CCI-Tools/cate/issues/120)
-  As the GUI uses WebSocket, this remove a bit of duplicated code.
-
-### Issues Fixed/Resolved
-
 * Fixed [#309](https://github.com/CCI-Tools/cate/issues/309)
 * Ensure that our tile size matches the expected tile size: resize and fill in background value.
 * Take tile size from dask, this should yield to better performance
-
-## Changes in version 0.9.0.dev4
-
-### Operation Improvements
-
-* The `pearson_correlation` operation has been split into two operations:
-  * `pearson_correlation_simple` that produces a single pair of a correlation
-    coefficient and a probability value for the given timeseries.
-  * `pearson_correlation_map` produces a map of correlation coefficients and p-values
-    and outputs this as a dataset that can be worked with further.    
-  Performance of pearson correlation has been radically improved. In addition, the operations can now
-  accept both, a dataset and a dataframe and a map can be created also by
-  performing correlation of a single timeseries against all spatial points in the
-  other dataset.
-* A uniform way of handling spatiotemporal global attributes has been introduced
-* External executables such as the *CCI Land Cover User Tool*, the *CCI SST Regridding Tool*, or
-  the *MPI Climate Data Operators* can now be registered as operations.
-* In summary, workflows can now have steps of the following types:
-  - A step that invokes a registered Cate operation, which is the default
-    ```json
-    {
-         "op": <qualified op name>
-    } 
-    ```
-  - A step that invokes an external executable
-    ```json
-    {
-         "command": <command pattern>,
-         "cwd": <current working directory>
-         "env": <dict of environment variables>
-    } 
-    ```
-  - A step that invokes another (JSON) workflow
-    ```json
-    {
-         "workflow": <workflow JSON path>
-    } 
-    ```
-  - A step that executes a Python expression
-    ```json
-    {
-         "expression": <Python expression>
-    } 
-    ```
-* Searching data sources from the CLI using "cate ds list -n" now matches against id and title
-
-
-### Issues Fixed/Resolved
-
 * Fixed [#299](https://github.com/CCI-Tools/cate/issues/299)
     * renamed property `cate.core.ds.DataSource.name` to `id` 
     * renamed property `cate.core.ds.DataStore.name` to `id` 
@@ -188,43 +173,27 @@
 * Switch CSW to same URL as the ODP
 * JSON-RPC protocol changed slightly: method `__cancelJob__` has been renamed to `__cancel__`
   and its only parameter `jobId` became `id`.
-
-## Changes in version 0.9.0.dev3
-
 * Fixed packaging location of file `countries.geojson` so that Cate Desktop can display it
-
-## Changes in version 0.9.0.dev2
-
-### Improvements and new Features
-
-* Added `plot_scatter` and `plot_contour` operations ([#278](https://github.com/CCI-Tools/cate/issues/278)).
-* Most `plot_` operations now have a new `title` parameter.
-
-### Fixes
-
 * Fixed [#259](https://github.com/CCI-Tools/cate/issues/259)
 * Fixed problem when the `lon` or `lat` coordinate variables were empty.
   See comments in [#276](https://github.com/CCI-Tools/cate/issues/276).
 
-## Changes in version 0.9.0.dev1
 
-* A function annotated by one of the operator decorators (`@op`, `@op_input`, `@op_return`, `@op_output`) 
-  will be turned into an *operation registration* which is also callable.
-  Calling the *operation registration* will validate all inputs and then pass arguments and 
-  keyword-arguments to the actual, original function.
-* New `FileLike` type.    
-* Changed the JSON object representation of a (xarray/NetCDF-CF) variable to include all variable 
-  attributes. This changes the the response of various REST/WebSocket calls that return a workspace.
-  
-## Changes in version 0.8.0rc7.dev1
+## Version 0.8.0
 
-* Fixed wrong error message that was raised, when attempting to delete a resource on which other steps 
-  still depend on.
+### Improvements and new Features
+
 * Various documentation updates.
-
-## Changes in version 0.8.0rc6
-
-* `cate.webapi.websocket` now understands the operations 
+* `cate.webapi.websocket` now understands the operations
   `clean_workspace(base_dir)` and `delete_workspace_resource(basedir, res_name)`.
+
+### Fixes
+
+* Fixed wrong error message that was raised, when attempting to delete a resource on which other steps
+  still depend on.
 * Fixed [#263](https://github.com/CCI-Tools/cate/issues/263)
 * Fixed [#257](https://github.com/CCI-Tools/cate/issues/257)
+
+## Version 0.7.0
+
+Initial version for testing.
