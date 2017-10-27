@@ -6,7 +6,7 @@
 * Cate wont work if installed on drive other than home drive
   [#466](https://github.com/CCI-Tools/cate/issues/466)
 
-## Version 1.0.0
+## Version 1.0.0 (10.10.2017)
 
 ### Improvements and new Features
 
