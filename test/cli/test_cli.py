@@ -402,14 +402,28 @@ class RunCommandTest(CliTestCase):
         self.assert_main(['run', '--help'])
 
 
-from cate.cli.main import _parse_op_args
+class IOCommandTest(CliTestCase):
+    IO_LIST_OUTPUT = "JSON (*.json) - JSON format (plain text, UTF8)\n" \
+                     "NETCDF3 (*.nc) - netCDF 3 file format, which fully supports 2+ GB files.\n" \
+                     "NETCDF4 (*.nc) - netCDF 4 file format (HDF5 file format, using netCDF 4 API features)\n" \
+                     "TEXT (*.txt) - Plain text format\n"
+
+    def test_io_list(self):
+        self.assert_main(['io', 'list', '-r', '-w'],
+                         expected_stdout=[IOCommandTest.IO_LIST_OUTPUT])
+        self.assert_main(['io', 'list', '-r'],
+                         expected_stdout=[IOCommandTest.IO_LIST_OUTPUT])
+        self.assert_main(['io', 'list', '-w'],
+                         expected_stdout=[IOCommandTest.IO_LIST_OUTPUT])
+        self.assert_main(['io', 'list'],
+                         expected_stdout=[IOCommandTest.IO_LIST_OUTPUT])
 
 
 class ParseOpArgsTest(TestCase):
     def test_existing_method(self):
         op = OP_REGISTRY.get_op('cate.ops.timeseries.tseries_point', True)
-        op_args, op_kwargs = _parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
-                                            input_props=op.op_meta_info.inputs)
+        op_args, op_kwargs = main._parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
+                                                 input_props=op.op_meta_info.inputs)
         self.assertEqual(op_args, [])
         self.assertEqual(op_kwargs, OrderedDict([('ds', dict(source='ds')),
                                                  ('point', dict(value=(12.2, 54.3))),
@@ -417,20 +431,21 @@ class ParseOpArgsTest(TestCase):
                                                  ('method', dict(value='bfill'))]))
 
     def test_no_namespace(self):
-        self.assertEqual(_parse_op_args([]), ([], OrderedDict()))
-        self.assertEqual(_parse_op_args(['']), ([dict(value=None)], OrderedDict()))
-        self.assertEqual(_parse_op_args(['a=@b']), ([], OrderedDict(a=dict(source='b'))))
-        self.assertEqual(_parse_op_args(['a=@b.x']), ([], OrderedDict(a=dict(source='b.x'))))
-        self.assertEqual(_parse_op_args(['a=b']), ([], OrderedDict(a=dict(value='b'))))
-        self.assertEqual(_parse_op_args(['a="b"']), ([], OrderedDict(a=dict(value='b'))))
-        self.assertEqual(_parse_op_args(['a="C:\\\\Users"']), ([], OrderedDict(a=dict(value='C:\\Users'))))
-        self.assertEqual(_parse_op_args(['a=2', 'b=']), ([], OrderedDict([('a', dict(value=2)),
-                                                                          ('b', dict(value=None))])))
-        self.assertEqual(_parse_op_args(['a="c"']), ([], OrderedDict(a=dict(value='c'))))
-        self.assertEqual(_parse_op_args(['a=True']), ([], OrderedDict(a=dict(value=True))))
-        self.assertEqual(_parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']), ([], OrderedDict([('z', dict(value=4.6)),
-                                                                                        ('y', dict(value=1)),
-                                                                                        ('x', dict(value=(2 + 6j)))])))
+        self.assertEqual(main._parse_op_args([]), ([], OrderedDict()))
+        self.assertEqual(main._parse_op_args(['']), ([dict(value=None)], OrderedDict()))
+        self.assertEqual(main._parse_op_args(['a=@b']), ([], OrderedDict(a=dict(source='b'))))
+        self.assertEqual(main._parse_op_args(['a=@b.x']), ([], OrderedDict(a=dict(source='b.x'))))
+        self.assertEqual(main._parse_op_args(['a=b']), ([], OrderedDict(a=dict(value='b'))))
+        self.assertEqual(main._parse_op_args(['a="b"']), ([], OrderedDict(a=dict(value='b'))))
+        self.assertEqual(main._parse_op_args(['a="C:\\\\Users"']), ([], OrderedDict(a=dict(value='C:\\Users'))))
+        self.assertEqual(main._parse_op_args(['a=2', 'b=']), ([], OrderedDict([('a', dict(value=2)),
+                                                                               ('b', dict(value=None))])))
+        self.assertEqual(main._parse_op_args(['a="c"']), ([], OrderedDict(a=dict(value='c'))))
+        self.assertEqual(main._parse_op_args(['a=True']), ([], OrderedDict(a=dict(value=True))))
+        self.assertEqual(main._parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']), ([], OrderedDict([('z', dict(value=4.6)),
+                                                                                             ('y', dict(value=1)),
+                                                                                             ('x',
+                                                                                              dict(value=(2 + 6j)))])))
 
     def test_with_namespace(self):
         class Dataset:
@@ -442,7 +457,7 @@ class ParseOpArgsTest(TestCase):
         import math as m
         namespace = dict(ds=ds, m=m)
 
-        self.assertEqual(_parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
+        self.assertEqual(main._parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
                          ([dict(value=ds),
                            dict(value=m.pi)],
                           OrderedDict([('b', dict(value=238.0)),
@@ -459,13 +474,13 @@ class ParseOpArgsTest(TestCase):
                            b=dict(data_type=TimeRangeLike),
                            c=dict(data_type=int))
 
-        self.assertEqual(_parse_op_args(['a = 11.3, 52.9',
-                                         'b = 2001-01-01, 2004-05-06',
-                                         'c=8.3',
-                                         'd="Bibo"',
-                                         'e=ds.sst'],
-                                        input_props=input_props,
-                                        namespace=dict(ds=ds)),
+        self.assertEqual(main._parse_op_args(['a = 11.3, 52.9',
+                                              'b = 2001-01-01, 2004-05-06',
+                                              'c=8.3',
+                                              'd="Bibo"',
+                                              'e=ds.sst'],
+                                             input_props=input_props,
+                                             namespace=dict(ds=ds)),
                          ([], OrderedDict([('a', dict(value=(11.3, 52.9))),
                                            ('b', dict(value='2001-01-01, 2004-05-06')),
                                            ('c', dict(value=8.3)),
@@ -475,19 +490,19 @@ class ParseOpArgsTest(TestCase):
 
     def test_errors(self):
         with self.assertRaises(ValueError) as cm:
-            _parse_op_args(['=9'])
+            main._parse_op_args(['=9'])
         self.assertEqual(str(cm.exception), "missing input name")
 
         with self.assertRaises(ValueError) as cm:
-            _parse_op_args(['8=9'])
+            main._parse_op_args(['8=9'])
         self.assertEqual(str(cm.exception), '"8" is not a valid input name')
 
         with self.assertRaises(ValueError) as cm:
-            _parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=float)))
+            main._parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=float)))
         self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type float")
 
         with self.assertRaises(ValueError) as cm:
-            _parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=PointLike)))
+            main._parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=PointLike)))
         self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type PointLike")
 
 

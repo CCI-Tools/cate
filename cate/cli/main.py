@@ -1288,6 +1288,52 @@ class DataSourceCommand(SubCommandCommand):
             print("Local data source not created. It would have been empty. Please check constraint.")
 
 
+class IOCommand(SubCommandCommand):
+    """
+    The ``io`` command implements various operations w.r.t. supported data and file formats.
+    """
+
+    @classmethod
+    def name(cls):
+        return 'io'
+
+    @classmethod
+    def parser_kwargs(cls):
+        return dict(help='Manage supported data and file formats.')
+
+    @classmethod
+    def configure_parser_and_subparsers(cls, parser, subparsers):
+        list_parser = subparsers.add_parser('list', help='List all supported file or data formats')
+        list_parser.add_argument('--read', '-r', action='store_true',
+                                 help="List only file/data formats that can be read.")
+        list_parser.add_argument('--write', '-w', action='store_true',
+                                 help="List only file/data formats that can be written.")
+        list_parser.set_defaults(sub_command_function=cls._execute_list)
+
+    # noinspection PyShadowingNames
+    @classmethod
+    def _execute_list(cls, command_args):
+        from cate.core.objectio import OBJECT_IO_REGISTRY
+
+        if command_args.read and command_args.write:
+            object_io_list = OBJECT_IO_REGISTRY.get_object_io_list(mode='rw')
+        elif command_args.read:
+            object_io_list = OBJECT_IO_REGISTRY.get_object_io_list(mode='r')
+        elif command_args.write:
+            object_io_list = OBJECT_IO_REGISTRY.get_object_io_list(mode='w')
+        else:
+            object_io_list = OBJECT_IO_REGISTRY.get_object_io_list()
+
+        if not object_io_list:
+            print('No formats found.')
+            return
+
+        for object_io in object_io_list:
+            print('{name} (*{ext}) - {desc}'.format(name=object_io.format_name,
+                                                    ext=object_io.filename_ext,
+                                                    desc=object_io.description))
+
+
 class PluginCommand(SubCommandCommand):
     """
     The ``pi`` command lists the content of various plugin registry.
@@ -1331,6 +1377,7 @@ COMMAND_REGISTRY = [
     WorkspaceCommand,
     ResourceCommand,
     RunCommand,
+    IOCommand,
     # PluginCommand,
 ]
 
