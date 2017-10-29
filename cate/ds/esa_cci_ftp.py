@@ -54,7 +54,8 @@ from cate.conf.conf import get_data_stores_path
 from cate.core.cdm import Schema
 from cate.core.ds import DataStore, DataSource, open_xarray_dataset, DATA_STORE_REGISTRY
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.util import to_datetime, Monitor, Cancellation
+from cate.util.misc import to_datetime
+from cate.util.monitor import Monitor, Cancellation
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -327,17 +328,17 @@ class _DownloadStatistics:
     def handle_chunk(self, bytes):
         self.bytes_done += bytes
 
-    def asMB(self, bytes):
-        return bytes / (1024 * 1024)
+    def as_mb(self, bytes):
+        return bytes / (1000 * 1000)
 
     def __str__(self):
         seconds = (datetime.now() - self.startTime).seconds
         if seconds > 0:
-            mb_per_sec = self.asMB(self.bytes_done) / seconds
+            mb_per_sec = self.as_mb(self.bytes_done) / seconds
         else:
             mb_per_sec = 0
         return "%d of %d MB, speed %.3f MB/s" % \
-               (self.asMB(self.bytes_done), self.asMB(self.bytes_total), mb_per_sec)
+               (self.as_mb(self.bytes_done), self.as_mb(self.bytes_total), mb_per_sec)
 
 
 class FtpDownloader:

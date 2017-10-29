@@ -47,8 +47,9 @@ from shapely import wkt
 from shapely.geometry import Point, Polygon, box
 from shapely.geometry.base import BaseGeometry
 
-from ..util import safe_eval, to_list, to_datetime_range, to_datetime
-from cate.util.opimpl import adjust_temporal_attrs_impl
+from ..util.safe import safe_eval
+from ..util.misc import to_list, to_datetime_range, to_datetime
+from ..util.opimpl import adjust_temporal_attrs_impl
 
 __author__ = "Janis Gailis (S[&]T Norway), " \
              "Norman Fomferra (Brockmann Consult GmbH), " \

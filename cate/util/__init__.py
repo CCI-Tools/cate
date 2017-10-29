@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -40,13 +38,4 @@ Components
 ==========
 """
 
-from .extend import extend
-from .misc import *
-from .monitor import Monitor, ChildMonitor, ConsoleMonitor, Cancellation
-from .namespace import Namespace
-from .opmetainf import OpMetaInfo
-from .undefined import UNDEFINED
-from .safe import safe_eval, get_safe_globals
-from .process import run_subprocess, ProcessOutputMonitor
-from .tmpfile import new_temp_file, del_temp_file, del_temp_files
-from .opimpl import normalize_impl, adjust_temporal_attrs_impl, adjust_spatial_attrs_impl
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"

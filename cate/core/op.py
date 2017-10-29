@@ -110,9 +110,13 @@ from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
-from ..util import OpMetaInfo, object_to_qualified_name, Monitor, UNDEFINED, safe_eval
+from ..util.opmetainf import OpMetaInfo
+from ..util.monitor import Monitor
+from ..util.undefined import UNDEFINED
+from ..util.safe import safe_eval
 from ..util.process import run_subprocess, ProcessOutputMonitor
 from ..util.tmpfile import new_temp_file, del_temp_file
+from ..util.misc import object_to_qualified_name
 from ..version import __version__
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"

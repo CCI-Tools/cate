@@ -43,8 +43,7 @@ from ..conf.defaults import \
     WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from ..core.cdm import get_tiling_scheme
-from ..util import ConsoleMonitor
-from ..util import Monitor
+from ..util.monitor import Monitor, ConsoleMonitor
 from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from ..util.im.ds import NaturalEarth2Image

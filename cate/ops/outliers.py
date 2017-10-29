@@ -34,7 +34,7 @@ import numpy as np
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import VarNamesLike, DatasetLike
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 from cate import __version__
 
 

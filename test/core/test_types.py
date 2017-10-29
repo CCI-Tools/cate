@@ -13,7 +13,7 @@ from shapely.geometry import Point, Polygon
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
     TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike
-from cate.util import object_to_qualified_name, OrderedDict
+from cate.util.misc import object_to_qualified_name, OrderedDict
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
 ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])

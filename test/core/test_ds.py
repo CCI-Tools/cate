@@ -8,7 +8,7 @@ import xarray as xr
 
 import cate.core.ds as ds
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 _TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
 
