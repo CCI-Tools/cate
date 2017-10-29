@@ -95,8 +95,8 @@ Components
 ==========
 """
 
-import warnings
-warnings.filterwarnings("ignore")  # never print any warnings to users
+# import warnings
+# warnings.filterwarnings("ignore")  # never print any warnings to users
 import argparse
 import os
 import os.path
@@ -105,23 +105,9 @@ import sys
 from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any, Optional
 
-from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources, format_cached_datasets_coverage_string, \
-    format_variables_info_string
-from cate.core.objectio import OBJECT_IO_REGISTRY, find_writer, read_object
-from cate.core.op import OP_REGISTRY
-from cate.core.plugin import PLUGIN_REGISTRY
-from cate.core.types import Like, TimeRangeLike, PolygonLike, VarNamesLike
-from cate.core.workflow import Workflow
-from cate.core.workspace import WorkspaceError, mk_op_kwargs, OpKwArgs, OpArgs
-from cate.core.wsmanag import WorkspaceManager
-from cate.ops.io import open_dataset
-from cate.util import to_list, Monitor, safe_eval
-from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
-from cate.util.opmetainf import OpMetaInfo
-from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 from cate.version import __version__
-from cate.webapi.wsmanag import WebAPIWorkspaceManager
+
+from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -151,13 +137,15 @@ You should have received a copy of the MIT License along with this
 program. If not, see https://opensource.org/licenses/MIT.
 """ % __version__
 
-WRITE_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('w')
-READ_FORMAT_NAMES = OBJECT_IO_REGISTRY.get_format_names('r')
-
 NullableStr = Union[str, None]
 
 
-def _default_workspace_manager_factory() -> WorkspaceManager:
+def _default_workspace_manager_factory() -> Any:
+    from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
+    from cate.core.workspace import WorkspaceError
+    from cate.webapi.wsmanag import WebAPIWorkspaceManager
+    from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
+
     # Read any existing '.cate/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
@@ -177,7 +165,7 @@ def _default_workspace_manager_factory() -> WorkspaceManager:
 WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory
 
 
-def _new_workspace_manager() -> WorkspaceManager:
+def _new_workspace_manager() -> Any:
     return WORKSPACE_MANAGER_FACTORY()
 
 
@@ -230,7 +218,7 @@ def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
 
 def _parse_op_args(raw_args: List[str],
                    input_props: Dict[str, Dict[str, Any]] = None,
-                   namespace: Dict[str, Any] = None) -> Tuple[OpArgs, OpKwArgs]:
+                   namespace: Dict[str, Any] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
     """
     Convert a raw argument list *raw_args* into a (args, kwargs) tuple.
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
@@ -245,6 +233,9 @@ def _parse_op_args(raw_args: List[str],
     :return: a pair comprising the list of positional arguments and a dictionary holding the keyword arguments
     :raise ValueError: if the parsing fails
     """
+
+    from cate.core.types import Like
+    from cate.util.safe import safe_eval
 
     op_args = []
     op_kwargs = OrderedDict()
@@ -368,10 +359,11 @@ def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plur
     return op_info_str
 
 
-def _get_op_info_str(op_meta_info: OpMetaInfo):
+def _get_op_info_str(op_meta_info: Any):
     """
     Generate an info string for the *op_meta_info*.
-    :param op_meta_info: operation meta information (from e.g. workflow or operation)
+    :param op_meta_info: operation meta information (from e.g. workflow or operation),
+           instance of cate.util.opmetainf.OpMetaInfo
     :return: an information string
     """
     op_info_str = ''
@@ -428,6 +420,7 @@ class RunCommand(Command):
 
     @classmethod
     def configure_parser(cls, parser):
+
         parser.add_argument('-m', '--monitor', action='store_true',
                             help='Display progress information during execution.')
         parser.add_argument('-o', '--open', action='append', metavar='DS_EXPR', dest='open_args',
@@ -440,21 +433,21 @@ class RunCommand(Command):
                                  'as an OP argument. To pass a variable use syntax NAME.VAR_NAME.')
         parser.add_argument('-r', '--read', action='append', metavar='FILE_EXPR', dest='read_args',
                             help='Read object from FILE_EXPR.\n'
-                                 'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. Possible value for FORMAT {formats}. '
+                                 'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. '
+                                 'Type "cate io list -r" to see which formats are supported.'
                                  'If FORMAT is not provided, file format is derived from the PATH\'s '
                                  'filename extensions or file content. '
                                  'NAME may be passed as an OP argument that receives a dataset, dataset '
                                  'variable or any other data type. To pass a variable of a dataset use '
-                                 'syntax NAME.VAR_NAME'
-                                 ''.format(formats=', '.join(READ_FORMAT_NAMES)))
+                                 'syntax NAME.VAR_NAME')
         parser.add_argument('-w', '--write', action='append', metavar='FILE_EXPR', dest='write_args',
                             help='Write result to FILE_EXPR. '
-                                 'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. Possible value for FORMAT {formats}. '
+                                 'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. '
+                                 'Type "cate io list -w" to see which formats are supported.'
                                  'If FORMAT is not provided, file format is derived from the object '
                                  'type and the PATH\'s filename extensions. If OP returns multiple '
                                  'named output values, NAME is used to identify them. Multiple -w '
-                                 'options may be used in this case.'
-                                 ''.format(formats=', '.join(WRITE_FORMAT_NAMES)))
+                                 'options may be used in this case.')
         parser.add_argument('op_name', metavar='OP',
                             help='Fully qualified operation name or Workflow file. '
                                  'Type "cate op list" to list available operators.')
@@ -467,6 +460,11 @@ class RunCommand(Command):
                                  'used as VALUE.')
 
     def execute(self, command_args):
+        from cate.core.objectio import find_writer, read_object
+        from cate.core.op import OP_REGISTRY
+        from cate.core.workflow import Workflow
+        from cate.ops.io import open_dataset
+        from cate.util.monitor import Monitor
 
         op_name = command_args.op_name
         is_workflow = op_name.endswith('.json') and os.path.isfile(op_name)
@@ -732,6 +730,8 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_run(cls, command_args):
+        from cate.core.op import OP_REGISTRY
+
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
         op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
@@ -768,6 +768,9 @@ class WorkspaceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_exit(cls, command_args):
+        from cate.conf.defaults import WEBAPI_INFO_FILE
+        from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
+
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info or \
                 not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
@@ -817,6 +820,7 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
+
         base_dir_args = ['-d', '--dir']
         base_dir_kwargs = dict(dest='base_dir', metavar='DIR', default='.',
                                help='The workspace\'s base directory. '
@@ -847,9 +851,8 @@ class ResourceCommand(SubCommandCommand):
         read_parser.add_argument('file_path', metavar='FILE',
                                  help='File path.')
         read_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
-                                 choices=READ_FORMAT_NAMES,
-                                 help='File format. Possible FORMAT values are {format}.'
-                                      ''.format(format=', '.join(READ_FORMAT_NAMES)))
+                                 help='File format. '
+                                      'Type "cate io list -r" to see which formats are supported.')
         # We may support reader-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
@@ -864,9 +867,8 @@ class ResourceCommand(SubCommandCommand):
         write_parser.add_argument('file_path', metavar='FILE',
                                   help='File path.')
         write_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
-                                  choices=WRITE_FORMAT_NAMES,
-                                  help='File format. Possible FORMAT values are {format}.'
-                                       ''.format(format=', '.join(WRITE_FORMAT_NAMES)))
+                                  help='File format. '
+                                       'Type "cate io list -w" to see which formats are supported.')
         # We may support writer-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
@@ -922,6 +924,8 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_open(cls, command_args):
+        from cate.core.workspace import mk_op_kwargs
+
         workspace_manager = _new_workspace_manager()
         op_args = dict(ds_name=command_args.ds_name)
         if command_args.var_names:
@@ -944,6 +948,8 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_read(cls, command_args):
+        from cate.core.workspace import mk_op_kwargs
+
         workspace_manager = _new_workspace_manager()
         op_args = dict(file=command_args.file_path)
         if command_args.format_name:
@@ -959,6 +965,8 @@ class ResourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_set(cls, command_args):
+        from cate.core.op import OP_REGISTRY
+
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
         op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
@@ -1055,6 +1063,9 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
+        from cate.core.op import OP_REGISTRY
+        from cate.util.misc import to_list
+
         op_regs = OP_REGISTRY.op_registrations
 
         def _is_op_selected(op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
@@ -1089,6 +1100,8 @@ class OperationCommand(SubCommandCommand):
 
     @classmethod
     def _execute_info(cls, command_args):
+        from cate.core.op import OP_REGISTRY
+
         op_name = command_args.op_name
         if not op_name:
             raise CommandError('missing OP argument')
@@ -1168,8 +1181,12 @@ class DataSourceCommand(SubCommandCommand):
                                  help='Names of variables to be included. Use format "pattern1,pattern2,..."')
         copy_parser.set_defaults(sub_command_function=cls._execute_copy)
 
+    # noinspection PyShadowingNames
     @classmethod
     def _execute_list(cls, command_args):
+        from cate.core.ds import find_data_sources
+        from cate.core.types import TimeRangeLike
+
         ds_name = command_args.name
         data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
         if command_args.coverage:
@@ -1186,6 +1203,8 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_info(cls, command_args):
+        from cate.core.ds import find_data_sources, format_cached_datasets_coverage_string, format_variables_info_string
+
         ds_name = command_args.ds_name
         data_sources = [data_source for data_source in find_data_sources(ds_id=ds_name) if data_source.id == ds_name]
         if not data_sources:
@@ -1212,6 +1231,8 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_add(cls, command_args):
+        from cate.core.ds import DATA_STORE_REGISTRY
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no local data store found')
@@ -1223,6 +1244,8 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_del(cls, command_args):
+        from cate.core.ds import DATA_STORE_REGISTRY
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no local data store found')
@@ -1239,6 +1262,9 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_copy(cls, command_args):
+        from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
+        from cate.core.types import TimeRangeLike, PolygonLike, VarNamesLike
+
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no local data store found')
@@ -1289,6 +1315,8 @@ class PluginCommand(SubCommandCommand):
 
     @classmethod
     def _execute_list(cls, command_args):
+        from cate.core.plugin import PLUGIN_REGISTRY
+
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
@@ -1308,6 +1336,8 @@ COMMAND_REGISTRY = [
 
 
 def _trim_error_message(message: str) -> str:
+    from cate.webapi.wsmanag import WebAPIWorkspaceManager
+
     # Crop any traceback_header from message
     traceback_header = WebAPIWorkspaceManager.get_traceback_header()
     traceback_pos = message.find(traceback_header)
