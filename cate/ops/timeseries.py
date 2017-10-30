@@ -34,7 +34,7 @@ import xarray as xr
 from cate.core.op import op_input, op, op_return
 from cate.ops.select import select_var
 from cate.core.types import VarNamesLike, PointLike
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 
 @op(tags=['timeseries', 'temporal', 'filter', 'point'], version='1.0')

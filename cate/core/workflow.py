@@ -120,7 +120,10 @@ from itertools import chain
 from typing import Optional, Union, List, Dict
 
 from .op import OP_REGISTRY, Operation, Monitor, new_expression_op, new_subprocess_op
-from ..util import Namespace, UNDEFINED, safe_eval, OpMetaInfo
+from ..util.namespace import Namespace
+from ..util.undefined import UNDEFINED
+from ..util.safe import safe_eval
+from ..util.opmetainf import OpMetaInfo
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 

@@ -9,7 +9,7 @@ import xarray as xr
 
 from cate.core.workflow import Workflow, OpStep
 from cate.core.workspace import Workspace, WorkspaceError, mk_op_arg, mk_op_args, mk_op_kwargs
-from cate.util import UNDEFINED
+from cate.util.undefined import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
 
 NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')

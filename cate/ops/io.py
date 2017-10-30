@@ -33,7 +33,7 @@ from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
 from cate.ops.normalize import normalize as normalize_op
 from cate.ops.normalize import adjust_temporal_attrs
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 

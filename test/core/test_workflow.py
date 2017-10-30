@@ -6,7 +6,7 @@ from unittest import TestCase
 from cate.core.op import op_input, op_output, Operation
 from cate.core.workflow import OpStep, Workflow, WorkflowStep, NodePort, ExpressionStep, NoOpStep, SubProcessStep, ValueCache, \
     SourceRef, new_workflow_op
-from cate.util import UNDEFINED
+from cate.util.undefined import UNDEFINED
 from cate.util.misc import object_to_qualified_name
 from cate.util.opmetainf import OpMetaInfo
 
