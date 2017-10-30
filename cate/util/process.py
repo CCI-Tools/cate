@@ -39,12 +39,12 @@ def run_subprocess(command: Union[str, Sequence[str]],
                    started_handler: Optional[Callable[[subprocess.Popen], None]] = None,
                    stdout_handler: Optional[Callable[[str], None]] = None,
                    stderr_handler: Optional[Callable[[str], None]] = None,
-                   done_handler: Optional[Callable[[str], None]] = None,
+                   done_handler: Optional[Callable[[int], None]] = None,
                    is_cancelled: Optional[Callable[[], bool]] = None,
                    cancelled_check_period: float = 0.1,
                    kill_on_cancel=False):
     """
-    Execute a child program in a new process.
+    Execute a child program in a new process and wait for its termination.
 
     :param command: The command to be executed, may be a string or sequence of string arguments.
     :param cwd: Optional current working directory.
