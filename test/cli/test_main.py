@@ -402,6 +402,38 @@ class RunCommandTest(CliTestCase):
         self.assert_main(['run', '--help'])
 
 
+# Tests for "cate upd" may be skipped because they can be very slow
+
+@unittest.skipIf(os.environ.get('CATE_DISABLE_CLI_UPDATE_TESTS', None) == '1', 'CATE_DISABLE_CLI_UPDATE_TESTS = 1')
+class UpdateCommandTest(CliTestCase):
+    def test_upd_info(self):
+        self.assert_main(['upd', '--info'],
+                         expected_status=0,
+                         expected_stdout=['Latest version is ', 'Current version is',
+                                          'Available versions'],
+                         expected_stderr='')
+        self.assert_main(['upd', '--info', '1.0.0'],
+                         expected_status=0,
+                         expected_stdout=['Latest version is ', 'Current version is',
+                                          'Desired version is 1.0.0 (available)', 'Available versions'],
+                         expected_stderr='')
+
+    def test_upd(self):
+        self.assert_main(['upd', '--dry-run'],
+                         expected_status=0,
+                         expected_stdout=['Current cate version is'],
+                         expected_stderr='')
+        self.assert_main(['upd', '--dry-run', '1.0.0'],
+                         expected_status=0,
+                         expected_stdout=['The following NEW packages will be INSTALLED:', 'cate-cli:'],
+                         expected_stderr='')
+        self.assert_main(['upd', '--dry-run', '282.2.1'],
+                         expected_status=1,
+                         expected_stdout='',
+                         expected_stderr=['cate upd: error: desired cate version 282.2.1 is not available;',
+                                          'type "cate upd --info" to show available versions'])
+
+
 from cate.cli.main import _parse_op_args
 
 

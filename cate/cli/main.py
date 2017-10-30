@@ -1283,6 +1283,8 @@ class UpdateCommand(Command):
                             help='Do not ask for confirmation.')
         parser.add_argument('-i', '--info', dest='show_info', action='store_true', default=False,
                             help='Show version information only; do not update yet.')
+        parser.add_argument('--dry-run', dest='dry_run', action='store_true', default=False,
+                            help='Only display what would have been done.')
         parser.add_argument('version', metavar='VERSION', nargs='?', default=None,
                             help='A cate version identifier, e.g. "1.0.3"; '
                                  'the version identifier must have the form "major.minor.micro" and may comprise '
@@ -1292,13 +1294,20 @@ class UpdateCommand(Command):
         current_version = __version__
         desired_version = command_args.version
         show_info = command_args.show_info
+        dry_run = command_args.dry_run
+
+        from cate.util.process import run_subprocess
+        if sys.platform == 'win32':
+            conda_path = os.path.join(sys.prefix, 'Scripts', 'conda.bat')
+        else:
+            conda_path = os.path.join(sys.prefix, 'bin', 'conda')
 
         import subprocess
 
         package = 'cate-cli'
         channel = 'ccitools'
-        command = 'conda search -c {channel} {package}'.format(channel=channel, package=package)
-        completed_process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command = [conda_path, 'search', '--channel', channel, package]
+        completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout = completed_process.stdout.decode("utf-8") if completed_process.stdout else None
         stderr = completed_process.stderr.decode("utf-8") if completed_process.stderr else None
         if stderr:
@@ -1339,16 +1348,16 @@ class UpdateCommand(Command):
 
         if desired_version == current_version:
             if latest_version == current_version:
-                print('Current cate version is %s; cate is up-to-date' % current_version)
+                print('Current cate version is %s and up-to-date' % current_version)
             else:
                 print('Current cate version is already %s' % current_version)
             return
 
         if desired_version not in available_versions:
-            raise CommandError('desired version %s is not available; '
+            raise CommandError('desired cate version %s is not available; '
                                'type "cate upd --info" to show available versions' % desired_version)
 
-        if command_args.yes:
+        if command_args.yes or dry_run:
             answer = 'y'
         else:
             prompt = 'Do you really want to change from %s to %s (y/[n])? ' % (current_version, desired_version)
@@ -1356,10 +1365,18 @@ class UpdateCommand(Command):
         if not answer or answer.lower() != 'y':
             return
 
-        command_pattern = 'conda install --no-shortcuts -c {channel} -c conda-forge {package}={version}'
-        command = command_pattern.format(channel=channel, package=package, version=desired_version)
-        # TODO (forman): implement the update
-        print('executing [%s]...' % command)
+        command = [conda_path, 'install', '--yes', '--channel', channel, '--channel', 'conda-forge']
+        if dry_run:
+            command.append('--dry-run')
+        command.append('%s=%s' % (package, desired_version))
+
+        def stdout_handler(text):
+            sys.stdout.write(text)
+
+        def stderr_handler(text):
+            sys.stdout.write(text)
+
+        run_subprocess(command, stdout_handler=stdout_handler, stderr_handler=stderr_handler)
 
 
 class PluginCommand(SubCommandCommand):
