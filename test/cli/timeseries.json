@@ -41,7 +41,7 @@
   "steps": [
     {
       "id": "timeseries_op",
-      "op": "test.cli.test_cli.timeseries",
+      "op": "test.cli.test_main.timeseries",
       "inputs": {
         "lat": "timeseries.lat",
         "lon": "timeseries.lon",
