@@ -30,7 +30,8 @@ from tornado import gen, ioloop, websocket
 from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT, WEBAPI_PLOT_TIMEOUT
 from cate.core.workspace import Workspace, WorkspaceError, OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util import encode_url_path, Monitor
+from cate.util.misc import encode_url_path
+from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 

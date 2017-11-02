@@ -27,7 +27,7 @@ import shlex
 import time
 from typing import Callable, Optional, Tuple, Union, Dict, Sequence
 
-from . import Monitor
+from .monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 

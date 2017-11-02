@@ -37,7 +37,7 @@ from cate.ops.select import select_var
 from cate.ops.subset import subset_spatial
 from cate.ops.anomaly import anomaly_external
 from cate.core.types import PolygonLike, VarName
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])

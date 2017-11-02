@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 """
 Description
@@ -55,6 +54,8 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from threading import RLock
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 # _DEBUG_CACHE = True
 _DEBUG_CACHE = False

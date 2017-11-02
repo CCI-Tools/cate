@@ -38,7 +38,7 @@ import numpy as np
 import xarray as xr
 
 from cate.core.op import op_input, op, op_return
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 from cate.ops import resampling
 from cate.ops.normalize import adjust_spatial_attrs

@@ -39,9 +39,13 @@ from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
-from ..util import Monitor, Namespace, object_to_qualified_name, to_json, safe_eval, UNDEFINED, new_indexed_name
+from ..util.monitor import Monitor
+from ..util.misc import object_to_qualified_name, to_json, new_indexed_name
+from ..util.safe import safe_eval
+from ..util.undefined import UNDEFINED
 from ..util.im import get_chunk_size
 from ..util.opmetainf import OpMetaInfo
+from ..util.namespace import Namespace
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -323,7 +327,7 @@ class Workspace:
             for var_name in var_names:
                 variable = resource[var_name]
                 variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
-            # noinspection PyArgumentList
+            # noinspection PyArgumentList,PyTypeChecker
             resource_json.update(variables=variable_descriptors)
 
         elif isinstance(resource, fiona.Collection):
@@ -360,6 +364,7 @@ class Workspace:
             'shape': variable.shape,
         }
 
+    # noinspection PyMethodMayBeStatic
     def _get_xarray_variable_descriptor(self, variable: xr.DataArray, is_coord=False):
         attrs = variable.attrs
         variable_info = {

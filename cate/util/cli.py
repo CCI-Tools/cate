@@ -37,7 +37,7 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from typing import Sequence
 
-from cate.util import ConsoleMonitor, Monitor
+from .monitor import ConsoleMonitor, Monitor
 
 
 class CommandError(Exception):

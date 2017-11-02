@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cate.util import filter_fileset
+from cate.util.misc import filter_fileset
 
 
 class IncludeExcludeDataSourcesTest(TestCase):

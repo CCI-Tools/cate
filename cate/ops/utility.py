@@ -34,7 +34,7 @@ import xarray as xr
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 
 @op(tags=['utility', 'internal'])

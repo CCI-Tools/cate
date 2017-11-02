@@ -26,7 +26,7 @@ import time
 
 import tornado.websocket
 
-from cate.util import Monitor
+from cate.util.monitor import Monitor
 
 
 class JsonRpcWebSocketMonitor(Monitor):

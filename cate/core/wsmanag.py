@@ -31,7 +31,9 @@ from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, WorkspaceError, OpKwArgs
 from ..conf.defaults import SCRATCH_WORKSPACES_PATH
-from ..util import UNDEFINED, Monitor, safe_eval
+from ..util.monitor import Monitor
+from ..util.safe import safe_eval
+from ..util.undefined import UNDEFINED
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 

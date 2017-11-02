@@ -33,7 +33,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
 from .op import Operation
-from ..util import Monitor
+from ..util.monitor import Monitor
 
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -114,6 +114,19 @@ class ObjectIORegistry:
     @property
     def object_io_list(self):
         return self._object_io_list
+
+    def get_object_io_list(self, mode=None):
+        if mode and mode not in ['r', 'w', 'rw']:
+            raise ValueError('illegal mode')
+        object_io_list = []
+        for object_io in self._object_io_list:
+            is_reader = object_io.read_op is not None
+            is_writer = object_io.write_op is not None
+            if not mode or (mode == 'r' and is_reader) or (mode == 'w' and is_writer) or (
+                                mode == 'rw' and is_reader and is_writer):
+                object_io_list.append(object_io)
+        # noinspection PyShadowingNames
+        return sorted(object_io_list, key=lambda object_io: object_io.format_name)
 
     def get_format_names(self, mode=None):
         if mode and mode not in ['r', 'w', 'rw']:
