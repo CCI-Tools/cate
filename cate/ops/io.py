@@ -225,6 +225,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 @op_input('quotechar', nullable=True)
 @op_input('comment', nullable=True)
 @op_input('index_col', nullable=True)
+@op_input('more_args', nullable=True, data_type=DictLike)
 def read_csv(file: FileLike.TYPE,
              delimiter: str = ',',
              delim_whitespace: bool = False,
@@ -245,7 +246,8 @@ def read_csv(file: FileLike.TYPE,
            If found at the beginning of a line, the line will be ignored altogether.
            This parameter must be a single character.
     :param index_col: The name of the column that provides unique identifiers
-    :param more_args: Other optional pandas.read_csv() keyword arguments
+    :param more_args: Other optional keyword arguments.
+           Please refer to Pandas documentation of ``pandas.read_csv()`` function.
     :return: The DataFrame object.
     """
     # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
@@ -262,17 +264,17 @@ def read_csv(file: FileLike.TYPE,
         kwargs.update(comment=comment)
     if index_col:
         kwargs.update(index_col=index_col)
-    retframe = pd.read_csv(file, **kwargs)
+    data_frame = pd.read_csv(file, **kwargs)
     try:
-        if retframe.index.name in ('date', 'time'):
+        if data_frame.index.name in ('date', 'time'):
             # Try to coerce the index column into datetime objects required to work
-            # with the timeseries data
-            retframe.index = pd.to_datetime(retframe.index)
+            # with the time-series data
+            data_frame.index = pd.to_datetime(data_frame.index)
     except Exception:
         # We still want to use the data
         pass
 
-    return retframe
+    return data_frame
 
 
 @op(tags=['input'], res_pattern='gdf_{index}')
