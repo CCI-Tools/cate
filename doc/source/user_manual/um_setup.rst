@@ -94,28 +94,51 @@ As ``cate-cli`` is an application Mac, it can started using a double-click.
 Updating an existing Cate Core
 ------------------------------
 
-The Cate Core installers are pretty large files because they include a complete Python 3 environment bundled
-with various "heavy" Python packages such as numpy, pandas, matplotlib, gdal, etc.
-
-When you install a Cate Core software update you can not use the same target directory again, because the installer
-requires it to be non-existing or empty. So you either have to choose a different target directory,
-or you uninstall the previous version first, or you simply remove all contained files in the old directory.
-
-Another option is to entirely avoid downloading and installing a new Python environment for every Cate software update
-by updating it in place using the bundled ``conda`` package manager. To update to a specific Cate version,
-e.g. version 1.0.1, bring up the Cate CLI and type
+The fastest method to update an existing Cate installation is to update its Python environment using the the
+``cate-cli`` command-line tool. This is how you find out the current Cate version number:
 
 .. code-block:: console
 
-    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli=1.0.1
+    $ cate --version
 
-To update to the latest Cate, use ``cate-cli`` without version number:
+Updating with the Cate 2.x CLI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are using Cate 2.0 and higher you can use the ``cate upd`` command to the latest Cate version. If you want to
+update to a specific version, append the version number, e.g.:
+
+.. code-block:: console
+
+    $ cate upd 2.0.2
+
+Type ``cate upd -h`` to find out more about the update command.
+
+Updating with the Cate 1.x CLI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are using a Cate version less than 2.0, you can update to the latest version using the ``conda`` tool
+included in the Cate Python environment:
 
 .. code-block:: console
 
     $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli
 
-For the future, we are planning to drastically simplifying Cate installation and updates.
+To update to specific version number, type:
+
+.. code-block:: console
+
+    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli=1.0.1
+
+Updating with a Cate installer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Cate Core installers are pretty large files because they include a complete Python 3 environment bundled
+with various "heavy" Python packages such as numpy, pandas, matplotlib, gdal, etc.
+
+When you install a Cate Core software update using the installer, you can not use the same target directory again,
+because the installer requires it to be non-existing or empty. So you either have to choose a different target
+directory, or you uninstall the previous version first, or you simply remove all contained files in the old directory.
+
 
 Installing Cate Core from Sources
 ---------------------------------

@@ -25,25 +25,28 @@ In the console / terminal window type::
 
 This should output the following usage help:::
 
-    usage: cate [-h] [--version] [--license] [--docs] [--traceback] COMMAND ...
+   usage: cate [-h] [--version] [--traceback] [--license] [--docs] COMMAND ...
 
-    ESA CCI Toolbox command-line interface, version 0.6.0
+   ESA CCI Toolbox (Cate) command-line interface, version 2.0
 
-    positional arguments:
-      COMMAND      One of the following commands. Type "COMMAND -h" to get
-                   command-specific help.
-        ds         Manage data sources.
-        op         Manage data operations.
-        ws         Manage workspaces.
-        res        Manage workspace resources.
-        run        Run an operation or Workflow file.
+   positional arguments:
+     COMMAND      One of the following commands. Type "COMMAND -h" to get
+                  command-specific help.
+       ds         Manage data sources.
+       op         Manage data operations.
+       ws         Manage workspaces.
+       res        Manage workspace resources.
+       run        Run an operation or Workflow file.
+       io         Manage supported data and file formats.
+       upd        Update an existing cate environment to a specific or to the
+                  latest cate version
 
-    optional arguments:
-      -h, --help   show this help message and exit
-      --version    show program's version number and exit
-      --license    show software license and exit
-      --docs       show software documentation in a browser window
-      --traceback  show (Python) stack traceback for the last error
+   optional arguments:
+     -h, --help   show this help message and exit
+     --version    show program's version number and exit
+     --traceback  show (Python) stack traceback for the last error
+     --license    show software license and exit
+     --docs       show software documentation in a browser window
 
 
 
