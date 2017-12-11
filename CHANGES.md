@@ -5,6 +5,8 @@
 
 * Cate wont work if installed on drive other than home drive
   [#466](https://github.com/CCI-Tools/cate/issues/466)
+* CLI takes too long to launch 
+  [#58](https://github.com/CCI-Tools/cate/issues/58)
 
 ## Version 1.0.0 (10.10.2017)
 
