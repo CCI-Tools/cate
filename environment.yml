@@ -36,7 +36,7 @@ dependencies:
   - scipy >=0.19
   - shapely >=1.5
   - tornado >=4.5
-  - xarray >=0.9
+  - xarray >=0.10
   #
   # for testing only
   #
