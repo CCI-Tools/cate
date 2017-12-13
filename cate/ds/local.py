@@ -48,9 +48,7 @@ from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
 from glob import glob
-from math import ceil, floor, isnan
 from typing import Optional, Sequence, Union, Any, Tuple
-from xarray.backends import NetCDF4DataStore
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
@@ -237,115 +235,55 @@ class LocalDataSource(DataSource):
                 time_coverage_start = coverage[0]
                 time_coverage_end = coverage[1]
 
-                remote_netcdf = None
-                local_netcdf = None
                 if not time_range or time_coverage_start >= time_range[0] and time_coverage_end <= time_range[1]:
                     if region or var_names:
+
+                        do_update_of_variables_meta_info_once = True
+                        do_update_of_region_meta_info_once = True
+
                         try:
-                            remote_netcdf = NetCDF4DataStore(remote_absolute_filepath)
+                            remote_dataset = xr.open_dataset(remote_absolute_filepath)
 
-                            local_netcdf = NetCDF4DataStore(local_absolute_filepath, mode='w', persist=True)
-                            local_netcdf.set_attributes(remote_netcdf.get_attrs())
+                            if var_names:
+                                remote_dataset = remote_dataset.drop(
+                                    [var_name for var_name in remote_dataset.data_vars.keys()
+                                     if var_name not in var_names])
 
-                            remote_dataset = xr.Dataset.load_store(remote_netcdf)
-
-                            geo_lat_min = None
-                            geo_lat_max = None
-                            geo_lon_min = None
-                            geo_lon_max = None
-
-                            process_region = False
                             if region:
-                                geo_lat_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lat_min')
-                                geo_lat_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lat_max')
-                                geo_lon_min = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lon_min')
-                                geo_lon_max = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lon_max')
+                                remote_dataset = subset_spatial_impl(remote_dataset, region)
+                                geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
 
-                                geo_lat_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lon_resolution')
-                                geo_lon_res = self._get_harmonized_coordinate_value(remote_dataset.attrs,
-                                                                                    'geospatial_lat_resolution')
-                                if not (isnan(geo_lat_min) or isnan(geo_lat_max) or isnan(geo_lon_min) or
-                                        isnan(geo_lon_max) or isnan(geo_lat_res) or isnan(geo_lon_res)):
-                                    process_region = True
+                                remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
+                                remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
+                                remote_dataset.attrs['geospatial_lon_min'] = geo_lon_min
+                                remote_dataset.attrs['geospatial_lon_max'] = geo_lon_max
+                                if do_update_of_region_meta_info_once:
+                                    local_ds.meta_info['bbox_maxx'] = geo_lon_max
+                                    local_ds.meta_info['bbox_minx'] = geo_lon_min
+                                    local_ds.meta_info['bbox_maxy'] = geo_lat_max
+                                    local_ds.meta_info['bbox_miny'] = geo_lat_min
+                                    do_update_of_region_meta_info_once = False
 
-                                    [lon_min, lat_min, lon_max, lat_max] = region.bounds
+                            if compression_enabled:
+                                for sel_var_name in remote_dataset.variables.keys():
+                                    remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
 
-                                    descending_data_order = set()
-                                    for var in remote_dataset.coords.keys():
-                                        if remote_dataset.coords[var][0] > remote_dataset.coords[var][-1]:
-                                            descending_data_order.add(var)
+                            remote_dataset.to_netcdf(local_absolute_filepath)
 
-                                    if 'lat' not in descending_data_order:
-                                        lat_min = lat_min - geo_lat_min
-                                        lat_max = lat_max - geo_lat_min
-                                    else:
-                                        lat_min_copy = lat_min
-                                        lat_min = geo_lat_max - lat_max
-                                        lat_max = geo_lat_max - lat_min_copy
-
-                                    if 'lon' not in descending_data_order:
-                                        lon_min = lon_min - geo_lon_min
-                                        lon_max = lon_max - geo_lon_min
-                                    else:
-                                        lon_min_copy = lon_min
-                                        lon_min = geo_lon_max - lon_max
-                                        lon_max = geo_lon_max - lon_min_copy
-
-                                    lat_min = int(floor(lat_min / geo_lat_res))
-                                    lat_max = int(ceil(lat_max / geo_lat_res))
-                                    lon_min = int(floor(lon_min / geo_lon_res))
-                                    lon_max = int(ceil(lon_max / geo_lon_res))
-
-                                    remote_dataset = remote_dataset.isel(drop=False,
-                                                                         lat=slice(lat_min, lat_max),
-                                                                         lon=slice(lon_min, lon_max))
-                                    if 'lat' not in descending_data_order:
-                                        geo_lat_min_copy = geo_lat_min
-                                        geo_lat_min = lat_min * geo_lat_res + geo_lat_min_copy
-                                        geo_lat_max = lat_max * geo_lat_res + geo_lat_min_copy
-                                    else:
-                                        geo_lat_max_copy = geo_lat_max
-                                        geo_lat_min = geo_lat_max_copy - lat_max * geo_lat_res
-                                        geo_lat_max = geo_lat_max_copy - lat_min * geo_lat_res
-
-                                    if 'lon' not in descending_data_order:
-                                        geo_lon_min_copy = geo_lon_min
-                                        geo_lon_min = lon_min * geo_lon_res + geo_lon_min_copy
-                                        geo_lon_max = lon_max * geo_lon_res + geo_lon_min_copy
-                                    else:
-                                        geo_lon_max_copy = geo_lon_max
-                                        geo_lon_min = geo_lon_max_copy - lon_max * geo_lon_res
-                                        geo_lon_max = geo_lon_max_copy - lon_min * geo_lon_res
-
-                            if not var_names:
-                                var_names = [var_name for var_name in remote_netcdf.variables.keys()]
-                            var_names.extend([coord_name for coord_name in remote_dataset.coords.keys()
-                                              if coord_name not in var_names])
-                            child_monitor.start(label=file_name, total_work=len(var_names))
-                            for sel_var_name in var_names:
-                                var_dataset = remote_dataset.drop(
-                                    [var_name for var_name in remote_dataset.variables.keys() if
-                                     var_name != sel_var_name])
-                                if compression_enabled:
-                                    var_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                                local_netcdf.store_dataset(var_dataset)
-                                child_monitor.progress(work=1, msg=sel_var_name)
-                            if process_region:
-                                local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
-                                local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
-                                local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
-                                local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
+                            child_monitor.progress(work=1, msg=str(time_coverage_start))
                         finally:
-                            if remote_netcdf:
-                                remote_netcdf.close()
-                            if local_netcdf:
-                                local_netcdf.close()
-                                local_ds.add_dataset(local_relative_filepath, (time_coverage_start, time_coverage_end))
+                            if do_update_of_variables_meta_info_once:
+                                variables_info = local_ds.meta_info.get('variables', [])
+                                local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                                   if var_info.get('name')
+                                                                   in remote_dataset.variables.keys() and
+                                                                   var_info.get('name')
+                                                                   not in remote_dataset.dims.keys()]
+                                do_update_of_variables_meta_info_once = False
+
+                            local_ds.add_dataset(os.path.join(local_id, file_name),
+                                                 (time_coverage_start, time_coverage_end))
+
                         child_monitor.done()
                     else:
                         shutil.copy(remote_absolute_filepath, local_absolute_filepath)

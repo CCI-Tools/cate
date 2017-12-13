@@ -51,7 +51,6 @@ from math import ceil
 from typing import Sequence, Tuple, Optional, Any
 
 from shapely.geometry import Polygon
-from xarray.backends import NetCDF4DataStore
 
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
@@ -723,16 +722,10 @@ class EsaCciOdpDataSource(DataSource):
                     time_coverage_start = selected_file_list[idx][1]
                     time_coverage_end = selected_file_list[idx][2]
 
-                    remote_netcdf = None
-                    local_netcdf = None
                     try:
                         child_monitor.start(label=file_name, total_work=1)
-                        remote_netcdf = NetCDF4DataStore(dataset_uri)
 
-                        local_netcdf = NetCDF4DataStore(local_filepath, mode='w', persist=True)
-                        local_netcdf.set_attributes(remote_netcdf.get_attrs())
-
-                        remote_dataset = xr.Dataset.load_store(remote_netcdf)
+                        remote_dataset = xr.open_dataset(dataset_uri)
 
                         if var_names:
                             remote_dataset = remote_dataset.drop(
@@ -743,10 +736,10 @@ class EsaCciOdpDataSource(DataSource):
                             remote_dataset = subset_spatial_impl(remote_dataset, region)
                             geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
 
-                            local_netcdf.set_attribute('geospatial_lat_min', geo_lat_min)
-                            local_netcdf.set_attribute('geospatial_lat_max', geo_lat_max)
-                            local_netcdf.set_attribute('geospatial_lon_min', geo_lon_min)
-                            local_netcdf.set_attribute('geospatial_lon_max', geo_lon_max)
+                            remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
+                            remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
+                            remote_dataset.attrs['geospatial_lon_min'] = geo_lon_min
+                            remote_dataset.attrs['geospatial_lon_max'] = geo_lon_max
                             if do_update_of_region_meta_info_once:
                                 local_ds.meta_info['bbox_maxx'] = geo_lon_max
                                 local_ds.meta_info['bbox_minx'] = geo_lon_min
@@ -758,29 +751,26 @@ class EsaCciOdpDataSource(DataSource):
                             for sel_var_name in remote_dataset.variables.keys():
                                 remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
 
-                        local_netcdf.store_dataset(remote_dataset)
+                        remote_dataset.to_netcdf(local_filepath)
 
                         child_monitor.progress(work=1, msg=str(time_coverage_start))
                     finally:
-                        if remote_netcdf:
-                            remote_netcdf.close()
                         if do_update_of_variables_meta_info_once:
                             variables_info = local_ds.meta_info.get('variables', [])
                             local_ds.meta_info['variables'] = [var_info for var_info in variables_info
                                                                if var_info.get('name')
-                                                               in local_netcdf.variables.keys() and
+                                                               in remote_dataset.variables.keys() and
                                                                var_info.get('name')
-                                                               not in local_netcdf.dimensions.keys()]
+                                                               not in remote_dataset.dims.keys()]
                             do_update_of_variables_meta_info_once = False
-                        if local_netcdf:
-                            local_netcdf.close()
-                            local_ds.add_dataset(os.path.join(local_id, file_name),
-                                                 (time_coverage_start, time_coverage_end))
 
-                            if do_update_of_verified_time_coverage_start_once:
-                                verified_time_coverage_start = time_coverage_start
-                                do_update_of_verified_time_coverage_start_once = False
-                            verified_time_coverage_end = time_coverage_end
+                        local_ds.add_dataset(os.path.join(local_id, file_name),
+                                             (time_coverage_start, time_coverage_end))
+
+                        if do_update_of_verified_time_coverage_start_once:
+                            verified_time_coverage_start = time_coverage_start
+                            do_update_of_verified_time_coverage_start_once = False
+                        verified_time_coverage_end = time_coverage_end
                     child_monitor.done()
             else:
                 outdated_file_list = []

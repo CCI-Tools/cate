@@ -136,7 +136,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                                           datetime.datetime(1978, 11, 16, 23, 59)))
                 try:
                     new_ds = soilmoisture_data_source.make_local(new_ds_title, time_range=new_ds_time_range)
-                except:
+                except Exception:
                     raise ValueError(reference_path, os.listdir(reference_path))
                 self.assertIsNotNone(new_ds)
 
