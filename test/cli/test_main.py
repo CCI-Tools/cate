@@ -434,7 +434,6 @@ class UpdateCommandTest(CliTestCase):
                                           'type "cate upd --info" to show available versions'])
 
 
-from cate.cli.main import _parse_op_args
 class IOCommandTest(CliTestCase):
     IO_LIST_OUTPUT = "JSON (*.json) - JSON format (plain text, UTF8)\n" \
                      "NETCDF3 (*.nc) - netCDF 3 file format, which fully supports 2+ GB files.\n" \
