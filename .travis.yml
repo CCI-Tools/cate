@@ -43,6 +43,7 @@ script:
   # Uncomment following line if web testing on travis breaks our build
   - export CATE_DISABLE_WEB_TESTS=1
   - export CATE_DISABLE_PLOT_TESTS=1
+  - export CATE_DISABLE_CLI_UPDATE_TESTS=1
   - py.test -v --cov=cate test
 
 after_success:
