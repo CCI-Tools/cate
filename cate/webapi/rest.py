@@ -333,6 +333,7 @@ class ResVarCsvHandler(WebAPIRequestHandler):
         print("type:", type(var_data))
         print(var_data.__dict__)
         try:
+            # TODO: remove this crappy threshold 1000
             # assume var_data is a pandas.dataframe
             dataframe = var_data
             nRows, nCols = dataframe.shape
@@ -341,6 +342,7 @@ class ResVarCsvHandler(WebAPIRequestHandler):
             csv = dataframe.to_csv()
         except Exception as e:
             try:
+                # TODO: remove this crappy threshold 1000
                 # assume var_data is a xarray.dataset or xarray.dataarray
                 dataframe = var_data.to_dataframe()
                 nRows, nCols = dataframe.shape
