@@ -56,7 +56,7 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning
     open_xarray_dataset
 from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
-from cate.util.opimpl import subset_spatial_impl
+from cate.util.opimpl import subset_spatial_impl, normalize_impl
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -168,6 +168,7 @@ class LocalDataSource(DataSource):
             try:
                 ds = open_xarray_dataset(paths)
                 if region:
+                    ds = normalize_impl(ds)
                     ds = subset_spatial_impl(ds, region)
                 if var_names:
                     ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
@@ -250,6 +251,7 @@ class LocalDataSource(DataSource):
                                      if var_name not in var_names])
 
                             if region:
+                                remote_dataset = normalize_impl(remote_dataset)
                                 remote_dataset = subset_spatial_impl(remote_dataset, region)
                                 geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
 
