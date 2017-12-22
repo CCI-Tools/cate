@@ -65,6 +65,8 @@ TRACE_TILE_PERF = False
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
+_NUM_GEOM_SIMP_LEVELS = 8
+
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
 __import__('cate.ops')
@@ -234,15 +236,16 @@ class GeoJSONHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def get(self, zoom):
-        zoom = int(zoom)
-        print('GeoJSONHandler: shapefile_path:', self._shapefile_path, zoom)
+    def get(self):
+        level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
+        print('GeoJSONHandler: shapefile_path:', self._shapefile_path, ', level: ', level)
         collection = fiona.open(self._shapefile_path)
         print('GeoJSONHandler: collection:', collection)
         print('GeoJSONHandler: collection CRS:', collection.crs)
         try:
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self, 2 ** -zoom)]
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self,
+                                      _level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -262,12 +265,11 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
-    def get(self, base_dir, res_name, zoom):
+    def get(self, base_dir, res_name):
 
-        print('ResVarGeoJSONHandler:', base_dir, res_name, zoom)
+        print('ResVarGeoJSONHandler:', base_dir, res_name)
 
-        zoom = int(zoom)
-
+        level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
         var_name = self.get_query_argument('var')
         var_index = self.get_query_argument('index', default=None)
         var_index = tuple(map(int, var_index.split(','))) if var_index else []
@@ -275,7 +277,7 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         cmap_min = float(self.get_query_argument('min', default='nan'))
         cmap_max = float(self.get_query_argument('max', default='nan'))
 
-        print('ResVarGeoJSONHandler:', var_name, var_index, cmap_name, cmap_min, cmap_max)
+        print('ResVarGeoJSONHandler:', level, var_name, var_index, cmap_name, cmap_min, cmap_max)
 
         workspace_manager = self.application.workspace_manager
         workspace = workspace_manager.get_workspace(base_dir)
@@ -293,7 +295,8 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             return
         try:
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self, 2 ** -zoom)]
+            yield [THREAD_POOL.submit(write_feature_collection, collection, self,
+                                      _level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -371,3 +374,11 @@ def _on_workspace_closed(application: tornado.web.Application):
     workspace_manager = application.workspace_manager
     num_open_workspaces = workspace_manager.num_open_workspaces()
     check_for_auto_stop(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER)
+
+
+def _level_to_simp_ratio(level: int, num_levels: int):
+    if level <= 0:
+        return 0.0
+    if level >= num_levels - 1:
+        return 1.0
+    return 2 ** -(num_levels - (level + 1))

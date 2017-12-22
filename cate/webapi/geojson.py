@@ -50,53 +50,54 @@ def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                           simp_ratio: float, line_string: LineString) -> LineString:
+                           simp_ratio: float, line_string: LineString) -> Union[Point, LineString]:
     must_reproject = source_prj is not None
-    must_pointify = simp_ratio == 1.0
+    must_pointify = simp_ratio == 0.0
     must_simplify = 0.0 <= simp_ratio < 1.0
-    if must_reproject or must_pointify or must_simplify:
-        x = np.array([coord[0] for coord in line_string])
-        y = np.array([coord[1] for coord in line_string])
-        if must_pointify:
-            px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
-            pointify_geometry(x, y, px, py)
-            x, y = px, py
-        elif must_simplify:
-            x, y = simplify_geometry(x, y, simp_ratio)
+    if not must_reproject and not must_simplify:
+        return line_string
+    x = np.array([coord[0] for coord in line_string])
+    y = np.array([coord[1] for coord in line_string])
+    if must_pointify:
+        px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
+        pointify_geometry(x, y, px, py)
+        if must_reproject:
+            px, py = pyproj.transform(source_prj, target_prj, px, py)
+        return float(px[0]), float(py[0])
+    else:
+        x, y = simplify_geometry(x, y, simp_ratio)
         if must_reproject:
             x, y = pyproj.transform(source_prj, target_prj, x, y)
         return [(float(x), float(y)) for x, y in zip(x, y)]
-    return line_string
 
 
 def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                       simp_ratio: float, polygon: Polygon) -> Polygon:
+                       simp_ratio: float, polygon: Polygon) -> Union[Point, Polygon]:
     must_reproject = source_prj is not None
-    must_pointify = simp_ratio == 1.0
+    must_pointify = simp_ratio == 0.0
     must_simplify = 0.0 <= simp_ratio < 1.0
-    if must_reproject or must_pointify or must_simplify:
-        transformed_geometry = []
-        if must_pointify:
-            ring = polygon[0]
+    if not must_reproject and not must_simplify:
+        return polygon
+    if must_pointify:
+        ring = polygon[0]
+        x = np.array([coord[0] for coord in ring])
+        y = np.array([coord[1] for coord in ring])
+        px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
+        pointify_geometry(x, y, px, py)
+        if must_reproject:
+            px, py = pyproj.transform(source_prj, target_prj, px, py)
+        return float(px[0]), float(py[0])
+    else:
+        transformed_polygon = []
+        for ring in polygon:
             x = np.array([coord[0] for coord in ring])
             y = np.array([coord[1] for coord in ring])
-            px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
-            pointify_geometry(x, y, px, py)
-            x, y = px, py
+            if must_simplify:
+                x, y = simplify_geometry(x, y, simp_ratio)
             if must_reproject:
                 x, y = pyproj.transform(source_prj, target_prj, x, y)
-            transformed_geometry.append((float(x[0]), float(y[0])))
-        else:
-            for ring in polygon:
-                x = np.array([coord[0] for coord in ring])
-                y = np.array([coord[1] for coord in ring])
-                if must_simplify:
-                    x, y = simplify_geometry(x, y, simp_ratio)
-                if must_reproject:
-                    x, y = pyproj.transform(source_prj, target_prj, x, y)
-                transformed_geometry.append([(float(x), float(y)) for x, y in zip(x, y)])
-        return transformed_geometry
-    return polygon
+            transformed_polygon.append([(float(x), float(y)) for x, y in zip(x, y)])
+        return transformed_polygon
 
 
 def _transform_multi_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
@@ -112,9 +113,8 @@ def _transform_multi_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Pro
 def _transform_multi_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
                              simp_ratio: float, multi_polygon: MultiPolygon) -> MultiPolygon:
     must_reproject = source_prj is not None
-    must_pointify = simp_ratio == 1.0
     must_simplify = 0.0 <= simp_ratio < 1.0
-    if must_reproject or must_pointify or must_simplify:
+    if must_reproject or must_simplify:
         transformed_multi_polygon = []
         for polygon in multi_polygon:
             transformed_polygon = _transform_polygon(source_prj, target_prj, simp_ratio, polygon)
@@ -152,8 +152,7 @@ def get_geometry_transform(type_name: str) -> GeometryTransform:
 
 
 def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float = 1.0):
-    print('simp_ratio = ', simp_ratio)
-    must_pointify = simp_ratio == 1.0
+    must_pointify = (simp_ratio == 0.0)
     collection_geometry_transform = None
     source_prj = target_prj = None
 
@@ -182,7 +181,8 @@ def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float
                     coordinates = geometry_transform(source_prj, target_prj, simp_ratio, coordinates)
                     geometry['coordinates'] = coordinates
                     if must_pointify:
-                        geometry['type'] = 'point'
+                        geometry['type'] = 'Point'
+                        # print(geometry)
                 except Exception as e:
                     print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
                     feature_ok = False
@@ -209,17 +209,18 @@ def pointify_geometry(x_data: np.ndarray, y_data: np.ndarray, px: np.ndarray, py
     A ring is detected by same start and end points.
 
     :param x_data: The x coordinates.
-    :param y_data: The x coordinates.
-    :return: A point comprising [x, y] where x, y are numpy scalars.
+    :param y_data: The y coordinates.
+    :param px: The point's resulting x coordinate.
+    :param py: The point's resulting y coordinate.
     """
     is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
     # TODO - must take care of anti-meridian in x_data
     if is_ring:
         px[0] = x_data[0:-1].mean()
-        py[1] = y_data[0:-1].mean()
+        py[0] = y_data[0:-1].mean()
     else:
         px[0] = x_data.mean()
-        py[1] = y_data.mean()
+        py[0] = y_data.mean()
 
 
 @numba.jit(nopython=True)
