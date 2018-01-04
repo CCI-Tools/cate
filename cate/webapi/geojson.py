@@ -191,8 +191,9 @@ def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float
         if feature_ok:
             if feature_count > 0:
                 io.write(',\n')
+                io.flush()
+            # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
             io.write(json.dumps(feature))
-            io.flush()
             feature_count += 1
 
     io.write('\n]}\n')

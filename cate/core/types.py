@@ -35,21 +35,23 @@ def some_op(file: PathLike.TYPE) -> bool:
 
 """
 
-import io
 import ast
+import io
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
 from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
 
-import pandas as pd
-import xarray as xr
-from shapely import wkt
-from shapely.geometry import Point, Polygon, box
-from shapely.geometry.base import BaseGeometry
+import geopandas
+import pandas
+import shapely
+import shapely.geometry
+import shapely.geometry.base
+import shapely.wkt
+import xarray
 
-from ..util.safe import safe_eval
 from ..util.misc import to_list, to_datetime_range, to_datetime
 from ..util.opimpl import adjust_temporal_attrs_impl
+from ..util.safe import safe_eval
 
 __author__ = "Janis Gailis (S[&]T Norway), " \
              "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -323,67 +325,67 @@ class DictLike(Like[dict]):
         return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()]) if value else ''
 
 
-class PointLike(Like[Point]):
+class PointLike(Like[shapely.geometry.Point]):
     """
-    Type class for geometric Point objects
+    Type class for geometric shapely.geometry.Point objects
 
     Accepts:
-        1. a Shapely Point
+        1. a Shapely shapely.geometry.Point
         2. a string 'lon,lat'
         3. a tuple (lon, lat)
 
-    Converts to a Shapely point
+    Converts to a Shapely shapely.geometry.Point object.
     """
-    TYPE = Union[Point, str, Tuple[float, float]]
+    TYPE = Union[shapely.geometry.Point, str, Tuple[float, float]]
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[Point]:
+    def convert(cls, value: Any) -> Optional[shapely.geometry.Point]:
         if value is None:
             return None
 
         # noinspection PyBroadException
         try:
-            if isinstance(value, Point):
+            if isinstance(value, shapely.geometry.Point):
                 return value
             elif isinstance(value, str):
                 value = value.strip()
                 if value == '':
                     return None
                 pair = value.split(',')
-                return Point(float(pair[0]), float(pair[1]))
-            return Point(value[0], value[1])
+                return shapely.geometry.Point(float(pair[0]), float(pair[1]))
+            return shapely.geometry.Point(value[0], value[1])
         except Exception:
             cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: Optional[Point]) -> str:
+    def format(cls, value: Optional[shapely.geometry.Point]) -> str:
         return "%s, %s" % (value.x, value.y) if value else ''
 
 
-class PolygonLike(Like[Polygon]):
+class PolygonLike(Like[shapely.geometry.Polygon]):
     """
-    Type class for geometric Polygon objects
+    Type class for geometric shapely.geometry.Polygon objects
 
     Accepts:
-        1. a ``shapely.geometry.Polygon`` object
+        1. a ``shapely.geometry.shapely.geometry.Polygon`` object
         2. a string "min_lon, min_lat, max_lon, max_lat"
         3. a WKT string "POLYGON ((RING))" or "POLYGON ((OUTER-RING), (INNER-RING), ...)"
         4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
         5. a list or tuple [min_lon, min_lat, max_lon, max_lat]
 
-    Converts to a valid Shapely Polygon.
+    Converts to a valid Shapely shapely.geometry.Polygon.
     """
-    TYPE = Union[Polygon, List[Tuple[float, float]],
+    TYPE = Union[shapely.geometry.Polygon, List[Tuple[float, float]],
                  str, Tuple[float, float, float, float]]
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[Polygon]:
+    def convert(cls, value: Any) -> Optional[shapely.geometry.Polygon]:
         if value is None:
             return None
 
         # noinspection PyBroadException
         try:
-            if isinstance(value, Polygon):
+            if isinstance(value, shapely.geometry.Polygon):
                 if value.is_valid:
                     return value
             elif isinstance(value, str):
@@ -391,48 +393,52 @@ class PolygonLike(Like[Polygon]):
                 if value == '':
                     return None
                 if value[:7].lower() == 'polygon':
-                    polygon = wkt.loads(value)
+                    polygon = shapely.wkt.loads(value)
                 else:
                     val = [float(x) for x in value.split(',')]
-                    polygon = box(val[0], val[1], val[2], val[3])
+                    polygon = shapely.geometry.box(val[0], val[1], val[2], val[3])
                 if polygon.is_valid:
                     return polygon
             else:
                 # noinspection PyBroadException
                 try:
-                    polygon = Polygon(value)
+                    polygon = shapely.geometry.Polygon(value)
                     if polygon.is_valid:
                         return polygon
                 except Exception:
-                    return box(float(value[0]), float(value[1]),
-                               float(value[2]), float(value[3]))
+                    return shapely.geometry.box(float(value[0]), float(value[1]),
+                                                float(value[2]), float(value[3]))
         except Exception:
             pass
 
         cls.assert_value_ok(False, value)
 
     @classmethod
-    def format(cls, value: Optional[Polygon]) -> str:
+    def format(cls, value: Optional[shapely.geometry.Polygon]) -> str:
         return value.wkt if value else ''
 
 
-class GeometryLike(Like[BaseGeometry]):
+class GeometryLike(Like[shapely.geometry.base.BaseGeometry]):
     """
     Type class for arbitrary geometry objects
 
     Accepts:
         1. any Shapely geometry (of type ``shapely.geometry.base.BaseGeometry``);
-        2. a string 'lon, lat' (a point), or 'min_lon, min_lat, max_lon, max_lat' (a box);
+        2. a string 'lon, lat' (a point), or 'min_lon, min_lat, max_lon, max_lat' (a shapely.geometry.box);
         3. a Geometry WKT string starting with 'POINT', 'POLYGON', etc;
         4. a coordinate tuple (lon, lat), a list of coordinates [(lon, lat), (lon, lat), ...], or
            a list of lists of coordinates [[(lon, lat), (lon, lat), ...], [(lon, lat), (lon, lat), ...], ...].
 
-    Converts to a valid shapely Polygon.
+    Converts to a valid shapely geometry.
     """
-    TYPE = Union[BaseGeometry, str, Tuple[float, float], List[Tuple[float, float]], List[List[Tuple[float, float]]]]
+    TYPE = Union[shapely.geometry.base.BaseGeometry,
+                 str,
+                 Tuple[float, float],
+                 List[Tuple[float, float]],
+                 List[List[Tuple[float, float]]]]
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[BaseGeometry]:
+    def convert(cls, value: Any) -> Optional[shapely.geometry.base.BaseGeometry]:
         if value is None:
             return None
 
@@ -452,7 +458,7 @@ class GeometryLike(Like[BaseGeometry]):
         return PolygonLike.accepts(value) or PointLike.accepts(value)
 
     @classmethod
-    def format(cls, value: BaseGeometry) -> str:
+    def format(cls, value: shapely.geometry.base.BaseGeometry) -> str:
         return value.wkt if value else ''
 
 
@@ -461,10 +467,11 @@ class TimeLike(Like[datetime]):
     Type class for a time-like object.
 
     Accepts:
-        2. a string with format 'YYYY-MM-DD'
-        3. a datetime object
-        4. a date object
+        2. a string with format 'YYYY-MM-DD';
+        3. a datetime object;
+        4. a date object.
 
+    Converts to datetime object.
     """
     TYPE = Union[str, datetime, date]
 
@@ -511,12 +518,12 @@ class TimeRangeLike(Like[TimeRange]):
     Type class for temporal selection objects
 
     Accepts:
-        1. a tuple of start/end time datetime strings ('YYYY-MM-DD', 'YYYY-MM-DD')
-        2. a string of datetime string start/end dates 'YYYY-MM-DD,YYYY-MM-DD'
-        3. a tuple of start/end datetime datetime objects
-        4. a tuple of start/end datetime date objects
+        1. a tuple of start/end time datetime strings ('YYYY-MM-DD', 'YYYY-MM-DD');
+        2. a string of datetime string start/end dates 'YYYY-MM-DD,YYYY-MM-DD';
+        3. a tuple of start/end datetime datetime objects;
+        4. a tuple of start/end datetime date objects.
 
-    Converts to a tuple of datetime objects
+    Converts to a tuple of datetime objects.
     """
     TYPE = Union[Tuple[str, str], TimeRange, Tuple[date, date], str]
 
@@ -550,43 +557,139 @@ class TimeRangeLike(Like[TimeRange]):
         return '{}, {}'.format(_to_isoformat(value[0]), _to_isoformat(value[1]))
 
 
-class DatasetLike(Like[xr.Dataset]):
-    TYPE = Union[xr.Dataset, pd.DataFrame, None]
+class DatasetLike(Like[xarray.Dataset]):
+    """
+    Accepts xarray.Dataset, pandas.DataFrame and converts to xarray.Dataset.
+    """
+
+    TYPE = Union[xarray.Dataset, pandas.DataFrame, None]
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[xr.Dataset]:
+    def convert(cls, value: Any) -> Optional[xarray.Dataset]:
         # Can be optional
         if value is None:
             return None
-        if isinstance(value, xr.Dataset):
+        if isinstance(value, xarray.Dataset):
             return value
-        if isinstance(value, pd.DataFrame):
-            return adjust_temporal_attrs_impl(xr.Dataset.from_dataframe(value))
-        raise ValueError('Value must be an xr.Dataset or pd.DataFrame')
+        if isinstance(value, pandas.DataFrame):
+            return adjust_temporal_attrs_impl(xarray.Dataset.from_dataframe(value))
+        raise ValueError('Value must be an xarray.Dataset or pandas.DataFrame')
 
     @classmethod
-    def format(cls, value: Optional[xr.Dataset]) -> str:
+    def format(cls, value: Optional[xarray.Dataset]) -> str:
         if value is None:
             return ''
         raise ValueError('Values of type DatasetLike cannot be converted to text')
 
 
-class DataFrameLike(Like[pd.DataFrame]):
-    TYPE = Union[pd.DataFrame, xr.Dataset, None]
+class DataFrameLike(Like[pandas.DataFrame]):
+    """
+    Accepts pandas.DataFrame, xarray.Dataset and converts to pandas.DataFrame.
+    """
+
+    TYPE = Union[pandas.DataFrame, xarray.Dataset, None]
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[pd.DataFrame]:
+    def convert(cls, value: Any) -> Optional[pandas.DataFrame]:
         # Can be optional
         if value is None:
             return None
-        if isinstance(value, pd.DataFrame):
+        if isinstance(value, pandas.DataFrame):
             return value
-        if isinstance(value, xr.Dataset):
+        if isinstance(value, xarray.Dataset):
             return value.to_dataframe()
-        raise ValueError('Value must be a pd.DataFrame or xr.Dataset')
+        raise ValueError('Value must be a pandas.DataFrame or xarray.Dataset')
 
     @classmethod
-    def format(cls, value: Optional[pd.DataFrame]) -> str:
+    def format(cls, value: Optional[pandas.DataFrame]) -> str:
         if value is None:
             return ''
         raise ValueError('Values of type DataFrameLike cannot be converted to text')
+
+
+class GeoDataFrame:
+    """
+    Proxy for a ``geopandas.GeoDataFrame`` that holds an iterable of features or a feature collection
+    for fastest possible streaming of GeoJSON features to be consumed by Cate Desktop's 3D globes.
+    """
+
+    _OWN_PROPERTY_SET = {
+        "_features",
+        "features",
+        "_lazy_data_frame",
+        "lazy_data_frame",
+        "close",
+    }
+
+    @classmethod
+    def from_features(cls, features):
+        """
+        Create GeoDataFrame from an iterable of features or a feature collection.
+
+        :param features: iterable of features or a feature collection, e.g. an open ``fiona.Collection`` instance.
+        :return: An instance of a ``GeoDataFrame`` proxy.
+        """
+        return cls(features)
+
+    def __init__(self, features):
+        if features is None:
+            raise ValueError('features must not be None')
+        self._features = features
+        self._lazy_data_frame = None
+
+    @property
+    def features(self):
+        return self._features
+
+    @property
+    def lazy_data_frame(self):
+        features = self._features
+        if features is not None and self._lazy_data_frame is None:
+            self._lazy_data_frame = geopandas.GeoDataFrame.from_features(features, crs=features.crs)
+        return self._lazy_data_frame
+
+    def close(self):
+        """
+        In Cate, closable resources are closed when removed from the resources cache.
+        Therefore we provide a close method here, although geopandas.GeoDataFrame doesn't have one.
+        """
+        try:
+            self._features.close()
+        except AttributeError:
+            pass
+        self._features = None
+        self._lazy_data_frame = None
+
+    def __setattr__(self, key, value):
+        # print('__setattr__({}, {})'.format(repr(key), repr(value)))
+        if key in GeoDataFrame._OWN_PROPERTY_SET:
+            object.__setattr__(self, key, value)
+        else:
+            self.lazy_data_frame.__setattr__(key, value)
+
+    def __getattribute__(self, item):
+        # print('__getattribute__({})'.format(repr(item)))
+        if item in GeoDataFrame._OWN_PROPERTY_SET:
+            return object.__getattribute__(self, item)
+        else:
+            return self.lazy_data_frame.__getattribute__(item)
+
+    def __getattr__(self, item):
+        # print('__getattr__({})'.format(repr(item)))
+        if item not in GeoDataFrame._OWN_PROPERTY_SET:
+            return self.lazy_data_frame.__getattr__(item)
+        raise RuntimeError
+
+    def __getitem__(self, item):
+        return self.lazy_data_frame.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        return self.lazy_data_frame.__setitem__(key, value)
+
+    def __str__(self):
+        return self.lazy_data_frame.__str__()
+
+    def __repr__(self):
+        return self.lazy_data_frame.__repr__()
+
+    # Add other __x__() methods here to make GeoDataFrame compatible with geopandas.GeoDataFrame

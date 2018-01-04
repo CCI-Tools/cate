@@ -43,6 +43,7 @@ from ..conf.defaults import \
     WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from ..core.cdm import get_tiling_scheme
+from ..core.types import GeoDataFrame
 from ..util.monitor import Monitor, ConsoleMonitor
 from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
@@ -286,16 +287,21 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             self.write_status_error(message='Unknown resource "%s"' % res_name)
             return
 
-        collection = workspace.resource_cache[res_name]
-        print('ResVarGeoJSONHandler: collection:', collection)
-        print('ResVarGeoJSONHandler: collection CRS:', collection.crs)
-        print('ResVarGeoJSONHandler: streaming started at ', datetime.datetime.now())
-        if not isinstance(collection, fiona.Collection):
-            self.write_status_error(message='Resource "%s" must be a feature collection' % res_name)
+        resource = workspace.resource_cache[res_name]
+        if isinstance(resource, fiona.Collection):
+            features = resource
+        elif isinstance(resource, GeoDataFrame):
+            features = resource.features
+        else:
+            self.write_status_error(message='Resource "%s" must provide a fiona.Collection' % res_name)
             return
+
+        print('ResVarGeoJSONHandler: features:', features)
+        print('ResVarGeoJSONHandler: features CRS:', features.crs)
+        print('ResVarGeoJSONHandler: streaming started at ', datetime.datetime.now())
         try:
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self,
+            yield [THREAD_POOL.submit(write_feature_collection, features, self,
                                       _level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()

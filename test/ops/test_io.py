@@ -7,7 +7,7 @@ import unittest
 from unittest import TestCase
 from io import StringIO
 
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_collection, read_geo_data_frame
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data
 
 
 class TestIO(TestCase):
@@ -66,17 +66,12 @@ class TestIO(TestCase):
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
-    def test_read_geo_data_collection(self):
+    def test_read_geo_data(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
-
-        collection = read_geo_data_collection(file)
-        self.assertIsNotNone(collection)
-        self.assertEqual(len(collection), 179)
-        collection.close()
-
-    @unittest.skipIf(os.environ.get('CATE_DISABLE_GEOPANDAS_TESTS', None) == '1', 'CATE_DISABLE_GEOPANDAS_TESTS = 1')
-    def test_read_geo_data_frame(self):
-        file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
-
-        data_frame = read_geo_data_frame(file)
+        data_frame = read_geo_data(file)
         self.assertIsNotNone(data_frame)
+        data_frame.close()
+
+
+
+

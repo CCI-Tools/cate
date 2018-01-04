@@ -2,11 +2,11 @@ import datetime
 import json
 import os
 import os.path
+import shutil
 import tempfile
 import unittest
 import unittest.mock
 import urllib.request
-import shutil
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
@@ -133,7 +133,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 new_ds_title = 'local_ds_test'
                 new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
-                                                          datetime.datetime(1978, 11, 16, 23, 59)))
+                                                           datetime.datetime(1978, 11, 16, 23, 59)))
                 try:
                     new_ds = soilmoisture_data_source.make_local(new_ds_title, time_range=new_ds_time_range)
                 except Exception:
@@ -145,7 +145,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 new_ds_w_one_variable_title = 'local_ds_test_var'
                 new_ds_w_one_variable_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
-                                                                         datetime.datetime(1978, 11, 16, 23, 59)))
+                                                                          datetime.datetime(1978, 11, 16, 23, 59)))
                 new_ds_w_one_variable_var_names = VarNamesLike.convert(['sm'])
 
                 new_ds_w_one_variable = soilmoisture_data_source.make_local(

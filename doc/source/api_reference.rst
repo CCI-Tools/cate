@@ -70,9 +70,7 @@ Input / Output
 
 .. autofunction:: cate.ops.read_csv
 
-.. autofunction:: cate.ops.read_geo_data_frame
-
-.. autofunction:: cate.ops.read_geo_data_collection
+.. autofunction:: cate.ops.read_geo_data
 
 .. autofunction:: cate.ops.read_netcdf
 

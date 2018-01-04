@@ -30,9 +30,9 @@ import xarray as xr
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike
-from cate.ops.normalize import normalize as normalize_op
+from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame
 from cate.ops.normalize import adjust_temporal_attrs
+from cate.ops.normalize import normalize as normalize_op
 from cate.util.monitor import Monitor
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -127,8 +127,9 @@ def read_object(file: str, format: str = None) -> object:
 @op_input('format')
 def write_object(obj, file: str, format: str = None):
     """
-    Read a data object from a file.
+    Write a data object to a file.
 
+    :param obj: The object to write.
     :param file: The file path.
     :param format: Optional format name.
     :return: The data object.
@@ -280,29 +281,20 @@ def read_csv(file: FileLike.TYPE,
 @op(tags=['input'], res_pattern='gdf_{index}')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
+                                                    dict(name='GML', extensions=['gml']),
                                                     _ALL_FILE_FILTER])
-def read_geo_data_frame(file: str) -> gpd.GeoDataFrame:
+@op_input('more_args', nullable=True, data_type=DictLike)
+def read_geo_data(file: str, more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
     """
-    Returns a GeoDataFrame from a file.
+    Reads geo-data from files with formats such as ESRI Shapefile, GeoJSON, GML.
 
-    :param file: Is either the absolute or relative path to the file to be opened
-    :return: A GeoDataFrame
+    :param file: Is either the absolute or relative path to the file to be opened.
+    :param more_args: Other optional keyword arguments.
+           Please refer to Python documentation of ``fiona.open()`` function.
+    :return: A ``geopandas.GeoDataFrame`` object
     """
-    return gpd.read_file(file, mode="r", enabled_drivers=['GeoJSON', 'ESRI Shapefile'])
-
-
-@op(tags=['input'], res_pattern='gdc_{index}')
-@op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
-                                                    dict(name='GeoJSON', extensions=['json', 'geojson']),
-                                                    _ALL_FILE_FILTER])
-def read_geo_data_collection(file: str) -> fiona.Collection:
-    """
-    Returns a GeoDataFrame from a file.
-
-    :param file: Is either the absolute or relative path to the file to be opened
-    :return: A GeoDataFrame
-    """
-    return fiona.open(file, mode="r")
+    kwargs = DictLike.convert(more_args)
+    return GeoDataFrame.from_features(fiona.open(file, mode="r", **(kwargs or {})))
 
 
 @op(tags=['input'], res_pattern='ds_{index}')

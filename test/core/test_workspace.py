@@ -164,7 +164,7 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(var_1.get('numDims'), 1)
             self.assertEqual(var_1.get('shape'), (12,))
             self.assertEqual(var_1.get('isYFlipped'), None)
-            self.assertEqual(var_1.get('isFeatureAttribute'), None)
+            self.assertEqual(var_1.get('isFeatureAttribute'), True)
             self.assertIsNone(var_1.get('attributes'))
             var_2 = res_2_vars[1]
             self.assertEqual(var_2.get('name'), 'B')
@@ -172,7 +172,7 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(var_2.get('numDims'), 1)
             self.assertEqual(var_2.get('shape'), (12,))
             self.assertEqual(var_2.get('isYFlipped'), None)
-            self.assertEqual(var_2.get('isFeatureAttribute'), None)
+            self.assertEqual(var_2.get('isFeatureAttribute'), True)
             self.assertIsNone(var_2.get('attributes'))
 
             res_3 = l_res[2]

@@ -49,12 +49,12 @@ from datetime import datetime
 from dateutil import parser
 from glob import glob
 from typing import Optional, Sequence, Union, Any, Tuple
-
+from shapely.geometry import Polygon
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, DataSource, \
-    open_xarray_dataset
-from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, \
+    DataStore, DataSource, open_xarray_dataset
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 from cate.util.opimpl import subset_spatial_impl, normalize_impl
 

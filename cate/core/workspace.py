@@ -39,13 +39,14 @@ from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
-from ..util.monitor import Monitor
+from ..core.types import GeoDataFrame
+from ..util.im import get_chunk_size
 from ..util.misc import object_to_qualified_name, to_json, new_indexed_name
+from ..util.monitor import Monitor
+from ..util.namespace import Namespace
+from ..util.opmetainf import OpMetaInfo
 from ..util.safe import safe_eval
 from ..util.undefined import UNDEFINED
-from ..util.im import get_chunk_size
-from ..util.opmetainf import OpMetaInfo
-from ..util.namespace import Namespace
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -297,75 +298,86 @@ class Workspace:
                 resource_descriptors.append(resource_descriptor)
         return resource_descriptors
 
-    def _get_resource_descriptor(self, res_id: int, res_update_count: int, res_name: str, resource):
-        variable_descriptors = []
-        coords_descriptors = []
+    @classmethod
+    def _get_resource_descriptor(cls, res_id: int, res_update_count: int, res_name: str, resource):
         data_type_name = object_to_qualified_name(type(resource))
         resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
-
-            var_names = sorted(resource.data_vars.keys())
-            for var_name in var_names:
-                if not var_name.endswith('_bnds'):
-                    variable = resource.data_vars[var_name]
-                    variable_descriptors.append(self._get_xarray_variable_descriptor(variable))
-
-            var_names = sorted(resource.coords.keys())
-            for var_name in var_names:
-                variable = resource.coords[var_name]
-                coords_descriptors.append(self._get_xarray_variable_descriptor(variable, is_coord=True))
-
-            # noinspection PyArgumentList
-            resource_json.update(dimSizes=to_json(resource.dims),
-                                 attributes=Workspace._attrs_to_json_dict(resource.attrs),
-                                 variables=variable_descriptors,
-                                 coordVariables=coords_descriptors)
-
+            cls._update_resource_json_from_dataset(resource_json, resource)
+        elif isinstance(resource, GeoDataFrame):
+            cls._update_resource_json_from_feature_collection(resource_json, resource.features)
         elif isinstance(resource, pd.DataFrame):
-
-            var_names = list(resource.columns)
-            for var_name in var_names:
-                variable = resource[var_name]
-                variable_descriptors.append(self._get_pandas_variable_descriptor(variable))
-            # noinspection PyArgumentList,PyTypeChecker
-            resource_json.update(variables=variable_descriptors)
-
+            cls._update_resource_json_from_data_frame(resource_json, resource)
         elif isinstance(resource, fiona.Collection):
-
-            num_features = len(resource)
-            properties = resource.schema.get('properties')
-            if properties:
-                for var_name, var_type in properties.items():
-                    variable_descriptors.append({
-                        'name': var_name,
-                        'dataType': var_type,
-                        'isFeatureAttribute': True,
-                    })
-            geometry = resource.schema.get('geometry')
-            # noinspection PyArgumentList
-            resource_json.update(variables=variable_descriptors,
-                                 geometry=geometry,
-                                 numFeatures=num_features)
+            cls._update_resource_json_from_feature_collection(resource_json, resource)
         return resource_json
 
-    @staticmethod
-    def _attrs_to_json_dict(attrs: dict) -> Dict[str, Any]:
+    @classmethod
+    def _update_resource_json_from_dataset(cls, resource_json, dataset):
+        coords_descriptors = []
+        variable_descriptors = []
+        var_names = sorted(dataset.data_vars.keys())
+        for var_name in var_names:
+            if not var_name.endswith('_bnds'):
+                variable = dataset.data_vars[var_name]
+                variable_descriptors.append(cls._get_xarray_variable_descriptor(variable))
+        var_names = sorted(dataset.coords.keys())
+        for var_name in var_names:
+            variable = dataset.coords[var_name]
+            coords_descriptors.append(cls._get_xarray_variable_descriptor(variable, is_coord=True))
+        # noinspection PyArgumentList
+        resource_json.update(dimSizes=to_json(dataset.dims),
+                             attributes=Workspace._attrs_to_json_dict(dataset.attrs),
+                             variables=variable_descriptors,
+                             coordVariables=coords_descriptors)
+
+    @classmethod
+    def _update_resource_json_from_data_frame(cls, resource_json, data_frame: pd.DataFrame):
+        variable_descriptors = []
+        var_names = list(data_frame.columns)
+        for var_name in var_names:
+            variable = data_frame[var_name]
+            variable_descriptors.append(cls._get_pandas_variable_descriptor(variable))
+        # noinspection PyArgumentList,PyTypeChecker
+        resource_json.update(variables=variable_descriptors)
+
+    @classmethod
+    def _update_resource_json_from_feature_collection(cls, resource_json, features: fiona.Collection):
+        variable_descriptors = []
+        num_features = len(features)
+        properties = features.schema.get('properties')
+        if properties:
+            for var_name, var_type in properties.items():
+                variable_descriptors.append({
+                    'name': var_name,
+                    'dataType': var_type,
+                    'isFeatureAttribute': True,
+                })
+        geometry = features.schema.get('geometry')
+        # noinspection PyArgumentList
+        resource_json.update(variables=variable_descriptors,
+                             geometry=geometry,
+                             numFeatures=num_features)
+
+    @classmethod
+    def _attrs_to_json_dict(cls, attrs: dict) -> Dict[str, Any]:
         attr_json_dict = {}
         for name, value in attrs.items():
             attr_json_dict[name] = to_json(value)
         return attr_json_dict
 
-    @staticmethod
-    def _get_pandas_variable_descriptor(variable: pd.Series):
+    @classmethod
+    def _get_pandas_variable_descriptor(cls, variable: pd.Series):
         return {
             'name': variable.name,
             'dataType': object_to_qualified_name(variable.dtype),
             'numDims': variable.ndim,
             'shape': variable.shape,
+            'isFeatureAttribute': True,
         }
 
-    # noinspection PyMethodMayBeStatic
-    def _get_xarray_variable_descriptor(self, variable: xr.DataArray, is_coord=False):
+    @classmethod
+    def _get_xarray_variable_descriptor(cls, variable: xr.DataArray, is_coord=False):
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,

@@ -11,8 +11,8 @@ import xarray as xr
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
-from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, DictLike, \
-    TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike
+from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, \
+    DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame
 from cate.util.misc import object_to_qualified_name, OrderedDict
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
@@ -526,10 +526,17 @@ class DataFrameLikeTest(TestCase):
         self.assertEqual(DataFrameLike.convert(None), None)
 
         data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
-        pd_ds = pd.DataFrame(data=data)
         xr_ds = xr.Dataset(data_vars=data)
-        self.assertIsInstance(DataFrameLike.convert(pd_ds), pd.DataFrame)
+        pd_ds = pd.DataFrame(data=data)
+        gdf_ds = gpd.GeoDataFrame.from_features(read_test_features())
+        proxy_gdf_ds = GeoDataFrame.from_features(read_test_features())
         self.assertIsInstance(DataFrameLike.convert(xr_ds), pd.DataFrame)
+        self.assertIsInstance(DataFrameLike.convert(pd_ds), pd.DataFrame)
+        self.assertIs(DataFrameLike.convert(pd_ds), pd_ds)
+        self.assertIsInstance(DataFrameLike.convert(gdf_ds), gpd.GeoDataFrame)
+        self.assertIs(DataFrameLike.convert(gdf_ds), gdf_ds)
+        self.assertIsInstance(DataFrameLike.convert(proxy_gdf_ds), GeoDataFrame)
+        self.assertIs(DataFrameLike.convert(proxy_gdf_ds), proxy_gdf_ds)
 
         with self.assertRaises(ValueError):
             DataFrameLike.convert(42)
@@ -540,3 +547,43 @@ class DataFrameLikeTest(TestCase):
         with self.assertRaises(ValueError):
             data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
             DataFrameLike.format(pd.DataFrame(data=data))
+
+
+class TestGeoDataFrame(TestCase):
+
+    def test_compat_with_geopandas(self):
+        features = read_test_features()
+        gdf = GeoDataFrame.from_features(features)
+        self.assertIs(type(gdf), GeoDataFrame)
+        self.assertIsInstance(gdf, GeoDataFrame)
+        self.assertIsInstance(gdf, gpd.GeoDataFrame)
+        self.assertIsInstance(gdf, pd.DataFrame)
+        self.assertIs(gdf.features, features)
+        self.assertIsInstance(gdf['A'], pd.Series)
+        self.assertIsInstance(gdf.geometry, gpd.GeoSeries)
+
+    def test_close(self):
+        features = read_test_features()
+        gdf = GeoDataFrame.from_features(features)
+        self.assertIs(gdf.features, features)
+        self.assertIsInstance(gdf.lazy_data_frame, gpd.GeoDataFrame)
+        gdf.close()
+        self.assertIsNone(gdf.features)
+        self.assertIsNone(gdf.lazy_data_frame)
+
+    def test_fat_ops(self):
+        features = read_test_features()
+        gdf = GeoDataFrame.from_features(features)
+
+        from cate.ops.fat import fat_min, fat_max
+        df_min = fat_min(gdf, 'C')
+        self.assertIsInstance(df_min, pd.DataFrame)
+        self.assertEqual(len(df_min), 1)
+        df_max = fat_max(gdf, 'C')
+        self.assertIsInstance(df_max, pd.DataFrame)
+        self.assertEqual(len(df_max), 1)
+
+
+def read_test_features():
+    import fiona
+    return fiona.open("test/core/test_data/test.geojson")
