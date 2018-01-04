@@ -21,7 +21,7 @@
 
 import heapq
 import json
-from typing import Tuple, List, Callable, Union
+from typing import Tuple, List, Callable, Union, Dict, Iterable
 
 import fiona
 import numba
@@ -151,28 +151,30 @@ def get_geometry_transform(type_name: str) -> GeometryTransform:
     return _GEOMETRY_TRANSFORMS.get(type_name)
 
 
-def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float = 1.0):
+def write_feature_collection(feature_collection: Union[fiona.Collection, Iterable[Dict]],
+                             io,
+                             crs=None,
+                             simp_ratio: float = 1.0):
+
+    if crs is None and hasattr(feature_collection, "crs"):
+        crs = feature_collection.crs
+
     must_pointify = (simp_ratio == 0.0)
-    collection_geometry_transform = None
     source_prj = target_prj = None
 
-    if collection.crs:
-        source_prj = pyproj.Proj(collection.crs)
+    if crs:
+        source_prj = pyproj.Proj(crs)
         target_prj = pyproj.Proj(init='epsg:4326')
-        collection_geometry_transform = get_geometry_transform(collection.schema['geometry'])
 
     io.write('{"type": "FeatureCollection", "features": [\n')
     io.flush()
     
     feature_count = 0
-    for feature in collection:
+    for feature in feature_collection:
         feature_ok = True
         if 'geometry' in feature:
             geometry = feature['geometry']
-            if collection_geometry_transform is not None:
-                geometry_transform = collection_geometry_transform
-            else:
-                geometry_transform = get_geometry_transform(geometry['type'])
+            geometry_transform = get_geometry_transform(geometry['type'])
             if geometry_transform is not None:
                 # print('transforming feature: ', feature)
                 coordinates = geometry['coordinates']
@@ -193,6 +195,7 @@ def write_feature_collection(collection: fiona.Collection, io, simp_ratio: float
                 io.write(',\n')
                 io.flush()
             # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
+            print("a feature", feature)
             io.write(json.dumps(feature))
             feature_count += 1
 

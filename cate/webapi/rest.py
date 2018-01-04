@@ -33,6 +33,7 @@ import numpy as np
 import tornado.gen
 import tornado.web
 import xarray as xr
+import geopandas as gpd
 
 from .geojson import write_feature_collection
 from ..conf import get_config
@@ -246,7 +247,7 @@ class GeoJSONHandler(WebAPIRequestHandler):
         try:
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, collection, self,
-                                      _level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+                                      simp_ratio=_level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -290,19 +291,25 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         resource = workspace.resource_cache[res_name]
         if isinstance(resource, fiona.Collection):
             features = resource
+            crs = features.crs
         elif isinstance(resource, GeoDataFrame):
             features = resource.features
+            crs = features.crs
+        elif isinstance(resource, gpd.GeoDataFrame):
+            features = resource.iterfeatures()
+            crs = resource.crs
         else:
             self.write_status_error(message='Resource "%s" must provide a fiona.Collection' % res_name)
             return
 
         print('ResVarGeoJSONHandler: features:', features)
-        print('ResVarGeoJSONHandler: features CRS:', features.crs)
+        print('ResVarGeoJSONHandler: features CRS:', crs)
         print('ResVarGeoJSONHandler: streaming started at ', datetime.datetime.now())
         try:
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, features, self,
-                                      _level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+                                      crs=crs,
+                                      simp_ratio=_level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)

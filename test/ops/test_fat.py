@@ -12,6 +12,7 @@ class TestFAT(TestCase):
 
     def test_fat_min(self):
         df2 = fat_min(TestFAT.df, 'A')
+        self.assertIsInstance(df2, pd.DataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D'])
         self.assertEqual(df2.iloc[0, 0], 1)
@@ -21,6 +22,7 @@ class TestFAT(TestCase):
 
     def test_fat_max(self):
         df2 = fat_max(TestFAT.df, 'D')
+        self.assertIsInstance(df2, pd.DataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D'])
         self.assertEqual(df2.iloc[0, 0], 2)

@@ -28,6 +28,7 @@ Operations for Feature Attribute Tables (FAT).
 Functions
 =========
 """
+import geopandas as gpd
 import pandas as pd
 
 from cate.core.op import op, op_input
@@ -47,8 +48,9 @@ def fat_min(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     """
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
-    idx = data_frame[var_name].idxmin()
-    return data_frame.loc[idx].to_frame().transpose()
+    row_index = data_frame[var_name].idxmin()
+    row = _row_as_data_frame(data_frame, row_index)
+    return _maybe_convert_to_geo_data_frame(data_frame, row)
 
 
 @op(tags=['filter', 'fat'], version='1.0')
@@ -64,8 +66,9 @@ def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     """
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
-    idx = data_frame[var_name].idxmax()
-    return data_frame.loc[idx].to_frame().transpose()
+    row_index = data_frame[var_name].idxmax()
+    row = _row_as_data_frame(data_frame, row_index)
+    return _maybe_convert_to_geo_data_frame(data_frame, row)
 
 
 @op(tags=['filter', 'fat'], version='1.0')
@@ -74,3 +77,13 @@ def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 def fat_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     pass
 
+
+def _row_as_data_frame(data_frame, row_index):
+    return data_frame.loc[row_index].to_frame().transpose()
+
+
+def _maybe_convert_to_geo_data_frame(data_frame, data_frame_2):
+    if isinstance(data_frame, gpd.GeoDataFrame) and not isinstance(data_frame_2, gpd.GeoDataFrame):
+        return gpd.GeoDataFrame(data_frame_2, crs=data_frame.crs)
+    else:
+        return data_frame_2

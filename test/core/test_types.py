@@ -574,14 +574,22 @@ class TestGeoDataFrame(TestCase):
     def test_fat_ops(self):
         features = read_test_features()
         gdf = GeoDataFrame.from_features(features)
+        self.assertEquals(gdf.crs, {})
 
         from cate.ops.fat import fat_min, fat_max
         df_min = fat_min(gdf, 'C')
-        self.assertIsInstance(df_min, pd.DataFrame)
+        self.assertIsInstance(df_min, gpd.GeoDataFrame)
         self.assertEqual(len(df_min), 1)
+        self.assertEqual(list(df_min.columns), ['A', 'B', 'C', 'geometry'])
+        self.assertIsInstance(df_min.geometry, gpd.GeoSeries)
+        self.assertEquals(df_min.crs, {})
+
         df_max = fat_max(gdf, 'C')
-        self.assertIsInstance(df_max, pd.DataFrame)
+        self.assertIsInstance(df_max, gpd.GeoDataFrame)
         self.assertEqual(len(df_max), 1)
+        self.assertEqual(list(df_max.columns), ['A', 'B', 'C', 'geometry'])
+        self.assertIsInstance(df_max.geometry, gpd.GeoSeries)
+        self.assertEquals(df_max.crs, {})
 
 
 def read_test_features():
