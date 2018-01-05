@@ -1,12 +1,27 @@
 
 ## Version 1.0.1 (xx.yy.2017)
 
+### Improvements and new Features
+
+* Added `data_frame_min(df)` and `data_frame_max(df)` operations to select features by min/max
+  [#492](https://github.com/CCI-Tools/cate/issues/492)
+* Added `data_frame_query(df, expr)` operation to query features
+  [#486](https://github.com/CCI-Tools/cate/issues/486).
+  If the data frame `df` contains a geometry column (a `GeoDataFrame` object),
+  then the query expression `expr` can also contain geometric relationship tests,
+  for example the expression
+  `"population > 100000 and @within('-20, 40, 20, 80')"`
+  could be used on a data frame to query for larger cities in Europe.
+* Removed operation `read_geo_data_collection`. The preferred operation to read
+  feature attribute tables ("data frames") with geometries from ESRI Shapefiles and GeoJSON files is
+  `read_geo_data_frame`.
+* CLI now launches a lot faster, e.g. try now `cate -h`
+  [#58](https://github.com/CCI-Tools/cate/issues/58)
+
 ### Fixes
 
 * Cate wont work if installed on drive other than home drive
   [#466](https://github.com/CCI-Tools/cate/issues/466)
-* CLI takes too long to launch 
-  [#58](https://github.com/CCI-Tools/cate/issues/58)
 
 ## Version 1.0.0 (10.10.2017)
 

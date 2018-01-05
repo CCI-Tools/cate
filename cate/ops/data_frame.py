@@ -33,7 +33,7 @@ import geopandas as gpd
 import pandas as pd
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike
+from cate.core.types import VarName, DataFrameLike, GeometryLike
 
 
 @op(tags=['filter'], version='1.0')
@@ -79,16 +79,75 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     """
     Select records from the given data frame where the given conditional query expression evaluates to "True".
 
+    If the data frame *df* contains a geometry column (a ``GeoDataFrame`` object),
+    then the query expression *query_expr* can also contain geometric relationship tests,
+    for example the expression ``"population > 100000 and @within('-10, 34, 20, 60')"``
+    could be used on a data frame with the *population* and a *geometry* column
+    to query for larger cities in West-Europe.
+
+    The geometric relationship tests are
+    * ``@almost_equals(geom)`` - does a feature's geometry almost equal the given ``geom``;
+    * ``@contains(geom)`` - does a feature's geometry contain the given ``geom``;
+    * ``@crosses(geom)`` - does a feature's geometry cross the given ``geom``;
+    * ``@disjoint(geom)`` - does a feature's geometry not at all intersect the given ``geom``;
+    * ``@intersects(geom)`` - does a feature's geometry intersect with given ``geom``;
+    * ``@touches(geom)`` - does a feature's geometry have a point in common with given ``geom`` but does not intersect it;
+    * ``@within(geom)`` - is a feature's geometry contained within given ``geom``.
+
+    The *geom* argument may be a point ``"<lon>, <lat>"`` text string,
+    a bounding box ``"<lon1>, <lat1>, <lon2>, <lat2>"`` text, or any valid geometry WKT.
+
     :param df: The data frame or dataset.
     :param query_expr: The conditional query expression.
     :return: A new data frame.
     """
     data_frame = DataFrameLike.convert(df)
-    data_frame_subset = data_frame.query(query_expr)
+
+    local_dict = dict(from_wkt=GeometryLike.convert)
+    if hasattr(data_frame, 'geometry') and isinstance(data_frame.geometry, gpd.GeoSeries):
+        def _almost_equals(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry)
+
+        def _contains(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.contains, geometry)
+
+        def _crosses(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry)
+
+        def _disjoint(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry)
+
+        def _intersects(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry)
+
+        def _touches(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.touches, geometry)
+
+        def _within(geometry: GeometryLike):
+            return _data_frame_geometry_op(data_frame.geometry.within, geometry)
+
+        local_dict['almost_equals'] = _almost_equals
+        local_dict['contains'] = _contains
+        local_dict['crosses'] = _crosses
+        local_dict['disjoint'] = _disjoint
+        local_dict['intersects'] = _intersects
+        local_dict['touches'] = _touches
+        local_dict['within'] = _within
+
+    data_frame_subset = data_frame.query(query_expr,
+                                         truediv=True,
+                                         local_dict=local_dict,
+                                         global_dict={})
+
     return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
 
 
-def _maybe_convert_to_geo_data_frame(data_frame, data_frame_2):
+def _data_frame_geometry_op(instance_method, geometry: GeometryLike):
+    geometry = GeometryLike.convert(geometry)
+    return instance_method(geometry)
+
+
+def _maybe_convert_to_geo_data_frame(data_frame: pd.DataFrame, data_frame_2: pd.DataFrame) -> pd.DataFrame:
     if isinstance(data_frame, gpd.GeoDataFrame) and not isinstance(data_frame_2, gpd.GeoDataFrame):
         return gpd.GeoDataFrame(data_frame_2, crs=data_frame.crs)
     else:
