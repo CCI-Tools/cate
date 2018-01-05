@@ -49,8 +49,8 @@ def fat_min(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
     row_index = data_frame[var_name].idxmin()
-    row = _row_as_data_frame(data_frame, row_index)
-    return _maybe_convert_to_geo_data_frame(data_frame, row)
+    row_frame = data_frame.loc[[row_index]]
+    return _maybe_convert_to_geo_data_frame(data_frame, row_frame)
 
 
 @op(tags=['filter', 'fat'], version='1.0')
@@ -67,8 +67,8 @@ def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
     row_index = data_frame[var_name].idxmax()
-    row = _row_as_data_frame(data_frame, row_index)
-    return _maybe_convert_to_geo_data_frame(data_frame, row)
+    row_frame = data_frame.loc[[row_index]]
+    return _maybe_convert_to_geo_data_frame(data_frame, row_frame)
 
 
 @op(tags=['filter', 'fat'], version='1.0')
@@ -76,10 +76,6 @@ def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 @op_input('query_expr')
 def fat_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     pass
-
-
-def _row_as_data_frame(data_frame, row_index):
-    return data_frame.loc[row_index].to_frame().transpose()
 
 
 def _maybe_convert_to_geo_data_frame(data_frame, data_frame_2):
