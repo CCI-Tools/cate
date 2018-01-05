@@ -332,7 +332,8 @@ class PointLike(Like[shapely.geometry.Point]):
     Accepts:
         1. a Shapely shapely.geometry.Point
         2. a string 'lon,lat'
-        3. a tuple (lon, lat)
+        4. a WKT string "POINT (lon lat)"
+        5. a tuple (lon, lat)
 
     Converts to a Shapely shapely.geometry.Point object.
     """
@@ -351,8 +352,11 @@ class PointLike(Like[shapely.geometry.Point]):
                 value = value.strip()
                 if value == '':
                     return None
-                pair = value.split(',')
-                return shapely.geometry.Point(float(pair[0]), float(pair[1]))
+                if value[:5].lower() == 'point':
+                    return shapely.wkt.loads(value)
+                else:
+                    pair = value.split(',')
+                    return shapely.geometry.Point(float(pair[0]), float(pair[1]))
             return shapely.geometry.Point(value[0], value[1])
         except Exception:
             cls.assert_value_ok(False, value)

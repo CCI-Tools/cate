@@ -232,6 +232,7 @@ class PointLikeTest(TestCase):
         self.assertTrue(PointLike.accepts((2.4, 4.8)))
         self.assertTrue(PointLike.accepts([2.4, 4.8]))
         self.assertTrue(PointLike.accepts(Point(2.4, 4.8)))
+        self.assertTrue(PointLike.accepts(Point(2.4, 4.8).wkt))
         self.assertFalse(PointLike.accepts("A, 4.8"))
         self.assertFalse(PointLike.accepts(25.1))
 
@@ -242,6 +243,7 @@ class PointLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
         self.assertEqual(str(err.exception), 'cannot convert value <0.0,abc> to PointLike')
+        self.assertEqual(PointLike.convert('POINT(0.0 1.0)'), Point(0.0, 1.0))
 
     def test_format(self):
         self.assertEqual(PointLike.format(Point(2.4, 4.8)), "2.4, 4.8")
