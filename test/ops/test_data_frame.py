@@ -4,14 +4,14 @@ import fiona
 import pandas as pd
 import geopandas as gpd
 
-from cate.ops.fat import fat_min, fat_max
+from cate.ops.data_frame import data_frame_min, data_frame_max
 
 
 class TestFAT(TestCase):
     df = pd.DataFrame({'A': [1, 2, 3], 'B': ['x', 'y', 'z'], 'C': [True, False, True], 'D': [0.4, 0.5, 0.3]})
 
     def test_fat_min(self):
-        df2 = fat_min(TestFAT.df, 'A')
+        df2 = data_frame_min(TestFAT.df, 'A')
         self.assertIsInstance(df2, pd.DataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D'])
@@ -21,7 +21,7 @@ class TestFAT(TestCase):
         self.assertEqual(df2.iloc[0, 3], 0.4)
 
     def test_fat_max(self):
-        df2 = fat_max(TestFAT.df, 'D')
+        df2 = data_frame_max(TestFAT.df, 'D')
         self.assertIsInstance(df2, pd.DataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D'])

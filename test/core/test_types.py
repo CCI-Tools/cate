@@ -576,15 +576,15 @@ class TestGeoDataFrame(TestCase):
         gdf = GeoDataFrame.from_features(features)
         self.assertEquals(gdf.crs, {})
 
-        from cate.ops.fat import fat_min, fat_max
-        df_min = fat_min(gdf, 'C')
+        from cate.ops.data_frame import data_frame_min, data_frame_max
+        df_min = data_frame_min(gdf, 'C')
         self.assertIsInstance(df_min, gpd.GeoDataFrame)
         self.assertEqual(len(df_min), 1)
         self.assertEqual(list(df_min.columns), ['A', 'B', 'C', 'geometry'])
         self.assertIsInstance(df_min.geometry, gpd.GeoSeries)
         self.assertEquals(df_min.crs, {})
 
-        df_max = fat_max(gdf, 'C')
+        df_max = data_frame_max(gdf, 'C')
         self.assertIsInstance(df_max, gpd.GeoDataFrame)
         self.assertEqual(len(df_max), 1)
         self.assertEqual(list(df_max.columns), ['A', 'B', 'C', 'geometry'])

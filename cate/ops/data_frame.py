@@ -23,7 +23,8 @@
 Description
 ===========
 
-Operations for Feature Attribute Tables (FAT).
+Operations for resources of type pandas.DataFrame, geopandas.GeoDataFrame and cate.core.types.GeoDataFrame which all
+form (Feature) Attribute Tables (FAT).
 
 Functions
 =========
@@ -35,16 +36,16 @@ from cate.core.op import op, op_input
 from cate.core.types import VarName, DataFrameLike
 
 
-@op(tags=['filter', 'fat'], version='1.0')
+@op(tags=['filter'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('var', value_set_source='df', data_type=VarName)
-def fat_min(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
+def data_frame_min(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     """
-    Get a one-record data frame with the minimum value in the given variable.
+    Select the first record of a data frame for which the given variable value is minimal.
 
     :param df: The data frame or dataset.
     :param var: The variable.
-    :return: A new one-record dataframe.
+    :return: A new, one-record data frame.
     """
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
@@ -53,16 +54,16 @@ def fat_min(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     return _maybe_convert_to_geo_data_frame(data_frame, row_frame)
 
 
-@op(tags=['filter', 'fat'], version='1.0')
+@op(tags=['filter'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('var', value_set_source='df', data_type=VarName)
-def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
+def data_frame_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     """
-    Get a one-record data frame with the maximum value in the given variable.
+    Select the first record of a data frame for which the given variable value is maximal.
 
     :param df: The data frame or dataset.
     :param var: The variable.
-    :return: A new one-record dataframe.
+    :return: A new, one-record data frame.
     """
     data_frame = DataFrameLike.convert(df)
     var_name = VarName.convert(var)
@@ -71,10 +72,10 @@ def fat_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
     return _maybe_convert_to_geo_data_frame(data_frame, row_frame)
 
 
-@op(tags=['filter', 'fat'], version='1.0')
+@op(tags=['filter'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('query_expr')
-def fat_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
+def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     pass
 
 

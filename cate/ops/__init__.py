@@ -64,7 +64,7 @@ from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
 from .outliers import detect_outliers
-from .fat import fat_min, fat_max, fat_query
+from .data_frame import data_frame_min, data_frame_max, data_frame_query
 
 
 __all__ = [
