@@ -576,7 +576,7 @@ class TestGeoDataFrame(TestCase):
     def test_fat_ops(self):
         features = read_test_features()
         gdf = GeoDataFrame.from_features(features)
-        self.assertEquals(gdf.crs, {})
+        self.assertIsNotNone(gdf.crs)
 
         from cate.ops.data_frame import data_frame_min, data_frame_max
         df_min = data_frame_min(gdf, 'C')
@@ -584,16 +584,17 @@ class TestGeoDataFrame(TestCase):
         self.assertEqual(len(df_min), 1)
         self.assertEqual(list(df_min.columns), ['A', 'B', 'C', 'geometry'])
         self.assertIsInstance(df_min.geometry, gpd.GeoSeries)
-        self.assertEquals(df_min.crs, {})
+        self.assertIsNotNone(df_min.crs)
 
         df_max = data_frame_max(gdf, 'C')
         self.assertIsInstance(df_max, gpd.GeoDataFrame)
         self.assertEqual(len(df_max), 1)
         self.assertEqual(list(df_max.columns), ['A', 'B', 'C', 'geometry'])
         self.assertIsInstance(df_max.geometry, gpd.GeoSeries)
-        self.assertEquals(df_max.crs, {})
+        self.assertIsNotNone(df_max.crs)
 
 
 def read_test_features():
     import fiona
-    return fiona.open("test/core/test_data/test.geojson")
+    import os
+    return fiona.open(os.path.join(os.path.dirname(__file__), 'test_data', 'test.geojson'))
