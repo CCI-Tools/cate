@@ -283,18 +283,23 @@ def read_csv(file: FileLike.TYPE,
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
                                                     dict(name='GML', extensions=['gml']),
                                                     _ALL_FILE_FILTER])
+@op_input('crs', nullable=True)
 @op_input('more_args', nullable=True, data_type=DictLike)
-def read_geo_data(file: str, more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
+def read_geo_data_frame(file: str, crs: str = None,
+                        more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
     """
     Reads geo-data from files with formats such as ESRI Shapefile, GeoJSON, GML.
 
     :param file: Is either the absolute or relative path to the file to be opened.
+    :param crs: Optional coordinate reference system. Must be given as CRS-WKT or EPSG string such as "EPSG:4326".
+                The default value for GeoJSON standard is always "EPSG:4326".
     :param more_args: Other optional keyword arguments.
            Please refer to Python documentation of ``fiona.open()`` function.
     :return: A ``geopandas.GeoDataFrame`` object
     """
-    kwargs = DictLike.convert(more_args)
-    return GeoDataFrame.from_features(fiona.open(file, mode="r", **(kwargs or {})))
+    kwargs = DictLike.convert(more_args) or {}
+    features = fiona.open(file, mode="r", crs=crs, **kwargs)
+    return GeoDataFrame.from_features(features)
 
 
 @op(tags=['input'], res_pattern='ds_{index}')

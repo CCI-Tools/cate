@@ -4,10 +4,12 @@ Test the IO operations
 
 import os
 import unittest
-from unittest import TestCase
 from io import StringIO
+from unittest import TestCase
 
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data
+import geopandas as gpd
+
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame
 
 
 class TestIO(TestCase):
@@ -47,7 +49,6 @@ class TestIO(TestCase):
         self.assertFalse(os.path.isfile('remove_me.nc'))
 
     def test_read_csv(self):
-
         raw_data = "id,first_name,last_name,age,preTestScore,postTestScore\n0,Jason,Miller,42,4,\"25,000\"\n"
         file_out = StringIO(raw_data)
         file_in = StringIO()
@@ -66,12 +67,17 @@ class TestIO(TestCase):
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
-    def test_read_geo_data(self):
+    def test_read_geo_data_frame(self):
         file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
-        data_frame = read_geo_data(file)
-        self.assertIsNotNone(data_frame)
+
+        data_frame = read_geo_data_frame(file)
+        self.assertIsInstance(data_frame, gpd.GeoDataFrame)
+        self.assertEqual(len(data_frame), 179)
         data_frame.close()
 
-
-
+        # Now with crs
+        data_frame = read_geo_data_frame(file, crs="EPSG:4326")
+        self.assertIsInstance(data_frame, gpd.GeoDataFrame)
+        self.assertEqual(len(data_frame), 179)
+        data_frame.close()
 

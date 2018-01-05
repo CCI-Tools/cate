@@ -672,13 +672,15 @@ class GeoDataFrame:
         if item in GeoDataFrame._OWN_PROPERTY_SET:
             return object.__getattribute__(self, item)
         else:
-            return self.lazy_data_frame.__getattribute__(item)
+            return getattr(self.lazy_data_frame, item)
 
     def __getattr__(self, item):
         # print('__getattr__({})'.format(repr(item)))
-        if item not in GeoDataFrame._OWN_PROPERTY_SET:
-            return self.lazy_data_frame.__getattr__(item)
-        raise RuntimeError
+        if item in GeoDataFrame._OWN_PROPERTY_SET:
+            return object.__getattribute__(self, item)
+        else:
+            return getattr(self.lazy_data_frame, item)
+        # raise RuntimeError("%s is not an owned property" % item)
 
     def __getitem__(self, item):
         return self.lazy_data_frame.__getitem__(item)
@@ -687,9 +689,12 @@ class GeoDataFrame:
         return self.lazy_data_frame.__setitem__(key, value)
 
     def __str__(self):
-        return self.lazy_data_frame.__str__()
+        return str(self.lazy_data_frame)
 
     def __repr__(self):
-        return self.lazy_data_frame.__repr__()
+        return repr(self.lazy_data_frame)
+
+    def __len__(self):
+        return len(self.lazy_data_frame)
 
     # Add other __x__() methods here to make GeoDataFrame compatible with geopandas.GeoDataFrame

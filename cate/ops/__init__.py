@@ -53,7 +53,7 @@ from .coregistration import coregister
 from .correlation import pearson_correlation_scalar, pearson_correlation
 from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs
 from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
-    read_csv, read_geo_data, read_netcdf, write_netcdf3, write_netcdf4
+    read_csv, read_geo_data_frame, read_netcdf, write_netcdf3, write_netcdf4
 from .plot import plot_map, plot, plot_data_frame
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
@@ -104,7 +104,7 @@ __all__ = [
     'read_json',
     'write_json',
     'read_csv',
-    'read_geo_data',
+    'read_geo_data_frame',
     'read_netcdf',
     'write_netcdf3',
     'write_netcdf4',
