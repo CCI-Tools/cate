@@ -76,7 +76,16 @@ def data_frame_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 @op_input('df', data_type=DataFrameLike)
 @op_input('query_expr')
 def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
-    pass
+    """
+    Select records from the given data frame where the given conditional query expression evaluates to "True".
+
+    :param df: The data frame or dataset.
+    :param query_expr: The conditional query expression.
+    :return: A new data frame.
+    """
+    data_frame = DataFrameLike.convert(df)
+    data_frame_subset = data_frame.query(query_expr)
+    return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
 
 
 def _maybe_convert_to_geo_data_frame(data_frame, data_frame_2):
