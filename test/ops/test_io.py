@@ -80,4 +80,3 @@ class TestIO(TestCase):
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
         self.assertEqual(len(data_frame), 179)
         data_frame.close()
-

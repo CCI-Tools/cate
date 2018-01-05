@@ -168,7 +168,7 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
 
     io.write('{"type": "FeatureCollection", "features": [\n')
     io.flush()
-    
+
     feature_count = 0
     for feature in feature_collection:
         feature_ok = True
