@@ -699,6 +699,7 @@ class GeoDataFrame:
         return repr(self.lazy_data_frame)
 
     def __len__(self):
-        return len(self.lazy_data_frame)
+        # perf: using self._features here to avoid instantiation of GeoDataFrame._lazy_data_frame
+        return len(self._features)
 
     # Add other __x__() methods here to make GeoDataFrame compatible with geopandas.GeoDataFrame
