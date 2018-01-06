@@ -60,6 +60,7 @@ Geometry = Union[Point, LineString, Ring, Polygon, MultiPoint, MultiLineString, 
 GeometryCollection = List[Geometry]
 GeometryTransform = Callable[[pyproj.Proj, pyproj.Proj, float, Geometry], Geometry]
 GeometryPointCounter = Callable[[Geometry], int]
+Feature = Dict
 
 
 # noinspection PyUnusedLocal conservation_ratio
@@ -212,7 +213,7 @@ def get_geometry_point_counter(type_name: str) -> GeometryPointCounter:
     return _GEOMETRY_POINT_COUNTERS.get(type_name)
 
 
-def write_feature_collection(feature_collection: Union[fiona.Collection, Iterable[Dict]],
+def write_feature_collection(feature_collection: Union[fiona.Collection, Iterable[Feature]],
                              io,
                              crs=None,
                              num_features: int = None,
@@ -241,34 +242,10 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
 
     num_features_written = 0
     for feature in feature_collection:
-        feature_ok = True
-        if 'geometry' in feature:
-            geometry = feature['geometry']
-            geometry_transform = get_geometry_transform(geometry['type'])
-            if geometry_transform is not None:
-                # print('transforming feature: ', feature)
-                coordinates = geometry['coordinates']
-                # noinspection PyBroadException
-                try:
-                    geometry_conservation_ratio = conservation_ratio
-                    if conservation_ratio > 0.0:
-                        num_geometry_points = get_geometry_point_counter(geometry['type'])(geometry)
-                        if num_geometry_points > max_num_display_geometry_points:
-                            geometry_conservation_ratio = 0.0
-
-                    coordinates = geometry_transform(source_prj, target_prj,
-                                                     geometry_conservation_ratio,
-                                                     coordinates)
-                    geometry['coordinates'] = coordinates
-                    if geometry_conservation_ratio == 0.0:
-                        geometry['type'] = 'Point'
-                    if geometry_conservation_ratio < 1.0:
-                        feature['properties']['_gsr'] = int(100 * geometry_conservation_ratio + 0.5)
-                except Exception as e:
-                    print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
-                    feature_ok = False
-                    pass
-
+        feature_ok = _transform_feature(feature,
+                                        max_num_display_geometry_points,
+                                        conservation_ratio,
+                                        source_prj, target_prj)
         if feature_ok:
             if num_features_written > 0:
                 io.write(',\n')
@@ -281,6 +258,61 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
     io.flush()
 
     return num_features_written
+
+
+def write_feature(feature: Feature,
+                  io,
+                  crs=None,
+                  max_num_display_geometry_points: int = 100,
+                  conservation_ratio: float = 1.0):
+
+    source_prj = target_prj = None
+    if crs:
+        source_prj = pyproj.Proj(crs)
+        target_prj = pyproj.Proj(init='epsg:4326')
+
+    feature_ok = _transform_feature(feature,
+                                    max_num_display_geometry_points,
+                                    conservation_ratio,
+                                    source_prj, target_prj)
+    if feature_ok:
+        # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
+        io.write(json.dumps(feature))
+        io.flush()
+
+
+def _transform_feature(feature: Feature,
+                       max_num_display_geometry_points: int,
+                       conservation_ratio: float,
+                       source_prj, target_prj):
+    feature_ok = True
+    if 'geometry' in feature:
+        geometry = feature['geometry']
+        geometry_transform = get_geometry_transform(geometry['type'])
+        if geometry_transform is not None:
+            # print('transforming feature: ', feature)
+            coordinates = geometry['coordinates']
+            # noinspection PyBroadException
+            try:
+                geometry_conservation_ratio = conservation_ratio
+                if conservation_ratio > 0.0:
+                    num_geometry_points = get_geometry_point_counter(geometry['type'])(geometry)
+                    if num_geometry_points > max_num_display_geometry_points:
+                        geometry_conservation_ratio = 0.0
+
+                coordinates = geometry_transform(source_prj, target_prj,
+                                                 geometry_conservation_ratio,
+                                                 coordinates)
+                geometry['coordinates'] = coordinates
+                if geometry_conservation_ratio == 0.0:
+                    geometry['type'] = 'Point'
+                if geometry_conservation_ratio < 1.0:
+                    feature['properties']['_gsr'] = int(100 * geometry_conservation_ratio + 0.5)
+            except Exception as e:
+                print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
+                feature_ok = False
+                pass
+    return feature_ok
 
 
 @numba.jit(nopython=True)
@@ -321,7 +353,8 @@ def triangle_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: 
 
 
 @numba.jit(forceobj=True)
-def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, conservation_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
+def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, conservation_ratio: float) -> Tuple[
+    np.ndarray, np.ndarray]:
     """
     Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *x_data.size* points to
     int(*conservation_ratio* * *x_data*.size + 0.5) points.

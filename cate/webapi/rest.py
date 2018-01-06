@@ -35,7 +35,7 @@ import tornado.web
 import xarray as xr
 import geopandas as gpd
 
-from .geojson import write_feature_collection
+from .geojson import write_feature_collection, write_feature
 from ..conf import get_config
 from ..conf.defaults import \
     WORKSPACE_CACHE_DIR_NAME, \
@@ -264,23 +264,16 @@ class CountriesGeoJSONHandler(GeoJSONHandler):
 
 
 # noinspection PyAbstractClass
-class ResVarGeoJSONHandler(WebAPIRequestHandler):
+class ResVarFeatureCollectionHandler(WebAPIRequestHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self, base_dir, res_name):
 
-        print('ResVarGeoJSONHandler:', base_dir, res_name)
+        print('ResVarFeatureCollectionHandler:', base_dir, res_name)
 
         level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
-        var_name = self.get_query_argument('var')
-        var_index = self.get_query_argument('index', default=None)
-        var_index = tuple(map(int, var_index.split(','))) if var_index else []
-        cmap_name = self.get_query_argument('cmap', default='jet')
-        cmap_min = float(self.get_query_argument('min', default='nan'))
-        cmap_max = float(self.get_query_argument('max', default='nan'))
-
-        print('ResVarGeoJSONHandler:', level, var_name, var_index, cmap_name, cmap_min, cmap_max)
+        print('ResVarFeatureCollectionHandler: level =', level)
 
         workspace_manager = self.application.workspace_manager
         workspace = workspace_manager.get_workspace(base_dir)
@@ -303,12 +296,12 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             crs = resource.crs
             num_features = len(resource)
         else:
-            self.write_status_error(message='Resource "%s" must provide a fiona.Collection' % res_name)
+            self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
             return
 
-        print('ResVarGeoJSONHandler: features:', features)
-        print('ResVarGeoJSONHandler: features CRS:', crs)
-        print('ResVarGeoJSONHandler: streaming started at ', datetime.datetime.now())
+        print('ResVarFeatureCollectionHandler: features:', features)
+        print('ResVarFeatureCollectionHandler: features CRS:', crs)
+        print('ResVarFeatureCollectionHandler: streaming started at ', datetime.datetime.now())
         try:
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, features, self,
@@ -319,9 +312,83 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
 
-        print('ResVarGeoJSONHandler: streaming done at ', datetime.datetime.now())
+        print('ResVarFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
         self.finish()
 
+
+# noinspection PyAbstractClass
+class ResVarFeatureHandler(WebAPIRequestHandler):
+    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self, base_dir, res_name, feature_index):
+
+        print('ResVarFeatureHandler:', base_dir, res_name, feature_index)
+
+        feature_index = int(feature_index)
+        level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
+        print('ResVarFeatureHandler: level =', level)
+
+        workspace_manager = self.application.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir)
+
+        if res_name not in workspace.resource_cache:
+            self.write_status_error(message='Unknown resource "%s"' % res_name)
+            return
+
+        resource = workspace.resource_cache[res_name]
+        if isinstance(resource, fiona.Collection):
+            if not self._check_feature_index(feature_index, len(resource)):
+                return
+            feature = resource[feature_index]
+            crs = resource.crs
+        elif isinstance(resource, GeoDataFrame):
+            if not self._check_feature_index(feature_index, len(resource)):
+                return
+            feature = resource.features[feature_index]
+            crs = resource.features.crs
+        elif isinstance(resource, gpd.GeoDataFrame):
+            if not self._check_feature_index(feature_index, len(resource)):
+                return
+            # TODO (nf,mz): review & test following code, it is inspired by geopandas.GeoDataFrame.iterfeatures() impl.
+            row = resource[feature_index]
+            geometry = None
+            properties = row.to_dict()
+            if 'geometry' in properties:
+                geometry = row['geometry'].__geo_interface__
+                del properties['geometry']
+            feature = {
+                'id': str(row.index),
+                'type': 'Feature',
+                'properties': properties,
+                'geometry': geometry
+            }
+            crs = resource.crs
+        else:
+            self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
+            return
+
+        print('ResVarFeatureHandler: feature:', feature)
+        print('ResVarFeatureHandler: feature CRS:', crs)
+        print('ResVarFeatureHandler: streaming started at ', datetime.datetime.now())
+        try:
+            self.set_header('Content-Type', 'application/json')
+            yield [THREAD_POOL.submit(write_feature, feature, self,
+                                      crs=crs,
+                                      conservation_ratio=_level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+        except Exception as e:
+            traceback.print_exc()
+            self.write_status_error(message='Internal error: %s' % e)
+
+        print('ResVarFeatureHandler: streaming done at ', datetime.datetime.now())
+        self.finish()
+
+    def _check_feature_index(self, feature_index, num_features):
+        ok = feature_index < num_features
+        if not ok:
+            self.write_status_error(message='feature_index {} out of bounds, num_features={}'
+                                    .format(feature_index, num_features))
+        return ok
 
 # noinspection PyAbstractClass
 class ResVarCsvHandler(WebAPIRequestHandler):
@@ -400,3 +467,4 @@ def _level_to_conservation_ratio(level: int, num_levels: int):
     if level >= num_levels - 1:
         return 1.0
     return 2 ** -(num_levels - (level + 1))
+
