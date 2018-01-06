@@ -152,13 +152,17 @@ class WriteFeatureCollectionTest(TestCase):
 
         from io import StringIO
         string_io = StringIO()
-        num_written = write_feature_collection(collection, string_io, simp_ratio=0.5)
+        num_written = write_feature_collection(collection, string_io, conservation_ratio=0.5)
         # print(num_written, string_io.getvalue())
         self.assertEqual(num_written, 2)
         self.assertEqual(string_io.getvalue(),
                          '{"type": "FeatureCollection", "features": [\n'
-                         '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, "properties": {"id": "1", "a": 3, "b": true}},\n'
-                         '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, "properties": {"id": "2", "a": 9, "b": false}}\n'
+                         '{"type": "Feature", "geometry": {"type": "Polygon", '
+                         '"coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, '
+                         '"properties": {"id": "1", "a": 3, "b": true, "_gsr": 50}},\n'
+                         '{"type": "Feature", "geometry": {"type": "Polygon", '
+                         '"coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, '
+                         '"properties": {"id": "2", "a": 9, "b": false, "_gsr": 50}}\n'
                          ']}\n')
 
     def test_countries_with_simp(self):
@@ -173,7 +177,7 @@ class WriteFeatureCollectionTest(TestCase):
 
         from io import StringIO
         string_io = StringIO()
-        num_written = write_feature_collection(collection, string_io, simp_ratio=0)
+        num_written = write_feature_collection(collection, string_io, conservation_ratio=0)
         self.assertEqual(num_written, 179)
 
 

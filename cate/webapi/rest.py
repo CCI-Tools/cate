@@ -247,7 +247,8 @@ class GeoJSONHandler(WebAPIRequestHandler):
         try:
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, collection, self,
-                                      simp_ratio=_level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+                                      num_features=len(collection),
+                                      conservation_ratio=_level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -292,12 +293,15 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
         if isinstance(resource, fiona.Collection):
             features = resource
             crs = features.crs
+            num_features = len(features)
         elif isinstance(resource, GeoDataFrame):
             features = resource.features
             crs = features.crs
+            num_features = len(resource)
         elif isinstance(resource, gpd.GeoDataFrame):
             features = resource.iterfeatures()
             crs = resource.crs
+            num_features = len(resource)
         else:
             self.write_status_error(message='Resource "%s" must provide a fiona.Collection' % res_name)
             return
@@ -309,7 +313,8 @@ class ResVarGeoJSONHandler(WebAPIRequestHandler):
             self.set_header('Content-Type', 'application/json')
             yield [THREAD_POOL.submit(write_feature_collection, features, self,
                                       crs=crs,
-                                      simp_ratio=_level_to_simp_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+                                      num_features=num_features,
+                                      conservation_ratio=_level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
         except Exception as e:
             traceback.print_exc()
             self.write_status_error(message='Internal error: %s' % e)
@@ -389,7 +394,7 @@ def _on_workspace_closed(application: tornado.web.Application):
     check_for_auto_stop(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER)
 
 
-def _level_to_simp_ratio(level: int, num_levels: int):
+def _level_to_conservation_ratio(level: int, num_levels: int):
     if level <= 0:
         return 0.0
     if level >= num_levels - 1:

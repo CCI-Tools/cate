@@ -19,6 +19,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""
+
+Functions for efficiently dealing with GeoJSON.
+
+The following GeoJSON geometry types are supported:
+
+=====================================================================
+Type Name         | Coordinates
+==================+==================================================
+"Point"	          | A single (x, y) tuple
+"LineString"      | A list of (x, y) tuple vertices
+"Polygon"         | A list of rings (each a list of (x, y) tuples)
+"MultiPoint"      | A list of points (each a single (x, y) tuple)
+"MultiLineString" | A list of lines (each a list of (x, y) tuples)
+"MultiPolygon"    | A list of polygons (see above)
+=====================================================================
+
+"""
+
 import heapq
 import json
 from typing import Tuple, List, Callable, Union, Dict, Iterable
@@ -27,6 +46,8 @@ import fiona
 import numba
 import numpy as np
 import pyproj
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 Point = Tuple[float, float]
 LineString = List[Point]
@@ -38,11 +59,12 @@ MultiPolygon = List[Polygon]
 Geometry = Union[Point, LineString, Ring, Polygon, MultiPoint, MultiLineString, MultiPolygon]
 GeometryCollection = List[Geometry]
 GeometryTransform = Callable[[pyproj.Proj, pyproj.Proj, float, Geometry], Geometry]
+GeometryPointCounter = Callable[[Geometry], int]
 
 
-# noinspection PyUnusedLocal simp_ratio
+# noinspection PyUnusedLocal conservation_ratio
 def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                     simp_ratio: float, point: Point) -> Point:
+                     conservation_ratio: float, point: Point) -> Point:
     must_reproject = source_prj is not None
     if must_reproject:
         return pyproj.transform(source_prj, target_prj, point[0], point[1])
@@ -50,10 +72,10 @@ def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                           simp_ratio: float, line_string: LineString) -> Union[Point, LineString]:
+                           conservation_ratio: float, line_string: LineString) -> Union[Point, LineString]:
     must_reproject = source_prj is not None
-    must_pointify = simp_ratio == 0.0
-    must_simplify = 0.0 <= simp_ratio < 1.0
+    must_pointify = conservation_ratio == 0.0
+    must_simplify = 0.0 <= conservation_ratio < 1.0
     if not must_reproject and not must_simplify:
         return line_string
     x = np.array([coord[0] for coord in line_string])
@@ -65,17 +87,17 @@ def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
             px, py = pyproj.transform(source_prj, target_prj, px, py)
         return float(px[0]), float(py[0])
     else:
-        x, y = simplify_geometry(x, y, simp_ratio)
+        x, y = simplify_geometry(x, y, conservation_ratio)
         if must_reproject:
             x, y = pyproj.transform(source_prj, target_prj, x, y)
         return [(float(x), float(y)) for x, y in zip(x, y)]
 
 
 def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                       simp_ratio: float, polygon: Polygon) -> Union[Point, Polygon]:
+                       conservation_ratio: float, polygon: Polygon) -> Union[Point, Polygon]:
     must_reproject = source_prj is not None
-    must_pointify = simp_ratio == 0.0
-    must_simplify = 0.0 <= simp_ratio < 1.0
+    must_pointify = conservation_ratio == 0.0
+    must_simplify = 0.0 <= conservation_ratio < 1.0
     if not must_reproject and not must_simplify:
         return polygon
     if must_pointify:
@@ -93,7 +115,7 @@ def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
             x = np.array([coord[0] for coord in ring])
             y = np.array([coord[1] for coord in ring])
             if must_simplify:
-                x, y = simplify_geometry(x, y, simp_ratio)
+                x, y = simplify_geometry(x, y, conservation_ratio)
             if must_reproject:
                 x, y = pyproj.transform(source_prj, target_prj, x, y)
             transformed_polygon.append([(float(x), float(y)) for x, y in zip(x, y)])
@@ -101,23 +123,23 @@ def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_multi_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                           simp_ratio: float, multi_point: MultiPoint) -> MultiPoint:
-    return _transform_line_string(source_prj, target_prj, simp_ratio, multi_point)
+                           conservation_ratio: float, multi_point: MultiPoint) -> MultiPoint:
+    return _transform_line_string(source_prj, target_prj, conservation_ratio, multi_point)
 
 
 def _transform_multi_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                                 simp_ratio: float, multi_line_string: MultiLineString) -> MultiLineString:
-    return _transform_polygon(source_prj, target_prj, simp_ratio, multi_line_string)
+                                 conservation_ratio: float, multi_line_string: MultiLineString) -> MultiLineString:
+    return _transform_polygon(source_prj, target_prj, conservation_ratio, multi_line_string)
 
 
 def _transform_multi_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                             simp_ratio: float, multi_polygon: MultiPolygon) -> MultiPolygon:
+                             conservation_ratio: float, multi_polygon: MultiPolygon) -> MultiPolygon:
     must_reproject = source_prj is not None
-    must_simplify = 0.0 <= simp_ratio < 1.0
+    must_simplify = 0.0 <= conservation_ratio < 1.0
     if must_reproject or must_simplify:
         transformed_multi_polygon = []
         for polygon in multi_polygon:
-            transformed_polygon = _transform_polygon(source_prj, target_prj, simp_ratio, polygon)
+            transformed_polygon = _transform_polygon(source_prj, target_prj, conservation_ratio, polygon)
             transformed_multi_polygon.append(transformed_polygon)
         return transformed_multi_polygon
     return multi_polygon
@@ -134,34 +156,82 @@ _GEOMETRY_TRANSFORMS = dict(Point=_transform_point,
 
 def get_geometry_transform(type_name: str) -> GeometryTransform:
     """
-    Return a transformation or `None` for the given geometry *type_name* string which may be one of::
-
-    =====================================================================
-    type_name  	      | Coordinates
-    ==================+==================================================
-    "Point"	          | A single (x, y) tuple
-    "LineString"      | A list of (x, y) tuple vertices
-    "Polygon"         | A list of rings (each a list of (x, y) tuples)
-    "MultiPoint"      | A list of points (each a single (x, y) tuple)
-    "MultiLineString" | A list of lines (each a list of (x, y) tuples)
-    "MultiPolygon"    | A list of polygons (see above)
-    =====================================================================
-
+    Return a transformation or `None` for the given GeoJSON geometry *type_name*.
     """
     return _GEOMETRY_TRANSFORMS.get(type_name)
+
+
+# noinspection PyUnusedLocal
+def _count_points_point(point: Point) -> int:
+    return 1
+
+
+def _count_points_line_string(line_string: LineString) -> int:
+    return len(line_string)
+
+
+def _count_points_polygon(polygon: Polygon) -> int:
+    num_points = 0
+    for ring in polygon:
+        num_points += len(ring)
+    return num_points
+
+
+def _count_points_multi_point(multi_point: MultiPoint) -> int:
+    return len(multi_point)
+
+
+def _count_points_multi_line_string(multi_line_string: MultiLineString) -> int:
+    num_points = 0
+    for line_string in multi_line_string:
+        num_points += len(line_string)
+    return num_points
+
+
+def _count_points_multi_polygon(multi_polygon: MultiPolygon) -> int:
+    num_points = 0
+    for polygon in multi_polygon:
+        for ring in polygon:
+            num_points += len(ring)
+    return num_points
+
+
+_GEOMETRY_POINT_COUNTERS = dict(Point=_count_points_point,
+                                LineString=_count_points_line_string,
+                                Polygon=_count_points_polygon,
+                                MultiPoint=_count_points_multi_point,
+                                MultiLineString=_count_points_multi_line_string,
+                                MultiPolygon=_count_points_multi_polygon,
+                                Unknown=None)
+
+
+def get_geometry_point_counter(type_name: str) -> GeometryPointCounter:
+    """
+    Return a point counter or `None` for the given geometry *type_name*.
+    """
+    return _GEOMETRY_POINT_COUNTERS.get(type_name)
 
 
 def write_feature_collection(feature_collection: Union[fiona.Collection, Iterable[Dict]],
                              io,
                              crs=None,
-                             simp_ratio: float = 1.0):
-
+                             num_features: int = None,
+                             max_num_display_geometries: int = 1000,
+                             max_num_display_geometry_points: int = 100,
+                             conservation_ratio: float = 1.0):
     if crs is None and hasattr(feature_collection, "crs"):
         crs = feature_collection.crs
 
-    must_pointify = (simp_ratio == 0.0)
-    source_prj = target_prj = None
+    if num_features is None:
+        try:
+            num_features = len(feature_collection)
+        except TypeError:
+            pass
 
+    if num_features and num_features > max_num_display_geometries:
+        conservation_ratio = 0.0
+
+    source_prj = target_prj = None
     if crs:
         source_prj = pyproj.Proj(crs)
         target_prj = pyproj.Proj(init='epsg:4326')
@@ -169,7 +239,7 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
     io.write('{"type": "FeatureCollection", "features": [\n')
     io.flush()
 
-    feature_count = 0
+    num_features_written = 0
     for feature in feature_collection:
         feature_ok = True
         if 'geometry' in feature:
@@ -180,29 +250,37 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
                 coordinates = geometry['coordinates']
                 # noinspection PyBroadException
                 try:
-                    coordinates = geometry_transform(source_prj, target_prj, simp_ratio, coordinates)
+                    geometry_conservation_ratio = conservation_ratio
+                    if conservation_ratio > 0.0:
+                        num_geometry_points = get_geometry_point_counter(geometry['type'])(geometry)
+                        if num_geometry_points > max_num_display_geometry_points:
+                            geometry_conservation_ratio = 0.0
+
+                    coordinates = geometry_transform(source_prj, target_prj,
+                                                     geometry_conservation_ratio,
+                                                     coordinates)
                     geometry['coordinates'] = coordinates
-                    if must_pointify:
+                    if geometry_conservation_ratio == 0.0:
                         geometry['type'] = 'Point'
-                        # print(geometry)
+                    if geometry_conservation_ratio < 1.0:
+                        feature['properties']['_gsr'] = int(100 * geometry_conservation_ratio + 0.5)
                 except Exception as e:
                     print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
                     feature_ok = False
                     pass
 
         if feature_ok:
-            if feature_count > 0:
+            if num_features_written > 0:
                 io.write(',\n')
                 io.flush()
             # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
-            print("a feature", feature)
             io.write(json.dumps(feature))
-            feature_count += 1
+            num_features_written += 1
 
     io.write('\n]}\n')
     io.flush()
 
-    return feature_count
+    return num_features_written
 
 
 @numba.jit(nopython=True)
@@ -243,21 +321,21 @@ def triangle_area(x_data: np.ndarray, y_data: np.ndarray, i0: int, i1: int, i2: 
 
 
 @numba.jit(forceobj=True)
-def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, simp_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
+def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, conservation_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Simplify a ring or line-string given by its coordinates *x_data* and *y_data* from *x_data.size* points to
-    int(*simp_ratio* * *x_data*.size + 0.5) points.
+    int(*conservation_ratio* * *x_data*.size + 0.5) points.
     A ring is detected by same start and end points. The first and last coordinates will always be
     maintained therefore the minimum number of resulting points is 3 for rings and 2 for line-strings.
 
     :param x_data: The x coordinates.
     :param y_data: The x coordinates.
-    :param simp_ratio: The simplification ratio, 0 <= *simp_ratio* <= 1.0.
+    :param conservation_ratio: The ratio of coordinates to be conserved, 0 <= *conservation_ratio* <= 1.
     :return: A pair comprising the simplified *x_data* and *y_data*.
     """
     is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
     old_point_count = int(x_data.size)
-    new_point_count = int(simp_ratio * old_point_count + 0.5)
+    new_point_count = int(conservation_ratio * old_point_count + 0.5)
     min_point_count = 4 if is_ring else 2
     if new_point_count < min_point_count:
         new_point_count = min_point_count
