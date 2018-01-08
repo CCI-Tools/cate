@@ -203,3 +203,130 @@ class TestDiff(TestCase):
             'lon': np.linspace(-178, 178, 90)})
         actual = reg_op(ds=dataset, ds2=dataset * 2)
         assert_dataset_equal(expected * -1, actual)
+
+
+# noinspection PyMethodMayBeStatic
+class ComputeTest(TestCase):
+
+    def test_plain_compute(self):
+        first = np.ones([45, 90, 3])
+        second = np.ones([45, 90, 3])
+        lon = np.linspace(-178, 178, 90)
+        lat = np.linspace(-88, 88, 45)
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'second': (['lat', 'lon', 'time'], second),
+            'lat': lat,
+            'lon': lon
+        })
+        actual = arithmetics.compute(dataset,
+                                     "6 * first - 3 * second",
+                                     "third")
+        expected = xr.Dataset({
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': lat,
+            'lon': lon
+        })
+        assert_dataset_equal(expected, actual)
+
+        actual = arithmetics.compute(dataset,
+                                     "6 * first - 3 * second",
+                                     "third",
+                                     copy=True)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'second': (['lat', 'lon', 'time'], second),
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': lat,
+            'lon': lon
+        })
+        assert_dataset_equal(expected, actual)
+
+    def test_registered_compute(self):
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
+        first = np.ones([45, 90, 3])
+        second = np.ones([45, 90, 3])
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'second': (['lat', 'lon', 'time'], second),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+        actual = reg_op(ds=dataset,
+                        expr="6 * first - 3 * second",
+                        var="third")
+        expected = xr.Dataset({
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+        assert_dataset_equal(expected, actual)
+
+        actual = reg_op(ds=dataset,
+                        expr="6 * first - 3 * second",
+                        var="third",
+                        copy=True)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'second': (['lat', 'lon', 'time'], second),
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90)})
+        assert_dataset_equal(expected, actual)
+
+    def test_plain_compute_with_context(self):
+        first = np.ones([45, 90, 3])
+        second = np.ones([45, 90, 3])
+        lon = np.linspace(-178, 178, 90)
+        lat = np.linspace(-88, 88, 45)
+
+        res_1 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'lat': lat,
+            'lon': lon
+        })
+        res_2 = xr.Dataset({
+            'second': (['lat', 'lon', 'time'], second),
+            'lat': lat,
+            'lon': lon
+        })
+
+        # Note, if executed from a workflow, _ctx will be set by the framework
+        _ctx = dict(value_cache=dict(res_1=res_1, res_2=res_2))
+        actual = arithmetics.compute(None,
+                                     "6 * res_1.first - 3 * res_2.second",
+                                     "third",
+                                     _ctx=_ctx)
+        expected = xr.Dataset({
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': lat,
+            'lon': lon})
+        assert_dataset_equal(expected, actual)
+
+    def test_registered_compute_with_context(self):
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
+        first = np.ones([45, 90, 3])
+        second = np.ones([45, 90, 3])
+        lon = np.linspace(-178, 178, 90)
+        lat = np.linspace(-88, 88, 45)
+
+        res_1 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], first),
+            'lat': lat,
+            'lon': lon
+        })
+        res_2 = xr.Dataset({
+            'second': (['lat', 'lon', 'time'], second),
+            'lat': lat,
+            'lon': lon
+        })
+
+        # Note, if executed from a workflow, _ctx will be set by the framework
+        _ctx = dict(value_cache=dict(res_1=res_1, res_2=res_2))
+        actual = reg_op(ds=None,
+                        expr="6 * res_1.first - 3 * res_2.second",
+                        var="third",
+                        _ctx=_ctx)
+        expected = xr.Dataset({
+            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
+            'lat': lat,
+            'lon': lon})
+        assert_dataset_equal(expected, actual)
