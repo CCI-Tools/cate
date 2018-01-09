@@ -33,8 +33,9 @@ import xarray as xr
 from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import DatasetLike
+from cate.core.types import DatasetLike, VarName
 from cate.util.monitor import Monitor
+from cate.util.safe import safe_eval
 
 
 @op(tags=['arithmetic'], version='1.0')
@@ -123,8 +124,8 @@ def diff(ds: xr.Dataset,
     """
     try:
         # Times do not intersect
-        if 0 == len(ds.time - ds2.time) and\
-           len(ds.time) == len(ds2.time):  # Times are the same length
+        if 0 == len(ds.time - ds2.time) and \
+                len(ds.time) == len(ds2.time):  # Times are the same length
             # If the datasets don't intersect in time dimension, a naive difference
             # would return empty data variables. Hence, the time coordinate has to
             # be dropped beforehand
@@ -155,3 +156,47 @@ def diff(ds: xr.Dataset,
         diff = ds - ds2
 
     return diff
+
+
+# noinspection PyIncorrectDocstring
+@op(tags=['arithmetic'], version='1.0')
+@op_input('ds', data_type=DatasetLike, nullable=True)
+@op_input('expr')
+@op_input('var', data_type=VarName)
+@op_input('copy')
+@op_input('_ctx', context=True)
+@op_return(add_history=True)
+def compute(ds: DatasetLike.TYPE,
+            expr: str,
+            var: VarName.TYPE,
+            copy: bool = False,
+            _ctx: dict = None,
+            monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+    """
+
+    :param ds: The primary dataset. If omitted, all variables need to be prefixed by their dataset resource names.
+    :param expr: Math expression in which all *ds* variables may be used by name.
+    :param var: The new variable's name.
+    :param copy: Whether to copy all variables from *ds*.
+    :param monitor: An optional progress monitor.
+    :return: A new dataset with the new variable.
+    """
+
+    if _ctx is not None and 'value_cache' in _ctx:
+        local_namespace = dict(_ctx['value_cache'])
+    else:
+        local_namespace = dict()
+
+    if ds is not None:
+        local_namespace.update(ds.data_vars)
+
+    with monitor.observing("Computing variable"):
+        data_array = safe_eval(expr, local_namespace=local_namespace)
+        data_array.name = var
+
+    if ds is not None and copy:
+        new_ds = ds.copy()
+        new_ds[var] = data_array
+    else:
+        new_ds = xr.Dataset(data_vars={var: data_array})
+    return new_ds
