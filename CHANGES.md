@@ -22,6 +22,10 @@
 
 * Cate wont work if installed on drive other than home drive
   [#466](https://github.com/CCI-Tools/cate/issues/466)
+* Region constraint'-option for AEROSOL dataset returns 'code 20' error
+  [#462](https://github.com/CCI-Tools/cate/issues/462)
+ * Address problems of a user working with Cloud and Aerosol
+  [#478](https://github.com/CCI-Tools/cate/issues/478)
 
 ## Version 1.0.0 (10.10.2017)
 
