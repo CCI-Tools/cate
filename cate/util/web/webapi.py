@@ -32,7 +32,7 @@ import time
 import traceback
 import urllib.request
 from datetime import datetime
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
@@ -350,7 +350,8 @@ class WebAPI:
         :param timeout: timeout in seconds
         """
         port = port or find_free_port()
-        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file, auto_stop_after)
+        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file,
+                                               auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
         t0 = time.clock()
@@ -439,6 +440,87 @@ class WebAPIRequestHandler(RequestHandler):
     def webapi(self) -> WebAPI:
         return WebAPI.get_webapi(self.application)
 
+    @classmethod
+    def to_int(cls, name: str, value: str):
+        """
+        Convert str value to int.
+        :param name: Name of the value
+        :param value: The string value
+        :return: The int value
+        :raise: WebAPIRequestError
+        """
+        if value is None:
+            raise WebAPIRequestError(message='%s must be an integer, but was None' % name)
+        try:
+            return int(value)
+        except ValueError as e:
+            raise WebAPIRequestError(message='%s must be an integer, but was "%s"' % (name, value), cause=e)
+
+    @classmethod
+    def to_int_list(cls, name: str, value: str):
+        """
+        Convert str value to int.
+        :param name: Name of the value
+        :param value: The string value
+        :return: The int value
+        :raise: WebAPIRequestError
+        """
+        if value is None:
+            raise WebAPIRequestError(message='%s must be a list of integers, but was None' % name)
+        try:
+            return list(map(int, value.split(','))) if value else []
+        except ValueError as e:
+            raise WebAPIRequestError(message='%s must be a list of integers, but was "%s"' % (name, value), cause=e)
+
+    @classmethod
+    def to_float(cls, name: str, value: str):
+        """
+        Convert str value to float.
+        :param name: Name of the value
+        :param value: The string value
+        :return: The float value
+        :raise: WebAPIRequestError
+        """
+        if value is None:
+            raise WebAPIRequestError(message='%s must be a number, but was None' % name)
+        try:
+            return float(value)
+        except ValueError as e:
+            raise WebAPIRequestError(message='%s must be a number, but was "%s"' % (name, value), cause=e)
+
+    def get_query_argument_int(self, name: str, default: int) -> Optional[int]:
+        """
+        Get query argument of type int.
+        :param name: Query argument name
+        :param default: Default value.
+        :return: int value
+        :raise: WebAPIRequestError
+        """
+        value = self.get_query_argument(name, default=None)
+        return self.to_int(name, value) if value is not None else default
+
+    def get_query_argument_int_list(self, name: str, default: List[int]) -> Optional[List[int]]:
+        """
+        Get query argument of type int list.
+        :param name: Query argument name
+        :param default: Default value.
+        :return: int list value
+        :raise: WebAPIRequestError
+        """
+        value = self.get_query_argument(name, default=None)
+        return self.to_int_list(name, value) if value is not None else default
+
+    def get_query_argument_float(self, name: str, default: float) -> Optional[float]:
+        """
+        Get query argument of type float.
+        :param name: Query argument name
+        :param default: Default value.
+        :return: float value
+        :raise: WebAPIRequestError
+        """
+        value = self.get_query_argument(name, default=None)
+        return self.to_float(name, value) if value is not None else default
+
     def on_finish(self):
         """
         Store time of last activity so we can measure time of inactivity and then optionally auto-exit.
@@ -449,6 +531,10 @@ class WebAPIRequestHandler(RequestHandler):
         self.write(dict(status='ok', content=content))
 
     def write_status_error(self, exception: Exception = None, type_name: str = None, message: str = None):
+        if message is not None:
+            print("ERROR: %s" % message)
+        if exception is not None:
+            traceback.print_exc()
         self.write(self._to_status_error(exception=exception, type_name=type_name, message=message))
 
     @classmethod
@@ -482,25 +568,43 @@ class WebAPIExitHandler(WebAPIRequestHandler):
         IOLoop.instance().add_callback(self.webapi.shut_down)
 
 
-class WebAPIServiceError(Exception):
+class WebAPIError(Exception):
     """
-    Exception which may be raised by the WebAPI class.
+    Exceptions thrown by the Cate WebAPI.
     """
 
     def __init__(self, cause, *args, **kwargs):
         if isinstance(cause, Exception):
-            super(WebAPIServiceError, self).__init__(str(cause), *args, **kwargs)
+            super(WebAPIError, self).__init__(str(cause), *args, **kwargs)
             _, _, tb = sys.exc_info()
             self.with_traceback(tb)
         elif isinstance(cause, str):
-            super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
+            super(WebAPIError, self).__init__(cause, *args, **kwargs)
         else:
-            super(WebAPIServiceError, self).__init__(*args, **kwargs)
+            super(WebAPIError, self).__init__(*args, **kwargs)
         self._cause = cause
 
     @property
     def cause(self):
         return self._cause
+
+
+class WebAPIServiceError(WebAPIError):
+    """
+    Exception which may be raised by the WebAPI class.
+    """
+
+    def __init__(self, cause, *args, **kwargs):
+        super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
+
+
+class WebAPIRequestError(Exception):
+    """
+    Exception which may be raised and handled within the WebAPIRequestHandler class.
+    """
+
+    def __init__(self, cause, *args, **kwargs):
+        super(WebAPIRequestError, self).__init__(cause, *args, **kwargs)
 
 
 def url_pattern(pattern: str):
