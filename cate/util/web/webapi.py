@@ -32,7 +32,7 @@ import time
 import traceback
 import urllib.request
 from datetime import datetime
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
@@ -441,7 +441,7 @@ class WebAPIRequestHandler(RequestHandler):
         return WebAPI.get_webapi(self.application)
 
     @classmethod
-    def to_int(cls, name: str, value: str):
+    def to_int(cls, name: str, value: str) -> int:
         """
         Convert str value to int.
         :param name: Name of the value
@@ -457,7 +457,7 @@ class WebAPIRequestHandler(RequestHandler):
             raise WebAPIRequestError(message='%s must be an integer, but was "%s"' % (name, value), cause=e)
 
     @classmethod
-    def to_int_list(cls, name: str, value: str):
+    def to_int_tuple(cls, name: str, value: str) -> Tuple[int, ...]:
         """
         Convert str value to int.
         :param name: Name of the value
@@ -468,12 +468,12 @@ class WebAPIRequestHandler(RequestHandler):
         if value is None:
             raise WebAPIRequestError(message='%s must be a list of integers, but was None' % name)
         try:
-            return list(map(int, value.split(','))) if value else []
+            return tuple(map(int, value.split(','))) if value else ()
         except ValueError as e:
             raise WebAPIRequestError(message='%s must be a list of integers, but was "%s"' % (name, value), cause=e)
 
     @classmethod
-    def to_float(cls, name: str, value: str):
+    def to_float(cls, name: str, value: str) -> float:
         """
         Convert str value to float.
         :param name: Name of the value
@@ -499,7 +499,7 @@ class WebAPIRequestHandler(RequestHandler):
         value = self.get_query_argument(name, default=None)
         return self.to_int(name, value) if value is not None else default
 
-    def get_query_argument_int_list(self, name: str, default: List[int]) -> Optional[List[int]]:
+    def get_query_argument_int_tuple(self, name: str, default: Tuple[int, ...]) -> Optional[Tuple[int, ...]]:
         """
         Get query argument of type int list.
         :param name: Query argument name
@@ -508,7 +508,7 @@ class WebAPIRequestHandler(RequestHandler):
         :raise: WebAPIRequestError
         """
         value = self.get_query_argument(name, default=None)
-        return self.to_int_list(name, value) if value is not None else default
+        return self.to_int_tuple(name, value) if value is not None else default
 
     def get_query_argument_float(self, name: str, default: float) -> Optional[float]:
         """

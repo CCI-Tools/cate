@@ -115,7 +115,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 return
 
             var_name = self.get_query_argument('var')
-            var_index = self.get_query_argument_int_list('index', default=[])
+            var_index = self.get_query_argument_int_tuple('index', default=[])
             cmap_name = self.get_query_argument('cmap', default='jet')
             cmap_min = self.get_query_argument_float('min', default=float('nan'))
             cmap_max = self.get_query_argument_float('max', default=float('nan'))
