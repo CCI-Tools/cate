@@ -18,7 +18,8 @@ class SimpleDataStore(ds.DataStore):
         super().__init__(id, title='Simple Test Store', is_local=True)
         self._data_sources = list(data_sources)
 
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[ds.DataSource]:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[
+        ds.DataSource]:
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
@@ -251,3 +252,39 @@ class IOTest(TestCase):
         small_expected = {'lat': (720,), 'time': (1,), 'lon': (1440,)}
         self.assertEqual(ds_small.chunks, small_expected)
         self.assertEqual(ds_large.chunks, large_expected)
+
+
+class DataAccessErrorTest(unittest.TestCase):
+    def test_plain(self):
+        try:
+            raise ds.DataAccessError("haha")
+        except ds.DataAccessError as e:
+            self.assertEqual(str(e), "haha")
+            self.assertEqual(e.source, None)
+            self.assertEqual(e.cause, None)
+
+    def test_with_cause(self):
+        e1 = ValueError("a > 5")
+        try:
+            raise ds.DataAccessError("hoho") from e1
+        except ds.DataAccessError as e2:
+            self.assertEqual(str(e2), "hoho")
+            self.assertIs(e2.source, None)
+            self.assertIs(e2.cause, e1)
+
+    def test_with_source(self):
+        store = SimpleDataStore('hihi', [])
+        try:
+            raise ds.DataAccessError("haha", source=store)
+        except ds.DataAccessError as e:
+            self.assertEqual(str(e), 'Data store "hihi": haha')
+            self.assertIs(e.source, store)
+            self.assertIs(e.cause, None)
+
+        source = SimpleDataSource('hehe')
+        try:
+            raise ds.DataAccessError("haha", source=source)
+        except ds.DataAccessError as e:
+            self.assertEqual(str(e), 'Data source "hehe": haha')
+            self.assertIs(e.source, source)
+            self.assertIs(e.cause, None)

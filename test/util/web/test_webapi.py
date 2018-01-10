@@ -40,3 +40,28 @@ class UrlPatternTest(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             webapi.url_pattern('/info/{{id}')
         self.assertEqual(str(cm.exception), 'no matching "}}" after "{{" in "/info/{{id}"')
+
+
+class WebAPIErrorTest(unittest.TestCase):
+    def test_plain(self):
+        self._plain(webapi.WebAPIServiceError)
+        self._plain(webapi.WebAPIRequestError)
+
+    def test_with_cause(self):
+        self._with_cause(webapi.WebAPIServiceError)
+        self._with_cause(webapi.WebAPIRequestError)
+
+    def _plain(self, cls):
+        try:
+            raise cls("haha")
+        except cls as e:
+            self.assertEqual(str(e), "haha")
+            self.assertEqual(e.cause, None)
+
+    def _with_cause(self, cls):
+        e1 = ValueError("a > 5")
+        try:
+            raise cls("hoho") from e1
+        except cls as e2:
+            self.assertEqual(str(e2), "hoho")
+            self.assertEqual(e2.cause, e1)

@@ -377,3 +377,20 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws2.base_dir, ws.base_dir)
         self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
         self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))
+
+
+class WorkspaceErrorTest(unittest.TestCase):
+    def test_plain(self):
+        try:
+            raise WorkspaceError("haha")
+        except WorkspaceError as e:
+            self.assertEqual(str(e), "haha")
+            self.assertEqual(e.cause, None)
+
+    def test_with_cause(self):
+        e1 = ValueError("a > 5")
+        try:
+            raise WorkspaceError("hoho") from e1
+        except WorkspaceError as e2:
+            self.assertEqual(str(e2), "hoho")
+            self.assertEqual(e2.cause, e1)

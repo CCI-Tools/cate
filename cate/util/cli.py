@@ -42,25 +42,17 @@ from .monitor import ConsoleMonitor, Monitor
 
 class CommandError(Exception):
     """
-    An exception type signaling command-line errors.
+    An error type signaling command-line errors.
 
-    :param cause: The cause which may be an ``Exception`` or a ``str``.
+    :param message: Error message
     """
 
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(CommandError, self).__init__(str(cause), *args, **kwargs)
-            _, _, tb = sys.exc_info()
-            self.with_traceback(tb)
-        elif isinstance(cause, str):
-            super(CommandError, self).__init__(cause, *args, **kwargs)
-        else:
-            super(CommandError, self).__init__(*args, **kwargs)
-        self._cause = cause
+    def __init__(self, message):
+        super().__init__(message)
 
     @property
     def cause(self):
-        return self._cause
+        return self.__cause__
 
 
 class Command(metaclass=ABCMeta):

@@ -253,7 +253,7 @@ class FSWorkspaceManager(WorkspaceManager):
                 monitor.progress(work=5)
                 return new_workspace
             except (IOError, OSError) as e:
-                raise WorkspaceError(e)
+                raise WorkspaceError(str(e)) from e
 
     def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -282,7 +282,7 @@ class FSWorkspaceManager(WorkspaceManager):
             try:
                 os.remove(workflow_file)
             except (IOError, OSError) as e:
-                raise WorkspaceError(e)
+                raise WorkspaceError(str(e)) from e
         old_workspace = self._open_workspaces.get(base_dir)
         if old_workspace:
             old_workspace.resource_cache.close()
@@ -302,7 +302,7 @@ class FSWorkspaceManager(WorkspaceManager):
         try:
             shutil.rmtree(workspace_dir)
         except (IOError, OSError) as e:
-            raise WorkspaceError(e)
+            raise WorkspaceError(str(e)) from e
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
