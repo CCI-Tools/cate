@@ -253,7 +253,7 @@ class WebAPI:
         try:
             with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout * 0.3) as response:
                 response.read()
-        except:
+        except Exception:
             # Either process does not exist, or timeout, or some other error
             pass
 
@@ -269,7 +269,7 @@ class WebAPI:
                 # noinspection PyBroadException
                 try:
                     os.kill(pid, signal.SIGTERM)
-                except:
+                except Exception:
                     pass
                 if os.path.isfile(service_info_file):
                     os.remove(service_info_file)
@@ -291,7 +291,7 @@ class WebAPI:
             # noinspection PyBroadException
             try:
                 self.auto_stop_timer.cancel()
-            except:
+            except Exception:
                 pass
         if condition:
             self.auto_stop_timer = threading.Timer(interval, self.shut_down)
@@ -325,7 +325,7 @@ class WebAPI:
             # noinspection PyBroadException
             try:
                 os.remove(service_info_file)
-            except:
+            except Exception:
                 pass
         IOLoop.instance().stop()
 
@@ -573,20 +573,8 @@ class WebAPIError(Exception):
     Exceptions thrown by the Cate WebAPI.
     """
 
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(WebAPIError, self).__init__(str(cause), *args, **kwargs)
-            _, _, tb = sys.exc_info()
-            self.with_traceback(tb)
-        elif isinstance(cause, str):
-            super(WebAPIError, self).__init__(cause, *args, **kwargs)
-        else:
-            super(WebAPIError, self).__init__(*args, **kwargs)
-        self._cause = cause
-
-    @property
-    def cause(self):
-        return self._cause
+    def __init__(self, message):
+        super().__init__(message)
 
 
 class WebAPIServiceError(WebAPIError):
@@ -594,17 +582,11 @@ class WebAPIServiceError(WebAPIError):
     Exception which may be raised by the WebAPI class.
     """
 
-    def __init__(self, cause, *args, **kwargs):
-        super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
 
-
-class WebAPIRequestError(Exception):
+class WebAPIRequestError(WebAPIError):
     """
     Exception which may be raised and handled within the WebAPIRequestHandler class.
     """
-
-    def __init__(self, cause, *args, **kwargs):
-        super(WebAPIRequestError, self).__init__(cause, *args, **kwargs)
 
 
 def url_pattern(pattern: str):
