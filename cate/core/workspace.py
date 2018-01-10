@@ -182,7 +182,7 @@ class Workspace:
 
             return workspace
         except (IOError, OSError) as e:
-            raise WorkspaceError(e)
+            raise WorkspaceError(str(e)) from e
 
     def close(self):
         if self._is_closed:
@@ -224,7 +224,7 @@ class Workspace:
 
                 self._is_modified = False
             except (IOError, OSError) as e:
-                raise WorkspaceError(e)
+                raise WorkspaceError(str(e)) from e
 
     def _write_resource_to_file(self, res_name):
         res_value = self._resource_cache.get(res_name)
@@ -406,7 +406,7 @@ class Workspace:
             try:
                 shutil.rmtree(self.workspace_dir)
             except (IOError, OSError) as e:
-                raise WorkspaceError(e)
+                raise WorkspaceError(str(e)) from e
 
     def delete_resource(self, res_name: str):
         with self._lock:
@@ -609,19 +609,16 @@ class Workspace:
                 "except for the first character, the digits 0 through 9." % res_name)
 
 
-# noinspection PyArgumentList
 class WorkspaceError(Exception):
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(WorkspaceError, self).__init__(str(cause), *args, **kwargs)
-            _, _, traceback = sys.exc_info()
-            self.with_traceback(traceback)
-        elif isinstance(cause, str):
-            super(WorkspaceError, self).__init__(cause, *args, **kwargs)
-        else:
-            super(WorkspaceError, self).__init__(*args, **kwargs)
-        self._cause = cause
+    """
+    Error raised by methods of the ``Workspace`` class.
+
+    :param message: Error message
+    """
+
+    def __init__(self, message):
+        super().__init__(message)
 
     @property
     def cause(self):
-        return self._cause
+        return self.__cause__

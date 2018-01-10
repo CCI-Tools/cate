@@ -350,7 +350,8 @@ class WebAPI:
         :param timeout: timeout in seconds
         """
         port = port or find_free_port()
-        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file, auto_stop_after)
+        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file,
+                                               auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
         t0 = time.clock()
@@ -455,6 +456,7 @@ class WebAPIRequestHandler(RequestHandler):
     def _to_status_error(cls, exception: Exception = None, type_name: str = None, message: str = None):
         trace_back = None
         if exception is not None:
+            # TODO (nf): check if we should/can use exception.__traceback__ here
             trace_back = traceback.format_exc()
             type_name = type_name or type(exception).__name__
             message = message or str(exception)
@@ -482,25 +484,29 @@ class WebAPIExitHandler(WebAPIRequestHandler):
         IOLoop.instance().add_callback(self.webapi.shut_down)
 
 
-class WebAPIServiceError(Exception):
+class WebAPIError(Exception):
     """
-    Exception which may be raised by the WebAPI class.
+    WepAPI error base class.
     """
 
-    def __init__(self, cause, *args, **kwargs):
-        if isinstance(cause, Exception):
-            super(WebAPIServiceError, self).__init__(str(cause), *args, **kwargs)
-            _, _, tb = sys.exc_info()
-            self.with_traceback(tb)
-        elif isinstance(cause, str):
-            super(WebAPIServiceError, self).__init__(cause, *args, **kwargs)
-        else:
-            super(WebAPIServiceError, self).__init__(*args, **kwargs)
-        self._cause = cause
+    def __init__(self, message: str):
+        super().__init__(message)
 
     @property
     def cause(self):
-        return self._cause
+        return self.__cause__
+
+
+class WebAPIServiceError(WebAPIError):
+    """
+    Exception which may be raised by the WebAPI service class.
+    """
+
+
+class WebAPIRequestError(WebAPIError):
+    """
+    Exception which may be raised and handled(!) by WebAPI service requests.
+    """
 
 
 def url_pattern(pattern: str):
