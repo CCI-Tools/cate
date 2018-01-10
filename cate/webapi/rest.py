@@ -72,12 +72,6 @@ __import__('cate.ds')
 __import__('cate.ops')
 
 
-class WebAPIRequestException(Exception):
-
-    def __init__(self, message, exception) -> None:
-        super().__init__(*args)
-
-
 # noinspection PyAbstractClass
 class NE2Handler(WebAPIRequestHandler):
     PYRAMID = NaturalEarth2Image.get_pyramid()
@@ -115,7 +109,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 return
 
             var_name = self.get_query_argument('var')
-            var_index = self.get_query_argument_int_tuple('index', default=[])
+            var_index = self.get_query_argument_int_tuple('index', ())
             cmap_name = self.get_query_argument('cmap', default='jet')
             cmap_min = self.get_query_argument_float('min', default=float('nan'))
             cmap_max = self.get_query_argument_float('max', default=float('nan'))
@@ -341,7 +335,8 @@ class ResFeatureHandler(WorkspaceResourceHandler):
             elif isinstance(resource, gpd.GeoDataFrame):
                 if not self._check_feature_index(feature_index, len(resource)):
                     return
-                # TODO (nf,mz): review & test following code, it is inspired by geopandas.GeoDataFrame.iterfeatures() impl.
+                # TODO (nf,mz): review & test following code,
+                # it is inspired by geopandas.GeoDataFrame.iterfeatures() impl.
                 row = resource[feature_index]
                 geometry = None
                 properties = row.to_dict()
@@ -398,6 +393,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
 
             # print("type:", type(var_data))
             # print(var_data.__dict__)
+            # noinspection PyBroadException
             try:
                 # TODO: remove this crappy threshold 1000
                 # assume var_data is a pandas.dataframe
@@ -407,6 +403,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
                     dataframe = dataframe[:1000]
                 csv = dataframe.to_csv()
             except Exception:
+                # noinspection PyBroadException
                 try:
                     # TODO: remove this crappy threshold 1000
                     # assume var_data is a xarray.dataset or xarray.dataarray
