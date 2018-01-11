@@ -307,7 +307,9 @@ def _transform_feature(feature: Feature,
                 if geometry_conservation_ratio == 0.0:
                     geometry['type'] = 'Point'
                 if geometry_conservation_ratio < 1.0:
-                    feature['properties']['_gsr'] = int(100 * geometry_conservation_ratio + 0.5)
+                    # We may mask other simplifications,
+                    # for time being (simp & 0x01) != 0 means, geometry is simplified
+                    feature['simp'] = 1
             except Exception as e:
                 print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
                 feature_ok = False
