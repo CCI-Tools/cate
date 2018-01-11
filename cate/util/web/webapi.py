@@ -456,7 +456,6 @@ class WebAPIRequestHandler(RequestHandler):
     def _to_status_error(cls, exception: Exception = None, type_name: str = None, message: str = None):
         trace_back = None
         if exception is not None:
-            # TODO (nf): check if we should/can use exception.__traceback__ here
             trace_back = traceback.format_exc()
             type_name = type_name or type(exception).__name__
             message = message or str(exception)
