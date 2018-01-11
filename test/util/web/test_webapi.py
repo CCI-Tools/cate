@@ -65,3 +65,42 @@ class WebAPIErrorTest(unittest.TestCase):
         except cls as e2:
             self.assertEqual(str(e2), "hoho")
             self.assertEqual(e2.cause, e1)
+
+
+class WebAPIRequestHandlerTest(unittest.TestCase):
+    def test_to_status_error_empty(self):
+        status = webapi.WebAPIRequestHandler._to_status_error()
+        self.assertEqual(status, {'status': 'error'})
+
+    def test_to_status_error_plain(self):
+        try:
+            raise ValueError("test message")
+        except ValueError as error:
+            status = webapi.WebAPIRequestHandler._to_status_error(error)
+            self.assertEqual(status['error']['message'], 'test message')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+            status = webapi.WebAPIRequestHandler._to_status_error(error, type_name="MyErrorType")
+            self.assertEqual(status['error']['message'], 'test message')
+            self.assertEqual(status['error']['type'], 'MyErrorType')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+            status = webapi.WebAPIRequestHandler._to_status_error(error, message="another message")
+            self.assertEqual(status['error']['message'], 'another message')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+    def test_to_status_error_chained(self):
+        error1 = ValueError("error 1")
+        try:
+            raise ValueError("error 2") from error1
+        except ValueError as error:
+            status = webapi.WebAPIRequestHandler._to_status_error(error)
+            self.assertEqual(status['error']['message'], 'error 2')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
