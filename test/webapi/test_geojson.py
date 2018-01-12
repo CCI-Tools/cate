@@ -83,7 +83,7 @@ class GeometryTransformTest(TestCase):
         transform = get_geometry_transform('MultiPolygon')
         self.assertIsNotNone(transform)
         transformed_coordinates = transform(None, None, 0.0, LARGE_MULTI_POLYGON)
-        self.assertEqual(len(transformed_coordinates), 13)
+        self.assertEqual(len(transformed_coordinates), 2)
         transformed_coordinates = transform(None, None, 0.5, LARGE_MULTI_POLYGON)
         self.assertEqual(len(transformed_coordinates), 13)
         transformed_coordinates = transform(None, None, 1.0, LARGE_MULTI_POLYGON)
@@ -121,8 +121,12 @@ class WriteFeatureCollectionTest(TestCase):
         self.assertEqual(num_written, 2)
         self.assertEqual(string_io.getvalue(),
                          '{"type": "FeatureCollection", "features": [\n'
-                         '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, "properties": {"id": "1", "a": 3, "b": true}},\n'
-                         '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, "properties": {"id": "2", "a": 9, "b": false}}\n'
+                         '{"type": "Feature", "geometry": {"type": "Polygon", '
+                         '"coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, '
+                         '"properties": {"id": "1", "a": 3, "b": true}},\n'
+                         '{"type": "Feature", "geometry": {"type": "Polygon", '
+                         '"coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, '
+                         '"properties": {"id": "2", "a": 9, "b": false}}\n'
                          ']}\n')
 
     def test_polygon_with_simp(self):
@@ -159,10 +163,10 @@ class WriteFeatureCollectionTest(TestCase):
                          '{"type": "FeatureCollection", "features": [\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, '
-                         '"properties": {"id": "1", "a": 3, "b": true, "_gsr": 50}},\n'
+                         '"properties": {"id": "1", "a": 3, "b": true}, "_simp": 1},\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, '
-                         '"properties": {"id": "2", "a": 9, "b": false, "_gsr": 50}}\n'
+                         '"properties": {"id": "2", "a": 9, "b": false}, "_simp": 1}\n'
                          ']}\n')
 
     def test_countries_with_simp(self):
