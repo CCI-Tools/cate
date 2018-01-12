@@ -73,7 +73,8 @@ def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                           conservation_ratio: float, line_string: LineString) -> Union[Point, LineString]:
+                           conservation_ratio: float, line_string: LineString) \
+        -> Union[Point, LineString]:
     must_reproject = source_prj is not None
     must_pointify = conservation_ratio == 0.0
     must_simplify = 0.0 <= conservation_ratio < 1.0
@@ -95,16 +96,19 @@ def _transform_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                       conservation_ratio: float, polygon: Polygon) -> Union[Point, Polygon]:
+                       conservation_ratio: float, polygon: Union[Polygon, MultiLineString]) \
+        -> Union[Point, Polygon, MultiLineString]:
     must_reproject = source_prj is not None
     must_pointify = conservation_ratio == 0.0
     must_simplify = 0.0 <= conservation_ratio < 1.0
     if not must_reproject and not must_simplify:
         return polygon
     if must_pointify:
-        ring = polygon[0]
-        x = np.array([coord[0] for coord in ring])
-        y = np.array([coord[1] for coord in ring])
+        ring_coords = []
+        for ring in polygon:
+            ring_coords.extend(ring)
+        x = np.array([coord[0] for coord in ring_coords])
+        y = np.array([coord[1] for coord in ring_coords])
         px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
         pointify_geometry(x, y, px, py)
         if must_reproject:
@@ -124,25 +128,42 @@ def _transform_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
 
 
 def _transform_multi_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                           conservation_ratio: float, multi_point: MultiPoint) -> MultiPoint:
+                           conservation_ratio: float, multi_point: MultiPoint) \
+        -> Union[Point, MultiPoint]:
     return _transform_line_string(source_prj, target_prj, conservation_ratio, multi_point)
 
 
 def _transform_multi_line_string(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                                 conservation_ratio: float, multi_line_string: MultiLineString) -> MultiLineString:
+                                 conservation_ratio: float, multi_line_string: MultiLineString) \
+        -> Union[Point, MultiLineString]:
     return _transform_polygon(source_prj, target_prj, conservation_ratio, multi_line_string)
 
 
 def _transform_multi_polygon(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
-                             conservation_ratio: float, multi_polygon: MultiPolygon) -> MultiPolygon:
+                             conservation_ratio: float, multi_polygon: MultiPolygon) \
+        -> Union[Point, MultiPolygon]:
     must_reproject = source_prj is not None
     must_simplify = 0.0 <= conservation_ratio < 1.0
+    must_pointify = conservation_ratio == 0.0
     if must_reproject or must_simplify:
-        transformed_multi_polygon = []
-        for polygon in multi_polygon:
-            transformed_polygon = _transform_polygon(source_prj, target_prj, conservation_ratio, polygon)
-            transformed_multi_polygon.append(transformed_polygon)
-        return transformed_multi_polygon
+        if must_pointify:
+            ring_coords = []
+            for polygon in multi_polygon:
+                for ring in polygon:
+                    ring_coords.extend(ring)
+            x = np.array([coord[0] for coord in ring_coords])
+            y = np.array([coord[1] for coord in ring_coords])
+            px, py = np.zeros(1, dtype=x.dtype), np.zeros(1, dtype=y.dtype)
+            pointify_geometry(x, y, px, py)
+            if must_reproject:
+                px, py = pyproj.transform(source_prj, target_prj, px, py)
+            return float(px[0]), float(py[0])
+        else:
+            transformed_multi_polygon = []
+            for polygon in multi_polygon:
+                transformed_polygon = _transform_polygon(source_prj, target_prj, conservation_ratio, polygon)
+                transformed_multi_polygon.append(transformed_polygon)
+            return transformed_multi_polygon
     return multi_polygon
 
 
@@ -216,6 +237,7 @@ def get_geometry_point_counter(type_name: str) -> GeometryPointCounter:
 def write_feature_collection(feature_collection: Union[fiona.Collection, Iterable[Feature]],
                              io,
                              crs=None,
+                             res_id: int = None,
                              num_features: int = None,
                              max_num_display_geometries: int = 1000,
                              max_num_display_geometry_points: int = 100,
@@ -250,6 +272,8 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
             if num_features_written > 0:
                 io.write(',\n')
                 io.flush()
+            if res_id is not None:
+                feature['_resId'] = res_id
             # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
             io.write(json.dumps(feature))
             num_features_written += 1
@@ -263,6 +287,7 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
 def write_feature(feature: Feature,
                   io,
                   crs=None,
+                  res_id: int = None,
                   max_num_display_geometry_points: int = 100,
                   conservation_ratio: float = 1.0):
 
@@ -276,6 +301,8 @@ def write_feature(feature: Feature,
                                     conservation_ratio,
                                     source_prj, target_prj)
     if feature_ok:
+        if res_id is not None:
+            feature['_resId'] = res_id
         # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
         io.write(json.dumps(feature))
         io.flush()
@@ -309,7 +336,7 @@ def _transform_feature(feature: Feature,
                 if geometry_conservation_ratio < 1.0:
                     # We may mask other simplifications,
                     # for time being (simp & 0x01) != 0 means, geometry is simplified
-                    feature['simp'] = 1
+                    feature['_simp'] = 0x01
             except Exception as e:
                 print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
                 feature_ok = False
@@ -330,7 +357,7 @@ def pointify_geometry(x_data: np.ndarray, y_data: np.ndarray, px: np.ndarray, py
     :param py: The point's resulting y coordinate.
     """
     is_ring = x_data[0] == x_data[-1] and y_data[0] == y_data[-1]
-    # TODO - must take care of anti-meridian in x_data
+    # TODO - must take care of anti-meridian in x_data if we have WGS84 coordinates
     if is_ring:
         px[0] = x_data[0:-1].mean()
         py[0] = y_data[0:-1].mean()

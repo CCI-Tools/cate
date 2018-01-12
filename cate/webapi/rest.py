@@ -275,7 +275,7 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
     @tornado.gen.coroutine
     def get(self, base_dir, res_id):
         try:
-            _, _, res_name, resource = self.get_workspace_resource(base_dir, res_id)
+            _, res_id, res_name, resource = self.get_workspace_resource(base_dir, res_id)
             level = self.get_query_argument_int('level', default=_NUM_GEOM_SIMP_LEVELS)
 
             if isinstance(resource, fiona.Collection):
@@ -302,6 +302,7 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                 self.set_header('Content-Type', 'application/json')
                 yield [THREAD_POOL.submit(write_feature_collection, features, self,
                                           crs=crs,
+                                          res_id=res_id,
                                           num_features=num_features,
                                           conservation_ratio=_level_to_conservation_ratio(level,
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
@@ -318,7 +319,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
     @tornado.gen.coroutine
     def get(self, base_dir, res_id, feature_index):
         try:
-            _, _, res_name, resource = self.get_workspace_resource(base_dir, res_id)
+            _, res_id, res_name, resource = self.get_workspace_resource(base_dir, res_id)
             feature_index = self.to_int('feature_index', feature_index)
             level = self.get_query_argument_int('level', default=_NUM_GEOM_SIMP_LEVELS)
 
@@ -361,6 +362,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                 self.set_header('Content-Type', 'application/json')
                 yield [THREAD_POOL.submit(write_feature, feature, self,
                                           crs=crs,
+                                          res_id=res_id,
                                           conservation_ratio=_level_to_conservation_ratio(level,
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
                 print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
