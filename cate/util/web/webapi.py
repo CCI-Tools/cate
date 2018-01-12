@@ -450,11 +450,11 @@ class WebAPIRequestHandler(RequestHandler):
         :raise: WebAPIRequestError
         """
         if value is None:
-            raise WebAPIRequestError(message='%s must be an integer, but was None' % name)
+            raise WebAPIRequestError('%s must be an integer, but was None' % name)
         try:
             return int(value)
         except ValueError as e:
-            raise WebAPIRequestError(message='%s must be an integer, but was "%s"' % (name, value), cause=e)
+            raise WebAPIRequestError('%s must be an integer, but was "%s"' % (name, value)) from e
 
     @classmethod
     def to_int_tuple(cls, name: str, value: str) -> Tuple[int, ...]:
@@ -466,11 +466,11 @@ class WebAPIRequestHandler(RequestHandler):
         :raise: WebAPIRequestError
         """
         if value is None:
-            raise WebAPIRequestError(message='%s must be a list of integers, but was None' % name)
+            raise WebAPIRequestError('%s must be a list of integers, but was None' % name)
         try:
             return tuple(map(int, value.split(','))) if value else ()
         except ValueError as e:
-            raise WebAPIRequestError(message='%s must be a list of integers, but was "%s"' % (name, value), cause=e)
+            raise WebAPIRequestError('%s must be a list of integers, but was "%s"' % (name, value)) from e
 
     @classmethod
     def to_float(cls, name: str, value: str) -> float:
@@ -482,11 +482,11 @@ class WebAPIRequestHandler(RequestHandler):
         :raise: WebAPIRequestError
         """
         if value is None:
-            raise WebAPIRequestError(message='%s must be a number, but was None' % name)
+            raise WebAPIRequestError('%s must be a number, but was None' % name)
         try:
             return float(value)
         except ValueError as e:
-            raise WebAPIRequestError(message='%s must be a number, but was "%s"' % (name, value), cause=e)
+            raise WebAPIRequestError('%s must be a number, but was "%s"' % (name, value)) from e
 
     def get_query_argument_int(self, name: str, default: int) -> Optional[int]:
         """
@@ -570,26 +570,13 @@ class WebAPIExitHandler(WebAPIRequestHandler):
 
 class WebAPIError(Exception):
     """
-    Exceptions thrown by the Cate WebAPI.
-    """
-
-    def __init__(self, message):
-        super().__init__(message)
-
-
-class WebAPIServiceError(WebAPIError):
-class WebAPIError(Exception):
-    """
     WepAPI error base class.
+    Exceptions thrown by the Cate WebAPI.
     """
 
     def __init__(self, message: str):
         super().__init__(message)
 
-class WebAPIRequestError(WebAPIError):
-    """
-    Exception which may be raised and handled within the WebAPIRequestHandler class.
-    """
     @property
     def cause(self):
         return self.__cause__
