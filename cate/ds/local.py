@@ -44,6 +44,8 @@ import shutil
 import uuid
 import warnings
 import xarray as xr
+import shapely.geometry
+
 from collections import OrderedDict
 from datetime import datetime
 from dateutil import parser
@@ -55,7 +57,7 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, \
     DataSource, \
     open_xarray_dataset
-from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 from cate.util.opimpl import subset_spatial_impl, normalize_impl
 
@@ -606,7 +608,7 @@ class LocalDataStore(DataStore):
     @classmethod
     def generate_uuid(cls, ref_id: str,
                       time_range: Optional[TimeRange] = None,
-                      region: Optional[Polygon] = None,
+                      region: Optional[shapely.geometry.Polygon] = None,
                       var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
@@ -621,7 +623,7 @@ class LocalDataStore(DataStore):
     @classmethod
     def generate_title(cls, title: str,
                        time_range: Optional[TimeRange] = None,
-                       region: Optional[Polygon] = None,
+                       region: Optional[shapely.geometry.Polygon] = None,
                        var_names: Optional[VarNames] = None) -> str:
 
         if time_range:
