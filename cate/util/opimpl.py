@@ -396,6 +396,11 @@ def subset_spatial_impl(ds: xr.Dataset,
     not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
+
+    if not region.is_valid:
+        # Heal polygon, see #506 and Shapely User Manual
+        region = region.buffer(0)
+
     # Get the bounding box
     lon_min, lat_min, lon_max, lat_max = region.bounds
 
@@ -480,19 +485,12 @@ def _crosses_antimeridian(region: Polygon) -> bool:
 
     :param region: Polygon to test
     """
+
     # Retrieving the points of the Polygon are a bit troublesome, parsing WKT
     # is more straightforward and probably faster
     new_wkt = 'POLYGON (('
 
-    # TODO (forman): @JanisGailis this is probably the most inefficient antimeridian-crossing-test I've ever seen :D
-    #      What is the problem in using the exterior longitude coordinates?
-    #      Please note:
-    #      - WKT parsing and formatting is actually NEVER faster than direct coordinate access (C-impl.!)
-    #      - The polygon's interior can be neglected, only the exterior is required for the test
-    #      - Area computations as used here are probably expensive.
-    #      - An accurate and really fast test takes the orientation into account (polygon.is_ccw)
-    #        and detects intersections of each segement with the antimeridian line.
-
+    # TODO (forman): improve this very inefficient coordinate normalisation. Use Shapely directly!
     # [10:-2] gets rid of POLYGON (( and ))
     for point in dumps(region)[10:-2].split(','):
         point = point.strip()
@@ -505,14 +503,22 @@ def _crosses_antimeridian(region: Polygon) -> bool:
 
     converted = loads(new_wkt)
 
-    # There's a problem at this point. Any polygon crossed by the zeroth
+    # There's a problem at this point. Any polygon crossed by the zero-th
     # meridian can in principle convert to an inverted polygon that is crossed
     # by the antimeridian.
 
     if not converted.is_valid:
         # The polygon 'became' invalid upon conversion => probably the original
         # polygon is what we want
-        return False
+
+        # noinspection PyBroadException
+        try:
+            # First try cleaning up geometry that is invalid
+            converted = converted.buffer(0)
+        except BaseException:
+            pass
+        if not converted.is_valid:
+            return False
 
     test_line = LineString([(180, -90), (180, 90)])
     if test_line.crosses(converted):
