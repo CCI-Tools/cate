@@ -166,12 +166,12 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
                         combined_json_dict.get('response', {}).get('docs', []).extend(docs)
                         if num_found < offset + limit:
                             break
-            except (urllib.error.HTTPError, urllib.error.URLError) as error:
-                raise DataAccessError(None, "Open Data Portal index download failed, {}\n{}"
-                                            .format(error, base_url))
+            except (urllib.error.HTTPError, urllib.error.URLError) as e:
+                raise DataAccessError("Downloading CCI Open Data Portal index failed: {}\n{}"
+                                      .format(e, base_url)) from e
             except socket.timeout:
-                raise DataAccessError(None, "Open Data Portal index download failed, connection timeout\n{}"
-                                            .format(base_url))
+                raise DataAccessError("Downloading CCI Open Data Portal index failed: connection timeout\n{}"
+                                      .format(base_url))
             offset += limit
     return combined_json_dict
 
@@ -237,7 +237,7 @@ def _load_or_fetch_json(fetch_json_function,
                     json_obj = json.loads(json_text)
             else:
                 if isinstance(e, DataAccessError):
-                    raise DataAccessError(None, "Cannot fetch information from Open Data Portal server.")
+                    raise DataAccessError("Cannot fetch information from CCI Open Data Portal server.") from e
                 else:
                     raise e
 
@@ -389,8 +389,8 @@ class EsaCciOdpDataStore(DataStore):
                                                 cache_json_filename='catalogue.json',
                                                 cache_timestamp_filename='catalogue-timestamp.json',
                                                 cache_expiration_days=self._index_cache_expiration_days)
-        except DataAccessError:
-            raise DataAccessError(self, "Cannot download Open Data Portal ECV index")
+        except DataAccessError as e:
+            raise DataAccessError("Cannot download CCI Open Data Portal ECV index:\n{}".format(e), source=self) from e
 
         self._csw_data = csw_json_dict
         self._esgf_data = esgf_json_dict
@@ -624,10 +624,10 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
+            msg = 'CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise DataAccessError(None, msg)
+            raise DataAccessError(msg)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
@@ -641,13 +641,13 @@ class EsaCciOdpDataSource(DataSource):
 
         except OSError as e:
             if time_range:
-                raise DataAccessError(self, "Cannot open remote dataset for time range: {}\n"
-                                            "Error details: {}"
-                                      .format(TimeRangeLike.format(time_range), e))
+                raise DataAccessError("Cannot open remote dataset for time range {}:\n"
+                                      "{}"
+                                      .format(TimeRangeLike.format(time_range), e), source=self) from e
             else:
-                raise DataAccessError(self, "Cannot open remote dataset\n"
-                                            "Error details: {}"
-                                      .format(TimeRangeLike.format(time_range), e))
+                raise DataAccessError("Cannot open remote dataset:\n"
+                                      "{}"
+                                      .format(TimeRangeLike.format(time_range), e), source=self) from e
 
     @staticmethod
     def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
@@ -702,10 +702,10 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'Open Data Portal\'s data source \'{}\' does not seem to have any data sets'.format(self.id)
+            msg = 'CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise DataAccessError(None, msg)
+            raise DataAccessError(msg)
         try:
             if protocol == _ODP_PROTOCOL_OPENDAP:
 
@@ -811,8 +811,8 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = coverage_from
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
-        except OSError as error:
-            raise DataAccessError(self, "Copying remote datasource failed, {}".format(error))
+        except OSError as e:
+            raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
         local_ds.save(True)

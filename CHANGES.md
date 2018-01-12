@@ -20,6 +20,9 @@
 
 ### Fixes
 
+* Be tolerant of "invalid" geometries passed to operations expecting
+  polygon WKT values
+  [#506](https://github.com/CCI-Tools/cate/issues/506)
 * Cate wont work if installed on drive other than home drive
   [#466](https://github.com/CCI-Tools/cate/issues/466)
 * Region constraint'-option for AEROSOL dataset returns 'code 20' error

@@ -285,7 +285,8 @@ class PolygonLikeTest(TestCase):
 
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
-        self.assertEqual(str(err.exception), 'cannot convert value <aaa> to PolygonLike')
+        self.assertEqual(str(err.exception),
+                         "cannot convert value to PolygonLike: could not convert string to float: 'aaa'")
 
     def test_format(self):
         self.assertEqual(PolygonLike.format(None), '')

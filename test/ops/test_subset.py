@@ -208,10 +208,14 @@ class TestSubsetSpatial(TestCase):
         self.assertEqual(20, len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
-        pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
-                  '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
-                  '12.897489183755905,161.89453125 26.745610382199025,162.0703125'
-                  '39.639537564366705))')
+        antimeridian_pol = str('POLYGON(('
+                               '162.0703125 39.639537564366705,'
+                               '-155.390625 39.774769485295465,'
+                               '-155.56640625 12.726084296948184,'
+                               '162.24609375 12.897489183755905,'
+                               '161.89453125 26.745610382199025,'
+                               '162.0703125 39.639537564366705'
+                               '))')
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
             'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
@@ -219,16 +223,20 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
 
         with self.assertRaises(Exception) as cm:
-            subset.subset_spatial(dataset, pol)
+            subset.subset_spatial(dataset, antimeridian_pol)
         self.assertEqual(str(cm.exception),
-                         "input 'region' for operation 'cate.ops.subset.subset_spatial': "
-                         "cannot convert value <POLYGON((162.0703125 39.63953756436670...> to PolygonLike")
+                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
+                         "rectangular polygons only.")
 
     def test_antimeridian_arbitrary_inverted(self):
-        pol = str('POLYGON((162.0703125 39.639537564366705,-155.390625'
-                  '39.774769485295465,-155.56640625 12.726084296948184,162.24609375'
-                  '12.897489183755905,161.89453125 26.745610382199025,162.0703125'
-                  '39.639537564366705))')
+        antimeridian_pol = str('POLYGON(('
+                               '162.0703125 39.639537564366705,'
+                               '-155.390625 39.774769485295465,'
+                               '-155.56640625 12.726084296948184,'
+                               '162.24609375 12.897489183755905,'
+                               '161.89453125 26.745610382199025,'
+                               '162.0703125 39.639537564366705'
+                               '))')
         # Inverted lat
         dataset = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
@@ -237,10 +245,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
 
         with self.assertRaises(Exception) as cm:
-            subset.subset_spatial(dataset, pol)
+            subset.subset_spatial(dataset, antimeridian_pol)
         self.assertEqual(str(cm.exception),
-                         "input 'region' for operation 'cate.ops.subset.subset_spatial': "
-                         "cannot convert value <POLYGON((162.0703125 39.63953756436670...> to PolygonLike")
+                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
+                         "rectangular polygons only.")
 
 
 class TestSubsetTemporal(TestCase):

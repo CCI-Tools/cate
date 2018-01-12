@@ -49,12 +49,13 @@ from datetime import datetime
 from dateutil import parser
 from glob import glob
 from typing import Optional, Sequence, Union, Any, Tuple
-from shapely.geometry import Polygon
+
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, \
-    DataStore, DataSource, open_xarray_dataset
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, \
+    DataSource, \
+    open_xarray_dataset
+from cate.core.types import Polygon, PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 from cate.util.opimpl import subset_spatial_impl, normalize_impl
 
@@ -155,8 +156,8 @@ class LocalDataSource(DataSource):
             for i in range(len(time_series)):
                 if time_series[i]:
                     if isinstance(time_series[i], Tuple) and \
-                                    time_series[i][0] >= time_range[0] and \
-                                    time_series[i][1] <= time_range[1]:
+                            time_series[i][0] >= time_range[0] and \
+                            time_series[i][1] <= time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
                     elif isinstance(time_series[i], datetime) and time_range[0] <= time_series[i] < time_range[1]:
                         paths.extend(self._resolve_file_path(file_paths[i]))
@@ -175,19 +176,19 @@ class LocalDataSource(DataSource):
                 return ds
             except OSError as e:
                 if time_range:
-                    raise DataAccessError(self, "Cannot open local dataset for time range: {}\n"
-                                                "Error details: {}"
-                                          .format(TimeRangeLike.format(time_range), e))
+                    raise DataAccessError("Cannot open local dataset for time range {}:\n"
+                                          "{}"
+                                          .format(TimeRangeLike.format(time_range), e), source=self) from e
                 else:
-                    raise DataAccessError(self, "Cannot open local dataset\n"
-                                                "Error details: {}"
-                                          .format(TimeRangeLike.format(time_range), e))
+                    raise DataAccessError("Cannot open local dataset:\n"
+                                          "{}"
+                                          .format(e), source=self) from e
         else:
             if time_range:
-                raise DataAccessError(self, "No data sets available for specified time range {}".format(
-                    TimeRangeLike.format(time_range)), paths)
+                raise DataAccessError("No local datasets available for\nspecified time range {}".format(
+                    TimeRangeLike.format(time_range)), source=self)
             else:
-                raise DataAccessError(self, "No data sets available")
+                raise DataAccessError("No local datasets available", source=self)
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
@@ -546,7 +547,7 @@ class LocalDataSource(DataSource):
                     if file_details_length > 2:
                         files_dict = OrderedDict((item[0], (parser.parse(item[1]).replace(microsecond=0),
                                                             parser.parse(item[2]).replace(microsecond=0))
-                                                  if item[1] and item[2] else None) for item in files)
+                        if item[1] and item[2] else None) for item in files)
                     elif file_details_length > 0:
                         files_dict = OrderedDict((item[0], parser.parse(item[1]).replace(microsecond=0))
                                                  if len(item) > 1 else (item[0], None) for item in files)
@@ -665,15 +666,15 @@ class LocalDataStore(DataStore):
                                 if writer_timestamp > writer_create_time:
                                     writer_create_time = int(psutil.Process(writer_pid).create_time() * 1000000)
                                 if writer_create_time == writer_timestamp:
-                                    raise DataAccessError(self, "Data source '{}' is currently being created by other "
-                                                                "process (pid:{})". format(ds.id, writer_pid))
+                                    raise DataAccessError('Data source "{}" is currently being created by another '
+                                                          'process (pid:{})'.format(ds.id, writer_pid), source=self)
                             # ds.temporal_coverage() == time_range and
                             if ds.spatial_coverage() == region \
                                     and ds.variables_info == var_names:
                                 data_source = ds
                                 data_source.set_completed(False)
                                 break
-                raise DataAccessError(self, "Data source '{}' already exists.". format(data_source_id))
+                raise DataAccessError('Data source "{}" already exists.'.format(data_source_id), source=self)
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           variables=var_names, temporal_coverage=time_range, meta_info=meta_info,
@@ -712,7 +713,7 @@ class LocalDataStore(DataStore):
             rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_source._repr_html_()))
         return '<p>Contents of LocalFilePatternDataStore "%s"</p><table>%s</table>' % (self.id, '\n'.join(rows))
 
-    def _init_data_sources(self, skip_broken: bool=True):
+    def _init_data_sources(self, skip_broken: bool = True):
         """
 
         :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
@@ -754,7 +755,8 @@ class LocalDataStore(DataStore):
             with open(file_name, 'w') as fp:
                 json.dump(json_dict, fp, **dump_kwargs)
         except EnvironmentError as e:
-            raise DataAccessError(self, "Couldn't save Data Source config file {}\n{}".format(file_name, e.strerror))
+            raise DataAccessError("Couldn't save data source config file {}\n"
+                                  "{}".format(file_name, e), source=self) from e
 
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
@@ -767,10 +769,10 @@ class LocalDataStore(DataStore):
             try:
                 with open(json_path) as fp:
                     return json.load(fp=fp) or {}
-            except json.decoder.JSONDecodeError:
-                raise DataAccessError(None, "Cannot load data source config, {}".format(json_path))
+            except json.decoder.JSONDecodeError as e:
+                raise DataAccessError("Cannot load data source config from {}".format(json_path)) from e
         else:
-            raise DataAccessError(None, "Data source config does not exists, {}".format(json_path))
+            raise DataAccessError("Data source config does not exists: {}".format(json_path))
 
     @staticmethod
     def _json_default_serializer(obj):

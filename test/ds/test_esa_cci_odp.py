@@ -226,8 +226,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 empty_ds_timerange = (datetime.datetime(2017, 12, 1, 0, 0), datetime.datetime(2017, 12, 31, 23, 59))
                 with self.assertRaises(DataAccessError) as cm:
                     soilmoisture_data_source.make_local('empty_ds', time_range=empty_ds_timerange)
-                self.assertEqual("Open Data Portal's data source '{}' does not seem to have any data sets in given "
-                                 "time range {}".format(soilmoisture_data_source.id,
+                self.assertEqual('CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets in given '
+                                 'time range {}'.format(soilmoisture_data_source.id,
                                                         TimeRangeLike.format(empty_ds_timerange)),
                                  str(cm.exception))
 

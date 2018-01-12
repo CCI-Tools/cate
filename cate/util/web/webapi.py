@@ -578,14 +578,32 @@ class WebAPIError(Exception):
 
 
 class WebAPIServiceError(WebAPIError):
+class WebAPIError(Exception):
     """
-    Exception which may be raised by the WebAPI class.
+    WepAPI error base class.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+class WebAPIRequestError(WebAPIError):
+    """
+    Exception which may be raised and handled within the WebAPIRequestHandler class.
+    """
+    @property
+    def cause(self):
+        return self.__cause__
+
+
+class WebAPIServiceError(WebAPIError):
+    """
+    Exception which may be raised by the WebAPI service class.
     """
 
 
 class WebAPIRequestError(WebAPIError):
     """
-    Exception which may be raised and handled within the WebAPIRequestHandler class.
+    Exception which may be raised and handled(!) by WebAPI service requests.
     """
 
 

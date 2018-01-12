@@ -49,7 +49,7 @@ class LocalDataStoreTest(unittest.TestCase):
 
         with self.assertRaises(DataAccessError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual("DataStore '{}' returned error: Data source '{}.{}' already exists.".format(
+        self.assertEqual('Data store "{}": Data source "{}.{}" already exists.'.format(
             self.data_store.id, self.data_store.id, new_ds_name), str(cm.exception))
 
         data_sources = self.data_store.query()

@@ -387,11 +387,12 @@ class PolygonLike(Like[shapely.geometry.Polygon]):
         if value is None:
             return None
 
+        # Note: we don't use cls.assert_value_ok(False, value) here, as value may be a VERY large WKT string!
+
         # noinspection PyBroadException
         try:
             if isinstance(value, shapely.geometry.Polygon):
-                if value.is_valid:
-                    return value
+                polygon = value
             elif isinstance(value, str):
                 value = value.strip()
                 if value == '':
@@ -401,21 +402,26 @@ class PolygonLike(Like[shapely.geometry.Polygon]):
                 else:
                     val = [float(x) for x in value.split(',')]
                     polygon = shapely.geometry.box(val[0], val[1], val[2], val[3])
-                if polygon.is_valid:
-                    return polygon
             else:
                 # noinspection PyBroadException
                 try:
                     polygon = shapely.geometry.Polygon(value)
-                    if polygon.is_valid:
-                        return polygon
                 except Exception:
-                    return shapely.geometry.box(float(value[0]), float(value[1]),
-                                                float(value[2]), float(value[3]))
-        except Exception:
-            pass
+                    polygon = shapely.geometry.box(float(value[0]), float(value[1]),
+                                                   float(value[2]), float(value[3]))
+        except Exception as e:
+            raise ValueError('cannot convert value to %s: %s' % (cls.name(), str(e))) from e
 
-        cls.assert_value_ok(False, value)
+        if not polygon.is_valid:
+            # Heal polygon, see #506 and Shapely User Manual
+            polygon = polygon.buffer(0)
+            if not polygon.is_valid:
+                raise ValueError('cannot convert value to %s, polygon is invalid' % cls.name())
+
+        if polygon.is_empty:
+            raise ValueError('cannot convert value to %s, polygon is empty' % cls.name())
+
+        return polygon
 
     @classmethod
     def format(cls, value: Optional[shapely.geometry.Polygon]) -> str:

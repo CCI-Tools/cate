@@ -40,3 +40,67 @@ class UrlPatternTest(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             webapi.url_pattern('/info/{{id}')
         self.assertEqual(str(cm.exception), 'no matching "}}" after "{{" in "/info/{{id}"')
+
+
+class WebAPIErrorTest(unittest.TestCase):
+    def test_plain(self):
+        self._plain(webapi.WebAPIServiceError)
+        self._plain(webapi.WebAPIRequestError)
+
+    def test_with_cause(self):
+        self._with_cause(webapi.WebAPIServiceError)
+        self._with_cause(webapi.WebAPIRequestError)
+
+    def _plain(self, cls):
+        try:
+            raise cls("haha")
+        except cls as e:
+            self.assertEqual(str(e), "haha")
+            self.assertEqual(e.cause, None)
+
+    def _with_cause(self, cls):
+        e1 = ValueError("a > 5")
+        try:
+            raise cls("hoho") from e1
+        except cls as e2:
+            self.assertEqual(str(e2), "hoho")
+            self.assertEqual(e2.cause, e1)
+
+
+class WebAPIRequestHandlerTest(unittest.TestCase):
+    def test_to_status_error_empty(self):
+        status = webapi.WebAPIRequestHandler._to_status_error()
+        self.assertEqual(status, {'status': 'error'})
+
+    def test_to_status_error_plain(self):
+        try:
+            raise ValueError("test message")
+        except ValueError as error:
+            status = webapi.WebAPIRequestHandler._to_status_error(error)
+            self.assertEqual(status['error']['message'], 'test message')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+            status = webapi.WebAPIRequestHandler._to_status_error(error, type_name="MyErrorType")
+            self.assertEqual(status['error']['message'], 'test message')
+            self.assertEqual(status['error']['type'], 'MyErrorType')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+            status = webapi.WebAPIRequestHandler._to_status_error(error, message="another message")
+            self.assertEqual(status['error']['message'], 'another message')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
+
+    def test_to_status_error_chained(self):
+        error1 = ValueError("error 1")
+        try:
+            raise ValueError("error 2") from error1
+        except ValueError as error:
+            status = webapi.WebAPIRequestHandler._to_status_error(error)
+            self.assertEqual(status['error']['message'], 'error 2')
+            self.assertEqual(status['error']['type'], 'ValueError')
+            self.assertIsNotNone(status['error']['traceback'])
+            self.assertEqual(status['status'], 'error')
