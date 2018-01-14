@@ -39,7 +39,7 @@ import ast
 import io
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, date
-from typing import Any, Generic, TypeVar, List, Union, Tuple, Optional
+from typing import Generic, TypeVar, Union, Optional, Any, Tuple, List
 
 import geopandas
 import pandas
@@ -48,6 +48,7 @@ import shapely.geometry
 import shapely.geometry.base
 import shapely.wkt
 import xarray
+from shapely.errors import ShapelyError
 
 from ..util.misc import to_list, to_datetime_range, to_datetime
 from ..util.opimpl import adjust_temporal_attrs_impl
@@ -325,110 +326,87 @@ class DictLike(Like[dict]):
         return ', '.join(['%s=%s' % (k, repr(v)) for k, v in value.items()]) if value else ''
 
 
-class PointLike(Like[shapely.geometry.Point]):
-    """
-    Type class for geometric shapely.geometry.Point objects
-
-    Accepts:
-        1. a Shapely shapely.geometry.Point
-        2. a string 'lon,lat'
-        4. a WKT string "POINT (lon lat)"
-        5. a tuple (lon, lat)
-
-    Converts to a Shapely shapely.geometry.Point object.
-    """
-    TYPE = Union[shapely.geometry.Point, str, Tuple[float, float]]
+class BaseGeometryLike(Generic[T], Like[T], metaclass=ABCMeta):
 
     @classmethod
-    def convert(cls, value: Any) -> Optional[shapely.geometry.Point]:
-        if value is None:
-            return None
-
-        # noinspection PyBroadException
-        try:
-            if isinstance(value, shapely.geometry.Point):
-                return value
-            elif isinstance(value, str):
-                value = value.strip()
-                if value == '':
-                    return None
-                if value[:5].lower() == 'point':
-                    return shapely.wkt.loads(value)
-                else:
-                    pair = value.split(',')
-                    return shapely.geometry.Point(float(pair[0]), float(pair[1]))
-            return shapely.geometry.Point(value[0], value[1])
-        except Exception:
-            cls.assert_value_ok(False, value)
-
-    @classmethod
-    def format(cls, value: Optional[shapely.geometry.Point]) -> str:
-        return "%s, %s" % (value.x, value.y) if value else ''
-
-
-class PolygonLike(Like[shapely.geometry.Polygon]):
-    """
-    Type class for geometric shapely.geometry.Polygon objects
-
-    Accepts:
-        1. a ``shapely.geometry.shapely.geometry.Polygon`` object
-        2. a string "min_lon, min_lat, max_lon, max_lat"
-        3. a WKT string "POLYGON ((RING))" or "POLYGON ((OUTER-RING), (INNER-RING), ...)"
-        4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
-        5. a list or tuple [min_lon, min_lat, max_lon, max_lat]
-
-    Converts to a valid Shapely shapely.geometry.Polygon.
-    """
-    TYPE = Union[shapely.geometry.Polygon, List[Tuple[float, float]],
-                 str, Tuple[float, float, float, float]]
-
-    @classmethod
-    def convert(cls, value: Any) -> Optional[shapely.geometry.Polygon]:
-        if value is None:
-            return None
-
-        # Note: we don't use cls.assert_value_ok(False, value) here, as value may be a VERY large WKT string!
-
-        # noinspection PyBroadException
-        try:
-            if isinstance(value, shapely.geometry.Polygon):
-                polygon = value
-            elif isinstance(value, str):
-                value = value.strip()
-                if value == '':
-                    return None
-                if value[:7].lower() == 'polygon':
-                    polygon = shapely.wkt.loads(value)
-                else:
-                    val = [float(x) for x in value.split(',')]
-                    polygon = shapely.geometry.box(val[0], val[1], val[2], val[3])
-            else:
-                # noinspection PyBroadException
-                try:
-                    polygon = shapely.geometry.Polygon(value)
-                except Exception:
-                    polygon = shapely.geometry.box(float(value[0]), float(value[1]),
-                                                   float(value[2]), float(value[3]))
-        except Exception as e:
-            raise ValueError('cannot convert value to %s: %s' % (cls.name(), str(e))) from e
-
-        if not polygon.is_valid:
-            # Heal polygon, see #506 and Shapely User Manual
-            polygon = polygon.buffer(0)
-            if not polygon.is_valid:
-                raise ValueError('cannot convert value to %s, polygon is invalid' % cls.name())
-
-        if polygon.is_empty:
-            raise ValueError('cannot convert value to %s, polygon is empty' % cls.name())
-
-        return polygon
-
-    @classmethod
-    def format(cls, value: Optional[shapely.geometry.Polygon]) -> str:
+    def format(cls, value: shapely.geometry.base.BaseGeometry) -> str:
         return value.wkt if value else ''
 
+    @classmethod
+    def to_geometry(cls, value: Any, geom_type: type = shapely.geometry.base.BaseGeometry) \
+            -> Optional[shapely.geometry.base.BaseGeometry]:
+        if value is None:
+            return None
 
-class GeometryLike(Like[shapely.geometry.base.BaseGeometry]):
+        if isinstance(value, geom_type):
+            # Compatible!
+            # noinspection PyTypeChecker
+            return value
+
+        if isinstance(value, shapely.geometry.base.BaseGeometry):
+            # Incompatible!
+            raise ValueError(cls.errmsg("passed geometry type is incompatible"))
+
+        # Try converting to compatible type
+        if isinstance(value, str):
+            value = value.strip()
+            if value == '':
+                # Empty strings are same as None
+                return None
+
+            try:
+                try:
+                    coordinates = [float(v) for v in value.split(',', maxsplit=3)]
+                    if len(coordinates) == 2 and cls._is_compatible_type(geom_type, shapely.geometry.Point):
+                        # Point "x, y"?
+                        x, y = coordinates
+                        return shapely.geometry.Point(x, y)
+                    elif len(coordinates) == 4 and cls._is_compatible_type(geom_type, shapely.geometry.Polygon):
+                        # Polygon box "x1, y1, x2, y2"?
+                        x1, y1, x2, y2 = coordinates
+                        return shapely.geometry.box(x1, y1, x2, y2)
+                except (ValueError, TypeError):
+                    # Geometry WKT?
+                    return shapely.wkt.loads(value)
+            except (ShapelyError, ValueError, TypeError) as e:
+                raise ValueError(cls.errmsg('invalid geometry WKT format')) from e
+
+            raise ValueError(cls.errmsg("unrecognized text format"))
+
+        if cls._is_compatible_type(geom_type, shapely.geometry.Point):
+            try:
+                # Coordinates list that forms a polygon?
+                return shapely.geometry.Point(value)
+            except (ShapelyError, ValueError, TypeError):
+                pass
+
+        if cls._is_compatible_type(geom_type, shapely.geometry.Polygon):
+            try:
+                # Coordinates list that forms a polygon?
+                return shapely.geometry.Polygon(value)
+            except (ShapelyError, ValueError, TypeError):
+                # Polygon box x1, y1, x2, y2?
+                try:
+                    x1, y1, x2, y2 = value
+                    return shapely.geometry.box(x1, y1, x2, y2)
+                except (ShapelyError, ValueError, TypeError) as e:
+                    raise ValueError(cls.errmsg(e)) from e
+
+        raise ValueError(cls.errmsg())
+
+    @classmethod
+    def errmsg(cls, detail_msg=None) -> str:
+        if detail_msg:
+            return 'cannot convert value to %s: %s' % (cls.name(), detail_msg)
+        else:
+            return 'cannot convert value to %s' % cls.name()
+
+    @classmethod
+    def _is_compatible_type(cls, geom_type, required_type):
+        return geom_type == shapely.geometry.base.BaseGeometry or issubclass(geom_type, required_type)
+
+
+class GeometryLike(BaseGeometryLike[shapely.geometry.base.BaseGeometry]):
     """
     Type class for arbitrary geometry objects
 
@@ -449,26 +427,75 @@ class GeometryLike(Like[shapely.geometry.base.BaseGeometry]):
 
     @classmethod
     def convert(cls, value: Any) -> Optional[shapely.geometry.base.BaseGeometry]:
-        if value is None:
+        geometry = cls.to_geometry(value, shapely.geometry.base.BaseGeometry)
+
+        if isinstance(geometry, shapely.geometry.Polygon) and geometry.is_valid:
+            # Heal polygon, see #506 and Shapely User Manual
+            geometry = geometry.buffer(0)
+
+        return geometry
+
+
+class PointLike(BaseGeometryLike[shapely.geometry.Point]):
+    """
+    Type class for geometric shapely.geometry.Point objects
+
+    Accepts:
+        1. a Shapely shapely.geometry.Point
+        2. a string 'lon,lat'
+        4. a WKT string "POINT (lon lat)"
+        5. a tuple (lon, lat)
+
+    Converts to a Shapely shapely.geometry.Point object.
+    """
+    TYPE = Union[shapely.geometry.Point, str, Tuple[float, float]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[shapely.geometry.Point]:
+        return cls.to_geometry(value, shapely.geometry.Point)
+
+    @classmethod
+    def format(cls, value: Optional[shapely.geometry.Point]) -> str:
+        return "%s, %s" % (value.x, value.y) if value else ''
+
+
+class PolygonLike(GeometryLike, Like[shapely.geometry.Polygon]):
+    """
+    Type class for geometric shapely.geometry.Polygon objects
+
+    Accepts:
+        1. a ``shapely.geometry.shapely.geometry.Polygon`` object
+        2. a string "min_lon, min_lat, max_lon, max_lat"
+        3. a WKT string "POLYGON ((RING))" or "POLYGON ((OUTER-RING), (INNER-RING), ...)"
+        4. a list of coordinates [(lon, lat), (lon, lat), (lon, lat)]
+        5. a list or tuple [min_lon, min_lat, max_lon, max_lat]
+
+    Converts to a valid Shapely shapely.geometry.Polygon.
+    """
+    TYPE = Union[shapely.geometry.Polygon, List[Tuple[float, float]],
+                 str, Tuple[float, float, float, float]]
+
+    @classmethod
+    def convert(cls, value: Any) -> Optional[shapely.geometry.Polygon]:
+        polygon = cls.to_geometry(value, shapely.geometry.Polygon)
+        if polygon is None:
             return None
 
-        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
-        try:
-            return PolygonLike.convert(value)
-        except ValueError:
-            try:
-                return PointLike.convert(value)
-            except ValueError:
-                pass
-        cls.assert_value_ok(False, value)
+        assert isinstance(polygon, shapely.geometry.Polygon)
+
+        if not polygon.is_valid:
+            # Heal polygon, see #506 and Shapely User Manual
+            polygon = polygon.buffer(0)
+            if not polygon.is_valid:
+                raise ValueError(cls.errmsg("polygon is invalid"))
+
+        if polygon.is_empty:
+            raise ValueError(cls.errmsg("polygon is empty"))
+
+        return polygon
 
     @classmethod
-    def accepts(cls, value: Any) -> bool:
-        # TODO (forman): Fully implement me! We here utilise PointLike and PolygonLike for time being.
-        return PolygonLike.accepts(value) or PointLike.accepts(value)
-
-    @classmethod
-    def format(cls, value: shapely.geometry.base.BaseGeometry) -> str:
+    def format(cls, value: Optional[shapely.geometry.Polygon]) -> str:
         return value.wkt if value else ''
 
 

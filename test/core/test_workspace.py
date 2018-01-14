@@ -371,7 +371,8 @@ class WorkspaceTest(unittest.TestCase):
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
                             validate_args=True)
         self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
-                                           "cannot convert value <iih!> to PointLike")
+                                           "cannot convert value to PointLike: "
+                                           "invalid geometry WKT format")
 
         ws2 = Workspace.from_json_dict(ws.to_json_dict())
         self.assertEqual(ws2.base_dir, ws.base_dir)

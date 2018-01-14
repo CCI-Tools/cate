@@ -8,6 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import xarray as xr
+import shapely.wkt
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
@@ -242,7 +243,8 @@ class PointLikeTest(TestCase):
         self.assertEqual(PointLike.convert('0.0,1.0'), Point(0.0, 1.0))
         with self.assertRaises(ValueError) as err:
             PointLike.convert('0.0,abc')
-        self.assertEqual(str(err.exception), 'cannot convert value <0.0,abc> to PointLike')
+        self.assertEqual(str(err.exception), 'cannot convert value to PointLike: '
+                                             'invalid geometry WKT format')
         self.assertEqual(PointLike.convert('POINT(0.0 1.0)'), Point(0.0, 1.0))
 
     def test_format(self):
@@ -286,7 +288,8 @@ class PolygonLikeTest(TestCase):
         with self.assertRaises(ValueError) as err:
             PolygonLike.convert('aaa')
         self.assertEqual(str(err.exception),
-                         "cannot convert value to PolygonLike: could not convert string to float: 'aaa'")
+                         "cannot convert value to PolygonLike: "
+                         "invalid geometry WKT format")
 
     def test_format(self):
         self.assertEqual(PolygonLike.format(None), '')
@@ -296,32 +299,32 @@ class PolygonLikeTest(TestCase):
 
 
 class GeometryLikeTest(TestCase):
-    """
-    Test the PolygonLike type
-    """
 
     def test_accepts(self):
-        self.assertTrue(GeometryLike.accepts("0.0,0.0,1.1,1.1"))
-        self.assertTrue(GeometryLike.accepts("0.0, 0.0, 1.1, 1.1"))
-
-        coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
-        pol = Polygon(coords)
-        self.assertTrue(GeometryLike.accepts(coords))
-        self.assertTrue(GeometryLike.accepts(pol))
-        self.assertTrue(GeometryLike.accepts(pol.wkt))
+        self.assertTrue(GeometryLike.accepts("10, 10"))
+        self.assertTrue(GeometryLike.accepts("10, 10, 20, 20"))
+        self.assertTrue(GeometryLike.accepts([(10, 10), (20, 10), (20, 20), (10, 20), (10, 10)]))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("POINT (10 10)")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("POINT (10 10)")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("MULTIPOINT "
+                                                               "(10 10, 20 10, 20 20, 10 20, 10 10)")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("LINESTRING "
+                                                               "(10 10, 20 10, 20 20, 10 20, 10 10)")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("MULTILINESTRING "
+                                                               "((10 10, 20 10, 20 20, 10 20, 10 10))")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("POLYGON "
+                                                               "((10 10, 20 10, 20 20, 10 20, 10 10))")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("MULTIPOLYGON "
+                                                               "(((10 10, 20 10, 20 20, 10 20, 10 10)))")))
+        self.assertTrue(GeometryLike.accepts(shapely.wkt.loads("GEOMETRYCOLLECTION "
+                                                               "(POINT (10 10), "
+                                                               "POLYGON ((10 10, 20 10, 20 20, 10 20, 10 10)))")))
+        self.assertTrue(GeometryLike.accepts([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]))
 
         self.assertFalse(GeometryLike.accepts("0.0,aaa,1.1,1.1"))
         self.assertFalse(GeometryLike.accepts("0.0, aaa, 1.1, 1.1"))
 
-        # coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 'aaa'), (1.0, 0.0)]
-        # self.assertFalse(GeometryLike.accepts(coords))
-
-        # coords = [(0.0, 0.0), (0.0, 1.0), 'Guten Morgen, Berlin!', (1.0, 0.0)]
-        # self.assertFalse(GeometryLike.accepts(coords))
-
-        invalid = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
-        self.assertFalse(GeometryLike.accepts(invalid))
-
+        empty = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
         self.assertFalse(GeometryLike.accepts('MULTIPOLYGON()'))
         self.assertFalse(GeometryLike.accepts('Something_in_the_month_of_May'))
         self.assertFalse(GeometryLike.accepts(1.0))
@@ -334,7 +337,7 @@ class GeometryLikeTest(TestCase):
 
         with self.assertRaises(ValueError) as err:
             GeometryLike.convert('aaa')
-        self.assertEqual(str(err.exception), 'cannot convert value <aaa> to GeometryLike')
+        self.assertEqual(str(err.exception), 'cannot convert value to GeometryLike: invalid geometry WKT format')
 
     def test_format(self):
         pol = GeometryLike.convert([(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)])
