@@ -49,6 +49,16 @@ Correlation
 .. autofunction:: cate.ops.pearson_correlation
 
 
+Data Frame
+----------
+
+.. autofunction:: cate.ops.data_frame_min
+
+.. autofunction:: cate.ops.data_frame_max
+
+.. autofunction:: cate.ops.data_frame_query
+
+
 Input / Output
 --------------
 
@@ -109,7 +119,6 @@ Subsetting
 .. autofunction:: cate.ops.subset_temporal
 
 .. autofunction:: cate.ops.subset_temporal_index
-
 
 
 Timeseries
