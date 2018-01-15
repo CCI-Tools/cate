@@ -144,7 +144,7 @@ additional software packages are required:
 
     $ conda install sphinx sphinx_rtd_theme mock
     $ conda install -c conda-forge sphinx-argparse
-    $ pip install sphinx_autodoc_annotation
+    $ pip install sphinx_autodoc_typehints
 
 To regenerate the HTML docs, type    
     

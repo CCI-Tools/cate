@@ -53,7 +53,7 @@ extensions = [
     'sphinx.ext.viewcode',
 
     'sphinx.ext.autodoc',
-    'sphinx_autodoc_annotation',
+    'sphinx_autodoc_typehints',
 
     'sphinxarg.ext',
 
