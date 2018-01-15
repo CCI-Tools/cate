@@ -13,7 +13,7 @@ dependencies:
   # dask 0.15.3 broke the build
   - dask >=0.15.0, <=0.15.2
   - fiona >=1.7
-  - geopandas >=0.2
+  - geopandas >=0.3
   # require specific minor version to prevent downgrade
   - geos >=3.5.1
   # require specific minor version to prevent downgrade
@@ -26,7 +26,7 @@ dependencies:
   # numpy 1.12 gave some trouble
   - numpy >=1.11
   - owslib >=0.14
-  - pandas >=0.19
+  - pandas >=0.22
   - pillow >=4.1
   - psutil >=5.2
   - pyproj >=1.9
@@ -34,7 +34,7 @@ dependencies:
   - pyshp >=1.2
   - python-dateutil >=2.6
   - scipy >=0.19
-  - shapely >=1.5
+  - shapely >=1.6
   - tornado >=4.5
   - xarray >=0.10
   #
