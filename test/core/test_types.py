@@ -324,7 +324,7 @@ class GeometryLikeTest(TestCase):
         self.assertFalse(GeometryLike.accepts("0.0,aaa,1.1,1.1"))
         self.assertFalse(GeometryLike.accepts("0.0, aaa, 1.1, 1.1"))
 
-        empty = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
+        # empty = Polygon([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)])
         self.assertFalse(GeometryLike.accepts('MULTIPOLYGON()'))
         self.assertFalse(GeometryLike.accepts('Something_in_the_month_of_May'))
         self.assertFalse(GeometryLike.accepts(1.0))

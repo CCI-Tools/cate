@@ -64,7 +64,7 @@ class WebSocketService:
         try:
             with open(VERSION_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
-        except:
+        except Exception:
             # ok
             pass
 

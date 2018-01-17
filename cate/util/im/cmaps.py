@@ -101,7 +101,7 @@ def get_cmaps():
             for cmap_name in cmap_names:
                 try:
                     cmap = cm.get_cmap(cmap_name)
-                except:
+                except Exception:
                     print("WARNING: detected invalid colormap '" + cmap_name + "'")
                     continue
 

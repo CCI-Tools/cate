@@ -234,7 +234,7 @@ def to_list(value,
     # noinspection PyBroadException
     try:
         return [dtype(item) for item in value]
-    except:
+    except Exception:
         return [dtype(value)]
 
 
@@ -335,10 +335,10 @@ def to_json(v):
         if is_scalar:
             return date_to_simple_str(v)
         else:
-            l = []
+            li = []
             for vi in v:
-                l.append(date_to_simple_str(vi))
-            return l
+                li.append(date_to_simple_str(vi))
+            return li
 
     if isinstance(v, np.ndarray) and not np.issubdtype(v.dtype, np.datetime64):
         try:
@@ -360,10 +360,10 @@ def to_json(v):
         pass
 
     try:
-        l = []
+        li = []
         for vi in v:
-            l.append(to_json(vi))
-        return l
+            li.append(to_json(vi))
+        return li
     except TypeError:
         pass
 

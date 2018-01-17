@@ -69,12 +69,12 @@ def get_chunk_size(array):
         chunk_size = array.chunks
         if chunk_size:
             chunk_size = tuple([c[0] if isinstance(c, tuple) else c for c in chunk_size])
-    except:
+    except Exception:
         pass
     if not chunk_size:
         try:
             # netcdf 4
             chunk_size = array.encoding['chunksizes']
-        except:
+        except Exception:
             pass
     return chunk_size

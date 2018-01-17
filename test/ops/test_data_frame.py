@@ -120,4 +120,3 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[0, 1], 'x')
         self.assertEqual(df2.iloc[0, 2], False)
         self.assertEqual(df2.iloc[0, 3], 0.3)
-

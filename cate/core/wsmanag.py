@@ -277,7 +277,7 @@ class FSWorkspaceManager(WorkspaceManager):
             # noinspection PyBroadException
             try:
                 old_workflow = Workflow.load(workflow_file)
-            except:
+            except Exception:
                 pass
             try:
                 os.remove(workflow_file)

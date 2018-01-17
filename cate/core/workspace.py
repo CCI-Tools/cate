@@ -25,7 +25,6 @@ This module defines the ``Workspace`` class and the ``WorkspaceError`` exception
 
 import os
 import shutil
-import sys
 from collections import OrderedDict
 from threading import RLock
 from typing import List, Any, Dict, Optional

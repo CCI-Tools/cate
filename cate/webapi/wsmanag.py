@@ -106,7 +106,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
             return True
         except WorkspaceError:
             return True
-        except:
+        except Exception:
             return False
 
     def get_open_workspaces(self) -> List[Workspace]:

@@ -272,7 +272,7 @@ class Operation:
         # Format the stamp
         try:
             op_version = self.op_meta_info.header['version']
-        except:
+        except KeyError:
             raise ValueError('Operation "{}": Could not add history information'
                              ' because the "version" property is undefined.'.format(op_name))
 

@@ -342,7 +342,7 @@ class Node(metaclass=ABCMeta):
                 # noinspection PyBroadException
                 try:
                     input_values[input_name] = safe_eval(context_property_value, context)
-                except:
+                except Exception:
                     input_values[input_name] = None
             elif context_property_value:
                 input_values[input_name] = context
@@ -429,7 +429,7 @@ class Node(metaclass=ABCMeta):
                 # noinspection PyBroadException
                 try:
                     return data_type.format(value)
-                except:
+                except Exception:
                     pass
         return repr(value)
 
@@ -1650,7 +1650,7 @@ class ValueCache(dict):
             # noinspection PyBroadException
             try:
                 value.close()
-            except:
+            except Exception:
                 pass
 
     def _gen_id(self) -> int:

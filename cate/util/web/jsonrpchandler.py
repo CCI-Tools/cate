@@ -90,7 +90,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             # Reduce 200-500ms delays due to the interaction between Nagle’s algorithm and TCP delayed ACKs
             # at the expense of possibly increasing bandwidth usage.
             self.set_nodelay(True)
-        except:
+        except Exception:
             pass
 
     def on_close(self):
@@ -115,7 +115,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         # noinspection PyBroadException
         try:
             message_obj = json.loads(message)
-        except:
+        except Exception:
             print("ERROR: Failed to parse incoming JSON-RPC message: {}".format(message))
             traceback.print_exc(file=sys.stdout)
             return 1  # for testing only

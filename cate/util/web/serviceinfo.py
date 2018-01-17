@@ -80,7 +80,7 @@ def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             json_text = response.read()
-    except:
+    except Exception:
         return False
     json_response = json.loads(json_text.decode('utf-8'))
     return json_response.get('status') == 'ok'

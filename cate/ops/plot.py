@@ -62,7 +62,7 @@ try:
     if not matplotlib.__version__.startswith('1.'):
         matplotlib.use('Qt5Agg')
         has_qt5agg = True
-except:
+except Exception:
     pass
 if not has_qt5agg:
     matplotlib.use('Qt4Agg')
