@@ -85,23 +85,23 @@ class TestEnsoNino34(TestCase):
             'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
                      [datetime(2002, x, 1) for x in range(1, 13)])})
         lta1 = xr.Dataset({
-             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
-             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
-             'lat': np.linspace(-88, 88, 45),
-             'lon': np.linspace(-178, 178, 90),
-             'time': [x for x in range(1, 5)]})
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [x for x in range(1, 5)]})
         lta2 = xr.Dataset({
-             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
-             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
-             'lat': np.linspace(-88, 88, 45),
-             'lon': np.linspace(-178, 178, 90),
-             'time': [x for x in range(5, 9)]})
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 2),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [x for x in range(5, 9)]})
         lta3 = xr.Dataset({
-             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
-             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
-             'lat': np.linspace(-88, 88, 45),
-             'lon': np.linspace(-178, 178, 90),
-             'time': [x for x in range(9, 13)]})
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4]) * 0),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [x for x in range(9, 13)]})
         lta = xr.concat([lta1, lta2, lta3], dim='time')
 
         expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +

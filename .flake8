@@ -1,7 +1,5 @@
 [flake8]
 ignore =
-    #  continuation line over-indented for hanging indent
-    E126,
     # continuation line unaligned for hanging indent
     E131,
     # module level import not at top of file

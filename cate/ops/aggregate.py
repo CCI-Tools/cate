@@ -115,7 +115,7 @@ def long_term_average(ds: DatasetLike.TYPE,
     for var in retset.data_vars:
         try:
             retset[var].attrs['cell_methods'] = \
-                    retset[var].attrs['cell_methods'] + ' time: mean over years'
+                retset[var].attrs['cell_methods'] + ' time: mean over years'
         except KeyError:
             retset[var].attrs['cell_methods'] = 'time: mean over years'
 
@@ -174,8 +174,8 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     for var in retset.data_vars:
         try:
             retset[var].attrs['cell_methods'] = \
-                    retset[var].attrs['cell_methods'] + \
-                    ' time: {} within years'.format(method)
+                retset[var].attrs['cell_methods'] + \
+                ' time: {} within years'.format(method)
         except KeyError:
             retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
 

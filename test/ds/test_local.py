@@ -155,8 +155,8 @@ class LocalDataStoreTest(unittest.TestCase):
         self.assertEqual(data_source.temporal_coverage(),
                          TimeRangeLike.convert("{},{}".format(
                              test_data.get('meta_info').get('temporal_coverage_start'),
-                             test_data.get('meta_info').get('temporal_coverage_end'))
-                         ))
+                             test_data.get('meta_info').get('temporal_coverage_end')))
+                         )
         self.assertEqual(data_source.spatial_coverage(),
                          PolygonLike.convert(",".join([
                              test_data.get('meta_info').get('bbox_minx'),
@@ -329,7 +329,7 @@ class LocalDataSourceTest(unittest.TestCase):
         with unittest.mock.patch.object(EsaCciOdpDataStore, 'query', return_value=[]):
             new_ds_title = 'from_local_to_local'
             new_ds_time_range = TimeRangeLike.convert((datetime.datetime(1978, 11, 14, 0, 0),
-                                                      datetime.datetime(1978, 11, 15, 23, 59)))
+                                                       datetime.datetime(1978, 11, 15, 23, 59)))
             new_ds = data_source.make_local(new_ds_title, time_range=new_ds_time_range)
             self.assertIsNotNone(new_ds)
 
@@ -373,25 +373,23 @@ class LocalDataSourceTest(unittest.TestCase):
             self.assertIsNone(no_data)
 
     def test_remove_data_source_by_id(self):
+        data_sources = self._local_data_store.query('local_w_temporal')
+        data_sources_len_before_remove = len(data_sources)
+        self.assertGreater(data_sources_len_before_remove, 0)
 
-            data_sources = self._local_data_store.query('local_w_temporal')
-            data_sources_len_before_remove = len(data_sources)
-            self.assertGreater(data_sources_len_before_remove, 0)
-
-            with unittest.mock.patch.object(os, 'remove', return_value=None):
-                self._local_data_store.remove_data_source('local_w_temporal')
-            data_sources = self._local_data_store.query('local_w_temporal')
-            data_sources_len_after_remove = len(data_sources)
-            self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
+        with unittest.mock.patch.object(os, 'remove', return_value=None):
+            self._local_data_store.remove_data_source('local_w_temporal')
+        data_sources = self._local_data_store.query('local_w_temporal')
+        data_sources_len_after_remove = len(data_sources)
+        self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
 
     def test_remove_data_source(self):
+        data_sources = self._local_data_store.query('local_w_temporal')
+        data_sources_len_before_remove = len(data_sources)
+        self.assertGreater(data_sources_len_before_remove, 0)
 
-            data_sources = self._local_data_store.query('local_w_temporal')
-            data_sources_len_before_remove = len(data_sources)
-            self.assertGreater(data_sources_len_before_remove, 0)
-
-            with unittest.mock.patch.object(os, 'remove', return_value=None):
-                self._local_data_store.remove_data_source(data_sources[0])
-            data_sources = self._local_data_store.query('local_w_temporal')
-            data_sources_len_after_remove = len(data_sources)
-            self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
+        with unittest.mock.patch.object(os, 'remove', return_value=None):
+            self._local_data_store.remove_data_source(data_sources[0])
+        data_sources = self._local_data_store.query('local_w_temporal')
+        data_sources_len_after_remove = len(data_sources)
+        self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)

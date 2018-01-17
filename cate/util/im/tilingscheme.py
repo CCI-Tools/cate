@@ -102,7 +102,7 @@ class TilingScheme:
                + 4 * self.tile_height \
                + 8 * self.num_level_zero_tiles_x \
                + 16 * self.num_level_zero_tiles_y \
-               + hash(self.geo_extent)
+               + hash(self.geo_extent)  # noqa: E126
 
     def __eq__(self, o: Any) -> bool:
         try:
@@ -111,7 +111,7 @@ class TilingScheme:
                    and self.tile_height == o.tile_height \
                    and self.num_level_zero_tiles_x == o.num_level_zero_tiles_x \
                    and self.num_level_zero_tiles_y == o.num_level_zero_tiles_y \
-                   and self.geo_extent == o.geo_extent
+                   and self.geo_extent == o.geo_extent  # noqa: E126
         except AttributeError:
             return False
 

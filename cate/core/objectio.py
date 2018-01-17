@@ -122,8 +122,10 @@ class ObjectIORegistry:
         for object_io in self._object_io_list:
             is_reader = object_io.read_op is not None
             is_writer = object_io.write_op is not None
-            if not mode or (mode == 'r' and is_reader) or (mode == 'w' and is_writer) or (
-                                mode == 'rw' and is_reader and is_writer):
+            if not mode \
+                    or (mode == 'r' and is_reader) \
+                    or (mode == 'w' and is_writer) \
+                    or (mode == 'rw' and is_reader and is_writer):
                 object_io_list.append(object_io)
         # noinspection PyShadowingNames
         return sorted(object_io_list, key=lambda object_io: object_io.format_name)
@@ -135,8 +137,10 @@ class ObjectIORegistry:
         for object_io in self._object_io_list:
             is_reader = object_io.read_op is not None
             is_writer = object_io.write_op is not None
-            if not mode or (mode == 'r' and is_reader) or (mode == 'w' and is_writer) or (
-                                mode == 'rw' and is_reader and is_writer):
+            if not mode \
+                    or (mode == 'r' and is_reader) \
+                    or (mode == 'w' and is_writer) \
+                    or (mode == 'rw' and is_reader and is_writer):
                 format_names.append(object_io.format_name)
         return sorted(format_names)
 
