@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Dict
 
 import xarray as xr
 
@@ -338,3 +338,31 @@ class WebSocketService:
                 actual_max = variable.max(skipna=True)
 
         return dict(min=float(actual_min), max=float(actual_max))
+
+    # TODO (nf/mz) discuss: make an operation from this ?
+    def get_resource_values(self, base_dir: str, res_name: str, dim_indices: Dict[str, any],
+                            lon: float, lat: float) -> Dict[str, float]:
+        workspace_manager = self.workspace_manager
+        workspace = workspace_manager.get_workspace(base_dir)
+        if res_name not in workspace.resource_cache:
+            raise ValueError('Unknown resource "%s"' % res_name)
+
+        dataset = workspace.resource_cache[res_name]
+        if not isinstance(dataset, xr.Dataset):
+            raise ValueError('Resource "%s" must be a Dataset' % res_name)
+
+        variable_values = {}
+        var_names = sorted(dataset.data_vars.keys())
+        for var_name in var_names:
+            if not var_name.endswith('_bnds'):
+                variable = dataset.data_vars[var_name]
+                indexers = {'lat': lat, 'lon': lon}
+                for dim_name, dim_index in dim_indices.items():
+                    if dim_name in variable.dims:
+                        indexers[dim_name] = dim_index
+                point_data = variable.sel(method='nearest', **indexers)
+                if not variable_values:
+                    variable_values['lat'] = float(point_data.lat)
+                    variable_values['lon'] = float(point_data.lon)
+                variable_values[var_name] = float(point_data.values)
+        return variable_values
