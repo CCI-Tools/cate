@@ -526,14 +526,14 @@ class Workspace:
                     elif isinstance(source, Namespace):
                         # source is output_namespace of another step
                         if OpMetaInfo.RETURN_OUTPUT_NAME not in source:
-                            raise WorkspaceError('Illegal argument for input "%s" of operation "%s',
+                            raise WorkspaceError('Illegal argument for input "%s" of operation "%s' %
                                                  (input_name, op_name))
                         input_port.source = source[OpMetaInfo.RETURN_OUTPUT_NAME]
                 elif 'value' in input_value:
                     # Constant value
                     input_port.value = input_value['value']
                 else:
-                    raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
+                    raise WorkspaceError('Illegal argument for input "%s" of operation "%s' % (input_name, op_name))
 
             if validate_args:
                 inputs = new_step.inputs
