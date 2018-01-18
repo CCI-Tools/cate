@@ -81,6 +81,20 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(len(op['outputs']), 1)
         self.assertEqual(op['outputs'][0]['name'], 'v')
 
+    def test_get_workspace_variable_statistics(self):
+        file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
+        self.service.workspace_manager.new_workspace(self.base_dir)
+        self.service.workspace_manager.set_workspace_resource(self.base_dir,
+                                                              'cate.ops.io.read_netcdf',
+                                                              dict(file=dict(value=file)),
+                                                              res_name='ds')
+        stat = self.service.get_workspace_variable_statistics(self.base_dir,
+                                                              res_name='ds',
+                                                              var_name='temperature',
+                                                              var_index=[0])
+        self.assertAlmostEqual(stat['min'], -0.9)
+        self.assertAlmostEqual(stat['max'], 26.2)
+
     def test_get_resource_values(self):
         file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
         self.service.workspace_manager.new_workspace(self.base_dir)
