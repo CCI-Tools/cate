@@ -175,7 +175,8 @@ class WriteFeatureCollectionTest(TestCase):
         class Collection(list):
             pass
 
-        file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
+        file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
+                            'countries.geojson')
 
         collection = fiona.open(file)
 

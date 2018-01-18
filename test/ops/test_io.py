@@ -68,7 +68,8 @@ class TestIO(TestCase):
         self.assertEqual(file_in.getvalue(), raw_data)
 
     def test_read_geo_data_frame(self):
-        file = os.path.join('cate', 'ds', 'data', 'countries', 'countries.geojson')
+        file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
+                            'countries.geojson')
 
         data_frame = read_geo_data_frame(file)
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
