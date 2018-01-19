@@ -13,6 +13,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.base_dir = base_dir = os.path.abspath('WebSocketServiceTest')
         if os.path.exists(self.base_dir):
             shutil.rmtree(base_dir)
+        os.mkdir(self.base_dir)
 
     def tearDown(self):
         if os.path.exists(self.base_dir):
@@ -80,7 +81,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(op['outputs'][0]['name'], 'v')
 
     def test_get_workspace_variable_statistics(self):
-        self.load_prepcip_dataset()
+        self.load_precip_dataset()
         stat = self.service.get_workspace_variable_statistics(self.base_dir,
                                                               res_name='ds',
                                                               var_name='temperature',
@@ -89,7 +90,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(stat['max'], 26.2)
 
     def test_get_resource_values(self):
-        self.load_prepcip_dataset()
+        self.load_precip_dataset()
         values = self.service.get_resource_values(self.base_dir,
                                                   res_name='ds',
                                                   dim_indices={'time': '2014-09-11'},
@@ -100,10 +101,12 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(values['precipitation'], 5.5)
         self.assertAlmostEqual(values['temperature'], 32.9)
 
-    def load_prepcip_dataset(self):
+    def load_precip_dataset(self):
         file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
-        self.service.workspace_manager.new_workspace(self.base_dir)
-        self.service.workspace_manager.set_workspace_resource(self.base_dir,
-                                                              'cate.ops.io.read_netcdf',
-                                                              dict(file=dict(value=file)),
-                                                              res_name='ds')
+        self.service.new_workspace(self.base_dir)
+        self.service.set_workspace_resource(self.base_dir,
+                                            'cate.ops.io.read_netcdf',
+                                            dict(file=dict(value=file)),
+                                            res_name='ds',
+                                            overwrite=False,
+                                            monitor=Monitor.NONE)
