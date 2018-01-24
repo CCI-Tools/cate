@@ -23,7 +23,7 @@
 import json
 import urllib.parse
 import urllib.request
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any
 
 from tornado import gen, ioloop, websocket
 
@@ -158,12 +158,11 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return Workspace.from_json_dict(json_dict)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Workspace:
-        json_dict = self._ws_json_rpc("run_op_in_workspace",
-                                      dict(base_dir=base_dir, op_name=op_name, op_args=op_args),
-                                      timeout=WEBAPI_WORKSPACE_TIMEOUT,
-                                      monitor=monitor)
-        return Workspace.from_json_dict(json_dict)
+                            monitor: Monitor = Monitor.NONE) -> Any:
+        return self._ws_json_rpc("run_op_in_workspace",
+                                 dict(base_dir=base_dir, op_name=op_name, op_args=op_args),
+                                 timeout=WEBAPI_WORKSPACE_TIMEOUT,
+                                 monitor=monitor)
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
         json_dict = self._ws_json_rpc("delete_workspace_resource",

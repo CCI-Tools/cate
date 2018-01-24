@@ -28,15 +28,15 @@ Subset operations
 Components
 ==========
 """
+from typing import Dict
 
 import xarray as xr
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike
+from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
-from cate.util.opimpl import subset_spatial_impl, subset_temporal_impl
-from cate.util.opimpl import subset_temporal_index_impl
+from cate.util.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_spatial_props
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -91,3 +91,70 @@ def subset_temporal_index(ds: DatasetLike.TYPE,
     """
     ds = DatasetLike.convert(ds)
     return subset_temporal_index_impl(ds, time_ind_min, time_ind_max)
+
+
+@op(tags=['subset', 'utility'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
+@op_input('point', data_type=PointLike)
+@op_input('dim_index', data_type=DictLike, nullable=True)
+@op_return(add_history=False)
+def subset_point(ds: DatasetLike.TYPE,
+                 point: PointLike.TYPE,
+                 dim_index: DictLike.TYPE = None) -> Dict:
+    """
+    Do a subset at a point location. The returned dict will contain scalar
+    values of all variables for which all dimension have been given in ``dim_index``.
+    For the dimensions *lon* and *lat* a nearest neighbour lookup is performed.
+    All other dimensions must mach exact.
+
+    :param ds: Dataset or dataframe to subset
+    :param point: geographic point given by longitude and latitude
+    :param dim_index: Keyword arguments with names matching dimensions and values given by scalars.
+    :return: A dict with the scalar values of all variables and the variable names as keys.
+    """
+    ds = DatasetLike.convert(ds)
+    point = PointLike.convert(point)
+    dim_index = DictLike.convert(dim_index) or {}
+
+    lon_lat_indexers = {'lon': point.x, 'lat': point.y}
+    tolerance = _get_tolerance(ds)
+
+    variable_values = {}
+    var_names = sorted(ds.data_vars.keys())
+    for var_name in var_names:
+        if not var_name.endswith('_bnds'):
+            variable = ds.data_vars[var_name]
+            indexers = {}
+            used_dims = {'lat', 'lon'}
+            for dim_name, dim_value in dim_index.items():
+                if dim_name in variable.dims:
+                    indexers[dim_name] = dim_value
+                    used_dims.add(dim_name)
+            if set(variable.dims) == set(used_dims):
+                try:
+                    lon_lat_data = variable.sel(**indexers)
+                except KeyError:
+                    # if there is no exact match for the "additional" dims, skip this variable
+                    continue
+                try:
+                    point_data = lon_lat_data.sel(method='nearest', tolerance=tolerance, **lon_lat_indexers)
+                except KeyError:
+                    # if there is no point within the given tolerance, return an empty dict
+                    return {}
+                if not variable_values:
+                    variable_values['lat'] = float(point_data.lat)
+                    variable_values['lon'] = float(point_data.lon)
+                variable_values[var_name] = float(point_data.values)
+    return variable_values
+
+
+def _get_tolerance(ds: xr.Dataset):
+    lon_res_attr_name = 'geospatial_lon_resolution'
+    lat_res_attr_name = 'geospatial_lat_resolution'
+    if lat_res_attr_name in ds.attrs and lon_res_attr_name in ds.attrs:
+        lon_res = ds.attrs[lon_res_attr_name]
+        lat_res = ds.attrs[lat_res_attr_name]
+    else:
+        lon_res = _get_spatial_props(ds, 'lon')[lon_res_attr_name]
+        lat_res = _get_spatial_props(ds, 'lat')[lat_res_attr_name]
+    return (lon_res + lat_res) / 2

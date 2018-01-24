@@ -5,6 +5,7 @@ import shutil
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
 from cate.webapi.websocket import WebSocketService
+from cate.core.workspace import mk_op_kwargs
 
 
 class WebSocketServiceTest(unittest.TestCase):
@@ -91,11 +92,11 @@ class WebSocketServiceTest(unittest.TestCase):
 
     def test_get_resource_values(self):
         self.load_precip_dataset()
-        values = self.service.get_resource_values(self.base_dir,
-                                                  res_name='ds',
-                                                  dim_indices={'time': '2014-09-11'},
-                                                  lon=10.22,
-                                                  lat=34.52)
+
+        op_name = "subset_point"
+        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', dim_index=dict(time='2014-09-11'))
+        values = self.service.run_op_in_workspace(self.base_dir, op_name, op_args)
+
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)
         self.assertAlmostEqual(values['precipitation'], 5.5)

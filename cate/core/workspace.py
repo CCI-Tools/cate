@@ -582,7 +582,7 @@ class Workspace:
 
             with monitor.starting("Running operation '%s'" % op_name, 2):
                 self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
-                op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+                return op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()

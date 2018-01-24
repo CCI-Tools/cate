@@ -281,6 +281,24 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 5)
         self.assertEqual(ws.resource_cache.get('Z'), 5)
 
+    def test_set_step_and_run_op(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+
+        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
+        ws.execute_workflow('X')
+        self.assertIsNotNone(ws.workflow)
+        self.assertEqual(len(ws.workflow.steps), 1)
+        self.assertIn('X', ws.resource_cache)
+
+        op_name = 'subset_point'
+        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', dim_index=dict(time='2014-09-11'))
+        op_result = ws.run_op(op_name, op_args)
+        self.assertEqual(len(op_result), 4)
+        self.assertAlmostEqual(op_result['lat'], 34.5)
+        self.assertAlmostEqual(op_result['lon'], 10.2)
+        self.assertAlmostEqual(op_result['precipitation'], 5.5)
+        self.assertAlmostEqual(op_result['temperature'], 32.9)
+
     # TODO (forman): #391
     def test_set_resource_is_reentrant(self):
         from concurrent.futures import ThreadPoolExecutor
