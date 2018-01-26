@@ -36,7 +36,7 @@ from cate.core.op import op, op_input, op_return
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
-from cate.util.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_spatial_props
+from cate.util.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_attrs
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -155,6 +155,6 @@ def _get_tolerance(ds: xr.Dataset):
         lon_res = ds.attrs[lon_res_attr_name]
         lat_res = ds.attrs[lat_res_attr_name]
     else:
-        lon_res = _get_spatial_props(ds, 'lon')[lon_res_attr_name]
-        lat_res = _get_spatial_props(ds, 'lat')[lat_res_attr_name]
+        lon_res = _get_geo_spatial_attrs(ds, 'lon')[lon_res_attr_name]
+        lat_res = _get_geo_spatial_attrs(ds, 'lat')[lat_res_attr_name]
     return (lon_res + lat_res) / 2

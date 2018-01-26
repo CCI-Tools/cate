@@ -411,7 +411,7 @@ class TestAdjustSpatial(TestCase):
         ds.lat.attrs['units'] = 'degrees_north'
 
         with self.assertRaises(ValueError) as cm:
-            ds1 = adjust_spatial_attrs(ds)
+            adjust_spatial_attrs(ds)
 
         self.assertEqual(str(cm.exception), 'Cannot determine spatial extent for dimension "lon"')
 
