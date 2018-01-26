@@ -21,15 +21,14 @@
 
 __author__ = "Janis Gailis (S[&]T Norway)"
 
+from datetime import datetime
 from typing import Optional, Sequence, Union, Tuple
 
-import xarray as xr
 import numpy as np
+import xarray as xr
+from jdcal import jd2gcal
 from shapely.geometry import Point, box, LineString, Polygon
 from shapely.wkt import loads, dumps
-
-from jdcal import jd2gcal
-from datetime import datetime
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -173,20 +172,19 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = ds.copy()
 
     for dim in ('lon', 'lat'):
-        geoattrs = _get_spatial_props(ds, dim)
+        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim)
 
-        for key in geoattrs:
-            if geoattrs[key] is not None:
-                ds.attrs[key] = geoattrs[key]
+        for key in geo_spatial_attrs:
+            if geo_spatial_attrs[key] is not None:
+                ds.attrs[key] = geo_spatial_attrs[key]
 
     lon_min = ds.attrs['geospatial_lon_min']
     lat_min = ds.attrs['geospatial_lat_min']
     lon_max = ds.attrs['geospatial_lon_max']
     lat_max = ds.attrs['geospatial_lat_max']
 
-    ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {},\
- {} {}, {} {}))'.format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max,
-                        lon_max, lat_min, lon_min, lat_min)
+    ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))'. \
+        format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max, lon_max, lat_min, lon_min, lat_min)
 
     # Determination of the following attributes from introspection in a general
     # way is ambiguous, hence it is safer to drop them than to risk preserving
@@ -268,48 +266,62 @@ def _get_temporal_props(ds: xr.Dataset) -> dict:
     return ret
 
 
-def _get_spatial_props(ds: xr.Dataset, dim: str) -> dict:
+def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> dict:
     """
     Get spatial boundaries, resolution and units of the given dimension of the given
     dataset. If the 'bounds' are explicitly defined, these will be used for
     boundary calculation, otherwise it will rest purely on information gathered
     from 'dim' itself.
 
-    :param ds: Dataset
-    :param dim: Dimension name
+    :param ds: The dataset
+    :param dim_name: The dimension name.
+    :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
     ret = dict()
 
-    try:
-        dim_res = abs(ds[dim].values[1] - ds[dim].values[0])
-        res_name = 'geospatial_{}_resolution'.format(dim)
-        ret[res_name] = dim_res
-    except KeyError:
-        raise ValueError('Dimension {} not found in the provided dataset.'.format(dim))
+    if dim_name not in ds:
+        raise ValueError('Dimension "{}" not found in the provided dataset.'.format(dim_name))
 
-    min_name = 'geospatial_{}_min'.format(dim)
-    max_name = 'geospatial_{}_max'.format(dim)
-    units_name = 'geospatial_{}_units'.format(dim)
+    coord_var = ds[dim_name]
 
-    try:
-        # According to CF Conventions the corresponding 'bounds' variable name
+    if 'bounds' in coord_var.attrs:
+        # According to CF Conventions the corresponding 'bounds' coordinate variable name
         # should be in the attributes of the coordinate variable
-        bnds = ds[dim].attrs['bounds']
-        dim_min = min(ds[bnds].values[0][0], ds[bnds].values[-1][1])
-        dim_max = max(ds[bnds].values[0][0], ds[bnds].values[-1][1])
-    except KeyError:
-        dim_min = min(ds[dim].values[0], ds[dim].values[-1]) - dim_res * 0.5
-        dim_max = max(ds[dim].values[0], ds[dim].values[-1]) + dim_res * 0.5
+        bnds_name = coord_var.attrs['bounds']
+    else:
+        # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
+        bnds_name = '%s_bnds' % dim_name
 
-    ret[max_name] = dim_max
-    ret[min_name] = dim_min
+    if bnds_name in ds:
+        bnds_var = ds[bnds_name]
+        dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
+        dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
+        dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
+    elif len(coord_var.values) >= 2:
+        dim_res = abs(coord_var.values[1] - coord_var.values[0])
+        dim_min = min(coord_var.values[0], coord_var.values[-1]) - 0.5 * dim_res
+        dim_max = max(coord_var.values[0], coord_var.values[-1]) + 0.5 * dim_res
+    elif len(coord_var.values) == 1 and allow_point:
+        # Actually a point with no extent
+        dim_res = 0.0
+        dim_min = coord_var.values[0]
+        dim_max = coord_var.values[0]
+    else:
+        raise ValueError('Cannot determine spatial extent for dimension "{}"'.format(dim_name))
 
-    try:
-        dim_units = ds[dim].attrs['units']
-    except KeyError:
+    if 'units' in coord_var.attrs:
+        dim_units = coord_var.attrs['units']
+    else:
         dim_units = None
 
+    res_name = 'geospatial_{}_resolution'.format(dim_name)
+    min_name = 'geospatial_{}_min'.format(dim_name)
+    max_name = 'geospatial_{}_max'.format(dim_name)
+    units_name = 'geospatial_{}_units'.format(dim_name)
+    ret[res_name] = dim_res
+    ret[min_name] = dim_min
+    ret[max_name] = dim_max
     ret[units_name] = dim_units
 
     return ret
