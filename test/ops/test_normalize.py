@@ -372,8 +372,48 @@ class TestAdjustSpatial(TestCase):
         self.assertEqual(ds2.attrs['geospatial_lon_units'], 'degrees_east')
         self.assertEqual(ds2.attrs['geospatial_lon_resolution'], 4)
         self.assertEqual(ds2.attrs['geospatial_bounds'],
-                         'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0'
-                         ' -42.0, -20.0 -42.0))')
+                         'POLYGON((-20.0 -42.0, -20.0 42.0, 60.0 42.0, 60.0 -42.0, -20.0 -42.0))')
+
+    def test_once_cell_with_bnds(self):
+        # Only one cell in lat/lon
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([1, 1, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([1, 1, 12])),
+            'lat': np.array([52.5]),
+            'lon': np.array([11.5]),
+            'lat_bnds': (['lat', 'bnds'], np.array([[52.4, 52.6]])),
+            'lon_bnds': (['lon', 'bnds'], np.array([[11.4, 11.6]])),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        ds.lon.attrs['units'] = 'degrees_east'
+        ds.lat.attrs['units'] = 'degrees_north'
+
+        ds1 = adjust_spatial_attrs(ds)
+        self.assertAlmostEqual(ds1.attrs['geospatial_lat_resolution'], 0.2)
+        self.assertAlmostEqual(ds1.attrs['geospatial_lat_min'], 52.4)
+        self.assertAlmostEqual(ds1.attrs['geospatial_lat_max'], 52.6)
+        self.assertEqual(ds1.attrs['geospatial_lat_units'], 'degrees_north')
+        self.assertAlmostEqual(ds1.attrs['geospatial_lon_resolution'], 0.2)
+        self.assertAlmostEqual(ds1.attrs['geospatial_lon_min'], 11.4)
+        self.assertAlmostEqual(ds1.attrs['geospatial_lon_max'], 11.6)
+        self.assertEqual(ds1.attrs['geospatial_lon_units'], 'degrees_east')
+        self.assertEqual(ds1.attrs['geospatial_bounds'],
+                         'POLYGON((11.4 52.4, 11.4 52.6, 11.6 52.6, 11.6 52.4, 11.4 52.4))')
+
+    def test_once_cell_without_bnds(self):
+        # Only one cell in lat/lon
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.zeros([1, 1, 12])),
+            'second': (['lat', 'lon', 'time'], np.zeros([1, 1, 12])),
+            'lat': np.array([52.5]),
+            'lon': np.array([11.5]),
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
+        ds.lon.attrs['units'] = 'degrees_east'
+        ds.lat.attrs['units'] = 'degrees_north'
+
+        with self.assertRaises(ValueError) as cm:
+            ds1 = adjust_spatial_attrs(ds)
+
+        self.assertEqual(str(cm.exception), 'Cannot determine spatial extent for dimension "lon"')
 
 
 class TestAdjustTemporal(TestCase):
