@@ -91,7 +91,12 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(stat['max'], 26.2)
 
     def test_get_resource_values(self):
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(workspaces, [])
         self.load_precip_dataset()
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(1, len(workspaces))
+        self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
         op_name = "subset_point"
         op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', dim_index=dict(time='2014-09-11'))
@@ -101,6 +106,15 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(values['lon'], 10.2)
         self.assertAlmostEqual(values['precipitation'], 5.5)
         self.assertAlmostEqual(values['temperature'], 32.9)
+
+        self.service.clean_workspace(self.base_dir)
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(1, len(workspaces))
+        self.assertEqual(0, len(workspaces[0]['workflow']['steps']))
+
+        self.service.close_workspace(self.base_dir)
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(workspaces, [])
 
     def load_precip_dataset(self):
         file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
