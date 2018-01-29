@@ -28,7 +28,6 @@ import numpy as np
 import xarray as xr
 from jdcal import jd2gcal
 from shapely.geometry import Point, box, LineString, Polygon
-from shapely.wkt import loads, dumps
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
