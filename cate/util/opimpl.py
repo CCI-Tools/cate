@@ -28,7 +28,6 @@ import numpy as np
 import xarray as xr
 from jdcal import jd2gcal
 from shapely.geometry import Point, box, LineString, Polygon
-from shapely.wkt import loads, dumps
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -498,49 +497,44 @@ def _crosses_antimeridian(region: Polygon) -> bool:
     :param region: Polygon to test
     """
 
-    # Retrieving the points of the Polygon are a bit troublesome, parsing WKT
-    # is more straightforward and probably faster
-    new_wkt = 'POLYGON (('
+    # Convert region to only have positive longitudes.
+    # This way we can perform a simple antimeridian check
 
-    # TODO (forman): improve this very inefficient coordinate normalisation. Use Shapely directly!
-    # [10:-2] gets rid of POLYGON (( and ))
-    for point in dumps(region)[10:-2].split(','):
-        point = point.strip()
-        lon, lat = point.split(' ')
-        lon = float(lon)
-        if -180 <= lon < 0:
-            lon += 360
-        new_wkt += '{} {}, '.format(lon, lat)
-    new_wkt = new_wkt[:-2] + '))'
-
-    converted = loads(new_wkt)
+    old_exterior = region.exterior.coords
+    new_exterior = []
+    for point in old_exterior:
+        lon, lat = point[0], point[1]
+        if -180. <= lon < 0.:
+            lon += 360.
+        new_exterior.append((lon, lat))
+    converted_region = Polygon(new_exterior)
 
     # There's a problem at this point. Any polygon crossed by the zero-th
     # meridian can in principle convert to an inverted polygon that is crossed
     # by the antimeridian.
 
-    if not converted.is_valid:
+    if not converted_region.is_valid:
         # The polygon 'became' invalid upon conversion => probably the original
         # polygon is what we want
 
         # noinspection PyBroadException
         try:
             # First try cleaning up geometry that is invalid
-            converted = converted.buffer(0)
+            converted_region = converted_region.buffer(0)
         except BaseException:
             pass
-        if not converted.is_valid:
+        if not converted_region.is_valid:
             return False
 
     test_line = LineString([(180, -90), (180, 90)])
-    if test_line.crosses(converted):
+    if test_line.crosses(converted_region):
         # The converted polygon seems to be valid and crossed by the
         # antimeridian. At this point there's no 'perfect' way how to tell if
         # we wanted the converted polygon or the original one.
 
         # A simple heuristic is to check for size. The smaller one is quite
         # likely the desired one
-        if converted.area < region.area:
+        if converted_region.area < region.area:
             return True
         else:
             return False
