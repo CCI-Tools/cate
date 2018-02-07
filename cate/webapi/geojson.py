@@ -425,7 +425,7 @@ def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, conservation_ratio
 # TODO (forman): Optimize me!
 # This is an non-optimised version of PointHeap for testing only.
 # It uses the pure Python heapq implementation of a min-heap.
-# We should ASAP replace heapq by the jit-compiled cate.util.minheap implementation
+# We should ASAP replace heapq by the jit-compiled cate.webapi.minheap implementation
 # so that we can compile the PointHeap class using @numba.jitclass().
 # See http://numba.pydata.org/numba-doc/dev/user/jitclass.html
 
