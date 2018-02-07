@@ -57,9 +57,9 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, \
     DataSource, \
     open_xarray_dataset
+from cate.core.opimpl import subset_spatial_impl, normalize_impl
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
-from cate.util.opimpl import subset_spatial_impl, normalize_impl
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \

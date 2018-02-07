@@ -32,7 +32,7 @@ Components
 import xarray as xr
 
 from cate.core.op import op, op_return
-from cate.util.opimpl import normalize_impl, adjust_temporal_attrs_impl, adjust_spatial_attrs_impl
+from cate.core.opimpl import normalize_impl, adjust_temporal_attrs_impl, adjust_spatial_attrs_impl
 
 
 @op(tags=['utility'], version='1.0')

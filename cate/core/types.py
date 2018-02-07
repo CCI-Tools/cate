@@ -50,8 +50,8 @@ import shapely.wkt
 import xarray
 from shapely.errors import ShapelyError
 
+from .opimpl import adjust_temporal_attrs_impl
 from ..util.misc import to_list, to_datetime_range, to_datetime
-from ..util.opimpl import adjust_temporal_attrs_impl
 from ..util.safe import safe_eval
 
 __author__ = "Janis Gailis (S[&]T Norway), " \
