@@ -280,7 +280,7 @@ def plot_contour(ds: xr.Dataset,
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot(ds: xr.Dataset,
+def plot(ds: DatasetLike.TYPE,
          var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
          title: str = None,
