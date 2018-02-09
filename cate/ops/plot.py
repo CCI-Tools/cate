@@ -69,9 +69,9 @@ if not has_qt5agg:
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+import matlotlib.animation as animation
 
 import xarray as xr
-import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
@@ -81,6 +81,7 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
                         'svgz', 'tif', 'tiff']
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
+ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 
 
 @op(tags=['plot'], res_pattern='plot_{index}')
@@ -205,6 +206,138 @@ def plot_map(ds: xr.Dataset,
 
     if file:
         figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'], res_pattern='animation_{index}')
+@op_input('ds')
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('indexers', data_type=DictLike)
+@op_input('region', data_type=PolygonLike)
+@op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
+                                   'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
+                                   'NorthPolarStereo', 'SouthPolarStereo'])
+@op_input('central_lon', units='degrees', value_range=[-180, 180])
+@op_input('title')
+@op_input('properties', data_type=DictLike)
+@op_input('file', file_open_mode='w', file_filters=[ANIMATION_FILE_FILTER])
+def animate_map(ds: xr.Dataset,
+                var: VarName.TYPE = None,
+                indexers: DictLike.TYPE = None,
+                region: PolygonLike.TYPE = None,
+                projection: str = 'PlateCarree',
+                central_lon: float = 0.0,
+                title: str = None,
+                properties: DictLike.TYPE = None,
+                file: str = None) -> Figure:
+    """
+    Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
+
+    Creates an animation of the given variable from the given dataset on a map with coastal lines.
+    In case no variable name is given, the first encountered variable in the
+    dataset is plotted.
+    It is also possible to set extents of the plot. If no extents
+    are given, a global plot is created.
+
+    The plot can either be shown using pyplot functionality, or saved,
+    if a path is given. The following file formats for saving the animation
+    are supported: html
+
+    :param ds: the dataset containing the variable to plot
+    :param var: the variable's name
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "layer=4".
+    :param region: Region to plot
+    :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
+    :param central_lon: central longitude of the projection in degrees
+    :param title: an optional title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5)"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
+    :param file: path to a file in which to save the plot
+    :return: a matplotlib figure object or None if in IPython mode
+    """
+    if not isinstance(ds, xr.Dataset):
+        raise NotImplementedError('Only gridded datasets are currently supported')
+
+    var_name = None
+    if not var:
+        for key in ds.data_vars.keys():
+            var_name = key
+            break
+    else:
+        var_name = VarName.convert(var)
+    var = ds[var_name]
+
+    indexers = DictLike.convert(indexers) or {}
+    properties = DictLike.convert(properties) or {}
+
+    extents = None
+    region = PolygonLike.convert(region)
+    if region:
+        lon_min, lat_min, lon_max, lat_max = region.bounds
+        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+            raise ValueError('Provided plot extents do not form a valid bounding box '
+                             'within [-180.0,+180.0,-90.0,+90.0]')
+        extents = [lon_min, lon_max, lat_min, lat_max]
+
+    # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
+    if projection == 'PlateCarree':
+        proj = ccrs.PlateCarree(central_longitude=central_lon)
+    elif projection == 'LambertCylindrical':
+        proj = ccrs.LambertCylindrical(central_longitude=central_lon)
+    elif projection == 'Mercator':
+        proj = ccrs.Mercator(central_longitude=central_lon)
+    elif projection == 'Miller':
+        proj = ccrs.Miller(central_longitude=central_lon)
+    elif projection == 'Mollweide':
+        proj = ccrs.Mollweide(central_longitude=central_lon)
+    elif projection == 'Orthographic':
+        proj = ccrs.Orthographic(central_longitude=central_lon)
+    elif projection == 'Robinson':
+        proj = ccrs.Robinson(central_longitude=central_lon)
+    elif projection == 'Sinusoidal':
+        proj = ccrs.Sinusoidal(central_longitude=central_lon)
+    elif projection == 'NorthPolarStereo':
+        proj = ccrs.NorthPolarStereo(central_longitude=central_lon)
+    elif projection == 'SouthPolarStereo':
+        proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
+    else:
+        raise ValueError('illegal projection: "%s"' % projection)
+
+    figure = plt.figure(figsize=(8, 4))
+    ax = plt.axes(projection=proj)
+    if extents:
+        ax.set_extent(extents)
+    else:
+        ax.set_global()
+
+    ax.coastlines()
+    var_data = _get_var_data(var, indexers, time=var.time[0], remaining_dims=('lon', 'lat'))
+    artist, = var_data.plot.contourf(ax=ax, transform=proj, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
+    def run(time):
+        # Add monitor here?
+        var_data = _get_var_data(var, indexers, time=var.time[0],
+                                 remaining_dims=('lon', 'lat'))
+        artist, = var_data.plot.contourf(ax=ax, transform=proj, **properties)
+        return artist
+
+    anim = animation.FuncAnimation(figure, run, [t for t in var_data.time],
+                                   interval=25, blit=False)
+
+    if file:
+        with open(file, 'w') as outfile:
+            outfile.write(anim.to_jshtml())
 
     return figure if not in_notebook() else None
 
