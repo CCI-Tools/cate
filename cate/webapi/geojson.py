@@ -239,8 +239,8 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
                              crs=None,
                              res_id: int = None,
                              num_features: int = None,
-                             max_num_display_geometries: int = 1000,
-                             max_num_display_geometry_points: int = 100,
+                             max_num_display_geometries: int = -1,
+                             max_num_display_geometry_points: int = -1,
                              conservation_ratio: float = 1.0):
     if crs is None and hasattr(feature_collection, "crs"):
         crs = feature_collection.crs
@@ -251,7 +251,7 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
         except TypeError:
             pass
 
-    if num_features and num_features > max_num_display_geometries:
+    if num_features and 0 <= max_num_display_geometries < num_features:
         conservation_ratio = 0.0
 
     source_prj = target_prj = None
@@ -324,7 +324,7 @@ def _transform_feature(feature: Feature,
                 geometry_conservation_ratio = conservation_ratio
                 if conservation_ratio > 0.0:
                     num_geometry_points = get_geometry_point_counter(geometry['type'])(geometry)
-                    if num_geometry_points > max_num_display_geometry_points:
+                    if 0 <= max_num_display_geometry_points < num_geometry_points:
                         geometry_conservation_ratio = 0.0
 
                 coordinates = geometry_transform(source_prj, target_prj,
@@ -425,7 +425,7 @@ def simplify_geometry(x_data: np.ndarray, y_data: np.ndarray, conservation_ratio
 # TODO (forman): Optimize me!
 # This is an non-optimised version of PointHeap for testing only.
 # It uses the pure Python heapq implementation of a min-heap.
-# We should ASAP replace heapq by the jit-compiled cate.util.minheap implementation
+# We should ASAP replace heapq by the jit-compiled cate.webapi.minheap implementation
 # so that we can compile the PointHeap class using @numba.jitclass().
 # See http://numba.pydata.org/numba-doc/dev/user/jitclass.html
 

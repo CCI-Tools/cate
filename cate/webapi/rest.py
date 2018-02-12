@@ -238,7 +238,7 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
 class GeoJSONHandler(WebAPIRequestHandler):
     def __init__(self, application, request, shapefile_path, **kwargs):
         print('GeoJSONHandler', shapefile_path)
-        super(GeoJSONHandler, self).__init__(application, request, **kwargs)
+        super().__init__(application, request, **kwargs)
         self._shapefile_path = shapefile_path
 
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
@@ -263,7 +263,7 @@ class CountriesGeoJSONHandler(GeoJSONHandler):
         try:
             shapefile_path = os.path.join(os.path.dirname(__file__),
                                           '..', 'ds', 'data', 'countries', 'countries.geojson')
-            super(CountriesGeoJSONHandler, self).__init__(application, request, shapefile_path=shapefile_path, **kwargs)
+            super().__init__(application, request, shapefile_path=shapefile_path, **kwargs)
         except Exception as e:
             self.write_status_error(exception=e)
 
@@ -304,6 +304,8 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                                           crs=crs,
                                           res_id=res_id,
                                           num_features=num_features,
+                                          max_num_display_geometries=1000,
+                                          max_num_display_geometry_points=100,
                                           conservation_ratio=_level_to_conservation_ratio(level,
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
                 print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())

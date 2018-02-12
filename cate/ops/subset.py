@@ -34,9 +34,9 @@ import xarray as xr
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
+from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl
+from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
-
-from cate.util.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_attrs
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')

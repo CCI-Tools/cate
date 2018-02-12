@@ -113,9 +113,9 @@ from typing import List, Optional, Union
 
 import xarray as xr
 
+from .opimpl import get_lat_dim_name_impl, get_lon_dim_name_impl
 from ..util.im import GeoExtent, TilingScheme
 from ..util.misc import object_to_qualified_name, qualified_name_to_object
-from ..util.opimpl import get_lat_dim_name_impl, get_lon_dim_name_impl
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)," \
              "Janis Gailis (S[&]T Norway)"
