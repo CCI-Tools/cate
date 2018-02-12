@@ -69,13 +69,17 @@ if not has_qt5agg:
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import matplotlib.animation as animation
 
 import xarray as xr
+import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike
+
+from cate.ops.plot_helpers import get_var_data
+from cate.ops.plot_helpers import in_notebook
+from cate.ops.plot_helpers import check_bounding_box
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -159,7 +163,7 @@ def plot_map(ds: xr.Dataset,
     region = PolygonLike.convert(region)
     if region:
         lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+        if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
             raise ValueError('Provided plot extents do not form a valid bounding box '
                              'within [-180.0,+180.0,-90.0,+90.0]')
         extents = [lon_min, lon_max, lat_min, lat_max]
@@ -196,7 +200,7 @@ def plot_map(ds: xr.Dataset,
         ax.set_global()
 
     ax.coastlines()
-    var_data = _get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
+    var_data = get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
     var_data.plot.contourf(ax=ax, transform=proj, **properties)
 
     if title:
@@ -209,151 +213,6 @@ def plot_map(ds: xr.Dataset,
 
     return figure if not in_notebook() else None
 
-
-@op(tags=['plot'], res_pattern='animation_{index}')
-@op_input('ds')
-@op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('indexers', data_type=DictLike)
-@op_input('region', data_type=PolygonLike)
-@op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
-                                   'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
-                                   'NorthPolarStereo', 'SouthPolarStereo'])
-@op_input('central_lon', units='degrees', value_range=[-180, 180])
-@op_input('title')
-@op_input('properties', data_type=DictLike)
-@op_input('file', file_open_mode='w', file_filters=[ANIMATION_FILE_FILTER])
-def animate_map(ds: xr.Dataset,
-                var: VarName.TYPE = None,
-                indexers: DictLike.TYPE = None,
-                region: PolygonLike.TYPE = None,
-                projection: str = 'PlateCarree',
-                central_lon: float = 0.0,
-                title: str = None,
-                properties: DictLike.TYPE = None,
-                file: str = None) -> object:
-    """
-    Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
-
-    Creates an animation of the given variable from the given dataset on a map with coastal lines.
-    In case no variable name is given, the first encountered variable in the
-    dataset is plotted.
-    It is also possible to set extents of the plot. If no extents
-    are given, a global plot is created.
-
-    The animation can either be shown using pyplot functionality, or saved,
-    if a path is given. The following file formats for saving the animation
-    are supported: html
-
-    :param ds: the dataset containing the variable to plot
-    :param var: the variable's name
-    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
-           or a comma-separated string of key-value pairs that maps the variable's dimension names
-           to constant labels. e.g. "layer=4".
-    :param region: Region to plot
-    :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
-    :param central_lon: central longitude of the projection in degrees
-    :param title: an optional title
-    :param properties: optional plot properties for Python matplotlib,
-           e.g. "bins=512, range=(-1.5, +1.5)"
-           For full reference refer to
-           https://matplotlib.org/api/lines_api.html and
-           https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
-    :param file: path to a file in which to save the plot
-    :return: a matplotlib figure object or None if in IPython mode
-    """
-    if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only gridded datasets are currently supported')
-
-    var_name = None
-    if not var:
-        for key in ds.data_vars.keys():
-            var_name = key
-            break
-    else:
-        var_name = VarName.convert(var)
-    var = ds[var_name]
-
-    indexers = DictLike.convert(indexers) or {}
-    properties = DictLike.convert(properties) or {}
-
-    extents = None
-    region = PolygonLike.convert(region)
-    if region:
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
-        extents = [lon_min, lon_max, lat_min, lat_max]
-
-    # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
-    if projection == 'PlateCarree':
-        proj = ccrs.PlateCarree(central_longitude=central_lon)
-    elif projection == 'LambertCylindrical':
-        proj = ccrs.LambertCylindrical(central_longitude=central_lon)
-    elif projection == 'Mercator':
-        proj = ccrs.Mercator(central_longitude=central_lon)
-    elif projection == 'Miller':
-        proj = ccrs.Miller(central_longitude=central_lon)
-    elif projection == 'Mollweide':
-        proj = ccrs.Mollweide(central_longitude=central_lon)
-    elif projection == 'Orthographic':
-        proj = ccrs.Orthographic(central_longitude=central_lon)
-    elif projection == 'Robinson':
-        proj = ccrs.Robinson(central_longitude=central_lon)
-    elif projection == 'Sinusoidal':
-        proj = ccrs.Sinusoidal(central_longitude=central_lon)
-    elif projection == 'NorthPolarStereo':
-        proj = ccrs.NorthPolarStereo(central_longitude=central_lon)
-    elif projection == 'SouthPolarStereo':
-        proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
-    else:
-        raise ValueError('illegal projection: "%s"' % projection)
-
-    figure = plt.figure(figsize=(8, 4))
-    ax = plt.axes(projection=proj)
-    if extents:
-        ax.set_extent(extents)
-    else:
-        ax.set_global()
-
-    ax.coastlines()
-    var_data = _get_var_data(var, indexers, time=var.time[0], remaining_dims=('lon', 'lat'))
-    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **properties)
-
-    if title:
-        ax.set_title(title)
-
-    figure.tight_layout()
-
-    def run(time):
-        # Add monitor here.
-        # Make it cancellable.
-        # Add the possibility to calculate 'true' vmin and vmax. 
-        # Make sure we can see the animation in a Jupyter notebook
-        # display(HTML(ops.animate_map(cc, var='cfc_low')))
-        ax.clear()
-        if title:
-            ax.set_title(title)
-        if extents:
-            ax.set_extent(extents)
-        else:
-            ax.set_global()
-        ax.coastlines()
-        var_data = _get_var_data(var, indexers, time=time,
-                                 remaining_dims=('lon', 'lat'))
-        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar= False, **properties)
-        return ax
-
-    anim = animation.FuncAnimation(figure, run, [t for t in var.time],
-                                   interval=25, blit=False)
-
-    anim_html = anim.to_jshtml()
-
-    if file:
-        with open(file, 'w') as outfile:
-            anim_html
-
-    return anim_html
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
@@ -402,7 +261,7 @@ def plot_contour(ds: xr.Dataset,
     figure = plt.figure(figsize=(8, 4))
     ax = figure.add_subplot(111)
 
-    var_data = _get_var_data(var, indexers, time=time)
+    var_data = get_var_data(var, indexers, time=time)
     if filled:
         var_data.plot.contourf(ax=ax, **properties)
     else:
@@ -462,7 +321,7 @@ def plot(ds: DatasetLike.TYPE,
     figure = plt.figure()
     ax = figure.add_subplot(111)
 
-    var_data = _get_var_data(var, indexers)
+    var_data = get_var_data(var, indexers)
     var_data.plot(ax=ax, **properties)
 
     if title:
@@ -516,7 +375,6 @@ def plot_scatter(ds1: xr.Dataset,
     :param file: path to a file in which to save the plot
     :return: a matplotlib figure object or None if in IPython mode
     """
-
     var_name1 = VarName.convert(var1)
     var_name2 = VarName.convert(var2)
     if not var_name1:
@@ -618,7 +476,6 @@ def plot_hist(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     :return: a matplotlib figure object or None if in IPython mode
     """
-
     var_name = VarName.convert(var)
     if not var_name:
         raise ValueError("Missing value for 'var'")
@@ -632,7 +489,7 @@ def plot_hist(ds: xr.Dataset,
     ax = figure.add_subplot(111)
     figure.tight_layout()
 
-    var_data = _get_var_data(var, indexers)
+    var_data = get_var_data(var, indexers)
     var_data.plot.hist(ax=ax, **properties)
 
     if title:
@@ -646,57 +503,33 @@ def plot_hist(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-def _check_bounding_box(lat_min: float,
-                        lat_max: float,
-                        lon_min: float,
-                        lon_max: float) -> bool:
+@op(tags=['plot'],
+    res_pattern='plot_{index}',
+    deprecated="This operation is deprecated and will be removed in future versions. User plot() instead.")
+@op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
+                                  'area', 'pie', 'scatter', 'hexbin'])
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_data_frame(df: pd.DataFrame,
+                    plot_type: str = 'line',
+                    file: str = None,
+                    **kwargs) -> Figure:
     """
-    Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
-    are sane.
+    Plot a data frame.
+    This is a wrapper of pandas.DataFrame.plot() function.
+    For further documentation please see
+    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
+    :param df: A pandas dataframe to plot
+    :param plot_type: Plot type
+    :param file: path to a file in which to save the plot
+    :param kwargs: Keyword arguments to pass to the underlying
+                   pandas.DataFrame.plot function
     """
-    if lat_min >= lat_max:
-        return False
+    if not isinstance(df, pd.DataFrame):
+        raise NotImplementedError('"df" must be of type "pandas.DataFrame"')
 
-    if lon_min >= lon_max:
-        return False
+    ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
+    figure = ax.get_figure()
+    if file:
+        figure.savefig(file)
 
-    if lat_min < -90.0:
-        return False
-
-    if lat_max > 90.0:
-        return False
-
-    if lon_min < -180.0:
-        return False
-
-    if lon_max > 180.0:
-        return False
-
-    return True
-
-
-def in_notebook():
-    """
-    Returns ``True`` if the module is running in IPython kernel,
-    ``False`` if in IPython shell or other Python shell.
-    """
-    import sys
-    ipykernel_in_sys_modules = 'ipykernel' in sys.modules
-    # print('###########################################', ipykernel_in_sys_modules)
-    return ipykernel_in_sys_modules
-
-
-def _get_var_data(var, indexers: dict, time=None, remaining_dims=None):
-
-    if time is not None:
-        indexers = dict(indexers) if indexers else dict()
-        indexers['time'] = time
-
-    if indexers:
-        var = var.sel(method='nearest', **indexers)
-
-    if remaining_dims:
-        isel_indexers = {dim_name: 0 for dim_name in var.dims if dim_name not in remaining_dims}
-        var = var.isel(**isel_indexers)
-
-    return var
+    return figure if not in_notebook() else None
