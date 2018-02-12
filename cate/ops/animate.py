@@ -87,6 +87,7 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 @op_input('file', file_open_mode='w', file_filters=[ANIMATION_FILE_FILTER])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
+                animate_dim: str = None,
                 indexers: DictLike.TYPE = None,
                 region: PolygonLike.TYPE = None,
                 projection: str = 'PlateCarree',
@@ -103,12 +104,11 @@ def animate_map(ds: xr.Dataset,
     It is also possible to set extents of the plot. If no extents
     are given, a global plot is created.
 
-    The animation can either be shown using pyplot functionality, or saved,
-    if a path is given. The following file formats for saving the animation
-    are supported: html
+    The following file formats for saving the animation are supported: html
 
     :param ds: the dataset containing the variable to plot
     :param var: the variable's name
+    :param animate_dim: Dimension to animate, if none given defaults to time.
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
@@ -180,7 +180,13 @@ def animate_map(ds: xr.Dataset,
         ax.set_global()
 
     ax.coastlines()
-    var_data = get_var_data(var, indexers, time=var.time[0], remaining_dims=('lon', 'lat'))
+
+    if not animate_dim:
+        animate_dim = 'time'
+
+    indexers[animate_dim] = var[animate_dim][0]
+
+    var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
     var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **properties)
 
     if title:
@@ -188,12 +194,10 @@ def animate_map(ds: xr.Dataset,
 
     figure.tight_layout()
 
-    def run(time):
+    def run(value):
         # Add monitor here.
         # Make it cancellable.
         # Add the possibility to calculate 'true' vmin and vmax.
-        # Make sure we can see the animation in a Jupyter notebook
-        # display(HTML(ops.animate_map(cc, var='cfc_low')))
         ax.clear()
         if title:
             ax.set_title(title)
@@ -202,12 +206,12 @@ def animate_map(ds: xr.Dataset,
         else:
             ax.set_global()
         ax.coastlines()
-        var_data = get_var_data(var, indexers, time=time,
-                                remaining_dims=('lon', 'lat'))
+        indexers[animate_dim] = value
+        var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
         var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **properties)
         return ax
 
-    anim = animation.FuncAnimation(figure, run, [t for t in var.time],
+    anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
                                    interval=25, blit=False)
 
     anim_html = anim.to_jshtml()
