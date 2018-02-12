@@ -69,7 +69,7 @@ if not has_qt5agg:
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-import matlotlib.animation as animation
+import matplotlib.animation as animation
 
 import xarray as xr
 import cartopy.crs as ccrs
@@ -230,7 +230,7 @@ def animate_map(ds: xr.Dataset,
                 central_lon: float = 0.0,
                 title: str = None,
                 properties: DictLike.TYPE = None,
-                file: str = None) -> Figure:
+                file: str = None) -> object:
     """
     Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
 
@@ -240,7 +240,7 @@ def animate_map(ds: xr.Dataset,
     It is also possible to set extents of the plot. If no extents
     are given, a global plot is created.
 
-    The plot can either be shown using pyplot functionality, or saved,
+    The animation can either be shown using pyplot functionality, or saved,
     if a path is given. The following file formats for saving the animation
     are supported: html
 
@@ -318,7 +318,7 @@ def animate_map(ds: xr.Dataset,
 
     ax.coastlines()
     var_data = _get_var_data(var, indexers, time=var.time[0], remaining_dims=('lon', 'lat'))
-    artist, = var_data.plot.contourf(ax=ax, transform=proj, **properties)
+    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **properties)
 
     if title:
         ax.set_title(title)
@@ -326,21 +326,34 @@ def animate_map(ds: xr.Dataset,
     figure.tight_layout()
 
     def run(time):
-        # Add monitor here?
-        var_data = _get_var_data(var, indexers, time=var.time[0],
+        # Add monitor here.
+        # Make it cancellable.
+        # Add the possibility to calculate 'true' vmin and vmax. 
+        # Make sure we can see the animation in a Jupyter notebook
+        # display(HTML(ops.animate_map(cc, var='cfc_low')))
+        ax.clear()
+        if title:
+            ax.set_title(title)
+        if extents:
+            ax.set_extent(extents)
+        else:
+            ax.set_global()
+        ax.coastlines()
+        var_data = _get_var_data(var, indexers, time=time,
                                  remaining_dims=('lon', 'lat'))
-        artist, = var_data.plot.contourf(ax=ax, transform=proj, **properties)
-        return artist
+        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar= False, **properties)
+        return ax
 
-    anim = animation.FuncAnimation(figure, run, [t for t in var_data.time],
+    anim = animation.FuncAnimation(figure, run, [t for t in var.time],
                                    interval=25, blit=False)
+
+    anim_html = anim.to_jshtml()
 
     if file:
         with open(file, 'w') as outfile:
-            outfile.write(anim.to_jshtml())
+            anim_html
 
-    return figure if not in_notebook() else None
-
+    return anim_html
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
