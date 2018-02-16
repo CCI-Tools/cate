@@ -87,7 +87,8 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 @op_input('file', file_open_mode='w', file_filters=[ANIMATION_FILE_FILTER])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
-                animate_dim: str = None,
+                animate_dim: str = 'time',
+                global_cmap: bool = False,
                 indexers: DictLike.TYPE = None,
                 region: PolygonLike.TYPE = None,
                 projection: str = 'PlateCarree',
@@ -109,6 +110,9 @@ def animate_map(ds: xr.Dataset,
     :param ds: the dataset containing the variable to plot
     :param var: the variable's name
     :param animate_dim: Dimension to animate, if none given defaults to time.
+    :param global_cmap: If True, calculates colormap and colorbar configuration parameters from the
+    whole dataset. Can potentially take a lot of time. Defaults to False, in which case the colormap
+    is calculated from the first frame.
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
@@ -122,7 +126,7 @@ def animate_map(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
-    :return: a matplotlib figure object or None if in IPython mode
+    :return: An animation in HTML format
     """
     if not isinstance(ds, xr.Dataset):
         raise NotImplementedError('Only gridded datasets are currently supported')
@@ -187,7 +191,13 @@ def animate_map(ds: xr.Dataset,
     indexers[animate_dim] = var[animate_dim][0]
 
     var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **properties)
+
+    if global_cmap:
+        cmap_params = dict()
+    else:
+        cmap_params = dict()
+
+    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, vmin=vmin, vmax=vmax, **properties)
 
     if title:
         ax.set_title(title)
@@ -208,7 +218,7 @@ def animate_map(ds: xr.Dataset,
         ax.coastlines()
         indexers[animate_dim] = value
         var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **properties)
+        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, vmin=vmin, vmax=vmax, **properties)
         return ax
 
     anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],

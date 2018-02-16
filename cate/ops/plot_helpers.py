@@ -28,30 +28,6 @@ Helpers for data visualization operations (plot and animate).
 Components
 ==========
 
-## plot_map
-
-Plots a geospatial data slice on a world map. General python prompt usage:
-
-```python
-import matplotlib.pyplot as plt
-from cate.ops.plot import plot_map
-
-plot_map(dset)
-plt.show()
-```
-
-General jupyter notebook usage:
-```python
-import matplotlib.pyplot as plt
-from cate.ops.plot import plot_map
-
-%matplotlib inline
-plot_map(dset)
-```
-If a file path is given, the plot is saved.
-Supported formats: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg,
-svgz, tif, tiff
-
 """
 
 
