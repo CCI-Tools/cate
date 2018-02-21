@@ -201,7 +201,10 @@ def plot_map(ds: xr.Dataset,
 
     ax.coastlines()
     var_data = get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
-    var_data.plot.contourf(ax=ax, transform=proj, **properties)
+
+    # transform keyword is for the coordinate our data is in, which in case of a
+    # 'normal' lat/lon dataset is PlateCarree.
+    var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
 
     if title:
         ax.set_title(title)
