@@ -212,16 +212,15 @@ def animate_map(ds: xr.Dataset,
 
         cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
         plot_kwargs = {**properties, **cmap_params}
-        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
-        monitor.progress(1)
+        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                               add_colorbar=True, **plot_kwargs)
         if title:
             ax.set_title(title)
         figure.tight_layout()
+        monitor.progress(1)
 
         def run(value):
             ax.clear()
-            if title:
-                ax.set_title(title)
             if extents:
                 ax.set_extent(extents)
             else:
@@ -229,7 +228,10 @@ def animate_map(ds: xr.Dataset,
             ax.coastlines()
             indexers[animate_dim] = value
             var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-            var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
+            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                                   add_colorbar=False, **plot_kwargs)
+            if title:
+                ax.set_title(title)
             monitor.progress(1)
             return ax
         anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
