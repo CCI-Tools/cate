@@ -63,12 +63,14 @@ import matplotlib.pyplot as plt
 
 import cartopy.crs as ccrs
 import xarray as xr
+import numpy as np
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike
 
-from cate.ops.plot_helpers import get_var_data
-from cate.ops.plot_helpers import check_bounding_box
+from cate.ops.plot_helpers import (get_var_data,
+                                   check_bounding_box,
+                                   determine_cmap_params)
 
 ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 
@@ -83,7 +85,8 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
                                    'NorthPolarStereo', 'SouthPolarStereo'])
 @op_input('central_lon', units='degrees', value_range=[-180, 180])
 @op_input('title')
-@op_input('properties', data_type=DictLike)
+@op_input('cmap_params', data_type=DictLike)
+@op_input('plot_properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[ANIMATION_FILE_FILTER])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
@@ -94,7 +97,8 @@ def animate_map(ds: xr.Dataset,
                 projection: str = 'PlateCarree',
                 central_lon: float = 0.0,
                 title: str = None,
-                properties: DictLike.TYPE = None,
+                cmap_params: DictLike.TYPE = None,
+                plot_properties: DictLike.TYPE = None,
                 file: str = None) -> object:
     """
     Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
@@ -120,7 +124,11 @@ def animate_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
-    :param properties: optional plot properties for Python matplotlib,
+    :param cmap_params: optional additional colormap configuration parameters,
+           e.g. "vmax=300, cmap='magma'"
+           For full reference refer to
+           http://xarray.pydata.org/en/stable/generated/xarray.plot.contourf.html
+    :param plot_properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5)"
            For full reference refer to
            https://matplotlib.org/api/lines_api.html and
@@ -141,7 +149,8 @@ def animate_map(ds: xr.Dataset,
     var = ds[var_name]
 
     indexers = DictLike.convert(indexers) or {}
-    properties = DictLike.convert(properties) or {}
+    properties = DictLike.convert(plot_properties) or {}
+    cmap_params = DictLike.convert(cmap_params) or {}
 
     extents = None
     region = PolygonLike.convert(region)
@@ -193,11 +202,14 @@ def animate_map(ds: xr.Dataset,
     var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
 
     if global_cmap:
-        cmap_params = dict()
+        data_min, data_max = _get_min_max(var)
     else:
-        cmap_params = dict()
+        data_min, data_max = _get_min_max(var_data)
 
-    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, vmin=vmin, vmax=vmax, **properties)
+    cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
+
+    plot_kwargs = {**properties, **cmap_params}
+    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
 
     if title:
         ax.set_title(title)
@@ -218,7 +230,7 @@ def animate_map(ds: xr.Dataset,
         ax.coastlines()
         indexers[animate_dim] = value
         var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, vmin=vmin, vmax=vmax, **properties)
+        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
         return ax
 
     anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
@@ -231,3 +243,21 @@ def animate_map(ds: xr.Dataset,
             outfile.write(anim_html)
 
     return anim_html
+
+
+def _get_min_max(data, monitor=None):
+    """
+    Get min and max of a dataset, while accounting for all-NaN
+    datasets and observing it with the monitor.
+    """
+    # Observe with Dask here
+    data_min = data.min()
+    if np.isnan(data_min):
+        # Handle all-NaN dataset gracefully
+        data_min = 0
+        data_max = 0
+    else:
+        # Observe with Dask here
+        data_max = data.max()
+
+    return (data_min, data_max)
