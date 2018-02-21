@@ -67,6 +67,7 @@ import numpy as np
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike
+from cate.util.monitor import Monitor
 
 from cate.ops.plot_helpers import (get_var_data,
                                    check_bounding_box,
@@ -99,7 +100,8 @@ def animate_map(ds: xr.Dataset,
                 title: str = None,
                 cmap_params: DictLike.TYPE = None,
                 plot_properties: DictLike.TYPE = None,
-                file: str = None) -> object:
+                file: str = None,
+                monitor: Monitor = Monitor.NONE) -> object:
     """
     Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
 
@@ -134,6 +136,7 @@ def animate_map(ds: xr.Dataset,
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
     :param file: path to a file in which to save the plot
+    :param monitor: A progress monitor.
     :return: An animation in HTML format
     """
     if not isinstance(ds, xr.Dataset):
@@ -201,46 +204,48 @@ def animate_map(ds: xr.Dataset,
 
     var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
 
-    if global_cmap:
-        data_min, data_max = _get_min_max(var)
-    else:
-        data_min, data_max = _get_min_max(var_data)
-
-    cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
-
-    plot_kwargs = {**properties, **cmap_params}
-    var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
-
-    if title:
-        ax.set_title(title)
-
-    figure.tight_layout()
-
-    def run(value):
-        # Add monitor here.
-        # Make it cancellable.
-        # Add the possibility to calculate 'true' vmin and vmax.
-        ax.clear()
-        if title:
-            ax.set_title(title)
-        if extents:
-            ax.set_extent(extents)
+    with monitor.starting("animate", len(var[animate_dim]) + 3):
+        if global_cmap:
+            data_min, data_max = _get_min_max(var, monitor=monitor)
         else:
-            ax.set_global()
-        ax.coastlines()
-        indexers[animate_dim] = value
-        var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
-        return ax
+            data_min, data_max = _get_min_max(var_data, monitor=monitor)
 
-    anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
-                                   interval=25, blit=False)
+            cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
 
-    anim_html = anim.to_jshtml()
+            plot_kwargs = {**properties, **cmap_params}
+            var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
+            monitor.progress(1)
 
-    if file:
-        with open(file, 'w') as outfile:
-            outfile.write(anim_html)
+            if title:
+                ax.set_title(title)
+
+            figure.tight_layout()
+
+            def run(value):
+                # Make it cancellable.
+                ax.clear()
+                if title:
+                    ax.set_title(title)
+                if extents:
+                    ax.set_extent(extents)
+                else:
+                    ax.set_global()
+                ax.coastlines()
+                indexers[animate_dim] = value
+                var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
+                var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
+                monitor.progress(1)
+                return ax
+
+            anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
+                                           interval=25, blit=False, repeat=False)
+
+            anim_html = anim.to_jshtml()
+
+            if file:
+                with open(file, 'w') as outfile:
+                    outfile.write(anim_html)
+                    monitor.progress(1)
 
     return anim_html
 
@@ -250,14 +255,15 @@ def _get_min_max(data, monitor=None):
     Get min and max of a dataset, while accounting for all-NaN
     datasets and observing it with the monitor.
     """
-    # Observe with Dask here
-    data_min = data.min()
+    with monitor.child(1).observing("find minimum"):
+        data_min = data.min()
     if np.isnan(data_min):
         # Handle all-NaN dataset gracefully
         data_min = 0
         data_max = 0
+        monitor.progress(1)
     else:
-        # Observe with Dask here
-        data_max = data.max()
+        with monitor.child(1).observing("find maximum"):
+            data_max = data.max()
 
     return (data_min, data_max)
