@@ -210,42 +210,36 @@ def animate_map(ds: xr.Dataset,
         else:
             data_min, data_max = _get_min_max(var_data, monitor=monitor)
 
-            cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
+        cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
+        plot_kwargs = {**properties, **cmap_params}
+        var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
+        monitor.progress(1)
+        if title:
+            ax.set_title(title)
+        figure.tight_layout()
 
-            plot_kwargs = {**properties, **cmap_params}
-            var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=True, **plot_kwargs)
-            monitor.progress(1)
-
+        def run(value):
+            ax.clear()
             if title:
                 ax.set_title(title)
+            if extents:
+                ax.set_extent(extents)
+            else:
+                ax.set_global()
+            ax.coastlines()
+            indexers[animate_dim] = value
+            var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
+            var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
+            monitor.progress(1)
+            return ax
+        anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
+                                       interval=25, blit=False, repeat=False)
+        anim_html = anim.to_jshtml()
 
-            figure.tight_layout()
-
-            def run(value):
-                # Make it cancellable.
-                ax.clear()
-                if title:
-                    ax.set_title(title)
-                if extents:
-                    ax.set_extent(extents)
-                else:
-                    ax.set_global()
-                ax.coastlines()
-                indexers[animate_dim] = value
-                var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-                var_data.plot.contourf(ax=ax, transform=proj, add_colorbar=False, **plot_kwargs)
+        if file:
+            with open(file, 'w') as outfile:
+                outfile.write(anim_html)
                 monitor.progress(1)
-                return ax
-
-            anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
-                                           interval=25, blit=False, repeat=False)
-
-            anim_html = anim.to_jshtml()
-
-            if file:
-                with open(file, 'w') as outfile:
-                    outfile.write(anim_html)
-                    monitor.progress(1)
 
     return anim_html
 
