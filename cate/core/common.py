@@ -19,41 +19,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Cate's core API.
-"""
+from cate.conf import get_config_value
 
-import os.path
-import sys
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd)"
 
-# See https://github.com/CCI-Tools/cate/issues/397
-extra_path = os.path.join(sys.prefix, 'site-packages')
-if os.path.isdir(extra_path) and extra_path not in sys.path:
-    sys.path.append(extra_path)
 
-# noinspection PyUnresolvedReferences
-from .common import initialize_proxy
-initialize_proxy()
+_CONFIG_KEY_HTTP_PROXY = 'http_proxy'
+_CONFIG_KEY_HTTPS_PROXY = 'https_proxy'
 
-# noinspection PyUnresolvedReferences
-from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY
 
-# noinspection PyUnresolvedReferences
-from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \
-    new_expression_op, new_subprocess_op
+def initialize_proxy():
+    """
+    Initialize user defined proxy settings, read proxy setting from config file.
+    Populates value to 3rd-party libraries using proper environment variables.
+    """
+    from os import environ
 
-# noinspection PyUnresolvedReferences
-from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExpressionStep, WorkflowStep, NodePort, \
-    new_workflow_op
-
-# noinspection PyUnresolvedReferences
-from ..util.monitor import Monitor, ChildMonitor, ConsoleMonitor
-
-# noinspection PyUnresolvedReferences
-from ..util.opmetainf import OpMetaInfo
-
-# Run plugin registration by importing the plugin module
-# noinspection PyUnresolvedReferences
-from .plugin import cate_init as _
-
-del _
+    http_proxy_config = get_config_value(_CONFIG_KEY_HTTP_PROXY)
+    https_proxy_config = get_config_value(_CONFIG_KEY_HTTPS_PROXY)
+    if http_proxy_config:
+        environ['http_proxy'] = http_proxy_config
+    if https_proxy_config:
+        environ['https_proxy'] = https_proxy_config
