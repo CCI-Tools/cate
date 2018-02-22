@@ -24,6 +24,15 @@
 # This prefix is used only if no specific prefix is defined for a given operation.
 # default_res_pattern = 'res_{index}'
 
+# User defined HTTP proxy settings, will replace one stored in System environment variable 'http_proxy' and/or
+# optionally 'https_proxy'
+# Accepted proxy details formats:
+#   'http://user:password@host:port'
+#   'http://host:port'
+# http_proxy =
+
+# Uncomment and fill only if your Organization or Internet Service Provider provides proxy setting for HTTPS connections
+# https_proxy =
 
 # Include/exclude data sources (currently effective in Cate Desktop GUI only, not used by API, CLI).
 #
