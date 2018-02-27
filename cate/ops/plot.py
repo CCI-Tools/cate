@@ -85,7 +85,6 @@ PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
                         'svgz', 'tif', 'tiff']
 PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
-ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 
 
 @op(tags=['plot'], res_pattern='plot_{index}')

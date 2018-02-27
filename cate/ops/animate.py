@@ -254,10 +254,8 @@ def _get_min_max(data, monitor=None):
     with monitor.child(1).observing("find minimum"):
         data_min = data.min()
     if np.isnan(data_min):
-        # Handle all-NaN dataset gracefully
-        data_min = 0
-        data_max = 0
-        monitor.progress(1)
+        # Handle all-NaN dataset
+        raise ValueError('Can not create an animation of a dataset containing only NaN values.')
     else:
         with monitor.child(1).observing("find maximum"):
             data_max = data.max()
