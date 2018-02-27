@@ -290,7 +290,7 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list', '--internal'], expected_stdout=['2 operations found'])
         self.assert_main(['op', 'list', '--tag', 'input'], expected_stdout=['7 operations found'])
         self.assert_main(['op', 'list', '--tag', 'output'], expected_stdout=['6 operations found'])
-        self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['No operations found'])
+        self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['One operation found'])
 
 
 @unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
