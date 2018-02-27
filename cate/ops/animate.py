@@ -66,7 +66,7 @@ import xarray as xr
 import numpy as np
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike
+from cate.core.types import VarName, DictLike, PolygonLike, HTML
 from cate.util.monitor import Monitor
 
 from cate.ops.plot_helpers import (get_var_data,
@@ -101,7 +101,7 @@ def animate_map(ds: xr.Dataset,
                 cmap_params: DictLike.TYPE = None,
                 plot_properties: DictLike.TYPE = None,
                 file: str = None,
-                monitor: Monitor = Monitor.NONE) -> object:
+                monitor: Monitor = Monitor.NONE) -> HTML:
     """
     Create a geographic map animation for the variable given by dataset *ds* and variable name *var*.
 
