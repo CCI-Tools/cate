@@ -149,7 +149,11 @@ def animate_map(ds: xr.Dataset,
             break
     else:
         var_name = VarName.convert(var)
-    var = ds[var_name]
+
+    try:
+        var = ds[var_name]
+    except KeyError:
+        raise ValueError('Provided variable name "{}" does not exist in the given dataset'.format(var_name))
 
     indexers = DictLike.convert(indexers) or {}
     properties = DictLike.convert(plot_properties) or {}
