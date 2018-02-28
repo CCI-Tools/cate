@@ -3,15 +3,13 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  # rdt requires "sphinx_rtd_theme ==0.1.7" which is not available for python 3.6 yet.
-  - python=3.5*
+  - python=3.6*
   #
   # for testing
   #
   - pytest
   - pytest-cov
   - tornado
-  # v 0.2.0 of sphinx-argparse needs a greater commonmark-parser version than rtd
-  - sphinx-argparse ==0.1.17
+  - sphinx-argparse
   - pip:
     - sphinx_autodoc_annotation
