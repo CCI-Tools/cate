@@ -32,6 +32,10 @@ if os.path.isdir(extra_path) and extra_path not in sys.path:
     sys.path.append(extra_path)
 
 # noinspection PyUnresolvedReferences
+from .common import initialize_proxy
+initialize_proxy()
+
+# noinspection PyUnresolvedReferences
 from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY
 
 # noinspection PyUnresolvedReferences

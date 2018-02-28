@@ -237,7 +237,6 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
 # noinspection PyAbstractClass
 class GeoJSONHandler(WebAPIRequestHandler):
     def __init__(self, application, request, shapefile_path, **kwargs):
-        print('GeoJSONHandler', shapefile_path)
         super().__init__(application, request, **kwargs)
         self._shapefile_path = shapefile_path
 

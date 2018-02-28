@@ -19,5 +19,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Cate version string (PEP440-compatible), e.g. "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-__version__ = '1.1.0.dev5'
+from cate.conf import get_config_value
+
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd)"
+
+
+_CONFIG_KEY_HTTP_PROXY = 'http_proxy'
+_CONFIG_KEY_HTTPS_PROXY = 'https_proxy'
+
+
+def initialize_proxy():
+    """
+    Initialize user defined proxy settings, read proxy setting from config file.
+    Populates value to 3rd-party libraries using proper environment variables.
+    """
+    from os import environ
+
+    http_proxy_config = get_config_value(_CONFIG_KEY_HTTP_PROXY)
+    https_proxy_config = get_config_value(_CONFIG_KEY_HTTPS_PROXY)
+    if http_proxy_config:
+        environ['http_proxy'] = http_proxy_config
+    if https_proxy_config:
+        environ['https_proxy'] = https_proxy_config

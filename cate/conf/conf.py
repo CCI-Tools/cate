@@ -22,6 +22,7 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import os.path
+import sys
 from typing import Any, Dict, Optional
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
@@ -111,18 +112,18 @@ def get_config() -> dict:
     """
     global _CONFIG
     if _CONFIG is None:
-        _set_config(version_config_file=os.path.expanduser(VERSION_CONF_FILE),
-                    global_config_file=os.path.expanduser(GLOBAL_CONF_FILE),
-                    local_config_file=os.path.expanduser(LOCAL_CONF_FILE),
-                    template_module='cate.conf.template')
+        _init_config(version_config_file=os.path.expanduser(VERSION_CONF_FILE),
+                     global_config_file=os.path.expanduser(GLOBAL_CONF_FILE),
+                     local_config_file=os.path.expanduser(LOCAL_CONF_FILE),
+                     template_module='cate.conf.template')
 
     return _CONFIG
 
 
-def _set_config(version_config_file: str = None,
-                global_config_file: str = None,
-                local_config_file: str = None,
-                template_module: str = None) -> None:
+def _init_config(version_config_file: str = None,
+                 global_config_file: str = None,
+                 local_config_file: str = None,
+                 template_module: str = None) -> None:
     """
     Set the Cate configuration dictionary.
 
@@ -151,6 +152,9 @@ def _set_config(version_config_file: str = None,
             except Exception as error:
                 print('warning: failed to read %s: %s' % (version_config_file, str(error)))
 
+    with open(os.path.join(os.path.dirname(version_config_file), LOCATION_FILE), 'w') as fp:
+        fp.write(sys.prefix)
+
     global _CONFIG
     if new_config is not None:
         _CONFIG = new_config
@@ -177,16 +181,13 @@ def _read_python_config(file):
             fp.close()
 
 
-def _write_default_config_file(default_config_file: str, template_module: str) -> str:
-    default_config_file = os.path.expanduser(default_config_file)
-    default_config_dir = os.path.dirname(default_config_file)
-    if default_config_dir and not os.path.exists(default_config_dir):
-        os.makedirs(default_config_dir, exist_ok=True)
-        with open(os.path.join(default_config_dir, LOCATION_FILE), 'w') as fp:
-            import sys
-            fp.write(sys.prefix)
+def _write_default_config_file(config_file: str, template_module: str) -> str:
+    config_file = os.path.expanduser(config_file)
+    config_dir = os.path.dirname(config_file)
+    if config_dir and not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
 
-    with open(default_config_file, 'w', newline='') as fp:
+    with open(config_file, 'w', newline='') as fp:
         import pkgutil
         parts = template_module.split('.')
         template_package = '.'.join(parts[:-1])
@@ -195,4 +196,4 @@ def _write_default_config_file(default_config_file: str, template_module: str) -
         text = template_data.decode('utf-8')
         fp.write(text)
 
-    return default_config_file
+    return config_file
