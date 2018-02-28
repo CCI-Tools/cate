@@ -10,6 +10,8 @@ dependencies:
   - pytest
   - pytest-cov
   - tornado
-  - sphinx-argparse
+  - CommonMark >=0.5.6
+  - sphinx-argparse >=0.2.1
+  - sphinx_rtd_theme >=0.2.4
   - pip:
     - sphinx_autodoc_annotation
