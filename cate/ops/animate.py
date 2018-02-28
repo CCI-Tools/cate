@@ -44,7 +44,7 @@ If a file path is given, the plot is saved.
 Supported formats: html
 
 """
-
+import os
 import matplotlib
 
 has_qt5agg = False
@@ -212,6 +212,8 @@ def animate_map(ds: xr.Dataset,
 
         cmap_params = determine_cmap_params(data_min, data_max, **cmap_params)
         plot_kwargs = {**properties, **cmap_params}
+
+        # Plot the first frame to set-up the axes with the colorbar properly
         var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
                                add_colorbar=True, **plot_kwargs)
         if title:
@@ -237,6 +239,15 @@ def animate_map(ds: xr.Dataset,
         anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
                                        interval=25, blit=False, repeat=False)
         anim_html = anim.to_jshtml()
+
+        # Prevent the animation for running after it's finished
+        del anim
+
+        # Delete the rogue temp-file
+        try:
+            os.remove('None0000000.png')
+        except FileNotFoundError:
+            pass
 
         if file:
             with open(file, 'w') as outfile:
