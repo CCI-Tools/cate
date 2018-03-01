@@ -1,5 +1,5 @@
 
-## Version 1.0.1 (xx.yy.2017)
+## Version 2.0 (xx.03.2018)
 
 ### Improvements and new Features
 
@@ -30,7 +30,7 @@
  * Address problems of a user working with Cloud and Aerosol
   [#478](https://github.com/CCI-Tools/cate/issues/478)
 
-## Version 1.0.0 (10.10.2017)
+## Version 1.0 (10.10.2017)
 
 ### Improvements and new Features
 
