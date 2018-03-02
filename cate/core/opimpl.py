@@ -168,33 +168,42 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
-    ds = ds.copy()
+
+    copied = False
 
     for dim in ('lon', 'lat'):
         geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim)
+        if geo_spatial_attrs:
+            for key in geo_spatial_attrs:
+                if geo_spatial_attrs[key] is not None:
+                    if not copied:
+                        ds = ds.copy()
+                        copied = True
+                    ds.attrs[key] = geo_spatial_attrs[key]
 
-        for key in geo_spatial_attrs:
-            if geo_spatial_attrs[key] is not None:
-                ds.attrs[key] = geo_spatial_attrs[key]
+    lon_min = ds.attrs.get('geospatial_lon_min')
+    lat_min = ds.attrs.get('geospatial_lat_min')
+    lon_max = ds.attrs.get('geospatial_lon_max')
+    lat_max = ds.attrs.get('geospatial_lat_max')
 
-    lon_min = ds.attrs['geospatial_lon_min']
-    lat_min = ds.attrs['geospatial_lat_min']
-    lon_max = ds.attrs['geospatial_lon_max']
-    lat_max = ds.attrs['geospatial_lat_max']
+    if lon_min is not None and lat_min is not None and lon_max is not None and lat_max is not None:
 
-    ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))'. \
-        format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max, lon_max, lat_min, lon_min, lat_min)
+        if not copied:
+            ds = ds.copy()
 
-    # Determination of the following attributes from introspection in a general
-    # way is ambiguous, hence it is safer to drop them than to risk preserving
-    # out of date attributes.
-    drop = ['geospatial_bounds_crs', 'geospatial_bounds_vertical_crs',
-            'geospatial_vertical_min', 'geospatial_vertical_max',
-            'geospatial_vertical_positive', 'geospatial_vertical_units',
-            'geospatial_vertical_resolution']
+        ds.attrs['geospatial_bounds'] = 'POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))'. \
+            format(lon_min, lat_min, lon_min, lat_max, lon_max, lat_max, lon_max, lat_min, lon_min, lat_min)
 
-    for key in drop:
-        ds.attrs.pop(key, None)
+        # Determination of the following attributes from introspection in a general
+        # way is ambiguous, hence it is safer to drop them than to risk preserving
+        # out of date attributes.
+        drop = ['geospatial_bounds_crs', 'geospatial_bounds_vertical_crs',
+                'geospatial_vertical_min', 'geospatial_vertical_max',
+                'geospatial_vertical_positive', 'geospatial_vertical_units',
+                'geospatial_vertical_resolution']
+
+        for key in drop:
+            ds.attrs.pop(key, None)
 
     return ds
 
@@ -214,20 +223,21 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
-    ds = ds.copy()
 
-    tempattrs = _get_temporal_props(ds)
+    temporal_attrs = _get_temporal_attrs(ds)
 
-    for key in tempattrs:
-        if tempattrs[key] is not None:
-            ds.attrs[key] = tempattrs[key]
-        else:
-            ds.attrs.pop(key, None)
+    if temporal_attrs:
+        ds = ds.copy()
+        for key in temporal_attrs:
+            if temporal_attrs[key] is not None:
+                ds.attrs[key] = temporal_attrs[key]
+            else:
+                ds.attrs.pop(key, None)
 
     return ds
 
 
-def _get_temporal_props(ds: xr.Dataset) -> dict:
+def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
     """
     Get temporal boundaries, resolution and duration of the given dataset. If
     the 'bounds' are explicitly defined, these will be used for calculation,
@@ -237,35 +247,55 @@ def _get_temporal_props(ds: xr.Dataset) -> dict:
     :param ds: Dataset
     :return: A dictionary {'attr_name': attr_value}
     """
+
+    if 'time' not in ds:
+        return None
+
+    coord_var = ds['time']
+
+    if 'bounds' in coord_var.attrs:
+        # According to CF Conventions the corresponding 'bounds' coordinate variable name
+        # should be in the attributes of the coordinate variable
+        bnds_name = coord_var.attrs['bounds']
+    else:
+        # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
+        bnds_name = 'time_bnds'
+
     ret = dict()
 
-    try:
-        # According to CF conventions, the 'bounds' variable name should be in
-        # the attributes of the coordinate variable
-        bnds = ds['time'].attrs['bounds']
-        time_min = ds[bnds].values[0][0]
-        time_max = ds[bnds].values[-1][1]
-    except KeyError:
-        time_min = ds['time'].values[0]
-        time_max = ds['time'].values[-1]
-
-    if time_min != time_max:
-        ret['time_coverage_duration'] = _get_duration(time_min, time_max)
+    if bnds_name in ds:
+        bnds_var = ds[bnds_name]
+        dim_min = bnds_var.values[0][0]
+        dim_max = bnds_var.values[-1][1]
+    elif len(coord_var.values) >= 2:
+        dim_min = coord_var.values[0]
+        dim_max = coord_var.values[-1]
+    elif len(coord_var.values) == 1:
+        dim_min = coord_var.values[0]
+        dim_max = coord_var.values[0]
     else:
-        ret['time_coverage_duration'] = None
+        # Cannot determine temporal extent for dimension dim_name
+        return None
 
-    if ds['time'].values[0] == ds['time'].values[-1]:
-        ret['time_coverage_resolution'] = None
+    if dim_min != dim_max:
+        duration = _get_duration(dim_min, dim_max)
     else:
-        ret['time_coverage_resolution'] = _get_temporal_res(ds.time.values)
+        duration = None
 
-    ret['time_coverage_start'] = str(time_min)
-    ret['time_coverage_end'] = str(time_max)
+    if dim_min < dim_max and len(coord_var.values) >= 2:
+        resolution = _get_temporal_res(coord_var.values)
+    else:
+        resolution = None
+
+    ret['time_coverage_duration'] = duration
+    ret['time_coverage_resolution'] = resolution
+    ret['time_coverage_start'] = str(dim_min)
+    ret['time_coverage_end'] = str(dim_max)
 
     return ret
 
 
-def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> dict:
+def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> Optional[dict]:
     """
     Get spatial boundaries, resolution and units of the given dimension of the given
     dataset. If the 'bounds' are explicitly defined, these will be used for
@@ -277,10 +307,11 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
-    ret = dict()
 
     if dim_name not in ds:
-        raise ValueError('Dimension "{}" not found in the provided dataset.'.format(dim_name))
+        return None
+
+    ret = dict()
 
     coord_var = ds[dim_name]
 
@@ -307,7 +338,8 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
         dim_min = coord_var.values[0]
         dim_max = coord_var.values[0]
     else:
-        raise ValueError('Cannot determine spatial extent for dimension "{}"'.format(dim_name))
+        # Cannot determine spatial extent for dimension dim_name
+        return None
 
     if 'units' in coord_var.attrs:
         dim_units = coord_var.attrs['units']

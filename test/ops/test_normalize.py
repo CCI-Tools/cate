@@ -410,10 +410,9 @@ class TestAdjustSpatial(TestCase):
         ds.lon.attrs['units'] = 'degrees_east'
         ds.lat.attrs['units'] = 'degrees_north'
 
-        with self.assertRaises(ValueError) as cm:
-            adjust_spatial_attrs(ds)
-
-        self.assertEqual(str(cm.exception), 'Cannot determine spatial extent for dimension "lon"')
+        ds2 = adjust_spatial_attrs(ds)
+        # Datasets should be the same --> not modified
+        self.assertIs(ds2, ds)
 
 
 class TestAdjustTemporal(TestCase):
