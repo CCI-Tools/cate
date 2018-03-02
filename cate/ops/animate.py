@@ -107,13 +107,13 @@ def animate_map(ds: xr.Dataset,
 
     Creates an animation of the given variable from the given dataset on a map with coastal lines.
     In case no variable name is given, the first encountered variable in the
-    dataset is plotted.
-    It is also possible to set extents of the plot. If no extents
-    are given, a global plot is created.
+    dataset is animated.
+    It is also possible to set extents of the animation. If no extents
+    are given, a global animation is created.
 
     The following file formats for saving the animation are supported: html
 
-    :param ds: the dataset containing the variable to plot
+    :param ds: the dataset containing the variable to animate
     :param var: the variable's name
     :param animate_dim: Dimension to animate, if none given defaults to time.
     :param global_cmap: If True, calculates colormap and colorbar configuration parameters from the
@@ -122,7 +122,7 @@ def animate_map(ds: xr.Dataset,
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
-    :param region: Region to plot
+    :param region: Region to animate
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
@@ -135,7 +135,7 @@ def animate_map(ds: xr.Dataset,
            For full reference refer to
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.contourf.html
-    :param file: path to a file in which to save the plot
+    :param file: path to a file in which to save the animation
     :param monitor: A progress monitor.
     :return: An animation in HTML format
     """
