@@ -10,10 +10,9 @@ env:
     # GITHUB_TOKEN
     - secure: "M2DcERJD62BHx/rjlQXClgEmZA0aRKyz89BlaPwiirxBjzJcF6ywkDiW5AOguqwc7Cxj9Hp4cv+5iItUw+hA61l51HaH+94Llf5h8oZgMfSC3WCA2Ppfhdb6i7yDvFfp/jIeCofTq6S3wVQzVRitidhBeTH/E0ui7lm3K8l3AAWGJvJ4lEGVr/MrCvfg/RKK8WnXo6kGu1evfy4j6g2RQwN/s/nY/z22a+lRy7QL/5o15GzP3hVw1SWyd6LVsYHEl+Zvd5QF+7Co6KThzpU/jKIlQ4Xf11k/pPd67bxTh8YLdWT1X5v8lL4hF14wbp5VvbiRj4hI3xKwyNvuStTjsZG/4CzShRa1ZxE/n5t0abRD5H6aTxiK/0Lhs2mH6p6631KsYWpGbEZUbKP8rOC+4AdvoE10eR9M011N0hnfDbHlyCmsEjsYOl/OyR0Jkd7/+hRdTv+RFsmLTel71W8l7RJG7i1YGKkOxpjPfp20Z7Fzoumg5sTJIpdgBaZh1o5VJvKwvmPYX8odHvQjAdaskQTGbRYHvQWS5Az2YFH/8+uHeIjC+BSBWIe910bueLtwEyeSTs0qSljQqHWfh5YgGHN9zHpocdu6Uw4Dud7Ff69J5zgkMlnhdaZUHH5SeRZIqX3p1nUq43J7rGR7JCRr5ZthGqcjKj9gGbybRNpISNI="
 
-# disabled, because osx takes very long
-#os:
-#  - linux
-#  - osx
+os:
+  - linux
+  - osx
 
 before_install:
   - source ./ci/amend_github_commit.sh "pending" "flake8 check in progress"
