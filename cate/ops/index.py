@@ -76,7 +76,7 @@ def enso_nino34(ds: xr.Dataset,
 
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('region', value_set=['N1+2', 'N3', 'N34', 'N4', 'custom'])
 @op_input('custom_region', data_type=PolygonLike)
 def enso(ds: xr.Dataset,
@@ -123,7 +123,7 @@ def enso(ds: xr.Dataset,
 
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 def oni(ds: xr.Dataset,
         var: VarName.TYPE,
         file: str,

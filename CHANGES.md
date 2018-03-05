@@ -29,6 +29,10 @@
   [#462](https://github.com/CCI-Tools/cate/issues/462)
  * Address problems of a user working with Cloud and Aerosol
   [#478](https://github.com/CCI-Tools/cate/issues/478)
+* Resolve an index operation documentation issue
+  [#496](https://github.com/CCI-Tools/cate/issues/496)
+* Resolve a bug with wrong file open mode
+  [#497](https://github.com/CCI-Tools/cate/issues/497)
 
 ## Version 1.0 (10.10.2017)
 
