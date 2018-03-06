@@ -201,7 +201,7 @@ class MplWebSocketHandler(WebSocketHandler):
             self.set_nodelay(True)
 
         self.figure_id = int(figure_id)
-        print('MplWebSocketHandler.open', base_dir, figure_id)
+        # print('MplWebSocketHandler.open', base_dir, figure_id)
 
         workspace_manager = self.application.workspace_manager
         assert workspace_manager
@@ -209,10 +209,10 @@ class MplWebSocketHandler(WebSocketHandler):
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
 
-        print('got figure_manager for figure #%s' % figure_id)
+        # print('got figure_manager for figure #%s' % figure_id)
 
     def on_close(self):
-        print('MplWebSocketHandler.on_close', self.workspace.base_dir, self.figure_id)
+        # print('MplWebSocketHandler.on_close', self.workspace.base_dir, self.figure_id)
         self._remove_figure_manager()
 
     def on_message(self, message):

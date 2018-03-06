@@ -41,7 +41,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
 @op(tags=['anomaly'], version='1.0')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,
                      file: str,
