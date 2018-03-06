@@ -92,7 +92,7 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
                 animate_dim: str = 'time',
-                global_cmap: bool = False,
+                true_range: bool = False,
                 indexers: DictLike.TYPE = None,
                 region: PolygonLike.TYPE = None,
                 projection: str = 'PlateCarree',
@@ -116,7 +116,7 @@ def animate_map(ds: xr.Dataset,
     :param ds: the dataset containing the variable to animate
     :param var: the variable's name
     :param animate_dim: Dimension to animate, if none given defaults to time.
-    :param global_cmap: If True, calculates colormap and colorbar configuration parameters from the
+    :param true_range: If True, calculates colormap and colorbar configuration parameters from the
     whole dataset. Can potentially take a lot of time. Defaults to False, in which case the colormap
     is calculated from the first frame.
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
@@ -209,7 +209,7 @@ def animate_map(ds: xr.Dataset,
     var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
 
     with monitor.starting("animate", len(var[animate_dim]) + 3):
-        if global_cmap:
+        if true_range:
             data_min, data_max = _get_min_max(var, monitor=monitor)
         else:
             data_min, data_max = _get_min_max(var_data, monitor=monitor)
