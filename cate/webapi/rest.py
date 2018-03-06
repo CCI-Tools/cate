@@ -139,7 +139,6 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                     if valid_min is not None and valid_max is not None:
                         valid_range = [valid_min, valid_max]
 
-
                 # Make sure we work with 2D image arrays only
                 if variable.ndim == 2:
                     array = variable
