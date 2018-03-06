@@ -156,4 +156,4 @@ def _get_tolerance(ds: xr.Dataset):
     else:
         lon_res = _get_geo_spatial_attrs(ds, 'lon')[lon_res_attr_name]
         lat_res = _get_geo_spatial_attrs(ds, 'lat')[lat_res_attr_name]
-    return (lon_res + lat_res) / 2
+    return (float(lon_res) + float(lat_res)) / 2
