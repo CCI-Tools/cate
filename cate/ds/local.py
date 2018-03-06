@@ -740,7 +740,7 @@ class LocalDataStore(DataStore):
                     self._data_sources.append(data_source)
             except DataAccessError as e:
                 if skip_broken:
-                    warnings.warn(e.cause, DataAccessWarning, stacklevel=0)
+                    warnings.warn(str(e), DataAccessWarning, stacklevel=0)
                 else:
                     raise e
 
@@ -782,6 +782,6 @@ class LocalDataStore(DataStore):
     def _json_default_serializer(obj):
         if isinstance(obj, datetime):
             return obj.replace(microsecond=0).isoformat()
-        # if isinstance(obj, Polygon):
-        #    return str(obj.bounds).replace(' ', '').replace('(', '\"').replace(')', '\"'))
-        raise TypeError('Not sure how to serialize %s' % (obj,))
+        else:
+            warnings.warn('Not sure how to serialize %s %s' % (obj, type(obj)))
+            return str(obj)
