@@ -23,7 +23,7 @@ import io
 import time
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Sequence, Union, Any, Callable, Optional, List
+from typing import Tuple, Sequence, Union, Any, Callable, Optional
 
 import matplotlib.cm as cm
 import numpy as np
