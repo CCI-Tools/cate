@@ -12,6 +12,7 @@ dependencies:
   - cython >=0.25
   - dask >=0.15.4
   - fiona >=1.7
+  - gdal >=2.2.3
   - geopandas >=0.3
   # require specific minor version to prevent downgrade
   - geos >=3.5.1

@@ -132,6 +132,13 @@ class ResVarTileHandler(WorkspaceResourceHandler):
             else:
                 variable = dataset[var_name]
                 no_data_value = variable.attrs.get('_FillValue')
+                valid_range = variable.attrs.get('valid_range')
+                if valid_range is None:
+                    valid_min = variable.attrs.get('valid_min')
+                    valid_max = variable.attrs.get('valid_max')
+                    if valid_min is not None and valid_max is not None:
+                        valid_range = [valid_min, valid_max]
+
 
                 # Make sure we work with 2D image arrays only
                 if variable.ndim == 2:
@@ -180,9 +187,10 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 pyramid = pyramid.apply(lambda image, level:
                                         TransformArrayImage(image,
                                                             image_id='tra-%s/%d' % (array_id, level),
-                                                            no_data_value=no_data_value,
-                                                            force_masked=True,
                                                             flip_y=tiling_scheme.geo_extent.inv_y,
+                                                            force_masked=True,
+                                                            no_data_value=no_data_value,
+                                                            valid_range=valid_range,
                                                             tile_cache=mem_tile_cache))
                 pyramid = pyramid.apply(lambda image, level:
                                         ColorMappedRgbaImage(image,
@@ -237,7 +245,6 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
 # noinspection PyAbstractClass
 class GeoJSONHandler(WebAPIRequestHandler):
     def __init__(self, application, request, shapefile_path, **kwargs):
-        print('GeoJSONHandler', shapefile_path)
         super().__init__(application, request, **kwargs)
         self._shapefile_path = shapefile_path
 
