@@ -61,7 +61,7 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
 
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
-TRACE_TILE_PERF = False
+TRACE_PERF = False
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
@@ -149,7 +149,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                     # noinspection PyTypeChecker
                     var_index += (slice(None), slice(None),)
 
-                    print('var_index =', var_index)
+                    # print('var_index =', var_index)
                     array = variable[var_index]
                 else:
                     self.write_status_error(message='Variable must be an N-D Dataset with N >= 2, '
@@ -158,8 +158,8 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
                 cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min
                 cmap_max = np.nanmax(array.values) if np.isnan(cmap_max) else cmap_max
-                print('cmap_min =', cmap_min)
-                print('cmap_max =', cmap_max)
+                # print('cmap_min =', cmap_min)
+                # print('cmap_max =', cmap_max)
 
                 if USE_WORKSPACE_IMAGERY_CACHE:
                     mem_tile_cache = MEM_TILE_CACHE
@@ -180,7 +180,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                         message='Internal error: failed to compute tiling scheme for array_id="%s"' % array_id)
                     return
 
-                print('tiling_scheme =', repr(tiling_scheme))
+                # print('tiling_scheme =', repr(tiling_scheme))
                 pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
                                                          level_image_id_factory=array_image_id_factory)
                 pyramid = pyramid.apply(lambda image, level:
@@ -200,13 +200,13 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                                                              format='PNG',
                                                              tile_cache=rgb_tile_cache))
                 ResVarTileHandler.PYRAMIDS[pyramid_id] = pyramid
-                if TRACE_TILE_PERF:
+                if TRACE_PERF:
                     print('Created pyramid "%s":' % pyramid_id)
                     print('  tile_size:', pyramid.tile_size)
                     print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
                     print('  num_levels:', pyramid.num_levels)
 
-            if TRACE_TILE_PERF:
+            if TRACE_PERF:
                 print('PERF: >>> Tile:', image_id, z, y, x)
 
             t1 = time.clock()
@@ -216,7 +216,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
             self.set_header('Content-Type', 'image/png')
             self.write(tile)
 
-            if TRACE_TILE_PERF:
+            if TRACE_PERF:
                 print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
 
             # GLOBAL_LOCK.release()
@@ -303,8 +303,9 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                 self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
 
             if features is not None:
-                print('ResFeatureCollectionHandler: features CRS:', crs)
-                print('ResFeatureCollectionHandler: streaming started at ', datetime.datetime.now())
+                if TRACE_PERF:
+                    print('ResFeatureCollectionHandler: features CRS:', crs)
+                    print('ResFeatureCollectionHandler: streaming started at ', datetime.datetime.now())
                 self.set_header('Content-Type', 'application/json')
                 yield [THREAD_POOL.submit(write_feature_collection, features, self,
                                           crs=crs,
@@ -314,7 +315,8 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                                           max_num_display_geometry_points=100,
                                           conservation_ratio=_level_to_conservation_ratio(level,
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
-                print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
+                if TRACE_PERF:
+                    print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
         except Exception as e:
             self.write_status_error(exception=e)
         self.finish()
@@ -365,15 +367,17 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                 self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
 
             if feature is not None:
-                print('ResFeatureHandler: feature CRS:', crs)
-                print('ResFeatureHandler: streaming started at ', datetime.datetime.now())
+                if TRACE_PERF:
+                    print('ResFeatureHandler: feature CRS:', crs)
+                    print('ResFeatureHandler: streaming started at ', datetime.datetime.now())
                 self.set_header('Content-Type', 'application/json')
                 yield [THREAD_POOL.submit(write_feature, feature, self,
                                           crs=crs,
                                           res_id=res_id,
                                           conservation_ratio=_level_to_conservation_ratio(level,
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
-                print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
+                if TRACE_PERF:
+                    print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
         except Exception as e:
             self.write_status_error(exception=e)
         self.finish()
@@ -401,8 +405,6 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
                     self.write_status_error(exception=e)
                     return
 
-            # print("type:", type(var_data))
-            # print(var_data.__dict__)
             # noinspection PyBroadException
             try:
                 # TODO: remove this crappy threshold 1000
