@@ -1,5 +1,11 @@
+## Version 2.0.0.dev2 (in dev)
 
-## Version 2.0 (xx.03.2018)
+### Fixes
+
+* CF valid_range not respected in data visualisation
+  [#537](https://github.com/CCI-Tools/cate/issues/537)
+
+## Version 2.0.0.dev1
 
 ### Improvements and new Features
 
