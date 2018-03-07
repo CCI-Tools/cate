@@ -99,7 +99,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
         op_name = "subset_point"
-        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', dim_index=dict(time='2014-09-11'))
+        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', indexers=dict(time='2014-09-11'))
         values = self.service.run_op_in_workspace(self.base_dir, op_name, op_args)
 
         self.assertAlmostEqual(values['lat'], 34.5)

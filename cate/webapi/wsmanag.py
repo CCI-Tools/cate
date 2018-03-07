@@ -23,7 +23,7 @@
 import json
 import urllib.parse
 import urllib.request
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional, Any, Union
 
 from tornado import gen, ioloop, websocket
 
@@ -158,7 +158,7 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return Workspace.from_json_dict(json_dict)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Any:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         return self._ws_json_rpc("run_op_in_workspace",
                                  dict(base_dir=base_dir, op_name=op_name, op_args=op_args),
                                  timeout=WEBAPI_WORKSPACE_TIMEOUT,

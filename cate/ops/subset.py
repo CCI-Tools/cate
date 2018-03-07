@@ -95,43 +95,49 @@ def subset_temporal_index(ds: DatasetLike.TYPE,
 @op(tags=['subset', 'utility'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
 @op_input('point', data_type=PointLike)
-@op_input('dim_index', data_type=DictLike, nullable=True)
+@op_input('indexers', data_type=DictLike, nullable=True)
+@op_input('tolerance_default', nullable=True)
 @op_return(add_history=False)
 def subset_point(ds: DatasetLike.TYPE,
                  point: PointLike.TYPE,
-                 dim_index: DictLike.TYPE = None) -> Dict:
+                 indexers: DictLike.TYPE = None,
+                 tolerance_default: float = 0.01) -> Dict:
     """
-    Do a subset at a point location. The returned dict will contain scalar
-    values of all variables for which all dimension have been given in ``dim_index``.
+    Extract a subset at a point location. The returned dict will contain scalar
+    values for all variables for which all dimension have been given in ``indexers``.
     For the dimensions *lon* and *lat* a nearest neighbour lookup is performed.
     All other dimensions must mach exact.
 
     :param ds: Dataset or dataframe to subset
-    :param point: geographic point given by longitude and latitude
-    :param dim_index: Keyword arguments with names matching dimensions and values given by scalars.
+    :param point: Geographic point given by longitude and latitude
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "layer=4".
+    :param tolerance_default: The default longitude and latitude tolerance for the nearest neighbour lookup.
+           It will only be used, if it is not possible to deduce the resolution of the dataset.
     :return: A dict with the scalar values of all variables and the variable names as keys.
     """
     ds = DatasetLike.convert(ds)
     point = PointLike.convert(point)
-    dim_index = DictLike.convert(dim_index) or {}
+    indexers = DictLike.convert(indexers) or {}
 
     lon_lat_indexers = {'lon': point.x, 'lat': point.y}
-    tolerance = _get_tolerance(ds)
+    tolerance = _get_tolerance(ds, tolerance_default)
 
     variable_values = {}
     var_names = sorted(ds.data_vars.keys())
     for var_name in var_names:
         if not var_name.endswith('_bnds'):
             variable = ds.data_vars[var_name]
-            indexers = {}
+            effective_indexers = {}
             used_dims = {'lat', 'lon'}
-            for dim_name, dim_value in dim_index.items():
+            for dim_name, dim_value in indexers.items():
                 if dim_name in variable.dims:
-                    indexers[dim_name] = dim_value
+                    effective_indexers[dim_name] = dim_value
                     used_dims.add(dim_name)
             if set(variable.dims) == set(used_dims):
                 try:
-                    lon_lat_data = variable.sel(**indexers)
+                    lon_lat_data = variable.sel(**effective_indexers)
                 except KeyError:
                     # if there is no exact match for the "additional" dims, skip this variable
                     continue
@@ -147,13 +153,16 @@ def subset_point(ds: DatasetLike.TYPE,
     return variable_values
 
 
-def _get_tolerance(ds: xr.Dataset):
+def _get_tolerance(ds: xr.Dataset, tolerance_default: float):
     lon_res_attr_name = 'geospatial_lon_resolution'
     lat_res_attr_name = 'geospatial_lat_resolution'
     if lat_res_attr_name in ds.attrs and lon_res_attr_name in ds.attrs:
         lon_res = ds.attrs[lon_res_attr_name]
         lat_res = ds.attrs[lat_res_attr_name]
     else:
-        lon_res = _get_geo_spatial_attrs(ds, 'lon')[lon_res_attr_name]
-        lat_res = _get_geo_spatial_attrs(ds, 'lat')[lat_res_attr_name]
+        try:
+            lon_res = _get_geo_spatial_attrs(ds, 'lon')[lon_res_attr_name]
+            lat_res = _get_geo_spatial_attrs(ds, 'lat')[lat_res_attr_name]
+        except ValueError:
+            return tolerance_default
     return (float(lon_res) + float(lat_res)) / 2

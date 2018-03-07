@@ -94,7 +94,7 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Any:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         pass
 
     @abstractmethod
@@ -306,7 +306,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Any:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         workspace = self.get_workspace(base_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 

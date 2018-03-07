@@ -291,7 +291,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
 
         op_name = 'subset_point'
-        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', dim_index=dict(time='2014-09-11'))
+        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'))
         op_result = ws.run_op(op_name, op_args)
         self.assertEqual(len(op_result), 4)
         self.assertAlmostEqual(op_result['lat'], 34.5)
