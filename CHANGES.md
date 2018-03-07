@@ -23,6 +23,8 @@
   `read_geo_data_frame`.
 * CLI now launches a lot faster, e.g. try now `cate -h`
   [#58](https://github.com/CCI-Tools/cate/issues/58)
+* Cate can now produce animated figures
+  [#86](https://github.com/CCI-Tools/cate/issues/86)
 
 ### Fixes
 
@@ -33,8 +35,10 @@
   [#466](https://github.com/CCI-Tools/cate/issues/466)
 * Region constraint'-option for AEROSOL dataset returns 'code 20' error
   [#462](https://github.com/CCI-Tools/cate/issues/462)
- * Address problems of a user working with Cloud and Aerosol
+* Address problems of a user working with Cloud and Aerosol
   [#478](https://github.com/CCI-Tools/cate/issues/478)
+* Most projections not working in plot operations
+  [#524](https://github.com/CCI-Tools/cate/issues/524)
 * Resolve an index operation documentation issue
   [#496](https://github.com/CCI-Tools/cate/issues/496)
 * Resolve a bug with wrong file open mode

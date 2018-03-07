@@ -165,6 +165,26 @@ class Arbitrary(Like[Any]):
         return str(value)
 
 
+class HTML(Like[str]):
+    """
+    Represents HTML string
+    """
+    TYPE = str
+
+    @classmethod
+    def convert(cls, value: str) -> str:
+        """
+        Return **value**
+        """
+        return value
+
+    @classmethod
+    def format(cls, value: str) -> str:
+        if value is None:
+            return ''
+        return value
+
+
 class Literal(Like[Any]):
     """
     Represents an arbitrary Python literal.

@@ -23,7 +23,7 @@ import io
 import time
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Sequence, Union, Any, Callable, Optional, List
+from typing import Tuple, Sequence, Union, Any, Callable, Optional
 
 import matplotlib.cm as cm
 import numpy as np
@@ -383,19 +383,10 @@ class TransformArrayImage(DecoratorImage):
             elif self._valid_range is not None:
                 print("compute_tile_from_source_tile: we has a self._valid_range: ", self._valid_range)
                 valid_min, valid_max = self._valid_range
-                if np.issubdtype(tile.dtype, float):
-                    convert = float
-                elif np.issubdtype(tile.dtype, int):
-                    convert = int
-                else:
-                    def convert(x):
-                        return x
                 # and we have a valid min or max, return a masked tile
                 if valid_min is not None:
-                    #valid_min = convert(valid_min)
                     tile = np.ma.masked_less(tile, valid_min)
                 if valid_max is not None:
-                    #valid_max = convert(valid_max)
                     tile = np.ma.masked_greater(tile, valid_max)
             elif np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
                 # and it is of float type, return a masked tile with a mask from invalids, i.e. NaN, -Inf, +Inf
