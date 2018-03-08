@@ -186,10 +186,6 @@ class TestSubsetSpatial(TestCase):
         masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
         self.assertTrue(np.isnan(masked['first']).all())
 
-        # With dropping
-        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertEqual(20, len(actual.lon))
-
     def test_antimeridian_simple_inverted(self):
         # Inverted lat
         dataset = xr.Dataset({
@@ -202,10 +198,6 @@ class TestSubsetSpatial(TestCase):
         actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=True)
         masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
         self.assertTrue(np.isnan(masked['first']).all())
-
-        # With dropping
-        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertEqual(20, len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
         antimeridian_pol = str('POLYGON(('

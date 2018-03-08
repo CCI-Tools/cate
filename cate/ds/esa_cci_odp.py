@@ -56,7 +56,7 @@ from owslib.namespaces import Namespaces
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
-from cate.core.opimpl import subset_spatial_impl, normalize_impl, get_extents
+from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
@@ -731,18 +731,13 @@ class EsaCciOdpDataSource(DataSource):
 
                         if region:
                             remote_dataset = normalize_impl(remote_dataset)
-                            remote_dataset = subset_spatial_impl(remote_dataset, region)
-                            geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = get_extents(region)[0]
+                            remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region))
 
-                            remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
-                            remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
-                            remote_dataset.attrs['geospatial_lon_min'] = geo_lon_min
-                            remote_dataset.attrs['geospatial_lon_max'] = geo_lon_max
                             if do_update_of_region_meta_info_once:
-                                local_ds.meta_info['bbox_maxx'] = geo_lon_max
-                                local_ds.meta_info['bbox_minx'] = geo_lon_min
-                                local_ds.meta_info['bbox_maxy'] = geo_lat_max
-                                local_ds.meta_info['bbox_miny'] = geo_lat_min
+                                local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                                local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                                local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                                local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
                                 do_update_of_region_meta_info_once = False
 
                         if compression_enabled:
