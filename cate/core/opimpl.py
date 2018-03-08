@@ -29,6 +29,9 @@ import xarray as xr
 from jdcal import jd2gcal
 from shapely.geometry import Point, box, LineString, Polygon
 
+from .types import PolygonLike
+from ..util.misc import to_list
+
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
@@ -395,8 +398,37 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
     return False
 
 
+def get_extents(region: PolygonLike.TYPE):
+    """
+    Get extents of a PolygonLike, handles explicitly given
+    coordinates.
+
+    :param region: PolygonLike to introspect
+    :return: ([lon_min, lat_min, lon_max, lat_max], boolean_explicit_coords)
+    """
+    explicit_coords = False
+    try:
+        maybe_rectangle = to_list(region, dtype=float)
+        if maybe_rectangle is not None:
+            if len(maybe_rectangle) == 4:
+                lon_min, lat_min, lon_max, lat_max = maybe_rectangle
+                explicit_coords = True
+    except:
+        # The polygon must be convertible, but it's complex
+        polygon = PolygonLike.convert(region)
+        if not polygon.is_valid:
+            # Heal polygon, see #506 and Shapely User Manual
+            region = polygon.buffer(0)
+        else:
+            region = polygon
+        # Get the bounding box
+        lon_min, lat_min, lon_max, lat_max = region.bounds
+
+    return([lon_min, lat_min, lon_max, lat_max], explicit_coords)
+
+
 def subset_spatial_impl(ds: xr.Dataset,
-                        region: Polygon,
+                        region: PolygonLike.TYPE,
                         mask: bool = True) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
@@ -407,30 +439,30 @@ def subset_spatial_impl(ds: xr.Dataset,
     not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
+    # Validate input
+    try:
+        polygon = PolygonLike.convert(region)
+    except BaseException as e:
+        raise e
 
-    if not region.is_valid:
-        # Heal polygon, see #506 and Shapely User Manual
-        region = region.buffer(0)
+    extents, explicit_coords = get_extents(region)
 
-    # Get the bounding box
-    lon_min, lat_min, lon_max, lat_max = region.bounds
+    lon_min, lat_min, lon_max, lat_max = extents
 
     # Validate the bounding box
     if (not (-90 <= lat_min <= 90)) or \
             (not (-90 <= lat_max <= 90)) or \
             (not (-180 <= lon_min <= 180)) or \
             (not (-180 <= lon_max <= 180)):
-        raise ValueError('Provided polygon extent outside of geospatial'
+        raise ValueError('Provided polygon extends outside of geospatial'
                          ' bounds: latitude [-90;90], longitude [-180;180]')
 
-    simple_polygon = False
-    if region.equals(box(lon_min, lat_min, lon_max, lat_max)):
-        # Don't do the computationally intensive masking if the provided
-        # region is a simple box-polygon, for which there will be nothing to
-        # mask.
-        simple_polygon = True
+    # Don't do the computationally intensive masking if the provided
+    # region is a simple box-polygon, for which there will be nothing to
+    # mask.
+    simple_polygon = polygon.equals(box(lon_min, lat_min, lon_max, lat_max))
 
-    crosses_antimeridian = _crosses_antimeridian(region)
+    crosses_antimeridian = (lon_min > lon_max) if explicit_coords else _crosses_antimeridian(polygon)
     lat_inverted = _lat_inverted(ds.lat)
     if lat_inverted:
         lat_index = slice(lat_max, lat_min)
@@ -445,7 +477,8 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if crosses_antimeridian:
         # Shapely messes up longitudes if the polygon crosses the antimeridian
-        lon_min, lon_max = lon_max, lon_min
+        if not explicit_coords:
+            lon_min, lon_max = lon_max, lon_min
 
         # Can't perform a simple selection with slice, hence we have to
         # construct an appropriate longitude indexer for selection
@@ -466,7 +499,7 @@ def subset_spatial_impl(ds: xr.Dataset,
             # dimension
             return retset
 
-    if not mask or simple_polygon:
+    if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
         lon_slice = slice(lon_min, lon_max)
         indexers = {'lat': lat_index, 'lon': lon_slice}

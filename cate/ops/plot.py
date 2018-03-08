@@ -79,7 +79,7 @@ from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLik
 
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
-from cate.ops.plot_helpers import check_bounding_box
+from cate.ops.plot_helpers import handle_plot_polygon
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -159,12 +159,9 @@ def plot_map(ds: xr.Dataset,
     properties = DictLike.convert(properties) or {}
 
     extents = None
-    region = PolygonLike.convert(region)
-    if region:
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
+    bounds = handle_plot_polygon(region)
+    if bounds:
+        lon_min, lat_min, lon_max, lat_max = bounds
         extents = [lon_min, lon_max, lat_min, lat_max]
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
@@ -194,7 +191,7 @@ def plot_map(ds: xr.Dataset,
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
-        ax.set_extent(extents)
+        ax.set_extent(extents, ccrs.PlateCarree())
     else:
         ax.set_global()
 

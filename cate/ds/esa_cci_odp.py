@@ -619,7 +619,6 @@ class EsaCciOdpDataSource(DataSource):
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
         selected_file_list = self._find_files(time_range)

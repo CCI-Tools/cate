@@ -51,7 +51,6 @@ def subset_spatial(ds: xr.Dataset,
     :param mask: Should values falling in the bounding box of the polygon but not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
-    region = PolygonLike.convert(region)
     return adjust_spatial_attrs(subset_spatial_impl(ds, region, mask))
 
 
