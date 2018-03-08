@@ -576,7 +576,7 @@ class Workspace:
             unpacked_op_kwargs = {}
             returns = False
             for input_name, input_value in op_kwargs.items():
-                if 'returns' == input_name and 'value' in input_value:
+                if 'should_return' == input_name and 'value' in input_value:
                     returns = input_value['value']
                 elif 'source' in input_value:
                         unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
