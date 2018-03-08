@@ -490,14 +490,10 @@ def subset_spatial_impl(ds: xr.Dataset,
         indexers = {'lon': lon_index, 'lat': lat_index}
         retset = ds.sel(**indexers)
 
-        if mask:
-            # Preserve the original longitude dimension, masking elements that
-            # do not belong to the polygon with NaN.
-            return retset.reindex_like(ds.lon)
-        else:
-            # Return the dataset with no NaNs and with a disjoint longitude
-            # dimension
-            return retset
+        # Preserve the original longitude dimension, masking elements that
+        # do not belong to the polygon with NaN. Cate framework doesn't handle
+        # datasets with a dis-joint longitude dimension well.
+        return retset.reindex_like(ds.lon)
 
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
