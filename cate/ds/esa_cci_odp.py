@@ -50,15 +50,13 @@ from datetime import datetime, timedelta
 from math import ceil
 from typing import Sequence, Tuple, Optional, Any
 
-from shapely.geometry import Polygon
-
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
-from cate.core.opimpl import subset_spatial_impl, normalize_impl
+from cate.core.opimpl import subset_spatial_impl, normalize_impl, get_extents
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
@@ -674,7 +672,6 @@ class EsaCciOdpDataSource(DataSource):
 
         local_id = local_ds.id
         time_range = TimeRangeLike.convert(time_range)
-        region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
 
         time_range, region, var_names = self._apply_make_local_fixes(time_range, region, var_names)
@@ -735,7 +732,7 @@ class EsaCciOdpDataSource(DataSource):
                         if region:
                             remote_dataset = normalize_impl(remote_dataset)
                             remote_dataset = subset_spatial_impl(remote_dataset, region)
-                            geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
+                            geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = get_extents(region)[0]
 
                             remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
                             remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
@@ -818,7 +815,7 @@ class EsaCciOdpDataSource(DataSource):
 
     def _apply_make_local_fixes(self,
                                 time_range: Optional[TimeRange],
-                                region: Optional[Polygon],
+                                region: Optional[PolygonLike.TYPE],
                                 var_names: Optional[VarNames]):
         """
         This method applies fixes to the parameters of a 'make_local' invocation.
