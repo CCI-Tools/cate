@@ -169,14 +169,14 @@ class LocalDataSource(DataSource):
         if paths:
             paths = sorted(set(paths))
             try:
-                ds = open_xarray_dataset(paths)
+                ds = open_xarray_dataset(paths, drop_variables=self._meta_info.get('exclude_var_names', []))
                 if region:
                     ds = normalize_impl(ds)
                     ds = subset_spatial_impl(ds, region)
                 if var_names:
                     ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
                 return ds
-            except OSError as e:
+            except (OSError, ValueError) as e:
                 if time_range:
                     raise DataAccessError("Cannot open local dataset for time range {}:\n"
                                           "{}"
