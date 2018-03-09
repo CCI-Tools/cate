@@ -40,18 +40,16 @@ Components
 import json
 import os
 import re
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
-import socket
-import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
 from typing import Sequence, Tuple, Optional, Any
 
-from shapely.geometry import Polygon
-
+import xarray as xr
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
@@ -59,7 +57,7 @@ from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl
-from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
+from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
