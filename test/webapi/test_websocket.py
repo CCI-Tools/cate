@@ -1,14 +1,24 @@
 import unittest
 import os
+import shutil
 
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
 from cate.webapi.websocket import WebSocketService
+from cate.core.workspace import mk_op_kwargs
 
 
 class WebSocketServiceTest(unittest.TestCase):
     def setUp(self):
         self.service = WebSocketService(FSWorkspaceManager())
+        self.base_dir = base_dir = os.path.abspath('WebSocketServiceTest')
+        if os.path.exists(self.base_dir):
+            shutil.rmtree(base_dir)
+        os.mkdir(self.base_dir)
+
+    def tearDown(self):
+        if os.path.exists(self.base_dir):
+            shutil.rmtree(self.base_dir)
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_get_data_stores(self):
@@ -70,3 +80,48 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(op['inputs'][0]['name'], 'a')
         self.assertEqual(len(op['outputs']), 1)
         self.assertEqual(op['outputs'][0]['name'], 'v')
+
+    def test_get_workspace_variable_statistics(self):
+        self.load_precip_dataset()
+        stat = self.service.get_workspace_variable_statistics(self.base_dir,
+                                                              res_name='ds',
+                                                              var_name='temperature',
+                                                              var_index=[0])
+        self.assertAlmostEqual(stat['min'], -0.9)
+        self.assertAlmostEqual(stat['max'], 26.2)
+
+    def test_get_resource_values(self):
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(workspaces, [])
+        self.load_precip_dataset()
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(1, len(workspaces))
+        self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
+
+        op_name = "subset_point"
+        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
+        values = self.service.run_op_in_workspace(self.base_dir, op_name, op_args)
+
+        self.assertAlmostEqual(values['lat'], 34.5)
+        self.assertAlmostEqual(values['lon'], 10.2)
+        self.assertAlmostEqual(values['precipitation'], 5.5)
+        self.assertAlmostEqual(values['temperature'], 32.9)
+
+        self.service.clean_workspace(self.base_dir)
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(1, len(workspaces))
+        self.assertEqual(0, len(workspaces[0]['workflow']['steps']))
+
+        self.service.close_workspace(self.base_dir)
+        workspaces = self.service.get_open_workspaces()
+        self.assertEqual(workspaces, [])
+
+    def load_precip_dataset(self):
+        file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
+        self.service.new_workspace(self.base_dir)
+        self.service.set_workspace_resource(self.base_dir,
+                                            'cate.ops.io.read_netcdf',
+                                            dict(file=dict(value=file)),
+                                            res_name='ds',
+                                            overwrite=False,
+                                            monitor=Monitor.NONE)

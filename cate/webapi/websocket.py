@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Any, Union
 
 import xarray as xr
 
@@ -297,10 +297,9 @@ class WebSocketService:
                                                             format_name=format_name, monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> dict:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         with cwd(base_dir):
-            workspace = self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
-            return workspace.to_json_dict()
+            return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
