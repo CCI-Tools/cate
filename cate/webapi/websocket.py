@@ -208,7 +208,7 @@ class WebSocketService:
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
             op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()
-                                      if not props.get('deprecated')]
+                                      if not (props.get('deprecated') or props.get('context'))]
             op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()
                                        if not props.get('deprecated')]
             op_list.append(op_json_dict)

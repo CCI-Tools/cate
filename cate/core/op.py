@@ -511,7 +511,7 @@ def op_input(input_name: str,
            and ``value_cache`` which is a mapping from step identifiers to step outputs. If *context* is a
            string, the value of the operation input will be the result of evaluating the string as Python expression
            with the current execution context as local environment. This means, *context* may be an expression
-           such as 'workspace', 'workspace.base_dir', 'step', 'step.id'.
+           such as 'value_cache', 'workspace.base_dir', 'step', 'step.id'.
     :param properties: Other properties (keyword arguments) that will be added to the
            meta-information of the named output.
     :param registry: Optional operation registry.
