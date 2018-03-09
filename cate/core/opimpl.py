@@ -27,7 +27,8 @@ from typing import Optional, Sequence, Union, Tuple
 import numpy as np
 import xarray as xr
 from jdcal import jd2gcal
-from shapely.geometry import Point, box, LineString, Polygon
+from shapely.geometry import box, LineString, Polygon
+from matplotlib import path
 
 from .types import PolygonLike
 from ..util.misc import to_list
@@ -505,15 +506,20 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all values falling in the region or on its boundary are denoted with True
-    # and all the rest with False
+    # and all the rest with False. Works on polygon exterior
     lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
-    mask = np.array([Point(lon, lat).intersects(polygon) for lon, lat in
-                     zip(lonm.ravel(), latm.ravel())], dtype=bool)
+    polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
+                                          polygon.exterior.coords.xy[1]]))
+
+    grid_points = [[lon, lat] for lon, lat in zip(lonm.ravel(), latm.ravel())]
+
+    mask = polypath.contains_points(grid_points)
+
     mask = xr.DataArray(mask.reshape(lonm.shape),
                         coords={'lon': retset.lon, 'lat': retset.lat},
                         dims=['lat', 'lon'])
 
-    # Mask values outside the polygon with NaN, crop the dataset
+    # Mask values outside the polygon with NaN
     return retset.where(mask, drop=True)
 
 
