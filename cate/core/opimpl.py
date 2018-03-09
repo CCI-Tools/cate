@@ -469,11 +469,12 @@ def subset_spatial_impl(ds: xr.Dataset,
     else:
         lat_index = slice(lat_min, lat_max)
 
-    if crosses_antimeridian and not simple_polygon:
+    if crosses_antimeridian and not simple_polygon and mask:
         # Unlikely but plausible
         raise NotImplementedError('Spatial subsets crossing the anti-meridian'
                                   ' are currently implemented for simple,'
-                                  ' rectangular polygons only.')
+                                  ' rectangular polygons only, or complex polygons'
+                                  ' without masking.')
 
     if crosses_antimeridian:
         # Shapely messes up longitudes if the polygon crosses the antimeridian
@@ -495,24 +496,25 @@ def subset_spatial_impl(ds: xr.Dataset,
         # datasets with a dis-joint longitude dimension well.
         return retset.reindex_like(ds.lon)
 
+    lon_slice = slice(lon_min, lon_max)
+    indexers = {'lat': lat_index, 'lon': lon_slice}
+    retset = ds.sel(**indexers)
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
-        lon_slice = slice(lon_min, lon_max)
-        indexers = {'lat': lat_index, 'lon': lon_slice}
-        return ds.sel(**indexers)
+        return retset
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all values falling in the region or on its boundary are denoted with True
     # and all the rest with False
-    lonm, latm = np.meshgrid(ds.lon.values, ds.lat.values)
+    lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
     mask = np.array([Point(lon, lat).intersects(polygon) for lon, lat in
                      zip(lonm.ravel(), latm.ravel())], dtype=bool)
     mask = xr.DataArray(mask.reshape(lonm.shape),
-                        coords={'lon': ds.lon, 'lat': ds.lat},
+                        coords={'lon': retset.lon, 'lat': retset.lat},
                         dims=['lat', 'lon'])
 
     # Mask values outside the polygon with NaN, crop the dataset
-    return ds.where(mask, drop=True)
+    return retset.where(mask, drop=True)
 
 
 def _crosses_antimeridian(region: Polygon) -> bool:
