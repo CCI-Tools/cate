@@ -678,7 +678,7 @@ class EsaCciOdpDataSource(DataSource):
         region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
 
-        time_range, region, var_names = self._apply_make_local_fixes(time_range, region, var_names)
+        exclude_var_names = self._apply_make_local_fixes()
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -725,7 +725,7 @@ class EsaCciOdpDataSource(DataSource):
 
                     child_monitor.start(label=file_name, total_work=1)
 
-                    remote_dataset = xr.open_dataset(dataset_uri)
+                    remote_dataset = xr.open_dataset(dataset_uri, drop_variables=exclude_var_names)
 
                     if var_names:
                         remote_dataset = remote_dataset.drop(
@@ -814,12 +814,10 @@ class EsaCciOdpDataSource(DataSource):
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
+        local_ds.meta_info['exclude_var_names'] = exclude_var_names
         local_ds.save(True)
 
-    def _apply_make_local_fixes(self,
-                                time_range: Optional[TimeRange],
-                                region: Optional[Polygon],
-                                var_names: Optional[VarNames]):
+    def _apply_make_local_fixes(self):
         """
         This method applies fixes to the parameters of a 'make_local' invocation.
         """
@@ -833,11 +831,8 @@ class EsaCciOdpDataSource(DataSource):
             # can not be decoded by xarray and lead to an unusable dataset
             # see: https://github.com/CCI-Tools/cate/issues/326
             if self.id in SOILMOISTURE_DS:
-                if not var_names:
-                    var_names = self._json_dict.get('variable', [])
-                if 't0' in var_names:
-                    var_names.remove('t0')
-        return time_range, region, var_names
+                return ['t0']
+            return []
 
     def make_local(self,
                    local_name: str,
