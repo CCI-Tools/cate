@@ -200,6 +200,18 @@ class WorkspaceTest(unittest.TestCase):
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
+        with self.assertRaises(WorkspaceError) as we:
+            ws.set_resource("not_existing_op", {})
+        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
+
+        with self.assertRaises(WorkspaceError) as we:
+            ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(location=NETCDF_TEST_FILE_1), res_name='X')
+        self.assertEqual('"location" is not an input of operation "cate.ops.io.read_netcdf"', str(we.exception))
+
+        with self.assertRaises(WorkspaceError) as we:
+            ws.set_resource('cate.ops.io.read_netcdf', {'file': {'foo': 'bar'}}, res_name='X')
+        self.assertEqual('Illegal argument for input "file" of operation "cate.ops.io.read_netcdf', str(we.exception))
+
         ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
         ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"), res_name='Y')
         self.assertEqual(ws.resource_cache, {})
@@ -299,9 +311,15 @@ class WorkspaceTest(unittest.TestCase):
         self.assertAlmostEqual(op_result['precipitation'], 5.5)
         self.assertAlmostEqual(op_result['temperature'], 32.9)
 
+        # without asking for return data
         op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'))
         op_result = ws.run_op(op_name, op_args)
         self.assertIsNone(op_result)
+
+        # with a non existing operator name
+        with self.assertRaises(WorkspaceError) as we:
+            ws.run_op("not_existing_op", {})
+        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
 
     # TODO (forman): #391
     def test_set_resource_is_reentrant(self):
