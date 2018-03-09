@@ -216,9 +216,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as cm:
             subset.subset_spatial(dataset, antimeridian_pol)
-        self.assertEqual(str(cm.exception),
-                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
-                         "rectangular polygons only.")
+        self.assertIn('anti-meridian', str(cm.exception))
 
     def test_antimeridian_arbitrary_inverted(self):
         antimeridian_pol = str('POLYGON(('
@@ -238,9 +236,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as cm:
             subset.subset_spatial(dataset, antimeridian_pol)
-        self.assertEqual(str(cm.exception),
-                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
-                         "rectangular polygons only.")
+        self.assertIn('anti-meridian', str(cm.exception))
 
 
 class TestSubsetTemporal(TestCase):
