@@ -461,6 +461,7 @@ def op_input(input_name: str,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
+             script_lang=UNDEFINED,
              deprecated=UNDEFINED,
              position=UNDEFINED,
              context=UNDEFINED,
@@ -500,6 +501,8 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param script_lang: The programming language for a parameter of data_type "str" that provides source
+           code of a script, e.g. "python".
     :param deprecated: An optional boolean or a string. If a string is used, it should explain
            why the input has been deprecated and which new input to use instead.
            If set to ``True``, the input's doc-string should explain the deprecation.
@@ -529,6 +532,7 @@ def op_input(input_name: str,
                               value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range,
+                              script_lang=script_lang,
                               deprecated=deprecated,
                               position=position,
                               context=context,
