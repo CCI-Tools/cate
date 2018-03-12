@@ -169,10 +169,14 @@ class LocalDataSource(DataSource):
         if paths:
             paths = sorted(set(paths))
             try:
-                ds = open_xarray_dataset(paths, drop_variables=self._meta_info.get('exclude_var_names', []))
+                excluded_variables = self._meta_info.get('exclude_variables', [])
+                ds = open_xarray_dataset(paths, drop_variables=[variable.get('name') for variable in
+                                                                excluded_variables])
                 if region:
                     ds = normalize_impl(ds)
                     ds = subset_spatial_impl(ds, region)
+                    ds.expand_dims()
+                    ds.var()
                 if var_names:
                     ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
                 return ds
