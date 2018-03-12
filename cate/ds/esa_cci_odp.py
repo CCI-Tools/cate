@@ -135,6 +135,25 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
     return None, -1, -1
 
 
+def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
+    """
+    This method applies fixes to the parameters of a 'make_local' invocation.
+    """
+    if ds_id:
+        # the 't0' variable in these SOILMOISTURE data sources
+        # can not be decoded by xarray and lead to an unusable dataset
+        # see: https://github.com/CCI-Tools/cate/issues/326
+        SOILMOISTURE_DS = [
+            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
+        ]
+        if ds_id in SOILMOISTURE_DS:
+            return [{'name': 't0', 'comment': "can not be decoded by xarray and lead to an unusable dataset\n"
+                                              "see: https://github.com/CCI-Tools/cate/issues/326"}]
+        return []
+
+
 def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, monitor: Monitor = Monitor.NONE):
     """
     Return JSON value read from paginated Solr web-service.
@@ -675,9 +694,9 @@ class EsaCciOdpDataSource(DataSource):
         time_range = TimeRangeLike.convert(time_range)
         region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
-
-        exclude_var_names = self._apply_make_local_fixes()
-
+        print(self.id)
+        excluded_variables = get_exclude_variables_fix_known_issues(self.id)
+        print(excluded_variables)
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
 
@@ -723,8 +742,8 @@ class EsaCciOdpDataSource(DataSource):
 
                     child_monitor.start(label=file_name, total_work=1)
 
-                    remote_dataset = xr.open_dataset(dataset_uri, drop_variables=exclude_var_names)
-
+                    remote_dataset = xr.open_dataset(dataset_uri, drop_variables=[variable.get('name') for variable in
+                                                                                  excluded_variables])
                     if var_names:
                         remote_dataset = remote_dataset.drop(
                             [var_name for var_name in remote_dataset.data_vars.keys()
@@ -812,25 +831,8 @@ class EsaCciOdpDataSource(DataSource):
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
-        local_ds.meta_info['exclude_var_names'] = exclude_var_names
+        local_ds.meta_info['exclude_variables'] = excluded_variables
         local_ds.save(True)
-
-    def _apply_make_local_fixes(self):
-        """
-        This method applies fixes to the parameters of a 'make_local' invocation.
-        """
-        SOILMOISTURE_DS = [
-            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
-        ]
-        if self.id:
-            # the 't0' variable in these SOILMOISTURE data sources
-            # can not be decoded by xarray and lead to an unusable dataset
-            # see: https://github.com/CCI-Tools/cate/issues/326
-            if self.id in SOILMOISTURE_DS:
-                return ['t0']
-            return []
 
     def make_local(self,
                    local_name: str,
