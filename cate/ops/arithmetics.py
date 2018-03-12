@@ -161,7 +161,7 @@ def diff(ds: xr.Dataset,
 
 # noinspection PyIncorrectDocstring
 @op(tags=['arithmetic'], version='1.0')
-@op_input('ds', data_type=DatasetLike, nullable=True)
+@op_input('ds', data_type=DatasetLike, nullable=True, default_value=None)
 @op_input('script', script_lang="python")
 @op_input('copy')
 @op_input('_ctx', context=True)
