@@ -355,7 +355,7 @@ class TestSubsetTemporalIndex(TestCase):
         assert_dataset_equal(expected, actual)
 
 
-class TestSubsetPoint(TestCase):
+class TestExtractPoint(TestCase):
     @classmethod
     def setUpClass(cls):
         v1_data = np.arange(18).reshape((3, 3, 2))
@@ -378,38 +378,38 @@ class TestSubsetPoint(TestCase):
         )
 
     def test_all_extra_dims(self):
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'d1': 2, 'd2': '2000-03-01'})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'d1': 2, 'd2': '2000-03-01'})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v1': 7.0, 'v2': 106.0, 'v3': 14.0, 'v4': 53.0}, result)
 
     def test_one_extra_dims(self):
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'d1': 2})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'d1': 2})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v1': 7.0, 'v4': 53.0}, result)
 
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'d2': '2000-03-01'})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'d2': '2000-03-01'})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v2': 106.0, 'v4': 53.0}, result)
 
     def test_no_extra_dims(self):
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v4': 53.0}, result)
 
-        result = subset.subset_point(self._ds, (12.2, 23.2))
+        result = subset._extract_point(self._ds, (12.2, 23.2))
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v4': 53.0}, result)
 
     def test_unknown_dim(self):
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'x1': 42})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'x1': 42})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v4': 53.0}, result)
 
     def test_point_out_of_bounds(self):
-        result = subset.subset_point(self._ds, (0, 0), indexers={'d1': 2, 'd2': '2000-03-01'})
+        result = subset._extract_point(self._ds, (0, 0), indexers={'d1': 2, 'd2': '2000-03-01'})
         self.assertEqual({}, result)
 
-        result = subset.subset_point(self._ds, (0, 0))
+        result = subset._extract_point(self._ds, (0, 0))
         self.assertEqual({}, result)
 
     def test_extra_dim_with_no_exact_match(self):
         # no exact match for 'd2', the same as if 'd2' is not given
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'d1': 2, 'd2': '2000-03-02'})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'d1': 2, 'd2': '2000-03-02'})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v1': 7.0, 'v4': 53.0}, result)
 
-        result = subset.subset_point(self._ds, (12.2, 23.2), indexers={'d1': 1.1, 'd2': '2000-03-01'})
+        result = subset._extract_point(self._ds, (12.2, 23.2), indexers={'d1': 1.1, 'd2': '2000-03-01'})
         self.assertEqual({'lat': 23.0, 'lon': 12.0, 'v2': 106.0, 'v4': 53.0}, result)
