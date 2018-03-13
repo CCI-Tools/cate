@@ -258,7 +258,7 @@ def animate_map(ds: xr.Dataset,
                 outfile.write(anim_html)
                 monitor.progress(1)
 
-    return anim_html
+    return HTML(anim_html)
 
 
 def _get_min_max(data, monitor=None):
