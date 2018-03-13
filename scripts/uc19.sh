@@ -15,10 +15,10 @@ cate ws init
 cate res open ozone local.ozone-europe.mon.2007.2008
 
 # Create and save an animation over time for O3_du_tot
-cate res set anim1 animate_map ds=@ozone var="O3_du_tot" file="ozone-europe.html" global_cmap=True region="POLYGON((-12.05078125 73.54664369613808,33.65234375 73.54664369613808,33.65234375 35.65604583948963,-12.05078125 35.65604583948963,-12.05078125 73.54664369613808))"
+cate res set anim1 animate_map ds=@ozone var="O3_du_tot" file="ozone-europe.html" true_range=True region="POLYGON((-12.05078125 73.54664369613808,33.65234375 73.54664369613808,33.65234375 35.65604583948963,-12.05078125 35.65604583948963,-12.05078125 73.54664369613808))"
 
 # Create and save an animation over air_pressure for April 2007
-cate res set anim2 animate_map ds=@ozone var="O3_ndens" file="ozone-europe-pressure.html" animate_dim="air_pressure" indexers="{'time':'2007-04-01'}" global_cmap=True region="POLYGON((-12.05078125 73.54664369613808,33.65234375 73.54664369613808,33.65234375 35.65604583948963,-12.05078125 35.65604583948963,-12.05078125 73.54664369613808))"
+cate res set anim2 animate_map ds=@ozone var="O3_ndens" file="ozone-europe-pressure.html" animate_dim="air_pressure" indexers="{'time':'2007-04-01'}" true_range=True region="POLYGON((-12.05078125 73.54664369613808,33.65234375 73.54664369613808,33.65234375 35.65604583948963,-12.05078125 35.65604583948963,-12.05078125 73.54664369613808))"
 
 # @Norman, tried 'cate run animate_map ds=@ozone ...', but wouldn't work, complained about unresolved references ds=ozone
 
