@@ -302,7 +302,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(len(ws.workflow.steps), 1)
         self.assertIn('X', ws.resource_cache)
 
-        op_name = 'subset_point'
+        op_name = '_extract_point'
         op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
         op_result = ws.run_op(op_name, op_args)
         self.assertEqual(len(op_result), 4)

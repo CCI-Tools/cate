@@ -7,13 +7,13 @@ from unittest import TestCase
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import xarray as xr
 import shapely.wkt
+import xarray as xr
 from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, \
-    DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame
+    DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame, HTMLLike, HTML
 from cate.util.misc import object_to_qualified_name, OrderedDict
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
@@ -97,6 +97,27 @@ class ExampleTypeTest(TestCase):
 
     def test_format(self):
         self.assertEqual(ExampleType.format(ExamplePoint(2.4, 4.8)), "2.4, 4.8")
+
+
+class HTMLLikeTest(TestCase):
+    """
+    Test the HTMLLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(HTMLLike.accepts('abc'))
+        self.assertTrue(HTMLLike.accepts(HTML('abc')))
+        self.assertTrue(HTMLLike.accepts(42))
+
+    def test_convert(self):
+        actual = HTMLLike.convert('abc')
+        self.assertIsInstance(actual, HTML)
+        self.assertEqual(actual, 'abc')
+
+    def test_format(self):
+        actual = VarNamesLike.format(HTML('abc'))
+        self.assertIsInstance(actual, str)
+        self.assertEqual(actual, 'abc')
 
 
 class VarNamesLikeTest(TestCase):

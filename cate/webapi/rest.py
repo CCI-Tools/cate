@@ -435,6 +435,18 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
         self.finish()
 
 
+# noinspection PyAbstractClass
+class ResVarHtmlHandler(WorkspaceResourceHandler):
+    def get(self, base_dir, res_id):
+        try:
+            _, _, _, resource = self.get_workspace_resource(base_dir, res_id)
+            self.set_header('Content-Type', 'text/html')
+            self.write(resource)
+        except Exception as e:
+            self.write_status_error(exception=e)
+        self.finish()
+
+
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
 

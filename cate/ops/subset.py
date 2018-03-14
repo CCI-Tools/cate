@@ -98,12 +98,12 @@ def subset_temporal_index(ds: DatasetLike.TYPE,
 @op_input('indexers', data_type=DictLike, nullable=True)
 @op_input('tolerance_default', nullable=True)
 @op_return(add_history=False)
-def subset_point(ds: DatasetLike.TYPE,
-                 point: PointLike.TYPE,
-                 indexers: DictLike.TYPE = None,
-                 tolerance_default: float = 0.01) -> Dict:
+def _extract_point(ds: DatasetLike.TYPE,
+                   point: PointLike.TYPE,
+                   indexers: DictLike.TYPE = None,
+                   tolerance_default: float = 0.01) -> Dict:
     """
-    Extract a subset at a point location. The returned dict will contain scalar
+    Extract data at the given point location. The returned dict will contain scalar
     values for all variables for which all dimension have been given in ``indexers``.
     For the dimensions *lon* and *lat* a nearest neighbour lookup is performed.
     All other dimensions must mach exact.

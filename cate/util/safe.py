@@ -106,10 +106,12 @@ get_safe_globals = _get_safe_globals_accessor()
 
 def safe_eval(expression: str, local_namespace: Dict[str, Any] = None):
     """
+    Evaluate the given Python *expression* in the given *local_namespace*.
+
     The **expression** argument is parsed and evaluated as a Python expression
     using the **local_namespace** mapping as local namespace.
-    The **expression** has no access to the current environment and only limited access to the standard builtins, i.e.
-    only functions considered safe are allowed, e.g. *abs*, *min*, *max*, etc.
+    By default, the **expression** has no access to the current environment and only limited access to the
+    standard builtins, i.e. only functions considered safe are allowed, e.g. *abs*, *min*, *max*, etc.
 
     Syntax errors are reported as exceptions.
 
@@ -118,3 +120,21 @@ def safe_eval(expression: str, local_namespace: Dict[str, Any] = None):
     :return: The result of the evaluated expression.
     """
     return eval(expression, get_safe_globals(), local_namespace or {})
+
+
+def safe_exec(source_code: str, local_namespace: Dict[str, Any] = None):
+    """
+    Execute the given *source_code* in the in the given *local_namespace*.
+
+    The **source_code** argument is parsed and evaluated as a Python code
+    using the **local_namespace** mapping as local namespace.
+    By default, the **source_code** has no access to the current environment and only limited access to the
+    standard builtins, i.e. only functions considered safe are allowed, e.g. *abs*, *min*, *max*, etc.
+
+    Syntax errors are reported as exceptions.
+
+    :param source_code: Python source code.
+    :param local_namespace: The local namespace in which **expression** is evaluated.
+    :return: The result of the evaluated expression.
+    """
+    return exec(source_code, get_safe_globals(), local_namespace or {})
