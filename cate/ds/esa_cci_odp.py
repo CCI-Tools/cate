@@ -694,9 +694,9 @@ class EsaCciOdpDataSource(DataSource):
         time_range = TimeRangeLike.convert(time_range)
         region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
-        print(self.id)
+
         excluded_variables = get_exclude_variables_fix_known_issues(self.id)
-        print(excluded_variables)
+
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
 
