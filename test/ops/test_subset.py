@@ -31,10 +31,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'lat': np.linspace(-9.5, 9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'lat': np.linspace(-10.5, 10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_inverted_dims_nominal(self):
@@ -49,10 +49,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
-            'second': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
-            'lat': np.linspace(9.5, -9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lon', 'lat', 'time'], np.ones([42, 22, 6])),
+            'second': (['lon', 'lat', 'time'], np.ones([42, 22, 6])),
+            'lat': np.linspace(10.5, -10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_generic_masked(self):
@@ -167,10 +167,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = reg_op(ds=dataset, region="-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'lat': np.linspace(-9.5, 9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'lat': np.linspace(-10.5, 10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_antimeridian_simple(self):
