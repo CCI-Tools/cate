@@ -296,12 +296,32 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
         bnds_name = '%s_bnds' % dim_name
 
-    if bnds_name in ds:
+    if 'units' in coord_var.attrs:
+        dim_units = coord_var.attrs['units']
+    else:
+        dim_units = None
+
+    try:
         bnds_var = ds[bnds_name]
         dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
         dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
         dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
-    elif len(coord_var.values) >= 2:
+
+        res_name = 'geospatial_{}_resolution'.format(dim_name)
+        min_name = 'geospatial_{}_min'.format(dim_name)
+        max_name = 'geospatial_{}_max'.format(dim_name)
+        units_name = 'geospatial_{}_units'.format(dim_name)
+        ret[res_name] = dim_res
+        ret[min_name] = dim_min
+        ret[max_name] = dim_max
+        ret[units_name] = dim_units
+        return ret
+
+    except (ValueError, KeyError):
+        # Can't determine values from a bounds variable, carry on
+        pass
+
+    if len(coord_var.values) >= 2:
         dim_res = abs(coord_var.values[1] - coord_var.values[0])
         dim_min = min(coord_var.values[0], coord_var.values[-1]) - 0.5 * dim_res
         dim_max = max(coord_var.values[0], coord_var.values[-1]) + 0.5 * dim_res
@@ -312,11 +332,6 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
         dim_max = coord_var.values[0]
     else:
         raise ValueError('Cannot determine spatial extent for dimension "{}"'.format(dim_name))
-
-    if 'units' in coord_var.attrs:
-        dim_units = coord_var.attrs['units']
-    else:
-        dim_units = None
 
     res_name = 'geospatial_{}_resolution'.format(dim_name)
     min_name = 'geospatial_{}_min'.format(dim_name)
