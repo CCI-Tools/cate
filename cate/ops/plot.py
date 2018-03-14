@@ -109,7 +109,7 @@ def plot_map(ds: xr.Dataset,
              central_lon: float = 0.0,
              title: str = None,
              properties: DictLike.TYPE = None,
-             file: str = None) -> Figure:
+             file: str = None) -> object:
     """
     Create a geographic map plot for the variable given by dataset *ds* and variable name *var*.
 
@@ -200,7 +200,7 @@ def plot_map(ds: xr.Dataset,
 
     # transform keyword is for the coordinate our data is in, which in case of a
     # 'normal' lat/lon dataset is PlateCarree.
-    var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
 
     if title:
         ax.set_title(title)
@@ -210,7 +210,7 @@ def plot_map(ds: xr.Dataset,
     if file:
         figure.savefig(file)
 
-    return figure if not in_notebook() else None
+    return figure if not in_notebook() else ax
 
 
 @op(tags=['plot'], res_pattern='plot_{index}')

@@ -444,6 +444,31 @@ def get_extents(region: PolygonLike.TYPE):
     return([lon_min, lat_min, lon_max, lat_max], explicit_coords)
 
 
+def _pad_extents(ds: xr.Dataset, extents: tuple):
+    """
+    Pad extents by half a pixel in both directions, to make sure subsetting
+    slices include all pixels crossed by the bounding box. Set extremes
+    to maximum valid geospatial extents.
+    """
+    lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+    lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+
+    lon_min = extents[0] - lon_pixel / 2
+    lat_min = extents[1] - lat_pixel / 2
+    lon_max = extents[2] + lon_pixel / 2
+    lat_max = extents[3] + lat_pixel / 2
+
+    lon_min = -180 if lon_min < -180 else lon_min
+    lat_min = -90 if lat_min < -90 else lat_min
+    lon_max = 180 if lon_max > 180 else lon_max
+    lat_max = 90 if lat_max > 90 else lat_max
+
+    print(extents)
+    print(lon_min, lat_min, lon_max, lat_max)
+
+    return (lon_min, lat_min, lon_max, lat_max)
+
+
 def subset_spatial_impl(ds: xr.Dataset,
                         region: PolygonLike.TYPE,
                         mask: bool = True,
@@ -480,6 +505,9 @@ def subset_spatial_impl(ds: xr.Dataset,
     # region is a simple box-polygon, for which there will be nothing to
     # mask.
     simple_polygon = polygon.equals(box(lon_min, lat_min, lon_max, lat_max))
+
+    # Pad extents to include crossed pixels
+    lon_min, lat_min, lon_max, lat_max = _pad_extents(ds, extents)
 
     crosses_antimeridian = (lon_min > lon_max) if explicit_coords else _crosses_antimeridian(polygon)
     lat_inverted = _lat_inverted(ds.lat)
