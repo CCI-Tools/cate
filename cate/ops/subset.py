@@ -36,6 +36,7 @@ from cate.core.op import op, op_input, op_return
 from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_attrs
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
+from cate.util.monitor import Monitor
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -43,7 +44,8 @@ from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 @op_return(add_history=True)
 def subset_spatial(ds: xr.Dataset,
                    region: PolygonLike.TYPE,
-                   mask: bool = True) -> xr.Dataset:
+                   mask: bool = True,
+                   monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -52,7 +54,7 @@ def subset_spatial(ds: xr.Dataset,
     :param mask: Should values falling in the bounding box of the polygon but not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
-    return adjust_spatial_attrs(subset_spatial_impl(ds, region, mask))
+    return adjust_spatial_attrs(subset_spatial_impl(ds, region, mask, monitor))
 
 
 @op(tags=['subset', 'temporal', 'filter'], version='1.0')

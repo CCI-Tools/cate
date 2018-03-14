@@ -32,6 +32,7 @@ from matplotlib import path
 
 from .types import PolygonLike
 from ..util.misc import to_list
+from ..util.monitor import Monitor
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -445,7 +446,8 @@ def get_extents(region: PolygonLike.TYPE):
 
 def subset_spatial_impl(ds: xr.Dataset,
                         region: PolygonLike.TYPE,
-                        mask: bool = True) -> xr.Dataset:
+                        mask: bool = True,
+                        monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -455,6 +457,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
+    monitor.start('Subset', 10)
     # Validate input
     try:
         polygon = PolygonLike.convert(region)
@@ -491,7 +494,7 @@ def subset_spatial_impl(ds: xr.Dataset,
                                   ' are currently implemented for simple,'
                                   ' rectangular polygons only, or complex polygons'
                                   ' without masking.')
-
+    monitor.progress(1)
     if crosses_antimeridian:
         # Shapely messes up longitudes if the polygon crosses the antimeridian
         if not explicit_coords:
@@ -510,14 +513,16 @@ def subset_spatial_impl(ds: xr.Dataset,
         # Preserve the original longitude dimension, masking elements that
         # do not belong to the polygon with NaN. Cate framework doesn't handle
         # datasets with a dis-joint longitude dimension well.
-        return retset.reindex_like(ds.lon)
+        with monitor.observing(8):
+            return retset.reindex_like(ds.lon)
 
     lon_slice = slice(lon_min, lon_max)
     indexers = {'lat': lat_index, 'lon': lon_slice}
     retset = ds.sel(**indexers)
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
-        return retset
+        with monitor.observing(8):
+            return retset
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all values falling in the region or on its boundary are denoted with True
@@ -526,16 +531,22 @@ def subset_spatial_impl(ds: xr.Dataset,
     polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
                                           polygon.exterior.coords.xy[1]]))
 
+    monitor.progress(1)
     grid_points = [[lon, lat] for lon, lat in zip(lonm.ravel(), latm.ravel())]
 
+    monitor.progress(1)
     mask = polypath.contains_points(grid_points)
 
     mask = xr.DataArray(mask.reshape(lonm.shape),
                         coords={'lon': retset.lon, 'lat': retset.lat},
                         dims=['lat', 'lon'])
-
+    monitor.progress(1)
     # Mask values outside the polygon with NaN
-    return retset.where(mask, drop=True)
+    with monitor.observing(5):
+        retset = retset.where(mask, drop=True)
+
+    monitor.done()
+    return retset
 
 
 def _crosses_antimeridian(region: Polygon) -> bool:
