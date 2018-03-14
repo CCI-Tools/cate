@@ -463,9 +463,6 @@ def _pad_extents(ds: xr.Dataset, extents: tuple):
     lon_max = 180 if lon_max > 180 else lon_max
     lat_max = 90 if lat_max > 90 else lat_max
 
-    print(extents)
-    print(lon_min, lat_min, lon_max, lat_max)
-
     return (lon_min, lat_min, lon_max, lat_max)
 
 
@@ -539,8 +536,7 @@ def subset_spatial_impl(ds: xr.Dataset,
         retset = ds.sel(**indexers)
 
         # Preserve the original longitude dimension, masking elements that
-        # do not belong to the polygon with NaN. Cate framework doesn't handle
-        # datasets with a dis-joint longitude dimension well.
+        # do not belong to the polygon with NaN. 
         with monitor.observing(8):
             return retset.reindex_like(ds.lon)
 
@@ -548,14 +544,29 @@ def subset_spatial_impl(ds: xr.Dataset,
     indexers = {'lat': lat_index, 'lon': lon_slice}
     retset = ds.sel(**indexers)
     if not mask or simple_polygon or explicit_coords:
-        # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
+        # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
         with monitor.observing(8):
             return retset
 
     # Create the mask array. The result of this is a lon/lat DataArray where
-    # all values falling in the region or on its boundary are denoted with True
+    # all pixels falling in the region or on its boundary are denoted with True
     # and all the rest with False. Works on polygon exterior
-    lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
+
+    # Create a grid of pixel vertices
+    lon_pixel = abs(retset.lon.values[1] - retset.lon.values[0])
+    lat_pixel = abs(retset.lat.values[1] - retset.lat.values[0])
+
+    lon_min = retset.lon.values[0] - lon_pixel / 2
+    lon_max = retset.lon.values[-1] + lon_pixel / 2
+    lat_min = retset.lat.values[0] - lat_pixel / 2
+    lat_max = retset.lat.values[-1] + lat_pixel / 2
+
+    lat_grid = np.linspace(lat_min, lat_max, len(retset.lat.values) + 1)
+    lon_grid = np.linspace(lon_min, lon_max, len(retset.lon.values) + 1)
+
+    lonm, latm = np.meshgrid(lon_grid, lat_grid)
+
+    # Mark all grid points falling within the polygon as True
     polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
                                           polygon.exterior.coords.xy[1]]))
 
@@ -565,12 +576,20 @@ def subset_spatial_impl(ds: xr.Dataset,
     monitor.progress(1)
     mask = polypath.contains_points(grid_points)
 
-    mask = xr.DataArray(mask.reshape(lonm.shape),
-                        coords={'lon': retset.lon, 'lat': retset.lat},
-                        dims=['lat', 'lon'])
     monitor.progress(1)
-    # Mask values outside the polygon with NaN
+    indexers = {'lat': retset.lat.values, 'lon': retset.lon.values}
+    mask = mask.reshape(lonm.shape)
+
+    # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
+    mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
+
+    # Create the mask array
+    mask = xr.DataArray(mask,
+                        coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                        dims=['lat', 'lon'])
+
     with monitor.observing(5):
+        # Apply the mask to data
         retset = retset.where(mask, drop=True)
 
     monitor.done()
