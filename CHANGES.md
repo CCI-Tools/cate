@@ -4,6 +4,8 @@
 
 ## Version 2.0.0.dev3
 
+* Operation to perform arbitrary dataset math
+  [#556](https://github.com/CCI-Tools/cate/issues/556)
 * New parameter `interval` for `animate_map()`
 
 
