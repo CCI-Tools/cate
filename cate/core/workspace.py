@@ -526,14 +526,14 @@ class Workspace:
                     elif isinstance(source, Namespace):
                         # source is output_namespace of another step
                         if OpMetaInfo.RETURN_OUTPUT_NAME not in source:
-                            raise WorkspaceError('Illegal argument for input "%s" of operation "%s',
+                            raise WorkspaceError('Illegal argument for input "%s" of operation "%s' %
                                                  (input_name, op_name))
                         input_port.source = source[OpMetaInfo.RETURN_OUTPUT_NAME]
                 elif 'value' in input_value:
                     # Constant value
                     input_port.value = input_value['value']
                 else:
-                    raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
+                    raise WorkspaceError('Illegal argument for input "%s" of operation "%s' % (input_name, op_name))
 
             if validate_args:
                 inputs = new_step.inputs
@@ -574,15 +574,20 @@ class Workspace:
 
         with self._lock:
             unpacked_op_kwargs = {}
+            returns = False
             for input_name, input_value in op_kwargs.items():
-                if 'source' in input_value:
-                    unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
+                if 'should_return' == input_name and 'value' in input_value:
+                    returns = input_value['value']
+                elif 'source' in input_value:
+                        unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
                 elif 'value' in input_value:
-                    unpacked_op_kwargs[input_name] = input_value['value']
+                        unpacked_op_kwargs[input_name] = input_value['value']
 
             with monitor.starting("Running operation '%s'" % op_name, 2):
                 self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
-                op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+                return_value = op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+                if returns:
+                    return return_value
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()

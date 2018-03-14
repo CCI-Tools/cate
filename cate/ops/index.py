@@ -57,7 +57,8 @@ def enso_nino34(ds: xr.Dataset,
     lat_min=-5 lon_max=-120 lat_max=5.
 
     :param ds: A monthly SST dataset
-    :param file: Path to the reference data file
+    :param file: Path to the reference data file e.g. a climatology. A suitable reference dataset
+    can be generated using the long_term_average operation
     :param var: Dataset variable (geophysial quantity) to use for index
     calculation.
     :param threshold: If given, boolean El Nino/La Nina timeseries will be
@@ -75,7 +76,7 @@ def enso_nino34(ds: xr.Dataset,
 
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_input('region', value_set=['N1+2', 'N3', 'N34', 'N4', 'custom'])
 @op_input('custom_region', data_type=PolygonLike)
 def enso(ds: xr.Dataset,
@@ -90,7 +91,8 @@ def enso(ds: xr.Dataset,
     anomalies of monthly means of SST data in the given region.
 
     :param ds: A monthly SST dataset
-    :param file: Path to the reference data file
+    :param file: Path to the reference data file e.g. a climatology. A suitable reference dataset
+    can be generated using the long_term_average operation
     :param var: Dataset variable to use for index calculation
     :param region: Region for index calculation, the default is Nino3.4
     :param custom_region: If 'custom' is chosen as the 'region', this parameter
@@ -121,7 +123,7 @@ def enso(ds: xr.Dataset,
 
 @op(tags=['index'])
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('file', file_open_mode='w', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 def oni(ds: xr.Dataset,
         var: VarName.TYPE,
         file: str,
@@ -132,7 +134,8 @@ def oni(ds: xr.Dataset,
     anomalies of monthly means of SST data in the Nino3.4 region.
 
     :param ds: A monthly SST dataset
-    :param file: Path to the reference data file
+    :param file: Path to the reference data file e.g. a climatology. A suitable reference dataset
+    can be generated using the long_term_average operation
     :param var: Dataset variable to use for index calculation
     :param threshold: If given, boolean El Nino/La Nina timeseries will be
     calculated and added to the output dataset, according to the given

@@ -60,7 +60,7 @@ from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
 from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
-    ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, NE2Handler
+    ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 
@@ -108,6 +108,7 @@ def create_application():
         (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
         (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
         (url_pattern('/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
+        (url_pattern('/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
         (url_pattern('/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
         (url_pattern('/ws/countries'), CountriesGeoJSONHandler),

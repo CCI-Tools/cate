@@ -334,16 +334,22 @@ class TransformArrayImage(DecoratorImage):
                  force_masked: bool = True,
                  force_2d: bool = False,
                  no_data_value: Number = None,
+                 valid_range: Tuple[Number] = None,
                  tile_cache: Cache = None):
         super().__init__(source_image, image_id=image_id, tile_cache=tile_cache)
         self._force_masked = force_masked
         self._force_2d = force_2d
         self._flip_y = flip_y
         self._no_data_value = no_data_value
+        self._valid_range = valid_range
 
     @property
-    def no_data_value(self) -> Number:
+    def no_data_value(self) -> Optional[Number]:
         return self._no_data_value
+
+    @property
+    def valid_range(self) -> Optional[Tuple[Number]]:
+        return self._valid_range
 
     def compute_tile(self, tile_x: int, tile_y: int, rectangle: Rectangle2D) -> Tile:
         if self._flip_y:
@@ -371,8 +377,17 @@ class TransformArrayImage(DecoratorImage):
         if self._force_masked and not np.ma.is_masked(tile):
             # if tile is not masked
             if self._no_data_value is not None:
+                print("compute_tile_from_source_tile: we has a self._no_data_value: ", self._no_data_value)
                 # and we have a fill value, return a masked tile
                 tile = np.ma.masked_equal(tile, self._no_data_value)
+            elif self._valid_range is not None:
+                print("compute_tile_from_source_tile: we has a self._valid_range: ", self._valid_range)
+                valid_min, valid_max = self._valid_range
+                # and we have a valid min or max, return a masked tile
+                if valid_min is not None:
+                    tile = np.ma.masked_less(tile, valid_min)
+                if valid_max is not None:
+                    tile = np.ma.masked_greater(tile, valid_max)
             elif np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
                 # and it is of float type, return a masked tile with a mask from invalids, i.e. NaN, -Inf, +Inf
                 tile = np.ma.masked_invalid(tile)

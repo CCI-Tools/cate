@@ -193,6 +193,32 @@ class Literal(Like[Any]):
         return repr(value)
 
 
+class HTML(str):
+    pass
+
+
+class HTMLLike(Like[HTML]):
+    """
+    Represents HTML string
+    """
+    TYPE = HTML
+
+    @classmethod
+    def convert(cls, value: Union[str, HTML]) -> HTML:
+        """
+        Return **value**
+        """
+        if value is None:
+            return None
+        return HTML(value)
+
+    @classmethod
+    def format(cls, value: HTML) -> str:
+        if value is None:
+            return None
+        return value
+
+
 class VarNamesLike(Like[VarNames]):
     """
     Type class for Variable selection objects

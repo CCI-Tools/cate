@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Any, Union
 
 import xarray as xr
 
@@ -203,12 +203,13 @@ class WebSocketService:
         registry = registry or OP_REGISTRY
         op_list = []
         for op_name, op_reg in registry.op_registrations.items():
-            if op_reg.op_meta_info.header.get('deprecated'):
+            if op_reg.op_meta_info.header.get('deprecated') or op_name.startswith('_'):
+                # do not list deprecated and private operations
                 continue
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
             op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()
-                                      if not props.get('deprecated')]
+                                      if not (props.get('deprecated') or props.get('context'))]
             op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()
                                        if not props.get('deprecated')]
             op_list.append(op_json_dict)
@@ -297,10 +298,9 @@ class WebSocketService:
                                                             format_name=format_name, monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> dict:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         with cwd(base_dir):
-            workspace = self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
-            return workspace.to_json_dict()
+            return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
