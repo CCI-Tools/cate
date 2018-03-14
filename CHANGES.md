@@ -1,4 +1,13 @@
-## Version 2.0.0.dev2 (in dev)
+## Version 2.0.0.dev4 (in dev)
+
+
+
+## Version 2.0.0.dev3
+
+* New parameter `interval` for `animate_map()`
+
+
+## Version 2.0.0.dev2
 
 ### Fixes
 

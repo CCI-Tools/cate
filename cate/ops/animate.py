@@ -92,6 +92,7 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
                 animate_dim: str = 'time',
+                interval: int = 200,
                 true_range: bool = False,
                 indexers: DictLike.TYPE = None,
                 region: PolygonLike.TYPE = None,
@@ -116,6 +117,7 @@ def animate_map(ds: xr.Dataset,
     :param ds: the dataset containing the variable to animate
     :param var: the variable's name
     :param animate_dim: Dimension to animate, if none given defaults to time.
+    :param interval: Delay between frames in milliseconds. Defaults to 200.
     :param true_range: If True, calculates colormap and colorbar configuration parameters from the
     whole dataset. Can potentially take a lot of time. Defaults to False, in which case the colormap
     is calculated from the first frame.
@@ -238,7 +240,7 @@ def animate_map(ds: xr.Dataset,
             monitor.progress(1)
             return ax
         anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
-                                       interval=25, blit=False, repeat=False)
+                                       interval=interval, blit=False, repeat=False)
         anim_html = anim.to_jshtml()
 
         # Prevent the animation for running after it's finished
@@ -255,7 +257,7 @@ def animate_map(ds: xr.Dataset,
                 outfile.write(anim_html)
                 monitor.progress(1)
 
-    return anim_html
+    return HTML(anim_html)
 
 
 def _get_min_max(data, monitor=None):

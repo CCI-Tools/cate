@@ -719,51 +719,50 @@ class EsaCciOdpDataSource(DataSource):
                     time_coverage_start = selected_file_list[idx][1]
                     time_coverage_end = selected_file_list[idx][2]
 
-                    try:
-                        child_monitor.start(label=file_name, total_work=1)
+		    child_monitor.start(label=file_name, total_work=1)
 
-                        remote_dataset = xr.open_dataset(dataset_uri)
+		    remote_dataset = xr.open_dataset(dataset_uri)
 
-                        if var_names:
-                            remote_dataset = remote_dataset.drop(
-                                [var_name for var_name in remote_dataset.data_vars.keys()
-                                 if var_name not in var_names])
+		    if var_names:
+		        remote_dataset = remote_dataset.drop(
+		    	[var_name for var_name in remote_dataset.data_vars.keys()
+		    	 if var_name not in var_names])
 
-                        if region:
-                            remote_dataset = normalize_impl(remote_dataset)
-                            remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region))
+		    if region:
+		        remote_dataset = normalize_impl(remote_dataset)
+		        remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region))
 
-                            if do_update_of_region_meta_info_once:
-                                local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
-                                local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
-                                local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
-                                local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
-                                do_update_of_region_meta_info_once = False
+		        if do_update_of_region_meta_info_once:
+		    	local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+		    	local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+		    	local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+		    	local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+		    	do_update_of_region_meta_info_once = False
 
-                        if compression_enabled:
-                            for sel_var_name in remote_dataset.variables.keys():
-                                remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+		    if compression_enabled:
+		        for sel_var_name in remote_dataset.variables.keys():
+		    	remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
 
-                        remote_dataset.to_netcdf(local_filepath)
+		    remote_dataset.to_netcdf(local_filepath)
 
-                        child_monitor.progress(work=1, msg=str(time_coverage_start))
-                    finally:
-                        if do_update_of_variables_meta_info_once:
-                            variables_info = local_ds.meta_info.get('variables', [])
-                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                               if var_info.get('name')
-                                                               in remote_dataset.variables.keys() and
-                                                               var_info.get('name')
-                                                               not in remote_dataset.dims.keys()]
-                            do_update_of_variables_meta_info_once = False
+		    child_monitor.progress(work=1, msg=str(time_coverage_start))
 
-                        local_ds.add_dataset(os.path.join(local_id, file_name),
-                                             (time_coverage_start, time_coverage_end))
+		    if do_update_of_variables_meta_info_once:
+		        variables_info = local_ds.meta_info.get('variables', [])
+		        local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+		    				       if var_info.get('name')
+		    				       in remote_dataset.variables.keys() and
+		    				       var_info.get('name')
+		    				       not in remote_dataset.dims.keys()]
+		        do_update_of_variables_meta_info_once = False
 
-                        if do_update_of_verified_time_coverage_start_once:
-                            verified_time_coverage_start = time_coverage_start
-                            do_update_of_verified_time_coverage_start_once = False
-                        verified_time_coverage_end = time_coverage_end
+		    local_ds.add_dataset(os.path.join(local_id, file_name),
+		    		     (time_coverage_start, time_coverage_end))
+
+		    if do_update_of_verified_time_coverage_start_once:
+		        verified_time_coverage_start = time_coverage_start
+		        do_update_of_verified_time_coverage_start_once = False
+		    verified_time_coverage_end = time_coverage_end
                     child_monitor.done()
             else:
                 outdated_file_list = []
@@ -802,7 +801,7 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = coverage_from
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
-        except OSError as e:
+        except (OSError, ValueError) as e:
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
