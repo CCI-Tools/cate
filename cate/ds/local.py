@@ -256,7 +256,8 @@ class LocalDataSource(DataSource):
 
                             if region:
                                 remote_dataset = normalize_impl(remote_dataset)
-                                remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region))
+                                remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region),
+                                                                           allow_point=False)
 
                                 if do_update_of_region_meta_info_once:
                                     # subset_spatial_impl
