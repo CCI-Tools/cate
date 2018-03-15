@@ -29,6 +29,7 @@ Components
 ==========
 
 """
+from util.im import ensure_cmaps_loaded
 
 
 def check_bounding_box(lat_min: float,
@@ -239,6 +240,7 @@ def _color_palette(cmap, n_colors):
         # we have some sort of named palette
         try:
             # is this a matplotlib cmap?
+            ensure_cmaps_loaded()
             cmap = plt.get_cmap(cmap)
         except ValueError:
             # or maybe we just got a single color as a string

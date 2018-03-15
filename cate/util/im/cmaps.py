@@ -90,79 +90,84 @@ def get_cmaps():
 
     global _CBARS_LOADED, _CMAPS
     if not _CBARS_LOADED:
-        _LOCK.acquire()
-        _CBARS_LOADED = True
-
-        register_lc_color_map()
-
-        new_cmaps = []
-        for cmap_category, cmap_description, cmap_names in _CMAPS:
-            cbar_list = []
-            for cmap_name in cmap_names:
-                try:
-                    cmap = cm.get_cmap(cmap_name)
-                except Exception:
-                    print("WARNING: detected invalid colormap '" + cmap_name + "'")
-                    continue
-
-                # Add extra colormaps with alpha gradient
-                # see http://matplotlib.org/api/colors_api.html
-                if type(cmap) == matplotlib.colors.LinearSegmentedColormap:
-                    new_name = cmap.name + '_alpha'
-                    new_segmentdata = dict(cmap._segmentdata)
-                    # let alpha increase from 0.0 to 0.5
-                    new_segmentdata['alpha'] = ((0.0, 0.0, 0.0),
-                                                (0.5, 1.0, 1.0),
-                                                (1.0, 1.0, 1.0))
-                    new_cmap = matplotlib.colors.LinearSegmentedColormap(new_name, new_segmentdata)
-                    cm.register_cmap(cmap=new_cmap)
-                    # print("INFO: new colormap '" + new_name + "'")
-                elif type(cmap) == matplotlib.colors.ListedColormap:
-                    new_name = cmap.name + '_alpha'
-                    new_colors = list(cmap.colors)
-                    a_slope = 2.0 / cmap.N
-                    a = 0
-                    for i in range(len(new_colors)):
-                        new_color = new_colors[i]
-                        if not isinstance(new_color, str):
-                            if len(new_color) == 3:
-                                r, g, b = new_color
-                                new_colors[i] = r, g, b, a
-                            elif len(new_color) == 4:
-                                r, g, b, a_old = new_color
-                                new_colors[i] = r, g, b, min(a, a_old)
-                        a += a_slope
-                        if a > 1.0:
-                            a = 1.0
-                    new_cmap = matplotlib.colors.ListedColormap(new_colors, name=new_name)
-                    cm.register_cmap(cmap=new_cmap)
-                else:
-                    new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
-                    print("WARNING: could not create colormap '{}' because '{}' is of unknown type {}"
-                          .format(new_name, cmap.name, type(cmap)))
-
-                gradient = np.linspace(0, 1, 256)
-                gradient = np.vstack((gradient, gradient))
-                image_data = cmap(gradient, bytes=True)
-                image = Image.fromarray(image_data, 'RGBA')
-
-                # ostream = io.FileIO('../cmaps/' + cmap_name + '.png', 'wb')
-                # image.save(ostream, format='PNG')
-                # ostream.close()
-
-                ostream = io.BytesIO()
-                image.save(ostream, format='PNG')
-                cbar_png_bytes = ostream.getvalue()
-                ostream.close()
-
-                cbar_png_data = base64.b64encode(cbar_png_bytes)
-                cbar_png_bytes = cbar_png_data.decode('unicode_escape')
-
-                cbar_list.append((cmap_name, cbar_png_bytes))
-            new_cmaps.append((cmap_category, cmap_description, tuple(cbar_list)))
-
-        _CMAPS = tuple(new_cmaps)
-        _LOCK.release()
-        # import pprint
-        # pprint.pprint(_CMAPS)
+        ensure_cmaps_loaded()
     return _CMAPS
+
+
+def ensure_cmaps_loaded():
+    """
+    Loads all color maps from matplotlip and registers additional ones, if not done before.
+    """
+    global _CBARS_LOADED, _CMAPS
+    _LOCK.acquire()
+    _CBARS_LOADED = True
+    register_lc_color_map()
+    new_cmaps = []
+    for cmap_category, cmap_description, cmap_names in _CMAPS:
+        cbar_list = []
+        for cmap_name in cmap_names:
+            try:
+                cmap = cm.get_cmap(cmap_name)
+            except Exception:
+                print("WARNING: detected invalid colormap '" + cmap_name + "'")
+                continue
+
+            # Add extra colormaps with alpha gradient
+            # see http://matplotlib.org/api/colors_api.html
+            if type(cmap) == matplotlib.colors.LinearSegmentedColormap:
+                new_name = cmap.name + '_alpha'
+                new_segmentdata = dict(cmap._segmentdata)
+                # let alpha increase from 0.0 to 0.5
+                new_segmentdata['alpha'] = ((0.0, 0.0, 0.0),
+                                            (0.5, 1.0, 1.0),
+                                            (1.0, 1.0, 1.0))
+                new_cmap = matplotlib.colors.LinearSegmentedColormap(new_name, new_segmentdata)
+                cm.register_cmap(cmap=new_cmap)
+                # print("INFO: new colormap '" + new_name + "'")
+            elif type(cmap) == matplotlib.colors.ListedColormap:
+                new_name = cmap.name + '_alpha'
+                new_colors = list(cmap.colors)
+                a_slope = 2.0 / cmap.N
+                a = 0
+                for i in range(len(new_colors)):
+                    new_color = new_colors[i]
+                    if not isinstance(new_color, str):
+                        if len(new_color) == 3:
+                            r, g, b = new_color
+                            new_colors[i] = r, g, b, a
+                        elif len(new_color) == 4:
+                            r, g, b, a_old = new_color
+                            new_colors[i] = r, g, b, min(a, a_old)
+                    a += a_slope
+                    if a > 1.0:
+                        a = 1.0
+                new_cmap = matplotlib.colors.ListedColormap(new_colors, name=new_name)
+                cm.register_cmap(cmap=new_cmap)
+            else:
+                new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
+                print("WARNING: could not create colormap '{}' because '{}' is of unknown type {}"
+                      .format(new_name, cmap.name, type(cmap)))
+
+            gradient = np.linspace(0, 1, 256)
+            gradient = np.vstack((gradient, gradient))
+            image_data = cmap(gradient, bytes=True)
+            image = Image.fromarray(image_data, 'RGBA')
+
+            # ostream = io.FileIO('../cmaps/' + cmap_name + '.png', 'wb')
+            # image.save(ostream, format='PNG')
+            # ostream.close()
+
+            ostream = io.BytesIO()
+            image.save(ostream, format='PNG')
+            cbar_png_bytes = ostream.getvalue()
+            ostream.close()
+
+            cbar_png_data = base64.b64encode(cbar_png_bytes)
+            cbar_png_bytes = cbar_png_data.decode('unicode_escape')
+
+            cbar_list.append((cmap_name, cbar_png_bytes))
+        new_cmaps.append((cmap_category, cmap_description, tuple(cbar_list)))
+    _CMAPS = tuple(new_cmaps)
+    _LOCK.release()
+    # import pprint
+    # pprint.pprint(_CMAPS)
