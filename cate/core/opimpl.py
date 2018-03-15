@@ -450,13 +450,22 @@ def _pad_extents(ds: xr.Dataset, extents: tuple):
     slices include all pixels crossed by the bounding box. Set extremes
     to maximum valid geospatial extents.
     """
-    lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
-    lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+    try:
+        lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+        lon_min = extents[0] - lon_pixel / 2
+        lon_max = extents[2] + lon_pixel / 2
+    except IndexError:
+        # 1D dimension, leave extents as they were
+        lon_min = extents[0]
+        lon_max = extents[2]
 
-    lon_min = extents[0] - lon_pixel / 2
-    lat_min = extents[1] - lat_pixel / 2
-    lon_max = extents[2] + lon_pixel / 2
-    lat_max = extents[3] + lat_pixel / 2
+    try:
+        lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+        lat_min = extents[1] - lat_pixel / 2
+        lat_max = extents[3] + lat_pixel / 2
+    except IndexError:
+        lat_min = extents[1]
+        lat_max = extents[3]
 
     lon_min = -180 if lon_min < -180 else lon_min
     lat_min = -90 if lat_min < -90 else lat_min
@@ -536,13 +545,20 @@ def subset_spatial_impl(ds: xr.Dataset,
         retset = ds.sel(**indexers)
 
         # Preserve the original longitude dimension, masking elements that
-        # do not belong to the polygon with NaN. 
+        # do not belong to the polygon with NaN.
         with monitor.observing(8):
             return retset.reindex_like(ds.lon)
 
     lon_slice = slice(lon_min, lon_max)
     indexers = {'lat': lat_index, 'lon': lon_slice}
+    print(indexers)
+    print(extents)
     retset = ds.sel(**indexers)
+
+    if len(retset.lat) == 0 or len(retset.lon) == 0:
+        # Empty return dataset => region out of dataset bounds
+        raise ValueError("Can not select a region outside dataset boundaries.")
+
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
         with monitor.observing(8):
@@ -552,6 +568,31 @@ def subset_spatial_impl(ds: xr.Dataset,
     # all pixels falling in the region or on its boundary are denoted with True
     # and all the rest with False. Works on polygon exterior
 
+    polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
+                                          polygon.exterior.coords.xy[1]]))
+
+    # Handle also a single pixel and 1D edge cases
+    if len(retset.lat) == 1 or len(retset.lon) == 1:
+        # Create a mask directly on pixel centers
+        lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
+        grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
+        print(retset.lat)
+        print(len(retset.lat))
+        print(retset.lon)
+        print(len(retset.lon))
+        print(retset)
+        mask = polypath.contains_points(grid_points)
+        mask = mask.reshape(lonm.shape)
+        mask = xr.DataArray(mask,
+                            coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                            dims=['lat', 'lon'])
+
+        with monitor.observing(5):
+            # Apply the mask to data
+            retset = retset.where(mask, drop=True)
+        return retset
+
+    # The normal case
     # Create a grid of pixel vertices
     lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
     lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
@@ -567,8 +608,6 @@ def subset_spatial_impl(ds: xr.Dataset,
     lonm, latm = np.meshgrid(lon_grid, lat_grid)
 
     # Mark all grid points falling within the polygon as True
-    polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
-                                          polygon.exterior.coords.xy[1]]))
 
     monitor.progress(1)
     grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
@@ -578,17 +617,9 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     monitor.progress(1)
 
-    # Create the mask array, handle also a single pixel and 1D edge cases
-    if len(retset.lat) == 1 or len(retset.lon) == 1:
-        # Create a mask directly on pixel centers
-        lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
-        grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
-        mask = polypath.contains_points(grid_points)
-        mask = mask.reshape(lonm.shape)
-    else:
-        mask = mask.reshape(lonm.shape)
-        # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
-        mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
+    mask = mask.reshape(lonm.shape)
+    # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
+    mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
 
     mask = xr.DataArray(mask,
                         coords={'lon': retset.lon.values, 'lat': retset.lat.values},

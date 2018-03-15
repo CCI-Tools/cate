@@ -166,6 +166,12 @@ def plot_map(ds: xr.Dataset,
         lon_min, lat_min, lon_max, lat_max = bounds
         extents = [lon_min, lon_max, lat_min, lat_max]
 
+    if len(ds.lat) < 2 or len(ds.lon) < 2:
+        # Matplotlib can not plot datasets with less than these dimensions with
+        # contourf and pcolormesh methods
+        raise ValueError('The minimum dataset spatial dimensions to create a map'
+                         ' plot are (2,2)')
+
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
         proj = ccrs.PlateCarree(central_longitude=central_lon)
