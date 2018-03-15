@@ -29,7 +29,7 @@ Components
 ==========
 
 """
-from util.im import ensure_cmaps_loaded
+from cate.util.im import ensure_cmaps_loaded
 
 
 def check_bounding_box(lat_min: float,
