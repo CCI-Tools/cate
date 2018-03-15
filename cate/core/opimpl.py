@@ -176,7 +176,7 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = ds.copy()
 
     for dim in ('lon', 'lat'):
-        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim)
+        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=True)
 
         for key in geo_spatial_attrs:
             if geo_spatial_attrs[key] is not None:
@@ -553,8 +553,8 @@ def subset_spatial_impl(ds: xr.Dataset,
     # and all the rest with False. Works on polygon exterior
 
     # Create a grid of pixel vertices
-    lon_pixel = abs(retset.lon.values[1] - retset.lon.values[0])
-    lat_pixel = abs(retset.lat.values[1] - retset.lat.values[0])
+    lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+    lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
 
     lon_min = retset.lon.values[0] - lon_pixel / 2
     lon_max = retset.lon.values[-1] + lon_pixel / 2
@@ -571,19 +571,25 @@ def subset_spatial_impl(ds: xr.Dataset,
                                           polygon.exterior.coords.xy[1]]))
 
     monitor.progress(1)
-    grid_points = [[lon, lat] for lon, lat in zip(lonm.ravel(), latm.ravel())]
+    grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
 
     monitor.progress(1)
     mask = polypath.contains_points(grid_points)
 
     monitor.progress(1)
-    indexers = {'lat': retset.lat.values, 'lon': retset.lon.values}
-    mask = mask.reshape(lonm.shape)
 
-    # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
-    mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
+    # Create the mask array, handle also a single pixel and 1D edge cases
+    if len(retset.lat) == 1 or len(retset.lon) == 1:
+        # Create a mask directly on pixel centers
+        lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
+        grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
+        mask = polypath.contains_points(grid_points)
+        mask = mask.reshape(lonm.shape)
+    else:
+        mask = mask.reshape(lonm.shape)
+        # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
+        mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
 
-    # Create the mask array
     mask = xr.DataArray(mask,
                         coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                         dims=['lat', 'lon'])
