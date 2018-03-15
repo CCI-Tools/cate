@@ -551,8 +551,6 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     lon_slice = slice(lon_min, lon_max)
     indexers = {'lat': lat_index, 'lon': lon_slice}
-    print(indexers)
-    print(extents)
     retset = ds.sel(**indexers)
 
     if len(retset.lat) == 0 or len(retset.lon) == 0:
@@ -576,11 +574,6 @@ def subset_spatial_impl(ds: xr.Dataset,
         # Create a mask directly on pixel centers
         lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
         grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
-        print(retset.lat)
-        print(len(retset.lat))
-        print(retset.lon)
-        print(len(retset.lon))
-        print(retset)
         mask = polypath.contains_points(grid_points)
         mask = mask.reshape(lonm.shape)
         mask = xr.DataArray(mask,
