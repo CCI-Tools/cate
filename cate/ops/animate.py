@@ -99,6 +99,7 @@ def animate_map(ds: xr.Dataset,
                 projection: str = 'PlateCarree',
                 central_lon: float = 0.0,
                 title: str = None,
+                contour_plot: bool = False,
                 cmap_params: DictLike.TYPE = None,
                 plot_properties: DictLike.TYPE = None,
                 file: str = None,
@@ -128,6 +129,7 @@ def animate_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
+    :param contour_plot: If true plot a filled contour plot of data, otherwise plots a pixelated colormesh
     :param cmap_params: optional additional colormap configuration parameters,
            e.g. "vmax=300, cmap='magma'"
            For full reference refer to
@@ -217,8 +219,14 @@ def animate_map(ds: xr.Dataset,
         plot_kwargs = {**properties, **cmap_params}
 
         # Plot the first frame to set-up the axes with the colorbar properly
-        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
-                               add_colorbar=True, **plot_kwargs)
+        # transform keyword is for the coordinate our data is in, which in case of a
+        # 'normal' lat/lon dataset is PlateCarree.
+        if contour_plot:
+            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                                   add_colorbar=True, **plot_kwargs)
+        else:
+            var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                                     add_colorbar=True, **plot_kwargs)
         if title:
             ax.set_title(title)
         figure.tight_layout()
