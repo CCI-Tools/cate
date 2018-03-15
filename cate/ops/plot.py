@@ -108,6 +108,7 @@ def plot_map(ds: xr.Dataset,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
              title: str = None,
+             contour_plot: bool = False,
              properties: DictLike.TYPE = None,
              file: str = None) -> object:
     """
@@ -134,6 +135,7 @@ def plot_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
+    :param contour_plot: If true plot a filled contour plot of data, otherwise plots a pixelated colormesh
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5)"
            For full reference refer to
@@ -200,7 +202,10 @@ def plot_map(ds: xr.Dataset,
 
     # transform keyword is for the coordinate our data is in, which in case of a
     # 'normal' lat/lon dataset is PlateCarree.
-    var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    if contour_plot:
+        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    else:
+        var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
 
     if title:
         ax.set_title(title)
