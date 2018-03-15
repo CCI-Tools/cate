@@ -233,12 +233,11 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         # noinspection PyBroadException
         try:
             json_text = json.dumps(json_rpc_response)
+            self.write_message(json_text)
         except Exception:
             stack_trace = traceback.format_exc()
             print(stack_trace, file=sys.stderr, flush=True)
             return False
-
-        self.write_message(json_text)
 
         if _DEBUG_WEB_SOCKET_RPC:
             method_id = json_rpc_response.get('id')

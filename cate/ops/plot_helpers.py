@@ -31,26 +31,7 @@ Components
 """
 from cate.core.types import PolygonLike
 from cate.core.opimpl import get_extents
-
-
-def handle_plot_polygon(region: PolygonLike.TYPE = None):
-    """
-    Return extents of the given PolygonLike.
-
-    :param region: PolygonLike to introspect
-    :return: extents
-    """
-    if region is None:
-        return None
-
-    extents, explicit_coords = get_extents(region)
-
-    lon_min, lat_min, lon_max, lat_max = extents
-
-    if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-        raise ValueError('Provided plot extents do not form a valid bounding box '
-                         'within [-180.0,+180.0,-90.0,+90.0]')
-    return extents
+from cate.util.im import ensure_cmaps_loaded
 
 
 def check_bounding_box(lat_min: float,
@@ -261,6 +242,7 @@ def _color_palette(cmap, n_colors):
         # we have some sort of named palette
         try:
             # is this a matplotlib cmap?
+            ensure_cmaps_loaded()
             cmap = plt.get_cmap(cmap)
         except ValueError:
             # or maybe we just got a single color as a string

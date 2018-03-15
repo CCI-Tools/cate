@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from tornado.ioloop import IOLoop
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -63,7 +64,7 @@ class JsonRpcWebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _write_progress(self, message: str = None):
+    def _report_progress(self, message: str = None):
         current_time = time.time()
         if not self.last_time or (current_time - self.last_time) >= self.report_defer_period:
 
@@ -77,16 +78,19 @@ class JsonRpcWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
-                                                       id=self.method_id,
-                                                       progress=progress)))
+            IOLoop.instance().add_callback(callback=lambda progress: self._write_progress_message(progress))
             self.last_time = current_time
+
+    def _write_progress_message(self, progress):
+        self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
+                                                   id=self.method_id,
+                                                   progress=progress)))
 
     def start(self, label: str, total_work: float = None):
         self.label = label
         self.total = total_work
         self.worked = 0.0 if total_work else None
-        self._write_progress()
+        self._report_progress()
         # first progress method should always be sent
         self.last_time = None
 
@@ -94,11 +98,11 @@ class JsonRpcWebSocketMonitor(Monitor):
         self.check_for_cancellation()
         if work:
             self.worked = (self.worked or 0.0) + work
-        self._write_progress(message=msg)
+        self._report_progress(message=msg)
 
     def done(self):
         self.worked = self.total
-        self._write_progress()
+        self._report_progress()
 
     def cancel(self):
         self._cancelled = True
