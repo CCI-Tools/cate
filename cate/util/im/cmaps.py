@@ -101,7 +101,6 @@ def ensure_cmaps_loaded():
     if not _CBARS_LOADED:
         _LOCK.acquire()
         if not _CBARS_LOADED:
-            _CBARS_LOADED = True
             register_lc_color_map()
             new_cmaps = []
             for cmap_category, cmap_description, cmap_names in _CMAPS:
@@ -169,6 +168,7 @@ def ensure_cmaps_loaded():
                     cbar_list.append((cmap_name, cbar_png_bytes))
                 new_cmaps.append((cmap_category, cmap_description, tuple(cbar_list)))
             _CMAPS = tuple(new_cmaps)
+            _CBARS_LOADED = True
             # import pprint
             # pprint.pprint(_CMAPS)
         _LOCK.release()
