@@ -158,7 +158,7 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
+def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
     introspection of the dataset and adjusting the appropriate attributes
@@ -176,7 +176,7 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = ds.copy()
 
     for dim in ('lon', 'lat'):
-        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=True)
+        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=allow_point)
 
         for key in geo_spatial_attrs:
             if geo_spatial_attrs[key] is not None:
