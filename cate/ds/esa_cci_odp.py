@@ -827,7 +827,6 @@ class EsaCciOdpDataSource(DataSource):
         local_ds.meta_info['exclude_variables'] = excluded_variables
         local_ds.save(True)
 
-
     def make_local(self,
                    local_name: str,
                    local_id: str = None,

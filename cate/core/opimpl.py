@@ -430,7 +430,7 @@ def get_extents(region: PolygonLike.TYPE):
             if len(maybe_rectangle) == 4:
                 lon_min, lat_min, lon_max, lat_max = maybe_rectangle
                 explicit_coords = True
-    except:
+    except BaseException:
         # The polygon must be convertible, but it's complex
         polygon = PolygonLike.convert(region)
         if not polygon.is_valid:
