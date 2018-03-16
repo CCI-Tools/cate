@@ -1,4 +1,4 @@
-## Version 2.0.0.dev4 (in dev)
+## Version 2.0.0.dev5 (in dev)
 
 * Select long rectangles with ``subset_spatial()``
   [#541](https://github.com/CCI-Tools/cate/issues/541)
@@ -11,6 +11,7 @@
 * By default ``plot_map()`` and ``animate_map()`` now produce colormesh (pixel) plots.
   [#559](https://github.com/CCI-Tools/cate/issues/507)
 
+## Version 2.0.0.dev4 
 
 ## Version 2.0.0.dev3
 
