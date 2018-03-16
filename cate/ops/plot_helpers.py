@@ -34,6 +34,26 @@ from cate.core.opimpl import get_extents
 from cate.util.im import ensure_cmaps_loaded
 
 
+def handle_plot_polygon(region: PolygonLike.TYPE = None):
+    """
+    Return extents of the given PolygonLike.
+
+    :param region: PolygonLike to introspect
+    :return: extents
+    """
+    if region is None:
+        return None
+
+    extents, explicit_coords = get_extents(region)
+
+    lon_min, lat_min, lon_max, lat_max = extents
+
+    if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
+        raise ValueError('Provided plot extents do not form a valid bounding box '
+                         'within [-180.0,+180.0,-90.0,+90.0]')
+    return extents
+
+
 def check_bounding_box(lat_min: float,
                        lat_max: float,
                        lon_min: float,
