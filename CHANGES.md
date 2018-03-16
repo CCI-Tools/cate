@@ -11,6 +11,8 @@
 * By default ``plot_map()`` and ``animate_map()`` now produce colormesh (pixel) plots.
   [#559](https://github.com/CCI-Tools/cate/issues/507)
 
+* Raise a more helpful error when Cate runs out of memory trying to save a plot.
+
 ## Version 2.0.0.dev4 
 
 ## Version 2.0.0.dev3
