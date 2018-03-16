@@ -18,6 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import functools
+
 from tornado.ioloop import IOLoop
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
@@ -78,7 +80,7 @@ class JsonRpcWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            IOLoop.instance().add_callback(callback=lambda progress: self._write_progress_message(progress))
+            IOLoop.instance().add_callback(callback=functools.partial(self._write_progress_message, progress))
             self.last_time = current_time
 
     def _write_progress_message(self, progress):

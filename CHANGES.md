@@ -1,6 +1,10 @@
 ## Version 2.0.0.dev5 (in dev) 
 
+* Fix issues with progress writing.
+
 ## Version 2.0.0.dev4 
+
+* Perform progress writing from the correct thread
 
 ## Version 2.0.0.dev3
 
