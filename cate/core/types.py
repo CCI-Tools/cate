@@ -50,7 +50,6 @@ import shapely.wkt
 import xarray
 from shapely.errors import ShapelyError
 
-from .opimpl import adjust_temporal_attrs_impl
 from ..util.misc import to_list, to_datetime_range, to_datetime
 from ..util.safe import safe_eval
 
@@ -630,6 +629,8 @@ class DatasetLike(Like[xarray.Dataset]):
     @classmethod
     def convert(cls, value: Any) -> Optional[xarray.Dataset]:
         # Can be optional
+        from cate.core.opimpl import adjust_temporal_attrs_impl
+
         if value is None:
             return None
         if isinstance(value, xarray.Dataset):

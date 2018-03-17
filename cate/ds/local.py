@@ -57,7 +57,7 @@ from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, \
     DataSource, \
     open_xarray_dataset
-from cate.core.opimpl import subset_spatial_impl, normalize_impl
+from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
 from cate.util.monitor import Monitor
 
@@ -147,8 +147,6 @@ class LocalDataSource(DataSource):
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        if region:
-            region = PolygonLike.convert(region)
         if var_names:
             var_names = VarNamesLike.convert(var_names)
         paths = []
@@ -211,7 +209,6 @@ class LocalDataSource(DataSource):
         local_id = local_ds.id
 
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None  # type: Sequence
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
@@ -257,18 +254,15 @@ class LocalDataSource(DataSource):
 
                             if region:
                                 remote_dataset = normalize_impl(remote_dataset)
-                                remote_dataset = subset_spatial_impl(remote_dataset, region)
-                                geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
+                                remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region),
+                                                                           allow_point=False)
 
-                                remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
-                                remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
-                                remote_dataset.attrs['geospatial_lon_min'] = geo_lon_min
-                                remote_dataset.attrs['geospatial_lon_max'] = geo_lon_max
                                 if do_update_of_region_meta_info_once:
-                                    local_ds.meta_info['bbox_maxx'] = geo_lon_max
-                                    local_ds.meta_info['bbox_minx'] = geo_lon_min
-                                    local_ds.meta_info['bbox_maxy'] = geo_lat_max
-                                    local_ds.meta_info['bbox_miny'] = geo_lat_min
+                                    # subset_spatial_impl
+                                    local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                                    local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                                    local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                                    local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
                                     do_update_of_region_meta_info_once = False
 
                             if compression_enabled:

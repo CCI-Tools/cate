@@ -31,10 +31,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'lat': np.linspace(-9.5, 9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'lat': np.linspace(-10.5, 10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_inverted_dims_nominal(self):
@@ -49,10 +49,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
-            'second': (['lon', 'lat', 'time'], np.ones([40, 20, 6])),
-            'lat': np.linspace(9.5, -9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lon', 'lat', 'time'], np.ones([42, 22, 6])),
+            'second': (['lon', 'lat', 'time'], np.ones([42, 22, 6])),
+            'lat': np.linspace(10.5, -10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_generic_masked(self):
@@ -167,10 +167,10 @@ class TestSubsetSpatial(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360)})
         actual = reg_op(ds=dataset, region="-20, -10, 20, 10")
         expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'second': (['lat', 'lon', 'time'], np.ones([20, 40, 6])),
-            'lat': np.linspace(-9.5, 9.5, 20),
-            'lon': np.linspace(-19.5, 19.5, 40)})
+            'first': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'lat': np.linspace(-10.5, 10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42)})
         assert_dataset_equal(expected, actual)
 
     def test_antimeridian_simple(self):
@@ -185,10 +185,6 @@ class TestSubsetSpatial(TestCase):
         masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
         self.assertTrue(np.isnan(masked['first']).all())
 
-        # With dropping
-        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertEqual(20, len(actual.lon))
-
     def test_antimeridian_simple_inverted(self):
         # Inverted lat
         dataset = xr.Dataset({
@@ -201,10 +197,6 @@ class TestSubsetSpatial(TestCase):
         actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=True)
         masked = actual.sel(method='nearest', **{'lon': 0, 'lat': 0})
         self.assertTrue(np.isnan(masked['first']).all())
-
-        # With dropping
-        actual = subset.subset_spatial(dataset, '170, -5, -170, 5', mask=False)
-        self.assertEqual(20, len(actual.lon))
 
     def test_antimeridian_arbitrary(self):
         antimeridian_pol = str('POLYGON(('
@@ -223,9 +215,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as cm:
             subset.subset_spatial(dataset, antimeridian_pol)
-        self.assertEqual(str(cm.exception),
-                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
-                         "rectangular polygons only.")
+        self.assertIn('anti-meridian', str(cm.exception))
 
     def test_antimeridian_arbitrary_inverted(self):
         antimeridian_pol = str('POLYGON(('
@@ -245,9 +235,157 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(Exception) as cm:
             subset.subset_spatial(dataset, antimeridian_pol)
-        self.assertEqual(str(cm.exception),
-                         "Spatial subsets crossing the anti-meridian are currently implemented for simple, "
-                         "rectangular polygons only.")
+        self.assertIn('anti-meridian', str(cm.exception))
+
+    def test_select_single_center(self):
+        """
+        Test subset spatial with a polygon that completely fits
+        inside pixel bounds
+        """
+        # Masked
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'lat': np.linspace(-75, 75, 6),
+            'lon': np.linspace(-165, 165, 12),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((32, 2), (34, 28), (58, 29), (54, 4))
+        actual = subset.subset_spatial(dataset, region=poly)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'lat': [15.],
+            'lon': [45.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+
+        assert_dataset_equal(expected, actual)
+
+        # Not masked
+        actual = subset.subset_spatial(dataset, region=poly, mask=False)
+        assert_dataset_equal(expected, actual)
+
+    def test_select_single_vertice(self):
+        """
+        Test with a polygon that encloses a single pixel vertice,
+        but no centers. That is, crosses four pixels
+        """
+        # Masked
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'lat': np.linspace(-75, 75, 6),
+            'lon': np.linspace(-165, 165, 12),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((25, 2), (27, 40), (58, 38), (54, 4))
+        actual = subset.subset_spatial(dataset, region=poly)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([2, 2, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([2, 2, 3])),
+            'lat': [15., 45.],
+            'lon': [15., 45.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+
+        assert_dataset_equal(expected, actual)
+
+        # Not masked
+        actual = subset.subset_spatial(dataset, region=poly, mask=False)
+        assert_dataset_equal(expected, actual)
+
+    def test_select_1d_lat(self):
+        """
+        Test with a polyon that runs over pixel boundaries in the
+        latitude direction, resulting in selecting a single column
+        """
+        # Masked
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'lat': np.linspace(-75, 75, 6),
+            'lon': np.linspace(-165, 165, 12),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((25, 2), (27, 47), (12, 50), (10, 4))
+        actual = subset.subset_spatial(dataset, region=poly)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([2, 1, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([2, 1, 3])),
+            'lat': [15., 45.],
+            'lon': [15.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+
+        assert_dataset_equal(expected, actual)
+
+        # Not masked
+        actual = subset.subset_spatial(dataset, region=poly, mask=False)
+        assert_dataset_equal(expected, actual)
+
+    def test_select_1d_lon(self):
+        """
+        Test with a polygon that runs over pixel boundaries in the
+        longitude direction. E.g., selects a single row
+        """
+        # Masked
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([6, 12, 3])),
+            'lat': np.linspace(-75, 75, 6),
+            'lon': np.linspace(-165, 165, 12),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((-28, 32), (-26, 58), (28, 52), (25, 33))
+        actual = subset.subset_spatial(dataset, region=poly)
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([1, 2, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([1, 2, 3])),
+            'lat': [45.],
+            'lon': [-15., 15.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+
+        assert_dataset_equal(expected, actual)
+
+        # Not masked
+        actual = subset.subset_spatial(dataset, region=poly, mask=False)
+        assert_dataset_equal(expected, actual)
+
+    def test_select_from_single_pixel(self):
+        """
+        Test subset spatial where the input dataset has only one pixel
+        """
+        # Masked
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'lat': [45.],
+            'lon': [15.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((-28, 32), (-26, 58), (28, 52), (25, 33))
+        actual = subset.subset_spatial(dataset, region=poly)
+
+        assert_dataset_equal(dataset, actual)
+
+        # Not masked
+        actual = subset.subset_spatial(dataset, region=poly, mask=False)
+        assert_dataset_equal(dataset, actual)
+
+    def test_out_of_bounds(self):
+        """
+        Test that an appropriate error is raised when the polygon
+        wouldn't select any data from the original dataset
+        """
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'second': (['lat', 'lon', 'time'], np.ones([1, 1, 3])),
+            'lat': [45.],
+            'lon': [15.],
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]})
+        poly = ((32, 32), (34, 58), (56, 56), (58, 33))
+
+        with self.assertRaises(ValueError) as err:
+            subset.subset_spatial(dataset, region=poly)
+        self.assertIn('Can not select', str(err.exception))
+
+        # Not masked
+        with self.assertRaises(ValueError) as err:
+            subset.subset_spatial(dataset, region=poly, mask=False)
+        self.assertIn('Can not select', str(err.exception))
 
 
 class TestSubsetTemporal(TestCase):
