@@ -34,9 +34,9 @@ import xarray as xr
 from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import DatasetLike, VarName
+from cate.core.types import DatasetLike
 from cate.util.monitor import Monitor
-from cate.util.safe import safe_eval, safe_exec
+from cate.util.safe import safe_exec
 
 
 @op(tags=['arithmetic'], version='1.0')

@@ -1,4 +1,30 @@
-## Version 2.0.0.dev2 (in dev)
+## Version 2.0.0.dev5 (in dev)
+
+* Select long rectangles with ``subset_spatial()``
+  [#541](https://github.com/CCI-Tools/cate/issues/541)
+* Improve performance of ``subset_spatial()``, especially when masking complex polygons
+  [#508](https://github.com/CCI-Tools/cate/issues/508)
+* Select all pixels that are crossed by the given polygon in ``subset_spatial()``
+  [#560](https://github.com/CCI-Tools/cate/issues/560)
+* Enable ``subset_spatial()`` to work with all valid polygons, including sub-pixel ones.
+  [#507](https://github.com/CCI-Tools/cate/issues/507)
+* By default ``plot_map()`` and ``animate_map()`` now produce colormesh (pixel) plots.
+  [#559](https://github.com/CCI-Tools/cate/issues/507)
+
+* Fix issues with progress writing.
+
+## Version 2.0.0.dev4 
+
+* Perform progress writing from the correct thread
+
+## Version 2.0.0.dev3
+
+* Operation to perform arbitrary dataset math
+  [#556](https://github.com/CCI-Tools/cate/issues/556)
+* New parameter `interval` for `animate_map()`
+
+
+## Version 2.0.0.dev2
 
 ### Fixes
 

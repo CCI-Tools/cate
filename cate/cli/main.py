@@ -1069,8 +1069,13 @@ class OperationCommand(SubCommandCommand):
 
         op_regs = OP_REGISTRY.op_registrations
 
-        def _is_op_selected(op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
-            if deprecated_only and not op_reg.op_meta_info.header.get('deprecated'):
+        def _is_op_selected(op_name: str, op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
+            if op_name.startswith('_'):
+                # do not list private operations
+                return False
+            if deprecated_only \
+                    and not op_reg.op_meta_info.header.get('deprecated'):
+                # do not list non-deprecated operations if user wants to see what is deprecated
                 return False
             tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
@@ -1093,7 +1098,7 @@ class OperationCommand(SubCommandCommand):
             return True
 
         op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
-                           _is_op_selected(op_reg, command_args.tag, command_args.internal, command_args.deprecated)])
+                           _is_op_selected(op_name, op_reg, command_args.tag, command_args.internal, command_args.deprecated)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name

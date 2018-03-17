@@ -70,7 +70,7 @@ from cate.core.types import VarName, DictLike, PolygonLike, HTML
 from cate.util.monitor import Monitor
 
 from cate.ops.plot_helpers import (get_var_data,
-                                   check_bounding_box,
+                                   handle_plot_polygon,
                                    determine_cmap_params)
 
 ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
@@ -92,12 +92,14 @@ ANIMATION_FILE_FILTER = dict(name='Animation Outputs', extensions=['html', ])
 def animate_map(ds: xr.Dataset,
                 var: VarName.TYPE = None,
                 animate_dim: str = 'time',
+                interval: int = 200,
                 true_range: bool = False,
                 indexers: DictLike.TYPE = None,
                 region: PolygonLike.TYPE = None,
                 projection: str = 'PlateCarree',
                 central_lon: float = 0.0,
                 title: str = None,
+                contour_plot: bool = False,
                 cmap_params: DictLike.TYPE = None,
                 plot_properties: DictLike.TYPE = None,
                 file: str = None,
@@ -116,6 +118,7 @@ def animate_map(ds: xr.Dataset,
     :param ds: the dataset containing the variable to animate
     :param var: the variable's name
     :param animate_dim: Dimension to animate, if none given defaults to time.
+    :param interval: Delay between frames in milliseconds. Defaults to 200.
     :param true_range: If True, calculates colormap and colorbar configuration parameters from the
     whole dataset. Can potentially take a lot of time. Defaults to False, in which case the colormap
     is calculated from the first frame.
@@ -126,6 +129,7 @@ def animate_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
+    :param contour_plot: If true plot a filled contour plot of data, otherwise plots a pixelated colormesh
     :param cmap_params: optional additional colormap configuration parameters,
            e.g. "vmax=300, cmap='magma'"
            For full reference refer to
@@ -160,13 +164,16 @@ def animate_map(ds: xr.Dataset,
     cmap_params = DictLike.convert(cmap_params) or {}
 
     extents = None
-    region = PolygonLike.convert(region)
-    if region:
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
+    bounds = handle_plot_polygon(region)
+    if bounds:
+        lon_min, lat_min, lon_max, lat_max = bounds
         extents = [lon_min, lon_max, lat_min, lat_max]
+
+    if len(ds.lat) < 2 or len(ds.lon) < 2:
+        # Matplotlib can not plot datasets with less than these dimensions with
+        # contourf and pcolormesh methods
+        raise ValueError('The minimum dataset spatial dimensions to create a map'
+                         ' plot are (2,2)')
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -195,7 +202,7 @@ def animate_map(ds: xr.Dataset,
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
-        ax.set_extent(extents)
+        ax.set_extent(extents, ccrs.PlateCarree())
     else:
         ax.set_global()
 
@@ -218,8 +225,14 @@ def animate_map(ds: xr.Dataset,
         plot_kwargs = {**properties, **cmap_params}
 
         # Plot the first frame to set-up the axes with the colorbar properly
-        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
-                               add_colorbar=True, **plot_kwargs)
+        # transform keyword is for the coordinate our data is in, which in case of a
+        # 'normal' lat/lon dataset is PlateCarree.
+        if contour_plot:
+            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                                   add_colorbar=True, **plot_kwargs)
+        else:
+            var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+                                     add_colorbar=True, **plot_kwargs)
         if title:
             ax.set_title(title)
         figure.tight_layout()
@@ -228,7 +241,7 @@ def animate_map(ds: xr.Dataset,
         def run(value):
             ax.clear()
             if extents:
-                ax.set_extent(extents)
+                ax.set_extent(extents, ccrs.PlateCarree())
             else:
                 ax.set_global()
             ax.coastlines()
@@ -241,7 +254,7 @@ def animate_map(ds: xr.Dataset,
             monitor.progress(1)
             return ax
         anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
-                                       interval=25, blit=False, repeat=False)
+                                       interval=interval, blit=False, repeat=False)
         anim_html = anim.to_jshtml()
 
         # Prevent the animation for running after it's finished
@@ -258,7 +271,7 @@ def animate_map(ds: xr.Dataset,
                 outfile.write(anim_html)
                 monitor.progress(1)
 
-    return anim_html
+    return HTML(anim_html)
 
 
 def _get_min_max(data, monitor=None):

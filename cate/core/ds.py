@@ -555,11 +555,11 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
-        temp_ds = xr.open_dataset(paths[0])
+        temp_ds = xr.open_dataset(paths[0], **kwargs)
     except (OSError, RuntimeError):
         # netcdf4 >=1.2.2 raises RuntimeError
         # We have a glob not a list
-        temp_ds = xr.open_dataset(glob.glob(paths)[0])
+        temp_ds = xr.open_dataset(glob.glob(paths)[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 

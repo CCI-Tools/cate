@@ -80,7 +80,7 @@ class TestAnimateMap(TestCase):
         with create_tmp_file('remove_me', 'html') as tmp_file:
             animate_map(dataset,
                         var='second',
-                        global_cmap=True,
+                        true_range=True,
                         file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
@@ -138,5 +138,5 @@ class TestAnimateMap(TestCase):
             with self.assertRaises(ValueError):
                 animate_map(dataset,
                             var='second',
-                            global_cmap=True,
+                            true_range=True,
                             file=tmp_file)

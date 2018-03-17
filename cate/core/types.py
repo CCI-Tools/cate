@@ -50,7 +50,6 @@ import shapely.wkt
 import xarray
 from shapely.errors import ShapelyError
 
-from .opimpl import adjust_temporal_attrs_impl
 from ..util.misc import to_list, to_datetime_range, to_datetime
 from ..util.safe import safe_eval
 
@@ -165,26 +164,6 @@ class Arbitrary(Like[Any]):
         return str(value)
 
 
-class HTML(Like[str]):
-    """
-    Represents HTML string
-    """
-    TYPE = str
-
-    @classmethod
-    def convert(cls, value: str) -> str:
-        """
-        Return **value**
-        """
-        return value
-
-    @classmethod
-    def format(cls, value: str) -> str:
-        if value is None:
-            return ''
-        return value
-
-
 class Literal(Like[Any]):
     """
     Represents an arbitrary Python literal.
@@ -211,6 +190,32 @@ class Literal(Like[Any]):
         if value is None:
             return ''
         return repr(value)
+
+
+class HTML(str):
+    pass
+
+
+class HTMLLike(Like[HTML]):
+    """
+    Represents HTML string
+    """
+    TYPE = HTML
+
+    @classmethod
+    def convert(cls, value: Union[str, HTML]) -> HTML:
+        """
+        Return **value**
+        """
+        if value is None:
+            return None
+        return HTML(value)
+
+    @classmethod
+    def format(cls, value: HTML) -> str:
+        if value is None:
+            return None
+        return value
 
 
 class VarNamesLike(Like[VarNames]):
@@ -624,6 +629,8 @@ class DatasetLike(Like[xarray.Dataset]):
     @classmethod
     def convert(cls, value: Any) -> Optional[xarray.Dataset]:
         # Can be optional
+        from cate.core.opimpl import adjust_temporal_attrs_impl
+
         if value is None:
             return None
         if isinstance(value, xarray.Dataset):

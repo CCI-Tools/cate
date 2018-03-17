@@ -29,6 +29,7 @@ import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
+from .cmaps import ensure_cmaps_loaded
 from .geoextent import GeoExtent
 from .tilingscheme import TilingScheme
 from .utils import downsample_ndarray, aggregate_ndarray_first
@@ -423,6 +424,7 @@ class ColorMappedRgbaImage(DecoratorImage):
         super().__init__(source_image, image_id=image_id, format=format, mode='RGBA', tile_cache=tile_cache)
         self._value_range = value_range
         self._cmap_name = cmap_name if cmap_name else 'jet'
+        ensure_cmaps_loaded()
         self._cmap = cm.get_cmap(self._cmap_name, num_colors)
         self._cmap.set_bad('k', 0)
         self._no_data_value = no_data_value

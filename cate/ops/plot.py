@@ -79,7 +79,7 @@ from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLik
 
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
-from cate.ops.plot_helpers import check_bounding_box
+from cate.ops.plot_helpers import handle_plot_polygon
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -108,8 +108,9 @@ def plot_map(ds: xr.Dataset,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
              title: str = None,
+             contour_plot: bool = False,
              properties: DictLike.TYPE = None,
-             file: str = None) -> Figure:
+             file: str = None) -> object:
     """
     Create a geographic map plot for the variable given by dataset *ds* and variable name *var*.
 
@@ -134,6 +135,7 @@ def plot_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
+    :param contour_plot: If true plot a filled contour plot of data, otherwise plots a pixelated colormesh
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5)"
            For full reference refer to
@@ -159,13 +161,16 @@ def plot_map(ds: xr.Dataset,
     properties = DictLike.convert(properties) or {}
 
     extents = None
-    region = PolygonLike.convert(region)
-    if region:
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
+    bounds = handle_plot_polygon(region)
+    if bounds:
+        lon_min, lat_min, lon_max, lat_max = bounds
         extents = [lon_min, lon_max, lat_min, lat_max]
+
+    if len(ds.lat) < 2 or len(ds.lon) < 2:
+        # Matplotlib can not plot datasets with less than these dimensions with
+        # contourf and pcolormesh methods
+        raise ValueError('The minimum dataset spatial dimensions to create a map'
+                         ' plot are (2,2)')
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -194,7 +199,7 @@ def plot_map(ds: xr.Dataset,
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
-        ax.set_extent(extents)
+        ax.set_extent(extents, ccrs.PlateCarree())
     else:
         ax.set_global()
 
@@ -203,7 +208,10 @@ def plot_map(ds: xr.Dataset,
 
     # transform keyword is for the coordinate our data is in, which in case of a
     # 'normal' lat/lon dataset is PlateCarree.
-    var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    if contour_plot:
+        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    else:
+        var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
 
     if title:
         ax.set_title(title)
@@ -213,7 +221,7 @@ def plot_map(ds: xr.Dataset,
     if file:
         figure.savefig(file)
 
-    return figure if not in_notebook() else None
+    return figure if not in_notebook() else ax
 
 
 @op(tags=['plot'], res_pattern='plot_{index}')

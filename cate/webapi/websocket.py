@@ -203,7 +203,8 @@ class WebSocketService:
         registry = registry or OP_REGISTRY
         op_list = []
         for op_name, op_reg in registry.op_registrations.items():
-            if op_reg.op_meta_info.header.get('deprecated'):
+            if op_reg.op_meta_info.header.get('deprecated') or op_name.startswith('_'):
+                # do not list deprecated and private operations
                 continue
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
