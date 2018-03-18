@@ -2,12 +2,11 @@
 
 * Activate script missing after "cate-cli" package installation
   [#569](https://github.com/CCI-Tools/cate/issues/569)
-
+* Keep configuration of data stores path 
+  [#439](https://github.com/CCI-Tools/cate/issues/439)
 
 ## Version 2.0.0.dev5
 
-* Keep configuration of data stores path 
-  [#439](https://github.com/CCI-Tools/cate/issues/439)
 * Select long rectangles with ``subset_spatial()``
   [#541](https://github.com/CCI-Tools/cate/issues/541)
 * Improve performance of ``subset_spatial()``, especially when masking complex polygons
