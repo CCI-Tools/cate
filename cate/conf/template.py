@@ -1,9 +1,14 @@
-###############################################################################
-# This is a Cate configuration file.
-#
-# As this is a regular Python script, you may use any Python code to compute
-# the settings provided here.
-###############################################################################
+################################################################################
+# This is a Cate configuration file.                                           #
+#                                                                              #
+# As this is a regular Python script, you may use any Python code to compute   #
+# the settings provided here.                                                  #
+#                                                                              #
+# Please find the configuration template for a given Cate VERSION at           #
+#   https://github.com/CCI-Tools/cate/blob/vVERSION/cate/conf/template.py      #
+# For example:                                                                 #
+#   https://github.com/CCI-Tools/cate/blob/v2.0.0.dev4/cate/conf/template.py   #
+################################################################################
 
 
 # 'data_stores_path' is denotes a directory where Cate stores information about data stores and also saves

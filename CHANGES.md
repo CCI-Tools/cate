@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev5 (in dev)
 
+* Keep configuration of data stores path 
+  [#439](https://github.com/CCI-Tools/cate/issues/439)
 * Select long rectangles with ``subset_spatial()``
   [#541](https://github.com/CCI-Tools/cate/issues/541)
 * Improve performance of ``subset_spatial()``, especially when masking complex polygons
@@ -10,7 +12,6 @@
   [#507](https://github.com/CCI-Tools/cate/issues/507)
 * By default ``plot_map()`` and ``animate_map()`` now produce colormesh (pixel) plots.
   [#559](https://github.com/CCI-Tools/cate/issues/507)
-
 * Fix issues with progress writing.
 
 ## Version 2.0.0.dev4 

@@ -25,7 +25,7 @@ from typing import List, Sequence, Optional, Any, Union
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import VERSION_CONF_FILE
+from cate.conf.defaults import GLOBAL_CONF_FILE
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
@@ -62,7 +62,7 @@ class WebSocketService:
         conf_text = ''
         # noinspection PyBroadException
         try:
-            with open(VERSION_CONF_FILE, 'r') as fp:
+            with open(GLOBAL_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
         except Exception:
             # ok
@@ -96,7 +96,7 @@ class WebSocketService:
 
         # Now join lines back again and write modified config file
         conf_text = '\n'.join(conf_lines)
-        with open(VERSION_CONF_FILE, 'w') as fp:
+        with open(GLOBAL_CONF_FILE, 'w') as fp:
             fp.write(conf_text)
 
     def get_data_stores(self) -> list:
