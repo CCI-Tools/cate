@@ -26,7 +26,7 @@ import sys
 from typing import Any, Dict, Optional, Sequence, Union
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
-    VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
+    VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_VERSION_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 
 _CONFIG = None
@@ -112,13 +112,15 @@ def get_config() -> dict:
     """
     global _CONFIG
     if _CONFIG is None:
-        _init_config([os.path.expanduser(GLOBAL_CONF_FILE),
-                      os.path.expanduser(VERSION_CONF_FILE),
-                      os.path.expanduser(LOCAL_CONF_FILE)])
+        _init_config([GLOBAL_CONF_FILE,
+                      VERSION_CONF_FILE,
+                      LOCAL_CONF_FILE],
+                     [DEFAULT_DATA_PATH,
+                      DEFAULT_VERSION_DATA_PATH])
     return _CONFIG
 
 
-def _init_config(config_files: Sequence[str], template_module: str = 'cate.conf.template') -> None:
+def _init_config(config_files: Sequence[str], config_dirs, template_module: str = 'cate.conf.template') -> None:
     """
     Initialize the Cate configuration.
 
@@ -126,9 +128,11 @@ def _init_config(config_files: Sequence[str], template_module: str = 'cate.conf.
            ``["~/.cate/conf.py", "~/.cate/<version>/conf.py", "./cate-conf.py"]``.
            Configuration files are read in the given order. If the first file does not exist, it will be created
            and its content will be taken from the given *template_module*.
+    :param config_dirs: list of directories in which a location file will be written.
     :param template_module: Qualified name of a Python module that serves as a configuration template file.
            If given, this file will be copied into the parent directory of *default_config_file*.
     """
+    _write_location_files(config_dirs)
     new_config = _read_config_files(config_files, template_module=template_module)
     global _CONFIG
     if new_config is not None:
@@ -170,14 +174,28 @@ def _read_config_files(config_files: Sequence[str],
                     new_config = config
                 else:
                     new_config.update(config)
-                # For any configuration read, write a LOCATION_FILE if not yet existent
-                location_file = os.path.join(os.path.dirname(config_file), LOCATION_FILE)
-                if config_file == default_config_file or not os.path.exists(location_file):
-                    try:
-                        with open(location_file, 'w') as fp:
-                            fp.write(sys.prefix)
-                    except Exception as error:
-                        print('warning: failed writing %s: %s' % (location_file, str(error)))
+    return new_config
+
+
+def _write_location_files(config_dirs: Sequence[str]):
+    """
+    Write a location file into the given directories.
+
+    :param config_dirs: Sequence of directories paths.
+    """
+    new_config = None
+    for config_dir in config_dirs:
+        if not os.path.isdir(config_dir):
+            try:
+                os.makedirs(config_dir, exist_ok=True)
+            except Exception as error:
+                print('warning: failed creating %s: %s' % (config_dir, str(error)))
+        location_file = os.path.join(config_dir, LOCATION_FILE)
+        try:
+            with open(location_file, 'w') as fp:
+                fp.write(sys.prefix)
+        except Exception as error:
+            print('warning: failed writing %s: %s' % (location_file, str(error)))
     return new_config
 
 

@@ -90,6 +90,9 @@ def run_main(name: str,
                       caller=args_obj.caller,
                       service_info_file=args_obj.file)
 
+        if not os.path.isdir(os.path.dirname(log_file_prefix)):
+            os.makedirs(os.path.dirname(log_file_prefix), exist_ok=True)
+
         if args_obj.command == 'start':
             service = WebAPI()
             service.start(name, application_factory,

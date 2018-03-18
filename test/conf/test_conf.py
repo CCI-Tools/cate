@@ -52,7 +52,7 @@ class ConfTest(unittest.TestCase):
         self.assertEqual(config['root_dir'], os.path.join('user', 'home', 'norman'))
 
     def test_read_config_files(self):
-        test_dir = os.path.join(tempfile.gettempdir(), "cate_test_init_config")
+        test_dir = os.path.join(tempfile.gettempdir(), "cate_test_read_config_files")
         os.mkdir(test_dir)
 
         cate_dir = os.path.join(test_dir, ".cate")
@@ -80,14 +80,21 @@ class ConfTest(unittest.TestCase):
             self.assertEqual(config.get('b'), 3)
             self.assertEqual(config.get('c'), 5)
             self.assertEqual(config.get('d'), 6)
+        finally:
+            shutil.rmtree(test_dir)
+
+    def test_write_location_files(self):
+        test_dir = os.path.join(tempfile.gettempdir(), "cate_test_write_location_files")
+        cate_dir = os.path.join(test_dir, ".cate")
+        version_dir = os.path.join(cate_dir, "2.0.0")
+
+        try:
+            conf._write_location_files([cate_dir, version_dir])
             self.assertTrue(os.path.exists(os.path.join(cate_dir, conf.LOCATION_FILE)))
             self.assertTrue(os.path.exists(os.path.join(version_dir, conf.LOCATION_FILE)))
-            self.assertTrue(os.path.exists(os.path.join(test_dir, conf.LOCATION_FILE)))
             with open(os.path.join(cate_dir, conf.LOCATION_FILE)) as fp:
                 self.assertEqual(fp.read(), sys.prefix)
             with open(os.path.join(version_dir, conf.LOCATION_FILE)) as fp:
-                self.assertEqual(fp.read(), sys.prefix)
-            with open(os.path.join(test_dir, conf.LOCATION_FILE)) as fp:
                 self.assertEqual(fp.read(), sys.prefix)
         finally:
             shutil.rmtree(test_dir)
