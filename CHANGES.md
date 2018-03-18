@@ -1,4 +1,10 @@
-## Version 2.0.0.dev5 (in dev)
+## Version 2.0.0.dev6 (in dev)
+
+* Activate script missing after "cate-cli" package installation
+  [#569](https://github.com/CCI-Tools/cate/issues/569)
+
+
+## Version 2.0.0.dev5
 
 * Keep configuration of data stores path 
   [#439](https://github.com/CCI-Tools/cate/issues/439)
