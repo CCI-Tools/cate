@@ -36,7 +36,7 @@ dependencies:
   - python-dateutil >=2.6
   - scipy >=0.19
   - shapely >=1.6
-  - tornado >=4.5
+  - tornado >=5.0
   - xarray >=0.10
   #
   # for testing only

@@ -23,6 +23,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 import argparse
+import asyncio
 import os.path
 import signal
 import subprocess
@@ -203,14 +204,13 @@ class WebAPI:
 
         print('started %s, listening on %s:%s' % (self.name, address or LOCALHOST, port))
         application.listen(port, address=address or '')
-        io_loop = IOLoop()
-        io_loop.make_current()
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
         # IOLoop.call_later(delay, callback, *args, **kwargs)
         if self.auto_stop_enabled:
             self._install_next_inactivity_check()
-        IOLoop.instance().start()
+        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
+        IOLoop.current().start()
         return self.service_info
 
     @classmethod
@@ -306,10 +306,10 @@ class WebAPI:
         """
         Stops the Tornado web server.
         """
-        IOLoop.instance().add_callback(self._on_shut_down)
+        IOLoop.current().add_callback(self._on_shut_down)
 
     def _install_next_inactivity_check(self):
-        IOLoop.instance().call_later(self.auto_stop_after, self._check_inactivity)
+        IOLoop.current().call_later(self.auto_stop_after, self._check_inactivity)
 
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
@@ -330,7 +330,7 @@ class WebAPI:
                 os.remove(service_info_file)
             except Exception:
                 pass
-        IOLoop.instance().stop()
+        IOLoop.current().stop()
 
     @classmethod
     def start_subprocess(cls,
@@ -560,6 +560,23 @@ class WebAPIRequestHandler(RequestHandler):
         return dict(status='error', error=error_details) if error_details else dict(status='error')
 
 
+class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
+    """Event loop policy that has one fixed global loop.
+
+    Usage::
+
+        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
+
+    """
+
+    def __init__(self, global_loop):
+        super().__init__()
+        self._global_loop = global_loop
+
+    def get_event_loop(self):
+        return self._global_loop
+
+
 # noinspection PyAbstractClass
 class WebAPIExitHandler(WebAPIRequestHandler):
     """
@@ -568,7 +585,7 @@ class WebAPIExitHandler(WebAPIRequestHandler):
 
     def get(self):
         self.write_status_ok(content='Bye!')
-        IOLoop.instance().add_callback(self.webapi.shut_down)
+        IOLoop.current().add_callback(self.webapi.shut_down)
 
 
 class WebAPIError(Exception):
