@@ -19,6 +19,8 @@
   [#559](https://github.com/CCI-Tools/cate/issues/507)
 * Fix issues with progress writing.
 
+* Raise a more helpful error when Cate runs out of memory trying to save a plot.
+
 ## Version 2.0.0.dev4 
 
 * Perform progress writing from the correct thread
