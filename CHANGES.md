@@ -1,3 +1,5 @@
+## Version 2.0.0.dev8 (in dev)
+
 ## Version 2.0.0.dev7
 
 * Cate Desktop hangs after upgrading WebAPI to 2.0.0.dev6
