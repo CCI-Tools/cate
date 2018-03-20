@@ -7,37 +7,36 @@ dependencies:
   #
   # dependencies (in alphabetical order)
   #
-  - cartopy >=0.15
-  - conda >=4.4
+  - cartopy >=0.15,<1.0
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
-  - cython >=0.25
-  - dask >=0.15.4
-  - fiona >=1.7
-  - gdal >=2.2.3
-  - geopandas >=0.3
+  - cython >=0.25,<1.0
+  - dask >=0.15.4,<1.0
+  - fiona >=1.7,<2.0
+  - gdal >=2.2.3,<3.0
+  - geopandas >=0.3,<1.0
   # require specific minor version to prevent downgrade
-  - geos >=3.5.1
+  - geos >=3.5.1,<4.0
   # require specific minor version to prevent downgrade
-  - hdf4 >=4.2.12
-  - h5netcdf >=0.4.2
-  - jdcal >=1.3
-  - matplotlib >=2.2
-  - netcdf4 >=1.2
-  - numba >=0.33
+  - hdf4 >=4.2.12,<5.0
+  - h5netcdf >=0.4.2,<1.0
+  - jdcal >=1.3,<2.0
+  - matplotlib >=2.2,<3.0
+  - netcdf4 >=1.2,<2.0
+  - numba >=0.33,<1.0
   # numpy 1.12 gave some trouble
-  - numpy >=1.11
-  - owslib >=0.14
-  - pandas >=0.22
-  - pillow >=4.1
-  - psutil >=5.2
-  - pyproj >=1.9
-  - pyqt >=5.6
-  - pyshp >=1.2
-  - python-dateutil >=2.6
-  - scipy >=0.19
-  - shapely >=1.6
-  - tornado >=4.5
-  - xarray >=0.10
+  - numpy >=1.11,<2.0
+  - owslib >=0.14,<1.0
+  - pandas >=0.22,<1.0
+  - pillow >=5.0,<6.0
+  - psutil >=5.2,<6.0
+  - pyproj >=1.9,<2.0
+  - pyqt >=5.6,<6.0
+  - pyshp >=1.2,<2.0
+  - python-dateutil >=2.6,<3.0
+  - scipy >=0.19,<1.0
+  - shapely >=1.6,<2.0
+  - tornado >=5.0,<6.0
+  - xarray >=0.10,<1.0
   #
   # for testing only
   #
