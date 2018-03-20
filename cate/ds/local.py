@@ -43,6 +43,8 @@ import psutil
 import shutil
 import uuid
 import warnings
+
+import re
 import xarray as xr
 import shapely.geometry
 
@@ -643,6 +645,9 @@ class LocalDataStore(DataStore):
             if not meta_info:
                 meta_info = OrderedDict()
             meta_info['title'] = title
+
+        if not re.match(r'^[\w\-. ]+$', data_source_id):
+            raise DataAccessError('Unaccepted characters in Data Source name', data_source_id)
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)

@@ -34,6 +34,16 @@ class LocalDataStoreTest(unittest.TestCase):
         self.assertEqual(self.data_store.title, 'Local Data Sources')
         self.assertEqual(self.data_store.is_local, True)
 
+    def test_create_data_source(self):
+        new_ds_id = 'test_name.2008'
+        new_ds = self.data_store.create_data_source(new_ds_id)
+        self.assertEqual("test.%s" % new_ds_id, new_ds.id)
+
+        new_ds_id = 'test_name.200*'
+        with self.assertRaises(DataAccessError) as cm:
+            self.data_store.create_data_source(new_ds_id)
+        self.assertEqual('Unaccepted characters in Data Source name', str(cm.exception))
+
     def test_add_pattern(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
