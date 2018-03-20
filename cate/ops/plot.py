@@ -219,7 +219,11 @@ def plot_map(ds: xr.Dataset,
     figure.tight_layout()
 
     if file:
-        figure.savefig(file)
+        try:
+            figure.savefig(file)
+        except MemoryError:
+            raise MemoryError('Not enough memory to save the plot. Try using a different file format'
+                              ' or enabling contour_plot.')
 
     return figure if not in_notebook() else ax
 
