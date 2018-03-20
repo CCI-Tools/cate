@@ -39,20 +39,19 @@ Components
 
 import json
 import os
-import psutil
+import re
 import shutil
 import uuid
 import warnings
-
-import re
-import xarray as xr
-import shapely.geometry
-
 from collections import OrderedDict
 from datetime import datetime
-from dateutil import parser
 from glob import glob
 from typing import Optional, Sequence, Union, Any, Tuple
+
+import psutil
+import shapely.geometry
+import xarray as xr
+from dateutil import parser
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
