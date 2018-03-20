@@ -1,4 +1,9 @@
-## Version 2.0.0.dev6 (in dev)
+## Version 2.0.0.dev7
+
+* Cate Desktop hangs after upgrading WebAPI to 2.0.0.dev6
+  [#569](https://github.com/CCI-Tools/cate/issues/569), using Tornado 5 webserver now.
+
+## Version 2.0.0.dev6
 
 * Activate script missing after "cate-cli" package installation
   [#569](https://github.com/CCI-Tools/cate/issues/569)
