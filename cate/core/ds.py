@@ -553,6 +553,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     # comfortably fit in memory
     threshold = 250 * (2 ** 20)  # 250 MB
 
+    ds = None
     # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
         temp_ds = xr.open_dataset(paths[0], **kwargs)
@@ -568,37 +569,41 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        return xr.open_mfdataset(paths,
-                                 concat_dim=concat_dim,
-                                 autoclose=True,
-                                 **kwargs)
+        ds = xr.open_mfdataset(paths,
+                               concat_dim=concat_dim,
+                               autoclose=True,
+                               **kwargs)
+    else:
+        # lat/lon names are not yet known
+        lat = get_lat_dim_name(temp_ds)
+        lon = get_lon_dim_name(temp_ds)
+        n_lat = len(temp_ds[lat])
+        n_lon = len(temp_ds[lon])
 
-    # lat/lon names are not yet known
-    lat = get_lat_dim_name(temp_ds)
-    lon = get_lon_dim_name(temp_ds)
-    n_lat = len(temp_ds[lat])
-    n_lon = len(temp_ds[lon])
+        # temp_ds is no longer used
+        temp_ds.close()
 
-    # temp_ds is no longer used
-    temp_ds.close()
+        divisor = sqrt(n_chunks)
 
-    divisor = sqrt(n_chunks)
+        # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5
+        # would imply an uncompressed single file of ~6GB! All expected grids
+        # should be divisible by 2,3 and 4.
+        if not (n_lat % divisor == 0) or not (n_lon % divisor == 0):
+            raise ValueError("Can't find a good chunking strategy for the given"
+                             "data source. Are lat/lon coordinates divisible by "
+                             "{}?".format(divisor))
 
-    # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5
-    # would imply an uncompressed single file of ~6GB! All expected grids
-    # should be divisible by 2,3 and 4.
-    if not (n_lat % divisor == 0) or not (n_lon % divisor == 0):
-        raise ValueError("Can't find a good chunking strategy for the given"
-                         "data source. Are lat/lon coordinates divisible by "
-                         "{}?".format(divisor))
+        chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
-    chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
+        ds = xr.open_mfdataset(paths,
+                               concat_dim=concat_dim,
+                               chunks=chunks,
+                               autoclose=True,
+                               **kwargs)
+    if 'time' not in ds.dims:
+        ds.expand_dims('time')
 
-    return xr.open_mfdataset(paths,
-                             concat_dim=concat_dim,
-                             chunks=chunks,
-                             autoclose=True,
-                             **kwargs)
+    return ds
 
 
 def format_variables_info_string(variables: dict):
