@@ -600,8 +600,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                                chunks=chunks,
                                autoclose=True,
                                **kwargs)
-    if 'time' not in ds.dims:
-        ds.expand_dims('time')
+    if concat_dim not in ds.dims:
+        ds.expand_dims(concat_dim)
 
     return ds
 
