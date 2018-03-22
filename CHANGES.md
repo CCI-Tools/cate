@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev8 (in dev)
 
+* Cate Desktop hangs when restarted after quit while running a task
+  [#578](https://github.com/CCI-Tools/cate/issues/578)
 * SST temporal aggregation error
   [#548](https://github.com/CCI-Tools/cate/issues/548)
 * Scrambled time axis error
