@@ -46,14 +46,17 @@ Components
 """
 
 import warnings
+
 warnings.filterwarnings("ignore")  # never print any warnings to users
+import os.path
 import sys
+import urllib.parse
 from datetime import date
 
 from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
-from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX,  \
+from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, \
     WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
@@ -93,25 +96,29 @@ def service_factory(application):
 # }
 
 def create_application():
+    user_prefix = '/' + urllib.parse.quote(os.path.basename(os.path.expanduser('~')))
+
     application = Application([
         ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         ('/mpl.js', MplJavaScriptHandler),
 
-        (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
-        (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+        (url_pattern(user_prefix + '/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
+        (url_pattern(user_prefix + '/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
 
-        (url_pattern('/'), WebAPIVersionHandler),
-        (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/api'), JsonRpcWebSocketHandler, dict(service_factory=service_factory,
-                                                            report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)),
-        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
-        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
-        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
-        (url_pattern('/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
-        (url_pattern('/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
-        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
-        (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
+        (url_pattern(user_prefix + '/'), WebAPIVersionHandler),
+        (url_pattern(user_prefix + '/exit'), WebAPIExitHandler),
+        (url_pattern(user_prefix + '/api'), JsonRpcWebSocketHandler, dict(
+            service_factory=service_factory,
+            report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)
+         ),
+        (url_pattern(user_prefix + '/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern(user_prefix + '/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
+        (url_pattern(user_prefix + '/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
+        (url_pattern(user_prefix + '/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
+        (url_pattern(user_prefix + '/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
+        (url_pattern(user_prefix + '/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        (url_pattern(user_prefix + '/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+        (url_pattern(user_prefix + '/ws/countries'), CountriesGeoJSONHandler),
 
     ])
     application.workspace_manager = FSWorkspaceManager()
