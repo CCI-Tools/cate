@@ -1,5 +1,10 @@
 ## Version 2.0.0.dev8 (in dev)
 
+* SST temporal aggregation error
+  [#548](https://github.com/CCI-Tools/cate/issues/548)
+* Scrambled time axis error
+  [#538](https://github.com/CCI-Tools/cate/issues/538)
+
 ## Version 2.0.0.dev7
 
 * Cate Desktop hangs after upgrading WebAPI to 2.0.0.dev6
