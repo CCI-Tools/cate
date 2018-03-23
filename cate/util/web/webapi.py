@@ -241,7 +241,8 @@ class WebAPI:
         application.time_of_last_activity = time.clock()
         self.application = application
 
-        print('started %s, listening on %s:%s' % (self.name, address or LOCALHOST, port))
+        print('started {}, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
+
         application.listen(port, address=address or '')
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
@@ -289,7 +290,7 @@ class WebAPI:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
         address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        print('stopping service on %s' % address_and_port)
+        print('stopping {} on {}'.format(name, address_and_port))
 
         # noinspection PyBroadException
         try:
