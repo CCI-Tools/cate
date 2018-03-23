@@ -19,19 +19,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
 
-This module provides Cate's WebAPI executable.
+This module provides Cate's WebAPI Start executable.
 
-To use the WebAPI executable, invoke the module file as a script, type ``python3 cate/webapi/main.py [ARGS] [OPTIONS]``.
-Type `python3 cate/webapi/main.py --help`` for usage help.
-
-The WebAPI has two sub-commands, ``start`` and ``stop``.
+To use the WebAPI executable, invoke the module file as a script, type ``python3 cate/webapi/start.py [ARGS] [OPTIONS]``.
+Type `python3 cate/webapi/start.py --help`` for usage help.
 
 Verification
 ============
@@ -48,9 +43,7 @@ Components
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
-import os.path
 import sys
-import urllib.parse
 from datetime import date
 
 from tornado.web import Application, StaticFileHandler
@@ -60,25 +53,26 @@ from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, \
     WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
-from cate.util.web.webapi import run_main, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
+from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
 from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
     ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
+from cate.webapi.service import SERVICE_NAME, SERVICE_TITLE
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
 __import__('cate.ops')
 
-CLI_NAME = 'cate-webapi'
-CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) Web API'
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 
 # noinspection PyAbstractClass
 class WebAPIVersionHandler(WebAPIRequestHandler):
     def get(self):
-        self.write_status_ok(content={'name': CLI_NAME,
+        self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat()})
 
@@ -96,40 +90,39 @@ def service_factory(application):
 # }
 
 def create_application():
-    user_prefix = '/' + urllib.parse.quote(os.path.basename(os.path.expanduser('~')))
-
     application = Application([
         ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         ('/mpl.js', MplJavaScriptHandler),
 
-        (url_pattern(user_prefix + '/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
-        (url_pattern(user_prefix + '/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+        (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
+        (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
 
-        (url_pattern(user_prefix + '/'), WebAPIVersionHandler),
-        (url_pattern(user_prefix + '/exit'), WebAPIExitHandler),
-        (url_pattern(user_prefix + '/api'), JsonRpcWebSocketHandler, dict(
+        (url_pattern('/'), WebAPIVersionHandler),
+        (url_pattern('/exit'), WebAPIExitHandler),
+        (url_pattern('/api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,
             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)
          ),
-        (url_pattern(user_prefix + '/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
-        (url_pattern(user_prefix + '/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
-        (url_pattern(user_prefix + '/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
-        (url_pattern(user_prefix + '/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
-        (url_pattern(user_prefix + '/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
-        (url_pattern(user_prefix + '/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        (url_pattern(user_prefix + '/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
-        (url_pattern(user_prefix + '/ws/countries'), CountriesGeoJSONHandler),
-
+        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
+        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
+        (url_pattern('/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
+        (url_pattern('/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
+        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+        (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
     ])
     application.workspace_manager = FSWorkspaceManager()
     return application
 
 
 def main(args=None) -> int:
-    return run_main(CLI_NAME, CLI_DESCRIPTION, __version__,
-                    application_factory=create_application,
-                    log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
-                    args=args)
+    return run_start(SERVICE_NAME,
+                     'Starts a new {}'.format(SERVICE_TITLE),
+                     __version__,
+                     application_factory=create_application,
+                     log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
+                     args=args)
 
 
 if __name__ == "__main__":

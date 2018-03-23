@@ -1,5 +1,9 @@
 ## Version 2.0.0.dev8 (in dev)
 
+* Removed the `cate-webapi` command-line tool and replaced it by two others:
+  * `cate-webapi-start` to start the Cate WebAPI service.
+  * `cate-webapi-stop` to start the Cate WebAPI service. This script executes
+    fast, as it will will not longer import any of the many packages Cate depends on. 
 * Cate Desktop hangs when restarted after quit while running a task
   [#578](https://github.com/CCI-Tools/cate/issues/578)
 * SST temporal aggregation error

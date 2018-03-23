@@ -47,16 +47,32 @@ LOCALHOST = '127.0.0.1'
 ApplicationFactory = Callable[[], Application]
 
 
-def run_main(name: str,
-             description: str,
-             version: str,
-             application_factory: ApplicationFactory,
-             log_file_prefix=None,
-             args: List[str] = None) -> int:
+def _get_common_cli_parser(name: str,
+                           description: str,
+                           version: str) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--version', '-V', action='version', version=version)
+    parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
+                        help='start/stop WebAPI service on port number PORT')
+    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
+                        help='start/stop WebAPI service using address ADDRESS', default='')
+    parser.add_argument('--caller', '-c', dest='caller', default=name,
+                        help='name of the calling application')
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="if given, service information will be written to (start) or read from (stop) FILE")
+    return parser
+
+
+def run_start(name: str,
+              description: str,
+              version: str,
+              application_factory: ApplicationFactory,
+              log_file_prefix=None,
+              args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
 
-    :param name: The CLI's program name.
+    :param name: The service name.
     :param description: The CLI's description.
     :param version: The CLI's version string.
     :param application_factory: A no-arg function that creates a Tornado web application instance.
@@ -67,41 +83,64 @@ def run_main(name: str,
     if args is None:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(prog=name,
-                                     description='%s, version %s' % (description, version))
-    parser.add_argument('--version', '-V', action='version', version='%s %s' % (name, version))
-    parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
-                        help='start/stop WebAPI service on port number PORT')
-    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
-                        help='start/stop WebAPI service using address ADDRESS', default='')
-    parser.add_argument('--caller', '-c', dest='caller', default=name,
-                        help='name of the calling application')
-    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
-                        help="if given, service information will be written to (start) or read from (stop) FILE")
-    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='TIME', type=float,
-                        help="if given, service will stop after TIME seconds of inactivity")
-    parser.add_argument('command', choices=['start', 'stop'],
-                        help='start or stop the service')
+    parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
+                        help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
 
     try:
         args_obj = parser.parse_args(args)
 
-        kwargs = dict(port=args_obj.port,
-                      address=args_obj.address,
-                      caller=args_obj.caller,
-                      service_info_file=args_obj.file)
-
         if not os.path.isdir(os.path.dirname(log_file_prefix)):
             os.makedirs(os.path.dirname(log_file_prefix), exist_ok=True)
 
-        if args_obj.command == 'start':
-            service = WebAPI()
-            service.start(name, application_factory,
-                          log_file_prefix=log_file_prefix,
-                          auto_stop_after=args_obj.auto_stop_after,
-                          **kwargs)
-        else:
-            WebAPI.stop(name, kill_after=5.0, timeout=5.0, **kwargs)
+        service = WebAPI()
+        service.start(name, application_factory,
+                      log_file_prefix=log_file_prefix,
+                      port=args_obj.port,
+                      address=args_obj.address,
+                      caller=args_obj.caller,
+                      service_info_file=args_obj.file,
+                      auto_stop_after=args_obj.auto_stop_after)
+
+        return 0
+    except Exception as e:
+        print('error: %s' % e)
+        return 1
+
+
+def run_stop(name: str,
+             description: str,
+             version: str,
+             args: List[str] = None) -> int:
+    """
+    Run the WebAPI command-line interface.
+
+    :param name: The service name.
+    :param description: The CLI's description.
+    :param version: The CLI's version string.
+    :param args: The command-line arguments, may be None.
+    :return: the exit code, zero on success.
+    """
+    if args is None:
+        args = sys.argv[1:]
+
+    parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--kill-after', '-k', dest='kill_after', metavar='KILL_AFTER', type=float, default=5.,
+                        help="Service will be killed (SIGTERM) after KILL_AFTER seconds of inactivity")
+    parser.add_argument('--timeout', '-t', dest='timeout', metavar='TIMEOUT', type=float, default=5.,
+                        help="Service will stop after TIME seconds of inactivity")
+
+    try:
+        args_obj = parser.parse_args(args)
+
+        WebAPI.stop(name,
+                    port=args_obj.port,
+                    address=args_obj.address,
+                    caller=args_obj.caller,
+                    service_info_file=args_obj.file,
+                    kill_after=args_obj.kill_after,
+                    timeout=args_obj.timeout)
+
         return 0
     except Exception as e:
         print('error: %s' % e)
@@ -225,7 +264,7 @@ class WebAPI:
         """
         Stop a WebAPI service.
 
-        :param name: The (CLI) name of this service.
+        :param name: The name of this service.
         :param port: port number
         :param address: service address
         :param caller:
@@ -250,7 +289,7 @@ class WebAPI:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
         address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        print('stopping %s on %s' % (name, address_and_port))
+        print('stopping service on %s' % address_and_port)
 
         # noinspection PyBroadException
         try:

@@ -3,7 +3,7 @@ import os
 import unittest
 
 from tornado.testing import AsyncHTTPTestCase
-from cate.webapi.main import create_application
+from cate.webapi.start import create_application
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
