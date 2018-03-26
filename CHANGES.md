@@ -1,4 +1,4 @@
-## Version 2.0.0.dev8 (in dev)
+## Version 2.0.0.dev8
 
 * Removed the `cate-webapi` command-line tool and replaced it by two others:
   * `cate-webapi-start` to start the Cate WebAPI service.
