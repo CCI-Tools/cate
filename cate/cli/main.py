@@ -117,7 +117,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 CLI_NAME = 'cate'
 CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
-CATE_WEBAPI_MAIN_MODULE = 'cate.webapi.main'
+CATE_WEBAPI_START_MODULE = 'cate.webapi.start'
 
 _DOCS_URL = 'http://cate.readthedocs.io/en/latest/'
 
@@ -151,7 +151,7 @@ def _default_workspace_manager_factory() -> Any:
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
     if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
-        WebAPI.start_subprocess(CATE_WEBAPI_MAIN_MODULE,
+        WebAPI.start_subprocess(CATE_WEBAPI_START_MODULE,
                                 caller=CLI_NAME,
                                 service_info_file=WEBAPI_INFO_FILE,
                                 auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER)
@@ -786,7 +786,7 @@ class WorkspaceCommand(SubCommandCommand):
             if command_args.save_all:
                 workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
             workspace_manager.close_all_workspaces()
-            WebAPI.stop_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            WebAPI.stop_subprocess(CATE_WEBAPI_START_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):
