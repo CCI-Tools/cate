@@ -110,6 +110,7 @@ from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
+from .types import ValidationError
 from ..util.opmetainf import OpMetaInfo
 from ..util.monitor import Monitor
 from ..util.undefined import UNDEFINED
@@ -205,7 +206,7 @@ class Operation:
         self.op_meta_info.set_default_input_values(input_values)
 
         # validate the input_values using this operation's meta-info
-        self.op_meta_info.validate_input_values(input_values)
+        self.op_meta_info.validate_input_values(input_values, validation_error_class=ValidationError)
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument

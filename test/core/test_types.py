@@ -13,19 +13,19 @@ from shapely.geometry import Point, Polygon
 
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, \
-    DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame, HTMLLike, HTML
+    DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame, HTMLLike, HTML, \
+    ValidationError
 from cate.util.misc import object_to_qualified_name, OrderedDict
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
 ExamplePoint = namedtuple('ExamplePoint', ['x', 'y'])
 
 
-# 'ExampleType' represents a type to be used for values that should actually be a 'ExampleType' but
+# 'ExampleType' represents a type to be used for values that should actually be a 'ExamplePoint' but
 # also have a representation as a `str` such as "2.1,4.3", ar a tuple of two floats (2.1,4.3).
 # The "typing type" for this is given by ExampleType.TYPE.
 
 class ExampleType(Like[ExamplePoint]):
-    # The "typing type"
 
     TYPE = Union[ExamplePoint, Tuple[float, float], str]
 
@@ -39,7 +39,7 @@ class ExampleType(Like[ExamplePoint]):
                 return ExamplePoint(float(pair[0]), float(pair[1]))
             return ExamplePoint(value[0], value[1])
         except Exception:
-            raise ValueError('cannot convert value <%s> to %s' % (value, cls.name()))
+            raise ValidationError('Cannot convert value <%s> to %s.' % (repr(value), cls.name()))
 
     @classmethod
     def format(cls, value: ExamplePoint) -> str:
@@ -67,17 +67,17 @@ class ExampleTypeTest(TestCase):
         self.assertEqual(scale_point(ExamplePoint(2.4, 4.8), 0.5), ExamplePoint(1.2, 2.4))
 
     def test_abuse(self):
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(ValidationError) as cm:
             scale_point("A, 4.8", 0.5)
         self.assertEqual(str(cm.exception),
-                         "input 'point_like' for operation 'test.core.test_types.scale_point': "
-                         "cannot convert value <A, 4.8> to ExampleType")
+                         "Input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "Cannot convert value <'A, 4.8'> to ExampleType.")
 
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(ValidationError) as cm:
             scale_point(25.1, 0.5)
         self.assertEqual(str(cm.exception),
-                         "input 'point_like' for operation 'test.core.test_types.scale_point': "
-                         "cannot convert value <25.1> to ExampleType")
+                         "Input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "Cannot convert value <25.1> to ExampleType.")
 
     def test_registered_op(self):
         registered_op = _OP_REGISTRY.get_op(object_to_qualified_name(scale_point))
@@ -138,9 +138,9 @@ class VarNamesLikeTest(TestCase):
         actual = VarNamesLike.convert('aa,b*,cc')
         self.assertEqual(actual, expected)
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             VarNamesLike.convert(['aa', 1, 'bb'])
-        self.assertTrue('string or a list' in str(err.exception))
+        self.assertEqual(str(err.exception), 'List of variables names expected.')
         self.assertEqual(None, VarNamesLike.convert(None))
 
     def test_format(self):
@@ -165,9 +165,9 @@ class VarNameTest(TestCase):
         actual = VarName.convert('aa')
         self.assertEqual(actual, expected)
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             VarName.convert(['aa', 'bb', 'cc'])
-        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertEqual(str(err.exception), 'Variable name expected.')
         self.assertEqual(None, VarName.convert(None))
 
     def test_format(self):
@@ -225,9 +225,9 @@ class DictLikeTest(TestCase):
         self.assertEqual(DictLike.convert('name="bibo", thres=0.5, drop=False'),
                          dict(name="bibo", thres=0.5, drop=False))
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             DictLike.convert('{a=8, b}')
-        self.assertEqual(str(err.exception), 'cannot convert value <{a=8, b}> to DictLike')
+        self.assertEqual(str(err.exception), "Value '{a=8, b}' cannot be converted into a 'DictLike'.")
 
     def test_format(self):
         self.assertEqual(DictLike.format(OrderedDict([('name', 'bibo'), ('thres', 0.5), ('drop', True)])),
@@ -262,10 +262,10 @@ class PointLikeTest(TestCase):
         self.assertEqual(PointLike.convert(None), None)
         self.assertEqual(PointLike.convert(''), None)
         self.assertEqual(PointLike.convert('0.0,1.0'), Point(0.0, 1.0))
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             PointLike.convert('0.0,abc')
-        self.assertEqual(str(err.exception), 'cannot convert value to PointLike: '
-                                             'invalid geometry WKT format')
+        self.assertEqual(str(err.exception), "Value cannot be converted into a 'PointLike': "
+                                             "Invalid geometry WKT format.")
         self.assertEqual(PointLike.convert('POINT(0.0 1.0)'), Point(0.0, 1.0))
 
     def test_format(self):
@@ -306,11 +306,11 @@ class PolygonLikeTest(TestCase):
         self.assertTrue(PolygonLike.convert(coords), Polygon(coords))
         self.assertTrue(PolygonLike.convert([10.4, 20.2, 30.8, 40.8]), Polygon(coords))
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             PolygonLike.convert('aaa')
         self.assertEqual(str(err.exception),
-                         "cannot convert value to PolygonLike: "
-                         "invalid geometry WKT format")
+                         "Value cannot be converted into a 'PolygonLike': "
+                         "Invalid geometry WKT format.")
 
     def test_format(self):
         self.assertEqual(PolygonLike.format(None), '')
@@ -356,9 +356,10 @@ class GeometryLikeTest(TestCase):
         coords = [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)]
         self.assertTrue(GeometryLike.convert(coords), Polygon(coords))
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             GeometryLike.convert('aaa')
-        self.assertEqual(str(err.exception), 'cannot convert value to GeometryLike: invalid geometry WKT format')
+        self.assertEqual(str(err.exception), "Value cannot be converted into a 'GeometryLike': "
+                                             "Invalid geometry WKT format.")
 
     def test_format(self):
         pol = GeometryLike.convert([(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)])
@@ -428,9 +429,9 @@ class TimeRangeLikeTest(TestCase):
         self.assertEqual(TimeRangeLike.convert('2001-01-01, 2002-01-01'),
                          (datetime(2001, 1, 1), datetime(2002, 1, 1, 23, 59, 59)))
 
-        with self.assertRaises(ValueError) as err:
+        with self.assertRaises(ValidationError) as err:
             TimeRangeLike.convert('2002-01-01, 2001-01-01')
-        self.assertTrue('cannot convert' in str(err.exception))
+        self.assertTrue('cannot be converted into a' in str(err.exception))
 
     def test_format(self):
         self.assertEqual(TimeRangeLike.format(None), '')
@@ -509,9 +510,9 @@ class LiteralTest(TestCase):
         self.assertEqual(Literal.convert('2 + 6'), 8)
         self.assertEqual(Literal.convert('(3, 5, 7)'), (3, 5, 7))
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Literal.convert('[1,2')
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             Literal.convert('abc')
 
     def test_format(self):
@@ -537,13 +538,13 @@ class DatasetLikeTest(TestCase):
         self.assertIsInstance(DatasetLike.convert(xr_ds), xr.Dataset)
         self.assertIsInstance(DatasetLike.convert(pd_ds), xr.Dataset)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             DatasetLike.convert(42)
 
     def test_format(self):
         self.assertEqual(DatasetLike.format(None), '')
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             data = {'v1': [4, 5, 6], 'v2': [6, 7, 8]}
             DatasetLike.format(xr.Dataset(data_vars=data))
 
@@ -565,13 +566,13 @@ class DataFrameLikeTest(TestCase):
         self.assertIsInstance(DataFrameLike.convert(proxy_gdf_ds), GeoDataFrame)
         self.assertIs(DataFrameLike.convert(proxy_gdf_ds), proxy_gdf_ds)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             DataFrameLike.convert(42)
 
     def test_format(self):
         self.assertEqual(DataFrameLike.format(None), '')
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValidationError):
             data = {'c1': [4, 5, 6], 'c2': [6, 7, 8]}
             DataFrameLike.format(pd.DataFrame(data=data))
 

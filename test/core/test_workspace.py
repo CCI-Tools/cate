@@ -9,8 +9,8 @@ import xarray as xr
 
 from cate.core.workflow import Workflow, OpStep
 from cate.core.workspace import Workspace, WorkspaceError, mk_op_arg, mk_op_args, mk_op_kwargs
-from cate.util.undefined import UNDEFINED
 from cate.util.opmetainf import OpMetaInfo
+from cate.util.undefined import UNDEFINED
 
 NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp_2.nc')
@@ -410,9 +410,10 @@ class WorkspaceTest(unittest.TestCase):
             ws.set_resource('cate.ops.timeseries.tseries_point',
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
                             validate_args=True)
-        self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
-                                           "cannot convert value to PointLike: "
-                                           "invalid geometry WKT format")
+        self.assertEqual(str(e.exception),
+                         "Input 'point' for operation 'cate.ops.timeseries.tseries_point': "
+                         "Value cannot be converted into a 'PointLike': "
+                         "Invalid geometry WKT format.")
 
         ws2 = Workspace.from_json_dict(ws.to_json_dict())
         self.assertEqual(ws2.base_dir, ws.base_dir)
