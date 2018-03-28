@@ -393,7 +393,7 @@ class WebAPI:
         :param timeout: timeout in seconds
         """
         port = port or find_free_port()
-        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file,
+        command = cls._join_subprocess_command(module, port, address, caller, service_info_file,
                                                auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
@@ -433,13 +433,13 @@ class WebAPI:
         :param service_info_file: optional path to a (JSON) file, where service info will be stored
         :param timeout: timeout in seconds
         """
-        command = cls._join_subprocess_command(module, 'stop', port, address, caller, service_info_file, None)
+        command = cls._join_subprocess_command(module, port, address, caller, service_info_file, None)
         exit_code = subprocess.call(command, shell=True, timeout=timeout)
         if exit_code != 0:
             raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
 
     @classmethod
-    def _join_subprocess_command(cls, module, sub_command, port, address, caller, service_info_file, auto_stop_after):
+    def _join_subprocess_command(cls, module, port, address, caller, service_info_file, auto_stop_after):
         command = '"%s" -m %s' % (sys.executable, module)
         if port:
             command += ' -p %d' % port
@@ -451,7 +451,7 @@ class WebAPI:
             command += ' -f "%s"' % service_info_file
         if auto_stop_after:
             command += ' -s %s' % auto_stop_after
-        return command + ' ' + sub_command
+        return command
 
 
 def check_for_auto_stop(application: Application, condition: bool,

@@ -12,10 +12,10 @@ from test.core.test_wsmanag import WorkspaceManagerTestMixin
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def setUp(self):
         self.port = find_free_port()
-        WebAPI.start_subprocess('cate.webapi.main', port=self.port, caller='pytest')
+        WebAPI.start_subprocess('cate.webapi.start', port=self.port, caller='pytest')
 
     def tearDown(self):
-        WebAPI.stop_subprocess('cate.webapi.main', port=self.port, caller='pytest')
+        WebAPI.stop_subprocess('cate.webapi.stop', port=self.port, caller='pytest')
         if sys.platform == 'win32':
             # This helps getting around silly error raised inside Popen._internal_poll():
             # OSError: [WinError 6] Das Handle ist ungültig
