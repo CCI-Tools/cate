@@ -45,7 +45,8 @@ class JsonRpcWebSocketHandlerTest(unittest.TestCase):
     def setUp(self):
         self.handler = JsonRpcWebSocketHandler(ApplicationMock(),
                                                RequestMock(),
-                                               lambda app: DoItService(app))
+                                               service_factory=lambda app: DoItService(app),
+                                               validation_exception_class=ValueError)
 
     def test_open(self):
         self.assertIsNone(self.handler._service)

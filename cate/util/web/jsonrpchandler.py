@@ -24,6 +24,7 @@ import json
 import sys
 import time
 import traceback
+from typing import Any, Optional
 
 from tornado.ioloop import IOLoop
 from tornado.web import Application
@@ -39,11 +40,17 @@ _DEBUG_WEB_SOCKET_RPC = False
 
 CANCEL_METHOD_NAME = '__cancel__'
 
-ERROR_CODE_METHOD_MISSING_OR_INVALID = 10
-ERROR_CODE_METHOD_RAISED_EXCEPTION = 20
-ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE = 30
-ERROR_CODE_METHOD_NOT_SUPPORTED = 40
-ERROR_CODE_CANCEL_IS_INVALID = 50
+# See http://www.jsonrpc.org/specification#error_object
+# The error codes from and including -32768 to -32000 are reserved for pre-defined errors.
+ERROR_CODE_INVALID_REQUEST = -32600
+ERROR_CODE_METHOD_NOT_FOUND = -32601
+ERROR_CODE_INVALID_PARAMS = -32602
+# The error codes from and including -32000 to -32099 are reserved for implementation-defined server-errors.
+ERROR_CODE_OS_ERROR = -32001
+ERROR_CODE_OUT_OF_MEMORY = -32002
+ERROR_CODE_METHOD_EXECUTION_RAISED_EXCEPTION = -32003
+ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE = -32004
+# The remainder of the space is available for application defined errors.
 ERROR_CODE_METHOD_EXECUTION_CANCELLED = 999
 
 
@@ -55,6 +62,8 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
     :param application: Tornado application object
     :param request: Tornado request
     :param service_factory: A function that returns the object providing the this service's callable methods.
+    :param validation_exception_class: The exception type used to signal parameter validation errors.
+           Must derive from ``BaseException``.
     :param report_defer_period: The time in seconds between two subsequent progress reports reported to
            a monitor passed to a service method
     :param kwargs: Keyword-arguments passed to the request handler.
@@ -64,13 +73,17 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                  application: Application,
                  request,
                  service_factory=None,
+                 validation_exception_class: type = None,
                  report_defer_period: float = None,
                  **kwargs):
         super(JsonRpcWebSocketHandler, self).__init__(application, request, **kwargs)
-        if not service_factory:
-            raise ValueError('service_factory must be provided')
+        if service_factory is None:
+            raise ValueError('service_factory must be given')
+        if validation_exception_class is None:
+            raise ValueError('validation_exception_class must be given')
         self._application = application
         self._service_factory = service_factory
+        self._validation_exception_class = validation_exception_class
         self._service = None
         self._service_method_meta_infos = None
         self._thread_pool = concurrent.futures.ThreadPoolExecutor()
@@ -136,8 +149,10 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         if not isinstance(method_name, str) or len(method_name) == 0:
             print('ERROR: Received invalid JSON-RPC message: '
                   'missing or invalid "method" value: {}'.format(message))
-            self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_MISSING_OR_INVALID,
-                                                'Missing or invalid method')
+            self._write_json_rpc_error_response(method_id,
+                                                ERROR_CODE_METHOD_NOT_FOUND,
+                                                'Method not found or invalid.',
+                                                method_name=method_name)
             return 4  # for testing only
 
         if _DEBUG_WEB_SOCKET_RPC:
@@ -157,14 +172,16 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                 self.send_service_method_result(method_id, method_name, f)
 
             IOLoop.current().add_future(future=future, callback=_send_service_method_result)
+
         elif method_name == CANCEL_METHOD_NAME:
             job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
                 print('ERROR: Received invalid JSON-RPC message: '
                       'missing or invalid "id" parameter for method "{}": {}'
                       .format(CANCEL_METHOD_NAME, message))
-                self._write_json_rpc_error_response(method_id, ERROR_CODE_CANCEL_IS_INVALID,
-                                                    'Invalid cancellation request')
+                self._write_json_rpc_error_response(method_id,
+                                                    ERROR_CODE_INVALID_REQUEST,
+                                                    'Invalid cancellation request.')
                 return 5  # for testing only
             # cancel progress monitor
             if job_id in self._active_monitors:
@@ -180,25 +197,50 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                 if _DEBUG_WEB_SOCKET_RPC:
                     print('DEBUG: Cancelled {}() call (id={}) after {} seconds'.format(method_name, job_id, delta_t))
             self._write_json_rpc_result_response(method_id, method_name)
+
         else:
             print('ERROR: Received invalid JSON-RPC message: '
                   'unsupported method: {}'.format(message))
-            self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_NOT_SUPPORTED,
-                                                'Unsupported method: {}'.format(method_name))
+            self._write_json_rpc_error_response(method_id,
+                                                ERROR_CODE_INVALID_REQUEST,
+                                                "Invalid request.",
+                                                method_name=method_name)
             return 6  # for testing only
 
-    def send_service_method_result(self, method_id: int, method_name: str, future: concurrent.futures.Future):
+    def send_service_method_result(self, method_id: int, method_name: str, future: concurrent.futures.Future) -> bool:
+
+        result = None
+        exception = None
+        message = ''
+        code = None
+
+        # see https://docs.python.org/3/library/exceptions.html#exception-hierarchy
         try:
             result = future.result()
-        except (concurrent.futures.CancelledError, Cancellation):
-            return self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_EXECUTION_CANCELLED,
-                                                       '{}() call cancelled'.format(method_name))
+        except self._validation_exception_class as e:
+            exception = e
+            code = ERROR_CODE_INVALID_PARAMS
+        except (concurrent.futures.CancelledError, Cancellation) as e:
+            exception = e
+            code = ERROR_CODE_METHOD_EXECUTION_CANCELLED
+            message = 'Cancelled.'
+        except MemoryError as e:
+            exception = e
+            code = ERROR_CODE_OUT_OF_MEMORY
+            message = 'Out of memory.'
+        except OSError as e:
+            exception = e
+            code = ERROR_CODE_OS_ERROR
         except Exception as e:
-            stack_trace = traceback.format_exc()
-            print(stack_trace, file=sys.stderr, flush=True)
-            return self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_RAISED_EXCEPTION,
-                                                       '{}() call raised exception: "{}"'.format(method_name, e),
-                                                       data=stack_trace)
+            exception = e
+            code = ERROR_CODE_METHOD_EXECUTION_RAISED_EXCEPTION
+
+        if exception:
+            return self._write_json_rpc_error_response(method_id,
+                                                       code,
+                                                       message=message or str(exception),
+                                                       exception=exception,
+                                                       method_name=method_name)
 
         if method_id in self._active_monitors:
             del self._active_monitors[method_id]
@@ -210,40 +252,53 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             if _DEBUG_WEB_SOCKET_RPC:
                 print('DEBUG: Finished {}() call (id={}) after {} seconds'.format(method_name, method_id, delta_t))
 
-        self._write_json_rpc_result_response(method_id, method_name, result=result)
+        return self._write_json_rpc_result_response(method_id, method_name, result=result)
 
     def _write_json_rpc_result_response(self, method_id: int, method_name: str, result=None) -> bool:
-        success = self._write_json_rpc_response(dict(jsonrpc='2.0',
-                                                     id=method_id,
-                                                     response=result))
+        exception = self._write_json_rpc_response(dict(jsonrpc='2.0',
+                                                       id=method_id,
+                                                       response=result))
+        success = exception is None
         if not success:
-            self._write_json_rpc_error_response(method_id, ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
-                                                '{}() call returned a value that could not be converted to JSON'
-                                                .format(method_name))
+            self._write_json_rpc_error_response(method_id,
+                                                ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
+                                                'Response is not JSON-serializable.'
+                                                .format(method_name),
+                                                exception=exception,
+                                                method_name=method_name)
         return success
 
-    def _write_json_rpc_error_response(self, method_id: int, code: int, message: str, data=None) -> bool:
+    def _write_json_rpc_error_response(self, method_id: int, code: int, message: str,
+                                       exception: Exception = None,
+                                       method_name: str = None, ) -> bool:
+        if exception:
+            _traceback = traceback.format_exc()
+            if code != ERROR_CODE_METHOD_EXECUTION_CANCELLED:
+                print(_traceback, file=sys.stderr, flush=True)
+            data = dict(method=method_name,
+                        exception=_get_exception_name(exception),
+                        traceback=_traceback)
+        else:
+            data = dict(method=method_name)
         return self._write_json_rpc_response(dict(jsonrpc='2.0',
                                                   id=method_id,
                                                   error=dict(code=code,
                                                              message=message,
-                                                             data=data)))
+                                                             data=data))) is None
 
-    def _write_json_rpc_response(self, json_rpc_response: dict) -> bool:
+    def _write_json_rpc_response(self, json_rpc_response: dict) -> Optional[Exception]:
         # noinspection PyBroadException
         try:
             json_text = json.dumps(json_rpc_response)
             self.write_message(json_text)
-        except Exception:
-            stack_trace = traceback.format_exc()
-            print(stack_trace, file=sys.stderr, flush=True)
-            return False
+        except Exception as e:
+            return e
 
         if _DEBUG_WEB_SOCKET_RPC:
             method_id = json_rpc_response.get('id')
             print("DEBUG: RPC [%s] <== %s" % (method_id, json_text))
 
-        return True
+        return None
 
     def call_service_method(self, method_id: int, method_name: str, method_params: list):
 
@@ -285,3 +340,13 @@ def set_debug_web_socket_rpc(value: bool):
     """ For testing only """
     global _DEBUG_WEB_SOCKET_RPC
     _DEBUG_WEB_SOCKET_RPC = value
+
+
+def _get_exception_name(e: Any) -> str:
+    try:
+        if isinstance(e, type):
+            return e.__name__
+        else:
+            return type(e).__name__
+    except AttributeError:
+        return str(e)

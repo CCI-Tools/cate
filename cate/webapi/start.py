@@ -25,7 +25,8 @@ Description
 
 This module provides Cate's WebAPI Start executable.
 
-To use the WebAPI executable, invoke the module file as a script, type ``python3 cate/webapi/start.py [ARGS] [OPTIONS]``.
+To use the WebAPI executable, invoke the module file as a script,
+type ``python3 cate/webapi/start.py [ARGS] [OPTIONS]``.
 Type `python3 cate/webapi/start.py --help`` for usage help.
 
 Verification
@@ -49,8 +50,8 @@ from datetime import date
 from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
-from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, \
-    WEBAPI_PROGRESS_DEFER_PERIOD
+from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
+from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
@@ -101,6 +102,7 @@ def create_application():
         (url_pattern('/exit'), WebAPIExitHandler),
         (url_pattern('/api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,
+            validation_exception_class=ValidationError,
             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)
          ),
         (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
