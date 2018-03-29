@@ -48,10 +48,10 @@ ERROR_CODE_INVALID_PARAMS = -32602
 # The error codes from and including -32000 to -32099 are reserved for implementation-defined server-errors.
 ERROR_CODE_OS_ERROR = -32001
 ERROR_CODE_OUT_OF_MEMORY = -32002
-ERROR_CODE_METHOD_EXECUTION_RAISED_EXCEPTION = -32003
-ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE = -32004
+ERROR_CODE_METHOD_ERROR = -32003
+ERROR_CODE_INVALID_RESPONSE = -32004
 # The remainder of the space is available for application defined errors.
-ERROR_CODE_METHOD_EXECUTION_CANCELLED = 999
+ERROR_CODE_CANCELLED = 999
 
 
 # noinspection PyAbstractClass
@@ -222,7 +222,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             code = ERROR_CODE_INVALID_PARAMS
         except (concurrent.futures.CancelledError, Cancellation) as e:
             exception = e
-            code = ERROR_CODE_METHOD_EXECUTION_CANCELLED
+            code = ERROR_CODE_CANCELLED
             message = 'Cancelled.'
         except MemoryError as e:
             exception = e
@@ -233,7 +233,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             code = ERROR_CODE_OS_ERROR
         except Exception as e:
             exception = e
-            code = ERROR_CODE_METHOD_EXECUTION_RAISED_EXCEPTION
+            code = ERROR_CODE_METHOD_ERROR
 
         if exception:
             return self._write_json_rpc_error_response(method_id,
@@ -261,8 +261,8 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         success = exception is None
         if not success:
             self._write_json_rpc_error_response(method_id,
-                                                ERROR_CODE_METHOD_RESPONSE_NOT_SERIALIZABLE,
-                                                'Response is not JSON-serializable.'
+                                                ERROR_CODE_INVALID_RESPONSE,
+                                                'Invalid response (not JSON-serializable).'
                                                 .format(method_name),
                                                 exception=exception,
                                                 method_name=method_name)
@@ -273,7 +273,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                                        method_name: str = None, ) -> bool:
         if exception:
             _traceback = traceback.format_exc()
-            if code != ERROR_CODE_METHOD_EXECUTION_CANCELLED:
+            if code != ERROR_CODE_CANCELLED:
                 print(_traceback, file=sys.stderr, flush=True)
             data = dict(method=method_name,
                         exception=_get_exception_name(exception),
