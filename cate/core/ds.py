@@ -326,6 +326,9 @@ class DataStore(metaclass=ABCMeta):
         """
         return self._is_local
 
+    def invalidate(self):
+        pass
+
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -375,6 +378,11 @@ class DataStoreRegistry:
 
     def remove_data_store(self, ds_id: str):
         del self._data_stores[ds_id]
+
+    def invalidate_data_store(self, ds_id: str):
+        ds = self._data_stores.get(ds_id)
+        if ds:
+            ds.invalidate()
 
     def __len__(self):
         return len(self._data_stores)
@@ -450,6 +458,11 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         primary_data_store = data_stores
     else:
         data_store_list = data_stores
+
+    for data_store in data_store_list:
+        if data_store.is_local:
+            data_store.invalidate()
+
     if not primary_data_store and ds_id and ds_id.count('.') > 0:
         primary_data_store_index = -1
         primary_data_store_id, data_source_name = ds_id.split('.', 1)
@@ -554,13 +567,20 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     threshold = 250 * (2 ** 20)  # 250 MB
 
     ds = None
-    # Find number of chunks as the closest larger squared number (1,4,9,..)
+   # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
         temp_ds = xr.open_dataset(paths[0], **kwargs)
-    except (OSError, RuntimeError):
+    except (OSError, RuntimeError) as e:
+        # resolve file name list from paths glob included
+        files = []
+        for path in paths:
+            files.extend(glob.glob(path))
+        # check files physically exists
+        if not files:
+            raise e
         # netcdf4 >=1.2.2 raises RuntimeError
         # We have a glob not a list
-        temp_ds = xr.open_dataset(glob.glob(paths)[0], **kwargs)
+        temp_ds = xr.open_dataset(files[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
