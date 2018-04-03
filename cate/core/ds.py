@@ -567,7 +567,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     threshold = 250 * (2 ** 20)  # 250 MB
 
     ds = None
-   # Find number of chunks as the closest larger squared number (1,4,9,..)
+    # Find number of chunks as the closest larger squared number (1,4,9,..)
     try:
         temp_ds = xr.open_dataset(paths[0], **kwargs)
     except (OSError, RuntimeError) as e:
