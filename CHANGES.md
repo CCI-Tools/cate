@@ -1,5 +1,9 @@
 ## Version 2.0.0.dev9 (in dev)
 
+* Improve error messages and handling [#393](https://github.com/CCI-Tools/cate/issues/393),
+  introduced new error type `cate.core.types.ValidationError` for special treatment in the GUI.
+* Fixed broken WebAPI invocation from CLI.
+
 ## Version 2.0.0.dev8
 
 * Removed the `cate-webapi` command-line tool and replaced it by two others:

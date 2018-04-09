@@ -24,7 +24,7 @@ import json
 import sys
 import time
 import traceback
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from tornado.ioloop import IOLoop
 from tornado.web import Application
@@ -210,37 +210,38 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
     def send_service_method_result(self, method_id: int, method_name: str, future: concurrent.futures.Future) -> bool:
 
         result = None
-        exception = None
         message = ''
         code = None
+        exc_info = None
 
         # see https://docs.python.org/3/library/exceptions.html#exception-hierarchy
+        # noinspection PyBroadException
         try:
             result = future.result()
-        except self._validation_exception_class as e:
-            exception = e
+        except self._validation_exception_class:
+            exc_info = sys.exc_info()
             code = ERROR_CODE_INVALID_PARAMS
-        except (concurrent.futures.CancelledError, Cancellation) as e:
-            exception = e
+        except (concurrent.futures.CancelledError, Cancellation):
+            exc_info = sys.exc_info()
             code = ERROR_CODE_CANCELLED
             message = 'Cancelled.'
-        except MemoryError as e:
-            exception = e
+        except MemoryError:
+            exc_info = sys.exc_info()
             code = ERROR_CODE_OUT_OF_MEMORY
             message = 'Out of memory.'
-        except OSError as e:
-            exception = e
+        except OSError:
+            exc_info = sys.exc_info()
             code = ERROR_CODE_OS_ERROR
-        except Exception as e:
-            exception = e
+        except Exception:
+            exc_info = sys.exc_info()
             code = ERROR_CODE_METHOD_ERROR
 
-        if exception:
+        if exc_info:
             return self._write_json_rpc_error_response(method_id,
                                                        code,
-                                                       message=message or str(exception),
-                                                       exception=exception,
-                                                       method_name=method_name)
+                                                       message=message or str(exc_info[1]),
+                                                       method_name=method_name,
+                                                       exc_info=exc_info)
 
         if method_id in self._active_monitors:
             del self._active_monitors[method_id]
@@ -255,44 +256,49 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         return self._write_json_rpc_result_response(method_id, method_name, result=result)
 
     def _write_json_rpc_result_response(self, method_id: int, method_name: str, result=None) -> bool:
-        exception = self._write_json_rpc_response(dict(jsonrpc='2.0',
-                                                       id=method_id,
-                                                       response=result))
-        success = exception is None
-        if not success:
+        exc_info = self._write_json_rpc_response(dict(jsonrpc='2.0',
+                                                      id=method_id,
+                                                      response=result))
+        if exc_info:
             self._write_json_rpc_error_response(method_id,
                                                 ERROR_CODE_INVALID_RESPONSE,
-                                                'Invalid response (not JSON-serializable).'
-                                                .format(method_name),
-                                                exception=exception,
-                                                method_name=method_name)
-        return success
+                                                'Invalid response (not JSON-serializable).'.format(method_name),
+                                                method_name=method_name,
+                                                exc_info=exc_info)
+            return False
+        return True
 
-    def _write_json_rpc_error_response(self, method_id: int, code: int, message: str,
-                                       exception: Exception = None,
-                                       method_name: str = None, ) -> bool:
-        if exception:
-            _traceback = traceback.format_exc()
+    def _write_json_rpc_error_response(self,
+                                       method_id: int,
+                                       code: int,
+                                       message: str,
+                                       method_name: str = None,
+                                       exc_info=None) -> bool:
+        if exc_info:
+            exc_type, exc_value, exc_tb = exc_info
             if code != ERROR_CODE_CANCELLED:
-                print(_traceback, file=sys.stderr, flush=True)
+                # TODO: replace by logging
+                traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
+            tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
             data = dict(method=method_name,
-                        exception=_get_exception_name(exception),
-                        traceback=_traceback)
+                        exception=_get_exception_name(exc_type),
+                        traceback=tb)
         else:
             data = dict(method=method_name)
-        return self._write_json_rpc_response(dict(jsonrpc='2.0',
-                                                  id=method_id,
-                                                  error=dict(code=code,
-                                                             message=message,
-                                                             data=data))) is None
+        exc_info = self._write_json_rpc_response(dict(jsonrpc='2.0',
+                                                      id=method_id,
+                                                      error=dict(code=code,
+                                                                 message=message,
+                                                                 data=data)))
+        return exc_info is None
 
-    def _write_json_rpc_response(self, json_rpc_response: dict) -> Optional[Exception]:
+    def _write_json_rpc_response(self, json_rpc_response: dict) -> Optional[Tuple[type, Any, Any]]:
         # noinspection PyBroadException
         try:
             json_text = json.dumps(json_rpc_response)
             self.write_message(json_text)
-        except Exception as e:
-            return e
+        except Exception:
+            return sys.exc_info()
 
         if _DEBUG_WEB_SOCKET_RPC:
             method_id = json_rpc_response.get('id')

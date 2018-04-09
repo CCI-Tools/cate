@@ -59,14 +59,9 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                      monitor: Monitor = Monitor.NONE):
         json_rpc_response = self.ws_client.invoke_method(method, params, timeout=timeout, monitor=monitor)
         json_response = json.loads(json_rpc_response)
-        if 'error' in json_response:
-            error_details = json_response.get('error')
-            message = error_details.get('message') if error_details else None
-            trace_back = error_details.get('data') if error_details else None
-            message = message or ''
-            if trace_back:
-                message += self.get_traceback_header() + trace_back
-            raise error_type(message)
+        error_info = json_response.get('error')
+        if error_info:
+            self._raise_error(error_type, error_info)
         return json_response.get('response')
 
     def _fetch_json(self, url, data=None, error_type=WorkspaceError, timeout: float = None):
@@ -75,15 +70,20 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_response = json.loads(json_text.decode('utf-8'))
         status = json_response.get('status')
         if status == 'error':
-            error_details = json_response.get('error')
-            message = error_details.get('message') if error_details else None
-            type_name = error_details.get('type') if error_details else None
-            trace_back = error_details.get('traceback') if error_details else None
-            message = message or type_name or ''
-            if trace_back:
-                message += self.get_traceback_header() + trace_back
-            raise error_type(message)
+            self._raise_error(error_type, json_response.get('error'))
         return json_response.get('content')
+
+    def _raise_error(self, error_type, error_info):
+        if error_info:
+            message = error_info.get('message') or ''
+            error_ex_info = error_info.get('data')
+            if error_ex_info:
+                tb = error_ex_info.get('traceback')
+                if tb:
+                    message += self.get_traceback_header() + tb
+        else:
+            message = 'Unknown error in WebAPI service.'
+        raise error_type(message)
 
     # noinspection PyMethodMayBeStatic
     def _query(self, **kwargs: dict):

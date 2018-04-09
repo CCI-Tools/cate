@@ -573,31 +573,27 @@ class WebAPIRequestHandler(RequestHandler):
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))
 
-    def write_status_error(self, exception: Exception = None, type_name: str = None, message: str = None):
+    def write_status_error(self, message: str = None, exc_info=None):
         if message is not None:
             print("ERROR: %s" % message)
-        if exception is not None:
-            traceback.print_exc()
-        self.write(self._to_status_error(exception=exception, type_name=type_name, message=message))
+        if exc_info is not None:
+            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2])
+        self.write(self._to_status_error(message=message, exc_info=exc_info))
 
     @classmethod
-    def _to_status_error(cls, exception: Exception = None, type_name: str = None, message: str = None):
-        trace_back = None
-        if exception is not None:
-            trace_back = traceback.format_exc()
-            type_name = type_name or type(exception).__name__
-            message = message or str(exception)
-        error_details = {}
-        if trace_back is not None:
-            error_details['traceback'] = trace_back
-        if type_name:
-            error_details['type'] = type_name
+    def _to_status_error(cls, message: str = None, exc_info=None):
+        error_data = None
+        if exc_info is not None:
+            exc_type, exc_value, exc_tb = exc_info
+            message = message or str(exc_value)
+            error_data = dict(exception=exc_type.__name__ if hasattr(exc_type, '__name__') else str(exc_type),
+                              traceback=''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
         if message:
-            error_details['message'] = message
-        response = dict(status='error', error=dict(type=type_name, message=message))
-        if exception is not None:
-            response['traceback'] = traceback.format_exc()
-        return dict(status='error', error=error_details) if error_details else dict(status='error')
+            if error_data:
+                return dict(status='error', error=dict(message=message, data=error_data))
+            else:
+                return dict(status='error', error=dict(message=message))
+        return dict(status='error')
 
 
 class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):

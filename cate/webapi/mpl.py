@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Implements the Tornado REST and WebSocket handlers for working with interactive ``matplotlib``
 figures in a web frontend.
@@ -31,9 +29,11 @@ Code bases on an example taken from https://matplotlib.org/examples/user_interfa
 import io
 import json
 from typing import Optional
+import sys
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
+# noinspection PyUnresolvedReferences
 from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
@@ -42,6 +42,8 @@ from cate.core.workspace import Workspace
 from cate.util.web.webapi import WebAPIRequestHandler
 
 _DEBUG_WEB_SOCKET_RPC = False
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
@@ -148,8 +150,8 @@ class MplDownloadHandler(WebAPIRequestHandler):
 
         try:
             figure_manager = _get_figure_manager(workspace, figure_id)
-        except ValueError as e:
-            self.write_status_error(exception=e)
+        except ValueError:
+            self.write_status_error(exc_info=sys.exc_info())
             return
 
         mime_types = {

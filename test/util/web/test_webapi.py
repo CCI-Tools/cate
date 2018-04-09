@@ -1,4 +1,5 @@
 import re
+import sys
 import unittest
 
 from cate.util.web import webapi
@@ -75,32 +76,58 @@ class WebAPIRequestHandlerTest(unittest.TestCase):
     def test_to_status_error_plain(self):
         try:
             raise ValueError("test message")
-        except ValueError as error:
-            status = webapi.WebAPIRequestHandler._to_status_error(error)
-            self.assertEqual(status['error']['message'], 'test message')
-            self.assertEqual(status['error']['type'], 'ValueError')
-            self.assertIsNotNone(status['error']['traceback'])
-            self.assertEqual(status['status'], 'error')
+        except ValueError:
+            exc_info = sys.exc_info()
 
-            status = webapi.WebAPIRequestHandler._to_status_error(error, type_name="MyErrorType")
-            self.assertEqual(status['error']['message'], 'test message')
-            self.assertEqual(status['error']['type'], 'MyErrorType')
-            self.assertIsNotNone(status['error']['traceback'])
-            self.assertEqual(status['status'], 'error')
+            response = webapi.WebAPIRequestHandler._to_status_error(exc_info=exc_info)
+            self.assertIn('status', response)
+            self.assertEqual(response['status'], 'error')
+            self.assertIn('error', response)
+            error = response['error']
+            self.assertEqual(error['message'], 'test message')
+            self.assertIn('data', error)
+            data = error['data']
+            self.assertEqual(data['exception'], 'ValueError')
+            self.assertIsNotNone(data['traceback'])
+            self.assertIn('ValueError: test message', data['traceback'])
 
-            status = webapi.WebAPIRequestHandler._to_status_error(error, message="another message")
-            self.assertEqual(status['error']['message'], 'another message')
-            self.assertEqual(status['error']['type'], 'ValueError')
-            self.assertIsNotNone(status['error']['traceback'])
-            self.assertEqual(status['status'], 'error')
+            response = webapi.WebAPIRequestHandler._to_status_error(exc_info=exc_info, message="my additional message")
+            self.assertIn('status', response)
+            self.assertEqual(response['status'], 'error')
+            self.assertIn('error', response)
+            error = response['error']
+            self.assertEqual(error['message'], 'my additional message')
+            self.assertIn('data', error)
+            data = error['data']
+            self.assertEqual(data['exception'], 'ValueError')
+            self.assertIsNotNone(data['traceback'])
+            self.assertIn('ValueError: test message', data['traceback'])
+
+            response = webapi.WebAPIRequestHandler._to_status_error(message="my message")
+            self.assertIn('status', response)
+            self.assertEqual(response['status'], 'error')
+            self.assertIn('error', response)
+            error = response['error']
+            self.assertEqual(error['message'], 'my message')
+            self.assertNotIn('data', response)
 
     def test_to_status_error_chained(self):
-        error1 = ValueError("error 1")
         try:
-            raise ValueError("error 2") from error1
-        except ValueError as error:
-            status = webapi.WebAPIRequestHandler._to_status_error(error)
-            self.assertEqual(status['error']['message'], 'error 2')
-            self.assertEqual(status['error']['type'], 'ValueError')
-            self.assertIsNotNone(status['error']['traceback'])
-            self.assertEqual(status['status'], 'error')
+            try:
+                raise ValueError("my error 1")
+            except ValueError as e:
+                raise ValueError("my error 2") from e
+        except ValueError:
+            exc_info = sys.exc_info()
+            response = webapi.WebAPIRequestHandler._to_status_error(exc_info=exc_info)
+            self.assertIn('status', response)
+            self.assertEqual(response['status'], 'error')
+            self.assertIn('error', response)
+            error = response['error']
+            self.assertEqual(error['message'], 'my error 2')
+            self.assertIn('data', error)
+            data = error['data']
+            self.assertEqual(data['exception'], 'ValueError')
+            self.assertIsNotNone(data['traceback'])
+            self.assertIn('ValueError: my error 1', data['traceback'])
+            self.assertIn('ValueError: my error 2', data['traceback'])

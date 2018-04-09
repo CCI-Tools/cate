@@ -225,7 +225,8 @@ def _parse_op_args(raw_args: List[str],
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
     "value" (positional argument) or "name=value" (keyword argument) where value may either be
 
-    1. "@name":  a reference by name to another step's port
+    1. "@name":  a reference by name to another step (= step ID)
+       or another step's port (= a step's input or output name).
     2. "<Python expression>":  a constant Python expression
 
     :param raw_args: raw argument list of string elements
