@@ -589,7 +589,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         raise IOError('File {} Not found'.format(paths))
 
     # Find number of chunks as the closest larger squared number (1,4,9,..
-    temp_ds = xr.open_dataset(paths[0], **kwargs)
+    temp_ds = xr.open_dataset(files[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
@@ -598,7 +598,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                autoclose=True,
                                **kwargs)
@@ -624,7 +624,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
         chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                chunks=chunks,
                                autoclose=True,
