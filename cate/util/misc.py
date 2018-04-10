@@ -30,10 +30,42 @@ from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
 from typing import Union, Tuple, Sequence, Optional, Iterable
-
+from tornado import httpclient
 import numpy as np
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+
+def checkUrl(url: str):
+    """
+    This method check wehnever a strng is an url or not
+    it also validate the url, this mean that exists an active
+    remote service and it reply to a get request.
+    In case of failure the error is reported
+    Value error mean in this case that is not an url, may be a file
+    :param url: url string or file path to check
+    :return
+    """
+    http_client = httpclient.HTTPClient()
+    report = {'is_url': True, 'is_valid': True, 'error': None}
+    try:
+        http_client.fetch(url, method='HEAD')
+    except httpclient.HTTPError as e:
+        # HTTPError is raised for non-200 responses;
+        # This mean that the service is active but
+        # the page or file is not present
+        report['is_valid'] = False
+        report['error'] = e
+    except ValueError as e:
+        # not an url, maybe a file or a glob
+        report['is_url'] = False
+        report['is_valid'] = False
+    except Exception as e:
+        # Other errors are possible, such as IOError.
+        report['is_valid'] = False
+        report['error'] = e
+    http_client.close()
+    return report
 
 
 def qualified_name_to_object(qualified_name: str, default_module_name='builtins'):

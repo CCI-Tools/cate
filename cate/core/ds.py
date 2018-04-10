@@ -88,6 +88,7 @@ import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from ..util.misc import checkUrl
 from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -567,20 +568,28 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     threshold = 250 * (2 ** 20)  # 250 MB
 
     ds = None
-    # Find number of chunks as the closest larger squared number (1,4,9,..)
-    try:
-        temp_ds = xr.open_dataset(paths[0], **kwargs)
-    except (OSError, RuntimeError) as e:
-        # resolve file name list from paths glob included
-        files = []
-        for path in paths:
-            files.extend(glob.glob(path))
-        # check files physically exists
-        if not files:
-            raise e
-        # netcdf4 >=1.2.2 raises RuntimeError
-        # We have a glob not a list
-        temp_ds = xr.open_dataset(files[0], **kwargs)
+    # paths could be a string or a list
+    files = []
+    if type(paths) is str:
+        files.append(paths)
+    else:
+        files.extend(paths)
+
+    # look for a valid url or file name
+    report = checkUrl(files[0])
+
+    if not report['is_valid']:
+        if report['is_url']:
+            raise report['error']
+        # should be a file or a glob
+        # unroll glob list
+        files = [i for path in files for i in glob.glob(path)]
+
+    if not files:
+        raise IOError('File {} Not found'.format(paths))
+
+    # Find number of chunks as the closest larger squared number (1,4,9,..
+    temp_ds = xr.open_dataset(paths[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
