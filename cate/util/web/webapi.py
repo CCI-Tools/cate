@@ -207,7 +207,7 @@ class WebAPI:
                 port = service_info.get('port')
                 address = service_info.get('address') or LOCALHOST
                 if is_service_running(port, address):
-                    print('%s: service already running on %s:%s, reusing it' % (name, address, port))
+                    print('%s: using service running on %s:%s' % (name, address, port))
                     return service_info
                 else:
                     # Try shutting down the service, even violently
