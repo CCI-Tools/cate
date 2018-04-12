@@ -80,7 +80,7 @@ class JsonRpcWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            IOLoop.current().add_callback(callback=functools.partialmethod(self._write_progress_message, progress))
+            IOLoop.current().add_callback(callback=functools.partial(self._write_progress_message, progress))
             self.last_time = current_time
 
     def _write_progress_message(self, progress):
