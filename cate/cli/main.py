@@ -160,7 +160,7 @@ def _default_workspace_manager_factory() -> Any:
         if not service_info:
             raise WorkspaceError('Cate WebAPI service could not be started')
 
-    return WebAPIWorkspaceManager(service_info, timeout=5.)
+    return WebAPIWorkspaceManager(service_info, rpc_timeout=5.)
 
 
 WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory

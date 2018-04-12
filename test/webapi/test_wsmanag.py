@@ -22,4 +22,4 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
             time.sleep(5)
 
     def new_workspace_manager(self):
-        return WebAPIWorkspaceManager(dict(port=self.port), timeout=2)
+        return WebAPIWorkspaceManager(dict(port=self.port), rpc_timeout=2)
