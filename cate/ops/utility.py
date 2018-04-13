@@ -33,7 +33,7 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal
+from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal, ValidationError
 from cate.util.monitor import Monitor
 
 
@@ -141,15 +141,15 @@ def no_op(num_steps: int = 10,
 
     :param num_steps: Number of steps to iterate.
     :param step_duration: How much time to spend in each step in seconds.
-    :param fail_before: If the operation should fail before spending time doing nothing.
-    :param fail_after: If the operation should fail after spending time doing nothing.
+    :param fail_before: If the operation should fail before spending time doing nothing (raise a ValidationError).
+    :param fail_after: If the operation should fail after spending time doing nothing (raise a ValueError).
     :param monitor: A progress monitor.
     :return: Always True
     """
     import time
     monitor.start('Computing nothing', num_steps)
     if fail_before:
-        raise ValueError('Intentionally failed before doing anything.')
+        raise ValidationError('Intentionally failed before doing anything.')
     for i in range(num_steps):
         time.sleep(step_duration)
         monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
