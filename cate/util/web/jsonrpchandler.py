@@ -86,7 +86,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         self._validation_exception_class = validation_exception_class
         self._service = None
         self._service_method_meta_infos = None
-        self._thread_pool = concurrent.futures.ThreadPoolExecutor()
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(thread_name_prefix='JsonRpcWebSocketHandler')
         self._active_monitors = {}
         self._active_futures = {}
         self._job_start = {}
@@ -168,10 +168,11 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
 
             def _send_service_method_result(f: concurrent.futures.Future) -> None:
                 assert method_id is not None
-                # noinspection PyTypeChecker
+                print('Method finished: ', method_id, method_name, method_params)
                 self.send_service_method_result(method_id, method_name, f)
 
-            IOLoop.current().add_future(future=future, callback=_send_service_method_result)
+            # future.add_done_callback(_send_service_method_result)
+            IOLoop.current().add_future(future, _send_service_method_result)
 
         elif method_name == CANCEL_METHOD_NAME:
             job_id = method_params.get('id') if method_params else None
@@ -296,7 +297,8 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         # noinspection PyBroadException
         try:
             json_text = json.dumps(json_rpc_response)
-            self.write_message(json_text)
+            IOLoop.current().add_callback(self.write_message, json_text)
+            # asyncio.get_event_loop().call_soon(self.write_message, json_text)
         except Exception:
             return sys.exc_info()
 

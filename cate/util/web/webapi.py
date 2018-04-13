@@ -35,6 +35,7 @@ import urllib.request
 from datetime import datetime
 from typing import List, Callable, Optional, Tuple
 
+# from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
@@ -246,9 +247,9 @@ class WebAPI:
         application.listen(port, address=address or '')
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
-        # IOLoop.call_later(delay, callback, *args, **kwargs)
         if self.auto_stop_enabled:
             self._install_next_inactivity_check()
+        # asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
         asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
         IOLoop.current().start()
         return self.service_info
@@ -597,7 +598,15 @@ class WebAPIRequestHandler(RequestHandler):
 
 
 class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
-    """Event loop policy that has one fixed global loop.
+    """
+    Event loop policy that has one fixed global loop for all threads.
+
+    We use it for the following reason: As of Tornado 5 IOLoop.current() no longer has
+    a single global instance. It is a thread-local instance, but only on the main thread.
+    Other threads have no IOLoop instance by default.
+
+    _GlobalEventLoopPolicy is a fix that allows us to access the same IOLoop
+    in all threads.
 
     Usage::
 

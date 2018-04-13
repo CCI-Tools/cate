@@ -18,15 +18,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import functools
-
-from tornado.ioloop import IOLoop
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import json
 import time
 
+from tornado.ioloop import IOLoop
 import tornado.websocket
 
 from cate.util.monitor import Monitor
@@ -80,13 +78,13 @@ class JsonRpcWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            IOLoop.current().add_callback(callback=functools.partial(self._write_progress_message, progress))
+            self._write_progress_message(progress)
             self.last_time = current_time
 
     def _write_progress_message(self, progress):
-        self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
-                                                   id=self.method_id,
-                                                   progress=progress)))
+        json_text = json.dumps(dict(jsonrpc="2.0", id=self.method_id, progress=progress))
+        IOLoop.current().add_callback(self.handler.write_message, json_text)
+        # asyncio.get_event_loop().call_soon(self.handler.write_message, json_text)
 
     def start(self, label: str, total_work: float = None):
         self.label = label
