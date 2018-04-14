@@ -130,7 +130,7 @@ def literal(value: Literal.TYPE) -> Arbitrary.TYPE:
 
 @op(tags=['utility'])
 @op_input('step_duration', units='seconds')
-def no_op(num_steps: int = 10,
+def no_op(num_steps: int = 20,
           step_duration: float = 0.5,
           fail_before: bool = False,
           fail_after: bool = False,
