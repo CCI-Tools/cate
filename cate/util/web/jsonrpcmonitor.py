@@ -22,8 +22,9 @@
 
 import json
 import time
+import sys
 
-# from tornado.ioloop import IOLoop
+from tornado.ioloop import IOLoop
 import tornado.websocket
 
 from cate.util.monitor import Monitor
@@ -110,9 +111,8 @@ class JsonRpcWebSocketMonitor(Monitor):
 
     def _write_progress_message(self, progress):
         json_text = json.dumps(dict(jsonrpc="2.0", id=self.method_id, progress=progress))
-        # IOLoop.current().add_callback(self.handler.write_message, json_text)
         log_debug('Writing:', json_text)
-        # asyncio.get_event_loop().call_soon(self.handler.write_message, json_text)
+        IOLoop.current().add_callback(self.handler.write_message, json_text)
 
 
 def set_debug_web_socket_rpc(value: bool):

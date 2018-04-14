@@ -169,7 +169,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
                 log_error('Received invalid JSON-RPC message: '
-                           'missing or invalid "id" parameter for method "{}": {}'
+                          'missing or invalid "id" parameter for method "{}": {}'
                           .format(CANCEL_METHOD_NAME, message))
                 self._write_json_rpc_error_response(method_id,
                                                     ERROR_CODE_INVALID_REQUEST,
@@ -278,7 +278,6 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             json_text = json.dumps(json_rpc_response)
             log_debug('Writing:', json_text)
             IOLoop.current().add_callback(self.write_message, json_text)
-            # asyncio.get_event_loop().call_soon(self.write_message, json_text)
         except Exception:
             return sys.exc_info()
 
