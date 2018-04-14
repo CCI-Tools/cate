@@ -568,29 +568,33 @@ class Workspace:
         assert op_name
         assert op_kwargs is not None
 
-        op = OP_REGISTRY.get_op(op_name)
-        if not op:
-            raise WorkspaceError('Unknown operation "%s"' % op_name)
+        unpacked_op_kwargs = {}
+        returns = False
 
         with self._lock:
-            unpacked_op_kwargs = {}
-            returns = False
+            op = OP_REGISTRY.get_op(op_name)
+            if not op:
+                raise WorkspaceError('Unknown operation "%s"' % op_name)
+
             for input_name, input_value in op_kwargs.items():
                 if 'should_return' == input_name and 'value' in input_value:
                     returns = input_value['value']
                 elif 'source' in input_value:
-                        unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
+                    unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
                 elif 'value' in input_value:
-                        unpacked_op_kwargs[input_name] = input_value['value']
+                    unpacked_op_kwargs[input_name] = input_value['value']
 
-            with monitor.starting("Running operation '%s'" % op_name, 2):
-                self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
-                return_value = op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
-                if returns:
-                    return return_value
+        # Allow executing self.workflow.invoke() out of the locked context so we can run tasks in parallel
+        with monitor.starting("Running operation '%s'" % op_name, 2):
+            self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
+            return_value = op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+            if returns:
+                return return_value
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()
+
+        steps = None
 
         with self._lock:
             if not res_name:
@@ -600,11 +604,13 @@ class Workspace:
                 if res_step is None:
                     raise WorkspaceError('Resource "%s" not found' % res_name)
                 steps = self.workflow.find_steps_to_compute(res_step.id)
-            if len(steps):
-                self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
-                return steps[-1].get_output_value()
-            else:
-                return None
+
+        # Allow executing self.workflow.invoke_steps() out of the locked context so we can run tasks in parallel
+        if steps and len(steps):
+            self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
+            return steps[-1].get_output_value()
+        else:
+            return None
 
     def _new_context(self):
         return dict(value_cache=self._resource_cache, workspace=self)
