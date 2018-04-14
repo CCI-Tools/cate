@@ -1,7 +1,8 @@
 import unittest
 
 from cate.util.monitor import Monitor
-from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler, set_debug_web_socket_rpc
+from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler
+from cate.util.web.jsonrpcmonitor import set_debug_web_socket_rpc
 
 set_debug_web_socket_rpc(True)
 
