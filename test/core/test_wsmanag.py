@@ -127,7 +127,7 @@ class WorkspaceManagerTestMixin:
         rm = RecordingMonitor()
         workspace_manager.set_workspace_resource(base_dir,
                                                  'cate.ops.utility.no_op',
-                                                 dict(),
+                                                 dict(num_steps=dict(value=10)),
                                                  res_name='noop',
                                                  monitor=rm)
         # the websocket clients send always progress with 'None' arguments after start
