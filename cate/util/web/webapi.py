@@ -24,6 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 import argparse
 import asyncio
+import logging
 import os.path
 import signal
 import subprocess
@@ -155,6 +156,7 @@ class WebAPI:
     def __init__(self):
         self.name = None
         self.application = None
+        self.server = None
         self.auto_stop_enabled = None
         self.auto_stop_timer = None
         self.auto_stop_after = None
@@ -243,13 +245,16 @@ class WebAPI:
 
         print('started {}, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
 
-        application.listen(port, address=address or '')
+        self.server = application.listen(port, address=address or '')
+        # Ensure we have the same event loop in all threads
+        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
+        # Register handlers for common termination signals
+        signal.signal(signal.SIGINT, self._sig_handler)
+        signal.signal(signal.SIGTERM, self._sig_handler)
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
-        # IOLoop.call_later(delay, callback, *args, **kwargs)
         if self.auto_stop_enabled:
             self._install_next_inactivity_check()
-        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
         IOLoop.current().start()
         return self.service_info
 
@@ -348,6 +353,26 @@ class WebAPI:
         """
         IOLoop.current().add_callback(self._on_shut_down)
 
+    def _on_shut_down(self):
+        # noinspection PyUnresolvedReferences
+        service_info_file = self.service_info_file
+        if service_info_file and os.path.isfile(service_info_file):
+            # noinspection PyBroadException
+            try:
+                os.remove(service_info_file)
+            except Exception:
+                pass
+
+        if self.server:
+            self.server.stop()
+            self.server = None
+
+        IOLoop.current().stop()
+
+    def _sig_handler(self, sig, frame):
+        logging.warning('Caught signal: %s', sig)
+        IOLoop.current().add_callback_from_signal(self._on_shut_down)
+
     def _install_next_inactivity_check(self):
         IOLoop.current().call_later(self.auto_stop_after, self._check_inactivity)
 
@@ -361,16 +386,6 @@ class WebAPI:
         else:
             self._install_next_inactivity_check()
 
-    def _on_shut_down(self):
-        # noinspection PyUnresolvedReferences
-        service_info_file = self.service_info_file
-        if service_info_file and os.path.isfile(service_info_file):
-            # noinspection PyBroadException
-            try:
-                os.remove(service_info_file)
-            except Exception:
-                pass
-        IOLoop.current().stop()
 
     @classmethod
     def start_subprocess(cls,
@@ -597,7 +612,15 @@ class WebAPIRequestHandler(RequestHandler):
 
 
 class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
-    """Event loop policy that has one fixed global loop.
+    """
+    Event loop policy that has one fixed global loop for all threads.
+
+    We use it for the following reason: As of Tornado 5 IOLoop.current() no longer has
+    a single global instance. It is a thread-local instance, but only on the main thread.
+    Other threads have no IOLoop instance by default.
+
+    _GlobalEventLoopPolicy is a fix that allows us to access the same IOLoop
+    in all threads.
 
     Usage::
 
