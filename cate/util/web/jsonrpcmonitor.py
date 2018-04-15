@@ -18,18 +18,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import functools
 
-from tornado.ioloop import IOLoop
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import json
 import time
+import sys
 
+from tornado.ioloop import IOLoop
 import tornado.websocket
 
 from cate.util.monitor import Monitor
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+_DEBUG_WEB_SOCKET_RPC = True
 
 
 class JsonRpcWebSocketMonitor(Monitor):
@@ -66,28 +68,6 @@ class JsonRpcWebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _report_progress(self, message: str = None):
-        current_time = time.time()
-        if not self.last_time or (current_time - self.last_time) >= self.report_defer_period:
-
-            progress = {}
-            if self.label is not None:
-                progress['label'] = self.label
-            if message is not None:
-                progress['message'] = message
-            if self.total is not None:
-                progress['total'] = self.total
-            if self.worked is not None:
-                progress['worked'] = self.worked
-
-            IOLoop.current().add_callback(callback=functools.partial(self._write_progress_message, progress))
-            self.last_time = current_time
-
-    def _write_progress_message(self, progress):
-        self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
-                                                   id=self.method_id,
-                                                   progress=progress)))
-
     def start(self, label: str, total_work: float = None):
         self.label = label
         self.total = total_work
@@ -111,3 +91,40 @@ class JsonRpcWebSocketMonitor(Monitor):
 
     def is_cancelled(self) -> bool:
         return self._cancelled
+
+    def _report_progress(self, message: str = None):
+        current_time = time.time()
+        if not self.last_time or (current_time - self.last_time) >= self.report_defer_period:
+
+            progress = {}
+            if self.label is not None:
+                progress['label'] = self.label
+            if message is not None:
+                progress['message'] = message
+            if self.total is not None:
+                progress['total'] = self.total
+            if self.worked is not None:
+                progress['worked'] = self.worked
+
+            self._write_progress_message(progress)
+            self.last_time = current_time
+
+    def _write_progress_message(self, progress):
+        json_text = json.dumps(dict(jsonrpc="2.0", id=self.method_id, progress=progress))
+        log_debug('Writing:', json_text)
+        IOLoop.current().add_callback(self.handler.write_message, json_text)
+
+
+def set_debug_web_socket_rpc(value: bool):
+    """ For testing only """
+    global _DEBUG_WEB_SOCKET_RPC
+    _DEBUG_WEB_SOCKET_RPC = value
+
+
+def log_debug(*args):
+    if _DEBUG_WEB_SOCKET_RPC:
+        print('WEBSOCKET RPC DEBUG:', *args)
+
+
+def log_error(*args):
+    print('WEBSOCKET RPC ERROR:', *args, file=sys.stderr)
