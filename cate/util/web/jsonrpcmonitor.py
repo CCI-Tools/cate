@@ -22,16 +22,14 @@
 
 import json
 import time
-import sys
 
-from tornado.ioloop import IOLoop
 import tornado.websocket
+from tornado.ioloop import IOLoop
 
 from cate.util.monitor import Monitor
+from .common import log_debug
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
-_DEBUG_WEB_SOCKET_RPC = True
 
 
 class JsonRpcWebSocketMonitor(Monitor):
@@ -113,14 +111,3 @@ class JsonRpcWebSocketMonitor(Monitor):
         json_text = json.dumps(dict(jsonrpc="2.0", id=self.method_id, progress=progress))
         log_debug('Writing:', json_text)
         IOLoop.current().add_callback(self.handler.write_message, json_text)
-
-
-def set_debug_web_socket_rpc(value: bool):
-    """ For testing only """
-    global _DEBUG_WEB_SOCKET_RPC
-    _DEBUG_WEB_SOCKET_RPC = value
-
-
-def log_debug(*args):
-    if _DEBUG_WEB_SOCKET_RPC:
-        print('WEBSOCKET RPC DEBUG:', *args)

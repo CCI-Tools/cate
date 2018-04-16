@@ -63,6 +63,8 @@ GeometryTransform = Callable[[pyproj.Proj, pyproj.Proj, float, Geometry], Geomet
 GeometryPointCounter = Callable[[Geometry], int]
 Feature = Dict
 
+_LOG = logging.getLogger('cate')
+
 
 # noinspection PyUnusedLocal conservation_ratio
 def _transform_point(source_prj: pyproj.Proj, target_prj: pyproj.Proj,
@@ -339,7 +341,7 @@ def _transform_feature(feature: Feature,
                     # for time being (simp & 0x01) != 0 means, geometry is simplified
                     feature['_simp'] = 0x01
             except Exception:
-                logging.exception('transforming feature geometry failed: %s' % geometry['type'])
+                _LOG.exception('transforming feature geometry failed: %s' % geometry['type'])
                 feature_ok = False
                 pass
     return feature_ok

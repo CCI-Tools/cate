@@ -33,6 +33,8 @@ from .cmap_lc import register_lc_color_map, LAND_COVER_CCI_CMAP
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+_LOG = logging.getLogger('cate')
+
 # Have colormaps separated into categories:
 # (taken from http://matplotlib.org/examples/color/colormaps_reference.html)
 
@@ -111,7 +113,7 @@ def ensure_cmaps_loaded():
                     try:
                         cmap = cm.get_cmap(cmap_name)
                     except Exception:
-                        logging.warning('detected invalid colormap "%s"' % cmap_name)
+                        _LOG.warning('detected invalid colormap "%s"' % cmap_name)
                         continue
 
                     # Add extra colormaps with alpha gradient
@@ -147,7 +149,7 @@ def ensure_cmaps_loaded():
                         cm.register_cmap(cmap=new_cmap)
                     else:
                         new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
-                        logging.warning('could not create colormap "{}" because "{}" is of unknown type {}'
+                        _LOG.warning('could not create colormap "{}" because "{}" is of unknown type {}'
                                         .format(new_name, cmap.name, type(cmap)))
 
                     gradient = np.linspace(0, 1, 256)

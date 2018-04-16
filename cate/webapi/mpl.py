@@ -40,8 +40,8 @@ from tornado.websocket import WebSocketHandler
 
 from cate.core.workspace import Workspace
 from cate.util.web.webapi import WebAPIRequestHandler
+from cate.util.web.common import log_debug, is_debug_mode
 
-_DEBUG_WEB_SOCKET_RPC = False
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -218,8 +218,8 @@ class MplWebSocketHandler(WebSocketHandler):
         self._remove_figure_manager()
 
     def on_message(self, message):
-        if _DEBUG_WEB_SOCKET_RPC:
-            print('MplWebSocketHandler.on_message(%s)' % repr(message))
+        if is_debug_mode():
+            log_debug('MplWebSocketHandler.on_message(%s)' % repr(message))
 
         # Every message has a "type" and a "figure_id".
         message = json.loads(message)
@@ -245,8 +245,8 @@ class MplWebSocketHandler(WebSocketHandler):
 
     def send_json(self, content):
         """Method required by matplotlib's FigureManagerWebAgg"""
-        if _DEBUG_WEB_SOCKET_RPC:
-            print('MplWebSocketHandler.send_json(%s)' % repr(content))
+        if is_debug_mode():
+            log_debug('MplWebSocketHandler.send_json(%s)' % repr(content))
         self.write_message(json.dumps(content))
 
     def send_binary(self, blob):

@@ -77,6 +77,7 @@ from pkg_resources import iter_entry_points
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+_LOG = logging.getLogger('cate')
 
 def _load_plugins():
     plugins = OrderedDict()
@@ -86,7 +87,7 @@ def _load_plugins():
         try:
             plugin = entry_point.load()
         except Exception:
-            logging.exception(
+            _LOG.exception(
                 "unexpected exception while loading Cate plugin with entry point '%s'" % entry_point.name)
             continue
 
@@ -95,11 +96,11 @@ def _load_plugins():
             try:
                 plugin()
             except Exception:
-                logging.exception(
+                _LOG.exception(
                     "unexpected exception while executing Cate plugin with entry point '%s'" % entry_point.name)
                 continue
         else:
-            logging.error("Cate plugin with entry point '%s' must be a callable but got a '%s'" % (
+            _LOG.error("Cate plugin with entry point '%s' must be a callable but got a '%s'" % (
                 entry_point.name, type(plugin)))
             continue
 

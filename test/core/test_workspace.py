@@ -7,8 +7,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from cate.core.types import ValidationError
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, WorkspaceError, mk_op_arg, mk_op_args, mk_op_kwargs
+from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.undefined import UNDEFINED
 
@@ -200,15 +201,15 @@ class WorkspaceTest(unittest.TestCase):
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
-        with self.assertRaises(WorkspaceError) as we:
+        with self.assertRaises(ValidationError) as we:
             ws.set_resource("not_existing_op", {})
         self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
 
-        with self.assertRaises(WorkspaceError) as we:
+        with self.assertRaises(ValidationError) as we:
             ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(location=NETCDF_TEST_FILE_1), res_name='X')
         self.assertEqual('"location" is not an input of operation "cate.ops.io.read_netcdf"', str(we.exception))
 
-        with self.assertRaises(WorkspaceError) as we:
+        with self.assertRaises(ValidationError) as we:
             ws.set_resource('cate.ops.io.read_netcdf', {'file': {'foo': 'bar'}}, res_name='X')
         self.assertEqual('Illegal argument for input "file" of operation "cate.ops.io.read_netcdf', str(we.exception))
 
@@ -317,7 +318,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIsNone(op_result)
 
         # with a non existing operator name
-        with self.assertRaises(WorkspaceError) as we:
+        with self.assertRaises(ValidationError) as we:
             ws.run_op("not_existing_op", {})
         self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
 
@@ -350,15 +351,15 @@ class WorkspaceTest(unittest.TestCase):
         Workspace._validate_res_name("abc_42")
         Workspace._validate_res_name("abc42")
         Workspace._validate_res_name("_abc42")
-        # with self.assertRaises(WorkspaceError):
+        # with self.assertRaises(ValidationError):
         #     Workspace._validate_res_name("0")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a-b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a+b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a.b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("file://path")
 
     def test_example(self):
@@ -420,19 +421,3 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
         self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))
 
-
-class WorkspaceErrorTest(unittest.TestCase):
-    def test_plain(self):
-        try:
-            raise WorkspaceError("haha")
-        except WorkspaceError as e:
-            self.assertEqual(str(e), "haha")
-            self.assertEqual(e.cause, None)
-
-    def test_with_cause(self):
-        e1 = ValueError("a > 5")
-        try:
-            raise WorkspaceError("hoho") from e1
-        except WorkspaceError as e2:
-            self.assertEqual(str(e2), "hoho")
-            self.assertEqual(e2.cause, e1)

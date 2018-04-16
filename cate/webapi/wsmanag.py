@@ -28,10 +28,11 @@ from typing import List, Tuple, Optional, Any, Union
 from tornado import gen, ioloop, websocket
 
 from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT, WEBAPI_PLOT_TIMEOUT
-from cate.core.workspace import Workspace, WorkspaceError, OpKwArgs
+from cate.core.workspace import Workspace, OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util.misc import encode_url_path
 from cate.util.monitor import Monitor
+from cate.util.safe import safe_eval
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -55,34 +56,54 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def _url(self, path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
         return self.base_url + encode_url_path(path_pattern, path_args=path_args, query_args=query_args)
 
-    def _invoke_method(self, method, params, error_type=WorkspaceError, timeout: float = None,
+    def _invoke_method(self, method, params, timeout: float = None,
                        monitor: Monitor = Monitor.NONE):
         rpc_response = self.ws_client.invoke_method(method, params, timeout=timeout, monitor=monitor)
         error_info = rpc_response.get('error')
         if error_info:
-            self._raise_error(error_type, error_info)
+            WebAPIWorkspaceManager._raise_error(error_info)
         return rpc_response.get('response')
 
-    def _fetch_json(self, url, data=None, error_type=WorkspaceError, timeout: float = None):
+    def _fetch_json(self, url, data=None, timeout: float = None):
         with urllib.request.urlopen(url, data=data, timeout=timeout or self.rpc_timeout) as response:
             json_text = response.read()
         json_response = json.loads(json_text.decode('utf-8'))
         status = json_response.get('status')
         if status == 'error':
-            self._raise_error(error_type, json_response.get('error'))
+            WebAPIWorkspaceManager._raise_error(json_response.get('error'))
         return json_response.get('content')
 
-    def _raise_error(self, error_type, error_info):
+    @staticmethod
+    def _raise_error(error_info):
+        exc_type = None
         if error_info:
             message = error_info.get('message') or ''
             error_ex_info = error_info.get('data')
             if error_ex_info:
-                tb = error_ex_info.get('traceback')
-                if tb:
-                    message += self.get_traceback_header() + tb
+                exc_type_name = error_ex_info.get('exception')
+                if exc_type_name:
+                    # noinspection PyBroadException
+                    try:
+                        exc_type = safe_eval(exc_type_name)
+                    except Exception:
+                        pass
+                # TODO (forman): find out how can we preserve traceback without adding it to the message string
+                # tb = error_ex_info.get('traceback')
         else:
-            message = 'Unknown error in WebAPI service.'
-        raise error_type(message)
+            message = 'Unknown error from WebAPI service.'
+
+        exc = None
+        if exc_type:
+            # noinspection PyBroadException
+            try:
+                exc = exc_type(message)
+            except Exception:
+                pass
+
+        if exc is None:
+            exc = RuntimeError(message)
+
+        raise exc
 
     # noinspection PyMethodMayBeStatic
     def _query(self, **kwargs):

@@ -98,7 +98,9 @@ Components
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
+
 import argparse
+import logging
 import os
 import os.path
 import pprint
@@ -118,6 +120,7 @@ CLI_NAME = 'cate'
 CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
 CATE_WEBAPI_START_MODULE = 'cate.webapi.start'
+CATE_WEBAPI_STOP_MODULE = 'cate.webapi.stop'
 
 _DOCS_URL = 'http://cate.readthedocs.io/en/latest/'
 
@@ -143,7 +146,6 @@ NullableStr = Union[str, None]
 
 def _default_workspace_manager_factory() -> Any:
     from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-    from cate.core.workspace import WorkspaceError
     from cate.webapi.wsmanag import WebAPIWorkspaceManager
     from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 
@@ -158,7 +160,8 @@ def _default_workspace_manager_factory() -> Any:
         # Read new '.cate/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:
-            raise WorkspaceError('Cate WebAPI service could not be started')
+            raise FileNotFoundError('Cate WebAPI service could not be started, '
+                                    'missing service info file %s' % WEBAPI_INFO_FILE)
 
     return WebAPIWorkspaceManager(service_info, rpc_timeout=5.)
 
@@ -787,7 +790,7 @@ class WorkspaceCommand(SubCommandCommand):
             if command_args.save_all:
                 workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
             workspace_manager.close_all_workspaces()
-            WebAPI.stop_subprocess(CATE_WEBAPI_START_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            WebAPI.stop_subprocess(CATE_WEBAPI_STOP_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):
@@ -1099,7 +1102,8 @@ class OperationCommand(SubCommandCommand):
             return True
 
         op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
-                           _is_op_selected(op_name, op_reg, command_args.tag, command_args.internal, command_args.deprecated)])
+                           _is_op_selected(op_name, op_reg, command_args.tag, command_args.internal,
+                                           command_args.deprecated)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name

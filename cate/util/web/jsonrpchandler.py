@@ -31,11 +31,14 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
-from .jsonrpcmonitor import JsonRpcWebSocketMonitor, log_debug
+from .jsonrpcmonitor import JsonRpcWebSocketMonitor
+from .common import exception_to_json, log_debug
 from ..monitor import Cancellation
 from ..opmetainf import OpMetaInfo
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 CANCEL_METHOD_NAME = '__cancel__'
 
@@ -118,7 +121,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         return True
 
     def on_message(self, message: str):
-        log_debug('on_message:', message)
+        _LOG.debug('JSON RPC message: %s' % message)
 
         # Note, the following error cases 1-4 cannot be communicated to client as we
         # haven't got a valid method "id" which is required for a JSON-RPC response
@@ -127,22 +130,22 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         try:
             message_obj = json.loads(message)
         except Exception:
-            logging.exception('Failed to parse incoming JSON-RPC message: %s' % message)
+            _LOG.exception('Failed to parse incoming JSON-RPC message: %s' % message)
             return 1  # for testing only
 
         if not isinstance(message_obj, type({})):
-            logging.error('Received JSON-RPC message with unexpected type: %s' % message)
+            _LOG.error('Received JSON-RPC message with unexpected type: %s' % message)
             return 2  # for testing only
 
         method_id = message_obj.get('id', None)
         if not isinstance(method_id, int):
-            logging.error('Received invalid JSON-RPC message: missing or invalid "id" value: %s' % message)
+            _LOG.error('Received invalid JSON-RPC message: missing or invalid "id" value: %s' % message)
             return 3  # for testing only
 
         method_name = message_obj.get('method', None)
         # noinspection PyTypeChecker
         if not isinstance(method_name, str) or len(method_name) == 0:
-            logging.error('Received invalid JSON-RPC message: missing or invalid "method" value: %s' % message)
+            _LOG.error('Received invalid JSON-RPC message: missing or invalid "method" value: %s' % message)
             self._write_json_rpc_error_response(method_id,
                                                 ERROR_CODE_METHOD_NOT_FOUND,
                                                 'Method not found or invalid.',
@@ -168,7 +171,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         elif method_name == CANCEL_METHOD_NAME:
             job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
-                logging.error('Received invalid JSON-RPC message: '
+                _LOG.error('Received invalid JSON-RPC message: '
                               'missing or invalid "id" parameter for method "{}": {}'
                               .format(CANCEL_METHOD_NAME, message))
                 self._write_json_rpc_error_response(method_id,
@@ -186,7 +189,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             self._write_json_rpc_result_response(method_id, method_name)
 
         else:
-            logging.error('Received invalid JSON-RPC message: unsupported method: %s' % message)
+            _LOG.error('Received invalid JSON-RPC message: unsupported method: %s' % message)
             self._write_json_rpc_error_response(method_id,
                                                 ERROR_CODE_INVALID_REQUEST,
                                                 "Invalid request.",
@@ -256,13 +259,10 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                                        method_name: str = None,
                                        exc_info=None) -> bool:
         if exc_info:
-            exc_type, exc_value, exc_tb = exc_info
-            tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
             if code != ERROR_CODE_CANCELLED:
-                logging.error(tb)
-            data = dict(method=method_name,
-                        exception=_get_exception_name(exc_type),
-                        traceback=tb)
+                exc_type, exc_value, exc_tb = exc_info
+                _LOG.error(''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+            data = exception_to_json(exc_info, method=method_name)
         else:
             data = dict(method=method_name)
         exc_info = self._write_json_rpc_response(dict(jsonrpc='2.0',
@@ -319,13 +319,3 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         log_debug('Ended:', method_id, method_name, result, time.time() - t0)
 
         return result
-
-
-def _get_exception_name(e: Any) -> str:
-    try:
-        if isinstance(e, type):
-            return e.__name__
-        else:
-            return type(e).__name__
-    except AttributeError:
-        return str(e)

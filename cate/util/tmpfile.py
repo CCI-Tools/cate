@@ -24,10 +24,11 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import atexit
 import logging
 import os
-import sys
 import tempfile
 
 _TEMP_FILES = []
+
+_LOG = logging.getLogger('cate')
 
 
 def new_temp_file(**kwargs):
@@ -93,7 +94,7 @@ def _del_file(pair: str) -> bool:
         try:
             os.remove(file)
         except OSError:
-            logging.exception('removing temporary file %s failed' % file)
+            _LOG.exception('removing temporary file %s failed' % file)
         return not os.path.isfile(file)
     else:
         return True

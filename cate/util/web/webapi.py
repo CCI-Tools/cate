@@ -19,9 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 import argparse
 import asyncio
 import logging
@@ -37,12 +34,19 @@ from datetime import datetime
 from typing import List, Callable, Optional, Tuple
 
 # from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+import tornado.options
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
+from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
     find_free_port, is_service_compatible, is_service_running
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 LOCALHOST = '127.0.0.1'
 
@@ -88,7 +92,6 @@ def run_start(name: str,
     parser = _get_common_cli_parser(name, description, version)
     parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
                         help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
-
     try:
         args_obj = parser.parse_args(args)
 
@@ -210,16 +213,15 @@ class WebAPI:
                 port = service_info.get('port')
                 address = service_info.get('address') or LOCALHOST
                 if is_service_running(port, address):
-                    logging.info('%s: using service running on %s:%s' % (name, address, port))
+                    print('%s: detected service running on %s:%s' % (name, address, port))
                     return service_info
                 else:
                     # Try shutting down the service, even violently
                     self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
-                logging.warning('%s: service info file exists: %s, removing it' % (name, service_info_file))
+                print('%s: service info file exists: %s, removing it' % (name, service_info_file))
                 os.remove(service_info_file)
 
-        import tornado.options
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
         options.log_file_prefix = log_file_prefix or ('%s.log' % name)
@@ -244,7 +246,7 @@ class WebAPI:
         application.time_of_last_activity = time.clock()
         self.application = application
 
-        logging.info('started {}, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
+        print('{}: started service, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
 
         self.server = application.listen(port, address=address or '')
         # Ensure we have the same event loop in all threads
@@ -296,7 +298,7 @@ class WebAPI:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
         address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        logging.info('stopping {} on {}'.format(name, address_and_port))
+        print('{}: stopping service on {}'.format(name, address_and_port))
 
         # noinspection PyBroadException
         try:
@@ -370,8 +372,9 @@ class WebAPI:
 
         IOLoop.current().stop()
 
+    # noinspection PyUnusedLocal
     def _sig_handler(self, sig, frame):
-        logging.warning('Caught signal: %s', sig)
+        _LOG.warning('Caught signal: %s', sig)
         IOLoop.current().add_callback_from_signal(self._on_shut_down)
 
     def _install_next_inactivity_check(self):
@@ -382,11 +385,10 @@ class WebAPI:
         time_of_last_activity = self.application.time_of_last_activity
         inactivity_time = time.clock() - time_of_last_activity
         if inactivity_time > self.auto_stop_after:
-            logging.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
+            _LOG.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
             self.shut_down()
         else:
             self._install_next_inactivity_check()
-
 
     @classmethod
     def start_subprocess(cls,
@@ -591,19 +593,17 @@ class WebAPIRequestHandler(RequestHandler):
 
     def write_status_error(self, message: str = None, exc_info=None):
         if message is not None:
-            logging.error(message)
+            _LOG.error(message)
         if exc_info is not None:
-            logging.info(''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2])))
+            _LOG.info(''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2])))
         self.write(self._to_status_error(message=message, exc_info=exc_info))
 
     @classmethod
     def _to_status_error(cls, message: str = None, exc_info=None):
         error_data = None
         if exc_info is not None:
-            exc_type, exc_value, exc_tb = exc_info
-            message = message or str(exc_value)
-            error_data = dict(exception=exc_type.__name__ if hasattr(exc_type, '__name__') else str(exc_type),
-                              traceback=''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+            message = message or str(exc_info[1])
+            error_data = exception_to_json(exc_info)
         if message:
             if error_data:
                 return dict(status='error', error=dict(message=message, data=error_data))

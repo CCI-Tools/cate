@@ -32,6 +32,8 @@ from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_
 
 _CONFIG = None
 
+_LOG = logging.getLogger('cate')
+
 
 def get_config_path(name: str, default=None) -> str:
     """
@@ -160,7 +162,7 @@ def _read_config_files(config_files: Sequence[str],
             try:
                 _write_default_config_file(default_config_file, template_module)
             except (IOError, OSError) as error:
-                logging.warning('failed writing %s: %s' % (default_config_file, str(error)))
+                _LOG.warning('failed writing %s: %s' % (default_config_file, str(error)))
 
     new_config = None
     for config_file in config_files:
@@ -169,7 +171,7 @@ def _read_config_files(config_files: Sequence[str],
             try:
                 config = _read_python_config(config_file)
             except Exception as error:
-                logging.warning('failed reading %s: %s' % (config_file, str(error)))
+                _LOG.warning('failed reading %s: %s' % (config_file, str(error)))
             if config is not None:
                 if new_config is None:
                     new_config = config
@@ -190,13 +192,13 @@ def _write_location_files(config_dirs: Sequence[str]):
             try:
                 os.makedirs(config_dir, exist_ok=True)
             except Exception as error:
-                logging.warning('failed creating %s: %s' % (config_dir, str(error)))
+                _LOG.warning('failed creating %s: %s' % (config_dir, str(error)))
         location_file = os.path.join(config_dir, LOCATION_FILE)
         try:
             with open(location_file, 'w') as fp:
                 fp.write(sys.prefix)
         except Exception as error:
-            logging.warning('failed writing %s: %s' % (location_file, str(error)))
+            _LOG.warning('failed writing %s: %s' % (location_file, str(error)))
     return new_config
 
 
