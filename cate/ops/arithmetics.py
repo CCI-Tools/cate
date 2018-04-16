@@ -30,6 +30,7 @@ Functions
 """
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from xarray import ufuncs as xu
 
@@ -185,9 +186,10 @@ def compute(ds: DatasetLike.TYPE,
 
     The following packages are available in the code:
 
+    * ``np``: The ``numpy`` top-level package (https://docs.scipy.org/doc/numpy/reference/)
+    * ``pd``: The ``pandas`` top-level package (http://pandas.pydata.org/pandas-docs/stable/api.html)
     * ``xr``: The ``xarray`` top-level package (http://xarray.pydata.org/en/stable/api.html)
     * ``xu``: The ``xarray.ufuncs`` package (http://xarray.pydata.org/en/stable/api.html#universal-functions)
-    * ``np``: The ``numpy`` top--level package (https://docs.scipy.org/doc/numpy/reference/)
 
     Note, in contrast to the ``np`` package, all the math functions defined in ``xu`` will preserve variable attributes.
 
@@ -207,9 +209,10 @@ def compute(ds: DatasetLike.TYPE,
     if ds is not None:
         orig_namespace.update(ds.data_vars)
 
+    orig_namespace['np'] = np
+    orig_namespace['pd'] = pd
     orig_namespace['xr'] = xr
     orig_namespace['xu'] = xu
-    orig_namespace['np'] = np
 
     local_namespace = dict(orig_namespace)
 
