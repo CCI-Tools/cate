@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev9 (in dev)
 
+* Tasks are no longer executed in parallel [#606](https://github.com/CCI-Tools/cate/issues/606).
 * Improve error messages and handling [#393](https://github.com/CCI-Tools/cate/issues/393),
   introduced new error type `cate.core.types.ValidationError` for special treatment in the GUI.
 * Fixed broken WebAPI invocation from CLI.
