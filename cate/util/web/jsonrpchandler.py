@@ -21,6 +21,7 @@
 
 import concurrent.futures
 import json
+import logging
 import sys
 import time
 import traceback
@@ -30,7 +31,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
-from .jsonrpcmonitor import JsonRpcWebSocketMonitor, log_debug, log_error
+from .jsonrpcmonitor import JsonRpcWebSocketMonitor, log_debug
 from ..monitor import Cancellation
 from ..opmetainf import OpMetaInfo
 
@@ -126,23 +127,22 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         try:
             message_obj = json.loads(message)
         except Exception:
-            log_error('Failed to parse incoming JSON-RPC message:', message)
-            traceback.print_exc(file=sys.stderr)
+            logging.exception('Failed to parse incoming JSON-RPC message: %s' % message)
             return 1  # for testing only
 
         if not isinstance(message_obj, type({})):
-            log_error('Received JSON-RPC message with unexpected type:', message)
+            logging.error('Received JSON-RPC message with unexpected type: %s' % message)
             return 2  # for testing only
 
         method_id = message_obj.get('id', None)
         if not isinstance(method_id, int):
-            log_error('Received invalid JSON-RPC message: missing or invalid "id" value:', message)
+            logging.error('Received invalid JSON-RPC message: missing or invalid "id" value: %s' % message)
             return 3  # for testing only
 
         method_name = message_obj.get('method', None)
         # noinspection PyTypeChecker
         if not isinstance(method_name, str) or len(method_name) == 0:
-            log_error('Received invalid JSON-RPC message: missing or invalid "method" value:', message)
+            logging.error('Received invalid JSON-RPC message: missing or invalid "method" value: %s' % message)
             self._write_json_rpc_error_response(method_id,
                                                 ERROR_CODE_METHOD_NOT_FOUND,
                                                 'Method not found or invalid.',
@@ -168,9 +168,9 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         elif method_name == CANCEL_METHOD_NAME:
             job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
-                log_error('Received invalid JSON-RPC message: '
-                          'missing or invalid "id" parameter for method "{}": {}'
-                          .format(CANCEL_METHOD_NAME, message))
+                logging.error('Received invalid JSON-RPC message: '
+                              'missing or invalid "id" parameter for method "{}": {}'
+                              .format(CANCEL_METHOD_NAME, message))
                 self._write_json_rpc_error_response(method_id,
                                                     ERROR_CODE_INVALID_REQUEST,
                                                     'Invalid cancellation request.')
@@ -186,7 +186,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             self._write_json_rpc_result_response(method_id, method_name)
 
         else:
-            log_error('Received invalid JSON-RPC message: unsupported method:', message)
+            logging.error('Received invalid JSON-RPC message: unsupported method: %s' % message)
             self._write_json_rpc_error_response(method_id,
                                                 ERROR_CODE_INVALID_REQUEST,
                                                 "Invalid request.",
@@ -257,9 +257,9 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
                                        exc_info=None) -> bool:
         if exc_info:
             exc_type, exc_value, exc_tb = exc_info
-            if code != ERROR_CODE_CANCELLED:
-                traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
             tb = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+            if code != ERROR_CODE_CANCELLED:
+                logging.error(tb)
             data = dict(method=method_name,
                         exception=_get_exception_name(exc_type),
                         traceback=tb)

@@ -378,11 +378,9 @@ class TransformArrayImage(DecoratorImage):
         if self._force_masked and not np.ma.is_masked(tile):
             # if tile is not masked
             if self._no_data_value is not None:
-                print("compute_tile_from_source_tile: we has a self._no_data_value: ", self._no_data_value)
                 # and we have a fill value, return a masked tile
                 tile = np.ma.masked_equal(tile, self._no_data_value)
             elif self._valid_range is not None:
-                print("compute_tile_from_source_tile: we has a self._valid_range: ", self._valid_range)
                 valid_min, valid_max = self._valid_range
                 # and we have a valid min or max, return a masked tile
                 if valid_min is not None:

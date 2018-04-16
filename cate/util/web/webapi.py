@@ -210,13 +210,13 @@ class WebAPI:
                 port = service_info.get('port')
                 address = service_info.get('address') or LOCALHOST
                 if is_service_running(port, address):
-                    print('%s: using service running on %s:%s' % (name, address, port))
+                    logging.info('%s: using service running on %s:%s' % (name, address, port))
                     return service_info
                 else:
                     # Try shutting down the service, even violently
                     self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
-                print('%s: warning: service info file exists: %s, removing it' % (name, service_info_file))
+                logging.warning('%s: service info file exists: %s, removing it' % (name, service_info_file))
                 os.remove(service_info_file)
 
         import tornado.options
@@ -244,7 +244,7 @@ class WebAPI:
         application.time_of_last_activity = time.clock()
         self.application = application
 
-        print('started {}, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
+        logging.info('started {}, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
 
         self.server = application.listen(port, address=address or '')
         # Ensure we have the same event loop in all threads
@@ -296,7 +296,7 @@ class WebAPI:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
         address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        print('stopping {} on {}'.format(name, address_and_port))
+        logging.info('stopping {} on {}'.format(name, address_and_port))
 
         # noinspection PyBroadException
         try:
@@ -382,7 +382,7 @@ class WebAPI:
         time_of_last_activity = self.application.time_of_last_activity
         inactivity_time = time.clock() - time_of_last_activity
         if inactivity_time > self.auto_stop_after:
-            print('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
+            logging.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
             self.shut_down()
         else:
             self._install_next_inactivity_check()
@@ -591,9 +591,9 @@ class WebAPIRequestHandler(RequestHandler):
 
     def write_status_error(self, message: str = None, exc_info=None):
         if message is not None:
-            print("ERROR: %s" % message)
+            logging.error(message)
         if exc_info is not None:
-            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2])
+            logging.info(''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2])))
         self.write(self._to_status_error(message=message, exc_info=exc_info))
 
     @classmethod

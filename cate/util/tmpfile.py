@@ -22,6 +22,7 @@
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import atexit
+import logging
 import os
 import sys
 import tempfile
@@ -87,12 +88,12 @@ def _del_file(pair: str) -> bool:
     if os.path.isfile(file):
         try:
             os.close(fd)
-        except (OSError, IOError):
+        except OSError:
             pass
         try:
             os.remove(file)
-        except (OSError, IOError) as e:
-            print('error: ', e, file=sys.stderr)
+        except OSError:
+            logging.exception('removing temporary file %s failed' % file)
         return not os.path.isfile(file)
     else:
         return True

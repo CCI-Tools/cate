@@ -12,12 +12,3 @@ class PluginTest(TestCase):
         # Yes, this is really a silly test :)
         # But this way we cover one more (empty) statement.
         plugin.cate_init(True, False, a=1, b=2)
-
-    def test_error_reporting(self):
-        with fetch_std_streams() as (stdout, stderr):
-            plugin._report_plugin_error_msg('XXX')
-        self.assertEqual(stderr.getvalue(), 'error: XXX\n')
-
-        with fetch_std_streams() as (stdout, stderr):
-            plugin._report_plugin_exception('YYY')
-        self.assertEqual(stderr.getvalue(), 'error: YYY\n')

@@ -21,6 +21,7 @@
 
 import base64
 import io
+import logging
 from threading import Lock
 
 import matplotlib
@@ -106,10 +107,11 @@ def ensure_cmaps_loaded():
             for cmap_category, cmap_description, cmap_names in _CMAPS:
                 cbar_list = []
                 for cmap_name in cmap_names:
+                    # noinspection PyBroadException
                     try:
                         cmap = cm.get_cmap(cmap_name)
                     except Exception:
-                        print("WARNING: detected invalid colormap '" + cmap_name + "'")
+                        logging.warning('detected invalid colormap "%s"' % cmap_name)
                         continue
 
                     # Add extra colormaps with alpha gradient
@@ -145,8 +147,8 @@ def ensure_cmaps_loaded():
                         cm.register_cmap(cmap=new_cmap)
                     else:
                         new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
-                        print("WARNING: could not create colormap '{}' because '{}' is of unknown type {}"
-                              .format(new_name, cmap.name, type(cmap)))
+                        logging.warning('could not create colormap "{}" because "{}" is of unknown type {}'
+                                        .format(new_name, cmap.name, type(cmap)))
 
                     gradient = np.linspace(0, 1, 256)
                     gradient = np.vstack((gradient, gradient))

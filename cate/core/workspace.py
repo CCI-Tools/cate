@@ -23,6 +23,7 @@
 This module defines the ``Workspace`` class and the ``WorkspaceError`` exception type.
 """
 
+import logging
 import os
 import shutil
 from collections import OrderedDict
@@ -199,8 +200,8 @@ class Workspace:
                         if res_name not in persistent_ids:
                             try:
                                 os.remove(res_file)
-                            except (OSError, IOError) as e:
-                                print('error:', e)
+                            except OSError:
+                                logging.exception('closing workspace failed')
 
     def save(self, monitor: Monitor = Monitor.NONE):
         self._assert_open()
@@ -230,21 +231,23 @@ class Workspace:
         res_value = self._resource_cache.get(res_name)
         if res_value is not None:
             resource_file = os.path.join(self.workspace_dir, res_name + '.nc')
+            # noinspection PyBroadException
             try:
                 res_value.to_netcdf(resource_file)
             except AttributeError:
                 pass
-            except Exception as e:
-                print('error:', e)
+            except Exception:
+                logging.exception('writing resource "%s" to file failed' % res_name)
 
     def _read_resource_from_file(self, res_name):
         res_file = os.path.join(self.workspace_dir, res_name + '.nc')
         if os.path.isfile(res_file):
+            # noinspection PyBroadException
             try:
                 res_value = xr.open_dataset(res_file)
                 self._resource_cache[res_name] = res_value
             except Exception as e:
-                print('error:', e)
+                logging.exception('reading resource "%s" from file failed' % res_name)
 
     # <<< Issue #270
 

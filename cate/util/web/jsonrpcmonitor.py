@@ -124,7 +124,3 @@ def set_debug_web_socket_rpc(value: bool):
 def log_debug(*args):
     if _DEBUG_WEB_SOCKET_RPC:
         print('WEBSOCKET RPC DEBUG:', *args)
-
-
-def log_error(*args):
-    print('WEBSOCKET RPC ERROR:', *args, file=sys.stderr)

@@ -40,6 +40,7 @@ Type Name         | Coordinates
 
 import heapq
 import json
+import logging
 from typing import Tuple, List, Callable, Union, Dict, Iterable
 
 import fiona
@@ -337,8 +338,8 @@ def _transform_feature(feature: Feature,
                     # We may mask other simplifications,
                     # for time being (simp & 0x01) != 0 means, geometry is simplified
                     feature['_simp'] = 0x01
-            except Exception as e:
-                print('ERROR TRANSFORMING FEATURE: ', geometry['type'], e)
+            except Exception:
+                logging.exception('transforming feature geometry failed: %s' % geometry['type'])
                 feature_ok = False
                 pass
     return feature_ok

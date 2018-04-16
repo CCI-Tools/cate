@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
 import os
 import pprint
 import shutil
@@ -370,13 +371,13 @@ class FSWorkspaceManager(WorkspaceManager):
                 variables = ds.data_vars.values()
             for var in variables:
                 if hasattr(var, 'plot'):
-                    print('Plotting ', var)
+                    logging.info('Plotting variable %s' % var)
                     var.plot()
             plt.show()
         elif isinstance(obj, xr.DataArray):
             var = obj
             if hasattr(var, 'plot'):
-                print('Plotting ', var)
+                logging.info('Plotting variable %s' % var)
                 var.plot()
                 plt.show()
         elif isinstance(obj, np.ndarray):
