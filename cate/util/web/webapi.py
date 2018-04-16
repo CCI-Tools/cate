@@ -239,7 +239,7 @@ class WebAPI:
                                  address=address,
                                  caller=caller,
                                  started=datetime.now().isoformat(sep=' '),
-                                 process_id=os.getpid())
+                                 pid=os.getpid())
 
         application = application_factory()
         application.webapi = self
@@ -292,7 +292,7 @@ class WebAPI:
         port = port or service_info.get('port')
         address = address or service_info.get('address')
         caller = caller or service_info.get('caller')
-        pid = service_info.get('process_id')
+        pid = service_info.get('pid')
 
         if not port:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
