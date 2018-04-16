@@ -75,7 +75,7 @@ import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike
+from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike, ValidationError
 
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
@@ -145,7 +145,7 @@ def plot_map(ds: xr.Dataset,
     :return: a matplotlib figure object or None if in IPython mode
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only gridded datasets are currently supported')
+        raise ValidationError('Only gridded datasets are currently supported.')
 
     var_name = None
     if not var:
@@ -169,8 +169,8 @@ def plot_map(ds: xr.Dataset,
     if len(ds.lat) < 2 or len(ds.lon) < 2:
         # Matplotlib can not plot datasets with less than these dimensions with
         # contourf and pcolormesh methods
-        raise ValueError('The minimum dataset spatial dimensions to create a map'
-                         ' plot are (2,2)')
+        raise ValidationError('The minimum dataset spatial dimensions to create a map'
+                              ' plot are (2,2)')
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -265,7 +265,7 @@ def plot_contour(ds: xr.Dataset,
     """
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
     var = ds[var_name]
 
     time = TimeLike.convert(time)
@@ -326,7 +326,7 @@ def plot(ds: DatasetLike.TYPE,
 
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
     var = ds[var_name]
 
     indexers = DictLike.convert(indexers)
@@ -392,9 +392,9 @@ def plot_scatter(ds1: xr.Dataset,
     var_name1 = VarName.convert(var1)
     var_name2 = VarName.convert(var2)
     if not var_name1:
-        raise ValueError("Missing value for 'var1'")
+        raise ValidationError("Missing name for 'var1'")
     if not var_name2:
-        raise ValueError("Missing value for 'var2'")
+        raise ValidationError("Missing name for 'var2'")
     var1 = ds1[var_name1]
     var2 = ds2[var_name2]
 
@@ -412,20 +412,16 @@ def plot_scatter(ds1: xr.Dataset,
             remaining_dims = list(set(var1.dims) ^ set(indexers1.keys()))
             min_dim = max(var_data1[remaining_dims[0]].min(), var_data2[remaining_dims[0]].min())
             max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
-            print(min_dim, max_dim)
             var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) & (var_data1[remaining_dims[0]] <= max_dim),
                                         drop=True)
             var_data2 = var_data2.where(
                 (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
                 drop=True)
-            print(var_data1)
-            print(var_data2)
             if len(remaining_dims) is 1:
-                print(remaining_dims)
                 indexer3 = {remaining_dims[0]: var_data1[remaining_dims[0]].data}
                 var_data2.reindex(method='nearest', **indexer3)
             else:
-                print("Err!")
+                raise ValidationError('Please use indexers to reduce the dimensionality of each variable to one.')
         else:
             var_data1 = var1
             var_data2 = var2
@@ -492,7 +488,7 @@ def plot_hist(ds: xr.Dataset,
     """
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
 
     var = ds[var]
 
@@ -539,7 +535,7 @@ def plot_data_frame(df: pd.DataFrame,
                    pandas.DataFrame.plot function
     """
     if not isinstance(df, pd.DataFrame):
-        raise NotImplementedError('"df" must be of type "pandas.DataFrame"')
+        raise ValidationError('"df" must be of type "pandas.DataFrame"')
 
     ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
     figure = ax.get_figure()
