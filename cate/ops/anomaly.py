@@ -34,7 +34,7 @@ from cate.core.op import op, op_return, op_input
 from cate.util.monitor import Monitor
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
-from cate.core.types import TimeRangeLike, PolygonLike
+from cate.core.types import TimeRangeLike, PolygonLike, ValidationError
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -71,13 +71,13 @@ def anomaly_external(ds: xr.Dataset,
     # Check if the time coordinate is of dtype datetime
     try:
         if ds.time.dtype != 'datetime64[ns]':
-            raise ValueError('The dataset provided for anomaly calculation'
-                             ' is required to have a time coordinate of'
-                             ' dtype datetime64[ns]. Running the normalize'
-                             ' operation on this dataset might help.')
+            raise ValidationError('The dataset provided for anomaly calculation'
+                                  ' is required to have a time coordinate of'
+                                  ' dtype datetime64[ns]. Running the normalize'
+                                  ' operation on this dataset might help.')
     except AttributeError:
-        raise ValueError('The dataset provided for anomaly calculation'
-                         ' is required to have a time coordinate.')
+        raise ValidationError('The dataset provided for anomaly calculation'
+                              ' is required to have a time coordinate.')
 
     clim = xr.open_dataset(file)
     ret = ds.copy()

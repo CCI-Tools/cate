@@ -194,7 +194,7 @@ def plot_map(ds: xr.Dataset,
     elif projection == 'SouthPolarStereo':
         proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
     else:
-        raise ValueError('illegal projection: "%s"' % projection)
+        raise ValidationError('illegal projection: "%s"' % projection)
 
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)

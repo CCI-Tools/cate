@@ -35,7 +35,7 @@ import xarray as xr
 from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import DatasetLike
+from cate.core.types import DatasetLike, ValidationError
 from cate.util.monitor import Monitor
 from cate.util.safe import safe_exec
 
@@ -95,8 +95,8 @@ def ds_arithmetics(ds: DatasetLike.TYPE,
                 elif item[:] == 'exp':
                     retset = xu.exp(retset)
                 else:
-                    raise ValueError('Arithmetic operation {} not'
-                                     ' implemented.'.format(item[0]))
+                    raise ValidationError('Arithmetic operation {} not'
+                                          ' implemented.'.format(item[0]))
 
     return retset
 
