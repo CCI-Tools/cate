@@ -29,7 +29,7 @@ Components
 ==========
 
 """
-from cate.core.types import PolygonLike
+from cate.core.types import PolygonLike, ValidationError
 from cate.core.opimpl import get_extents
 from cate.util.im import ensure_cmaps_loaded
 
@@ -49,8 +49,8 @@ def handle_plot_polygon(region: PolygonLike.TYPE = None):
     lon_min, lat_min, lon_max, lat_max = extents
 
     if not check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-        raise ValueError('Provided plot extents do not form a valid bounding box '
-                         'within [-180.0,+180.0,-90.0,+90.0]')
+        raise ValidationError('Provided plot extents do not form a valid bounding box '
+                              'within [-180.0,+180.0,-90.0,+90.0]')
     return extents
 
 

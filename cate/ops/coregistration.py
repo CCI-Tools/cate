@@ -38,6 +38,7 @@ import numpy as np
 import xarray as xr
 
 from cate.core.op import op_input, op, op_return
+from cate.core.types import ValidationError
 from cate.util.monitor import Monitor
 
 from cate.ops import resampling
@@ -90,46 +91,46 @@ def coregister(ds_master: xr.Dataset,
                  ('master', ds_master['lat'].values, -90),
                  ('master', ds_master['lon'].values, -180))
     except KeyError:
-        raise ValueError('Coregistration requires that both datasets are'
-                         ' spatial datasets with lon and lat dimensions. The'
-                         ' dimensionality of the provided master dataset is: {},'
-                         ' the dimensionality of the provided slave dataset is:'
-                         ' {}. Running the normalize operation might help in'
-                         ' case spatial dimensions have different'
-                         ' names'.format(ds_master.dims, ds_slave.dims))
+        raise ValidationError('Coregistration requires that both datasets are'
+                              ' spatial datasets with lon and lat dimensions. The'
+                              ' dimensionality of the provided master dataset is: {},'
+                              ' the dimensionality of the provided slave dataset is:'
+                              ' {}. Running the normalize operation might help in'
+                              ' case spatial dimensions have different'
+                              ' names'.format(ds_master.dims, ds_slave.dims))
 
     # Check if all arrays of the slave dataset have the required dimensionality
     for key in ds_slave.data_vars:
         if not _is_valid_array(ds_slave[key]):
-            raise ValueError('{} data array of slave dataset is not valid for'
-                             ' coregistration. The data array is expected to'
-                             ' have lat and lon dimensions. The data array has'
-                             ' the following dimensions: {}. Consider running'
-                             ' select_var operation to exclude this'
-                             ' data array'.format(key, ds_slave[key].dims))
+            raise ValidationError('{} data array of slave dataset is not valid for'
+                                  ' coregistration. The data array is expected to'
+                                  ' have lat and lon dimensions. The data array has'
+                                  ' the following dimensions: {}. Consider running'
+                                  ' select_var operation to exclude this'
+                                  ' data array'.format(key, ds_slave[key].dims))
 
     # Check if the grids of the provided datasets are equidistant and pixel
     # registered
     for array in grids:
         if not _within_bounds(array[1], array[2]):
-            raise ValueError('The {} dataset grid does not fall into required'
-                             ' boundaries. Required boundaries are ({}, {}),'
-                             ' dataset boundaries are ({}, {}). Running the'
-                             ' normalize operation'
-                             ' may help.'.format(array[0],
-                                                 array[2],
-                                                 abs(array[2]),
-                                                 array[1][0],
-                                                 array[1][-1]))
+            raise ValidationError('The {} dataset grid does not fall into required'
+                                  ' boundaries. Required boundaries are ({}, {}),'
+                                  ' dataset boundaries are ({}, {}). Running the'
+                                  ' normalize operation'
+                                  ' may help.'.format(array[0],
+                                                      array[2],
+                                                      abs(array[2]),
+                                                      array[1][0],
+                                                      array[1][-1]))
         if not _is_equidistant(array[1]):
-            raise ValueError('The {} dataset grid is not'
-                             ' equidistant, can not perform'
-                             ' coregistration'.format(array[0]))
+            raise ValidationError('The {} dataset grid is not'
+                                  ' equidistant, can not perform'
+                                  ' coregistration'.format(array[0]))
 
         if not _is_pixel_registered(array[1], array[2]):
-            raise ValueError('The {} dataset grid is not'
-                             ' pixel-registered, can not perform'
-                             ' coregistration'.format(array[0]))
+            raise ValidationError('The {} dataset grid is not'
+                                  ' pixel-registered, can not perform'
+                                  ' coregistration'.format(array[0]))
 
     # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
@@ -334,8 +335,8 @@ def _find_intersection(first: np.ndarray,
 
     delta = maximum - minimum
     if delta < max(first_px_size, second_px_size):
-        raise ValueError('Could not find a valid intersection to perform'
-                         ' coregistration on')
+        raise ValidationError('Could not find a valid intersection to perform'
+                              ' coregistration on')
 
     # Make sure min/max fall on pixel boundaries for both grids
     # Because there exists a number N denoting how many smaller pixels fall
@@ -348,8 +349,8 @@ def _find_intersection(first: np.ndarray,
     while (0 != (minimum - global_bounds[0]) % first_px_size and
            0 != (minimum - global_bounds[0]) % second_px_size):
         if i == safety:
-            raise ValueError('Could not find a valid intersection to perform'
-                             ' coregistration on')
+            raise ValidationError('Could not find a valid intersection to perform'
+                                  ' coregistration on')
         minimum = minimum + finer
         i = i + 1
 
@@ -357,15 +358,15 @@ def _find_intersection(first: np.ndarray,
     while (0 != (global_bounds[1] - maximum) % first_px_size and
            0 != (global_bounds[1] - maximum) % second_px_size):
         if i == safety:
-            raise ValueError('Could not find a valid intersection to perform'
-                             ' coregistration on')
+            raise ValidationError('Could not find a valid intersection to perform'
+                                  ' coregistration on')
         maximum = maximum - finer
         i = i + 1
 
     # This is possible in some cases when mis-aligned grid arrays are presented
     if maximum <= minimum:
-        raise ValueError('Could not find a valid intersection to perform'
-                         ' coregistration on')
+        raise ValidationError('Could not find a valid intersection to perform'
+                              ' coregistration on')
 
     return (minimum, maximum)
 

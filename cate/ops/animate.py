@@ -66,7 +66,7 @@ import xarray as xr
 import numpy as np
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike, HTML
+from cate.core.types import VarName, DictLike, PolygonLike, HTML, ValidationError
 from cate.util.monitor import Monitor
 
 from cate.ops.plot_helpers import (get_var_data,
@@ -157,7 +157,7 @@ def animate_map(ds: xr.Dataset,
     try:
         var = ds[var_name]
     except KeyError:
-        raise ValueError('Provided variable name "{}" does not exist in the given dataset'.format(var_name))
+        raise ValidationError('Provided variable name "{}" does not exist in the given dataset'.format(var_name))
 
     indexers = DictLike.convert(indexers) or {}
     properties = DictLike.convert(plot_properties) or {}
@@ -172,8 +172,8 @@ def animate_map(ds: xr.Dataset,
     if len(ds.lat) < 2 or len(ds.lon) < 2:
         # Matplotlib can not plot datasets with less than these dimensions with
         # contourf and pcolormesh methods
-        raise ValueError('The minimum dataset spatial dimensions to create a map'
-                         ' plot are (2,2)')
+        raise ValidationError('The minimum dataset spatial dimensions to create a map'
+                              ' plot are (2,2)')
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -197,7 +197,7 @@ def animate_map(ds: xr.Dataset,
     elif projection == 'SouthPolarStereo':
         proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
     else:
-        raise ValueError('illegal projection: "%s"' % projection)
+        raise ValidationError('illegal projection: "%s"' % projection)
 
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
@@ -283,7 +283,7 @@ def _get_min_max(data, monitor=None):
         data_min = data.min()
     if np.isnan(data_min):
         # Handle all-NaN dataset
-        raise ValueError('Can not create an animation of a dataset containing only NaN values.')
+        raise ValidationError('Can not create an animation of a dataset containing only NaN values.')
     else:
         with monitor.child(1).observing("find maximum"):
             data_max = data.max()
