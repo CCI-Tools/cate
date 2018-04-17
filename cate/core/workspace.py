@@ -383,7 +383,8 @@ class Workspace:
             'shape': variable.shape,
             'chunkSizes': get_chunk_size(variable),
             'attributes': Workspace._attrs_to_json_dict(attrs),
-            'isCoord': is_coord
+            'isCoord': is_coord,
+            'isDefault': conf.is_default_variable(variable.name),
         }
 
         if not is_coord:

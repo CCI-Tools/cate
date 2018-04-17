@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev9 (in dev)
 
+* Representative default variables [#590](https://github.com/CCI-Tools/cate/issues/590).
 * Tasks are no longer executed in parallel [#606](https://github.com/CCI-Tools/cate/issues/606).
 * WebAPI service problem in CLI [#600](https://github.com/CCI-Tools/cate/issues/600)
 * Improve error messages and handling [#393](https://github.com/CCI-Tools/cate/issues/393),

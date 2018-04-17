@@ -81,6 +81,18 @@ WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER = 120 * 60.0
 #: By default, WebAPI service will auto-exit after 5 seconds if all workspaces are closed, if WebAPI auto-exit enabled
 WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
 
+
+DEFAULT_VARIABLES = {
+    'absorbing_aerosol_index',  # Aerosol CCI
+    'cfc',                      # Cloud CCI
+    'lccs_class',               # LC CCI
+    'kd_490',                   # OC CCI
+    'O3_du',                    # Ozone CCI
+    'sm',                       # Soil Moisture CCI
+    'analysed_sst',             # SST CCI
+}
+
+
 VARIABLE_DISPLAY_SETTINGS = {
     # LC CCI
     'lccs_class': dict(color_map='land_cover_cci'),
@@ -94,7 +106,7 @@ VARIABLE_DISPLAY_SETTINGS = {
     'MODISA_nobs_sum': dict(display_min=1, display_max=500),
     'SeaWiFS_nobs_sum': dict(display_min=1, display_max=500),
 
-    # CLOUD CCI
+    # Cloud CCI
     'cfc': dict(color_map="bone", display_min=0, display_max=1),
 
     # SST CCI
@@ -104,7 +116,7 @@ VARIABLE_DISPLAY_SETTINGS = {
     'sea_ice_fraction': dict(display_min=0., display_max=1.),
     'sea_ice_fraction_error': dict(display_min=0., display_max=0.2),
 
-    # AEROSOL CCI
+    # Aerosol CCI
     'absorbing_aerosol_index': dict(color_map="bwr", display_min=-2, display_max=2),
     'solar_zenith_angle': dict(color_map="bwr", display_min=35, display_max=80),
     'number_of_observations': dict(color_map="gray", display_min=0, display_max=150),
