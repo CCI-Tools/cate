@@ -34,6 +34,7 @@ if os.path.isdir(extra_path) and extra_path not in sys.path:
 # noinspection PyUnresolvedReferences
 from .common import initialize_proxy, configure_user_agent
 initialize_proxy()
+# See https://github.com/CCI-Tools/cate/issues/510
 configure_user_agent()
 
 # noinspection PyUnresolvedReferences
