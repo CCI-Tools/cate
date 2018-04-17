@@ -18,6 +18,9 @@
 * Scrambled time axis error
   [#538](https://github.com/CCI-Tools/cate/issues/538)
 
+* Check local datasource name if it doesn't contain restricted/unsupported characters
+  [#568](https://github.com/CCI-Tools/cate/issues/568)
+
 ## Version 2.0.0.dev7
 
 * Cate Desktop hangs after upgrading WebAPI to 2.0.0.dev6

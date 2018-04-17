@@ -39,18 +39,19 @@ Components
 
 import json
 import os
-import psutil
+import re
 import shutil
 import uuid
 import warnings
-import xarray as xr
-import shapely.geometry
-
 from collections import OrderedDict
 from datetime import datetime
-from dateutil import parser
 from glob import glob
 from typing import Optional, Sequence, Union, Any, Tuple
+
+import psutil
+import shapely.geometry
+import xarray as xr
+from dateutil import parser
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
@@ -643,6 +644,9 @@ class LocalDataStore(DataStore):
             if not meta_info:
                 meta_info = OrderedDict()
             meta_info['title'] = title
+
+        if not re.match(r'^[\w\-. ]+$', data_source_id):
+            raise DataAccessError('Unaccepted characters in Data Source name', data_source_id)
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
