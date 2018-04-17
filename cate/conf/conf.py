@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional, Sequence, Union
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
     VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_VERSION_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
-    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE, DEFAULT_VARIABLES
 
 _CONFIG = None
 
@@ -93,6 +93,11 @@ def get_default_res_pattern() -> str:
 
 def get_http_proxy() -> str:
     return get_config().get('http_proxy')
+
+
+def is_default_variable(var_name: str) -> bool:
+    default_variables = get_config().get('default_variables', DEFAULT_VARIABLES)
+    return var_name in default_variables
 
 
 def get_variable_display_settings(var_name: str) -> Optional[Dict[str, Any]]:

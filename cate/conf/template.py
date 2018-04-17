@@ -106,6 +106,16 @@ excluded_data_sources = [
 ]
 
 
+# Configure any default variables of a dataset that will be initially selected and displayed first.
+# 'default_display_variables' is a list comprising variable name sets. Each set may represent
+# multiple similar datasets.
+# default_variables = {
+#     'cfc',             # Cloud CCI
+#     'lccs_class',      # Land Cover CCI
+#     'analysed_sst',    # Sea Surface Temperature CCI
+# }
+
+
 # Configure / overwrite default variable display settings as used in various plot_<type>() operations
 # and in the Cate Desktop GUI.
 # Each entry maps a variable name to a dictionary with the following entries:
@@ -123,3 +133,4 @@ excluded_data_sources = [
 # https://matplotlib.org/examples/color/colormaps_reference.html
 # default_color_map = 'jet'
 default_color_map = 'inferno'
+

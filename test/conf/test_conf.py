@@ -18,6 +18,12 @@ class ConfTest(unittest.TestCase):
         self.assertIsNotNone(settings)
         self.assertIn('color_map', settings)
 
+    def test_is_default_variable(self):
+        self.assertTrue(conf.is_default_variable('lccs_class'))
+        self.assertTrue(conf.is_default_variable('analysed_sst'))
+        self.assertTrue(conf.is_default_variable('cfc'))
+        self.assertFalse(conf.is_default_variable('bibo'))
+
     def test_get_default_res_prefix(self):
         default_res_prefix = conf.get_default_res_pattern()
         self.assertIsNotNone(default_res_prefix)
