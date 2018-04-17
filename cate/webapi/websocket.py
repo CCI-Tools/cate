@@ -54,7 +54,8 @@ class WebSocketService:
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),
                     use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
-                    default_res_pattern=conf.get_default_res_pattern())
+                    default_res_pattern=conf.get_default_res_pattern(),
+                    http_proxy=conf.get_http_proxy())
 
     def set_config(self, config: dict) -> None:
 
@@ -71,7 +72,10 @@ class WebSocketService:
         # Split into config file lines
         conf_lines = conf_text.split('\n')
         for key, value in config.items():
-            new_entry = '%s = %s' % (key, repr(value))
+            if value:
+                new_entry = '%s = %s' % (key, repr(value))
+            else:
+                new_entry = '# %s =' % key
             # Try replacing existing code lines starting with key
             # Replace in reverse line order, because config files are interpreted top-down
             indices = list(range(len(conf_lines)))

@@ -7,6 +7,8 @@
   introduced new error type `cate.core.types.ValidationError` for special treatment in the GUI.
 * Make Cate HTTP User-Agent distinguishable [#510](https://github.com/CCI-Tools/cate/issues/510).
 * Fixed broken WebAPI invocation from CLI.
+* Use only one variable (http_proxy) for proxy URL in conf.py. The value of this variable is then returned when
+  get_config() is called. [#544](https://github.com/CCI-Tools/cate/issues/544)
 
 ## Version 2.0.0.dev8
 

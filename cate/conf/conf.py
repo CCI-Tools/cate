@@ -91,6 +91,10 @@ def get_default_res_pattern() -> str:
     return default_res_pattern
 
 
+def get_http_proxy() -> str:
+    return get_config().get('http_proxy')
+
+
 def is_default_variable(var_name: str) -> bool:
     default_variables = get_config().get('default_variables', DEFAULT_VARIABLES)
     return var_name in default_variables
