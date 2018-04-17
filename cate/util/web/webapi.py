@@ -92,6 +92,8 @@ def run_start(name: str,
     parser = _get_common_cli_parser(name, description, version)
     parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
                         help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
+    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
+                        help="if given, logging will be delegated to the console (stderr)")
     try:
         args_obj = parser.parse_args(args)
 
@@ -101,6 +103,7 @@ def run_start(name: str,
         service = WebAPI()
         service.start(name, application_factory,
                       log_file_prefix=log_file_prefix,
+                      log_to_stderr=args_obj.verbose,
                       port=args_obj.port,
                       address=args_obj.address,
                       caller=args_obj.caller,
@@ -181,6 +184,7 @@ class WebAPI:
               name: str,
               application_factory: ApplicationFactory,
               log_file_prefix: str = None,
+              log_to_stderr: bool = False,
               auto_stop_after: float = None,
               port: int = None,
               address: str = None,
@@ -199,6 +203,7 @@ class WebAPI:
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
+        :param log_to_stderr: Whether logging should be shown on stderr
         :param auto_stop_after: if not-None, time of idleness in seconds before service is terminated
         :param port: the port number
         :param address: the address
@@ -225,7 +230,7 @@ class WebAPI:
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
         options.log_file_prefix = log_file_prefix or ('%s.log' % name)
-        options.log_to_stderr = None
+        options.log_to_stderr = log_to_stderr
         enable_pretty_logging()
 
         port = port or find_free_port()
