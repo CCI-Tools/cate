@@ -45,7 +45,7 @@ class OpMetaInfo:
     are returned "as-is", mostly for performance reasons. Changing entries in these dictionaries directly
     may cause unwanted side-effects.
 
-    :param op_qualified_name: The operation's qualified name.
+    :param qualified_name: The operation's qualified name.
     :param has_monitor: Whether the operation supports a :py:class:`Monitor` keyword argument named ``monitor``.
     :param header: Header information dictionary.
     :param input_names: Input information dictionary.
@@ -298,7 +298,7 @@ class OpMetaInfo:
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
-    def validate_input_values(self, input_values: Dict, except_types=None):
+    def validate_input_values(self, input_values: Dict, except_types=None, validation_exception_class=ValueError):
         """
         Validate given *input_values* against the operation's input properties.
 
@@ -306,7 +306,9 @@ class OpMetaInfo:
         :param except_types: A set of types or ``None``. If an input value's type is in this set,
                it will not be validated against the various input properties,
                such as ``data_type``, ``nullable``, ``value_set``, ``value_range``.
-        :raise ValueError: If *input_values* are invalid w.r.t. to the operation's input properties.
+        :param validation_exception_class: The exception class to be used to raise exceptions if
+               validation fails. Must derive from ``BaseException``. Defaults to ``ValueError``.
+        :raise validation_error_class: If *input_values* are invalid w.r.t. to the operation's input properties.
         """
         inputs = self.inputs
         # Ensure required input values have values (even None is a value).
@@ -315,12 +317,12 @@ class OpMetaInfo:
             is_auto = 'context' in properties
             required = has_no_default and not is_auto
             if required and (name not in input_values):
-                raise ValueError("input '%s' for operation '%s' required" %
-                                 (name, self.qualified_name))
+                raise validation_exception_class("Input '%s' for operation '%s' must be given." %
+                                                 (name, self.qualified_name))
         # Ensure all input values are valid w.r.t. input properties
         for name, value in input_values.items():
             if name not in inputs:
-                raise ValueError("'%s' is not an input of operation '%s'" % (name, self.qualified_name))
+                raise validation_exception_class("'%s' is not an input of operation '%s'." % (name, self.qualified_name))
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
@@ -334,51 +336,61 @@ class OpMetaInfo:
                 value_set_has_none = value_set and (None in value_set)
                 nullable = input_properties.get('nullable', False)
                 if not (default_is_none or value_set_has_none or nullable):
-                    raise ValueError(
-                        "input '%s' for operation '%s' is not nullable" % (name, self.qualified_name))
+                    raise validation_exception_class(
+                        "Input '%s' for operation '%s' must be given." % (name, self.qualified_name))
                 continue
             if data_type:
-                self._validate_value_against_data_type(data_type, value, self.qualified_name, "input", name)
+                self._validate_value_against_data_type(data_type, value, self.qualified_name, "Input", name,
+                                                       validation_exception_class)
             value_set = input_properties.get('value_set', None)
             if value_set and (value not in value_set):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be one of %s" % (
+                raise validation_exception_class(
+                    "Input '%s' for operation '%s' must be one of %s." % (
                         name, self.qualified_name, value_set))
             value_range = input_properties.get('value_range', None)
             if value_range and (value is None or not (value_range[0] <= value <= value_range[1])):
-                raise ValueError(
-                    "input '%s' for operation '%s' must be in range %s" % (
+                raise validation_exception_class(
+                    "Input '%s' for operation '%s' must be in range %s." % (
                         name, self.qualified_name, value_range))
 
-    def validate_output_values(self, output_values: Dict):
+    def validate_output_values(self, output_values: Dict, validation_exception_class: type = ValueError):
         """
         Validate given *output_values* against the operation's output properties.
 
         :param output_values: The dictionary of output values.
-        :raise ValueError: If *output_values* are invalid w.r.t. to the operation's output properties.
+        :param validation_exception_class: The exception class to be used to raise exceptions if
+               validation fails. Must derive from ``BaseException``. Defaults to ``ValueError``.
+        :raise validation_error_class: If *output_values* are invalid w.r.t. to the operation's output properties.
         """
         outputs = self.outputs
         for name, value in output_values.items():
             if name not in outputs:
-                raise ValueError("'%s' is not an output of operation '%s'" % (name, self.qualified_name))
+                raise validation_exception_class("'%s' is not an output of operation '%s'." % (name, self.qualified_name))
             output_properties = outputs[name]
             if value is not None:
                 data_type = output_properties.get('data_type', None)
                 if data_type:
-                    self._validate_value_against_data_type(data_type, value, self.qualified_name, "output", name)
+                    self._validate_value_against_data_type(data_type, value, self.qualified_name, "Output", name,
+                                                           validation_exception_class)
 
     @classmethod
-    def _validate_value_against_data_type(cls, data_type, value, op_name: str, port_type: str, port_name: str):
+    def _validate_value_against_data_type(cls,
+                                          data_type,
+                                          value,
+                                          op_name: str,
+                                          port_type: str,
+                                          port_name: str,
+                                          validation_exception_class: type):
         try:
             value, can_convert = cls._convert_value(data_type, value)
-        except ValueError as e:
-            raise ValueError(
+        except (ValueError, validation_exception_class) as e:
+            raise validation_exception_class(
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
         if not can_convert and value is not None:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
             if not is_float_type and not isinstance(value, data_type):
-                raise ValueError(
-                    "%s '%s' for operation '%s' must be of type '%s', but got type '%s'" % (
+                raise validation_exception_class(
+                    "%s '%s' for operation '%s' must be of type '%s', but got type '%s'." % (
                         port_type, port_name, op_name, data_type.__name__, type(value).__name__))
 
     @classmethod
@@ -472,7 +484,8 @@ class OpMetaInfo:
                     raise ValueError("illegal input property, position={} used twice".format(position))
             else:
                 raise ValueError(
-                    "illegal input property, expected position={} to {}, but was {}".format(0, num_inputs - 1, position))
+                    "illegal input property, expected position={} to {}, but was {}".format(0, num_inputs - 1,
+                                                                                            position))
             input_names[position] = name
             index += 1
         for position in range(num_inputs):

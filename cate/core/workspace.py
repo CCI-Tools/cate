@@ -20,9 +20,10 @@
 # SOFTWARE.
 
 """
-This module defines the ``Workspace`` class and the ``WorkspaceError`` exception type.
+This module defines the ``Workspace`` class.
 """
 
+import logging
 import os
 import shutil
 from collections import OrderedDict
@@ -38,7 +39,7 @@ from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
-from ..core.types import GeoDataFrame
+from ..core.types import GeoDataFrame, ValidationError
 from ..util.im import get_chunk_size
 from ..util.misc import object_to_qualified_name, to_json, new_indexed_name
 from ..util.monitor import Monitor
@@ -48,6 +49,8 @@ from ..util.safe import safe_eval
 from ..util.undefined import UNDEFINED
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 #: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
 #: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
@@ -166,23 +169,20 @@ class Workspace:
     @classmethod
     def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_dir(base_dir)):
-            raise WorkspaceError('Not a valid workspace: %s' % base_dir)
-        try:
-            workflow_file = cls.get_workflow_file(base_dir)
-            workflow = Workflow.load(workflow_file)
-            workspace = Workspace(base_dir, workflow)
+            raise ValidationError('Not a valid workspace: %s' % base_dir)
+        workflow_file = cls.get_workflow_file(base_dir)
+        workflow = Workflow.load(workflow_file)
+        workspace = Workspace(base_dir, workflow)
 
-            # Read resources for persistent steps
-            persistent_steps = [step for step in workflow.steps if step.persistent]
-            if persistent_steps:
-                with monitor.starting('Reading resources', len(persistent_steps)):
-                    for step in persistent_steps:
-                        workspace._read_resource_from_file(step.id)
-                    monitor.progress(1)
+        # Read resources for persistent steps
+        persistent_steps = [step for step in workflow.steps if step.persistent]
+        if persistent_steps:
+            with monitor.starting('Reading resources', len(persistent_steps)):
+                for step in persistent_steps:
+                    workspace._read_resource_from_file(step.id)
+                monitor.progress(1)
 
-            return workspace
-        except (IOError, OSError) as e:
-            raise WorkspaceError(str(e)) from e
+        return workspace
 
     def close(self):
         if self._is_closed:
@@ -199,61 +199,58 @@ class Workspace:
                         if res_name not in persistent_ids:
                             try:
                                 os.remove(res_file)
-                            except (OSError, IOError) as e:
-                                print('error:', e)
+                            except OSError:
+                                _LOG.exception('closing workspace failed')
 
     def save(self, monitor: Monitor = Monitor.NONE):
         self._assert_open()
         with self._lock:
             base_dir = self.base_dir
-            try:
-                if not os.path.isdir(base_dir):
-                    os.mkdir(base_dir)
-                workspace_dir = self.workspace_dir
-                if not os.path.isdir(workspace_dir):
-                    os.mkdir(workspace_dir)
-                self.workflow.store(self.workflow_file)
+            if not os.path.isdir(base_dir):
+                os.mkdir(base_dir)
+            workspace_dir = self.workspace_dir
+            if not os.path.isdir(workspace_dir):
+                os.mkdir(workspace_dir)
+            self.workflow.store(self.workflow_file)
 
-                # Write resources for all persistent steps
-                persistent_steps = [step for step in self.workflow.steps if step.persistent]
-                if persistent_steps:
-                    with monitor.starting('Writing resources', len(persistent_steps)):
-                        for step in persistent_steps:
-                            self._write_resource_to_file(step.id)
-                            monitor.progress(1)
+            # Write resources for all persistent steps
+            persistent_steps = [step for step in self.workflow.steps if step.persistent]
+            if persistent_steps:
+                with monitor.starting('Writing resources', len(persistent_steps)):
+                    for step in persistent_steps:
+                        self._write_resource_to_file(step.id)
+                        monitor.progress(1)
 
-                self._is_modified = False
-            except (IOError, OSError) as e:
-                raise WorkspaceError(str(e)) from e
+            self._is_modified = False
 
     def _write_resource_to_file(self, res_name):
         res_value = self._resource_cache.get(res_name)
         if res_value is not None:
             resource_file = os.path.join(self.workspace_dir, res_name + '.nc')
+            # noinspection PyBroadException
             try:
                 res_value.to_netcdf(resource_file)
             except AttributeError:
                 pass
-            except Exception as e:
-                print('error:', e)
+            except Exception:
+                _LOG.exception('writing resource "%s" to file failed' % res_name)
 
     def _read_resource_from_file(self, res_name):
         res_file = os.path.join(self.workspace_dir, res_name + '.nc')
         if os.path.isfile(res_file):
+            # noinspection PyBroadException
             try:
                 res_value = xr.open_dataset(res_file)
                 self._resource_cache[res_name] = res_value
-            except Exception as e:
-                print('error:', e)
-
-    # <<< Issue #270
+            except Exception:
+                _LOG.exception('reading resource "%s" from file failed' % res_name)
 
     def set_resource_persistence(self, res_name: str, persistent: bool):
         with self._lock:
             self._assert_open()
             res_step = self.workflow.find_node(res_name)
             if res_step is None:
-                raise WorkspaceError('Resource "%s" not found' % res_name)
+                raise ValidationError('Resource "%s" not found' % res_name)
             if res_step.persistent == persistent:
                 return
             res_step.persistent = persistent
@@ -414,16 +411,13 @@ class Workspace:
     def delete(self):
         with self._lock:
             self.close()
-            try:
-                shutil.rmtree(self.workspace_dir)
-            except (IOError, OSError) as e:
-                raise WorkspaceError(str(e)) from e
+            shutil.rmtree(self.workspace_dir)
 
     def delete_resource(self, res_name: str):
         with self._lock:
             res_step = self.workflow.find_node(res_name)
             if res_step is None:
-                raise WorkspaceError('Resource "%s" not found' % res_name)
+                raise ValidationError('Resource "%s" not found' % res_name)
 
             dependent_steps = []
             for step in self.workflow.steps:
@@ -431,8 +425,8 @@ class Workspace:
                     dependent_steps.append(step.id)
 
             if dependent_steps:
-                raise WorkspaceError('Cannot delete resource "%s" because the following resource(s) '
-                                     'depend on it: %s' % (res_name, ', '.join(dependent_steps)))
+                raise ValidationError('Cannot delete resource "%s" because the following resource(s) '
+                                      'depend on it: %s' % (res_name, ', '.join(dependent_steps)))
 
             self.workflow.remove_step(res_step)
             if res_name in self._resource_cache:
@@ -443,13 +437,13 @@ class Workspace:
         with self._lock:
             res_step = self.workflow.find_node(res_name)
             if res_step is None:
-                raise WorkspaceError('Resource "%s" not found' % res_name)
+                raise ValidationError('Resource "%s" not found' % res_name)
             res_step_new = self.workflow.find_node(new_res_name)
             if res_step_new is res_step:
                 return
             if res_step_new is not None:
-                raise WorkspaceError('Resource "%s" cannot be renamed to "%s", '
-                                     'because "%s" is already in use.' % (res_name, new_res_name, new_res_name))
+                raise ValidationError('Resource "%s" cannot be renamed to "%s", '
+                                      'because "%s" is already in use.' % (res_name, new_res_name, new_res_name))
 
             res_step.set_id(new_res_name)
 
@@ -480,7 +474,7 @@ class Workspace:
 
         op = OP_REGISTRY.get_op(op_name)
         if not op:
-            raise WorkspaceError('Unknown operation "%s"' % op_name)
+            raise ValidationError('Unknown operation "%s"' % op_name)
 
         with self._lock:
             if not res_name:
@@ -504,7 +498,7 @@ class Workspace:
 
             does_exist = res_name in namespace
             if not overwrite and does_exist:
-                raise WorkspaceError('A resource named "%s" already exists' % res_name)
+                raise ValidationError('A resource named "%s" already exists' % res_name)
 
             if does_exist:
                 # Prevent resource from self-referencing
@@ -513,7 +507,7 @@ class Workspace:
             # Wire new op_step with outputs from existing steps
             for input_name, input_value in op_kwargs.items():
                 if input_name not in new_step.inputs:
-                    raise WorkspaceError('"%s" is not an input of operation "%s"' % (input_name, op_name))
+                    raise ValidationError('"%s" is not an input of operation "%s"' % (input_name, op_name))
                 input_port = new_step.inputs[input_name]
 
                 if 'source' in input_value:
@@ -526,14 +520,14 @@ class Workspace:
                     elif isinstance(source, Namespace):
                         # source is output_namespace of another step
                         if OpMetaInfo.RETURN_OUTPUT_NAME not in source:
-                            raise WorkspaceError('Illegal argument for input "%s" of operation "%s',
-                                                 (input_name, op_name))
+                            raise ValidationError('Illegal argument for input "%s" of operation "%s' %
+                                                  (input_name, op_name))
                         input_port.source = source[OpMetaInfo.RETURN_OUTPUT_NAME]
                 elif 'value' in input_value:
                     # Constant value
                     input_port.value = input_value['value']
                 else:
-                    raise WorkspaceError('Illegal argument for input "%s" of operation "%s', (input_name, op_name))
+                    raise ValidationError('Illegal argument for input "%s" of operation "%s' % (input_name, op_name))
 
             if validate_args:
                 inputs = new_step.inputs
@@ -568,24 +562,33 @@ class Workspace:
         assert op_name
         assert op_kwargs is not None
 
-        op = OP_REGISTRY.get_op(op_name)
-        if not op:
-            raise WorkspaceError('Unknown operation "%s"' % op_name)
+        unpacked_op_kwargs = {}
+        returns = False
 
         with self._lock:
-            unpacked_op_kwargs = {}
+            op = OP_REGISTRY.get_op(op_name)
+            if not op:
+                raise ValidationError('Unknown operation "%s"' % op_name)
+
             for input_name, input_value in op_kwargs.items():
-                if 'source' in input_value:
+                if 'should_return' == input_name and 'value' in input_value:
+                    returns = input_value['value']
+                elif 'source' in input_value:
                     unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
                 elif 'value' in input_value:
                     unpacked_op_kwargs[input_name] = input_value['value']
 
-            with monitor.starting("Running operation '%s'" % op_name, 2):
-                self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
-                op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+        # Allow executing self.workflow.invoke() out of the locked context so we can run tasks in parallel
+        with monitor.starting("Running operation '%s'" % op_name, 2):
+            self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
+            return_value = op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+            if returns:
+                return return_value
 
     def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
         self._assert_open()
+
+        steps = None
 
         with self._lock:
             if not res_name:
@@ -593,20 +596,22 @@ class Workspace:
             else:
                 res_step = self.workflow.find_node(res_name)
                 if res_step is None:
-                    raise WorkspaceError('Resource "%s" not found' % res_name)
+                    raise ValidationError('Resource "%s" not found' % res_name)
                 steps = self.workflow.find_steps_to_compute(res_step.id)
-            if len(steps):
-                self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
-                return steps[-1].get_output_value()
-            else:
-                return None
+
+        # Allow executing self.workflow.invoke_steps() out of the locked context so we can run tasks in parallel
+        if steps and len(steps):
+            self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
+            return steps[-1].get_output_value()
+        else:
+            return None
 
     def _new_context(self):
         return dict(value_cache=self._resource_cache, workspace=self)
 
     def _assert_open(self):
         if self._is_closed:
-            raise WorkspaceError('Workspace is already closed: ' + self._base_dir)
+            raise ValidationError('Workspace is already closed: ' + self._base_dir)
 
     def _new_resource_name(self, res_pattern):
         return new_indexed_name({step.id for step in self.workflow.steps}, res_pattern)
@@ -614,22 +619,7 @@ class Workspace:
     @staticmethod
     def _validate_res_name(res_name: str):
         if not res_name.isidentifier():
-            raise WorkspaceError(
+            raise ValidationError(
                 "Resource name '%s' is not valid. "
                 "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
                 "except for the first character, the digits 0 through 9." % res_name)
-
-
-class WorkspaceError(Exception):
-    """
-    Error raised by methods of the ``Workspace`` class.
-
-    :param message: Error message
-    """
-
-    def __init__(self, message):
-        super().__init__(message)
-
-    @property
-    def cause(self):
-        return self.__cause__

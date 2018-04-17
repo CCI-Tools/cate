@@ -40,26 +40,24 @@ Components
 import json
 import os
 import re
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
-import socket
-import xarray as xr
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
 from typing import Sequence, Tuple, Optional, Any
 
-from shapely.geometry import Polygon
-
+import xarray as xr
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
-from cate.core.opimpl import subset_spatial_impl, normalize_impl
-from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, VarNames
+from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
+from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
@@ -135,6 +133,25 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
             p1, p2 = searcher.span()
             return time_format, p1, p2
     return None, -1, -1
+
+
+def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
+    """
+    This method applies fixes to the parameters of a 'make_local' invocation.
+    """
+    if ds_id:
+        # the 't0' variable in these SOILMOISTURE data sources
+        # can not be decoded by xarray and lead to an unusable dataset
+        # see: https://github.com/CCI-Tools/cate/issues/326
+        SOILMOISTURE_DS = [
+            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
+            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
+        ]
+        if ds_id in SOILMOISTURE_DS:
+            return [{'name': 't0', 'comment': "can not be decoded by xarray and lead to an unusable dataset\n"
+                                              "see: https://github.com/CCI-Tools/cate/issues/326"}]
+        return []
 
 
 def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, monitor: Monitor = Monitor.NONE):
@@ -619,7 +636,6 @@ class EsaCciOdpDataSource(DataSource):
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
         selected_file_list = self._find_files(time_range)
@@ -675,10 +691,9 @@ class EsaCciOdpDataSource(DataSource):
 
         local_id = local_ds.id
         time_range = TimeRangeLike.convert(time_range)
-        region = PolygonLike.convert(region)
         var_names = VarNamesLike.convert(var_names)
 
-        time_range, region, var_names = self._apply_make_local_fixes(time_range, region, var_names)
+        excluded_variables = get_exclude_variables_fix_known_issues(self.id)
 
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
         compression_enabled = True if compression_level > 0 else False
@@ -723,56 +738,50 @@ class EsaCciOdpDataSource(DataSource):
                     time_coverage_start = selected_file_list[idx][1]
                     time_coverage_end = selected_file_list[idx][2]
 
-                    try:
-                        child_monitor.start(label=file_name, total_work=1)
+                    child_monitor.start(label=file_name, total_work=1)
 
-                        remote_dataset = xr.open_dataset(dataset_uri)
+                    remote_dataset = xr.open_dataset(dataset_uri, drop_variables=[variable.get('name') for variable in
+                                                                                  excluded_variables])
+                    if var_names:
+                        remote_dataset = remote_dataset.drop([var_name for var_name in remote_dataset.data_vars.keys()
+                                                              if var_name not in var_names])
 
-                        if var_names:
-                            remote_dataset = remote_dataset.drop(
-                                [var_name for var_name in remote_dataset.data_vars.keys()
-                                 if var_name not in var_names])
+                    if region:
+                        remote_dataset = normalize_impl(remote_dataset)
+                        remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region),
+                                                                   allow_point=False)
 
-                        if region:
-                            remote_dataset = normalize_impl(remote_dataset)
-                            remote_dataset = subset_spatial_impl(remote_dataset, region)
-                            geo_lon_min, geo_lat_min, geo_lon_max, geo_lat_max = region.bounds
+                        if do_update_of_region_meta_info_once:
+                            local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                            local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                            local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                            local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+                            do_update_of_region_meta_info_once = False
 
-                            remote_dataset.attrs['geospatial_lat_min'] = geo_lat_min
-                            remote_dataset.attrs['geospatial_lat_max'] = geo_lat_max
-                            remote_dataset.attrs['geospatial_lon_min'] = geo_lon_min
-                            remote_dataset.attrs['geospatial_lon_max'] = geo_lon_max
-                            if do_update_of_region_meta_info_once:
-                                local_ds.meta_info['bbox_maxx'] = geo_lon_max
-                                local_ds.meta_info['bbox_minx'] = geo_lon_min
-                                local_ds.meta_info['bbox_maxy'] = geo_lat_max
-                                local_ds.meta_info['bbox_miny'] = geo_lat_min
-                                do_update_of_region_meta_info_once = False
+                    if compression_enabled:
+                        for sel_var_name in remote_dataset.variables.keys():
+                            remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
 
-                        if compression_enabled:
-                            for sel_var_name in remote_dataset.variables.keys():
-                                remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                    remote_dataset.to_netcdf(local_filepath)
 
-                        remote_dataset.to_netcdf(local_filepath)
+                    child_monitor.progress(work=1, msg=str(time_coverage_start))
 
-                        child_monitor.progress(work=1, msg=str(time_coverage_start))
-                    finally:
-                        if do_update_of_variables_meta_info_once:
-                            variables_info = local_ds.meta_info.get('variables', [])
-                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                               if var_info.get('name')
-                                                               in remote_dataset.variables.keys() and
-                                                               var_info.get('name')
-                                                               not in remote_dataset.dims.keys()]
-                            do_update_of_variables_meta_info_once = False
+                    if do_update_of_variables_meta_info_once:
+                        variables_info = local_ds.meta_info.get('variables', [])
+                        local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                           if var_info.get('name')
+                                                           in remote_dataset.variables.keys() and
+                                                           var_info.get('name')
+                                                           not in remote_dataset.dims.keys()]
+                        do_update_of_variables_meta_info_once = False
 
-                        local_ds.add_dataset(os.path.join(local_id, file_name),
-                                             (time_coverage_start, time_coverage_end))
+                    local_ds.add_dataset(os.path.join(local_id, file_name),
+                                         (time_coverage_start, time_coverage_end))
 
-                        if do_update_of_verified_time_coverage_start_once:
-                            verified_time_coverage_start = time_coverage_start
-                            do_update_of_verified_time_coverage_start_once = False
-                        verified_time_coverage_end = time_coverage_end
+                    if do_update_of_verified_time_coverage_start_once:
+                        verified_time_coverage_start = time_coverage_start
+                        do_update_of_verified_time_coverage_start_once = False
+                    verified_time_coverage_end = time_coverage_end
                     child_monitor.done()
             else:
                 outdated_file_list = []
@@ -811,34 +820,12 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = coverage_from
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
-        except OSError as e:
+        except (OSError, ValueError) as e:
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
+        local_ds.meta_info['exclude_variables'] = excluded_variables
         local_ds.save(True)
-
-    def _apply_make_local_fixes(self,
-                                time_range: Optional[TimeRange],
-                                region: Optional[Polygon],
-                                var_names: Optional[VarNames]):
-        """
-        This method applies fixes to the parameters of a 'make_local' invocation.
-        """
-        SOILMOISTURE_DS = [
-            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
-        ]
-        if self.id:
-            # the 't0' variable in these SOILMOISTURE data sources
-            # can not be decoded by xarray and lead to an unusable dataset
-            # see: https://github.com/CCI-Tools/cate/issues/326
-            if self.id in SOILMOISTURE_DS:
-                if not var_names:
-                    var_names = self._json_dict.get('variable', [])
-                if 't0' in var_names:
-                    var_names.remove('t0')
-        return time_range, region, var_names
 
     def make_local(self,
                    local_name: str,

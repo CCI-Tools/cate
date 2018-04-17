@@ -19,23 +19,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
 import os
 import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple, Any
 
-from .objectio import write_object
-from .workflow import Workflow
-from .workspace import Workspace, WorkspaceError, OpKwArgs
 from ..conf.defaults import SCRATCH_WORKSPACES_PATH
+from ..core.types import ValidationError
+from .objectio import write_object
 from ..util.monitor import Monitor
 from ..util.safe import safe_eval
 from ..util.undefined import UNDEFINED
+from .workflow import Workflow
+from .workspace import Workspace, OpKwArgs
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 
 class WorkspaceManager(metaclass=ABCMeta):
@@ -94,7 +98,7 @@ class WorkspaceManager(metaclass=ABCMeta):
     @abstractmethod
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Workspace:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         pass
 
     @abstractmethod
@@ -160,7 +164,7 @@ class FSWorkspaceManager(WorkspaceManager):
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.get(base_dir, None)
         if workspace is None:
-            raise WorkspaceError('workspace does not exist: ' + base_dir)
+            raise ValidationError('Workspace does not exist: %s' % base_dir)
         assert not workspace.is_closed
         # noinspection PyTypeChecker
         return workspace
@@ -174,10 +178,10 @@ class FSWorkspaceManager(WorkspaceManager):
 
         base_dir = self.resolve_path(base_dir)
         if base_dir in self._open_workspaces:
-            raise WorkspaceError('workspace already opened: %s' % base_dir)
+            raise ValidationError('Workspace already opened: %s' % base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if os.path.isdir(workspace_dir):
-            raise WorkspaceError('workspace exists, consider opening it: %s' % base_dir)
+            raise ValidationError('Workspace exists, consider opening it: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         assert base_dir not in self._open_workspaces
         self._open_workspaces[base_dir] = workspace
@@ -226,9 +230,9 @@ class FSWorkspaceManager(WorkspaceManager):
                     if len(entries) == 0:
                         empty_dir_exists = True
                     else:
-                        raise WorkspaceError('Directory is not empty: ' + to_dir)
+                        raise ValidationError('Directory is not empty: %s' % to_dir)
                 else:
-                    raise WorkspaceError('A file with same name already exists: ' + to_dir)
+                    raise ValidationError('A file with same name already exists: %s' % to_dir)
             else:
                 monitor.progress(work=5)
 
@@ -236,24 +240,21 @@ class FSWorkspaceManager(WorkspaceManager):
             workspace.save(monitor=monitor.child(work=25))
             workspace.close()
 
-            try:
-                # if the given directory exists and is empty, we must delete it because
-                # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
-                if empty_dir_exists:
-                    os.rmdir(to_dir)
-                monitor.progress(work=5)
-                # Copy all files to new location to_dir
-                shutil.copytree(base_dir, to_dir)
-                monitor.progress(work=10)
-                # Reopen from new location
-                new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
-                # If it was a scratch workspace, delete the original
-                if workspace.is_scratch:
-                    shutil.rmtree(base_dir)
-                monitor.progress(work=5)
-                return new_workspace
-            except (IOError, OSError) as e:
-                raise WorkspaceError(str(e)) from e
+            # if the given directory exists and is empty, we must delete it because
+            # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
+            if empty_dir_exists:
+                os.rmdir(to_dir)
+            monitor.progress(work=5)
+            # Copy all files to new location to_dir
+            shutil.copytree(base_dir, to_dir)
+            monitor.progress(work=10)
+            # Reopen from new location
+            new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
+            # If it was a scratch workspace, delete the original
+            if workspace.is_scratch:
+                shutil.rmtree(base_dir)
+            monitor.progress(work=5)
+            return new_workspace
 
     def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self.resolve_path(base_dir)
@@ -279,10 +280,7 @@ class FSWorkspaceManager(WorkspaceManager):
                 old_workflow = Workflow.load(workflow_file)
             except Exception:
                 pass
-            try:
-                os.remove(workflow_file)
-            except (IOError, OSError) as e:
-                raise WorkspaceError(str(e)) from e
+            os.remove(workflow_file)
         old_workspace = self._open_workspaces.get(base_dir)
         if old_workspace:
             old_workspace.resource_cache.close()
@@ -298,18 +296,14 @@ class FSWorkspaceManager(WorkspaceManager):
         base_dir = self.resolve_path(base_dir)
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if not os.path.isdir(workspace_dir):
-            raise WorkspaceError('not a workspace: %s' % base_dir)
-        try:
-            shutil.rmtree(workspace_dir)
-        except (IOError, OSError) as e:
-            raise WorkspaceError(str(e)) from e
+            raise ValidationError('Not a workspace: %s' % base_dir)
+        shutil.rmtree(workspace_dir)
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Workspace:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         workspace = self.get_workspace(base_dir)
-        workspace.run_op(op_name, op_args, monitor=monitor)
-        return workspace
+        return workspace.run_op(op_name, op_args, monitor=monitor)
 
     def set_workspace_resource(self,
                                base_dir: str,
@@ -371,20 +365,20 @@ class FSWorkspaceManager(WorkspaceManager):
                 variables = ds.data_vars.values()
             for var in variables:
                 if hasattr(var, 'plot'):
-                    print('Plotting ', var)
+                    _LOG.info('Plotting variable %s' % var)
                     var.plot()
             plt.show()
         elif isinstance(obj, xr.DataArray):
             var = obj
             if hasattr(var, 'plot'):
-                print('Plotting ', var)
+                _LOG.info('Plotting variable %s' % var)
                 var.plot()
                 plt.show()
         elif isinstance(obj, np.ndarray):
             plt.plot(obj)
             plt.show()
         else:
-            raise WorkspaceError("don't know how to plot a \"%s\"" % type(obj))
+            raise ValidationError("Don't know how to plot an object of type \"%s\"" % type(obj))
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:

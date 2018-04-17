@@ -1,9 +1,10 @@
 import unittest
 
 from cate.util.monitor import Monitor
-from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler, set_debug_web_socket_rpc
+from cate.util.web.jsonrpchandler import JsonRpcWebSocketHandler
+from cate.util.web.common import set_debug_mode
 
-set_debug_web_socket_rpc(True)
+set_debug_mode(True)
 
 
 class ApplicationMock:
@@ -45,7 +46,8 @@ class JsonRpcWebSocketHandlerTest(unittest.TestCase):
     def setUp(self):
         self.handler = JsonRpcWebSocketHandler(ApplicationMock(),
                                                RequestMock(),
-                                               lambda app: DoItService(app))
+                                               service_factory=lambda app: DoItService(app),
+                                               validation_exception_class=ValueError)
 
     def test_open(self):
         self.assertIsNone(self.handler._service)

@@ -19,14 +19,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import json
 import time
 
 import tornado.websocket
+from tornado.ioloop import IOLoop
 
 from cate.util.monitor import Monitor
+from .common import log_debug
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 class JsonRpcWebSocketMonitor(Monitor):
@@ -63,7 +66,31 @@ class JsonRpcWebSocketMonitor(Monitor):
         self.total = None
         self.worked = None
 
-    def _write_progress(self, message: str = None):
+    def start(self, label: str, total_work: float = None):
+        self.label = label
+        self.total = total_work
+        self.worked = 0.0 if total_work else None
+        self._report_progress()
+        # first progress method should always be sent
+        self.last_time = None
+
+    def progress(self, work: float = None, msg: str = None):
+        self.check_for_cancellation()
+        if work:
+            self.worked = (self.worked or 0.0) + work
+        self._report_progress(message=msg)
+
+    def done(self):
+        self.worked = self.total
+        self._report_progress()
+
+    def cancel(self):
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
+
+    def _report_progress(self, message: str = None):
         current_time = time.time()
         if not self.last_time or (current_time - self.last_time) >= self.report_defer_period:
 
@@ -77,31 +104,10 @@ class JsonRpcWebSocketMonitor(Monitor):
             if self.worked is not None:
                 progress['worked'] = self.worked
 
-            self.handler.write_message(json.dumps(dict(jsonrpc="2.0",
-                                                       id=self.method_id,
-                                                       progress=progress)))
+            self._write_progress_message(progress)
             self.last_time = current_time
 
-    def start(self, label: str, total_work: float = None):
-        self.label = label
-        self.total = total_work
-        self.worked = 0.0 if total_work else None
-        self._write_progress()
-        # first progress method should always be sent
-        self.last_time = None
-
-    def progress(self, work: float = None, msg: str = None):
-        self.check_for_cancellation()
-        if work:
-            self.worked = (self.worked or 0.0) + work
-        self._write_progress(message=msg)
-
-    def done(self):
-        self.worked = self.total
-        self._write_progress()
-
-    def cancel(self):
-        self._cancelled = True
-
-    def is_cancelled(self) -> bool:
-        return self._cancelled
+    def _write_progress_message(self, progress):
+        json_text = json.dumps(dict(jsonrpc="2.0", id=self.method_id, progress=progress))
+        log_debug('Writing:', json_text)
+        IOLoop.current().add_callback(self.handler.write_message, json_text)

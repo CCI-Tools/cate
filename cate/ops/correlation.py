@@ -29,10 +29,19 @@ Functions
 =========
 """
 
-import xarray as xr
+
 import numpy as np
 import pandas as pd
+import xarray as xr
 
+# If CTRL-C is pressed on console on Windows, we get
+#   forrtl: error (200): program aborting due to control-C event
+# Setting FOR_DISABLE_CONSOLE_CTRL_HANDLER=1 should actually avoid this,
+# see https://stackoverflow.com/questions/15457786/ctrl-c-crashes-python-after-importing-scipy-stats
+# import os
+# os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
+# Unfortunately, if the above is uncommented cate-webapi doesn't handle CTRL-C anymore even though
+# a SIGINT handler is registered.
 from scipy.stats import pearsonr
 from scipy.special import betainc
 

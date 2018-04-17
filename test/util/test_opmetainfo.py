@@ -97,17 +97,17 @@ class OpMetaInfoTest(TestCase):
         with self.assertRaises(ValueError) as cm:
             op_meta_info.validate_input_values(dict())
         self.assertEqual(str(cm.exception),
-                         "input 'file' for operation 'some_op' required")
+                         "Input 'file' for operation 'some_op' must be given.")
 
         with self.assertRaises(ValueError) as cm:
             op_meta_info.validate_input_values(dict(file=None))
         self.assertEqual(str(cm.exception),
-                         "input 'file' for operation 'some_op' is not nullable")
+                         "Input 'file' for operation 'some_op' must be given.")
 
         with self.assertRaises(ValueError) as cm:
             op_meta_info.validate_input_values(dict(file='a/b/c', count='bibo'))
         self.assertEqual(str(cm.exception),
-                         "input 'count' for operation 'some_op' must be of type 'int', but got type 'str'")
+                         "Input 'count' for operation 'some_op' must be of type 'int', but got type 'str'.")
 
     def test_to_json_dict(self):
         op_meta_info = OpMetaInfo('x.y.Z')

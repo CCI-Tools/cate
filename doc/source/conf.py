@@ -27,7 +27,7 @@ from cate.version import __version__ as cate_version
 import mock
 
 MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
-                'matplotlib', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
+                'matplotlib', 'matplotlib.animation', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
                 'matplotlib.backends.backend_webagg_core',
                 'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
                 'shapely', 'shapely.errors', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base',

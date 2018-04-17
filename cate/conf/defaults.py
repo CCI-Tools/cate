@@ -29,8 +29,8 @@ DEFAULT_DATA_DIR_NAME = '.cate'
 DEFAULT_DATA_PATH = os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME)
 DEFAULT_VERSION_DATA_PATH = os.path.join(DEFAULT_DATA_PATH, __version__)
 
-VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
 GLOBAL_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
+VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
 LOCAL_CONF_FILE = 'cate-conf.py'
 LOCATION_FILE = 'cate.location'
 
