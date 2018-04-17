@@ -91,6 +91,10 @@ def get_default_res_pattern() -> str:
     return default_res_pattern
 
 
+def get_http_proxy() -> str:
+    return get_config().get('http_proxy')
+
+
 def get_variable_display_settings(var_name: str) -> Optional[Dict[str, Any]]:
     """
     Get the global variable display settings which is a combination of defaults.
