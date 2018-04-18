@@ -88,7 +88,6 @@ import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
-from ..util.misc import checkUrl
 from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -328,6 +327,14 @@ class DataStore(metaclass=ABCMeta):
         return self._is_local
 
     def invalidate(self):
+        """
+        Datastore might use a cached list of available dataset which can change in time.
+        Resources managed by a datastore are external so we have to consider that they can
+        be updated by other process.
+        This method ask to invalidate the internal structure and synchronize it with the
+        current status
+        :return:
+        """
         pass
 
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
@@ -379,11 +386,6 @@ class DataStoreRegistry:
 
     def remove_data_store(self, ds_id: str):
         del self._data_stores[ds_id]
-
-    def invalidate_data_store(self, ds_id: str):
-        ds = self._data_stores.get(ds_id)
-        if ds:
-            ds.invalidate()
 
     def __len__(self):
         return len(self._data_stores)
@@ -461,8 +463,8 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         data_store_list = data_stores
 
     for data_store in data_store_list:
-        if data_store.is_local:
-            data_store.invalidate()
+        # datastore cache might be out of synch
+        data_store.invalidate()
 
     if not primary_data_store and ds_id and ds_id.count('.') > 0:
         primary_data_store_index = -1
@@ -575,18 +577,12 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     else:
         files.extend(paths)
 
-    # look for a valid url or file name
-    report = checkUrl(files[0])
-
-    if not report['is_valid']:
-        if report['is_url']:
-            raise report['error']
-        # should be a file or a glob
-        # unroll glob list
-        files = [i for path in files for i in glob.glob(path)]
+    # should be a file or a glob
+    # unroll glob list into list of files
+    files = [i for path in files for i in glob.glob(path)]
 
     if not files:
-        raise IOError('File {} Not found'.format(paths))
+        raise IOError('File {} not found'.format(paths))
 
     # Find number of chunks as the closest larger squared number (1,4,9,..
     temp_ds = xr.open_dataset(files[0], **kwargs)
