@@ -288,4 +288,4 @@ def _get_min_max(data, monitor=None):
         with monitor.child(1).observing("find maximum"):
             data_max = data.max()
 
-    return (data_min, data_max)
+    return (data_min.values, data_max.values)
