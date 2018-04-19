@@ -76,7 +76,8 @@ import cartopy.crs as ccrs
 import numpy as np
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike, ValidationError
+from cate.core.types import (VarName, DictLike, PolygonLike, TimeLike, DatasetLike,
+                             ValidationError, DimName)
 
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
@@ -550,12 +551,14 @@ def plot_data_frame(df: pd.DataFrame,
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('x_axis', value_set_source='ds.var', data_type=DimName)
+@op_input('y_axis', value_set_source='ds.var', data_type=DimName)
 @op_input('method', value_set=['mean', 'min', 'max', 'sum', 'median'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_hovmoeller(ds: xr.Dataset,
                     var: VarName.TYPE = None,
-                    x_axis: str = 'lat',
-                    y_axis: str = 'time',
+                    x_axis: DimName.TYPE = 'lat',
+                    y_axis: DimName.TYPE = 'time',
                     method: str = 'mean',
                     contour: bool = True,
                     title: str = None,
@@ -592,7 +595,8 @@ def plot_hovmoeller(ds: xr.Dataset,
         dims.remove(x_axis)
         dims.remove(y_axis)
     except ValueError:
-        raise ValidationError('Given dataset variable does not feature required dimensions.')
+        raise ValidationError('Given dataset variable: {} does not feature requested dimensions:\
+ {}, {}.'.format(var_name, x_axis, y_axis))
 
     ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
               'median': np.nanmedian, 'sum': np.nansum}
