@@ -73,6 +73,7 @@ from matplotlib.figure import Figure
 import xarray as xr
 import pandas as pd
 import cartopy.crs as ccrs
+import numpy as np
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike, ValidationError
@@ -80,6 +81,7 @@ from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLik
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
 from cate.ops.plot_helpers import handle_plot_polygon
+from cate.util.monitor import Monitor
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -412,7 +414,8 @@ def plot_scatter(ds1: xr.Dataset,
             remaining_dims = list(set(var1.dims) ^ set(indexers1.keys()))
             min_dim = max(var_data1[remaining_dims[0]].min(), var_data2[remaining_dims[0]].min())
             max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
-            var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) & (var_data1[remaining_dims[0]] <= max_dim),
+            var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) &
+                                        (var_data1[remaining_dims[0]] <= max_dim),
                                         drop=True)
             var_data2 = var_data2.where(
                 (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
@@ -539,6 +542,80 @@ def plot_data_frame(df: pd.DataFrame,
 
     ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
     figure = ax.get_figure()
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'], res_pattern='plot_{index}')
+@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('method', value_set=['mean', 'min', 'max', 'sum', 'median'])
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_hovmoeller(ds: xr.Dataset,
+                    var: VarName.TYPE = None,
+                    x_axis: str = 'lat',
+                    y_axis: str = 'time',
+                    method: str = 'mean',
+                    contour: bool = True,
+                    title: str = None,
+                    file: str = None,
+                    monitor: Monitor = Monitor.NONE,
+                    **kwargs) -> Figure:
+    """
+    Create a Hovmoeller plot of the given dataset.
+    :param ds: Dataset to plot
+    :param var: Name of the variable to plot
+    :param x_axis: Dimension to show on x axis
+    :param y_axis: Dimension to show on y axis
+    :param method: Aggregation method
+    :param contour: Whether to produce a contour plot
+    :param title: Plot title
+    :param file: path to a file in which to save the plot
+    :param monitor: A progress monitor
+    :param kwargs: Keyword arguments to pass to underlying xarray plotting fuction
+    """
+    var_name = None
+    if not var:
+        for key in ds.data_vars.keys():
+            var_name = key
+            break
+    else:
+        var_name = VarName.convert(var)
+    var = ds[var_name]
+
+    if x_axis == y_axis:
+        raise ValidationError('Dimensions should differ between plot axis.')
+
+    dims = list(var.dims)
+    try:
+        dims.remove(x_axis)
+        dims.remove(y_axis)
+    except ValueError:
+        raise ValidationError('Given dataset variable does not feature required dimensions.')
+
+    ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
+              'median': np.nanmedian, 'sum': np.nansum}
+
+    with monitor.starting("Plot Hovmoeller", total_work=100):
+        monitor.progress(5)
+        with monitor.child(90).observing("Aggregate"):
+            var = var.reduce(ufuncs[method], dim=dims)
+        monitor.progress(5)
+
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+
+    if contour:
+        var.plot.contourf(ax=ax, x=x_axis, y=y_axis, **kwargs)
+    else:
+        var.plot.pcolormesh(ax=ax, x=x_axis, y=y_axis, **kwargs)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
     if file:
         figure.savefig(file)
 
