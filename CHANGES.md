@@ -2,6 +2,7 @@
 
 * Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
 * Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)
+* Fixed a bug of unable to do pixel values extraction if one of the workflow has an error [#616](https://github.com/CCI-Tools/cate/issues/616)
 
 ## Version 2.0.0.dev9
 

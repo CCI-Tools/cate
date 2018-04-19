@@ -90,6 +90,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(stat['min'], -0.9)
         self.assertAlmostEqual(stat['max'], 26.2)
 
+    @unittest.skip("_extract_point is not an operator anymore")
     def test_get_resource_values(self):
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(workspaces, [])

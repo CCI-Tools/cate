@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional, Any, Union
+from typing import List, Sequence, Optional, Any, Union, Tuple
 
 import xarray as xr
 
@@ -305,6 +305,14 @@ class WebSocketService:
                             monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         with cwd(base_dir):
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
+
+    def extract_pixel_values(self, base_dir: str, source: str,
+                             point: Tuple[float, float], indexers: dict) -> Union[Any, None]:
+        with cwd(base_dir):
+            from cate.ops.subset import extract_point
+            from cate.util.safe import safe_eval
+            ds = safe_eval(source, self.workspace_manager.get_workspace(base_dir).resource_cache)
+            return extract_point(ds, point, indexers)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
