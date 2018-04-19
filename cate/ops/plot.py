@@ -557,8 +557,8 @@ def plot_data_frame(df: pd.DataFrame,
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_hovmoeller(ds: xr.Dataset,
                     var: VarName.TYPE = None,
-                    x_axis: DimName.TYPE = 'lat',
-                    y_axis: DimName.TYPE = 'time',
+                    x_axis: DimName.TYPE = None,
+                    y_axis: DimName.TYPE = None,
                     method: str = 'mean',
                     contour: bool = True,
                     title: str = None,
@@ -587,6 +587,15 @@ def plot_hovmoeller(ds: xr.Dataset,
         var_name = VarName.convert(var)
     var = ds[var_name]
 
+    if not x_axis:
+        x_axis = var.dims[0]
+
+    if not y_axis:
+        try:
+            y_axis = var.dims[1]
+        except IndexError:
+            raise ValidationError('Given dataset variable should have at least two dimensions.')
+
     if x_axis == y_axis:
         raise ValidationError('Dimensions should differ between plot axis.')
 
@@ -609,6 +618,8 @@ def plot_hovmoeller(ds: xr.Dataset,
 
     figure = plt.figure()
     ax = figure.add_subplot(111)
+    if x_axis == 'time':
+        figure.autofmt_xdate()
 
     if contour:
         var.plot.contourf(ax=ax, x=x_axis, y=y_axis, **kwargs)
