@@ -91,8 +91,25 @@ def get_default_res_pattern() -> str:
     return default_res_pattern
 
 
-def get_http_proxy() -> str:
-    return get_config().get('http_proxy')
+def get_http_proxy() -> Optional[str]:
+    """
+    Get a valid 'http_proxy' value. Log a warning if it is invalid.
+    :return: URL string or None.
+    """
+    http_proxy = get_config().get('http_proxy')
+
+    if http_proxy is None:
+        return None
+
+    if isinstance(http_proxy, str):
+        if http_proxy is '':
+            return None
+        if http_proxy.startswith('https:') or http_proxy.startswith('http:'):
+            return http_proxy
+
+    _LOG.warning('invalid configuration: http_proxy = %r' % http_proxy)
+
+    return http_proxy
 
 
 def is_default_variable(var_name: str) -> bool:
@@ -146,11 +163,7 @@ def _init_config(config_files: Sequence[str], config_dirs, template_module: str 
     """
     _write_location_files(config_dirs)
     new_config = _read_config_files(config_files, template_module=template_module)
-    global _CONFIG
-    if new_config is not None:
-        _CONFIG = new_config
-    else:
-        _CONFIG = {}
+    set_config(new_config if new_config is not None else {})
 
 
 def _read_config_files(config_files: Sequence[str],
@@ -246,3 +259,22 @@ def _write_default_config_file(config_file: str, template_module: str) -> str:
         fp.write(text)
 
     return config_file
+
+
+def set_config(config: dict, update=False) -> None:
+    """
+    Direct modification of the configuration.
+
+    Should be used for testing only.
+
+    :param config: The new configuration values
+    :param update: Whether to update or replace the configuration.
+    """
+    global _CONFIG
+    if _CONFIG is None:
+        if update:
+            raise RuntimeError('configuration not initialized')
+        else:
+            _CONFIG = config
+    else:
+        _CONFIG.update(config)

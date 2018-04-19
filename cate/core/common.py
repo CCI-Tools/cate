@@ -19,11 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cate.conf import get_config_value
+from cate.conf import get_http_proxy
 
-import logging
-
-__author__ = "Chris Bernat (Telespazio VEGA UK Ltd)"
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Hans Permana (Brockmann Consult GmbH), " \
+             "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def initialize_proxy():
@@ -31,22 +31,15 @@ def initialize_proxy():
     Initialize user defined proxy settings, read proxy setting from config file.
     Populates value to 3rd-party libraries using proper environment variables.
     """
+    http_proxy = get_http_proxy()
+    if not http_proxy:
+        return
+
     from os import environ
-
-    http_proxy_url = get_config_value('http_proxy')
-
-    if not http_proxy_url:
-        log_invalid_http_url(http_proxy_url)
-    elif http_proxy_url.startswith('https'):
-        environ['https_proxy'] = http_proxy_url
-    elif http_proxy_url.startswith('http'):
-        environ['http_proxy'] = http_proxy_url
-    else:
-        log_invalid_http_url(http_proxy_url)
-
-
-def log_invalid_http_url(http_proxy_url):
-    logging.warning('invalid proxy URL "' + str(http_proxy_url) + '"')
+    if http_proxy.startswith('https:'):
+        environ['https_proxy'] = http_proxy
+    elif http_proxy.startswith('http:'):
+        environ['http_proxy'] = http_proxy
 
 
 def configure_user_agent():
