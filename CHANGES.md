@@ -1,4 +1,9 @@
-## Version 2.0.0.dev9 (in dev)
+## Version 2.0.0.dev10 (in development)
+
+* Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
+* Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)
+
+## Version 2.0.0.dev9
 
 * Representative default variables [#590](https://github.com/CCI-Tools/cate/issues/590).
 * Tasks are no longer executed in parallel [#606](https://github.com/CCI-Tools/cate/issues/606).
