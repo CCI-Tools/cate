@@ -8,6 +8,7 @@ dependencies:
   # dependencies (in alphabetical order)
   #
   - cartopy >=0.15,<1.0
+  - conda >=4.5.1,<5.0
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25,<1.0
   - dask >=0.15.4,<1.0
