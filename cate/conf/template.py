@@ -133,4 +133,3 @@ excluded_data_sources = [
 # https://matplotlib.org/examples/color/colormaps_reference.html
 # default_color_map = 'jet'
 default_color_map = 'inferno'
-

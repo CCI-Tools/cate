@@ -5,7 +5,6 @@ import shutil
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
 from cate.webapi.websocket import WebSocketService
-from cate.core.workspace import mk_op_kwargs
 
 
 class WebSocketServiceTest(unittest.TestCase):

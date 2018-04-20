@@ -100,7 +100,6 @@ import warnings
 warnings.filterwarnings("ignore")  # never print any warnings to users
 
 import argparse
-import logging
 import os
 import os.path
 import pprint
