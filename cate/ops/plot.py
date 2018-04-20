@@ -589,12 +589,16 @@ def plot_hovmoeller(ds: xr.Dataset,
 
     if not x_axis:
         x_axis = var.dims[0]
+    else:
+        x_axis = DimName.convert(x_axis)
 
     if not y_axis:
         try:
             y_axis = var.dims[1]
         except IndexError:
             raise ValidationError('Given dataset variable should have at least two dimensions.')
+    else:
+        y_axis = DimName.convert(y_axis)
 
     if x_axis == y_axis:
         raise ValidationError('Dimensions should differ between plot axis.')
