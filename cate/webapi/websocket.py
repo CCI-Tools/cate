@@ -310,8 +310,7 @@ class WebSocketService:
                              point: Tuple[float, float], indexers: dict) -> Union[Any, None]:
         with cwd(base_dir):
             from cate.ops.subset import extract_point
-            from cate.util.safe import safe_eval
-            ds = safe_eval(source, self.workspace_manager.get_workspace(base_dir).resource_cache)
+            ds = self.workspace_manager.get_workspace(base_dir).resource_cache.get(source)
             return extract_point(ds, point, indexers)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
