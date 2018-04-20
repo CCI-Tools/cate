@@ -211,11 +211,12 @@ def reduce(ds: DatasetLike.TYPE,
 
     if not var:
         var = list(ds.data_vars.keys())
-
-    if dim:
-        dim = DimNamesLike.convert(dim)
-
     var_names = VarNamesLike.convert(var)
+
+    if not dim:
+        dim = list(ds.coords.keys())
+    else:
+        dim = DimNamesLike.convert(dim)
 
     retset = ds.copy()
 
