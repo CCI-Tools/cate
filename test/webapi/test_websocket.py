@@ -90,7 +90,6 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertAlmostEqual(stat['min'], -0.9)
         self.assertAlmostEqual(stat['max'], 26.2)
 
-    @unittest.skip("_extract_point is not an operator anymore")
     def test_get_resource_values(self):
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(workspaces, [])
@@ -99,9 +98,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(1, len(workspaces))
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
-        op_name = "_extract_point"
-        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
-        values = self.service.run_op_in_workspace(self.base_dir, op_name, op_args)
+        values = self.service.extract_pixel_values(self.base_dir, 'ds', (10.22, 34.52), dict(time='2014-09-11'))
 
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)
