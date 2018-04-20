@@ -549,7 +549,7 @@ def plot_data_frame(df: pd.DataFrame,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'], res_pattern='plot_{index}')
+@op(tags=['plot'], res_pattern='plot_{index}', version='1.0')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('x_axis', value_set_source='ds.var', data_type=DimName)
 @op_input('y_axis', value_set_source='ds.var', data_type=DimName)
