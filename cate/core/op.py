@@ -110,6 +110,7 @@ from typing import Union, Callable, Optional, Dict
 
 import xarray as xr
 
+from .types import ValidationError
 from ..util.opmetainf import OpMetaInfo
 from ..util.monitor import Monitor
 from ..util.undefined import UNDEFINED
@@ -205,7 +206,7 @@ class Operation:
         self.op_meta_info.set_default_input_values(input_values)
 
         # validate the input_values using this operation's meta-info
-        self.op_meta_info.validate_input_values(input_values)
+        self.op_meta_info.validate_input_values(input_values, validation_exception_class=ValidationError)
 
         if self.op_meta_info.has_monitor:
             # set the monitor only if it is an argument
@@ -461,6 +462,7 @@ def op_input(input_name: str,
              value_set_source=UNDEFINED,
              value_set=UNDEFINED,
              value_range=UNDEFINED,
+             script_lang=UNDEFINED,
              deprecated=UNDEFINED,
              position=UNDEFINED,
              context=UNDEFINED,
@@ -500,6 +502,8 @@ def op_input(input_name: str,
     :param value_set: A sequence of the valid values. Note that all values in this sequence
            must be compatible with *data_type*.
     :param value_range: A sequence specifying the possible range of valid values.
+    :param script_lang: The programming language for a parameter of data_type "str" that provides source
+           code of a script, e.g. "python".
     :param deprecated: An optional boolean or a string. If a string is used, it should explain
            why the input has been deprecated and which new input to use instead.
            If set to ``True``, the input's doc-string should explain the deprecation.
@@ -511,7 +515,7 @@ def op_input(input_name: str,
            and ``value_cache`` which is a mapping from step identifiers to step outputs. If *context* is a
            string, the value of the operation input will be the result of evaluating the string as Python expression
            with the current execution context as local environment. This means, *context* may be an expression
-           such as 'workspace', 'workspace.base_dir', 'step', 'step.id'.
+           such as 'value_cache', 'workspace.base_dir', 'step', 'step.id'.
     :param properties: Other properties (keyword arguments) that will be added to the
            meta-information of the named output.
     :param registry: Optional operation registry.
@@ -529,6 +533,7 @@ def op_input(input_name: str,
                               value_set_source=value_set_source,
                               value_set=value_set,
                               value_range=value_range,
+                              script_lang=script_lang,
                               deprecated=deprecated,
                               position=position,
                               context=context,

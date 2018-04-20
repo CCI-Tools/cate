@@ -29,13 +29,15 @@ Functions
 =========
 """
 
+import numpy as np
+import pandas as pd
 import xarray as xr
 from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import DatasetLike, VarName
+from cate.core.types import DatasetLike, ValidationError
 from cate.util.monitor import Monitor
-from cate.util.safe import safe_eval
+from cate.util.safe import safe_exec
 
 
 @op(tags=['arithmetic'], version='1.0')
@@ -93,8 +95,8 @@ def ds_arithmetics(ds: DatasetLike.TYPE,
                 elif item[:] == 'exp':
                     retset = xu.exp(retset)
                 else:
-                    raise ValueError('Arithmetic operation {} not'
-                                     ' implemented.'.format(item[0]))
+                    raise ValidationError('Arithmetic operation {} not'
+                                          ' implemented.'.format(item[0]))
 
     return retset
 
@@ -160,43 +162,78 @@ def diff(ds: xr.Dataset,
 
 # noinspection PyIncorrectDocstring
 @op(tags=['arithmetic'], version='1.0')
-@op_input('ds', data_type=DatasetLike, nullable=True)
-@op_input('expr')
-@op_input('var', data_type=VarName)
+@op_input('ds', data_type=DatasetLike, nullable=True, default_value=None)
+@op_input('script', script_lang="python")
 @op_input('copy')
 @op_input('_ctx', context=True)
-@op_return(add_history=True)
+# @op_return(add_history=True)
 def compute(ds: DatasetLike.TYPE,
-            expr: str,
-            var: VarName.TYPE,
+            script: str,
             copy: bool = False,
             _ctx: dict = None,
             monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
+    Compute a new dataset from the given Python *script*.
+    The argument *script* must be valid Python code or a single expression comprising at least one
+    value assignment of the form <name> = <expr>. Multiple assignments can be done on multiple lines
+    or on a single line separated by semicolons.
 
-    :param ds: The primary dataset. If omitted, all variables need to be prefixed by their dataset resource names.
-    :param expr: Math expression in which all *ds* variables may be used by name.
-    :param var: The new variable's name.
+    <expr> may reference variables in the given context dataset *ds* or other resources and their variables
+    from the current workflow.
+    In the latter case, use the dot operator to select a variable from a dataset resource.
+
+    Every new variable in *script* of type data array will be added to the new dataset.
+
+    The following packages are available in the code:
+
+    * ``np``: The ``numpy`` top-level package (https://docs.scipy.org/doc/numpy/reference/)
+    * ``pd``: The ``pandas`` top-level package (http://pandas.pydata.org/pandas-docs/stable/api.html)
+    * ``xr``: The ``xarray`` top-level package (http://xarray.pydata.org/en/stable/api.html)
+    * ``xu``: The ``xarray.ufuncs`` package (http://xarray.pydata.org/en/stable/api.html#universal-functions)
+
+    Note, in contrast to the ``np`` package, all the math functions defined in ``xu`` will preserve variable attributes.
+
+    :param ds: Optional context dataset. All variables of this dataset are directly accessible in the *script*.
+               If omitted, all variables need to be prefixed by their dataset resource names.
+    :param script: Valid Python expression comprising at least one assignment of the form <name> = <expr>.
     :param copy: Whether to copy all variables from *ds*.
     :param monitor: An optional progress monitor.
-    :return: A new dataset with the new variable.
+    :return: A new dataset.
     """
 
     if _ctx is not None and 'value_cache' in _ctx:
-        local_namespace = dict(_ctx['value_cache'])
+        orig_namespace = dict(_ctx['value_cache'])
     else:
-        local_namespace = dict()
+        orig_namespace = dict()
 
     if ds is not None:
-        local_namespace.update(ds.data_vars)
+        orig_namespace.update(ds.data_vars)
 
-    with monitor.observing("Computing variable"):
-        data_array = safe_eval(expr, local_namespace=local_namespace)
-        data_array.name = var
+    orig_namespace['np'] = np
+    orig_namespace['pd'] = pd
+    orig_namespace['xr'] = xr
+    orig_namespace['xu'] = xu
+
+    local_namespace = dict(orig_namespace)
+
+    with monitor.observing("Executing script"):
+        safe_exec(script, local_namespace=local_namespace)
+
+    data_vars = {}
+    for name, array in local_namespace.items():
+        if isinstance(array, xr.DataArray) or isinstance(array, xr.Variable):
+            is_new_data_var = name not in orig_namespace
+            if not is_new_data_var:
+                is_new_data_var = array is not orig_namespace[name]
+            if is_new_data_var:
+                array.name = name
+                data_vars[name] = array
 
     if ds is not None and copy:
         new_ds = ds.copy()
-        new_ds[var] = data_array
+        for name, array in data_vars.items():
+            new_ds[name] = array
     else:
-        new_ds = xr.Dataset(data_vars={var: data_array})
+        new_ds = xr.Dataset(data_vars=data_vars)
+
     return new_ds

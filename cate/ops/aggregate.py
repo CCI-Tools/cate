@@ -36,7 +36,7 @@ import numpy as np
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
-from cate.core.types import VarNamesLike, DatasetLike
+from cate.core.types import VarNamesLike, DatasetLike, ValidationError
 
 from cate.ops.normalize import adjust_temporal_attrs
 
@@ -65,21 +65,21 @@ def long_term_average(ds: DatasetLike.TYPE,
     ds = DatasetLike.convert(ds)
     # Check if time dtype is what we want
     if 'datetime64[ns]' != ds.time.dtype:
-        raise ValueError('Long term average operation expects a dataset with the'
-                         ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the normalize operation on this'
-                         ' dataset may help'.format(ds.time.dtype))
+        raise ValidationError('Long term average operation expects a dataset with the'
+                              ' time coordinate of type datetime64[ns], but received'
+                              ' {}. Running the normalize operation on this'
+                              ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a monthly dataset
     try:
         if ds.attrs['time_coverage_resolution'] != 'P1M':
-            raise ValueError('Long term average operation expects a monthly dataset'
-                             ' running temporal aggregation on this dataset'
-                             ' beforehand may help.')
+            raise ValidationError('Long term average operation expects a monthly dataset'
+                                  ' running temporal aggregation on this dataset'
+                                  ' beforehand may help.')
     except KeyError:
-        raise ValueError('Could not determine temporal resolution. Running'
-                         ' the adjust_temporal_attrs operation beforehand may'
-                         ' help.')
+        raise ValidationError('Could not determine temporal resolution. Running'
+                              ' the adjust_temporal_attrs operation beforehand may'
+                              ' help.')
 
     var = VarNamesLike.convert(var)
     # Shallow
@@ -154,19 +154,19 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     ds = DatasetLike.convert(ds)
     # Check if time dtype is what we want
     if 'datetime64[ns]' != ds.time.dtype:
-        raise ValueError('Temporal aggregation operation expects a dataset with the'
-                         ' time coordinate of type datetime64[ns], but received'
-                         ' {}. Running the normalize operation on this'
-                         ' dataset may help'.format(ds.time.dtype))
+        raise ValidationError('Temporal aggregation operation expects a dataset with the'
+                              ' time coordinate of type datetime64[ns], but received'
+                              ' {}. Running the normalize operation on this'
+                              ' dataset may help'.format(ds.time.dtype))
 
     # Check if we have a daily dataset
     try:
         if ds.attrs['time_coverage_resolution'] != 'P1D':
-            raise ValueError('Temporal aggregation operation expects a daily dataset')
+            raise ValidationError('Temporal aggregation operation expects a daily dataset')
     except KeyError:
-        raise ValueError('Could not determine temporal resolution. Running'
-                         ' the adjust_temporal_attrs operation beforehand may'
-                         ' help.')
+        raise ValidationError('Could not determine temporal resolution. Running'
+                              ' the adjust_temporal_attrs operation beforehand may'
+                              ' help.')
 
     with monitor.observing("resample dataset"):
         retset = ds.resample(freq='MS', dim='time', keep_attrs=True, how=method)

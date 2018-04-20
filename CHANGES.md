@@ -1,4 +1,76 @@
-## Version 2.0.0.dev2 (in dev)
+## Version 2.0.0.dev10 (in development)
+
+* Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
+* Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)
+
+## Version 2.0.0.dev9
+
+* Representative default variables [#590](https://github.com/CCI-Tools/cate/issues/590).
+* Tasks are no longer executed in parallel [#606](https://github.com/CCI-Tools/cate/issues/606).
+* WebAPI service problem in CLI [#600](https://github.com/CCI-Tools/cate/issues/600)
+* Improve error messages and handling [#393](https://github.com/CCI-Tools/cate/issues/393),
+  introduced new error type `cate.core.types.ValidationError` for special treatment in the GUI.
+* Make Cate HTTP User-Agent distinguishable [#510](https://github.com/CCI-Tools/cate/issues/510).
+* Fixed broken WebAPI invocation from CLI.
+* Use only one variable (http_proxy) for proxy URL in conf.py. The value of this variable is then returned when
+  get_config() is called. [#544](https://github.com/CCI-Tools/cate/issues/544)
+
+## Version 2.0.0.dev8
+
+* Removed the `cate-webapi` command-line tool and replaced it by two others:
+  * `cate-webapi-start` to start the Cate WebAPI service.
+  * `cate-webapi-stop` to start the Cate WebAPI service. This script executes
+    fast, as it will will not longer import any of the many packages Cate depends on. 
+* Cate Desktop hangs when restarted after quit while running a task
+  [#578](https://github.com/CCI-Tools/cate/issues/578)
+* SST temporal aggregation error
+  [#548](https://github.com/CCI-Tools/cate/issues/548)
+* Scrambled time axis error
+  [#538](https://github.com/CCI-Tools/cate/issues/538)
+
+* Check local datasource name if it doesn't contain restricted/unsupported characters
+  [#568](https://github.com/CCI-Tools/cate/issues/568)
+
+## Version 2.0.0.dev7
+
+* Cate Desktop hangs after upgrading WebAPI to 2.0.0.dev6
+  [#569](https://github.com/CCI-Tools/cate/issues/569), using Tornado 5 webserver now.
+
+## Version 2.0.0.dev6
+
+* Activate script missing after "cate-cli" package installation
+  [#569](https://github.com/CCI-Tools/cate/issues/569)
+* Keep configuration of data stores path 
+  [#439](https://github.com/CCI-Tools/cate/issues/439)
+
+## Version 2.0.0.dev5
+
+* Select long rectangles with ``subset_spatial()``
+  [#541](https://github.com/CCI-Tools/cate/issues/541)
+* Improve performance of ``subset_spatial()``, especially when masking complex polygons
+  [#508](https://github.com/CCI-Tools/cate/issues/508)
+* Select all pixels that are crossed by the given polygon in ``subset_spatial()``
+  [#560](https://github.com/CCI-Tools/cate/issues/560)
+* Enable ``subset_spatial()`` to work with all valid polygons, including sub-pixel ones.
+  [#507](https://github.com/CCI-Tools/cate/issues/507)
+* By default ``plot_map()`` and ``animate_map()`` now produce colormesh (pixel) plots.
+  [#559](https://github.com/CCI-Tools/cate/issues/507)
+* Fix issues with progress writing.
+
+* Raise a more helpful error when Cate runs out of memory trying to save a plot.
+
+## Version 2.0.0.dev4 
+
+* Perform progress writing from the correct thread
+
+## Version 2.0.0.dev3
+
+* Operation to perform arbitrary dataset math
+  [#556](https://github.com/CCI-Tools/cate/issues/556)
+* New parameter `interval` for `animate_map()`
+
+
+## Version 2.0.0.dev2
 
 ### Fixes
 
@@ -23,6 +95,8 @@
   `read_geo_data_frame`.
 * CLI now launches a lot faster, e.g. try now `cate -h`
   [#58](https://github.com/CCI-Tools/cate/issues/58)
+* Cate can now produce animated figures
+  [#86](https://github.com/CCI-Tools/cate/issues/86)
 
 ### Fixes
 
@@ -33,8 +107,10 @@
   [#466](https://github.com/CCI-Tools/cate/issues/466)
 * Region constraint'-option for AEROSOL dataset returns 'code 20' error
   [#462](https://github.com/CCI-Tools/cate/issues/462)
- * Address problems of a user working with Cloud and Aerosol
+* Address problems of a user working with Cloud and Aerosol
   [#478](https://github.com/CCI-Tools/cate/issues/478)
+* Most projections not working in plot operations
+  [#524](https://github.com/CCI-Tools/cate/issues/524)
 * Resolve an index operation documentation issue
   [#496](https://github.com/CCI-Tools/cate/issues/496)
 * Resolve a bug with wrong file open mode

@@ -1,6 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017, 2018 by the ESA CCI Toolbox development team and
-# contributors
+# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -20,10 +19,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Cate version string (PEP440-compatible), e.g. "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-__version__ = '2.0.0.dev10'
+import traceback
+from typing import Optional
 
-# Other package metainfo
-__title__ = 'cate'
-__description__ = ' ESA CCI Toolbox "Cate"'
-__url__ = 'https://climatetoolbox.io/'
+_DEBUG_MODE = False
+
+
+def is_debug_mode() -> bool:
+    global _DEBUG_MODE
+    return _DEBUG_MODE
+
+
+def set_debug_mode(value: bool):
+    """ For testing only """
+    global _DEBUG_MODE
+    _DEBUG_MODE = value
+
+
+def log_debug(*args):
+    global _DEBUG_MODE
+    if _DEBUG_MODE:
+        print('WEBSOCKET RPC DEBUG:', *args)
+
+
+def exception_to_json(exc_info, method=None) -> dict:
+    exc_type, exc_value, exc_tb = exc_info
+    return dict(method=method,
+                exception=_get_exception_name(exc_type),
+                traceback=''.join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+
+
+def _get_exception_name(exc_type: type) -> Optional[str]:
+    try:
+        name = exc_type.__name__
+    except AttributeError:
+        return str(exc_type)
+
+    try:
+        module = exc_type.__module__
+    except AttributeError:
+        module = None
+
+    if module and module != 'builtins':
+        return '%s.%s' % (module, name)
+    return name

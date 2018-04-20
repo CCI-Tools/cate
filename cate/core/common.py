@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2018 by the ESA CCI Toolbox development team and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -19,13 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from cate.conf import get_config_value
+from cate.conf import get_http_proxy
 
-__author__ = "Chris Bernat (Telespazio VEGA UK Ltd)"
-
-
-_CONFIG_KEY_HTTP_PROXY = 'http_proxy'
-_CONFIG_KEY_HTTPS_PROXY = 'https_proxy'
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Hans Permana (Brockmann Consult GmbH), " \
+             "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def initialize_proxy():
@@ -33,11 +31,43 @@ def initialize_proxy():
     Initialize user defined proxy settings, read proxy setting from config file.
     Populates value to 3rd-party libraries using proper environment variables.
     """
-    from os import environ
+    http_proxy = get_http_proxy()
+    if not http_proxy:
+        return
 
-    http_proxy_config = get_config_value(_CONFIG_KEY_HTTP_PROXY)
-    https_proxy_config = get_config_value(_CONFIG_KEY_HTTPS_PROXY)
-    if http_proxy_config:
-        environ['http_proxy'] = http_proxy_config
-    if https_proxy_config:
-        environ['https_proxy'] = https_proxy_config
+    from os import environ
+    if http_proxy.startswith('https:'):
+        environ['https_proxy'] = http_proxy
+    elif http_proxy.startswith('http:'):
+        environ['http_proxy'] = http_proxy
+
+
+def configure_user_agent():
+    """
+    Sets proper Cate HTTP User-Agent in 3rd-party HTTP libraries. Allows to mark HTTP requests sent from Cate
+    application via 3rd-party libraries as a part of Cate application flow rather than showing them as an independent
+    calls.
+    """
+    import requests.utils
+
+    requests.utils.old_user_agent = requests.utils.default_user_agent
+    requests.utils.default_user_agent = lambda x=None: default_user_agent(requests.utils.old_user_agent(x)) if x \
+        else default_user_agent(requests.utils.old_user_agent())
+
+
+def default_user_agent(ext: str = ""):
+    """
+    Default Cate HTTP User-Agent.
+    :param ext:
+    :return:
+    """
+    from ..version import __title__, __version__
+    from platform import machine, python_version, system
+
+    return "{title}/{version} (Python {python}; {system} {arch}) {ext}".format(
+        title=__title__,
+        version=__version__,
+        python=python_version(),
+        system=system(),
+        arch=machine(),
+        ext=ext)

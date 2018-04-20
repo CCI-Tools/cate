@@ -124,8 +124,8 @@ class TestExternal(TestCase):
             # Test differing spatial extents
             ds = subset_spatial(ds, '-50, -50, 50, 50')
             expected = xr.Dataset({
-                'first': (['lat', 'lon', 'time'], np.zeros([25, 26, 24])),
-                'lat': np.linspace(-48, 48, 25),
+                'first': (['lat', 'lon', 'time'], np.zeros([27, 26, 24])),
+                'lat': np.linspace(-52, 52, 27),
                 'lon': np.linspace(-50, 50, 26),
                 'time': [datetime(2000, x, 1) for x in range(1, 13)] +
                         [datetime(2001, x, 1) for x in range(1, 13)]})

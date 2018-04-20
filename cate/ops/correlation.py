@@ -29,15 +29,24 @@ Functions
 =========
 """
 
-import xarray as xr
+
 import numpy as np
 import pandas as pd
+import xarray as xr
 
+# If CTRL-C is pressed on console on Windows, we get
+#   forrtl: error (200): program aborting due to control-C event
+# Setting FOR_DISABLE_CONSOLE_CTRL_HANDLER=1 should actually avoid this,
+# see https://stackoverflow.com/questions/15457786/ctrl-c-crashes-python-after-importing-scipy-stats
+# import os
+# os.environ['FOR_DISABLE_CONSOLE_CTRL_HANDLER'] = '1'
+# Unfortunately, if the above is uncommented cate-webapi doesn't handle CTRL-C anymore even though
+# a SIGINT handler is registered.
 from scipy.stats import pearsonr
 from scipy.special import betainc
 
 from cate.core.op import op, op_input, op_return
-from cate.core.types import VarName, DatasetLike
+from cate.core.types import VarName, DatasetLike, ValidationError
 from cate.util.monitor import Monitor
 
 from cate.ops.normalize import adjust_spatial_attrs
@@ -83,19 +92,19 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
 
     if ((len(array_x.dims) != len(array_y.dims)) and
        (len(array_x.dims) != 1)):
-        raise ValueError('To calculate simple correlation, both provided'
-                         ' datasets should be simple 1d timeseries. To'
-                         ' create a map of correlation coefficients, use'
-                         ' pearson_correlation operation instead.')
+        raise ValidationError('To calculate simple correlation, both provided'
+                              ' datasets should be simple 1d timeseries. To'
+                              ' create a map of correlation coefficients, use'
+                              ' pearson_correlation operation instead.')
 
     if len(array_x['time']) != len(array_y['time']):
-        raise ValueError('The length of the time dimension differs between'
-                         ' the given datasets. Can not perform the calculation'
-                         ', please review operation documentation.')
+        raise ValidationError('The length of the time dimension differs between'
+                              ' the given datasets. Can not perform the calculation'
+                              ', please review operation documentation.')
 
     if len(array_x['time']) < 3:
-        raise ValueError('The length of the time dimension should not be less'
-                         ' than three to run the calculation.')
+        raise ValidationError('The length of the time dimension should not be less'
+                              ' than three to run the calculation.')
 
     with monitor.observing("Calculate Pearson correlation"):
         cc, pv = pearsonr(array_x.values, array_y.values)
@@ -157,43 +166,43 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
     # Further validate inputs
     if array_x.dims == array_y.dims:
         if len(array_x.dims) != 3 or len(array_y.dims) != 3:
-            raise ValueError('A correlation coefficient map can only be produced'
-                             ' if both provided datasets are 3D datasets with'
-                             ' lon/lat/time dimensionality, or if a combination'
-                             ' of a 3D lon/lat/time dataset and a 1D timeseries'
-                             ' is provided.')
+            raise ValidationError('A correlation coefficient map can only be produced'
+                                  ' if both provided datasets are 3D datasets with'
+                                  ' lon/lat/time dimensionality, or if a combination'
+                                  ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                                  ' is provided.')
 
         if array_x.values.shape != array_y.values.shape:
-            raise ValueError('The provided variables {} and {} do not have the'
-                             ' same shape, Pearson correlation can not be'
-                             ' performed. Please review operation'
-                             ' documentation'.format(var_x, var_y))
+            raise ValidationError('The provided variables {} and {} do not have the'
+                                  ' same shape, Pearson correlation can not be'
+                                  ' performed. Please review operation'
+                                  ' documentation'.format(var_x, var_y))
 
         if (not ds_x['lat'].equals(ds_y['lat']) or
                 not ds_x['lon'].equals(ds_y['lon'])):
-            raise ValueError('When performing a pixel by pixel correlation the'
-                             ' datasets have to have the same lat/lon'
-                             ' definition. Consider running coregistration'
-                             ' first')
+            raise ValidationError('When performing a pixel by pixel correlation the'
+                                  ' datasets have to have the same lat/lon'
+                                  ' definition. Consider running coregistration'
+                                  ' first')
 
     elif (((len(array_x.dims) == 3) and (len(array_y.dims) != 1)) or
           ((len(array_x.dims) == 1) and (len(array_y.dims) != 3)) or
           ((len(array_x.dims) != 3) and (len(array_y.dims) == 1)) or
           ((len(array_x.dims) != 1) and (len(array_y.dims) == 3))):
-        raise ValueError('A correlation coefficient map can only be produced'
-                         ' if both provided datasets are 3D datasets with'
-                         ' lon/lat/time dimensionality, or if a combination'
-                         ' of a 3D lon/lat/time dataset and a 1D timeseries'
-                         ' is provided.')
+        raise ValidationError('A correlation coefficient map can only be produced'
+                              ' if both provided datasets are 3D datasets with'
+                              ' lon/lat/time dimensionality, or if a combination'
+                              ' of a 3D lon/lat/time dataset and a 1D timeseries'
+                              ' is provided.')
 
     if len(array_x['time']) != len(array_y['time']):
-        raise ValueError('The length of the time dimension differs between'
-                         ' the given datasets. Can not perform the calculation'
-                         ', please review operation documentation.')
+        raise ValidationError('The length of the time dimension differs between'
+                              ' the given datasets. Can not perform the calculation'
+                              ', please review operation documentation.')
 
     if len(array_x['time']) < 3:
-        raise ValueError('The length of the time dimension should not be less'
-                         ' than three to run the calculation.')
+        raise ValidationError('The length of the time dimension should not be less'
+                              ' than three to run the calculation.')
 
     # Do pixel by pixel correlation
     retset = _pearsonr(array_x, array_y, monitor)
@@ -204,7 +213,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
 
 def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
     """
-    Calculates Pearson correlation coefficients and p-values for testing
+    Calculate Pearson correlation coefficients and p-values for testing
     non-correlation of lon/lat/time xarray datasets for each lon/lat point.
 
     Heavily influenced by scipy.stats.pearsonr

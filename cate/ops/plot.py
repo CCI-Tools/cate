@@ -75,7 +75,11 @@ import pandas as pd
 import cartopy.crs as ccrs
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike
+from cate.core.types import VarName, DictLike, PolygonLike, TimeLike, DatasetLike, ValidationError
+
+from cate.ops.plot_helpers import get_var_data
+from cate.ops.plot_helpers import in_notebook
+from cate.ops.plot_helpers import handle_plot_polygon
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
                         'png', 'ps', 'raw', 'rgba', 'svg',
@@ -104,8 +108,9 @@ def plot_map(ds: xr.Dataset,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
              title: str = None,
+             contour_plot: bool = False,
              properties: DictLike.TYPE = None,
-             file: str = None) -> Figure:
+             file: str = None) -> object:
     """
     Create a geographic map plot for the variable given by dataset *ds* and variable name *var*.
 
@@ -130,6 +135,7 @@ def plot_map(ds: xr.Dataset,
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
     :param title: an optional title
+    :param contour_plot: If true plot a filled contour plot of data, otherwise plots a pixelated colormesh
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5)"
            For full reference refer to
@@ -139,7 +145,7 @@ def plot_map(ds: xr.Dataset,
     :return: a matplotlib figure object or None if in IPython mode
     """
     if not isinstance(ds, xr.Dataset):
-        raise NotImplementedError('Only gridded datasets are currently supported')
+        raise ValidationError('Only gridded datasets are currently supported.')
 
     var_name = None
     if not var:
@@ -155,13 +161,16 @@ def plot_map(ds: xr.Dataset,
     properties = DictLike.convert(properties) or {}
 
     extents = None
-    region = PolygonLike.convert(region)
-    if region:
-        lon_min, lat_min, lon_max, lat_max = region.bounds
-        if not _check_bounding_box(lat_min, lat_max, lon_min, lon_max):
-            raise ValueError('Provided plot extents do not form a valid bounding box '
-                             'within [-180.0,+180.0,-90.0,+90.0]')
+    bounds = handle_plot_polygon(region)
+    if bounds:
+        lon_min, lat_min, lon_max, lat_max = bounds
         extents = [lon_min, lon_max, lat_min, lat_max]
+
+    if len(ds.lat) < 2 or len(ds.lon) < 2:
+        # Matplotlib can not plot datasets with less than these dimensions with
+        # contourf and pcolormesh methods
+        raise ValidationError('The minimum dataset spatial dimensions to create a map'
+                              ' plot are (2,2)')
 
     # See http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#
     if projection == 'PlateCarree':
@@ -185,18 +194,24 @@ def plot_map(ds: xr.Dataset,
     elif projection == 'SouthPolarStereo':
         proj = ccrs.SouthPolarStereo(central_longitude=central_lon)
     else:
-        raise ValueError('illegal projection: "%s"' % projection)
+        raise ValidationError('illegal projection: "%s"' % projection)
 
     figure = plt.figure(figsize=(8, 4))
     ax = plt.axes(projection=proj)
     if extents:
-        ax.set_extent(extents)
+        ax.set_extent(extents, ccrs.PlateCarree())
     else:
         ax.set_global()
 
     ax.coastlines()
-    var_data = _get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
-    var_data.plot.contourf(ax=ax, transform=proj, **properties)
+    var_data = get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
+
+    # transform keyword is for the coordinate our data is in, which in case of a
+    # 'normal' lat/lon dataset is PlateCarree.
+    if contour_plot:
+        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+    else:
+        var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
 
     if title:
         ax.set_title(title)
@@ -204,9 +219,13 @@ def plot_map(ds: xr.Dataset,
     figure.tight_layout()
 
     if file:
-        figure.savefig(file)
+        try:
+            figure.savefig(file)
+        except MemoryError:
+            raise MemoryError('Not enough memory to save the plot. Try using a different file format'
+                              ' or enabling contour_plot.')
 
-    return figure if not in_notebook() else None
+    return figure if not in_notebook() else ax
 
 
 @op(tags=['plot'], res_pattern='plot_{index}')
@@ -246,7 +265,7 @@ def plot_contour(ds: xr.Dataset,
     """
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
     var = ds[var_name]
 
     time = TimeLike.convert(time)
@@ -256,7 +275,7 @@ def plot_contour(ds: xr.Dataset,
     figure = plt.figure(figsize=(8, 4))
     ax = figure.add_subplot(111)
 
-    var_data = _get_var_data(var, indexers, time=time)
+    var_data = get_var_data(var, indexers, time=time)
     if filled:
         var_data.plot.contourf(ax=ax, **properties)
     else:
@@ -280,7 +299,7 @@ def plot_contour(ds: xr.Dataset,
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot(ds: xr.Dataset,
+def plot(ds: DatasetLike.TYPE,
          var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
          title: str = None,
@@ -307,7 +326,7 @@ def plot(ds: xr.Dataset,
 
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
     var = ds[var_name]
 
     indexers = DictLike.convert(indexers)
@@ -316,7 +335,7 @@ def plot(ds: xr.Dataset,
     figure = plt.figure()
     ax = figure.add_subplot(111)
 
-    var_data = _get_var_data(var, indexers)
+    var_data = get_var_data(var, indexers)
     var_data.plot(ax=ax, **properties)
 
     if title:
@@ -370,13 +389,12 @@ def plot_scatter(ds1: xr.Dataset,
     :param file: path to a file in which to save the plot
     :return: a matplotlib figure object or None if in IPython mode
     """
-
     var_name1 = VarName.convert(var1)
     var_name2 = VarName.convert(var2)
     if not var_name1:
-        raise ValueError("Missing value for 'var1'")
+        raise ValidationError("Missing name for 'var1'")
     if not var_name2:
-        raise ValueError("Missing value for 'var2'")
+        raise ValidationError("Missing name for 'var2'")
     var1 = ds1[var_name1]
     var2 = ds2[var_name2]
 
@@ -394,20 +412,16 @@ def plot_scatter(ds1: xr.Dataset,
             remaining_dims = list(set(var1.dims) ^ set(indexers1.keys()))
             min_dim = max(var_data1[remaining_dims[0]].min(), var_data2[remaining_dims[0]].min())
             max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
-            print(min_dim, max_dim)
             var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) & (var_data1[remaining_dims[0]] <= max_dim),
                                         drop=True)
             var_data2 = var_data2.where(
                 (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
                 drop=True)
-            print(var_data1)
-            print(var_data2)
             if len(remaining_dims) is 1:
-                print(remaining_dims)
                 indexer3 = {remaining_dims[0]: var_data1[remaining_dims[0]].data}
                 var_data2.reindex(method='nearest', **indexer3)
             else:
-                print("Err!")
+                raise ValidationError('Please use indexers to reduce the dimensionality of each variable to one.')
         else:
             var_data1 = var1
             var_data2 = var2
@@ -472,10 +486,9 @@ def plot_hist(ds: xr.Dataset,
     :param file: path to a file in which to save the plot
     :return: a matplotlib figure object or None if in IPython mode
     """
-
     var_name = VarName.convert(var)
     if not var_name:
-        raise ValueError("Missing value for 'var'")
+        raise ValidationError("Missing name for 'var'")
 
     var = ds[var]
 
@@ -486,7 +499,7 @@ def plot_hist(ds: xr.Dataset,
     ax = figure.add_subplot(111)
     figure.tight_layout()
 
-    var_data = _get_var_data(var, indexers)
+    var_data = get_var_data(var, indexers)
     var_data.plot.hist(ax=ax, **properties)
 
     if title:
@@ -500,10 +513,9 @@ def plot_hist(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-# TODO (forman): remove the 'plot_data_frame' operation. It is too specific.
-# Instead, make other 'plot_' ops accept xarray and pandas objects.
-
-@op(tags=['plot'], res_pattern='plot_{index}')
+@op(tags=['plot'],
+    res_pattern='plot_{index}',
+    deprecated="This operation is deprecated and will be removed in future versions. User plot() instead.")
 @op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
                                   'area', 'pie', 'scatter', 'hexbin'])
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
@@ -513,12 +525,9 @@ def plot_data_frame(df: pd.DataFrame,
                     **kwargs) -> Figure:
     """
     Plot a data frame.
-
     This is a wrapper of pandas.DataFrame.plot() function.
-
     For further documentation please see
     http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
-
     :param df: A pandas dataframe to plot
     :param plot_type: Plot type
     :param file: path to a file in which to save the plot
@@ -526,7 +535,7 @@ def plot_data_frame(df: pd.DataFrame,
                    pandas.DataFrame.plot function
     """
     if not isinstance(df, pd.DataFrame):
-        raise NotImplementedError('"df" must be of type "pandas.DataFrame"')
+        raise ValidationError('"df" must be of type "pandas.DataFrame"')
 
     ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
     figure = ax.get_figure()
@@ -534,59 +543,3 @@ def plot_data_frame(df: pd.DataFrame,
         figure.savefig(file)
 
     return figure if not in_notebook() else None
-
-
-def _check_bounding_box(lat_min: float,
-                        lat_max: float,
-                        lon_min: float,
-                        lon_max: float) -> bool:
-    """
-    Check if the provided [lat_min, lat_max, lon_min, lon_max] extents
-    are sane.
-    """
-    if lat_min >= lat_max:
-        return False
-
-    if lon_min >= lon_max:
-        return False
-
-    if lat_min < -90.0:
-        return False
-
-    if lat_max > 90.0:
-        return False
-
-    if lon_min < -180.0:
-        return False
-
-    if lon_max > 180.0:
-        return False
-
-    return True
-
-
-def in_notebook():
-    """
-    Returns ``True`` if the module is running in IPython kernel,
-    ``False`` if in IPython shell or other Python shell.
-    """
-    import sys
-    ipykernel_in_sys_modules = 'ipykernel' in sys.modules
-    # print('###########################################', ipykernel_in_sys_modules)
-    return ipykernel_in_sys_modules
-
-
-def _get_var_data(var, indexers: dict, time=None, remaining_dims=None):
-
-    if time is not None:
-        indexers = dict(indexers) if indexers else dict()
-        indexers['time'] = time
-
-    if indexers:
-        var = var.sel(method='nearest', **indexers)
-
-    if remaining_dims:
-        isel_indexers = {dim_name: 0 for dim_name in var.dims if dim_name not in remaining_dims}
-        var = var.isel(**isel_indexers)
-
-    return var

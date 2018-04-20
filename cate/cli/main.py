@@ -98,7 +98,9 @@ Components
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
+
 import argparse
+import logging
 import os
 import os.path
 import pprint
@@ -117,7 +119,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 CLI_NAME = 'cate'
 CLI_DESCRIPTION = 'ESA CCI Toolbox (Cate) command-line interface'
 
-CATE_WEBAPI_MAIN_MODULE = 'cate.webapi.main'
+CATE_WEBAPI_START_MODULE = 'cate.webapi.start'
+CATE_WEBAPI_STOP_MODULE = 'cate.webapi.stop'
 
 _DOCS_URL = 'http://cate.readthedocs.io/en/latest/'
 
@@ -143,7 +146,6 @@ NullableStr = Union[str, None]
 
 def _default_workspace_manager_factory() -> Any:
     from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
-    from cate.core.workspace import WorkspaceError
     from cate.webapi.wsmanag import WebAPIWorkspaceManager
     from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 
@@ -151,16 +153,17 @@ def _default_workspace_manager_factory() -> Any:
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
     if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
-        WebAPI.start_subprocess(CATE_WEBAPI_MAIN_MODULE,
+        WebAPI.start_subprocess(CATE_WEBAPI_START_MODULE,
                                 caller=CLI_NAME,
                                 service_info_file=WEBAPI_INFO_FILE,
                                 auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER)
         # Read new '.cate/webapi.json'
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info:
-            raise WorkspaceError('Cate WebAPI service could not be started')
+            raise FileNotFoundError('Cate WebAPI service could not be started, '
+                                    'missing service info file %s' % WEBAPI_INFO_FILE)
 
-    return WebAPIWorkspaceManager(service_info, timeout=5.)
+    return WebAPIWorkspaceManager(service_info, rpc_timeout=5.)
 
 
 WORKSPACE_MANAGER_FACTORY = _default_workspace_manager_factory
@@ -225,7 +228,8 @@ def _parse_op_args(raw_args: List[str],
     All elements of the raw argument list *raw_args* are expected to be textual values of either the form
     "value" (positional argument) or "name=value" (keyword argument) where value may either be
 
-    1. "@name":  a reference by name to another step's port
+    1. "@name":  a reference by name to another step (= step ID)
+       or another step's port (= a step's input or output name).
     2. "<Python expression>":  a constant Python expression
 
     :param raw_args: raw argument list of string elements
@@ -786,7 +790,7 @@ class WorkspaceCommand(SubCommandCommand):
             if command_args.save_all:
                 workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
             workspace_manager.close_all_workspaces()
-            WebAPI.stop_subprocess(CATE_WEBAPI_MAIN_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            WebAPI.stop_subprocess(CATE_WEBAPI_STOP_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):
@@ -1069,8 +1073,13 @@ class OperationCommand(SubCommandCommand):
 
         op_regs = OP_REGISTRY.op_registrations
 
-        def _is_op_selected(op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
-            if deprecated_only and not op_reg.op_meta_info.header.get('deprecated'):
+        def _is_op_selected(op_name: str, op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
+            if op_name.startswith('_'):
+                # do not list private operations
+                return False
+            if deprecated_only \
+                    and not op_reg.op_meta_info.header.get('deprecated'):
+                # do not list non-deprecated operations if user wants to see what is deprecated
                 return False
             tags = to_list(op_reg.op_meta_info.header.get('tags'))
             if tags:
@@ -1093,7 +1102,8 @@ class OperationCommand(SubCommandCommand):
             return True
 
         op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
-                           _is_op_selected(op_reg, command_args.tag, command_args.internal, command_args.deprecated)])
+                           _is_op_selected(op_name, op_reg, command_args.tag, command_args.internal,
+                                           command_args.deprecated)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name

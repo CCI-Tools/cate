@@ -27,7 +27,12 @@ from typing import Optional, Sequence, Union, Tuple
 import numpy as np
 import xarray as xr
 from jdcal import jd2gcal
-from shapely.geometry import Point, box, LineString, Polygon
+from shapely.geometry import box, LineString, Polygon
+from matplotlib import path
+
+from .types import PolygonLike
+from ..util.misc import to_list
+from ..util.monitor import Monitor
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -153,7 +158,7 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def adjust_spatial_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
+def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
     introspection of the dataset and adjusting the appropriate attributes
@@ -307,6 +312,7 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
+    ret = dict()
 
     if dim_name not in ds:
         return None
@@ -427,9 +433,70 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
     return False
 
 
+def get_extents(region: PolygonLike.TYPE):
+    """
+    Get extents of a PolygonLike, handles explicitly given
+    coordinates.
+
+    :param region: PolygonLike to introspect
+    :return: ([lon_min, lat_min, lon_max, lat_max], boolean_explicit_coords)
+    """
+    explicit_coords = False
+    try:
+        maybe_rectangle = to_list(region, dtype=float)
+        if maybe_rectangle is not None:
+            if len(maybe_rectangle) == 4:
+                lon_min, lat_min, lon_max, lat_max = maybe_rectangle
+                explicit_coords = True
+    except BaseException:
+        # The polygon must be convertible, but it's complex
+        polygon = PolygonLike.convert(region)
+        if not polygon.is_valid:
+            # Heal polygon, see #506 and Shapely User Manual
+            region = polygon.buffer(0)
+        else:
+            region = polygon
+        # Get the bounding box
+        lon_min, lat_min, lon_max, lat_max = region.bounds
+
+    return([lon_min, lat_min, lon_max, lat_max], explicit_coords)
+
+
+def _pad_extents(ds: xr.Dataset, extents: tuple):
+    """
+    Pad extents by half a pixel in both directions, to make sure subsetting
+    slices include all pixels crossed by the bounding box. Set extremes
+    to maximum valid geospatial extents.
+    """
+    try:
+        lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+        lon_min = extents[0] - lon_pixel / 2
+        lon_max = extents[2] + lon_pixel / 2
+    except IndexError:
+        # 1D dimension, leave extents as they were
+        lon_min = extents[0]
+        lon_max = extents[2]
+
+    try:
+        lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+        lat_min = extents[1] - lat_pixel / 2
+        lat_max = extents[3] + lat_pixel / 2
+    except IndexError:
+        lat_min = extents[1]
+        lat_max = extents[3]
+
+    lon_min = -180 if lon_min < -180 else lon_min
+    lat_min = -90 if lat_min < -90 else lat_min
+    lon_max = 180 if lon_max > 180 else lon_max
+    lat_max = 90 if lat_max > 90 else lat_max
+
+    return (lon_min, lat_min, lon_max, lat_max)
+
+
 def subset_spatial_impl(ds: xr.Dataset,
-                        region: Polygon,
-                        mask: bool = True) -> xr.Dataset:
+                        region: PolygonLike.TYPE,
+                        mask: bool = True,
+                        monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Do a spatial subset of the dataset
 
@@ -439,45 +506,51 @@ def subset_spatial_impl(ds: xr.Dataset,
     not the polygon itself be masked with NaN.
     :return: Subset dataset
     """
+    monitor.start('Subset', 10)
+    # Validate input
+    try:
+        polygon = PolygonLike.convert(region)
+    except BaseException as e:
+        raise e
 
-    if not region.is_valid:
-        # Heal polygon, see #506 and Shapely User Manual
-        region = region.buffer(0)
+    extents, explicit_coords = get_extents(region)
 
-    # Get the bounding box
-    lon_min, lat_min, lon_max, lat_max = region.bounds
+    lon_min, lat_min, lon_max, lat_max = extents
 
     # Validate the bounding box
     if (not (-90 <= lat_min <= 90)) or \
             (not (-90 <= lat_max <= 90)) or \
             (not (-180 <= lon_min <= 180)) or \
             (not (-180 <= lon_max <= 180)):
-        raise ValueError('Provided polygon extent outside of geospatial'
+        raise ValueError('Provided polygon extends outside of geospatial'
                          ' bounds: latitude [-90;90], longitude [-180;180]')
 
-    simple_polygon = False
-    if region.equals(box(lon_min, lat_min, lon_max, lat_max)):
-        # Don't do the computationally intensive masking if the provided
-        # region is a simple box-polygon, for which there will be nothing to
-        # mask.
-        simple_polygon = True
+    # Don't do the computationally intensive masking if the provided
+    # region is a simple box-polygon, for which there will be nothing to
+    # mask.
+    simple_polygon = polygon.equals(box(lon_min, lat_min, lon_max, lat_max))
 
-    crosses_antimeridian = _crosses_antimeridian(region)
+    # Pad extents to include crossed pixels
+    lon_min, lat_min, lon_max, lat_max = _pad_extents(ds, extents)
+
+    crosses_antimeridian = (lon_min > lon_max) if explicit_coords else _crosses_antimeridian(polygon)
     lat_inverted = _lat_inverted(ds.lat)
     if lat_inverted:
         lat_index = slice(lat_max, lat_min)
     else:
         lat_index = slice(lat_min, lat_max)
 
-    if crosses_antimeridian and not simple_polygon:
+    if crosses_antimeridian and not simple_polygon and mask:
         # Unlikely but plausible
         raise NotImplementedError('Spatial subsets crossing the anti-meridian'
                                   ' are currently implemented for simple,'
-                                  ' rectangular polygons only.')
-
+                                  ' rectangular polygons only, or complex polygons'
+                                  ' without masking.')
+    monitor.progress(1)
     if crosses_antimeridian:
         # Shapely messes up longitudes if the polygon crosses the antimeridian
-        lon_min, lon_max = lon_max, lon_min
+        if not explicit_coords:
+            lon_min, lon_max = lon_max, lon_min
 
         # Can't perform a simple selection with slice, hence we have to
         # construct an appropriate longitude indexer for selection
@@ -489,33 +562,86 @@ def subset_spatial_impl(ds: xr.Dataset,
         indexers = {'lon': lon_index, 'lat': lat_index}
         retset = ds.sel(**indexers)
 
-        if mask:
-            # Preserve the original longitude dimension, masking elements that
-            # do not belong to the polygon with NaN.
+        # Preserve the original longitude dimension, masking elements that
+        # do not belong to the polygon with NaN.
+        with monitor.observing(8):
             return retset.reindex_like(ds.lon)
-        else:
-            # Return the dataset with no NaNs and with a disjoint longitude
-            # dimension
+
+    lon_slice = slice(lon_min, lon_max)
+    indexers = {'lat': lat_index, 'lon': lon_slice}
+    retset = ds.sel(**indexers)
+
+    if len(retset.lat) == 0 or len(retset.lon) == 0:
+        # Empty return dataset => region out of dataset bounds
+        raise ValueError("Can not select a region outside dataset boundaries.")
+
+    if not mask or simple_polygon or explicit_coords:
+        # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
+        with monitor.observing(8):
             return retset
 
-    if not mask or simple_polygon:
-        # The polygon doesn't cross the IDL, it is a simple box -> Use a simple slice
-        lon_slice = slice(lon_min, lon_max)
-        indexers = {'lat': lat_index, 'lon': lon_slice}
-        return ds.sel(**indexers)
-
     # Create the mask array. The result of this is a lon/lat DataArray where
-    # all values falling in the region or on its boundary are denoted with True
-    # and all the rest with False
-    lonm, latm = np.meshgrid(ds.lon.values, ds.lat.values)
-    mask = np.array([Point(lon, lat).intersects(region) for lon, lat in
-                     zip(lonm.ravel(), latm.ravel())], dtype=bool)
-    mask = xr.DataArray(mask.reshape(lonm.shape),
-                        coords={'lon': ds.lon, 'lat': ds.lat},
+    # all pixels falling in the region or on its boundary are denoted with True
+    # and all the rest with False. Works on polygon exterior
+
+    polypath = path.Path(np.column_stack([polygon.exterior.coords.xy[0],
+                                          polygon.exterior.coords.xy[1]]))
+
+    # Handle also a single pixel and 1D edge cases
+    if len(retset.lat) == 1 or len(retset.lon) == 1:
+        # Create a mask directly on pixel centers
+        lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
+        grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
+        mask = polypath.contains_points(grid_points)
+        mask = mask.reshape(lonm.shape)
+        mask = xr.DataArray(mask,
+                            coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                            dims=['lat', 'lon'])
+
+        with monitor.observing(5):
+            # Apply the mask to data
+            retset = retset.where(mask, drop=True)
+        return retset
+
+    # The normal case
+    # Create a grid of pixel vertices
+    lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+    lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+
+    lon_min = retset.lon.values[0] - lon_pixel / 2
+    lon_max = retset.lon.values[-1] + lon_pixel / 2
+    lat_min = retset.lat.values[0] - lat_pixel / 2
+    lat_max = retset.lat.values[-1] + lat_pixel / 2
+
+    lat_grid = np.linspace(lat_min, lat_max, len(retset.lat.values) + 1)
+    lon_grid = np.linspace(lon_min, lon_max, len(retset.lon.values) + 1)
+
+    lonm, latm = np.meshgrid(lon_grid, lat_grid)
+
+    # Mark all grid points falling within the polygon as True
+
+    monitor.progress(1)
+    grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
+
+    monitor.progress(1)
+    mask = polypath.contains_points(grid_points)
+
+    monitor.progress(1)
+
+    mask = mask.reshape(lonm.shape)
+    # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
+    mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
+
+    mask = xr.DataArray(mask,
+                        coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                         dims=['lat', 'lon'])
 
-    # Mask values outside the polygon with NaN, crop the dataset
-    return ds.where(mask, drop=True)
+    with monitor.observing(5):
+        # Apply the mask to data
+        retset = retset.where(mask, drop=True)
+
+    monitor.done()
+    return retset
 
 
 def _crosses_antimeridian(region: Polygon) -> bool:

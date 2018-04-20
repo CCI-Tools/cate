@@ -25,6 +25,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 import concurrent.futures
 import datetime
 import os.path
+import sys
 import time
 
 import fiona
@@ -94,7 +95,7 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
         return workspace, res_id, res_name, resource
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class ResVarTileHandler(WorkspaceResourceHandler):
     PYRAMIDS = None
 
@@ -221,11 +222,11 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
             # GLOBAL_LOCK.release()
 
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class ResourcePlotHandler(WorkspaceResourceHandler):
     def get(self, base_dir, res_name):
         try:
@@ -237,11 +238,11 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
                                                           var_name=var_name,
                                                           file_path=file_path)
             self.write_status_ok()
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class GeoJSONHandler(WebAPIRequestHandler):
     def __init__(self, application, request, shapefile_path, **kwargs):
         super().__init__(application, request, **kwargs)
@@ -258,23 +259,23 @@ class GeoJSONHandler(WebAPIRequestHandler):
             yield [THREAD_POOL.submit(write_feature_collection, collection, self,
                                       num_features=len(collection),
                                       conservation_ratio=_level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
         self.finish()
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class CountriesGeoJSONHandler(GeoJSONHandler):
     def __init__(self, application, request, **kwargs):
         try:
             shapefile_path = os.path.join(os.path.dirname(__file__),
                                           '..', 'ds', 'data', 'countries', 'countries.geojson')
             super().__init__(application, request, shapefile_path=shapefile_path, **kwargs)
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class ResFeatureCollectionHandler(WorkspaceResourceHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
@@ -317,12 +318,12 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
                 if TRACE_PERF:
                     print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
         self.finish()
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class ResFeatureHandler(WorkspaceResourceHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.web.asynchronous
@@ -378,8 +379,8 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                                                                                           _NUM_GEOM_SIMP_LEVELS))]
                 if TRACE_PERF:
                     print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
-        except Exception as e:
-            self.write_status_error(exception=e)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
         self.finish()
 
     def _check_feature_index(self, feature_index, num_features):
@@ -390,7 +391,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
         return ok
 
 
-# noinspection PyAbstractClass
+# noinspection PyAbstractClass,PyBroadException
 class ResVarCsvHandler(WorkspaceResourceHandler):
     def get(self, base_dir, res_id):
         try:
@@ -402,7 +403,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
                 try:
                     var_data = resource[var_name]
                 except Exception as e:
-                    self.write_status_error(exception=e)
+                    self.write_status_error(exc_info=sys.exc_info())
                     return
 
             # noinspection PyBroadException
@@ -430,8 +431,20 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
             self.set_header('Content-Type', 'text/csv')
             self.write(csv)
         except Exception as e:
-            self.write_status_error(exception=e)
+            self.write_status_error(exc_info=sys.exc_info())
 
+        self.finish()
+
+
+# noinspection PyAbstractClass,PyBroadException
+class ResVarHtmlHandler(WorkspaceResourceHandler):
+    def get(self, base_dir, res_id):
+        try:
+            _, _, _, resource = self.get_workspace_resource(base_dir, res_id)
+            self.set_header('Content-Type', 'text/html')
+            self.write(resource)
+        except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
         self.finish()
 
 

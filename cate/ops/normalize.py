@@ -60,7 +60,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
 
 
 @op(tags=['utility'], version='1.0')
-def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
+def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool=False) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
     introspection of the dataset and adjusting the appropriate attributes
@@ -73,9 +73,10 @@ def adjust_spatial_attrs(ds: xr.Dataset) -> xr.Dataset:
     `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
+    :param allow_point: Whether a dataset containing a single point is allowed
     :return: Adjusted dataset
     """
-    return adjust_spatial_attrs_impl(ds)
+    return adjust_spatial_attrs_impl(ds, allow_point=allow_point)
 
 
 @op(tags=['utility'], version='1.0')

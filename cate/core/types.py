@@ -50,7 +50,6 @@ import shapely.wkt
 import xarray
 from shapely.errors import ShapelyError
 
-from .opimpl import adjust_temporal_attrs_impl
 from ..util.misc import to_list, to_datetime_range, to_datetime
 from ..util.safe import safe_eval
 
@@ -59,6 +58,15 @@ __author__ = "Janis Gailis (S[&]T Norway), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 T = TypeVar('T')
+
+
+class ValidationError(ValueError):
+    """
+    Special ``ValueError`` used to signal failed validation of user-provided values.
+    """
+    def __init__(self, *args, hint=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hint = hint
 
 
 class Like(Generic[T], metaclass=ABCMeta):
@@ -134,12 +142,16 @@ class Like(Generic[T], metaclass=ABCMeta):
         return cls.format(value)
 
     @classmethod
-    def assert_value_ok(cls, cond: bool, value: Any):
-        if not cond:
-            text_value = str(value)
-            if len(text_value) > 37:
-                text_value = text_value[0:38] + '...'
-            raise ValueError('cannot convert value <%s> to %s' % (text_value, cls.name()))
+    def raise_validation_error(cls, value: Any):
+        if value is None:
+            raise ValidationError("Value of type '{type}' expected."
+                                  .format(type=cls.name()))
+
+        text_value = repr(value)
+        if len(text_value) > 23:
+            text_value = text_value[0:24] + '...'
+        raise ValidationError("Value {value} cannot be converted into a '{type}'."
+                              .format(value=text_value, type=cls.name()))
 
 
 VarNames = List[str]
@@ -183,7 +195,7 @@ class Literal(Like[Any]):
             try:
                 return ast.literal_eval(value)
             except (SyntaxError, ValueError):
-                cls.assert_value_ok(False, value)
+                cls.raise_validation_error(value)
         return value
 
     @classmethod
@@ -191,6 +203,32 @@ class Literal(Like[Any]):
         if value is None:
             return ''
         return repr(value)
+
+
+class HTML(str):
+    pass
+
+
+class HTMLLike(Like[HTML]):
+    """
+    Represents HTML string
+    """
+    TYPE = HTML
+
+    @classmethod
+    def convert(cls, value: Union[str, HTML]) -> Optional[HTML]:
+        """
+        Return **value**
+        """
+        if value is None:
+            return None
+        return HTML(value)
+
+    @classmethod
+    def format(cls, value: HTML) -> Optional[str]:
+        if value is None:
+            return None
+        return value
 
 
 class VarNamesLike(Like[VarNames]):
@@ -218,13 +256,11 @@ class VarNamesLike(Like[VarNames]):
             return to_list(value)
 
         if not isinstance(value, list):
-            raise ValueError('Variable name pattern can only be a string or a'
-                             ' list of strings.')
+            raise ValidationError('List of variables names expected.')
 
         for item in value:
             if not isinstance(item, str):
-                raise ValueError('Variable name pattern can only be a string'
-                                 ' or a list of strings.')
+                raise ValidationError('List of variables names expected.')
 
         return value.copy()
 
@@ -259,7 +295,8 @@ class VarName(Like[str]):
         if value is None:
             return None
 
-        cls.assert_value_ok(isinstance(value, str), value)
+        if not isinstance(value, str):
+            raise ValidationError('Variable name expected.')
 
         return value
 
@@ -282,7 +319,7 @@ class FileLike(Like[dict]):
         if not value:
             return None
         if not isinstance(value, str) and not isinstance(value, io.IOBase):
-            raise ValueError('File must be a path or a file handler')
+            raise ValidationError('File must be a path or a file handler.')
         return value
 
     @classmethod
@@ -311,15 +348,17 @@ class DictLike(Like[dict]):
         if isinstance(value, dict):
             return value
 
+        if not isinstance(value, str):
+            cls.raise_validation_error(value)
+
+        if value.strip() == '':
+            return None
+
         # noinspection PyBroadException
         try:
-            if isinstance(value, str):
-                if value.strip() == '':
-                    return None
-                return safe_eval('dict(%s)' % value, {})
-            raise ValueError()
+            return safe_eval('dict(%s)' % value, {})
         except Exception:
-            cls.assert_value_ok(False, value)
+            cls.raise_validation_error(value)
 
     @classmethod
     def format(cls, value: Optional[dict]) -> str:
@@ -345,7 +384,7 @@ class BaseGeometryLike(Generic[T], Like[T], metaclass=ABCMeta):
 
         if isinstance(value, shapely.geometry.base.BaseGeometry):
             # Incompatible!
-            raise ValueError(cls.errmsg("passed geometry type is incompatible"))
+            raise ValidationError(cls.errmsg("Passed geometry type is incompatible."))
 
         # Try converting to compatible type
         if isinstance(value, str):
@@ -369,9 +408,9 @@ class BaseGeometryLike(Generic[T], Like[T], metaclass=ABCMeta):
                     # Geometry WKT?
                     return shapely.wkt.loads(value)
             except (ShapelyError, ValueError, TypeError) as e:
-                raise ValueError(cls.errmsg('invalid geometry WKT format')) from e
+                raise ValidationError(cls.errmsg('Invalid geometry WKT format.')) from e
 
-            raise ValueError(cls.errmsg("unrecognized text format"))
+            raise ValidationError(cls.errmsg("Unrecognized text format."))
 
         if cls._is_compatible_type(geom_type, shapely.geometry.Point):
             try:
@@ -390,16 +429,16 @@ class BaseGeometryLike(Generic[T], Like[T], metaclass=ABCMeta):
                     x1, y1, x2, y2 = value
                     return shapely.geometry.box(x1, y1, x2, y2)
                 except (ShapelyError, ValueError, TypeError) as e:
-                    raise ValueError(cls.errmsg(e)) from e
+                    raise ValidationError(cls.errmsg(str(e))) from e
 
-        raise ValueError(cls.errmsg())
+        raise ValidationError(cls.errmsg())
 
     @classmethod
-    def errmsg(cls, detail_msg=None) -> str:
-        if detail_msg:
-            return 'cannot convert value to %s: %s' % (cls.name(), detail_msg)
+    def errmsg(cls, detail=None) -> str:
+        if detail:
+            return "Value cannot be converted into a '{type}': {detail}".format(type=cls.name(), detail=detail)
         else:
-            return 'cannot convert value to %s' % cls.name()
+            return "Value cannot be converted into a '{type}'.".format(type=cls.name())
 
     @classmethod
     def _is_compatible_type(cls, geom_type, required_type):
@@ -487,10 +526,10 @@ class PolygonLike(GeometryLike, Like[shapely.geometry.Polygon]):
             # Heal polygon, see #506 and Shapely User Manual
             polygon = polygon.buffer(0)
             if not polygon.is_valid:
-                raise ValueError(cls.errmsg("polygon is invalid"))
+                raise ValidationError(cls.errmsg("Polygon is invalid."))
 
         if polygon.is_empty:
-            raise ValueError(cls.errmsg("polygon is empty"))
+            raise ValidationError(cls.errmsg("Polygon is empty."))
 
         return polygon
 
@@ -528,7 +567,7 @@ class TimeLike(Like[datetime]):
             except Exception:
                 pass
 
-        cls.assert_value_ok(False, value)
+        cls.raise_validation_error(value)
 
     @classmethod
     def format(cls, value: Optional[datetime]) -> str:
@@ -576,7 +615,7 @@ class TimeRangeLike(Like[TimeRange]):
         try:
             t1, t2 = value[0], value[1]
         except IndexError:
-            cls.assert_value_ok(False, value)
+            cls.raise_validation_error(value)
             return
 
         time_range = to_datetime_range(t1, t2)
@@ -585,7 +624,7 @@ class TimeRangeLike(Like[TimeRange]):
         if not time_range or time_range[0] < time_range[1]:
             return time_range
 
-        cls.assert_value_ok(False, value)
+        cls.raise_validation_error(value)
 
     @classmethod
     def format(cls, value: Optional[TimeRange]) -> str:
@@ -604,19 +643,21 @@ class DatasetLike(Like[xarray.Dataset]):
     @classmethod
     def convert(cls, value: Any) -> Optional[xarray.Dataset]:
         # Can be optional
+        from cate.core.opimpl import adjust_temporal_attrs_impl
+
         if value is None:
             return None
         if isinstance(value, xarray.Dataset):
             return value
         if isinstance(value, pandas.DataFrame):
             return adjust_temporal_attrs_impl(xarray.Dataset.from_dataframe(value))
-        raise ValueError('Value must be an xarray.Dataset or pandas.DataFrame')
+        raise ValidationError('Value must be an xarray.Dataset or pandas.DataFrame.')
 
     @classmethod
     def format(cls, value: Optional[xarray.Dataset]) -> str:
         if value is None:
             return ''
-        raise ValueError('Values of type DatasetLike cannot be converted to text')
+        raise ValidationError('Values of type DatasetLike cannot be converted to text.')
 
 
 class DataFrameLike(Like[pandas.DataFrame]):
@@ -635,13 +676,13 @@ class DataFrameLike(Like[pandas.DataFrame]):
             return value
         if isinstance(value, xarray.Dataset):
             return value.to_dataframe()
-        raise ValueError('Value must be a pandas.DataFrame or xarray.Dataset')
+        raise ValidationError('Value must be a pandas.DataFrame or xarray.Dataset.')
 
     @classmethod
     def format(cls, value: Optional[pandas.DataFrame]) -> str:
         if value is None:
             return ''
-        raise ValueError('Values of type DataFrameLike cannot be converted to text')
+        raise ValidationError('Values of type DataFrameLike cannot be converted to text.')
 
 
 class GeoDataFrame:

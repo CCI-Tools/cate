@@ -7,10 +7,11 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from cate.core.types import ValidationError
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, WorkspaceError, mk_op_arg, mk_op_args, mk_op_kwargs
-from cate.util.undefined import UNDEFINED
+from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
 from cate.util.opmetainf import OpMetaInfo
+from cate.util.undefined import UNDEFINED
 
 NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp_2.nc')
@@ -200,6 +201,18 @@ class WorkspaceTest(unittest.TestCase):
     def test_set_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 
+        with self.assertRaises(ValidationError) as we:
+            ws.set_resource("not_existing_op", {})
+        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
+
+        with self.assertRaises(ValidationError) as we:
+            ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(location=NETCDF_TEST_FILE_1), res_name='X')
+        self.assertEqual('"location" is not an input of operation "cate.ops.io.read_netcdf"', str(we.exception))
+
+        with self.assertRaises(ValidationError) as we:
+            ws.set_resource('cate.ops.io.read_netcdf', {'file': {'foo': 'bar'}}, res_name='X')
+        self.assertEqual('Illegal argument for input "file" of operation "cate.ops.io.read_netcdf', str(we.exception))
+
         ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
         ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"), res_name='Y')
         self.assertEqual(ws.resource_cache, {})
@@ -281,6 +294,34 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 5)
         self.assertEqual(ws.resource_cache.get('Z'), 5)
 
+    def test_set_step_and_run_op(self):
+        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+
+        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
+        ws.execute_workflow('X')
+        self.assertIsNotNone(ws.workflow)
+        self.assertEqual(len(ws.workflow.steps), 1)
+        self.assertIn('X', ws.resource_cache)
+
+        op_name = '_extract_point'
+        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
+        op_result = ws.run_op(op_name, op_args)
+        self.assertEqual(len(op_result), 4)
+        self.assertAlmostEqual(op_result['lat'], 34.5)
+        self.assertAlmostEqual(op_result['lon'], 10.2)
+        self.assertAlmostEqual(op_result['precipitation'], 5.5)
+        self.assertAlmostEqual(op_result['temperature'], 32.9)
+
+        # without asking for return data
+        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'))
+        op_result = ws.run_op(op_name, op_args)
+        self.assertIsNone(op_result)
+
+        # with a non existing operator name
+        with self.assertRaises(ValidationError) as we:
+            ws.run_op("not_existing_op", {})
+        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
+
     # TODO (forman): #391
     def test_set_resource_is_reentrant(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -310,15 +351,15 @@ class WorkspaceTest(unittest.TestCase):
         Workspace._validate_res_name("abc_42")
         Workspace._validate_res_name("abc42")
         Workspace._validate_res_name("_abc42")
-        # with self.assertRaises(WorkspaceError):
+        # with self.assertRaises(ValidationError):
         #     Workspace._validate_res_name("0")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a-b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a+b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("a.b")
-        with self.assertRaises(WorkspaceError):
+        with self.assertRaises(ValidationError):
             Workspace._validate_res_name("file://path")
 
     def test_example(self):
@@ -370,28 +411,13 @@ class WorkspaceTest(unittest.TestCase):
             ws.set_resource('cate.ops.timeseries.tseries_point',
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
                             validate_args=True)
-        self.assertEqual(str(e.exception), "input 'point' for operation 'cate.ops.timeseries.tseries_point': "
-                                           "cannot convert value to PointLike: "
-                                           "invalid geometry WKT format")
+        self.assertEqual(str(e.exception),
+                         "Input 'point' for operation 'cate.ops.timeseries.tseries_point': "
+                         "Value cannot be converted into a 'PointLike': "
+                         "Invalid geometry WKT format.")
 
         ws2 = Workspace.from_json_dict(ws.to_json_dict())
         self.assertEqual(ws2.base_dir, ws.base_dir)
         self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
         self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))
 
-
-class WorkspaceErrorTest(unittest.TestCase):
-    def test_plain(self):
-        try:
-            raise WorkspaceError("haha")
-        except WorkspaceError as e:
-            self.assertEqual(str(e), "haha")
-            self.assertEqual(e.cause, None)
-
-    def test_with_cause(self):
-        e1 = ValueError("a > 5")
-        try:
-            raise WorkspaceError("hoho") from e1
-        except WorkspaceError as e2:
-            self.assertEqual(str(e2), "hoho")
-            self.assertEqual(e2.cause, e1)

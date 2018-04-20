@@ -87,8 +87,8 @@ class TestPlotMap(TestCase):
             with self.assertRaises(ValueError) as cm:
                 plot_map([1, 2, 4], file=tmp_file)
             self.assertEqual(str(cm.exception),
-                             "input 'ds' for operation 'cate.ops.plot.plot_map' "
-                             "must be of type 'Dataset', but got type 'list'")
+                             "Input 'ds' for operation 'cate.ops.plot.plot_map' "
+                             "must be of type 'Dataset', but got type 'list'.")
             self.assertFalse(os.path.isfile(tmp_file))
 
         # Test the extensions bound checking

@@ -19,10 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
-
 import argparse
+import asyncio
+import logging
 import os.path
 import signal
 import subprocess
@@ -34,28 +33,52 @@ import urllib.request
 from datetime import datetime
 from typing import List, Callable, Optional, Tuple
 
+# from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+import tornado.options
 from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
+from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
     find_free_port, is_service_compatible, is_service_running
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 LOCALHOST = '127.0.0.1'
 
 ApplicationFactory = Callable[[], Application]
 
 
-def run_main(name: str,
-             description: str,
-             version: str,
-             application_factory: ApplicationFactory,
-             log_file_prefix=None,
-             args: List[str] = None) -> int:
+def _get_common_cli_parser(name: str,
+                           description: str,
+                           version: str) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--version', '-V', action='version', version=version)
+    parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
+                        help='start/stop WebAPI service on port number PORT')
+    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
+                        help='start/stop WebAPI service using address ADDRESS', default='')
+    parser.add_argument('--caller', '-c', dest='caller', default=name,
+                        help='name of the calling application')
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="if given, service information will be written to (start) or read from (stop) FILE")
+    return parser
+
+
+def run_start(name: str,
+              description: str,
+              version: str,
+              application_factory: ApplicationFactory,
+              log_file_prefix=None,
+              args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
 
-    :param name: The CLI's program name.
+    :param name: The service name.
     :param description: The CLI's description.
     :param version: The CLI's version string.
     :param application_factory: A no-arg function that creates a Tornado web application instance.
@@ -66,38 +89,66 @@ def run_main(name: str,
     if args is None:
         args = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(prog=name,
-                                     description='%s, version %s' % (description, version))
-    parser.add_argument('--version', '-V', action='version', version='%s %s' % (name, version))
-    parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
-                        help='start/stop WebAPI service on port number PORT')
-    parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
-                        help='start/stop WebAPI service using address ADDRESS', default='')
-    parser.add_argument('--caller', '-c', dest='caller', default=name,
-                        help='name of the calling application')
-    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
-                        help="if given, service information will be written to (start) or read from (stop) FILE")
-    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='TIME', type=float,
-                        help="if given, service will stop after TIME seconds of inactivity")
-    parser.add_argument('command', choices=['start', 'stop'],
-                        help='start or stop the service')
+    parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
+                        help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
+    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
+                        help="if given, logging will be delegated to the console (stderr)")
+    try:
+        args_obj = parser.parse_args(args)
+
+        if not os.path.isdir(os.path.dirname(log_file_prefix)):
+            os.makedirs(os.path.dirname(log_file_prefix), exist_ok=True)
+
+        service = WebAPI()
+        service.start(name, application_factory,
+                      log_file_prefix=log_file_prefix,
+                      log_to_stderr=args_obj.verbose,
+                      port=args_obj.port,
+                      address=args_obj.address,
+                      caller=args_obj.caller,
+                      service_info_file=args_obj.file,
+                      auto_stop_after=args_obj.auto_stop_after)
+
+        return 0
+    except Exception as e:
+        print('error: %s' % e)
+        return 1
+
+
+def run_stop(name: str,
+             description: str,
+             version: str,
+             args: List[str] = None) -> int:
+    """
+    Run the WebAPI command-line interface.
+
+    :param name: The service name.
+    :param description: The CLI's description.
+    :param version: The CLI's version string.
+    :param args: The command-line arguments, may be None.
+    :return: the exit code, zero on success.
+    """
+    if args is None:
+        args = sys.argv[1:]
+
+    parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--kill-after', '-k', dest='kill_after', metavar='KILL_AFTER', type=float, default=5.,
+                        help="Service will be killed (SIGTERM) after KILL_AFTER seconds of inactivity")
+    parser.add_argument('--timeout', '-t', dest='timeout', metavar='TIMEOUT', type=float, default=5.,
+                        help="Service will stop after TIME seconds of inactivity")
 
     try:
         args_obj = parser.parse_args(args)
 
-        kwargs = dict(port=args_obj.port,
-                      address=args_obj.address,
-                      caller=args_obj.caller,
-                      service_info_file=args_obj.file)
+        WebAPI.stop(name,
+                    port=args_obj.port,
+                    address=args_obj.address,
+                    caller=args_obj.caller,
+                    service_info_file=args_obj.file,
+                    kill_after=args_obj.kill_after,
+                    timeout=args_obj.timeout)
 
-        if args_obj.command == 'start':
-            service = WebAPI()
-            service.start(name, application_factory,
-                          log_file_prefix=log_file_prefix,
-                          auto_stop_after=args_obj.auto_stop_after,
-                          **kwargs)
-        else:
-            WebAPI.stop(name, kill_after=5.0, timeout=5.0, **kwargs)
         return 0
     except Exception as e:
         print('error: %s' % e)
@@ -112,6 +163,7 @@ class WebAPI:
     def __init__(self):
         self.name = None
         self.application = None
+        self.server = None
         self.auto_stop_enabled = None
         self.auto_stop_timer = None
         self.auto_stop_after = None
@@ -132,6 +184,7 @@ class WebAPI:
               name: str,
               application_factory: ApplicationFactory,
               log_file_prefix: str = None,
+              log_to_stderr: bool = False,
               auto_stop_after: float = None,
               port: int = None,
               address: str = None,
@@ -150,6 +203,7 @@ class WebAPI:
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
+        :param log_to_stderr: Whether logging should be shown on stderr
         :param auto_stop_after: if not-None, time of idleness in seconds before service is terminated
         :param port: the port number
         :param address: the address
@@ -164,20 +218,19 @@ class WebAPI:
                 port = service_info.get('port')
                 address = service_info.get('address') or LOCALHOST
                 if is_service_running(port, address):
-                    print('%s: service already running on %s:%s, reusing it' % (self.name, address, port))
+                    print('%s: detected service running on %s:%s' % (name, address, port))
                     return service_info
                 else:
                     # Try shutting down the service, even violently
                     self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
-                print('%s: warning: service info file exists: %s, removing it' % (self.name, service_info_file))
+                print('%s: service info file exists: %s, removing it' % (name, service_info_file))
                 os.remove(service_info_file)
 
-        import tornado.options
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
-        options.log_file_prefix = log_file_prefix or ('%s.log' % self.name)
-        options.log_to_stderr = None
+        options.log_file_prefix = log_file_prefix or ('%s.log' % name)
+        options.log_to_stderr = log_to_stderr
         enable_pretty_logging()
 
         port = port or find_free_port()
@@ -191,23 +244,26 @@ class WebAPI:
                                  address=address,
                                  caller=caller,
                                  started=datetime.now().isoformat(sep=' '),
-                                 process_id=os.getpid())
+                                 pid=os.getpid())
 
         application = application_factory()
         application.webapi = self
         application.time_of_last_activity = time.clock()
         self.application = application
 
-        print('started %s, listening on %s:%s' % (self.name, address or LOCALHOST, port))
-        application.listen(port, address=address or '')
-        io_loop = IOLoop()
-        io_loop.make_current()
+        print('{}: started service, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
+
+        self.server = application.listen(port, address=address or '')
+        # Ensure we have the same event loop in all threads
+        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
+        # Register handlers for common termination signals
+        signal.signal(signal.SIGINT, self._sig_handler)
+        signal.signal(signal.SIGTERM, self._sig_handler)
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
-        # IOLoop.call_later(delay, callback, *args, **kwargs)
         if self.auto_stop_enabled:
             self._install_next_inactivity_check()
-        IOLoop.instance().start()
+        IOLoop.current().start()
         return self.service_info
 
     @classmethod
@@ -222,7 +278,7 @@ class WebAPI:
         """
         Stop a WebAPI service.
 
-        :param name: The (CLI) name of this service.
+        :param name: The name of this service.
         :param port: port number
         :param address: service address
         :param caller:
@@ -241,13 +297,13 @@ class WebAPI:
         port = port or service_info.get('port')
         address = address or service_info.get('address')
         caller = caller or service_info.get('caller')
-        pid = service_info.get('process_id')
+        pid = service_info.get('pid')
 
         if not port:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
         address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        print('stopping %s on %s' % (name, address_and_port))
+        print('{}: stopping service on {}'.format(name, address_and_port))
 
         # noinspection PyBroadException
         try:
@@ -303,20 +359,7 @@ class WebAPI:
         """
         Stops the Tornado web server.
         """
-        IOLoop.instance().add_callback(self._on_shut_down)
-
-    def _install_next_inactivity_check(self):
-        IOLoop.instance().call_later(self.auto_stop_after, self._check_inactivity)
-
-    def _check_inactivity(self):
-        # noinspection PyUnresolvedReferences
-        time_of_last_activity = self.application.time_of_last_activity
-        inactivity_time = time.clock() - time_of_last_activity
-        if inactivity_time > self.auto_stop_after:
-            print('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
-            self.shut_down()
-        else:
-            self._install_next_inactivity_check()
+        IOLoop.current().add_callback(self._on_shut_down)
 
     def _on_shut_down(self):
         # noinspection PyUnresolvedReferences
@@ -327,7 +370,30 @@ class WebAPI:
                 os.remove(service_info_file)
             except Exception:
                 pass
-        IOLoop.instance().stop()
+
+        if self.server:
+            self.server.stop()
+            self.server = None
+
+        IOLoop.current().stop()
+
+    # noinspection PyUnusedLocal
+    def _sig_handler(self, sig, frame):
+        _LOG.warning('Caught signal: %s', sig)
+        IOLoop.current().add_callback_from_signal(self._on_shut_down)
+
+    def _install_next_inactivity_check(self):
+        IOLoop.current().call_later(self.auto_stop_after, self._check_inactivity)
+
+    def _check_inactivity(self):
+        # noinspection PyUnresolvedReferences
+        time_of_last_activity = self.application.time_of_last_activity
+        inactivity_time = time.clock() - time_of_last_activity
+        if inactivity_time > self.auto_stop_after:
+            _LOG.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
+            self.shut_down()
+        else:
+            self._install_next_inactivity_check()
 
     @classmethod
     def start_subprocess(cls,
@@ -350,7 +416,7 @@ class WebAPI:
         :param timeout: timeout in seconds
         """
         port = port or find_free_port()
-        command = cls._join_subprocess_command(module, 'start', port, address, caller, service_info_file,
+        command = cls._join_subprocess_command(module, port, address, caller, service_info_file,
                                                auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
@@ -390,13 +456,13 @@ class WebAPI:
         :param service_info_file: optional path to a (JSON) file, where service info will be stored
         :param timeout: timeout in seconds
         """
-        command = cls._join_subprocess_command(module, 'stop', port, address, caller, service_info_file, None)
+        command = cls._join_subprocess_command(module, port, address, caller, service_info_file, None)
         exit_code = subprocess.call(command, shell=True, timeout=timeout)
         if exit_code != 0:
             raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
 
     @classmethod
-    def _join_subprocess_command(cls, module, sub_command, port, address, caller, service_info_file, auto_stop_after):
+    def _join_subprocess_command(cls, module, port, address, caller, service_info_file, auto_stop_after):
         command = '"%s" -m %s' % (sys.executable, module)
         if port:
             command += ' -p %d' % port
@@ -408,7 +474,7 @@ class WebAPI:
             command += ' -f "%s"' % service_info_file
         if auto_stop_after:
             command += ' -s %s' % auto_stop_after
-        return command + ' ' + sub_command
+        return command
 
 
 def check_for_auto_stop(application: Application, condition: bool,
@@ -530,31 +596,50 @@ class WebAPIRequestHandler(RequestHandler):
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))
 
-    def write_status_error(self, exception: Exception = None, type_name: str = None, message: str = None):
+    def write_status_error(self, message: str = None, exc_info=None):
         if message is not None:
-            print("ERROR: %s" % message)
-        if exception is not None:
-            traceback.print_exc()
-        self.write(self._to_status_error(exception=exception, type_name=type_name, message=message))
+            _LOG.error(message)
+        if exc_info is not None:
+            _LOG.info(''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2])))
+        self.write(self._to_status_error(message=message, exc_info=exc_info))
 
     @classmethod
-    def _to_status_error(cls, exception: Exception = None, type_name: str = None, message: str = None):
-        trace_back = None
-        if exception is not None:
-            trace_back = traceback.format_exc()
-            type_name = type_name or type(exception).__name__
-            message = message or str(exception)
-        error_details = {}
-        if trace_back is not None:
-            error_details['traceback'] = trace_back
-        if type_name:
-            error_details['type'] = type_name
+    def _to_status_error(cls, message: str = None, exc_info=None):
+        error_data = None
+        if exc_info is not None:
+            message = message or str(exc_info[1])
+            error_data = exception_to_json(exc_info)
         if message:
-            error_details['message'] = message
-        response = dict(status='error', error=dict(type=type_name, message=message))
-        if exception is not None:
-            response['traceback'] = traceback.format_exc()
-        return dict(status='error', error=error_details) if error_details else dict(status='error')
+            if error_data:
+                return dict(status='error', error=dict(message=message, data=error_data))
+            else:
+                return dict(status='error', error=dict(message=message))
+        return dict(status='error')
+
+
+class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
+    """
+    Event loop policy that has one fixed global loop for all threads.
+
+    We use it for the following reason: As of Tornado 5 IOLoop.current() no longer has
+    a single global instance. It is a thread-local instance, but only on the main thread.
+    Other threads have no IOLoop instance by default.
+
+    _GlobalEventLoopPolicy is a fix that allows us to access the same IOLoop
+    in all threads.
+
+    Usage::
+
+        asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
+
+    """
+
+    def __init__(self, global_loop):
+        super().__init__()
+        self._global_loop = global_loop
+
+    def get_event_loop(self):
+        return self._global_loop
 
 
 # noinspection PyAbstractClass
@@ -565,7 +650,7 @@ class WebAPIExitHandler(WebAPIRequestHandler):
 
     def get(self):
         self.write_status_ok(content='Bye!')
-        IOLoop.instance().add_callback(self.webapi.shut_down)
+        IOLoop.current().add_callback(self.webapi.shut_down)
 
 
 class WebAPIError(Exception):

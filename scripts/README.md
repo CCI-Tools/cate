@@ -1,14 +1,8 @@
 ## Purpose
 
-This `scripts` directory contains scripts each performing an end-to-end test for the Cate CLI. 
-The scripts 
+This `scripts` directory contains quickstart, example and utility scripts for CCI Toolbox development.
 
-* are intended to be used as starting point for more elaborated Cate software validation tasks;
-* demonstrate the intended usage of the CLI and the purpose of its various commands;
-* may be used as starting point for cross-ECV analysis using ESA's CCI products.    
-
-Note that the scripts describe a "happy path" for a given scenario and do not claim to be complete
-nor scientifically meaningful.
+The `happy_path` scripts have been moved to [Cate E2E](https://github.com/CCI-Tools/cate-e2e) repository.
 
 ## Usage
 

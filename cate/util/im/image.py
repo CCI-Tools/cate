@@ -23,12 +23,13 @@ import io
 import time
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Sequence, Union, Any, Callable, Optional, List
+from typing import Tuple, Sequence, Union, Any, Callable, Optional
 
 import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
 
+from .cmaps import ensure_cmaps_loaded
 from .geoextent import GeoExtent
 from .tilingscheme import TilingScheme
 from .utils import downsample_ndarray, aggregate_ndarray_first
@@ -377,11 +378,9 @@ class TransformArrayImage(DecoratorImage):
         if self._force_masked and not np.ma.is_masked(tile):
             # if tile is not masked
             if self._no_data_value is not None:
-                print("compute_tile_from_source_tile: we has a self._no_data_value: ", self._no_data_value)
                 # and we have a fill value, return a masked tile
                 tile = np.ma.masked_equal(tile, self._no_data_value)
             elif self._valid_range is not None:
-                print("compute_tile_from_source_tile: we has a self._valid_range: ", self._valid_range)
                 valid_min, valid_max = self._valid_range
                 # and we have a valid min or max, return a masked tile
                 if valid_min is not None:
@@ -423,6 +422,7 @@ class ColorMappedRgbaImage(DecoratorImage):
         super().__init__(source_image, image_id=image_id, format=format, mode='RGBA', tile_cache=tile_cache)
         self._value_range = value_range
         self._cmap_name = cmap_name if cmap_name else 'jet'
+        ensure_cmaps_loaded()
         self._cmap = cm.get_cmap(self._cmap_name, num_colors)
         self._cmap.set_bad('k', 0)
         self._no_data_value = no_data_value

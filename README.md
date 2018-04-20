@@ -135,6 +135,13 @@ We need to set environment variable `NUMBA_DISABLE_JIT` to disable JIT compilati
 coverage reaches the actual Python code. We use Numba's JIT compilation to speed up numeric Python 
 number crunching code.
 
+Other recognized environment variables to customize the unit-level tests are
+
+    CATE_DISABLE_WEB_TESTS=1
+    CATE_DISABLE_PLOT_TESTS=1
+    CATE_DISABLE_GEOPANDAS_TESTS=1
+    CATE_DISABLE_CLI_UPDATE_TESTS=1
+
 ### Generating the Documentation
 
 We use the wonderful [Sphinx](http://www.sphinx-doc.org/en/stable/rest.html) tool to generate 

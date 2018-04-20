@@ -32,8 +32,10 @@ if os.path.isdir(extra_path) and extra_path not in sys.path:
     sys.path.append(extra_path)
 
 # noinspection PyUnresolvedReferences
-from .common import initialize_proxy
+from .common import initialize_proxy, configure_user_agent
 initialize_proxy()
+# See https://github.com/CCI-Tools/cate/issues/510
+configure_user_agent()
 
 # noinspection PyUnresolvedReferences
 from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY

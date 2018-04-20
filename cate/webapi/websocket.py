@@ -20,12 +20,12 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Any, Union
 
 import xarray as xr
 
 from cate.conf import conf
-from cate.conf.defaults import VERSION_CONF_FILE
+from cate.conf.defaults import GLOBAL_CONF_FILE
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
@@ -54,7 +54,8 @@ class WebSocketService:
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),
                     use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
-                    default_res_pattern=conf.get_default_res_pattern())
+                    default_res_pattern=conf.get_default_res_pattern(),
+                    http_proxy=conf.get_http_proxy())
 
     def set_config(self, config: dict) -> None:
 
@@ -62,7 +63,7 @@ class WebSocketService:
         conf_text = ''
         # noinspection PyBroadException
         try:
-            with open(VERSION_CONF_FILE, 'r') as fp:
+            with open(GLOBAL_CONF_FILE, 'r') as fp:
                 conf_text = fp.read()
         except Exception:
             # ok
@@ -71,7 +72,10 @@ class WebSocketService:
         # Split into config file lines
         conf_lines = conf_text.split('\n')
         for key, value in config.items():
-            new_entry = '%s = %s' % (key, repr(value))
+            if value:
+                new_entry = '%s = %s' % (key, repr(value))
+            else:
+                new_entry = '# %s =' % key
             # Try replacing existing code lines starting with key
             # Replace in reverse line order, because config files are interpreted top-down
             indices = list(range(len(conf_lines)))
@@ -96,7 +100,7 @@ class WebSocketService:
 
         # Now join lines back again and write modified config file
         conf_text = '\n'.join(conf_lines)
-        with open(VERSION_CONF_FILE, 'w') as fp:
+        with open(GLOBAL_CONF_FILE, 'w') as fp:
             fp.write(conf_text)
 
     def get_data_stores(self) -> list:
@@ -203,12 +207,13 @@ class WebSocketService:
         registry = registry or OP_REGISTRY
         op_list = []
         for op_name, op_reg in registry.op_registrations.items():
-            if op_reg.op_meta_info.header.get('deprecated'):
+            if op_reg.op_meta_info.header.get('deprecated') or op_name.startswith('_'):
+                # do not list deprecated and private operations
                 continue
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
             op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()
-                                      if not props.get('deprecated')]
+                                      if not (props.get('deprecated') or props.get('context'))]
             op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()
                                        if not props.get('deprecated')]
             op_list.append(op_json_dict)
@@ -297,10 +302,9 @@ class WebSocketService:
                                                             format_name=format_name, monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> dict:
+                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         with cwd(base_dir):
-            workspace = self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
-            return workspace.to_json_dict()
+            return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:

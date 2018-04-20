@@ -1,9 +1,14 @@
-###############################################################################
-# This is a Cate configuration file.
-#
-# As this is a regular Python script, you may use any Python code to compute
-# the settings provided here.
-###############################################################################
+################################################################################
+# This is a Cate configuration file.                                           #
+#                                                                              #
+# As this is a regular Python script, you may use any Python code to compute   #
+# the settings provided here.                                                  #
+#                                                                              #
+# Please find the configuration template for a given Cate VERSION at           #
+#   https://github.com/CCI-Tools/cate/blob/vVERSION/cate/conf/template.py      #
+# For example:                                                                 #
+#   https://github.com/CCI-Tools/cate/blob/v2.0.0.dev4/cate/conf/template.py   #
+################################################################################
 
 
 # 'data_stores_path' is denotes a directory where Cate stores information about data stores and also saves
@@ -24,15 +29,13 @@
 # This prefix is used only if no specific prefix is defined for a given operation.
 # default_res_pattern = 'res_{index}'
 
-# User defined HTTP proxy settings, will replace one stored in System environment variable 'http_proxy' and/or
-# optionally 'https_proxy'
+# User defined HTTP proxy settings, will replace one stored in System environment variable 'http_proxy'
 # Accepted proxy details formats:
 #   'http://user:password@host:port'
+#   'https://user:password@host:port'
 #   'http://host:port'
+#   'https://host:port'
 # http_proxy =
-
-# Uncomment and fill only if your Organization or Internet Service Provider provides proxy setting for HTTPS connections
-# https_proxy =
 
 # Include/exclude data sources (currently effective in Cate Desktop GUI only, not used by API, CLI).
 #
@@ -103,6 +106,16 @@ excluded_data_sources = [
 ]
 
 
+# Configure any default variables of a dataset that will be initially selected and displayed first.
+# 'default_display_variables' is a list comprising variable name sets. Each set may represent
+# multiple similar datasets.
+# default_variables = {
+#     'cfc',             # Cloud CCI
+#     'lccs_class',      # Land Cover CCI
+#     'analysed_sst',    # Sea Surface Temperature CCI
+# }
+
+
 # Configure / overwrite default variable display settings as used in various plot_<type>() operations
 # and in the Cate Desktop GUI.
 # Each entry maps a variable name to a dictionary with the following entries:
@@ -120,3 +133,4 @@ excluded_data_sources = [
 # https://matplotlib.org/examples/color/colormaps_reference.html
 # default_color_map = 'jet'
 default_color_map = 'inferno'
+

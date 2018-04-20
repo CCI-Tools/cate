@@ -70,14 +70,14 @@ Components
 ==========
 """
 
-import sys
-import traceback
+import logging
 from collections import OrderedDict
 
 from pkg_resources import iter_entry_points
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+_LOG = logging.getLogger('cate')
 
 def _load_plugins():
     plugins = OrderedDict()
@@ -87,7 +87,7 @@ def _load_plugins():
         try:
             plugin = entry_point.load()
         except Exception:
-            _report_plugin_exception(
+            _LOG.exception(
                 "unexpected exception while loading Cate plugin with entry point '%s'" % entry_point.name)
             continue
 
@@ -96,11 +96,11 @@ def _load_plugins():
             try:
                 plugin()
             except Exception:
-                _report_plugin_exception(
+                _LOG.exception(
                     "unexpected exception while executing Cate plugin with entry point '%s'" % entry_point.name)
                 continue
         else:
-            _report_plugin_error_msg("Cate plugin with entry point '%s' must be a callable but got a '%s'" % (
+            _LOG.error("Cate plugin with entry point '%s' must be a callable but got a '%s'" % (
                 entry_point.name, type(plugin)))
             continue
 
@@ -109,17 +109,6 @@ def _load_plugins():
         plugins[entry_point.name] = {'entry_point': entry_point.name}
 
     return plugins
-
-
-def _report_plugin_error_msg(msg):
-    sys.stderr.write("error: %s\n" % msg)
-
-
-def _report_plugin_exception(msg):
-    _report_plugin_error_msg(msg)
-    print("-" * 80)
-    traceback.print_exc(file=sys.stdout)
-    print("-" * 80)
 
 
 def cate_init(*arg, **kwargs):
