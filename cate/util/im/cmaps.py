@@ -150,7 +150,7 @@ def ensure_cmaps_loaded():
                     else:
                         new_name = cmap.name + '_alpha' if hasattr(cmap, 'name') else 'unknown'
                         _LOG.warning('could not create colormap "{}" because "{}" is of unknown type {}'
-                                        .format(new_name, cmap.name, type(cmap)))
+                                     .format(new_name, cmap.name, type(cmap)))
 
                     gradient = np.linspace(0, 1, 256)
                     gradient = np.vstack((gradient, gradient))
