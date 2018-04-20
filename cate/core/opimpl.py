@@ -27,8 +27,8 @@ from typing import Optional, Sequence, Union, Tuple
 import numpy as np
 import xarray as xr
 from jdcal import jd2gcal
-from shapely.geometry import box, LineString, Polygon
 from matplotlib import path
+from shapely.geometry import box, LineString, Polygon
 
 from .types import PolygonLike
 from ..util.misc import to_list
@@ -179,6 +179,7 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     for dim in ('lon', 'lat'):
         geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim)
         if geo_spatial_attrs:
+            # Copy any new attributes into the shallow Dataset copy
             for key in geo_spatial_attrs:
                 if geo_spatial_attrs[key] is not None:
                     if not copied:
@@ -233,11 +234,41 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
 
     if temporal_attrs:
         ds = ds.copy()
+        # Align temporal attributes with the ones from the shallow Dataset copy
         for key in temporal_attrs:
             if temporal_attrs[key] is not None:
                 ds.attrs[key] = temporal_attrs[key]
             else:
                 ds.attrs.pop(key, None)
+
+    has_time = 'time' not in ds.coords and 'time' not in ds
+    if has_time:
+        return ds
+
+    has_time_bnds = 'time_bnds' not in ds.coords and 'time_bnds' not in ds
+    if has_time_bnds:
+        # TODO (forman): go home!
+        pass
+    else:
+        time_coverage_start = ds.attrs.get('time_coverage_start')
+        time_coverage_end = ds.attrs.get('time_coverage_end')
+        import pandas as pd
+
+        if time_coverage_start is not None:
+            time_coverage_start = pd.to_datetime(time_coverage_start)
+
+        if time_coverage_end is not None:
+            time_coverage_end = pd.to_datetime(time_coverage_end)
+
+        if not time_coverage_start and not time_coverage_end:
+            return ds
+
+        if time_coverage_start or time_coverage_end:
+            ds = ds.expand_dims('time')
+            ds = ds.assign_coords(time=[time_coverage_start or time_coverage_end])
+
+        if time_coverage_start and time_coverage_end:
+            ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
 
     return ds
 
@@ -266,8 +297,6 @@ def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
         bnds_name = 'time_bnds'
 
-    ret = dict()
-
     if bnds_name in ds:
         bnds_var = ds[bnds_name]
         dim_min = bnds_var.values[0][0]
@@ -292,12 +321,10 @@ def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
     else:
         resolution = None
 
-    ret['time_coverage_duration'] = duration
-    ret['time_coverage_resolution'] = resolution
-    ret['time_coverage_start'] = str(dim_min)
-    ret['time_coverage_end'] = str(dim_max)
-
-    return ret
+    return dict(time_coverage_duration=duration,
+                time_coverage_resolution=resolution,
+                time_coverage_start=str(dim_min),
+                time_coverage_end=str(dim_max))
 
 
 def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> Optional[dict]:
@@ -312,12 +339,9 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
-    ret = dict()
 
     if dim_name not in ds:
         return None
-
-    ret = dict()
 
     coord_var = ds[dim_name]
 
@@ -356,12 +380,14 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     min_name = 'geospatial_{}_min'.format(dim_name)
     max_name = 'geospatial_{}_max'.format(dim_name)
     units_name = 'geospatial_{}_units'.format(dim_name)
-    ret[res_name] = dim_res
-    ret[min_name] = dim_min
-    ret[max_name] = dim_max
-    ret[units_name] = dim_units
 
-    return ret
+    geo_spatial_attrs = dict()
+    geo_spatial_attrs[res_name] = dim_res
+    geo_spatial_attrs[min_name] = dim_min
+    geo_spatial_attrs[max_name] = dim_max
+    geo_spatial_attrs[units_name] = dim_units
+
+    return geo_spatial_attrs
 
 
 def _get_temporal_res(time: np.ndarray) -> str:
@@ -459,7 +485,7 @@ def get_extents(region: PolygonLike.TYPE):
         # Get the bounding box
         lon_min, lat_min, lon_max, lat_max = region.bounds
 
-    return([lon_min, lat_min, lon_max, lat_max], explicit_coords)
+    return ([lon_min, lat_min, lon_max, lat_max], explicit_coords)
 
 
 def _pad_extents(ds: xr.Dataset, extents: tuple):

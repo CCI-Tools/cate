@@ -2,16 +2,16 @@
 Test for the harmonization operation
 """
 
+import calendar
+from datetime import datetime
 from unittest import TestCase
 
+import numpy as np
 import xarray as xr
 from jdcal import gcal2jd
-import numpy as np
-from datetime import datetime
-import calendar
 
-from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.core.op import OP_REGISTRY
+from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.misc import object_to_qualified_name
 
 
@@ -131,6 +131,12 @@ class TestNormalize(TestCase):
         actual = normalize(ds)
 
         assertDatasetEqual(actual, expected)
+
+    def test_normalize_missing_time_dim(self):
+        """
+        Test Julian Day -> Datetime conversion
+        """
+        # TODO (forman): go home!
 
     def test_registered(self):
         """
