@@ -62,7 +62,7 @@ from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .utility import sel, from_dataframe, identity, literal, pandas_fillna
-from .aggregate import long_term_average, temporal_aggregation
+from .aggregate import long_term_average, temporal_aggregation, reduce
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
@@ -126,6 +126,7 @@ __all__ = [
     # .aggregate
     'long_term_average',
     'temporal_aggregation',
+    'reduce',
     # .arithmetics
     'ds_arithmetics',
     'diff',

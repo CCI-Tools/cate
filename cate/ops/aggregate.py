@@ -180,3 +180,30 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
             retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
 
     return adjust_temporal_attrs(retset)
+
+
+@op(tags=['aggregate'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
+@op_input('var', data_type=VariableNamesLike, value_set_source='ds')
+@op_input('dim', data_type=DimNamesLike, value_set_source='ds')
+@op_return(add_history=True)
+def reduce(ds: DatasetLike.TYPE,
+           var: VarNamesLike.TYPE = None,
+           dim: DimNamesLike.TYPE = None,
+           method: str = 'mean',
+           numeric_only: bool = True):
+"""
+Reduce the given variables of the given dataset along the given dimensions.
+If no variables are given, all variables of the dataset will be reduced. If
+no dimensions are given, all dimensions will be reduced. If no variables
+have been given explicitly, it can be set that only variables featuring numeric
+values should be reduced.
+
+:param ds: Dataset to reduce
+:param var: Variables in the dataset to reduce
+:param dim: Dataset dimensions along which to reduce
+:param method: reduction method
+:param numeric_only: If only numeric variables should be reduced, in case variable
+names are not explicitly given.
+"""
+pass
