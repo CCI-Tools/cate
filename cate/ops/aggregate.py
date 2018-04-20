@@ -36,7 +36,7 @@ import numpy as np
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
-from cate.core.types import VarNamesLike, DatasetLike, ValidationError
+from cate.core.types import VarNamesLike, DatasetLike, ValidationError, DimNamesLike
 
 from cate.ops.normalize import adjust_temporal_attrs
 
@@ -184,26 +184,44 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
 
 @op(tags=['aggregate'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
-@op_input('var', data_type=VariableNamesLike, value_set_source='ds')
+@op_input('var', data_type=VarNamesLike, value_set_source='ds')
 @op_input('dim', data_type=DimNamesLike, value_set_source='ds')
+@op_input('method', value_set=['mean', 'min', 'max', 'sum', 'median'])
 @op_return(add_history=True)
 def reduce(ds: DatasetLike.TYPE,
            var: VarNamesLike.TYPE = None,
            dim: DimNamesLike.TYPE = None,
            method: str = 'mean',
-           numeric_only: bool = True):
-"""
-Reduce the given variables of the given dataset along the given dimensions.
-If no variables are given, all variables of the dataset will be reduced. If
-no dimensions are given, all dimensions will be reduced. If no variables
-have been given explicitly, it can be set that only variables featuring numeric
-values should be reduced.
+           numeric_only: bool = True,
+           monitor: Monitor = Monitor.NONE):
+    """
+    Reduce the given variables of the given dataset along the given dimensions.
+    If no variables are given, all variables of the dataset will be reduced. If
+    no dimensions are given, all dimensions will be reduced. If no variables
+    have been given explicitly, it can be set that only variables featuring numeric
+    values should be reduced.
 
-:param ds: Dataset to reduce
-:param var: Variables in the dataset to reduce
-:param dim: Dataset dimensions along which to reduce
-:param method: reduction method
-:param numeric_only: If only numeric variables should be reduced, in case variable
-names are not explicitly given.
-"""
-pass
+    :param ds: Dataset to reduce
+    :param var: Variables in the dataset to reduce
+    :param dim: Dataset dimensions along which to reduce
+    :param method: reduction method
+    :param numeric_only: If only numeric variables should be reduced, in case variable
+    names are not explicitly given.
+    :param monitor: A progress monitor
+    """
+    ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
+              'median': np.nanmedian, 'sum': np.nansum}
+    if not var:
+        with monitor.starting("Reduce dataset", total_work=100):
+            monitor.progress(5)
+            with monitor.child(95).observing("Reduce"):
+                return ds.reduce(ufuncs[method], dim=dim, keep_attrs=True, numeric_only=numeric_only)
+
+    retset = ds.copy()
+
+    var_names = VarNamesLike.convert(var)
+
+    for var_name in var_names:
+        retset[var_name] = retset[var_name].reduce(ufuncs[method], dim=dim, keep_attrs=True)
+
+    return retset
