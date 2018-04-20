@@ -566,7 +566,10 @@ def plot_hovmoeller(ds: xr.Dataset,
                     monitor: Monitor = Monitor.NONE,
                     **kwargs) -> Figure:
     """
-    Create a Hovmoeller plot of the given dataset.
+    Create a Hovmoeller plot of the given dataset. Dimensions other than
+    the ones defined as x and y axis will be aggregated using the given
+    method to produce the plot.
+
     :param ds: Dataset to plot
     :param var: Name of the variable to plot
     :param x_axis: Dimension to show on x axis
