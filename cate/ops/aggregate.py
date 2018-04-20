@@ -192,7 +192,6 @@ def reduce(ds: DatasetLike.TYPE,
            var: VarNamesLike.TYPE = None,
            dim: DimNamesLike.TYPE = None,
            method: str = 'mean',
-           numeric_only: bool = True,
            monitor: Monitor = Monitor.NONE):
     """
     Reduce the given variables of the given dataset along the given dimensions.
@@ -205,23 +204,28 @@ def reduce(ds: DatasetLike.TYPE,
     :param var: Variables in the dataset to reduce
     :param dim: Dataset dimensions along which to reduce
     :param method: reduction method
-    :param numeric_only: If only numeric variables should be reduced, in case variable
-    names are not explicitly given.
     :param monitor: A progress monitor
     """
     ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
               'median': np.nanmedian, 'sum': np.nansum}
-    if not var:
-        with monitor.starting("Reduce dataset", total_work=100):
-            monitor.progress(5)
-            with monitor.child(95).observing("Reduce"):
-                return ds.reduce(ufuncs[method], dim=dim, keep_attrs=True, numeric_only=numeric_only)
 
-    retset = ds.copy()
+    if not var:
+        var = list(ds.data_vars.keys())
+
+    if dim:
+        dim = DimNamesLike.convert(dim)
 
     var_names = VarNamesLike.convert(var)
 
+    retset = ds.copy()
+
     for var_name in var_names:
-        retset[var_name] = retset[var_name].reduce(ufuncs[method], dim=dim, keep_attrs=True)
+        intersection = [value for value in dim if value in retset[var_name].dims]
+        with monitor.starting("Reduce dataset", total_work=100):
+            monitor.progress(5)
+            with monitor.child(95).observing("Reduce"):
+                retset[var_name] = retset[var_name].reduce(ufuncs[method],
+                                                           dim=intersection,
+                                                           keep_attrs=True)
 
     return retset
