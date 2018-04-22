@@ -106,6 +106,16 @@ class TestNormalize(TestCase):
         actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
+    def test_normalize_with_missing_time_dim(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101',
+                               'time_coverage_end': '20121231'})
+        norm_ds = normalize(ds)
+        self.assertIs(norm_ds, ds)
+
     def test_normalize_julian_day(self):
         """
         Test Julian Day -> Datetime conversion
@@ -131,12 +141,6 @@ class TestNormalize(TestCase):
         actual = normalize(ds)
 
         assertDatasetEqual(actual, expected)
-
-    def test_normalize_missing_time_dim(self):
-        """
-        Test Julian Day -> Datetime conversion
-        """
-        # TODO (forman): go home!
 
     def test_registered(self):
         """
@@ -168,6 +172,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -218,6 +223,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -282,6 +288,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -347,6 +354,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -434,6 +442,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -447,6 +456,7 @@ class TestAdjustTemporal(TestCase):
                          'P336D')
 
         # Test existing attributes update
+        # noinspection PyTypeChecker
         indexers = {'time': slice(datetime(2000, 2, 15), datetime(2000, 6, 15))}
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_temporal_attrs(ds2)
@@ -485,6 +495,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -515,6 +526,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -526,6 +538,7 @@ class TestAdjustTemporal(TestCase):
                          'P31D')
         with self.assertRaises(KeyError):
             # Resolution is not defined for a single slice
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_resolution']
 
         # Without bnds
@@ -543,6 +556,53 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds1.attrs['time_coverage_end'],
                          '2000-01-01T00:00:00.000000000')
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_resolution']
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_duration']
+
+    def test_time_and_time_bnds_dim_generated(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101',
+                               'time_coverage_end': '20121231'})
+
+        new_ds = adjust_temporal_attrs(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('time', new_ds.coords)
+        self.assertIn('time_bnds', new_ds.coords)
+
+        import pandas as pd
+        self.assertEqual(new_ds.first.shape, (1, 90, 180))
+        self.assertEqual(new_ds.second.shape, (1, 90, 180))
+        self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
+        self.assertEqual(new_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+        self.assertEqual(new_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
+
+    def test_only_time_dim_generated(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101'})
+
+        new_ds = adjust_temporal_attrs(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 3)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('time', new_ds.coords)
+        self.assertNotIn('time_bnds', new_ds.coords)
+
+        import pandas as pd
+        self.assertEqual(new_ds.first.shape, (1, 90, 180))
+        self.assertEqual(new_ds.second.shape, (1, 90, 180))
+        self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-01-01')))

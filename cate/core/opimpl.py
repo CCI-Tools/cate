@@ -19,7 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway)"
+__author__ = "Janis Gailis (S[&]T Norway)" \
+             "Norman Fomferra (Brockmann Consult GmbH)"
 
 from datetime import datetime
 from typing import Optional, Sequence, Union, Tuple
@@ -54,17 +55,9 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to normalize.
     :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
-
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
-
-    # Handle Julian Day Time
-    try:
-        if ds.time.long_name.lower().strip() == 'time in julian days':
-            return _normalize_jd2datetime(ds)
-    except AttributeError:
-        pass
-
+    ds = _normalize_jd2datetime(ds)
     return ds
 
 
@@ -146,8 +139,36 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
 
     :param ds: Dataset on which to run conversion
     """
+
+    try:
+        time = ds.time
+    except AttributeError:
+        return ds
+
+    try:
+        units = time.units
+    except AttributeError:
+        units = None
+
+    try:
+        long_name = time.long_name
+    except AttributeError:
+        long_name = None
+
+    if units:
+        units = units.lower().strip()
+
+    if long_name:
+        units = long_name.lower().strip()
+
+    units = units or long_name
+
+    if not units or units != 'time in julian days':
+        return ds
+
     ds = ds.copy()
     # Decode JD time
+    # noinspection PyTypeChecker
     tuples = [jd2gcal(x, 0) for x in ds.time.values]
     # Replace JD time with datetime
     ds.time.values = [datetime(x[0], x[1], x[2]) for x in tuples]
@@ -171,13 +192,14 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
+    :param allow_point: Whether to accept single point cells
     :return: Adjusted dataset
     """
 
     copied = False
 
     for dim in ('lon', 'lat'):
-        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim)
+        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=allow_point)
         if geo_spatial_attrs:
             # Copy any new attributes into the shallow Dataset copy
             for key in geo_spatial_attrs:
@@ -241,34 +263,39 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
             else:
                 ds.attrs.pop(key, None)
 
-    has_time = 'time' not in ds.coords and 'time' not in ds
+    # Now let's see if we are lacking a 'time' variable when we have temporal attributes
+
+    has_time = 'time' in ds.coords or 'time' in ds
     if has_time:
         return ds
 
-    has_time_bnds = 'time_bnds' not in ds.coords and 'time_bnds' not in ds
-    if has_time_bnds:
-        # TODO (forman): go home!
-        pass
-    else:
-        time_coverage_start = ds.attrs.get('time_coverage_start')
-        time_coverage_end = ds.attrs.get('time_coverage_end')
-        import pandas as pd
+    has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
 
-        if time_coverage_start is not None:
-            time_coverage_start = pd.to_datetime(time_coverage_start)
+    time_coverage_start = ds.attrs.get('time_coverage_start')
+    time_coverage_end = ds.attrs.get('time_coverage_end')
+    import pandas as pd
 
-        if time_coverage_end is not None:
-            time_coverage_end = pd.to_datetime(time_coverage_end)
+    if time_coverage_start is not None:
+        time_coverage_start = pd.to_datetime(time_coverage_start)
 
-        if not time_coverage_start and not time_coverage_end:
-            return ds
+    if time_coverage_end is not None:
+        time_coverage_end = pd.to_datetime(time_coverage_end)
 
-        if time_coverage_start or time_coverage_end:
-            ds = ds.expand_dims('time')
-            ds = ds.assign_coords(time=[time_coverage_start or time_coverage_end])
+    if not time_coverage_start and not time_coverage_end:
+        return ds
 
+    if time_coverage_start or time_coverage_end:
+        ds = ds.expand_dims('time')
         if time_coverage_start and time_coverage_end:
-            ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
+            time = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
+        else:
+            time = time_coverage_start or time_coverage_end
+        ds = ds.assign_coords(time=[time])
+        ds.coords['time']['long_name'] = 'time'
+        ds.coords['time']['standard_name'] = 'time'
+
+    if not has_time_bnds and time_coverage_start and time_coverage_end:
+        ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
 
     return ds
 
@@ -459,6 +486,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
     return False
 
 
+# TODO (forman): idea: introduce ExtentLike type, or make this a class method of PolygonLike and GeometryLike
 def get_extents(region: PolygonLike.TYPE):
     """
     Get extents of a PolygonLike, handles explicitly given
@@ -474,6 +502,12 @@ def get_extents(region: PolygonLike.TYPE):
             if len(maybe_rectangle) == 4:
                 lon_min, lat_min, lon_max, lat_max = maybe_rectangle
                 explicit_coords = True
+            else:
+                # TODO (Gailis): Do code analysis (e.g. use PyCharm). lon_min, lat_min, lon_max, lat_max are unbound here!
+                pass
+        else:
+            # TODO (Gailis): Do code analysis (e.g. use PyCharm). lon_min, lat_min, lon_max, lat_max are unbound here
+            pass
     except BaseException:
         # The polygon must be convertible, but it's complex
         polygon = PolygonLike.convert(region)
@@ -485,10 +519,10 @@ def get_extents(region: PolygonLike.TYPE):
         # Get the bounding box
         lon_min, lat_min, lon_max, lat_max = region.bounds
 
-    return ([lon_min, lat_min, lon_max, lat_max], explicit_coords)
+    return [lon_min, lat_min, lon_max, lat_max], explicit_coords
 
 
-def _pad_extents(ds: xr.Dataset, extents: tuple):
+def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     """
     Pad extents by half a pixel in both directions, to make sure subsetting
     slices include all pixels crossed by the bounding box. Set extremes
@@ -590,6 +624,7 @@ def subset_spatial_impl(ds: xr.Dataset,
 
         # Preserve the original longitude dimension, masking elements that
         # do not belong to the polygon with NaN.
+        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 8.
         with monitor.observing(8):
             return retset.reindex_like(ds.lon)
 
@@ -603,6 +638,7 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
+        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 8.
         with monitor.observing(8):
             return retset
 
@@ -624,6 +660,7 @@ def subset_spatial_impl(ds: xr.Dataset,
                             coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                             dims=['lat', 'lon'])
 
+        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 5.
         with monitor.observing(5):
             # Apply the mask to data
             retset = retset.where(mask, drop=True)
@@ -662,6 +699,7 @@ def subset_spatial_impl(ds: xr.Dataset,
                         coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                         dims=['lat', 'lon'])
 
+    # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 5.
     with monitor.observing(5):
         # Apply the mask to data
         retset = retset.where(mask, drop=True)
@@ -735,6 +773,7 @@ def subset_temporal_impl(ds: xr.Dataset,
     """
     # If it can be selected, go ahead
     try:
+        # noinspection PyTypeChecker
         time_slice = slice(time_range[0], time_range[1])
         indexers = {'time': time_slice}
         return ds.sel(**indexers)
