@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev10 (in development)
 
+* We now use "MB" units instead of "MiB" (part of [#325](https://github.com/CCI-Tools/cate/issues/325))
 * Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
 * Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)
 

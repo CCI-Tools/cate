@@ -90,6 +90,7 @@ DEFAULT_VARIABLES = {
     'O3_du',                    # Ozone CCI
     'sm',                       # Soil Moisture CCI
     'analysed_sst',             # SST CCI
+    'burned_area',              # Fire CCI
 }
 
 
@@ -131,6 +132,9 @@ VARIABLE_DISPLAY_SETTINGS = {
     'O3e_ndens': dict(display_min=9e9, display_max=1e11),
     'O3e_vmr': dict(display_min=0, display_max=0.005),
     'surface_pressure': dict(display_min=700, display_max=1010),
+
+    # Fire CCI
+    'burned_area': dict(color_map="hot", display_min=0, display_max=300000000),
 }
 
 DEFAULT_COLOR_MAP = 'inferno'
