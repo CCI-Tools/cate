@@ -14,7 +14,7 @@ from shapely.geometry import Point, Polygon
 from cate.core.op import op_input, OpRegistry
 from cate.core.types import Like, VarNamesLike, VarName, PointLike, PolygonLike, TimeRangeLike, GeometryLike, \
     DictLike, TimeLike, Arbitrary, Literal, DatasetLike, DataFrameLike, FileLike, GeoDataFrame, HTMLLike, HTML, \
-    ValidationError
+    ValidationError, DimName, DimNamesLike
 from cate.util.misc import object_to_qualified_name, OrderedDict
 
 # 'ExamplePoint' is an example type which may come from Cate API or other required API.
@@ -172,6 +172,60 @@ class VarNameTest(TestCase):
 
     def test_format(self):
         self.assertEqual('aa', VarName.format('aa'))
+
+
+class DimNamesLikeTest(TestCase):
+    """
+    Test the DimNamesLike type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(DimNamesLike.accepts('aa'))
+        self.assertTrue(DimNamesLike.accepts('aa,bb,cc'))
+        self.assertTrue(DimNamesLike.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(DimNamesLike.accepts(1.0))
+        self.assertFalse(DimNamesLike.accepts([1, 2, 4]))
+        self.assertFalse(DimNamesLike.accepts(['aa', 2, 'bb']))
+
+    def test_convert(self):
+        expected = ['aa', 'b*', 'cc']
+        actual = DimNamesLike.convert('aa,b*,cc')
+        self.assertEqual(actual, expected)
+
+        with self.assertRaises(ValidationError) as err:
+            DimNamesLike.convert(['aa', 1, 'bb'])
+        self.assertEqual(str(err.exception), 'List of dimension names expected.')
+        self.assertEqual(None, DimNamesLike.convert(None))
+
+    def test_format(self):
+        self.assertEqual(DimNamesLike.format(['aa', 'bb', 'cc']), "aa, bb, cc")
+        self.assertEqual(DimNamesLike.format(['aa']), "aa")
+        self.assertEqual(DimNamesLike.format([]), "")
+        self.assertEqual(DimNamesLike.format(None), "")
+
+
+class DimNameTest(TestCase):
+    """
+    Test the DimName type
+    """
+
+    def test_accepts(self):
+        self.assertTrue(DimName.accepts('aa'))
+        self.assertFalse(DimName.accepts(['aa', 'bb', 'cc']))
+        self.assertFalse(DimName.accepts(1.0))
+
+    def test_convert(self):
+        expected = 'aa'
+        actual = DimName.convert('aa')
+        self.assertEqual(actual, expected)
+
+        with self.assertRaises(ValidationError) as err:
+            DimName.convert(['aa', 'bb', 'cc'])
+        self.assertEqual(str(err.exception), 'Dimension name expected.')
+        self.assertEqual(None, DimName.convert(None))
+
+    def test_format(self):
+        self.assertEqual('aa', DimName.format('aa'))
 
 
 class FileLikeTest(TestCase):

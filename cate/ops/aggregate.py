@@ -36,7 +36,7 @@ import numpy as np
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
-from cate.core.types import VarNamesLike, DatasetLike, ValidationError
+from cate.core.types import VarNamesLike, DatasetLike, ValidationError, DimNamesLike
 
 from cate.ops.normalize import adjust_temporal_attrs
 
@@ -180,3 +180,53 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
             retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
 
     return adjust_temporal_attrs(retset)
+
+
+@op(tags=['aggregate'], version='1.0')
+@op_input('ds', data_type=DatasetLike)
+@op_input('var', data_type=VarNamesLike, value_set_source='ds')
+@op_input('dim', data_type=DimNamesLike, value_set_source='ds')
+@op_input('method', value_set=['mean', 'min', 'max', 'sum', 'median'])
+@op_return(add_history=True)
+def reduce(ds: DatasetLike.TYPE,
+           var: VarNamesLike.TYPE = None,
+           dim: DimNamesLike.TYPE = None,
+           method: str = 'mean',
+           monitor: Monitor = Monitor.NONE):
+    """
+    Reduce the given variables of the given dataset along the given dimensions.
+    If no variables are given, all variables of the dataset will be reduced. If
+    no dimensions are given, all dimensions will be reduced. If no variables
+    have been given explicitly, it can be set that only variables featuring numeric
+    values should be reduced.
+
+    :param ds: Dataset to reduce
+    :param var: Variables in the dataset to reduce
+    :param dim: Dataset dimensions along which to reduce
+    :param method: reduction method
+    :param monitor: A progress monitor
+    """
+    ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
+              'median': np.nanmedian, 'sum': np.nansum}
+
+    if not var:
+        var = list(ds.data_vars.keys())
+    var_names = VarNamesLike.convert(var)
+
+    if not dim:
+        dim = list(ds.coords.keys())
+    else:
+        dim = DimNamesLike.convert(dim)
+
+    retset = ds.copy()
+
+    for var_name in var_names:
+        intersection = [value for value in dim if value in retset[var_name].dims]
+        with monitor.starting("Reduce dataset", total_work=100):
+            monitor.progress(5)
+            with monitor.child(95).observing("Reduce"):
+                retset[var_name] = retset[var_name].reduce(ufuncs[method],
+                                                           dim=intersection,
+                                                           keep_attrs=True)
+
+    return retset

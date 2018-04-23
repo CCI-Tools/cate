@@ -51,6 +51,42 @@ class ConfTest(unittest.TestCase):
         config = conf.get_config()
         self.assertIsNotNone(config)
 
+    def test_set_and_update_config(self):
+        conf.get_config()
+        new_config = {'config1': 'Hello world!', 'config2': 12345, 'config3': True}
+
+        conf.set_config(new_config, True)
+        config = conf.get_config()
+        self.assertIsNotNone(config)
+        self.assertEqual(config.get('config1'), 'Hello world!')
+        self.assertEqual(config.get('config2'), 12345)
+        self.assertEqual(config.get('config3'), True)
+        self.assertEqual(config.get('config4'), None)
+
+        update = {'config1': 'Hello Python!', 'config4': ('yes', 'no')}
+        conf.set_config(update)
+        config = conf.get_config()
+        self.assertIsNotNone(config)
+        self.assertEqual(config.get('config1'), 'Hello Python!')
+        self.assertEqual(config.get('config2'), 12345)
+        self.assertEqual(config.get('config3'), True)
+        self.assertEqual(config.get('config4'), ('yes', 'no'))
+
+    def test_get_http_proxy(self):
+        self.assertEqual(conf.get_http_proxy(), None)
+
+        conf.set_config({'http_proxy': 'http://user:pw@proxy-url:9000'})
+        self.assertEqual('http://user:pw@proxy-url:9000', conf.get_http_proxy())
+
+        conf.set_config({'http_proxy': 'https://user:pw@proxy-url:9000'})
+        self.assertEqual('https://user:pw@proxy-url:9000', conf.get_http_proxy())
+
+        with self.assertLogs('cate', level='INFO') as cm:
+            conf.set_config({'http_proxy': 'invalid_proxy_url'})
+            self.assertEqual('invalid_proxy_url', conf.get_http_proxy())
+            self.assertEqual(1, len(cm.output))
+            self.assertEqual("WARNING:cate:invalid configuration: http_proxy = 'invalid_proxy_url'", cm.output[0])
+
     def test_read_python_config_file(self):
         config = conf._read_python_config(io.StringIO("import os.path\n"
                                                       "root_dir = os.path.join('user', 'home', 'norman')"))

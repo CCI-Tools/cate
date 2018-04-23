@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 from cate.core import plugin
-from cate.util.misc import fetch_std_streams
 
 
 class PluginTest(TestCase):
