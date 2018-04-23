@@ -10,7 +10,7 @@ import urllib.request
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format
+from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format, _DownloadStatistics
 from cate.ds.local import LocalDataStore
 
 
@@ -338,3 +338,16 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assert_tf('ESACCI-OC-L3S-OC_PRODUCTS-MERGED-8D_DAILY_4km_GEO_PML_OC4v6_QAA-19990407-fv1.0.nc', '%Y%m%d')
         self.assert_tf('ESACCI-OC-L3S-OC_PRODUCTS-MERGED-1D_DAILY_4km_GEO_PML_OC4v6_QAA-19970915-fv1.0.nc', '%Y%m%d')
         self.assert_tf('20060107-ESACCI-L4_FIRE-BA-MERIS-fv4.1.nc', '%Y%m%d')
+
+
+class DownloadStatisticsTest(unittest.TestCase):
+
+    def test_make_local_and_update(self):
+        download_stats = _DownloadStatistics(64000000)
+        self.assertEqual(str(download_stats), '0 of 64 MB @ 0.000 MB/s, 0.0% complete')
+        download_stats.handle_chunk(16000000)
+        self.assertEqual(str(download_stats), '16 of 64 MB @ 0.000 MB/s, 25.0% complete')
+        download_stats.handle_chunk(32000000)
+        self.assertEqual(str(download_stats), '48 of 64 MB @ 0.000 MB/s, 75.0% complete')
+        download_stats.handle_chunk(16000000)
+        self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
