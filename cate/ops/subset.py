@@ -93,16 +93,10 @@ def subset_temporal_index(ds: DatasetLike.TYPE,
     return subset_temporal_index_impl(ds, time_ind_min, time_ind_max)
 
 
-@op(tags=['subset', 'utility'], version='1.0')
-@op_input('ds', data_type=DatasetLike)
-@op_input('point', data_type=PointLike)
-@op_input('indexers', data_type=DictLike, nullable=True)
-@op_input('tolerance_default', nullable=True)
-@op_return(add_history=False)
-def _extract_point(ds: DatasetLike.TYPE,
-                   point: PointLike.TYPE,
-                   indexers: DictLike.TYPE = None,
-                   tolerance_default: float = 0.01) -> Dict:
+def extract_point(ds: DatasetLike.TYPE,
+                  point: PointLike.TYPE,
+                  indexers: DictLike.TYPE = None,
+                  tolerance_default: float = 0.01) -> Dict:
     """
     Extract data at the given point location. The returned dict will contain scalar
     values for all variables for which all dimension have been given in ``indexers``.

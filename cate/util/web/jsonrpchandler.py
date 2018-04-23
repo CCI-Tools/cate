@@ -172,8 +172,8 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             job_id = method_params.get('id') if method_params else None
             if not isinstance(job_id, int):
                 _LOG.error('Received invalid JSON-RPC message: '
-                              'missing or invalid "id" parameter for method "{}": {}'
-                              .format(CANCEL_METHOD_NAME, message))
+                           'missing or invalid "id" parameter for method "{}": {}'
+                           .format(CANCEL_METHOD_NAME, message))
                 self._write_json_rpc_error_response(method_id,
                                                     ERROR_CODE_INVALID_REQUEST,
                                                     'Invalid cancellation request.')

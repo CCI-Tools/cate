@@ -79,6 +79,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
 
+
 def _load_plugins():
     plugins = OrderedDict()
     for entry_point in iter_entry_points(group='cate_plugins', name=None):
