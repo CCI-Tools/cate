@@ -12,7 +12,7 @@ from cate.core.op import OP_REGISTRY
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import ConsoleMonitor
 
-from cate.ops import long_term_average, temporal_aggregation
+from cate.ops import long_term_average, temporal_aggregation, reduce
 from cate.ops import adjust_temporal_attrs
 
 
@@ -176,3 +176,42 @@ class TestTemporalAggregation(TestCase):
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
         self.assertIn('daily dataset', str(err.exception))
+
+
+class TestReduce(TestCase):
+    """
+    Test reduce() operation
+    """
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
+        ex = xr.Dataset({
+            'first': (['lat', 'lon'], np.ones([45, 90])),
+            'second': (['lat', 'lon'], np.ones([45, 90])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+
+        m = ConsoleMonitor()
+        actual = reduce(ds, monitor=m)
+
+        self.assertTrue(actual.broadcast_equals(ex))
+
+        actual = reduce(ds, dim=['lat', 'time', 'there_is_no_spoon'], monitor=m)
+        ex = xr.Dataset({
+            'first': (['lon'], np.ones([90])),
+            'second': (['lon'], np.ones([90])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+
+        self.assertTrue(actual.broadcast_equals(ex))
