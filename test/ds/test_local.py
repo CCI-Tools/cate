@@ -5,6 +5,7 @@ import unittest
 import unittest.mock
 import datetime
 import shutil
+import json
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore, LocalDataSource
@@ -165,6 +166,41 @@ class LocalDataStoreTest(unittest.TestCase):
                              test_data.get('meta_info').get('bbox_maxy'),
                          ])))
         self.assertListEqual(data_source.variables_info, test_data.get('meta_info').get('variables'))
+
+    def test_cache_synch(self):
+        #
+        # check if test.asynch is not present
+        #
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 0)
+        #
+        # manualy create test-asynch dataset to simulate
+        # an copy from a second process
+        #
+        test_asynch = {
+            "name": "test.asynch",
+            "meta_info": {
+                "status": "PROCESSING"
+            },
+            "files": [
+                ["/DATA/asynch/*/*.nc"]
+            ]
+        }
+        json_file = os.path.join(self.data_store.data_store_path, 'test.asynch.json')
+        with open(json_file, 'w') as f:
+            json.dump(test_asynch, f)
+        #
+        # check the new dataset is not visible
+        #
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 0)
+        #
+        # invalidate the cache and check if the new dataset
+        # is now visible
+        #
+        self.data_store.invalidate()
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 1)
 
 
 class LocalDataSourceTest(unittest.TestCase):
