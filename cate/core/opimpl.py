@@ -23,7 +23,7 @@ __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
 
 from datetime import datetime
-from typing import Optional, Sequence, Union, Tuple
+from typing import Optional, Sequence, Union, Tuple, Any
 
 import numpy as np
 import xarray as xr
@@ -31,7 +31,7 @@ from jdcal import jd2gcal
 from matplotlib import path
 from shapely.geometry import box, LineString, Polygon
 
-from .types import PolygonLike
+from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
 
@@ -487,7 +487,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
 
 
 # TODO (forman): idea: introduce ExtentLike type, or make this a class method of PolygonLike and GeometryLike
-def get_extents(region: PolygonLike.TYPE):
+def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
     """
     Get extents of a PolygonLike, handles explicitly given
     coordinates.
@@ -496,18 +496,13 @@ def get_extents(region: PolygonLike.TYPE):
     :return: ([lon_min, lat_min, lon_max, lat_max], boolean_explicit_coords)
     """
     explicit_coords = False
+    extents = None
     try:
         maybe_rectangle = to_list(region, dtype=float)
         if maybe_rectangle is not None:
             if len(maybe_rectangle) == 4:
-                lon_min, lat_min, lon_max, lat_max = maybe_rectangle
+                extents = maybe_rectangle
                 explicit_coords = True
-            else:
-                # TODO (Gailis): Do code analysis (e.g. use PyCharm). lon_min, lat_min, lon_max, lat_max are unbound here!
-                pass
-        else:
-            # TODO (Gailis): Do code analysis (e.g. use PyCharm). lon_min, lat_min, lon_max, lat_max are unbound here
-            pass
     except BaseException:
         # The polygon must be convertible, but it's complex
         polygon = PolygonLike.convert(region)
@@ -517,9 +512,12 @@ def get_extents(region: PolygonLike.TYPE):
         else:
             region = polygon
         # Get the bounding box
-        lon_min, lat_min, lon_max, lat_max = region.bounds
+        extents = region.bounds
 
-    return [lon_min, lat_min, lon_max, lat_max], explicit_coords
+    if extents:
+        return extents, explicit_coords
+    else:
+        raise ValidationError('Could not determine extents of a polygon')
 
 
 def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
@@ -624,8 +622,7 @@ def subset_spatial_impl(ds: xr.Dataset,
 
         # Preserve the original longitude dimension, masking elements that
         # do not belong to the polygon with NaN.
-        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 8.
-        with monitor.observing(8):
+        with monitor.observing('subset'):
             return retset.reindex_like(ds.lon)
 
     lon_slice = slice(lon_min, lon_max)
@@ -638,8 +635,7 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
-        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 8.
-        with monitor.observing(8):
+        with monitor.observing('subset'):
             return retset
 
     # Create the mask array. The result of this is a lon/lat DataArray where
@@ -660,8 +656,7 @@ def subset_spatial_impl(ds: xr.Dataset,
                             coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                             dims=['lat', 'lon'])
 
-        # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 5.
-        with monitor.observing(5):
+        with monitor.observing('subset'):
             # Apply the mask to data
             retset = retset.where(mask, drop=True)
         return retset
@@ -699,8 +694,7 @@ def subset_spatial_impl(ds: xr.Dataset,
                         coords={'lon': retset.lon.values, 'lat': retset.lat.values},
                         dims=['lat', 'lon'])
 
-    # TODO (Gailis): Do code analysis (e.g. use PyCharm). monitor.observing() expects a string, you pass 5.
-    with monitor.observing(5):
+    with monitor.observing('subset'):
         # Apply the mask to data
         retset = retset.where(mask, drop=True)
 
@@ -760,6 +754,8 @@ def _crosses_antimeridian(region: Polygon) -> bool:
             return True
         else:
             return False
+    else:
+        return False
 
 
 def subset_temporal_impl(ds: xr.Dataset,
