@@ -89,6 +89,7 @@ import xarray as xr
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
+from ..util.misc import checkUrl
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -526,6 +527,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         concatenate is not a dimension in the original datasets, e.g., if you
         want to stack a collection of 2D arrays along a third dimension.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
+    :exception IOException, HTTPError
     """
     # By default the dask chunk size of xr.open_mfdataset is (lat,lon,1). E.g.,
     # the whole array is one dask slice irrespective of chunking on disk.
@@ -554,13 +556,28 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     threshold = 250 * (2 ** 20)  # 250 MB
 
     ds = None
+    # paths could be a string or a list
+    files = []
+    if type(paths) is str:
+        files.append(paths)
+    else:
+        files.extend(paths)
+
+    # look for a valid url or file name
+    report = checkUrl(files[0])
+
+    if not report['is_valid']:
+        if report['is_url']:
+            raise report['error']
+        # should be a file or a glob
+        # unroll glob list
+        files = [i for path in files for i in glob.glob(path)]
+
+    if not files:
+        raise IOError('File {} Not found'.format(paths))
+
     # Find number of chunks as the closest larger squared number (1,4,9,..)
-    try:
-        temp_ds = xr.open_dataset(paths[0], **kwargs)
-    except (OSError, RuntimeError):
-        # netcdf4 >=1.2.2 raises RuntimeError
-        # We have a glob not a list
-        temp_ds = xr.open_dataset(glob.glob(paths)[0], **kwargs)
+    temp_ds = xr.open_dataset(files[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
@@ -569,7 +586,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                autoclose=True,
                                **kwargs)
@@ -595,7 +612,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
         chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                chunks=chunks,
                                autoclose=True,
