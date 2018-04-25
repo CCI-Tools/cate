@@ -185,12 +185,12 @@ class LocalDataSource(DataSource):
             except ValueError as e:
                 msg = "Cannot open local dataset"
                 if time_range:
-                    msg+=" for time range {}".format(TimeRangeLike.format(time_range))
+                    msg += " for time range {}".format(TimeRangeLike.format(time_range))
                 if region:
-                    msg+=" for region {}".format(GeometryLike.format(region))
+                    msg += " for region {}".format(GeometryLike.format(region))
                 if var_names:
-                    msg+=" for variables {}".format(VarNamesLike.format(var_names))
-                msg+=":\n{}".format(e)
+                    msg += " for variables {}".format(VarNamesLike.format(var_names))
+                msg += ":\n{}".format(e)
                 raise ValidationError(msg, source=self) from e
         else:
             if time_range:
@@ -744,7 +744,7 @@ class LocalDataStore(DataStore):
                 data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
                 if data_source:
                     self._data_sources.append(data_source)
-            except (DataAccessError,ValidationError) as e:
+            except (DataAccessError, ValidationError) as e:
                 if skip_broken:
                     warnings.warn(str(e), DataAccessWarning, stacklevel=0)
                 else:
