@@ -127,6 +127,32 @@ class TestTemporalAggregation(TestCase):
 
         self.assertTrue(actual.broadcast_equals(ex))
 
+    def test_8days(self):
+        """
+        Test nominal execution with a 8 Days frequency dataset
+        """
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 46])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 46])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31', freq='8D')})
+        ds = adjust_temporal_attrs(ds)
+
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+
+        m = ConsoleMonitor()
+        actual = temporal_aggregation(ds, monitor=m)
+
+        self.assertTrue(actual.broadcast_equals(ex))
+
     def test_registered(self):
         """
         Test registered operation execution
@@ -165,17 +191,6 @@ class TestTemporalAggregation(TestCase):
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
         self.assertIn('normalize', str(err.exception))
-
-        ds = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90),
-            'time': pd.date_range('2000-01-01', freq='MS', periods=24)})
-        ds = adjust_temporal_attrs(ds)
-
-        with self.assertRaises(ValueError) as err:
-            temporal_aggregation(ds)
-        self.assertIn('daily dataset', str(err.exception))
 
 
 class TestReduce(TestCase):
