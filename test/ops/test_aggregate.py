@@ -127,9 +127,26 @@ class TestTemporalAggregation(TestCase):
 
         self.assertTrue(actual.broadcast_equals(ex))
 
+    def test_seasonal(self):
+        """
+        Test aggregation to a seasonal dataset
+        """
+        # daily -> seasonal
+        # monthly -> seasonal
+        pass
+
+    def test_custom(self):
+        """
+        Test aggergating to custom temporal resolutions
+        """
+        # daily -> 8 days
+        # daily -> weekly
+        # monthly -> 4 month seasons
+        pass
+
     def test_8days(self):
         """
-        Test nominal execution with a 8 Days frequency dataset
+        Test nominal execution with a 8 Days frequency input dataset
         """
         ds = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 46])),
@@ -191,6 +208,43 @@ class TestTemporalAggregation(TestCase):
         with self.assertRaises(ValueError) as err:
             temporal_aggregation(ds)
         self.assertIn('normalize', str(err.exception))
+
+        # invalid custom resolution
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds, custom_resolution='SDFG')
+        self.assertIn('Invalid custom resolution', str(err.exception))
+
+        # unexpected input resolution string
+        ds.attrs['time_coverage_resolution'] = 'P2M1D'
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds)
+        self.assertIn('Could not interpret', str(err.exception))
+
+        # output resolution finer than input
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ds = adjust_temporal_attrs(ds)
+
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds, custom_resolution='W')
+        self.assertIn('output resolution is smaller', str(err.exception))
+
+        # output and input resolutions are the same
+        with self.assertRaises(ValueError) as err:
+            temporal_aggregation(ds)
+        self.assertIn('already at the requested', str(err.exception))
 
 
 class TestReduce(TestCase):

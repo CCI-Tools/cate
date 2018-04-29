@@ -225,7 +225,7 @@ def _validate_freq(in_res: str, out_res: str) -> None:
     try:
         dates = pd.date_range('2000-01-01', periods=5, freq=out_res)
     except ValueError:
-        raise ValidationError('Invalid custom frequency: {}.'
+        raise ValidationError('Invalid custom resolution: {}.'
                               ' Please check operation documentation.'.format(out_res))
 
     # Assuming simple ISO_8601 periods: PXXD/M
@@ -234,6 +234,10 @@ def _validate_freq(in_res: str, out_res: str) -> None:
     except ValueError:
         raise ValidationError('Could not interpret time coverage resolution of'
                               ' the given dataset: {}'.format(in_res))
+
+    if in_res == 'P1M' and out_res == 'MS':
+        raise ValidationError('Input dataset is already at the requested output resolution.'
+                              'Execution stopped.')
 
     in_delta = pd.Timedelta(count, unit=in_res[-1])
     out_delta = dates[1] - dates[0]
@@ -244,8 +248,6 @@ def _validate_freq(in_res: str, out_res: str) -> None:
     elif out_delta == in_delta:
         raise ValidationError('Input dataset is already at the requested output resolution.'
                               'Execution stopped.')
-    else:
-        pass
 
     return
 
