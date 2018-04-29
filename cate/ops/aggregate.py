@@ -135,7 +135,7 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
     return retset
 
 
-@op(tags=['aggregate', 'temporal'], version='1.1')
+@op(tags=['aggregate', 'temporal'], version='1.5')
 @op_input('ds', data_type=DatasetLike)
 @op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
                                'var', 'argmax', 'argmin', 'first', 'last'])
