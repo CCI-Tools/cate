@@ -132,8 +132,36 @@ class TestTemporalAggregation(TestCase):
         Test aggregation to a seasonal dataset
         """
         # daily -> seasonal
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 5])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 5])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('1999-12-01', freq='QS-DEC', periods=5)})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+        m = ConsoleMonitor()
+        actual = temporal_aggregation(ds, output_resolution='season', monitor=m)
+        self.assertTrue(actual.broadcast_equals(ex))
+
         # monthly -> seasonal
-        pass
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ds = adjust_temporal_attrs(ds)
+        actual = temporal_aggregation(ds, output_resolution='season', monitor=m)
+        self.assertTrue(actual.broadcast_equals(ex))
 
     def test_custom(self):
         """

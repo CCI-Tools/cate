@@ -165,7 +165,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
 
     Some examples:
       'QS-JUN' produces an output dataset on a quarterly resolution where the
-      year ends in June and each quarter is denoted by its first date
+      year ends in 1st of June and each quarter is denoted by its first date
       '8MS' produces an output dataset on a five-month resolution where each
       period is denoted by the first date. Note that such periods will not be
       consistent over years.
@@ -196,7 +196,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     if custom_resolution:
         freq = custom_resolution
     else:
-        frequencies = {'month': 'MS', 'season': 'QS-NOV'}
+        frequencies = {'month': 'MS', 'season': 'QS-DEC'}
         freq = frequencies[output_resolution]
 
     _validate_freq(in_freq, freq)
