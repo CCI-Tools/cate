@@ -168,9 +168,57 @@ class TestTemporalAggregation(TestCase):
         Test aggergating to custom temporal resolutions
         """
         # daily -> 8 days
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 366])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31')})
+        ds = adjust_temporal_attrs(ds)
+
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 46])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 46])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31', freq='8D')})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+        m = ConsoleMonitor()
+        actual = temporal_aggregation(ds, custom_resolution='8D', monitor=m)
+        self.assertTrue(actual.broadcast_equals(ex))
+
         # daily -> weekly
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 53])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 53])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2000-12-31', freq='W')})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+        actual = temporal_aggregation(ds, custom_resolution='W', monitor=m)
+        self.assertTrue(actual.broadcast_equals(ex))
+
         # monthly -> 4 month seasons
-        pass
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='MS', periods=12)})
+        ds = adjust_temporal_attrs(ds)
+        ex = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='4M', periods=4)})
+        ex.first.attrs['cell_methods'] = 'time: mean within years'
+        ex.second.attrs['cell_methods'] = 'time: mean within years'
+        actual = temporal_aggregation(ds, custom_resolution='4M', monitor=m)
+        print(actual)
+        self.assertTrue(actual.broadcast_equals(ex))
 
     def test_8days(self):
         """
