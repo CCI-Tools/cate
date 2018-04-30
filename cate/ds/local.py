@@ -719,7 +719,6 @@ class LocalDataStore(DataStore):
 
     def _init_data_sources(self, skip_broken: bool = True):
         """
-
         :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
         :return:
         """
@@ -766,6 +765,10 @@ class LocalDataStore(DataStore):
         json_dict = self._load_json_file(json_path)
         if json_dict:
             return LocalDataSource.from_json_dict(json_dict, self)
+
+    def invalidate(self):
+        self._data_sources = None
+        self._init_data_sources()
 
     @staticmethod
     def _load_json_file(json_path: str):

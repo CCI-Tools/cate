@@ -30,7 +30,6 @@ from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
 from typing import Union, Tuple, Sequence, Optional, Iterable
-
 import numpy as np
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
