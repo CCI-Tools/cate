@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev10 (in development)
 
+* Support datasets with 0,360 degree longitude ranges [#620](https://github.com/CCI-Tools/cate/issues/620)
 * Temporal aggregation operation can now aggregate to pre-defined seasons, as well as custom resolutions [#472](https://github.com/CCI-Tools/cate/issues/472)
 * We now use "MB" units instead of "MiB" (part of [#325](https://github.com/CCI-Tools/cate/issues/325))
 * Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)

@@ -9,9 +9,10 @@ from unittest import TestCase
 import numpy as np
 import xarray as xr
 from jdcal import gcal2jd
+from numpy.testing import assert_array_almost_equal
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
+from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs, fix_lon_360
 from cate.util.misc import object_to_qualified_name
 
 
@@ -606,3 +607,26 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+
+
+class TestFix360Lon(TestCase):
+    def test_fix_360_lon(self):
+        lon_size = 360
+        lat_size = 130
+        time_size = 12
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
+            'second': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
+            'lon': np.linspace(1., 360., lon_size),
+            'lat': np.linspace(-65, 65, lat_size),
+            'time': [datetime(2000, x, 1) for x in range(1, time_size + 1)]})
+
+        new_ds = fix_lon_360(ds)
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(ds.dims, new_ds.dims)
+        self.assertEqual(ds.sizes, new_ds.sizes)
+        assert_array_almost_equal(new_ds.lon, np.linspace(-179.5, 179.5, 360))
+        assert_array_almost_equal(new_ds.first[..., :180], ds.first[..., 180:])
+        assert_array_almost_equal(new_ds.first[..., 180:], ds.first[..., :180])
+        assert_array_almost_equal(new_ds.second[..., :180], ds.second[..., 180:])
+        assert_array_almost_equal(new_ds.second[..., 180:], ds.second[..., :180])

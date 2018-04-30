@@ -30,9 +30,11 @@ Components
 """
 
 import xarray as xr
+import numpy as np
 
 from cate.core.op import op, op_return
 from cate.core.opimpl import normalize_impl, adjust_temporal_attrs_impl, adjust_spatial_attrs_impl
+from cate.core.types import ValidationError
 
 
 @op(tags=['utility'], version='1.0')
@@ -60,7 +62,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
 
 
 @op(tags=['utility'], version='1.0')
-def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool=False) -> xr.Dataset:
+def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool = False) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
     introspection of the dataset and adjusting the appropriate attributes
@@ -101,3 +103,42 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     :return: Adjusted dataset
     """
     return adjust_temporal_attrs_impl(ds)
+
+
+@op(tags=['utility'], version='1.0')
+def fix_lon_360(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Fix the longitude of the given dataset ``ds`` so that it ranges from -180 to +180 degrees.
+
+    :param ds: The dataset whose longitudes are given in the range 0 to 360.
+    :return: The fixed dataset.
+    """
+    if 'lon' not in ds.coords:
+        raise ValidationError('missing coordinate variable "lon"')
+    if 'lon' not in ds.sizes:
+        raise ValidationError('missing dimension "lon"')
+    if len(ds.lon.shape) != 1:
+        raise ValidationError('coordinate variable "lon" must be 1-dimensional')
+    if len(ds.lon) < 2:
+        raise ValidationError('coordinate variable "lon" must have more than one element')
+
+    new_ds = ds.copy()
+    lon_size = ds.sizes['lon']
+    lon_size_05 = lon_size // 2
+
+    for var_name in new_ds.variables:
+        if var_name != 'lon':
+            var = new_ds.variables[var_name]
+            if len(var.dims) >= 1 and var.dims[-1] == 'lon':
+                temp = var.values[..., : lon_size_05]
+                var.values[..., : lon_size_05] = var.values[..., lon_size_05:]
+                var.values[..., lon_size_05:] = temp
+
+    delta_lon = new_ds['lon'][1] - new_ds['lon'][0]
+
+    new_ds['lon'] = xr.DataArray(np.linspace(-180. + 0.5 * delta_lon, +180. - 0.5 * delta_lon, lon_size),
+                                 dims=ds['lon'].dims,
+                                 attrs=ds['lon'].attrs)
+
+    new_ds['lon'].attrs['units'] = 'degrees east'
+    return new_ds
