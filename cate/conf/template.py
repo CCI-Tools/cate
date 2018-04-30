@@ -48,6 +48,7 @@
 #
 # We put wildcards here that match all data sources that are known to work in GUI
 included_data_sources = [
+    'esacci.AEROSOL.mon.L3.AAI.multi-sensor.multi-platform.ms_uvai.1-5-7.r1',
     'esacci.AEROSOL.day.L3.AAI.multi-sensor.multi-platform.ms_uvai.1-5-7.r1',
     'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.03-02.r1',
     'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1',
