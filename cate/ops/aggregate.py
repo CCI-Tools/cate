@@ -147,7 +147,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
                          custom_resolution: str = None,
                          monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
-    Perform monthly aggregation of a daily dataset according to the given
+    Perform monthly aggregation of dataset according to the given
     method and output resolution.
 
     Note that the operation does not perform weighting. Depending on the
@@ -166,7 +166,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     Some examples:
       'QS-JUN' produces an output dataset on a quarterly resolution where the
       year ends in 1st of June and each quarter is denoted by its first date
-      '8MS' produces an output dataset on a five-month resolution where each
+      '8MS' produces an output dataset on an eight-month resolution where each
       period is denoted by the first date. Note that such periods will not be
       consistent over years.
       '8D' produces a dataset on an eight day resolution
@@ -174,7 +174,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     :param ds: Dataset to aggregate
     :param method: Aggregation method
     :param output_resolution: Desired temporal resolution of the output dataset
-    :param custom_resolution: A custom temporal resolution, overrides output_resolution
+    :param custom_resolution: Custom temporal resolution, overrides output_resolution
     :return: Aggregated dataset
     """
     ds = DatasetLike.convert(ds)
@@ -237,7 +237,7 @@ def _validate_freq(in_res: str, out_res: str) -> None:
 
     if in_res == 'P1M' and out_res == 'MS':
         raise ValidationError('Input dataset is already at the requested output resolution.'
-                              'Execution stopped.')
+                              ' Execution stopped.')
 
     in_delta = pd.Timedelta(count, unit=in_res[-1])
     out_delta = dates[1] - dates[0]

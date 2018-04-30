@@ -1,6 +1,6 @@
 ## Version 2.0.0.dev10 (in development)
 
-* Temporal aggregation operation can now aggregate so pre-defined seasons, as well as custom resolutions [#472](https://github.com/CCI-Tools/cate/issues/472)
+* Temporal aggregation operation can now aggregate to pre-defined seasons, as well as custom resolutions [#472](https://github.com/CCI-Tools/cate/issues/472)
 * We now use "MB" units instead of "MiB" (part of [#325](https://github.com/CCI-Tools/cate/issues/325))
 * Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
 * Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)
