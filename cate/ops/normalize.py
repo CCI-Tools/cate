@@ -89,6 +89,11 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
     In case the determined attributes do not exist in the dataset, these will
     be added.
 
+    If the temporal attributes exist, but the dataset lacks a variable 'time', a
+    new dimension 'time' of size one will be added and related coordinate variables 'time' and 'time_bnds'
+    are added to the dataset. The dimension of all non-coordinate variables
+    will be expanded by the new time dimension.
+
     For more information on suggested global attributes see
     `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
