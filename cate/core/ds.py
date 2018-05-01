@@ -85,8 +85,8 @@ from typing import Sequence, Optional, Union, Any, Dict, Set
 
 import xarray as xr
 
-from .opimpl import adjust_temporal_attrs_impl
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
+from .opimpl import adjust_temporal_attrs_impl
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
 
@@ -543,32 +543,6 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         want to stack a collection of 2D arrays along a third dimension.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
-    # By default the dask chunk size of xr.open_mfdataset is (lat,lon,1). E.g.,
-    # the whole array is one dask slice irrespective of chunking on disk.
-    #
-    # netCDF files can also feature a significant level of compression rendering
-    # the known file size on disk useless to determine if the default dask chunk
-    # will be small enough that a few of them could comfortably fit in memory for
-    # parallel processing.
-    #
-    # Hence we open the first file of the dataset, find out its uncompressed size
-    # and use that, together with an empirically determined threshold, to find out
-    # the smallest amount of chunks such that each chunk is smaller than the
-    # threshold and the number of chunks is a squared number so that both axes,
-    # lat and lon could be divided evenly. We use a squared number to avoid
-    # in addition to all of this finding the best way how to split the number of
-    # chunks into two coefficients that would produce sane chunk shapes.
-    #
-    # When the number of chunks has been found, we use its root as the divisor
-    # to construct the dask chunks dictionary to use when actually opening
-    # the dataset.
-    #
-    # If the number of chunks is one, we use the default chunking.
-    #
-    # Check if the uncompressed file (the default dask Chunk) is too large to
-    # comfortably fit in memory
-    threshold = 250 * (2 ** 20)  # 250 MiB
-
     # paths could be a string or a list
     files = []
     if isinstance(paths, str):
@@ -586,6 +560,18 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     if 'chunks' in kwargs:
         chunks = kwargs.pop('chunks')
     else:
+        # By default the dask chunk size of xr.open_mfdataset is (1, lat, lon). E.g.,
+        # the whole array is one dask slice irrespective of chunking on disk.
+        #
+        # netCDF files can also feature a significant level of compression rendering
+        # the known file size on disk useless to determine if the default dask chunk
+        # will be small enough that a few of them could comfortably fit in memory for
+        # parallel processing.
+        #
+        # Hence we open the first file of the dataset and detect the maximum chunk sizes
+        # used in the spatial dimensions.
+        #
+        # If no such sizes could be found, we use xarray's default chunking.
         chunks = _get_agg_chunk_sizes(files[0])
 
     def preprocess(raw_ds: xr.Dataset):
@@ -601,7 +587,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                            preprocess=preprocess,
                            **kwargs)
 
-    # TODO: this doesn't make sense. If at all, create missing dim in preprocess function passed to xr.open_mfdataset()
+    # TODO: I beleve, this doesn't make sense. If at all, missing dims shall be expanded in the preprocess()
+    #       function passed to xr.open_mfdataset()
     if concat_dim not in ds.dims:
         ds.expand_dims(concat_dim)
 
