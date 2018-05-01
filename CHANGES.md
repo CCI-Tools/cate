@@ -1,4 +1,7 @@
-## Version 2.0.0.dev10 (in development)
+## Version 2.0.0.dev11 (in development)
+
+
+## Version 2.0.0.dev10
 
 * Support datasets with 0,360 degree longitude ranges [#620](https://github.com/CCI-Tools/cate/issues/620)
 * Temporal aggregation operation can now aggregate to pre-defined seasons, as well as custom resolutions [#472](https://github.com/CCI-Tools/cate/issues/472)
