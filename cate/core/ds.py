@@ -81,11 +81,11 @@ Components
 import glob
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from math import ceil, sqrt
-from typing import Sequence, Optional, Union, Any
+from typing import Sequence, Optional, Union, Any, Dict, Set
 
 import xarray as xr
 
+from .opimpl import adjust_temporal_attrs_impl
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
@@ -567,68 +567,76 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     #
     # Check if the uncompressed file (the default dask Chunk) is too large to
     # comfortably fit in memory
-    threshold = 250 * (2 ** 20)  # 250 MB
+    threshold = 250 * (2 ** 20)  # 250 MiB
 
-    ds = None
     # paths could be a string or a list
     files = []
-    if type(paths) is str:
+    if isinstance(paths, str):
         files.append(paths)
     else:
         files.extend(paths)
 
     # should be a file or a glob
     # unroll glob list into list of files
-    files = [i for path in files for i in glob.glob(path)]
+    files = [i for path in files for i in glob.iglob(path)]
 
     if not files:
         raise IOError('File {} not found'.format(paths))
 
-    # Find number of chunks as the closest larger squared number (1,4,9,..
-    temp_ds = xr.open_dataset(files[0], **kwargs)
-
-    n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
-
-    if n_chunks == 1:
-        temp_ds.close()
-        # The file size is fine
-        # autoclose ensures that we can open datasets consisting of a number of
-        # files that exceeds OS open file limit.
-        ds = xr.open_mfdataset(files,
-                               concat_dim=concat_dim,
-                               autoclose=True,
-                               **kwargs)
+    if 'chunks' in kwargs:
+        chunks = kwargs.pop('chunks')
     else:
-        # lat/lon names are not yet known
-        lat = get_lat_dim_name(temp_ds)
-        lon = get_lon_dim_name(temp_ds)
-        n_lat = len(temp_ds[lat])
-        n_lon = len(temp_ds[lon])
+        chunks = _get_agg_chunk_sizes(files[0])
 
-        # temp_ds is no longer used
-        temp_ds.close()
+    def preprocess(raw_ds: xr.Dataset):
+        return adjust_temporal_attrs_impl(raw_ds)
 
-        divisor = sqrt(n_chunks)
+    # autoclose ensures that we can open datasets consisting of a number of
+    # files that exceeds OS open file limit.
+    ds = xr.open_mfdataset(files,
+                           concat_dim=concat_dim,
+                           autoclose=True,
+                           coords='minimal',
+                           chunks=chunks,
+                           preprocess=preprocess,
+                           **kwargs)
 
-        # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5
-        # would imply an uncompressed single file of ~6GB! All expected grids
-        # should be divisible by 2,3 and 4.
-        if not (n_lat % divisor == 0) or not (n_lon % divisor == 0):
-            raise ValueError("Can't find a good chunking strategy for the given"
-                             "data source. Are lat/lon coordinates divisible by "
-                             "{}?".format(divisor))
-
-        chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
-
-        ds = xr.open_mfdataset(files,
-                               concat_dim=concat_dim,
-                               chunks=chunks,
-                               autoclose=True,
-                               **kwargs)
+    # TODO: this doesn't make sense. If at all, create missing dim in preprocess function passed to xr.open_mfdataset()
     if concat_dim not in ds.dims:
         ds.expand_dims(concat_dim)
 
     return ds
+
+
+def _get_agg_chunk_sizes(path: str) -> Dict[str, int]:
+    ds = xr.open_dataset(path)
+    lon_name = get_lon_dim_name(ds)
+    lat_name = get_lat_dim_name(ds)
+    if lon_name and lat_name:
+        chunk_sizes = _get_agg_chunk_sizes_from_ds(ds, {lat_name, lon_name})
+    else:
+        chunk_sizes = None
+    ds.close()
+    return chunk_sizes
+
+
+def _get_agg_chunk_sizes_from_ds(ds: xr.Dataset, var_names: Set[str],
+                                 init_size=0, map_fn=max, reduce_fn=None) -> Dict[str, int]:
+    agg_chunk_sizes = None
+    for var_name in ds.variables:
+        if not var_names or var_name in var_names:
+            var = ds[var_name]
+            if var.encoding:
+                chunk_sizes = var.encoding.get('chunksizes')
+                if chunk_sizes and len(chunk_sizes) == len(var.dims):
+                    for dim, size in zip(var.dims, chunk_sizes):
+                        if agg_chunk_sizes is None:
+                            agg_chunk_sizes = dict()
+                        old_size = agg_chunk_sizes.get(dim)
+                        agg_chunk_sizes[dim] = map_fn(size, init_size if old_size is None else old_size)
+    if agg_chunk_sizes and reduce_fn:
+        agg_chunk_sizes = {k: reduce_fn(v) for k, v in agg_chunk_sizes.items()}
+    return agg_chunk_sizes
 
 
 def format_variables_info_string(variables: dict):
