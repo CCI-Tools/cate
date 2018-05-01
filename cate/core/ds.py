@@ -575,6 +575,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         chunks = _get_agg_chunk_sizes(files[0])
 
     def preprocess(raw_ds: xr.Dataset):
+        # TODO (forman): actually we should perform any spatio-temporal normalisation here,
+        #                so we allow maximum number of dataset types to function with Cate operations.
         return adjust_temporal_attrs_impl(raw_ds)
 
     # autoclose ensures that we can open datasets consisting of a number of
@@ -587,8 +589,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                            preprocess=preprocess,
                            **kwargs)
 
-    # TODO: I beleve, this doesn't make sense. If at all, missing dims shall be expanded in the preprocess()
-    #       function passed to xr.open_mfdataset()
+    # TODO (forman): I believe, this doesn't make sense. If at all, missing dims shall be expanded in the preprocess()
+    #                function passed to xr.open_mfdataset()
     if concat_dim not in ds.dims:
         ds.expand_dims(concat_dim)
 
