@@ -576,7 +576,8 @@ class PolygonLike(GeometryLike, Like[shapely.geometry.Polygon]):
         if polygon is None:
             return None
 
-        assert isinstance(polygon, shapely.geometry.Polygon)
+        if not isinstance(polygon, shapely.geometry.Polygon):
+            raise ValidationError('Polygon expected.')
 
         if not polygon.is_valid:
             # Heal polygon, see #506 and Shapely User Manual
