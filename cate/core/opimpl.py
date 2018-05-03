@@ -23,9 +23,10 @@ __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
 
 from datetime import datetime
-from typing import Optional, Sequence, Union, Tuple, Any
+from typing import Optional, Sequence, Union, Tuple
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from jdcal import jd2gcal
 from matplotlib import path
@@ -189,7 +190,8 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :param allow_point: Whether to accept single point cells
@@ -246,7 +248,8 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :return: Adjusted dataset
@@ -265,15 +268,14 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
 
     # Now let's see if we are lacking a 'time' variable when we have temporal attributes
 
-    has_time = 'time' in ds.coords or 'time' in ds
-    if has_time:
+    has_time_var = 'time' in ds.variables
+    if has_time_var:
         return ds
 
-    has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
+    has_time_bnds_var = 'time_bnds' in ds.variables
 
     time_coverage_start = ds.attrs.get('time_coverage_start')
     time_coverage_end = ds.attrs.get('time_coverage_end')
-    import pandas as pd
 
     if time_coverage_start is not None:
         time_coverage_start = pd.to_datetime(time_coverage_start)
@@ -285,17 +287,27 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
         return ds
 
     if time_coverage_start or time_coverage_end:
-        ds = ds.expand_dims('time')
+        if 'time' in ds.dims:
+            # Such strange cases occur: we have no 'time' coordinate, but we have a 'time' dim.
+            # See https://github.com/CCI-Tools/cate/issues/634
+            pass
+        else:
+            ds = ds.expand_dims('time')
         if time_coverage_start and time_coverage_end:
             time = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
         else:
             time = time_coverage_start or time_coverage_end
         ds = ds.assign_coords(time=[time])
-        ds.coords['time']['long_name'] = 'time'
-        ds.coords['time']['standard_name'] = 'time'
+        ds.coords['time'].attrs['long_name'] = 'time'
+        ds.coords['time'].attrs['standard_name'] = 'time'
+        # TODO (forman): add correct 'units' attribute
+        # ds.coords['time'].attrs['units'] = '...'
 
-    if not has_time_bnds and time_coverage_start and time_coverage_end:
+    if not has_time_bnds_var and time_coverage_start and time_coverage_end:
         ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
+        ds.coords['time'].attrs['bounds'] = 'time_bnds'
+        # TODO (forman): add correct 'units' attribute
+        # ds.coords['time_bnds'].attrs['units'] = '...'
 
     return ds
 
@@ -487,7 +499,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
 
 
 # TODO (forman): idea: introduce ExtentLike type, or make this a class method of PolygonLike and GeometryLike
-def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
+def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[float, float, float, float], bool]:
     """
     Get extents of a PolygonLike, handles explicitly given
     coordinates.
@@ -497,6 +509,7 @@ def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
     """
     explicit_coords = False
     extents = None
+    # noinspection PyBroadException
     try:
         maybe_rectangle = to_list(region, dtype=float)
         if maybe_rectangle is not None:
@@ -548,7 +561,7 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     lon_max = 180 if lon_max > 180 else lon_max
     lat_max = 90 if lat_max > 90 else lat_max
 
-    return (lon_min, lat_min, lon_max, lat_max)
+    return lon_min, lat_min, lon_max, lat_max
 
 
 def subset_spatial_impl(ds: xr.Dataset,
@@ -562,6 +575,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     :param region: Spatial region to subset
     :param mask: Should values falling in the bounding box of the polygon but
     not the polygon itself be masked with NaN.
+    :param monitor: optional progress monitor
     :return: Subset dataset
     """
     monitor.start('Subset', 10)
