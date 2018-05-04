@@ -30,7 +30,7 @@ import xarray as xr
 
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame
+from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame, DataFrameLike
 from cate.ops.normalize import adjust_temporal_attrs
 from cate.ops.normalize import normalize as normalize_op
 from cate.util.monitor import Monitor
@@ -174,7 +174,7 @@ def write_text(obj: object, file: str, encoding: str = None):
             fp.write(str(obj))
     else:
         # noinspection PyUnresolvedReferences
-        return file.write(str(obj))
+        file.write(str(obj))
 
 
 @op(tags=['input'])
@@ -213,7 +213,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
         with open(file, 'w', encoding=encoding) as fp:
             json.dump(obj, fp, indent=indent)
     else:
-        return json.dump(obj, file, indent=indent)
+        json.dump(obj, file, indent=indent)
 
 
 @op(tags=['input'], res_pattern='df_{index}')
@@ -276,6 +276,64 @@ def read_csv(file: FileLike.TYPE,
         pass
 
     return data_frame
+
+
+@op(tags=['input'], res_pattern='df_{index}', no_cache=True)
+@op_input('obj', data_type=DataFrameLike)
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+@op_input('columns', value_set_source='obj', data_type=VarNamesLike)
+@op_input('na_rep')
+@op_input('delimiter', nullable=True)
+@op_input('quotechar', nullable=True)
+@op_input('more_args', nullable=True, data_type=DictLike)
+def write_csv(obj: DataFrameLike.TYPE,
+              file: FileLike.TYPE,
+              columns: VarNamesLike.TYPE = None,
+              na_rep: str = '',
+              delimiter: str = ',',
+              quotechar: str = None,
+              more_args: DictLike.TYPE = None,
+              monitor: Monitor = Monitor.NONE):
+    """
+    Write comma-separated values (CSV) to plain text file from a DataFrame or Dataset.
+
+    :param obj: The object to write as CSV; must be a ``DataFrame`` or a ``Dataset``.
+    :param file: The CSV file path.
+    :param columns: The names of variables that should be converted to columns. If given,
+           coordinate variables are included automatically.
+    :param delimiter: Delimiter to use.
+    :param na_rep: A string representation of a missing value (no-data value).
+    :param quotechar: The character used to denote the start and end of a quoted item.
+           Quoted items can include the delimiter and it will be ignored.
+    :param more_args: Other optional keyword arguments.
+           Please refer to Pandas documentation of ``pandas.to_csv()`` function.
+    :param monitor: optional progress monitor
+    """
+    columns = VarNamesLike.convert(columns)
+
+    # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
+    kwargs = DictLike.convert(more_args)
+    if kwargs is None:
+        kwargs = {}
+    if columns:
+        kwargs.update(columns=columns)
+    if delimiter:
+        kwargs.update(sep=delimiter)
+    if na_rep:
+        kwargs.update(na_rep=na_rep)
+    if quotechar:
+        kwargs.update(quotechar=quotechar)
+
+    with monitor.starting('Writing to CSV', 2):
+        child_monitor = monitor.child(0.5)
+        with child_monitor.observing('Converting to DataFrame'):
+            df = DataFrameLike.convert(obj)
+        monitor.progress(0.5)
+        df.to_csv(file, **kwargs)
+        monitor.progress(1)
 
 
 @op(tags=['input'], res_pattern='gdf_{index}')

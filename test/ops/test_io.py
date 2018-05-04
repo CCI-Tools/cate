@@ -9,7 +9,7 @@ from unittest import TestCase
 
 import geopandas as gpd
 
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv
 
 
 class TestIO(TestCase):
@@ -81,3 +81,49 @@ class TestIO(TestCase):
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
         self.assertEqual(len(data_frame), 179)
         data_frame.close()
+
+    def test_write_csv(self):
+        import io
+        import xarray as xr
+        import numpy as np
+
+        ds = xr.Dataset(
+            data_vars=dict(delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2, dtype=np.int16).reshape((3, 2, 2)),
+                                              dims=['time', 'lat', 'lon']),
+                           mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2, dtype=np.uint16).reshape((3, 2, 2)),
+                                             dims=['time', 'lat', 'lon'])),
+            coords=dict(time=[1, 2, 3],
+                        lat=[51, 51.2],
+                        lon=[10.2, 11.4]))
+
+        file = io.StringIO()
+        write_csv(ds, file=file)
+        self.assertEqual(file.getvalue(), 'lat,lon,time,delta,mean\n'
+                                          '51.0,10.2,1,-12,2\n'
+                                          '51.0,10.2,2,-2,6\n'
+                                          '51.0,10.2,3,6,10\n'
+                                          '51.0,11.4,1,-9,3\n'
+                                          '51.0,11.4,2,0,7\n'
+                                          '51.0,11.4,3,8,11\n'
+                                          '51.2,10.2,1,-7,4\n'
+                                          '51.2,10.2,2,1,8\n'
+                                          '51.2,10.2,3,10,12\n'
+                                          '51.2,11.4,1,-5,5\n'
+                                          '51.2,11.4,2,3,9\n'
+                                          '51.2,11.4,3,13,13\n')
+
+        file = io.StringIO()
+        write_csv(ds, file=file, columns=['mean'], delimiter=';')
+        self.assertEqual(file.getvalue(), 'lat;lon;time;mean\n'
+                                          '51.0;10.2;1;2\n'
+                                          '51.0;10.2;2;6\n'
+                                          '51.0;10.2;3;10\n'
+                                          '51.0;11.4;1;3\n'
+                                          '51.0;11.4;2;7\n'
+                                          '51.0;11.4;3;11\n'
+                                          '51.2;10.2;1;4\n'
+                                          '51.2;10.2;2;8\n'
+                                          '51.2;10.2;3;12\n'
+                                          '51.2;11.4;1;5\n'
+                                          '51.2;11.4;2;9\n'
+                                          '51.2;11.4;3;13\n')
