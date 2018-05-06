@@ -9,6 +9,7 @@ from unittest import TestCase
 
 import geopandas as gpd
 
+from cate.core.types import ValidationError
 from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv
 
 
@@ -82,48 +83,94 @@ class TestIO(TestCase):
         self.assertEqual(len(data_frame), 179)
         data_frame.close()
 
-    def test_write_csv(self):
+    def test_write_csv_with_dataset(self):
         import io
         import xarray as xr
         import numpy as np
 
+        time = [1, 2, 3]
+        lat = [51, 51.2]
+        lon = [10.2, 11.4]
         ds = xr.Dataset(
             data_vars=dict(delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2, dtype=np.int16).reshape((3, 2, 2)),
                                               dims=['time', 'lat', 'lon']),
                            mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2, dtype=np.uint16).reshape((3, 2, 2)),
                                              dims=['time', 'lat', 'lon'])),
-            coords=dict(time=[1, 2, 3],
-                        lat=[51, 51.2],
-                        lon=[10.2, 11.4]))
+            coords=dict(time=time, lat=lat, lon=lon))
 
         file = io.StringIO()
         write_csv(ds, file=file)
-        self.assertEqual(file.getvalue(), 'lat,lon,time,delta,mean\n'
-                                          '51.0,10.2,1,-12,2\n'
-                                          '51.0,10.2,2,-2,6\n'
-                                          '51.0,10.2,3,6,10\n'
-                                          '51.0,11.4,1,-9,3\n'
-                                          '51.0,11.4,2,0,7\n'
-                                          '51.0,11.4,3,8,11\n'
-                                          '51.2,10.2,1,-7,4\n'
-                                          '51.2,10.2,2,1,8\n'
-                                          '51.2,10.2,3,10,12\n'
-                                          '51.2,11.4,1,-5,5\n'
-                                          '51.2,11.4,2,3,9\n'
-                                          '51.2,11.4,3,13,13\n')
+        self.assertEqual(file.getvalue(), 'index,time,lat,lon,delta,mean\n'
+                                          '0,1,51.0,10.2,-12,2\n'
+                                          '1,1,51.0,11.4,-9,3\n'
+                                          '2,1,51.2,10.2,-7,4\n'
+                                          '3,1,51.2,11.4,-5,5\n'
+                                          '4,2,51.0,10.2,-2,6\n'
+                                          '5,2,51.0,11.4,0,7\n'
+                                          '6,2,51.2,10.2,1,8\n'
+                                          '7,2,51.2,11.4,3,9\n'
+                                          '8,3,51.0,10.2,6,10\n'
+                                          '9,3,51.0,11.4,8,11\n'
+                                          '10,3,51.2,10.2,10,12\n'
+                                          '11,3,51.2,11.4,13,13\n')
 
         file = io.StringIO()
         write_csv(ds, file=file, columns=['mean'], delimiter=';')
-        self.assertEqual(file.getvalue(), 'lat;lon;time;mean\n'
-                                          '51.0;10.2;1;2\n'
-                                          '51.0;10.2;2;6\n'
-                                          '51.0;10.2;3;10\n'
-                                          '51.0;11.4;1;3\n'
-                                          '51.0;11.4;2;7\n'
-                                          '51.0;11.4;3;11\n'
-                                          '51.2;10.2;1;4\n'
-                                          '51.2;10.2;2;8\n'
-                                          '51.2;10.2;3;12\n'
-                                          '51.2;11.4;1;5\n'
-                                          '51.2;11.4;2;9\n'
-                                          '51.2;11.4;3;13\n')
+        self.assertEqual(file.getvalue(), 'index;time;lat;lon;mean\n'
+                                          '0;1;51.0;10.2;2\n'
+                                          '1;1;51.0;11.4;3\n'
+                                          '2;1;51.2;10.2;4\n'
+                                          '3;1;51.2;11.4;5\n'
+                                          '4;2;51.0;10.2;6\n'
+                                          '5;2;51.0;11.4;7\n'
+                                          '6;2;51.2;10.2;8\n'
+                                          '7;2;51.2;11.4;9\n'
+                                          '8;3;51.0;10.2;10\n'
+                                          '9;3;51.0;11.4;11\n'
+                                          '10;3;51.2;10.2;12\n'
+                                          '11;3;51.2;11.4;13\n')
+        file = io.StringIO()
+        with self.assertRaises(ValidationError) as cm:
+            write_csv(None, file=file)
+        self.assertEqual(str(cm.exception),
+                         "Input 'obj' for operation 'cate.ops.io.write_csv' must be given.")
+
+        with self.assertRaises(ValidationError) as cm:
+            write_csv(ds, file=None)
+        self.assertEqual(str(cm.exception),
+                         "Input 'file' for operation 'cate.ops.io.write_csv' must be given.")
+
+        ds_mixed_dims = ds.copy()
+        ds_mixed_dims['error'] = xr.DataArray(np.linspace(1, 2, len(time)), dims=['time'])
+
+        with self.assertRaises(ValidationError) as cm:
+            write_csv(ds_mixed_dims, file=file)
+        self.assertEqual(str(cm.exception),
+                         'Not all variables have the same dimensions. '
+                         'Please select variables so that their dimensions are equal.')
+
+        file = io.StringIO()
+        write_csv(ds_mixed_dims, file=file, columns=['error'], delimiter=';')
+        self.assertEqual(file.getvalue(), 'index;time;error\n'
+                                          '0;1;1.0\n'
+                                          '1;2;1.5\n'
+                                          '2;3;2.0\n')
+
+    def test_write_csv_with_data_frame(self):
+        import io
+        import pandas as pd
+
+        df = pd.DataFrame(data=dict(time=[1, 2, 3],
+                                    lat=[51.0, 51.1, 51.2],
+                                    lon=[10.2, 11.4, 11.8],
+                                    delta=[-1, 0, -1],
+                                    mean=[0.8, 0.5, 0.3]),
+                          columns=['time', 'lat', 'lon', 'delta', 'mean'],
+                          index=None)
+
+        file = io.StringIO()
+        write_csv(df, file=file)
+        self.assertEqual(file.getvalue(), 'index,time,lat,lon,delta,mean\n'
+                                          '0,1,51.0,10.2,-1,0.8\n'
+                                          '1,2,51.1,11.4,0,0.5\n'
+                                          '2,3,51.2,11.8,-1,0.3\n')
