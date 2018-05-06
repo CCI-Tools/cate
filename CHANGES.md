@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev11 (in development)
 
+* Allow exporting any data as CSV [#637](https://github.com/CCI-Tools/cate/issues/637)
+
 
 ## Version 2.0.0.dev10
 

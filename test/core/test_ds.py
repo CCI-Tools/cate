@@ -247,9 +247,8 @@ class IOTest(TestCase):
 
         ds_large = ds.open_xarray_dataset(path_large)
         ds_small = ds.open_xarray_dataset(path_small)
-        large_expected = {'lat': (1800, 1800), 'time': (1,), 'bnds': (2,),
-                          'lon': (3600, 3600)}
-        small_expected = {'lat': (720,), 'time': (1,), 'lon': (1440,)}
+        large_expected = {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)}
+        small_expected = {'lon': (1440,), 'lat': (720,), 'time': (1,)}
         self.assertEqual(ds_small.chunks, small_expected)
         self.assertEqual(ds_large.chunks, large_expected)
 
