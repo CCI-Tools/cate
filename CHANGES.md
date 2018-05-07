@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev11 (in development)
 
+* Local dataset not recognised [#557](https://github.com/CCI-Tools/cate/issues/557)
 * Allow exporting any data as CSV [#637](https://github.com/CCI-Tools/cate/issues/637)
 
 
