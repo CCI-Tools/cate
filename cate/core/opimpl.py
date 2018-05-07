@@ -26,6 +26,7 @@ from datetime import datetime
 from typing import Optional, Sequence, Union, Tuple, Any
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from jdcal import jd2gcal
 from matplotlib import path
@@ -50,6 +51,9 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     * Remove 2D "lat" and "lon" variables;
     * Two new 1D coordinate variables "lat" and "lon" will be generated from original 2D forms.
 
+    Then, if no coordinate variable time is present but the CF attributes "time_coverage_start" and optionally
+    "time_coverage_end" are given, a scalar time dimension and coordinate variable will be generated.
+
     Finally, it will be ensured that a "time" coordinate variable will be of type *datetime*.
 
     :param ds: The dataset to normalize.
@@ -57,6 +61,7 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
+    ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
     return ds
 
@@ -179,6 +184,69 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Add a time coordinate variable and their associated bounds coordinate variables
+    if temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
+    are given but the time dimension is missing.
+
+    The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
+    The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
+    Both are of data type ``datetime64``.
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    has_time = 'time' in ds.coords or 'time' in ds
+    if has_time:
+        return ds
+
+    time_coverage_start = ds.attrs.get('time_coverage_start')
+    time_coverage_end = ds.attrs.get('time_coverage_end')
+    if time_coverage_start is not None:
+        # noinspection PyBroadException
+        try:
+            time_coverage_start = pd.to_datetime(time_coverage_start)
+        except:
+            pass
+
+    if time_coverage_end is not None:
+        # noinspection PyBroadException
+        try:
+            time_coverage_end = pd.to_datetime(time_coverage_end)
+        except:
+            pass
+
+    if not time_coverage_start and not time_coverage_end:
+        # Can't do anything
+        return ds
+
+    if time_coverage_start or time_coverage_end:
+        ds = ds.copy()
+        ds = ds.expand_dims('time')
+        if time_coverage_start and time_coverage_end:
+            time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
+        else:
+            time_value = time_coverage_start or time_coverage_end
+        ds = ds.assign_coords(time=[time_value])
+        time_var = ds.coords['time']
+        time_var.attrs['long_name'] = 'time'
+        time_var.attrs['standard_name'] = 'time'
+        # TODO (forman): set correct CF units "days since ..."
+        # time_var.attrs['units'] = ...
+        if time_coverage_start and time_coverage_end:
+            has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
+            if not has_time_bnds:
+                ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
+                time_bnds_var = ds.coords['time_bnds']
+                time_bnds_var.attrs['long_name'] = 'time'
+                time_bnds_var.attrs['standard_name'] = 'time'
+                # TODO (forman): set correct CF units "days since ..."
+                # time_bnds_var.attrs['units'] = ...
+
+    return ds
+
+
 def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
@@ -252,7 +320,7 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     :return: Adjusted dataset
     """
 
-    temporal_attrs = _get_temporal_attrs(ds)
+    temporal_attrs = _get_temporal_attrs_from_time_coord_var(ds)
 
     if temporal_attrs:
         ds = ds.copy()
@@ -263,44 +331,10 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
             else:
                 ds.attrs.pop(key, None)
 
-    # Now let's see if we are lacking a 'time' variable when we have temporal attributes
-
-    has_time = 'time' in ds.coords or 'time' in ds
-    if has_time:
-        return ds
-
-    has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
-
-    time_coverage_start = ds.attrs.get('time_coverage_start')
-    time_coverage_end = ds.attrs.get('time_coverage_end')
-    import pandas as pd
-
-    if time_coverage_start is not None:
-        time_coverage_start = pd.to_datetime(time_coverage_start)
-
-    if time_coverage_end is not None:
-        time_coverage_end = pd.to_datetime(time_coverage_end)
-
-    if not time_coverage_start and not time_coverage_end:
-        return ds
-
-    if time_coverage_start or time_coverage_end:
-        ds = ds.expand_dims('time')
-        if time_coverage_start and time_coverage_end:
-            time = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
-        else:
-            time = time_coverage_start or time_coverage_end
-        ds = ds.assign_coords(time=[time])
-        ds.coords['time']['long_name'] = 'time'
-        ds.coords['time']['standard_name'] = 'time'
-
-    if not has_time_bnds and time_coverage_start and time_coverage_end:
-        ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
-
     return ds
 
 
-def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
+def _get_temporal_attrs_from_time_coord_var(ds: xr.Dataset) -> Optional[dict]:
     """
     Get temporal boundaries, resolution and duration of the given dataset. If
     the 'bounds' are explicitly defined, these will be used for calculation,
