@@ -223,7 +223,12 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
 
     if time_coverage_start or time_coverage_end:
         ds = ds.copy()
-        ds = ds.expand_dims('time')
+        if 'time' in ds.dims:
+            # Such strange cases occur: we have no 'time' coordinate, but we have a 'time' dim.
+            # See https://github.com/CCI-Tools/cate/issues/634
+            pass
+        else:
+            ds = ds.expand_dims('time')
         if time_coverage_start and time_coverage_end:
             time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
         else:
@@ -243,6 +248,7 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
                 time_bnds_var.attrs['standard_name'] = 'time'
                 # TODO (forman): set correct CF units "days since ..."
                 # time_bnds_var.attrs['units'] = ...
+                ds.coords['time'].attrs['bounds'] = 'time_bnds'
 
     return ds
 

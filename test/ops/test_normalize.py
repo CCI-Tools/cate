@@ -599,6 +599,7 @@ class TestNormalizeMissingTime(TestCase):
 
         self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
         self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), 'time_bnds')
+
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
@@ -620,6 +621,9 @@ class TestNormalizeMissingTime(TestCase):
         self.assertIn('lat', new_ds.coords)
         self.assertIn('time', new_ds.coords)
         self.assertNotIn('time_bnds', new_ds.coords)
+
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), None)
 
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
