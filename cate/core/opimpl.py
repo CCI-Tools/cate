@@ -23,7 +23,7 @@ __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
 
 from datetime import datetime
-from typing import Optional, Sequence, Union, Tuple, Any
+from typing import Optional, Sequence, Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -257,7 +257,8 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :param allow_point: Whether to accept single point cells
@@ -314,7 +315,8 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :return: Adjusted dataset
@@ -521,7 +523,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
 
 
 # TODO (forman): idea: introduce ExtentLike type, or make this a class method of PolygonLike and GeometryLike
-def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
+def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[float, float, float, float], bool]:
     """
     Get extents of a PolygonLike, handles explicitly given
     coordinates.
@@ -531,6 +533,7 @@ def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
     """
     explicit_coords = False
     extents = None
+    # noinspection PyBroadException
     try:
         maybe_rectangle = to_list(region, dtype=float)
         if maybe_rectangle is not None:
@@ -582,7 +585,7 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     lon_max = 180 if lon_max > 180 else lon_max
     lat_max = 90 if lat_max > 90 else lat_max
 
-    return (lon_min, lat_min, lon_max, lat_max)
+    return lon_min, lat_min, lon_max, lat_max
 
 
 def subset_spatial_impl(ds: xr.Dataset,
@@ -596,6 +599,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     :param region: Spatial region to subset
     :param mask: Should values falling in the bounding box of the polygon but
     not the polygon itself be masked with NaN.
+    :param monitor: optional progress monitor
     :return: Subset dataset
     """
     monitor.start('Subset', 10)

@@ -18,6 +18,7 @@ from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_
 from cate.util.misc import object_to_qualified_name
 
 
+# noinspection PyPep8Naming
 def assertDatasetEqual(expected, actual):
     # this method is functionally equivalent to
     # `assert expected == actual`, but it
@@ -596,6 +597,8 @@ class TestNormalizeMissingTime(TestCase):
         self.assertIn('time', new_ds.coords)
         self.assertIn('time_bnds', new_ds.coords)
 
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), 'time_bnds')
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
@@ -621,6 +624,8 @@ class TestNormalizeMissingTime(TestCase):
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), None)
 
     def test_no_change(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
