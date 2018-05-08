@@ -559,7 +559,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     if 'chunks' in kwargs:
         chunks = kwargs.pop('chunks')
-    else:
+    elif len(files) > 1:
         # By default the dask chunk size of xr.open_mfdataset is (1, lat, lon). E.g.,
         # the whole array is one dask slice irrespective of chunking on disk.
         #
@@ -573,6 +573,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         #
         # If no such sizes could be found, we use xarray's default chunking.
         chunks = _get_agg_chunk_sizes(files[0])
+    else:
+        chunks = None
 
     def preprocess(raw_ds: xr.Dataset):
         # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
