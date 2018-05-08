@@ -19,9 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway)" \
-             "Norman Fomferra (Brockmann Consult GmbH)"
-
+import warnings
 from datetime import datetime
 from typing import Optional, Sequence, Union, Tuple
 
@@ -35,6 +33,9 @@ from shapely.geometry import box, LineString, Polygon
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
+
+__author__ = "Janis Gailis (S[&]T Norway)" \
+             "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -61,6 +62,7 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
+    ds = normalize_coord_vars(ds)
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
     return ds
@@ -184,6 +186,37 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Turn bounds variables (whose last dimension is named "bnds" and has size 2)
+    from data variables into coordinate variables.
+
+    :param ds: The dataset
+    :return: The same dataset or a shallow copy with bounds variables turned into coordinate variables
+    """
+
+    if 'bnds' not in ds.dims:
+        return ds
+
+    bounds_var_names = set()
+    for data_var_name in ds.data_vars:
+        data_var = ds.data_vars[data_var_name]
+        if len(data_var.dims) == 2 \
+                and data_var.shape[-1] == 2 \
+                and data_var.dims[-2] in ds.coords \
+                and data_var.dims[-1] == 'bnds':
+            bounds_var_names.add(data_var_name)
+
+    if not bounds_var_names:
+        return ds
+
+    old_ds = ds
+    ds = old_ds.drop(bounds_var_names)
+    ds = ds.assign_coords(**{bounds_var_name: old_ds[bounds_var_name] for bounds_var_name in bounds_var_names})
+
+    return ds
+
+
 def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     """
     Add a time coordinate variable and their associated bounds coordinate variables
@@ -222,33 +255,35 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
         return ds
 
     if time_coverage_start or time_coverage_end:
-        ds = ds.copy()
-        if 'time' in ds.dims:
-            # Such strange cases occur: we have no 'time' coordinate, but we have a 'time' dim.
-            # See https://github.com/CCI-Tools/cate/issues/634
-            pass
-        else:
+        # noinspection PyBroadException
+        try:
             ds = ds.expand_dims('time')
+        except BaseException as e:
+            warnings.warn(f'failed to add time dimension: {e}')
+
         if time_coverage_start and time_coverage_end:
             time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
         else:
             time_value = time_coverage_start or time_coverage_end
-        ds = ds.assign_coords(time=[time_value])
-        time_var = ds.coords['time']
-        time_var.attrs['long_name'] = 'time'
-        time_var.attrs['standard_name'] = 'time'
-        # TODO (forman): set correct CF units "days since ..."
-        # time_var.attrs['units'] = ...
+
+        new_coord_vars = dict(time=xr.DataArray([time_value], dims=['time']))
+
         if time_coverage_start and time_coverage_end:
             has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
             if not has_time_bnds:
-                ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
-                time_bnds_var = ds.coords['time_bnds']
-                time_bnds_var.attrs['long_name'] = 'time'
-                time_bnds_var.attrs['standard_name'] = 'time'
-                # TODO (forman): set correct CF units "days since ..."
-                # time_bnds_var.attrs['units'] = ...
-                ds.coords['time'].attrs['bounds'] = 'time_bnds'
+                new_coord_vars.update(time_bnds=xr.DataArray([[time_coverage_start, time_coverage_end]],
+                                                             dims=['time', 'bnds']))
+
+        ds = ds.assign_coords(**new_coord_vars)
+
+        ds.coords['time'].attrs['long_name'] = 'time'
+        ds.coords['time'].attrs['standard_name'] = 'time'
+        ds.coords['time'].encoding['units'] = 'days since 1970-01-01'
+        if 'time_bnds' in ds.coords:
+            ds.coords['time'].attrs['bounds'] = 'time_bnds'
+            ds.coords['time_bnds'].attrs['long_name'] = 'time'
+            ds.coords['time_bnds'].attrs['standard_name'] = 'time'
+            ds.coords['time_bnds'].encoding['units'] = 'days since 1970-01-01'
 
     return ds
 

@@ -13,7 +13,7 @@ from jdcal import gcal2jd
 from numpy.testing import assert_array_almost_equal
 
 from cate.core.op import OP_REGISTRY
-from cate.core.opimpl import normalize_missing_time
+from cate.core.opimpl import normalize_missing_time, normalize_coord_vars
 from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs, fix_lon_360
 from cate.util.misc import object_to_qualified_name
 
@@ -578,8 +578,40 @@ class TestAdjustTemporal(TestCase):
             ds.attrs['time_coverage_duration']
 
 
-class TestNormalizeMissingTime(TestCase):
+class TestNormalizeCoordVars(TestCase):
     def test_no_time(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180])),
+                         'lat_bnds': (['lat', 'bnds'], np.zeros([90, 2])),
+                         'lon_bnds': (['lon', 'bnds'], np.zeros([180, 2]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)})
+
+        new_ds = normalize_coord_vars(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('lat_bnds', new_ds.coords)
+        self.assertIn('lon_bnds', new_ds.coords)
+
+        self.assertEqual(len(new_ds.data_vars), 2)
+        self.assertIn('first', new_ds.data_vars)
+        self.assertIn('second', new_ds.data_vars)
+
+    def test_no_bounds(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101'})
+        new_ds = normalize_coord_vars(ds)
+        self.assertIs(ds, new_ds)
+
+
+class TestNormalizeMissingTime(TestCase):
+    def test_ds_without_time(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
                          'second': (['lat', 'lon'], np.zeros([90, 180]))},
                         coords={'lat': np.linspace(-89.5, 89.5, 90),
@@ -602,10 +634,13 @@ class TestNormalizeMissingTime(TestCase):
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), 'time_bnds')
         self.assertEqual(new_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
         self.assertEqual(new_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
+        self.assertEqual(new_ds.coords['time_bnds'].attrs.get('long_name'), 'time')
 
-    def test_no_bounds(self):
+    def test_ds_without_bounds(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
                          'second': (['lat', 'lon'], np.zeros([90, 180]))},
                         coords={'lat': np.linspace(-89.5, 89.5, 90),
@@ -621,16 +656,13 @@ class TestNormalizeMissingTime(TestCase):
         self.assertIn('time', new_ds.coords)
         self.assertNotIn('time_bnds', new_ds.coords)
 
-        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
-        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), None)
-
         self.assertEqual(new_ds.first.shape, (1, 90, 180))
         self.assertEqual(new_ds.second.shape, (1, 90, 180))
         self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-01-01')))
         self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
         self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), None)
 
-    def test_no_change(self):
+    def test_ds_without_time_attrs(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
                          'second': (['lat', 'lon'], np.zeros([90, 180]))},
                         coords={'lat': np.linspace(-89.5, 89.5, 90),
