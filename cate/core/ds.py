@@ -86,7 +86,7 @@ from typing import Sequence, Optional, Union, Any, Dict, Set
 import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from .opimpl import normalize_missing_time
+from .opimpl import normalize_missing_time, normalize_coord_vars
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
 
@@ -578,7 +578,8 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     def preprocess(raw_ds: xr.Dataset):
         # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
-        return normalize_missing_time(raw_ds)
+        # TODO (forman): replace by normalize() call once we have the test data complete
+        return normalize_missing_time(normalize_coord_vars(raw_ds))
 
     # autoclose ensures that we can open datasets consisting of a number of
     # files that exceeds OS open file limit.
