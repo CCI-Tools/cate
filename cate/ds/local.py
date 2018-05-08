@@ -146,7 +146,8 @@ class LocalDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         if var_names:
             var_names = VarNamesLike.convert(var_names)
@@ -170,7 +171,7 @@ class LocalDataSource(DataSource):
             try:
                 excluded_variables = self._meta_info.get('exclude_variables', [])
                 ds = open_xarray_dataset(paths, drop_variables=[variable.get('name') for variable in
-                                                                excluded_variables])
+                                                                excluded_variables], monitor=monitor)
                 if region:
                     ds = normalize_impl(ds)
                     ds = subset_spatial_impl(ds, region)

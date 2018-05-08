@@ -1,6 +1,5 @@
 from typing import Sequence, Any, Optional
 from unittest import TestCase, skipIf
-import os.path as op
 import os
 import unittest
 
@@ -9,8 +8,9 @@ import xarray as xr
 import cate.core.ds as ds
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
+from test.util.test_monitor import RecordingMonitor
 
-_TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
 
 class SimpleDataStore(ds.DataStore):
@@ -54,7 +54,8 @@ class SimpleDataSource(ds.DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         return None
 
     def make_local(self,
@@ -63,7 +64,7 @@ class SimpleDataSource(ds.DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> ds.DataSource:
+                   monitor: Monitor = Monitor.NONE) -> Optional[ds.DataSource]:
         return None
 
     def __repr__(self):
@@ -82,7 +83,8 @@ class InMemoryDataSource(SimpleDataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         return xr.Dataset({'a': self._data})
 
     def __repr__(self):
@@ -210,6 +212,7 @@ class IOTest(TestCase):
     @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):
         with self.assertRaises(ValueError) as cm:
+            # noinspection PyTypeChecker
             ds.open_dataset(None)
         self.assertTupleEqual(tuple(['No data_source given']), cm.exception.args)
 
@@ -241,16 +244,22 @@ class IOTest(TestCase):
         finally:
             ds.DATA_STORE_REGISTRY.remove_data_store('duplicated_cat')
 
-    def test_autochunking(self):
-        path_large = op.join(_TEST_DATA_PATH, 'large', '*.nc')
-        path_small = op.join(_TEST_DATA_PATH, 'small', '*.nc')
+    def test_open_xarray_dataset(self):
+        path_large = os.path.join(_TEST_DATA_PATH, 'large', '*.nc')
+        path_small = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
 
-        ds_large = ds.open_xarray_dataset(path_large)
-        ds_small = ds.open_xarray_dataset(path_small)
-        large_expected = {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)}
-        small_expected = {'lon': (1440,), 'lat': (720,), 'time': (1,)}
-        self.assertEqual(ds_small.chunks, small_expected)
-        self.assertEqual(ds_large.chunks, large_expected)
+        ds_large_mon = RecordingMonitor()
+        ds_small_mon = RecordingMonitor()
+        ds_large = ds.open_xarray_dataset(path_large, monitor=ds_large_mon)
+        ds_small = ds.open_xarray_dataset(path_small, monitor=ds_small_mon)
+
+        # Test monitors
+        self.assertEqual(ds_large_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
+        self.assertEqual(ds_small_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
+
+        # Test chunking
+        self.assertEqual(ds_small.chunks, {'lon': (1440,), 'lat': (720,), 'time': (1,)})
+        self.assertEqual(ds_large.chunks, {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)})
 
 
 class DataAccessErrorTest(unittest.TestCase):

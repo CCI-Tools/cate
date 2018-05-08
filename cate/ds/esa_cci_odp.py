@@ -634,7 +634,8 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
@@ -647,7 +648,7 @@ class EsaCciOdpDataSource(DataSource):
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
-            ds = open_xarray_dataset(files)
+            ds = open_xarray_dataset(files, monitor=monitor)
             if region:
                 ds = normalize_impl(ds)
                 ds = subset_spatial_impl(ds, region)

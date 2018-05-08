@@ -87,7 +87,7 @@ import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .opimpl import normalize_missing_time, normalize_coord_vars
-from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -160,10 +160,10 @@ class DataSource(metaclass=ABCMeta):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         """
         Open a dataset from this data source.
-
 
         :param time_range: An optional time constraint comprising start and end date.
                 If given, it must be a :py:class:`TimeRangeLike`.
@@ -173,6 +173,7 @@ class DataSource(metaclass=ABCMeta):
                 If given, it must be a :py:class:`VarNamesLike`.
         :param protocol: **Deprecated.** Protocol name, if None selected default protocol
                 will be used to access data.
+        :param monitor: A progress monitor.
         :return: A dataset instance or ``None`` if no data is available for the given constraints.
         """
 
@@ -205,7 +206,7 @@ class DataSource(metaclass=ABCMeta):
                If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VarNamesLike`.
-        :param monitor: a progress monitor.
+        :param monitor: A progress monitor.
         :return: the new local data source
         """
         pass
@@ -510,25 +511,31 @@ def open_dataset(data_source: Union[DataSource, str],
     :return: An new dataset instance
     """
     if not data_source:
-        raise ValueError('No data_source given')
+        raise ValidationError('No data source given')
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
         data_sources = find_data_sources(data_store_list, ds_id=data_source)
         if len(data_sources) == 0:
-            raise ValueError("No data_source found for the given query term", data_source)
+            raise ValidationError(f'No data sources found for the given ID {data_source!r}')
         elif len(data_sources) > 1:
-            raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
+            raise ValidationError(f'{len(data_sources)} data sources found for the given ID {data_source!r}')
         data_source = data_sources[0]
-        if force_local:
+
+    if force_local:
+        with monitor.starting('Opening dataset', 100):
             data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
                                                  time_range=time_range, region=region, var_names=var_names,
-                                                 monitor=monitor)
-    return data_source.open_dataset(time_range, region, var_names)
+                                                 monitor=monitor.child(80))
+            return data_source.open_dataset(time_range, region, var_names, monitor=monitor.child(20))
+    else:
+        return data_source.open_dataset(time_range, region, var_names, monitor=monitor)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
-def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
+def open_xarray_dataset(paths,
+                        monitor: Monitor = Monitor.NONE,
+                        **kwargs) -> xr.Dataset:
     """
     Open multiple files as a single dataset. This uses dask. If each individual file
     of the dataset is small, one dask chunk will coincide with one temporal slice,
@@ -537,10 +544,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
-    :param concat_dim: Dimension to concatenate files along. You only
-        need to provide this argument if the dimension along which you want to
-        concatenate is not a dimension in the original datasets, e.g., if you
-        want to stack a collection of 2D arrays along a third dimension.
+    :param monitor: A progress monitor.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
     # paths could be a string or a list
@@ -556,6 +560,11 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     if not files:
         raise IOError('File {} not found'.format(paths))
+
+    if 'concat_dim' in kwargs:
+        concat_dim = kwargs.pop('concat_dim')
+    else:
+        concat_dim = 'time'
 
     if 'chunks' in kwargs:
         chunks = kwargs.pop('chunks')
@@ -578,21 +587,21 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     def preprocess(raw_ds: xr.Dataset):
         # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
-        # TODO (forman): replace by normalize() call once we have the test data complete
-        return normalize_missing_time(normalize_coord_vars(raw_ds))
+        norm_ds = normalize_missing_time(normalize_coord_vars(raw_ds))
+        monitor.progress(work=1)
+        return norm_ds
 
-    # autoclose ensures that we can open datasets consisting of a number of
-    # files that exceeds OS open file limit.
-    ds = xr.open_mfdataset(files,
-                           concat_dim=concat_dim,
-                           autoclose=True,
-                           coords='minimal',
-                           data_vars='minimal',
-                           chunks=chunks,
-                           preprocess=preprocess,
-                           **kwargs)
-
-    return ds
+    with monitor.starting('Opening dataset', len(files)):
+        # autoclose ensures that we can open datasets consisting of a number of
+        # files that exceeds OS open file limit.
+        return xr.open_mfdataset(files,
+                                 concat_dim=concat_dim,
+                                 autoclose=True,
+                                 coords='minimal',
+                                 data_vars='minimal',
+                                 chunks=chunks,
+                                 preprocess=preprocess,
+                                 **kwargs)
 
 
 def _get_agg_chunk_sizes(path: str) -> Dict[str, int]:
