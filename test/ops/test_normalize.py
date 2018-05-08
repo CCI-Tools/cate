@@ -131,7 +131,6 @@ class TestNormalize(TestCase):
         self.assertEqual(norm_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
         self.assertEqual(norm_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
 
-
     def test_normalize_julian_day(self):
         """
         Test Julian Day -> Datetime conversion

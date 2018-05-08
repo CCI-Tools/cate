@@ -207,14 +207,14 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
         # noinspection PyBroadException
         try:
             time_coverage_start = pd.to_datetime(time_coverage_start)
-        except:
+        except BaseException:
             pass
 
     if time_coverage_end is not None:
         # noinspection PyBroadException
         try:
             time_coverage_end = pd.to_datetime(time_coverage_end)
-        except:
+        except BaseException:
             pass
 
     if not time_coverage_start and not time_coverage_end:
