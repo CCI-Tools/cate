@@ -584,6 +584,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                            concat_dim=concat_dim,
                            autoclose=True,
                            coords='minimal',
+                           data_vars='minimal',
                            chunks=chunks,
                            preprocess=preprocess,
                            **kwargs)
