@@ -188,31 +188,34 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
 
 def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
     """
-    Turn bounds variables (whose last dimension is named "bnds" and has size 2)
-    from data variables into coordinate variables.
+    Turn potential coordinate variables from data variables into coordinate variables.
+
+    Any data variable is considered a coordinate variable
+
+    * whose name is its only dimension name;
+    * whose number of dimensions is two and where the first dimension name is also a variable namd and
+      whose last dimension is named "bnds".
 
     :param ds: The dataset
-    :return: The same dataset or a shallow copy with bounds variables turned into coordinate variables
+    :return: The same dataset or a shallow copy with potential coordinate
+             variables turned into coordinate variables.
     """
 
     if 'bnds' not in ds.dims:
         return ds
 
-    bounds_var_names = set()
+    coord_var_names = set()
     for data_var_name in ds.data_vars:
         data_var = ds.data_vars[data_var_name]
-        if len(data_var.dims) == 2 \
-                and data_var.shape[-1] == 2 \
-                and data_var.dims[-2] in ds.coords \
-                and data_var.dims[-1] == 'bnds':
-            bounds_var_names.add(data_var_name)
+        if is_coord_var(ds, data_var):
+            coord_var_names.add(data_var_name)
 
-    if not bounds_var_names:
+    if not coord_var_names:
         return ds
 
     old_ds = ds
-    ds = old_ds.drop(bounds_var_names)
-    ds = ds.assign_coords(**{bounds_var_name: old_ds[bounds_var_name] for bounds_var_name in bounds_var_names})
+    ds = old_ds.drop(coord_var_names)
+    ds = ds.assign_coords(**{bounds_var_name: old_ds[bounds_var_name] for bounds_var_name in coord_var_names})
 
     return ds
 
@@ -375,6 +378,21 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
                 ds.attrs.pop(key, None)
 
     return ds
+
+
+def is_coord_var(ds: xr.Dataset, var: xr.DataArray):
+    if len(var.dims) == 1 and var.name == var.dims[0]:
+        return True
+    return is_bounds_var(ds, var)
+
+
+def is_bounds_var(ds: xr.Dataset, var: xr.DataArray):
+    if len(var.dims) == 2 \
+           and var.shape[1] == 2 \
+           and var.dims[1] == 'bnds':
+        coord_name = var.dims[0]
+        return coord_name in ds
+    return False
 
 
 def _get_temporal_attrs_from_time_coord_var(ds: xr.Dataset) -> Optional[dict]:

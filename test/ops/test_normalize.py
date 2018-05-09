@@ -579,7 +579,8 @@ class TestAdjustTemporal(TestCase):
 
 
 class TestNormalizeCoordVars(TestCase):
-    def test_no_time(self):
+
+    def test_ds_with_potential_coords(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
                          'second': (['lat', 'lon'], np.zeros([90, 180])),
                          'lat_bnds': (['lat', 'bnds'], np.zeros([90, 2])),
@@ -600,7 +601,28 @@ class TestNormalizeCoordVars(TestCase):
         self.assertIn('first', new_ds.data_vars)
         self.assertIn('second', new_ds.data_vars)
 
-    def test_no_bounds(self):
+    def test_ds_with_potential_coords_and_bounds(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180])),
+                         'lat_bnds': (['lat', 'bnds'], np.zeros([90, 2])),
+                         'lon_bnds': (['lon', 'bnds'], np.zeros([180, 2])),
+                         'lat': (['lat'], np.linspace(-89.5, 89.5, 90)),
+                         'lon': (['lon'], np.linspace(-179.5, 179.5, 180))})
+
+        new_ds = normalize_coord_vars(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('lat_bnds', new_ds.coords)
+        self.assertIn('lon_bnds', new_ds.coords)
+
+        self.assertEqual(len(new_ds.data_vars), 2)
+        self.assertIn('first', new_ds.data_vars)
+        self.assertIn('second', new_ds.data_vars)
+
+    def test_ds_with_no_potential_coords(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
                          'second': (['lat', 'lon'], np.zeros([90, 180]))},
                         coords={'lat': np.linspace(-89.5, 89.5, 90),
