@@ -180,11 +180,20 @@ def _read_config_files(config_files: Sequence[str],
     """
     default_config_file = config_files[0]
     if default_config_file and template_module:
+        # Always write a 'conf.py.template' so users can rename and use that instead.
+        # See also discussions on https://github.com/CCI-Tools/cate/issues/635
+        default_config_dir = os.path.dirname(default_config_file)
+        config_template_file = os.path.join(default_config_dir, 'conf.py.template')
+        try:
+            _write_default_config_file(config_template_file, template_module)
+        except (IOError, OSError) as error:
+            _LOG.warning('failed writing %s: %s' % (config_template_file, str(error)))
+
         if not os.path.exists(default_config_file):
             try:
                 _write_default_config_file(default_config_file, template_module)
             except (IOError, OSError) as error:
-                _LOG.warning('failed writing %s: %s' % (default_config_file, str(error)))
+                _LOG.error('failed writing %s: %s' % (default_config_file, str(error)))
 
     new_config = None
     for config_file in config_files:
