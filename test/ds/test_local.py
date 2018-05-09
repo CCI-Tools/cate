@@ -408,8 +408,8 @@ class LocalDataSourceTest(unittest.TestCase):
 
     def test_validation_error(self):
         ds = self._local_data_store.query('local')[0]
-        with self.assertRaises(ValidationError) as cm:
-            ds.open_dataset(time_range = (datetime.datetime(1974,1,1),
-                                          datetime.datetime(1975,1,1)),
-                            region = (1,-1,3,6),
-                            var_names=('pippo',) )
+        with self.assertRaises(ValidationError):
+            ds.open_dataset(time_range=(datetime.datetime(1974, 1, 1),
+                                        datetime.datetime(1975, 1, 1)),
+                            region=(1, -1, 3, 6),
+                            var_names=('pippo', ))
