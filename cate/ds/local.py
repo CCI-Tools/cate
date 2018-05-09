@@ -62,6 +62,7 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError, \
     GeometryLike
 from cate.util.monitor import Monitor
+from cate.core.types import ValidationError
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -194,7 +195,7 @@ class LocalDataSource(DataSource):
                 raise ValidationError(msg, source=self) from e
         else:
             if time_range:
-                raise DataAccessError("No local datasets available for\nspecified time range {}".format(
+                raise ValidationError("No local datasets available for\nspecified time range {}".format(
                     TimeRangeLike.format(time_range)), source=self)
             else:
                 raise DataAccessError("No local datasets available", source=self)
@@ -652,7 +653,9 @@ class LocalDataStore(DataStore):
             meta_info['title'] = title
 
         if not re.match(r'^[\w\-. ]+$', data_source_id):
-            raise DataAccessError('Unaccepted characters in Data Source name', data_source_id)
+            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
+                                  hint='Do not use space, dot or dash symbol in the datasource name')
+
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
