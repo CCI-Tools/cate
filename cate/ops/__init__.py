@@ -51,16 +51,18 @@ def cate_init():
 from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation_scalar, pearson_correlation
-from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs
-from .io import open_dataset, save_dataset, read_object, write_object, read_text, write_text, read_json, write_json, \
-    read_csv, read_geo_data_frame, read_netcdf, write_netcdf3, write_netcdf4
-from .plot import plot_map, plot, plot_contour, plot_scatter, plot_hist, plot_data_frame
+from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs, fix_lon_360
+from .io import (open_dataset, save_dataset, read_object, write_object,
+                 read_text, write_text, read_json, write_json, read_csv,
+                 read_geo_data_frame, read_netcdf, write_netcdf3, write_netcdf4)
+from .plot import (plot_map, plot, plot_contour, plot_scatter, plot_hist,
+                   plot_data_frame, plot_hovmoeller)
 from .animate import animate_map
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
 from .utility import sel, from_dataframe, identity, literal, pandas_fillna
-from .aggregate import long_term_average, temporal_aggregation
+from .aggregate import long_term_average, temporal_aggregation, reduce
 from .arithmetics import ds_arithmetics, diff
 from .anomaly import anomaly_internal, anomaly_external
 from .index import enso, enso_nino34, oni
@@ -98,6 +100,7 @@ __all__ = [
     'plot_contour',
     'plot_scatter',
     'plot_hist',
+    'plot_hovmoeller',
     # .animate
     'animate_map',
     # .io
@@ -123,6 +126,7 @@ __all__ = [
     # .aggregate
     'long_term_average',
     'temporal_aggregation',
+    'reduce',
     # .arithmetics
     'ds_arithmetics',
     'diff',

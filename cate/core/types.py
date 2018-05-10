@@ -81,7 +81,7 @@ class Like(Generic[T], metaclass=ABCMeta):
     #: A type that represents the varying source types. This is usually a ``typing.Union`` instance which
     #: combines the varying source types. The ``str`` type shall always be among them so that textual value
     #: representations are supported.
-    TYPE = None
+    TYPE = Any
 
     @classmethod
     def name(cls) -> str:
@@ -299,6 +299,62 @@ class VarName(Like[str]):
             raise ValidationError('Variable name expected.')
 
         return value
+
+
+class DimName(VarName):
+    """
+    Type class for a single Dimension selection object
+
+    Accepts:
+        1. a string
+
+    Converts to a string
+    """
+    @classmethod
+    def convert(cls, value: Any) -> Optional[str]:
+        """
+        Convert the given value to a variable name
+        """
+        # Can be optional
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise ValidationError('Dimension name expected.')
+
+        return value
+
+
+class DimNamesLike(VarNamesLike):
+    """
+    Type class for Variable selection objects
+
+    Accepts:
+        1. a string 'pattern1, pattern2, pattern3'
+        2. a list ['pattern1', 'pattern2', 'pattern3']
+
+    Converts to a list of strings
+    """
+    @classmethod
+    def convert(cls, value: Any) -> Optional[VarNames]:
+        """
+        Convert the given value to a list of variable name patterns.
+        """
+        # Can be optional
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            return to_list(value)
+
+        if not isinstance(value, list):
+            raise ValidationError('List of dimension names expected.')
+
+        for item in value:
+            if not isinstance(item, str):
+                raise ValidationError('List of dimension names expected.')
+
+        return value.copy()
 
 
 class FileLike(Like[dict]):

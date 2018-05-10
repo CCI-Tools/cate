@@ -326,6 +326,17 @@ class DataStore(metaclass=ABCMeta):
         """
         return self._is_local
 
+    def invalidate(self):
+        """
+        Datastore might use a cached list of available dataset which can change in time.
+        Resources managed by a datastore are external so we have to consider that they can
+        be updated by other process.
+        This method ask to invalidate the internal structure and synchronize it with the
+        current status
+        :return:
+        """
+        pass
+
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -450,6 +461,11 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         primary_data_store = data_stores
     else:
         data_store_list = data_stores
+
+    for data_store in data_store_list:
+        # datastore cache might be out of synch
+        data_store.invalidate()
+
     if not primary_data_store and ds_id and ds_id.count('.') > 0:
         primary_data_store_index = -1
         primary_data_store_id, data_source_name = ds_id.split('.', 1)
@@ -554,13 +570,22 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     threshold = 250 * (2 ** 20)  # 250 MB
 
     ds = None
-    # Find number of chunks as the closest larger squared number (1,4,9,..)
-    try:
-        temp_ds = xr.open_dataset(paths[0], **kwargs)
-    except (OSError, RuntimeError):
-        # netcdf4 >=1.2.2 raises RuntimeError
-        # We have a glob not a list
-        temp_ds = xr.open_dataset(glob.glob(paths)[0], **kwargs)
+    # paths could be a string or a list
+    files = []
+    if type(paths) is str:
+        files.append(paths)
+    else:
+        files.extend(paths)
+
+    # should be a file or a glob
+    # unroll glob list into list of files
+    files = [i for path in files for i in glob.glob(path)]
+
+    if not files:
+        raise IOError('File {} not found'.format(paths))
+
+    # Find number of chunks as the closest larger squared number (1,4,9,..
+    temp_ds = xr.open_dataset(files[0], **kwargs)
 
     n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
 
@@ -569,7 +594,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
         # The file size is fine
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                autoclose=True,
                                **kwargs)
@@ -595,7 +620,7 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
         chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
 
-        ds = xr.open_mfdataset(paths,
+        ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
                                chunks=chunks,
                                autoclose=True,

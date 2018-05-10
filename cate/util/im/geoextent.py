@@ -138,6 +138,7 @@ class GeoExtent:
             y = y[(0,) * (y.ndim - 2) + (..., 0)]
 
         dx = None
+        x_norm = False
         if x.size > 1:
             dx = np.gradient(x)
             if (dx.max() - dx.min()) >= eps:
@@ -146,6 +147,7 @@ class GeoExtent:
                 if x[0] > x[-1]:
                     # normalize x
                     x = np.where(x < 0., 360. + x, x)
+                    x_norm = True
                     # and test once more
                     dx = np.gradient(x)
                     fail = (dx.max() - dx.min()) >= eps
@@ -174,7 +176,7 @@ class GeoExtent:
         y1 = y[0] - 0.5 * dy
         y2 = y[-1] + 0.5 * dy
 
-        if x2 > 180.0:
+        if x_norm and x2 > 180.0:
             x2 -= 360.0
 
         if y1 < y2:

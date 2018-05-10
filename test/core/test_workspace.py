@@ -294,6 +294,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEqual(ws.resource_cache.get('Y'), 5)
         self.assertEqual(ws.resource_cache.get('Z'), 5)
 
+    @unittest.skip("_extract_point is not an operator anymore")
     def test_set_step_and_run_op(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
 

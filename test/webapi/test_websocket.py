@@ -5,7 +5,6 @@ import shutil
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
 from cate.webapi.websocket import WebSocketService
-from cate.core.workspace import mk_op_kwargs
 
 
 class WebSocketServiceTest(unittest.TestCase):
@@ -98,9 +97,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(1, len(workspaces))
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
-        op_name = "_extract_point"
-        op_args = mk_op_kwargs(ds='@ds', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
-        values = self.service.run_op_in_workspace(self.base_dir, op_name, op_args)
+        values = self.service.extract_pixel_values(self.base_dir, 'ds', (10.22, 34.52), dict(time='2014-09-11'))
 
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)

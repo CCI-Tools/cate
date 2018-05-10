@@ -16,7 +16,7 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.plot import plot, plot_map, plot_data_frame
+from cate.ops.plot import plot, plot_map, plot_data_frame, plot_hovmoeller
 from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
@@ -206,3 +206,64 @@ class TestPlotDataFrame(TestCase):
         with create_tmp_file('remove_me', 'png') as tmp_file:
             reg_op(df=df, file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
+
+
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
+class TestPlotHovmoeller(TestCase):
+    """
+    Test plot_hovmoeller() function
+    """
+
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        # Test nominal
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'lat': np.linspace(-89.5, 89.5, 5),
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'time': pd.date_range('2000-01-01', periods=2)})
+
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_hovmoeller(dataset, file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Test colormesh and title
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_hovmoeller(dataset, contour=False, title='FooBar', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # More than three dims
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time', 'depth'], np.random.rand(5, 10, 2, 2)),
+            'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'lat': np.linspace(-89.5, 89.5, 5),
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'depth': [1, 2],
+            'time': pd.date_range('2000-01-01', periods=2)})
+
+        with create_tmp_file('remove_me', 'png') as tmp_file:
+            plot_hovmoeller(dataset, var='first', x_axis='time', y_axis='depth', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+    def test_exceptions(self):
+        """
+        Test error conditions
+        """
+        dataset = xr.Dataset({
+            'first': (['lat'], np.random.rand(5)),
+            'second': (['lat', 'lon'], np.random.rand(5, 10)),
+            'lat': np.linspace(-89.5, 89.5, 5),
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'time': pd.date_range('2000-01-01', periods=2)})
+
+        # test 1D dataset
+        with self.assertRaises(ValueError):
+            plot_hovmoeller(dataset, var='first', x_axis='lat', y_axis='lat')
+
+        # test illegal dimensions
+        with self.assertRaises(ValueError):
+            plot_hovmoeller(dataset, var='second', x_axis='foo', y_axis='bar')

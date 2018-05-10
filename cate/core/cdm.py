@@ -107,7 +107,7 @@ information.
 Components
 ==========
 """
-
+import warnings
 from collections import OrderedDict
 from typing import List, Optional, Union
 
@@ -355,7 +355,12 @@ def get_tiling_scheme(var: xr.DataArray) -> Optional[TilingScheme]:
     width, height = var.shape[-1], var.shape[-2]
     lats = var.coords[lat_dim_name]
     lons = var.coords[lon_dim_name]
-    geo_extent = GeoExtent.from_coord_arrays(lons, lats)
+    try:
+        geo_extent = GeoExtent.from_coord_arrays(lons, lats)
+    except ValueError as e:
+        warnings.warn(f'failed to derive geo-extent for tiling scheme: {e}')
+        # Create a default geo-extent which is probably wrong, but at least we see something
+        geo_extent = GeoExtent()
     try:
         return TilingScheme.create(width, height, 360, 360, geo_extent)
     except ValueError:

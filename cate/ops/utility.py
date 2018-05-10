@@ -129,6 +129,35 @@ def literal(value: Literal.TYPE) -> Arbitrary.TYPE:
 
 
 @op(tags=['utility'])
+def dummy_ds(lon_dim: int = 360,
+             lat_dim: int = 180,
+             time_dim: int = 5) -> xr.Dataset:
+    """
+    Create a dummy dataset.
+
+    :param lon_dim: Number of grid cells in longitude direction
+    :param lat_dim: Number of grid cells in latitude direction
+    :param time_dim: Number of time steps
+    :return: a dummy dataset
+    """
+
+    import numpy as np
+    temperature = 15 + 8 * np.random.randn(time_dim, lat_dim, lon_dim)
+    precipitation = 10 * np.random.rand(time_dim, lat_dim, lon_dim)
+    lon_delta = 360. / lon_dim
+    lat_delta = 180. / lat_dim
+    lon = np.arange(-180. + 0.5 * lon_delta, 180., lon_delta)
+    lat = np.arange(-90. + 0.5 * lat_delta, 90., lat_delta)
+    time = pd.date_range('2014-09-06', periods=time_dim)
+    return xr.Dataset({'temperature': (['time', 'lat', 'lon'], temperature),
+                       'precipitation': (['time', 'lat', 'lon'], precipitation)},
+                      coords={'lon': lon,
+                              'lat': lat,
+                              'time': time,
+                              'reference_time': pd.Timestamp('2014-09-05')})
+
+
+@op(tags=['utility'])
 @op_input('step_duration', units='seconds')
 def no_op(num_steps: int = 20,
           step_duration: float = 0.5,
@@ -162,9 +191,9 @@ def no_op(num_steps: int = 20,
 @op(tags=['utility', 'internal'])
 @op_input('method', value_set=['backfill', 'bfill', 'pad', 'ffill'])
 def pandas_fillna(df: pd.DataFrame,
-                  value: float=None,
-                  method: str=None,
-                  limit: int=None,
+                  value: float = None,
+                  method: str = None,
+                  limit: int = None,
                   **kwargs) -> pd.DataFrame:
     """
     Return a new dataframe with NaN values filled according to the given value

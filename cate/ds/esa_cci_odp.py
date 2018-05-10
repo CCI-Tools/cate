@@ -947,23 +947,24 @@ class _DownloadStatistics:
     def __init__(self, bytes_total):
         self.bytes_total = bytes_total
         self.bytes_done = 0
-        self.startTime = datetime.now()
+        self.start_time = datetime.now()
 
-    def handle_chunk(self, chunk):
-        self.bytes_done += chunk
-
-    @staticmethod
-    def _to_mibs(bytes_count: int) -> float:
-        return bytes_count / (1024 * 1024)
+    def handle_chunk(self, chunk_size: int):
+        self.bytes_done += chunk_size
 
     def __str__(self):
-        seconds = (datetime.now() - self.startTime).seconds
+        seconds = (datetime.now() - self.start_time).seconds
         if seconds > 0:
-            mb_per_sec = self._to_mibs(self.bytes_done) / seconds
+            mb_per_sec = self._to_megas(self.bytes_done) / seconds
         else:
-            mb_per_sec = 0
-        return "%d of %d MiB @ %.3f MiB/s" % \
-               (self._to_mibs(self.bytes_done), self._to_mibs(self.bytes_total), mb_per_sec)
+            mb_per_sec = 0.
+        percent = 100. * self.bytes_done / self.bytes_total
+        return "%d of %d MB @ %.3f MB/s, %.1f%% complete" % \
+               (self._to_megas(self.bytes_done), self._to_megas(self.bytes_total), mb_per_sec, percent)
+
+    @staticmethod
+    def _to_megas(bytes_count: int) -> float:
+        return bytes_count / (1000. * 1000.)
 
 
 class EsaCciCatalogueService:
