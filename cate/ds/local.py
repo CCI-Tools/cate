@@ -197,7 +197,7 @@ class LocalDataSource(DataSource):
             if time_range:
                 time = TimeRangeLike.format(time_range)
                 msg = "No local datasets available for\nspecified time range"
-                raise ValidationError(msg,"{}".format(time))
+                raise ValidationError(msg, "{}".format(time))
             else:
                 raise DataAccessError("No local datasets available", source=self)
 
