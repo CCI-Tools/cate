@@ -447,8 +447,7 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
     # Make sure dim_min and dim_max are valid and are instances of np.datetime64
     # See https://github.com/CCI-Tools/cate/issues/643
     if dim_var is None \
-            or not np.issubdtype(dim_min, np.datetime64) \
-            or not np.issubdtype(dim_max, np.datetime64):
+            or not np.issubdtype(dim_var.dtype, np.datetime64):
         # Cannot determine temporal extent for dimension var_name
         return None
 

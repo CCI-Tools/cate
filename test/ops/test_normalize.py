@@ -485,6 +485,22 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds2.attrs['time_coverage_duration'],
                          'P93D')
 
+    def test_wrong_type(self):
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'second': (['time','lat', 'lon'], np.zeros([12, 45, 90])),
+            'lon': (['lon'], np.linspace(-178, 178, 90)),
+            'lat': (['lat'], np.linspace(-88, 88, 45)),
+            'time': (['time'], np.linspace(0, 1, 12))})
+
+        ds1 = adjust_temporal_attrs(ds)
+
+        self.assertIs(ds1, ds)
+        self.assertNotIn('time_coverage_start', ds1)
+        self.assertNotIn('time_coverage_end', ds1)
+        self.assertNotIn('time_coverage_resolution', ds1)
+        self.assertNotIn('time_coverage_duration', ds1)
+
     def test_bnds(self):
         """Test a case when time_bnds is available"""
         time = [datetime(2000, x, 1) for x in range(1, 13)]
