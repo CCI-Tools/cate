@@ -581,7 +581,7 @@ def open_xarray_dataset(paths,
         # used in the spatial dimensions.
         #
         # If no such sizes could be found, we use xarray's default chunking.
-        chunks = _get_agg_chunk_sizes(files[0])
+        chunks = get_spatial_ext_chunk_sizes(files[0])
     else:
         chunks = None
 
@@ -604,32 +604,55 @@ def open_xarray_dataset(paths,
                                  **kwargs)
 
 
-def _get_agg_chunk_sizes(path: str) -> Dict[str, int]:
-    ds = xr.open_dataset(path)
+def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
+    """
+    Get the spatial, external chunk sizes for the latitude and longitude dimensions
+    of a dataset as provided in a variable's encoding object.
+
+    :param ds_or_path: An xarray dataset or a path to file that can be opened by xarray.
+    :return: A mapping from dimension name to external chunk sizes.
+    """
+    if isinstance(ds_or_path, str):
+        ds = xr.open_dataset(ds_or_path, decode_times=False)
+    else:
+        ds = ds_or_path
     lon_name = get_lon_dim_name(ds)
     lat_name = get_lat_dim_name(ds)
     if lon_name and lat_name:
-        chunk_sizes = _get_agg_chunk_sizes_from_ds(ds, {lat_name, lon_name})
+        chunk_sizes = get_ext_chunk_sizes(ds, {lat_name, lon_name})
     else:
         chunk_sizes = None
-    ds.close()
+    if isinstance(ds_or_path, str):
+        ds.close()
     return chunk_sizes
 
 
-def _get_agg_chunk_sizes_from_ds(ds: xr.Dataset, var_names: Set[str],
-                                 init_size=0, map_fn=max, reduce_fn=None) -> Dict[str, int]:
+def get_ext_chunk_sizes(ds: xr.Dataset, dim_names: Set[str] = None,
+                        init_value=0, map_fn=max, reduce_fn=None) -> Dict[str, int]:
+    """
+    Get the external chunk sizes for each dimension of a dataset as provided in a variable's encoding object.
+
+    :param ds: The dataset.
+    :param dim_names: The names of dimensions of data variables whose external chunking should be collected.
+    :param init_value: The initial value (not necessarily a chunk size) for mapping multiple different chunk sizes.
+    :param map_fn: The mapper function that maps a chunk size from a previous (initial) value.
+    :param reduce_fn: The reducer function the reduces multiple mapped chunk sizes to a single one.
+    :return: A mapping from dimension name to external chunk sizes.
+    """
     agg_chunk_sizes = None
     for var_name in ds.variables:
-        if not var_names or var_name in var_names:
-            var = ds[var_name]
-            if var.encoding:
-                chunk_sizes = var.encoding.get('chunksizes')
-                if chunk_sizes and len(chunk_sizes) == len(var.dims):
-                    for dim, size in zip(var.dims, chunk_sizes):
+        var = ds[var_name]
+        if var.encoding:
+            chunk_sizes = var.encoding.get('chunksizes')
+            if chunk_sizes \
+                    and len(chunk_sizes) == len(var.dims)\
+                    and (not dim_names or dim_names.issubset(set(var.dims))):
+                for dim_name, size in zip(var.dims, chunk_sizes):
+                    if not dim_names or dim_name in dim_names:
                         if agg_chunk_sizes is None:
                             agg_chunk_sizes = dict()
-                        old_size = agg_chunk_sizes.get(dim)
-                        agg_chunk_sizes[dim] = map_fn(size, init_size if old_size is None else old_size)
+                        old_value = agg_chunk_sizes.get(dim_name)
+                        agg_chunk_sizes[dim_name] = map_fn(size, init_value if old_value is None else old_value)
     if agg_chunk_sizes and reduce_fn:
         agg_chunk_sizes = {k: reduce_fn(v) for k, v in agg_chunk_sizes.items()}
     return agg_chunk_sizes

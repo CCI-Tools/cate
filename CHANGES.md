@@ -5,7 +5,8 @@
 * Local dataset not recognised [#557](https://github.com/CCI-Tools/cate/issues/557)
 * Allow exporting any data as CSV [#637](https://github.com/CCI-Tools/cate/issues/637)
 * Using `localhost` instead of explicit IP to maybe target [#627](https://github.com/CCI-Tools/cate/issues/627) 
-
+* The `read_netcdf()` operation uses Dask chunking so we can expand all variables by a 'time' dimension 
+  without loading all data into memory. 
 
 ## Version 2.0.0.dev10
 

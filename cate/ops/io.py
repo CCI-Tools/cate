@@ -28,7 +28,7 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 import xarray as xr
-
+from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame, DataFrameLike, \
@@ -461,7 +461,10 @@ def read_netcdf(file: str,
                          decode_cf=decode_cf,
                          decode_times=decode_times,
                          engine=engine)
-    if ds and normalize:
+    chunks = get_spatial_ext_chunk_sizes(ds)
+    if chunks:
+        ds = ds.chunk(chunks)
+    if normalize:
         return adjust_temporal_attrs(normalize_op(ds))
     return ds
 
