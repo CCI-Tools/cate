@@ -33,7 +33,7 @@ from typing import Dict
 import xarray as xr
 
 from cate.core.op import op, op_input, op_return
-from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_attrs
+from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_cf_attrs_from_var
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.monitor import Monitor
@@ -156,8 +156,8 @@ def _get_tolerance(ds: xr.Dataset, tolerance_default: float):
         lat_res = ds.attrs[lat_res_attr_name]
     else:
         try:
-            lon_res = _get_geo_spatial_attrs(ds, 'lon')[lon_res_attr_name]
-            lat_res = _get_geo_spatial_attrs(ds, 'lat')[lat_res_attr_name]
+            lon_res = _get_geo_spatial_cf_attrs_from_var(ds, 'lon')[lon_res_attr_name]
+            lat_res = _get_geo_spatial_cf_attrs_from_var(ds, 'lat')[lat_res_attr_name]
         except ValueError:
             return tolerance_default
     return (float(lon_res) + float(lat_res)) / 2

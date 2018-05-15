@@ -312,7 +312,7 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     copied = False
 
     for dim in ('lon', 'lat'):
-        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=allow_point)
+        geo_spatial_attrs = _get_geo_spatial_cf_attrs_from_var(ds, dim, allow_point=allow_point)
         if geo_spatial_attrs:
             # Copy any new attributes into the shallow Dataset copy
             for key in geo_spatial_attrs:
@@ -366,7 +366,7 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     :return: Adjusted dataset
     """
 
-    temporal_attrs = _get_temporal_attrs_from_time_coord_var(ds)
+    temporal_attrs = _get_temporal_cf_attrs_from_var(ds)
 
     if temporal_attrs:
         ds = ds.copy()
@@ -388,14 +388,14 @@ def is_coord_var(ds: xr.Dataset, var: xr.DataArray):
 
 def is_bounds_var(ds: xr.Dataset, var: xr.DataArray):
     if len(var.dims) == 2 \
-           and var.shape[1] == 2 \
-           and var.dims[1] == 'bnds':
+            and var.shape[1] == 2 \
+            and var.dims[1] == 'bnds':
         coord_name = var.dims[0]
         return coord_name in ds
     return False
 
 
-def _get_temporal_attrs_from_time_coord_var(ds: xr.Dataset) -> Optional[dict]:
+def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> Optional[dict]:
     """
     Get temporal boundaries, resolution and duration of the given dataset. If
     the 'bounds' are explicitly defined, these will be used for calculation,
@@ -403,34 +403,53 @@ def _get_temporal_attrs_from_time_coord_var(ds: xr.Dataset) -> Optional[dict]:
     itself.
 
     :param ds: Dataset
+    :param var_name: The variable/dimension name.
     :return: A dictionary {'attr_name': attr_value}
     """
 
-    if 'time' not in ds:
+    if var_name not in ds:
         return None
 
-    coord_var = ds['time']
+    var = ds[var_name]
 
-    if 'bounds' in coord_var.attrs:
+    if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
         # should be in the attributes of the coordinate variable
-        bnds_name = coord_var.attrs['bounds']
+        bnds_name = var.attrs['bounds']
     else:
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
-        bnds_name = 'time_bnds'
+        bnds_name = f'{var_name}_bnds'
+
+    dim_min = dim_max = None
+    dim_var = None
 
     if bnds_name in ds:
         bnds_var = ds[bnds_name]
-        dim_min = bnds_var.values[0][0]
-        dim_max = bnds_var.values[-1][1]
-    elif len(coord_var.values) >= 2:
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[-1]
-    elif len(coord_var.values) == 1:
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[0]
-    else:
-        # Cannot determine temporal extent for dimension dim_name
+        if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
+            dim_var = bnds_var
+            if bnds_var.shape[0] > 1:
+                dim_min = bnds_var.values[0][0]
+                dim_max = bnds_var.values[-1][1]
+            else:
+                dim_min = bnds_var.values[0][0]
+                dim_max = bnds_var.values[0][1]
+
+    if dim_var is None:
+        if len(var.shape) == 1 and var.shape[0] > 0:
+            dim_var = var
+            if var.shape[0] > 1:
+                dim_min = var.values[0]
+                dim_max = var.values[-1]
+            else:
+                dim_min = var.values[0]
+                dim_max = var.values[0]
+
+    # Make sure dim_min and dim_max are valid and are instances of np.datetime64
+    # See https://github.com/CCI-Tools/cate/issues/643
+    if dim_var is None \
+            or not np.issubdtype(dim_min, np.datetime64) \
+            or not np.issubdtype(dim_max, np.datetime64):
+        # Cannot determine temporal extent for dimension var_name
         return None
 
     if dim_min != dim_max:
@@ -438,18 +457,18 @@ def _get_temporal_attrs_from_time_coord_var(ds: xr.Dataset) -> Optional[dict]:
     else:
         duration = None
 
-    if dim_min < dim_max and len(coord_var.values) >= 2:
-        resolution = _get_temporal_res(coord_var.values)
+    if dim_min < dim_max and len(var.values) >= 2:
+        resolution = _get_temporal_res(var.values)
     else:
         resolution = None
 
-    return dict(time_coverage_duration=duration,
-                time_coverage_resolution=resolution,
-                time_coverage_start=str(dim_min),
-                time_coverage_end=str(dim_max))
+    return dict(time_coverage_start=str(dim_min),
+                time_coverage_end=str(dim_max),
+                time_coverage_duration=duration,
+                time_coverage_resolution=resolution)
 
 
-def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> Optional[dict]:
+def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_point: bool = False) -> Optional[dict]:
     """
     Get spatial boundaries, resolution and units of the given dimension of the given
     dataset. If the 'bounds' are explicitly defined, these will be used for
@@ -457,56 +476,70 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     from 'dim' itself.
 
     :param ds: The dataset
-    :param dim_name: The dimension name.
+    :param var_name: The variable/dimension name.
     :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
 
-    if dim_name not in ds:
+    if var_name not in ds:
         return None
 
-    coord_var = ds[dim_name]
+    var = ds[var_name]
 
-    if 'bounds' in coord_var.attrs:
+    if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
         # should be in the attributes of the coordinate variable
-        bnds_name = coord_var.attrs['bounds']
+        bnds_name = var.attrs['bounds']
     else:
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
-        bnds_name = '%s_bnds' % dim_name
+        bnds_name = '%s_bnds' % var_name
+
+    dim_var = None
 
     if bnds_name in ds:
         bnds_var = ds[bnds_name]
-        dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
-        dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
-        dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
-    elif len(coord_var.values) >= 2:
-        dim_res = abs(coord_var.values[1] - coord_var.values[0])
-        dim_min = min(coord_var.values[0], coord_var.values[-1]) - 0.5 * dim_res
-        dim_max = max(coord_var.values[0], coord_var.values[-1]) + 0.5 * dim_res
-    elif len(coord_var.values) == 1 and allow_point:
-        # Actually a point with no extent
-        dim_res = 0.0
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[0]
-    else:
-        # Cannot determine spatial extent for dimension dim_name
+        if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
+            dim_var = bnds_var
+            dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
+            if bnds_var.shape[0] > 1:
+                dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
+                dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
+            else:
+                dim_min = min(bnds_var.values[0][0], bnds_var.values[0][1])
+                dim_max = max(bnds_var.values[0][0], bnds_var.values[0][1])
+
+    if dim_var is None:
+        if len(var.shape) == 1 and var.shape[0] > 0:
+            if var.shape[0] > 1:
+                dim_var = var
+                dim_res = abs(var.values[1] - var.values[0])
+                dim_min = min(var.values[0], var.values[-1]) - 0.5 * dim_res
+                dim_max = max(var.values[0], var.values[-1]) + 0.5 * dim_res
+            elif len(var.values) == 1 and allow_point:
+                dim_var = var
+                # Actually a point with no extent
+                dim_res = 0.0
+                dim_min = var.values[0]
+                dim_max = var.values[0]
+
+    if dim_var is None:
+        # Cannot determine spatial extent for variable/dimension var_name
         return None
 
-    if 'units' in coord_var.attrs:
-        dim_units = coord_var.attrs['units']
+    if 'units' in var.attrs:
+        dim_units = var.attrs['units']
     else:
         dim_units = None
 
-    res_name = 'geospatial_{}_resolution'.format(dim_name)
-    min_name = 'geospatial_{}_min'.format(dim_name)
-    max_name = 'geospatial_{}_max'.format(dim_name)
-    units_name = 'geospatial_{}_units'.format(dim_name)
+    res_name = 'geospatial_{}_resolution'.format(var_name)
+    min_name = 'geospatial_{}_min'.format(var_name)
+    max_name = 'geospatial_{}_max'.format(var_name)
+    units_name = 'geospatial_{}_units'.format(var_name)
 
     geo_spatial_attrs = dict()
-    geo_spatial_attrs[res_name] = dim_res
-    geo_spatial_attrs[min_name] = dim_min
-    geo_spatial_attrs[max_name] = dim_max
+    geo_spatial_attrs[res_name] = float(dim_res)
+    geo_spatial_attrs[min_name] = float(dim_min)
+    geo_spatial_attrs[max_name] = float(dim_max)
     geo_spatial_attrs[units_name] = dim_units
 
     return geo_spatial_attrs
