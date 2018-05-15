@@ -60,6 +60,7 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        capacity=WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY,
                        threshold=0.75)
 
+# Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 TRACE_PERF = False
