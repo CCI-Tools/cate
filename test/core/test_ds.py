@@ -253,6 +253,20 @@ class IOTest(TestCase):
         self.assertEqual(ds_small.chunks, small_expected)
         self.assertEqual(ds_large.chunks, large_expected)
 
+    def test_open_xarray(self):
+        wrong_path = op.join(_TEST_DATA_PATH, 'small', '*.nck')
+        wrong_url = 'httpz://www.acme.com'
+        path = [wrong_path,wrong_url]
+        try:
+            ds.open_xarray_dataset(path)
+        except IOError as e:
+            self.assertEqual(str(e),'File {} not found'.format(path))
+
+        right_path = op.join(_TEST_DATA_PATH, 'small', '*.nc')
+        wrong_url = 'httpz://www.acme.com'
+        path = [right_path, wrong_url]
+        dsa = ds.open_xarray_dataset(path)
+        self.assertIsNotNone(dsa)
 
 class DataAccessErrorTest(unittest.TestCase):
     def test_plain(self):

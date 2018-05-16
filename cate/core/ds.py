@@ -79,6 +79,8 @@ Components
 """
 
 import glob
+import re
+import itertools
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from math import ceil, sqrt
@@ -93,6 +95,14 @@ from ..util.monitor import Monitor
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
+
+URL_REGEX = re.compile(
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
 class DataSource(metaclass=ABCMeta):
@@ -577,9 +587,10 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     else:
         files.extend(paths)
 
-    # should be a file or a glob
-    # unroll glob list into list of files
-    files = [i for path in files for i in glob.glob(path)]
+    # should be a file or a glob or an URL
+    files = [(i,) if re.match(URL_REGEX, i) else glob.glob(i) for i in files]
+    # make a flat list
+    files = list(itertools.chain.from_iterable(files))
 
     if not files:
         raise IOError('File {} not found'.format(paths))
