@@ -33,6 +33,7 @@ from cate.core.wsmanag import WorkspaceManager
 from cate.util.misc import encode_url_path
 from cate.util.monitor import Monitor
 from cate.util.safe import safe_eval
+from cate.util.web.serviceinfo import join_address_and_port
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -43,12 +44,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     """
 
     def __init__(self, service_info: dict, conn_timeout: float = 5, rpc_timeout: float = 120):
-        address = service_info.get('address', None) or '127.0.0.1'
+        address = service_info.get('address', None) or 'localhost'
         port = service_info.get('port', None)
         if not port:
             raise ValueError('missing "port" number in service_info argument')
-        self.base_url = 'http://%s:%s' % (address, port)
-        self.ws_url = 'ws://%s:%s/api' % (address, port)
+        self.base_url = f'http://{join_address_and_port(address, port)}'
+        self.ws_url = f'ws://{join_address_and_port(address, port)}/api'
         self.ws_client = WebSocketClient(self.ws_url)
         self.ws_client.connect(conn_timeout)
         self.rpc_timeout = rpc_timeout

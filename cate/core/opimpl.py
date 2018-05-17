@@ -19,13 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Janis Gailis (S[&]T Norway)" \
-             "Norman Fomferra (Brockmann Consult GmbH)"
-
+import warnings
 from datetime import datetime
-from typing import Optional, Sequence, Union, Tuple, Any
+from typing import Optional, Sequence, Union, Tuple
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 from jdcal import jd2gcal
 from matplotlib import path
@@ -34,6 +33,9 @@ from shapely.geometry import box, LineString, Polygon
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
+
+__author__ = "Janis Gailis (S[&]T Norway)" \
+             "Norman Fomferra (Brockmann Consult GmbH)"
 
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
@@ -50,6 +52,9 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     * Remove 2D "lat" and "lon" variables;
     * Two new 1D coordinate variables "lat" and "lon" will be generated from original 2D forms.
 
+    Then, if no coordinate variable time is present but the CF attributes "time_coverage_start" and optionally
+    "time_coverage_end" are given, a scalar time dimension and coordinate variable will be generated.
+
     Finally, it will be ensured that a "time" coordinate variable will be of type *datetime*.
 
     :param ds: The dataset to normalize.
@@ -57,6 +62,8 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
+    ds = normalize_coord_vars(ds)
+    ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
     return ds
 
@@ -179,6 +186,111 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Turn potential coordinate variables from data variables into coordinate variables.
+
+    Any data variable is considered a coordinate variable
+
+    * whose name is its only dimension name;
+    * whose number of dimensions is two and where the first dimension name is also a variable namd and
+      whose last dimension is named "bnds".
+
+    :param ds: The dataset
+    :return: The same dataset or a shallow copy with potential coordinate
+             variables turned into coordinate variables.
+    """
+
+    if 'bnds' not in ds.dims:
+        return ds
+
+    coord_var_names = set()
+    for data_var_name in ds.data_vars:
+        data_var = ds.data_vars[data_var_name]
+        if is_coord_var(ds, data_var):
+            coord_var_names.add(data_var_name)
+
+    if not coord_var_names:
+        return ds
+
+    old_ds = ds
+    ds = old_ds.drop(coord_var_names)
+    ds = ds.assign_coords(**{bounds_var_name: old_ds[bounds_var_name] for bounds_var_name in coord_var_names})
+
+    return ds
+
+
+def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Add a time coordinate variable and their associated bounds coordinate variables
+    if temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
+    are given but the time dimension is missing.
+
+    The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
+    The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
+    Both are of data type ``datetime64``.
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    has_time = 'time' in ds.coords or 'time' in ds
+    if has_time:
+        return ds
+
+    time_coverage_start = ds.attrs.get('time_coverage_start')
+    time_coverage_end = ds.attrs.get('time_coverage_end')
+    if time_coverage_start is not None:
+        # noinspection PyBroadException
+        try:
+            time_coverage_start = pd.to_datetime(time_coverage_start)
+        except BaseException:
+            pass
+
+    if time_coverage_end is not None:
+        # noinspection PyBroadException
+        try:
+            time_coverage_end = pd.to_datetime(time_coverage_end)
+        except BaseException:
+            pass
+
+    if not time_coverage_start and not time_coverage_end:
+        # Can't do anything
+        return ds
+
+    if time_coverage_start or time_coverage_end:
+        # noinspection PyBroadException
+        try:
+            ds = ds.expand_dims('time')
+        except BaseException as e:
+            warnings.warn(f'failed to add time dimension: {e}')
+
+        if time_coverage_start and time_coverage_end:
+            time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
+        else:
+            time_value = time_coverage_start or time_coverage_end
+
+        new_coord_vars = dict(time=xr.DataArray([time_value], dims=['time']))
+
+        if time_coverage_start and time_coverage_end:
+            has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
+            if not has_time_bnds:
+                new_coord_vars.update(time_bnds=xr.DataArray([[time_coverage_start, time_coverage_end]],
+                                                             dims=['time', 'bnds']))
+
+        ds = ds.assign_coords(**new_coord_vars)
+
+        ds.coords['time'].attrs['long_name'] = 'time'
+        ds.coords['time'].attrs['standard_name'] = 'time'
+        ds.coords['time'].encoding['units'] = 'days since 1970-01-01'
+        if 'time_bnds' in ds.coords:
+            ds.coords['time'].attrs['bounds'] = 'time_bnds'
+            ds.coords['time_bnds'].attrs['long_name'] = 'time'
+            ds.coords['time_bnds'].attrs['standard_name'] = 'time'
+            ds.coords['time_bnds'].encoding['units'] = 'days since 1970-01-01'
+
+    return ds
+
+
 def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
@@ -189,7 +301,8 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :param allow_point: Whether to accept single point cells
@@ -199,7 +312,7 @@ def adjust_spatial_attrs_impl(ds: xr.Dataset, allow_point: bool) -> xr.Dataset:
     copied = False
 
     for dim in ('lon', 'lat'):
-        geo_spatial_attrs = _get_geo_spatial_attrs(ds, dim, allow_point=allow_point)
+        geo_spatial_attrs = _get_geo_spatial_cf_attrs_from_var(ds, dim, allow_point=allow_point)
         if geo_spatial_attrs:
             # Copy any new attributes into the shallow Dataset copy
             for key in geo_spatial_attrs:
@@ -246,13 +359,14 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
     be added.
 
     For more information on suggested global attributes see
-    `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
+    `Attribute Convention for Data Discovery
+    <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_
 
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
 
-    temporal_attrs = _get_temporal_attrs(ds)
+    temporal_attrs = _get_temporal_cf_attrs_from_var(ds)
 
     if temporal_attrs:
         ds = ds.copy()
@@ -263,44 +377,25 @@ def adjust_temporal_attrs_impl(ds: xr.Dataset) -> xr.Dataset:
             else:
                 ds.attrs.pop(key, None)
 
-    # Now let's see if we are lacking a 'time' variable when we have temporal attributes
-
-    has_time = 'time' in ds.coords or 'time' in ds
-    if has_time:
-        return ds
-
-    has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
-
-    time_coverage_start = ds.attrs.get('time_coverage_start')
-    time_coverage_end = ds.attrs.get('time_coverage_end')
-    import pandas as pd
-
-    if time_coverage_start is not None:
-        time_coverage_start = pd.to_datetime(time_coverage_start)
-
-    if time_coverage_end is not None:
-        time_coverage_end = pd.to_datetime(time_coverage_end)
-
-    if not time_coverage_start and not time_coverage_end:
-        return ds
-
-    if time_coverage_start or time_coverage_end:
-        ds = ds.expand_dims('time')
-        if time_coverage_start and time_coverage_end:
-            time = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
-        else:
-            time = time_coverage_start or time_coverage_end
-        ds = ds.assign_coords(time=[time])
-        ds.coords['time']['long_name'] = 'time'
-        ds.coords['time']['standard_name'] = 'time'
-
-    if not has_time_bnds and time_coverage_start and time_coverage_end:
-        ds = ds.assign_coords(time_bnds=(['time', 'bnds'], [[time_coverage_start, time_coverage_end]]))
-
     return ds
 
 
-def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
+def is_coord_var(ds: xr.Dataset, var: xr.DataArray):
+    if len(var.dims) == 1 and var.name == var.dims[0]:
+        return True
+    return is_bounds_var(ds, var)
+
+
+def is_bounds_var(ds: xr.Dataset, var: xr.DataArray):
+    if len(var.dims) == 2 \
+            and var.shape[1] == 2 \
+            and var.dims[1] == 'bnds':
+        coord_name = var.dims[0]
+        return coord_name in ds
+    return False
+
+
+def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> Optional[dict]:
     """
     Get temporal boundaries, resolution and duration of the given dataset. If
     the 'bounds' are explicitly defined, these will be used for calculation,
@@ -308,34 +403,52 @@ def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
     itself.
 
     :param ds: Dataset
+    :param var_name: The variable/dimension name.
     :return: A dictionary {'attr_name': attr_value}
     """
 
-    if 'time' not in ds:
+    if var_name not in ds:
         return None
 
-    coord_var = ds['time']
+    var = ds[var_name]
 
-    if 'bounds' in coord_var.attrs:
+    if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
         # should be in the attributes of the coordinate variable
-        bnds_name = coord_var.attrs['bounds']
+        bnds_name = var.attrs['bounds']
     else:
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
-        bnds_name = 'time_bnds'
+        bnds_name = f'{var_name}_bnds'
+
+    dim_min = dim_max = None
+    dim_var = None
 
     if bnds_name in ds:
         bnds_var = ds[bnds_name]
-        dim_min = bnds_var.values[0][0]
-        dim_max = bnds_var.values[-1][1]
-    elif len(coord_var.values) >= 2:
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[-1]
-    elif len(coord_var.values) == 1:
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[0]
-    else:
-        # Cannot determine temporal extent for dimension dim_name
+        if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
+            dim_var = bnds_var
+            if bnds_var.shape[0] > 1:
+                dim_min = bnds_var.values[0][0]
+                dim_max = bnds_var.values[-1][1]
+            else:
+                dim_min = bnds_var.values[0][0]
+                dim_max = bnds_var.values[0][1]
+
+    if dim_var is None:
+        if len(var.shape) == 1 and var.shape[0] > 0:
+            dim_var = var
+            if var.shape[0] > 1:
+                dim_min = var.values[0]
+                dim_max = var.values[-1]
+            else:
+                dim_min = var.values[0]
+                dim_max = var.values[0]
+
+    # Make sure dim_min and dim_max are valid and are instances of np.datetime64
+    # See https://github.com/CCI-Tools/cate/issues/643
+    if dim_var is None \
+            or not np.issubdtype(dim_var.dtype, np.datetime64):
+        # Cannot determine temporal extent for dimension var_name
         return None
 
     if dim_min != dim_max:
@@ -343,18 +456,18 @@ def _get_temporal_attrs(ds: xr.Dataset) -> Optional[dict]:
     else:
         duration = None
 
-    if dim_min < dim_max and len(coord_var.values) >= 2:
-        resolution = _get_temporal_res(coord_var.values)
+    if dim_min < dim_max and len(var.values) >= 2:
+        resolution = _get_temporal_res(var.values)
     else:
         resolution = None
 
-    return dict(time_coverage_duration=duration,
-                time_coverage_resolution=resolution,
-                time_coverage_start=str(dim_min),
-                time_coverage_end=str(dim_max))
+    return dict(time_coverage_start=str(dim_min),
+                time_coverage_end=str(dim_max),
+                time_coverage_duration=duration,
+                time_coverage_resolution=resolution)
 
 
-def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = False) -> Optional[dict]:
+def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_point: bool = False) -> Optional[dict]:
     """
     Get spatial boundaries, resolution and units of the given dimension of the given
     dataset. If the 'bounds' are explicitly defined, these will be used for
@@ -362,56 +475,70 @@ def _get_geo_spatial_attrs(ds: xr.Dataset, dim_name: str, allow_point: bool = Fa
     from 'dim' itself.
 
     :param ds: The dataset
-    :param dim_name: The dimension name.
+    :param var_name: The variable/dimension name.
     :param allow_point: True, if it is ok to have no actual spatial extent.
     :return: A dictionary {'attr_name': attr_value}
     """
 
-    if dim_name not in ds:
+    if var_name not in ds:
         return None
 
-    coord_var = ds[dim_name]
+    var = ds[var_name]
 
-    if 'bounds' in coord_var.attrs:
+    if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
         # should be in the attributes of the coordinate variable
-        bnds_name = coord_var.attrs['bounds']
+        bnds_name = var.attrs['bounds']
     else:
         # If 'bounds' attribute is missing, the bounds coordinate variable may be named "<dim>_bnds"
-        bnds_name = '%s_bnds' % dim_name
+        bnds_name = '%s_bnds' % var_name
+
+    dim_var = None
 
     if bnds_name in ds:
         bnds_var = ds[bnds_name]
-        dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
-        dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
-        dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
-    elif len(coord_var.values) >= 2:
-        dim_res = abs(coord_var.values[1] - coord_var.values[0])
-        dim_min = min(coord_var.values[0], coord_var.values[-1]) - 0.5 * dim_res
-        dim_max = max(coord_var.values[0], coord_var.values[-1]) + 0.5 * dim_res
-    elif len(coord_var.values) == 1 and allow_point:
-        # Actually a point with no extent
-        dim_res = 0.0
-        dim_min = coord_var.values[0]
-        dim_max = coord_var.values[0]
-    else:
-        # Cannot determine spatial extent for dimension dim_name
+        if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
+            dim_var = bnds_var
+            dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
+            if bnds_var.shape[0] > 1:
+                dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
+                dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
+            else:
+                dim_min = min(bnds_var.values[0][0], bnds_var.values[0][1])
+                dim_max = max(bnds_var.values[0][0], bnds_var.values[0][1])
+
+    if dim_var is None:
+        if len(var.shape) == 1 and var.shape[0] > 0:
+            if var.shape[0] > 1:
+                dim_var = var
+                dim_res = abs(var.values[1] - var.values[0])
+                dim_min = min(var.values[0], var.values[-1]) - 0.5 * dim_res
+                dim_max = max(var.values[0], var.values[-1]) + 0.5 * dim_res
+            elif len(var.values) == 1 and allow_point:
+                dim_var = var
+                # Actually a point with no extent
+                dim_res = 0.0
+                dim_min = var.values[0]
+                dim_max = var.values[0]
+
+    if dim_var is None:
+        # Cannot determine spatial extent for variable/dimension var_name
         return None
 
-    if 'units' in coord_var.attrs:
-        dim_units = coord_var.attrs['units']
+    if 'units' in var.attrs:
+        dim_units = var.attrs['units']
     else:
         dim_units = None
 
-    res_name = 'geospatial_{}_resolution'.format(dim_name)
-    min_name = 'geospatial_{}_min'.format(dim_name)
-    max_name = 'geospatial_{}_max'.format(dim_name)
-    units_name = 'geospatial_{}_units'.format(dim_name)
+    res_name = 'geospatial_{}_resolution'.format(var_name)
+    min_name = 'geospatial_{}_min'.format(var_name)
+    max_name = 'geospatial_{}_max'.format(var_name)
+    units_name = 'geospatial_{}_units'.format(var_name)
 
     geo_spatial_attrs = dict()
-    geo_spatial_attrs[res_name] = dim_res
-    geo_spatial_attrs[min_name] = dim_min
-    geo_spatial_attrs[max_name] = dim_max
+    geo_spatial_attrs[res_name] = float(dim_res)
+    geo_spatial_attrs[min_name] = float(dim_min)
+    geo_spatial_attrs[max_name] = float(dim_max)
     geo_spatial_attrs[units_name] = dim_units
 
     return geo_spatial_attrs
@@ -487,7 +614,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
 
 
 # TODO (forman): idea: introduce ExtentLike type, or make this a class method of PolygonLike and GeometryLike
-def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
+def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[float, float, float, float], bool]:
     """
     Get extents of a PolygonLike, handles explicitly given
     coordinates.
@@ -497,6 +624,7 @@ def get_extents(region: PolygonLike.TYPE) -> Tuple[Tuple[Any], bool]:
     """
     explicit_coords = False
     extents = None
+    # noinspection PyBroadException
     try:
         maybe_rectangle = to_list(region, dtype=float)
         if maybe_rectangle is not None:
@@ -548,7 +676,7 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     lon_max = 180 if lon_max > 180 else lon_max
     lat_max = 90 if lat_max > 90 else lat_max
 
-    return (lon_min, lat_min, lon_max, lat_max)
+    return lon_min, lat_min, lon_max, lat_max
 
 
 def subset_spatial_impl(ds: xr.Dataset,
@@ -562,6 +690,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     :param region: Spatial region to subset
     :param mask: Should values falling in the bounding box of the polygon but
     not the polygon itself be masked with NaN.
+    :param monitor: optional progress monitor
     :return: Subset dataset
     """
     monitor.start('Subset', 10)

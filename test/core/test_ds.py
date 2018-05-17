@@ -1,25 +1,26 @@
-from typing import Sequence, Any, Optional
-from unittest import TestCase, skipIf
-import os.path as op
 import os
 import unittest
+from typing import Sequence, Any, Optional
+from unittest import TestCase, skipIf
 
+import numpy as np
 import xarray as xr
-
-import cate.core.ds as ds
+from cate.core.ds import DataStore, DataSource, Schema, DataAccessError, open_xarray_dataset, find_data_sources, \
+    open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
+from test.util.test_monitor import RecordingMonitor
 
-_TEST_DATA_PATH = op.join(op.dirname(op.realpath(__file__)), 'test_data')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
 
-class SimpleDataStore(ds.DataStore):
-    def __init__(self, id: str, data_sources: Sequence[ds.DataSource]):
-        super().__init__(id, title='Simple Test Store', is_local=True)
+class SimpleDataStore(DataStore):
+    def __init__(self, ds_id: str, data_sources: Sequence[DataSource]):
+        super().__init__(ds_id, title='Simple Test Store', is_local=True)
         self._data_sources = list(data_sources)
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
-            -> Sequence[ds.DataSource]:
+            -> Sequence[DataSource]:
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
@@ -28,18 +29,18 @@ class SimpleDataStore(ds.DataStore):
         return ''
 
 
-class SimpleDataSource(ds.DataSource):
-    def __init__(self, id: str, meta_info: dict = None):
-        self._id = id
+class SimpleDataSource(DataSource):
+    def __init__(self, ds_id: str, meta_info: dict = None):
+        self._id = ds_id
         self._data_store = None
         self._meta_info = meta_info
 
     @property
-    def data_store(self) -> ds.DataStore:
+    def data_store(self) -> DataStore:
         return self.data_store
 
     @property
-    def schema(self) -> Optional[ds.Schema]:
+    def schema(self) -> Optional[Schema]:
         return None
 
     @property
@@ -54,7 +55,8 @@ class SimpleDataSource(ds.DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         return None
 
     def make_local(self,
@@ -63,7 +65,7 @@ class SimpleDataSource(ds.DataSource):
                    time_range: TimeRangeLike.TYPE = None,
                    region: PolygonLike.TYPE = None,
                    var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> ds.DataSource:
+                   monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
         return None
 
     def __repr__(self):
@@ -82,7 +84,8 @@ class InMemoryDataSource(SimpleDataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         return xr.Dataset({'a': self._data})
 
     def __repr__(self):
@@ -114,36 +117,36 @@ class IOTest(TestCase):
         self.assertEqual(self.DS_SST.meta_info, dict())
 
     def test_find_data_sources_default_data_store(self):
-        size_before = len(ds.DATA_STORE_REGISTRY)
-        orig_stores = list(ds.DATA_STORE_REGISTRY.get_data_stores())
+        size_before = len(DATA_STORE_REGISTRY)
+        orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
         try:
-            ds.DATA_STORE_REGISTRY._data_stores.clear()
-            self.assertEqual(0, len(ds.DATA_STORE_REGISTRY))
+            DATA_STORE_REGISTRY._data_stores.clear()
+            self.assertEqual(0, len(DATA_STORE_REGISTRY))
 
             from cate.ds.esa_cci_ftp import set_default_data_store as set_default_data_store_ftp
             set_default_data_store_ftp()
-            self.assertEqual(1, len(ds.DATA_STORE_REGISTRY))
+            self.assertEqual(1, len(DATA_STORE_REGISTRY))
 
-            data_sources = ds.find_data_sources()
+            data_sources = find_data_sources()
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 98)
             self.assertEqual(data_sources[0].id, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
 
-            data_sources = ds.find_data_sources(ds_id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
+            data_sources = find_data_sources(ds_id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 1)
 
-            data_sources = ds.find_data_sources(ds_id="ZZ")
+            data_sources = find_data_sources(ds_id="ZZ")
             self.assertIsNotNone(data_sources)
             self.assertEqual(len(data_sources), 0)
         finally:
-            ds.DATA_STORE_REGISTRY._data_stores.clear()
+            DATA_STORE_REGISTRY._data_stores.clear()
             for data_store in orig_stores:
-                ds.DATA_STORE_REGISTRY.add_data_store(data_store)
-        self.assertEqual(size_before, len(ds.DATA_STORE_REGISTRY))
+                DATA_STORE_REGISTRY.add_data_store(data_store)
+        self.assertEqual(size_before, len(DATA_STORE_REGISTRY))
 
     def test_find_data_sources_with_data_store_value(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE)
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 2)
         self.assertEqual(data_sources[0].id, "aerosol")
@@ -151,7 +154,7 @@ class IOTest(TestCase):
 
     def test_find_data_sources_with_data_store_list(self):
         data_stores = [self.TEST_DATA_STORE, self.TEST_DATA_STORE_SST]
-        data_sources = ds.find_data_sources(data_stores=data_stores)
+        data_sources = find_data_sources(data_stores=data_stores)
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 3)
         self.assertEqual(data_sources[0].id, "aerosol")
@@ -159,66 +162,67 @@ class IOTest(TestCase):
         self.assertEqual(data_sources[2].id, "sst")
 
     def test_find_data_sources_with_id_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="ozone")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="ozone")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "ozone")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="Z")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="Z")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="x")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="x")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
     def test_find_data_sources_with_query_expr_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="aerosol")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="Z")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="Z")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "ozone")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="x")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="x")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
     def test_find_data_sources_with_id_and_query_expr_constrains(self):
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="aerosol")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="aerosol")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol", query_expr="foo")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol", query_expr="foo")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
         self.assertEqual(data_sources[0].id, "aerosol")
 
-        data_sources = ds.find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="bar")
+        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="bar")
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 0)
 
     @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):
         with self.assertRaises(ValueError) as cm:
-            ds.open_dataset(None)
-        self.assertTupleEqual(tuple(['No data_source given']), cm.exception.args)
+            # noinspection PyTypeChecker
+            open_dataset(None)
+        self.assertTupleEqual(('No data source given',), cm.exception.args)
 
         with self.assertRaises(ValueError) as cm:
-            ds.open_dataset('foo')
-        self.assertEqual(("No data_source found for the given query term", 'foo'), cm.exception.args)
+            open_dataset('foo')
+        self.assertEqual(("No data sources found for the given ID 'foo'",), cm.exception.args)
 
         inmem_data_source = InMemoryDataSource(42)
-        dataset1 = ds.open_dataset(inmem_data_source)
+        dataset1 = open_dataset(inmem_data_source)
         self.assertIsNotNone(dataset1)
         self.assertIsInstance(dataset1, xr.Dataset)
         self.assertEqual(42, dataset1.a.values)
@@ -234,24 +238,97 @@ class IOTest(TestCase):
             ds_a1 = SimpleDataSource('duplicate')
             ds_a2 = SimpleDataSource('duplicate')
             duplicated_cat = SimpleDataStore('duplicated_cat', [ds_a1, ds_a2])
-            ds.DATA_STORE_REGISTRY.add_data_store(duplicated_cat)
+            DATA_STORE_REGISTRY.add_data_store(duplicated_cat)
             with self.assertRaises(ValueError) as cm:
-                ds.open_dataset('duplicate')
+                open_dataset('duplicate')
             self.assertEqual("2 data_sources found for the given query term 'duplicate'", str(cm.exception))
         finally:
-            ds.DATA_STORE_REGISTRY.remove_data_store('duplicated_cat')
+            DATA_STORE_REGISTRY.remove_data_store('duplicated_cat')
 
-    def test_autochunking(self):
-        path_large = op.join(_TEST_DATA_PATH, 'large', '*.nc')
-        path_small = op.join(_TEST_DATA_PATH, 'small', '*.nc')
+    def test_open_xarray_dataset(self):
+        path_large = os.path.join(_TEST_DATA_PATH, 'large', '*.nc')
+        path_small = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
 
-        ds_large = ds.open_xarray_dataset(path_large)
-        ds_small = ds.open_xarray_dataset(path_small)
-        large_expected = {'lat': (1800, 1800), 'time': (1,), 'bnds': (2,),
-                          'lon': (3600, 3600)}
-        small_expected = {'lat': (720,), 'time': (1,), 'lon': (1440,)}
-        self.assertEqual(ds_small.chunks, small_expected)
-        self.assertEqual(ds_large.chunks, large_expected)
+        ds_large_mon = RecordingMonitor()
+        ds_small_mon = RecordingMonitor()
+        ds_large = open_xarray_dataset(path_large, monitor=ds_large_mon)
+        ds_small = open_xarray_dataset(path_small, monitor=ds_small_mon)
+
+        # Test monitors
+        self.assertEqual(ds_large_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
+        self.assertEqual(ds_small_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
+
+        # Test chunking
+        self.assertEqual(ds_small.chunks, {'lon': (1440,), 'lat': (720,), 'time': (1,)})
+        self.assertEqual(ds_large.chunks, {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)})
+
+
+class ChunkUtilsTest(unittest.TestCase):
+    def test_get_spatial_ext_chunk_sizes(self):
+        ds = xr.Dataset({
+            'v1': (['lat', 'lon'], np.zeros([45, 90])),
+            'v2': (['lat', 'lon'], np.zeros([45, 90])),
+            'v3': (['lon'], np.zeros(90)),
+            'lon': (['lon'], np.linspace(-178, 178, 90)),
+            'lat': (['lat'], np.linspace(-88, 88, 45))})
+        ds.v1.encoding['chunksizes'] = (5, 10)
+        ds.v2.encoding['chunksizes'] = (15, 30)
+        chunk_sizes = get_spatial_ext_chunk_sizes(ds)
+        self.assertIsNotNone(chunk_sizes)
+        self.assertEqual(chunk_sizes, dict(lat=15, lon=30))
+
+    def test_get_spatial_ext_chunk_sizes_wo_lat_lon(self):
+        ds = xr.Dataset({
+            'v1': (['lon'], np.zeros([90])),
+            'v2': (['lat'], np.zeros([45]))})
+        ds.v1.encoding['chunksizes'] = (90,)
+        ds.v2.encoding['chunksizes'] = (45,)
+        chunk_sizes = get_spatial_ext_chunk_sizes(ds)
+        self.assertIsNone(chunk_sizes)
+
+    def test_get_spatial_ext_chunk_sizes_with_time(self):
+        ds = xr.Dataset({
+            'v1': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'v2': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'v3': (['lon'], np.zeros(90)),
+            'lon': (['lon'], np.linspace(-178, 178, 90)),
+            'lat': (['lat'], np.linspace(-88, 88, 45)),
+            'time': (['time'], np.linspace(0, 1, 12))})
+        ds.v1.encoding['chunksizes'] = (1, 5, 10)
+        ds.v2.encoding['chunksizes'] = (1, 15, 30)
+        ds.v3.encoding['chunksizes'] = (90,)
+        chunk_sizes = get_spatial_ext_chunk_sizes(ds)
+        self.assertIsNotNone(chunk_sizes)
+        self.assertEqual(chunk_sizes, dict(lat=15, lon=30))
+
+    def test_get_ext_chunk_sizes(self):
+        ds = xr.Dataset({
+            'v1': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'v2': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'v3': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'v4': (['lat', 'lon'], np.zeros([45, 90])),
+            'v5': (['time'], np.zeros(12)),
+            'lon': (['lon'], np.linspace(-178, 178, 90)),
+            'lat': (['lat'], np.linspace(-88, 88, 45)),
+            'time': (['time'], np.linspace(0, 1, 12))})
+        ds.v1.encoding['chunksizes'] = (12, 5, 10)
+        ds.v2.encoding['chunksizes'] = (12, 15, 30)
+        ds.v3.encoding['chunksizes'] = (12, 5, 10)
+        ds.v4.encoding['chunksizes'] = (5, 10)
+        ds.v5.encoding['chunksizes'] = (1,)
+
+        def map_fn(size, prev_value):
+            """Collect all sizes."""
+            return [size] + prev_value
+
+        def reduce_fn(values):
+            """Median."""
+            values = sorted(values)
+            return values[len(values) // 2]
+
+        chunk_sizes = get_ext_chunk_sizes(ds, init_value=[], map_fn=map_fn, reduce_fn=reduce_fn)
+        self.assertIsNotNone(chunk_sizes)
+        self.assertEqual(chunk_sizes, dict(time=12, lat=5, lon=10))
 
     def test_open_xarray(self):
         wrong_path = op.join(_TEST_DATA_PATH, 'small', '*.nck')
@@ -271,8 +348,8 @@ class IOTest(TestCase):
 class DataAccessErrorTest(unittest.TestCase):
     def test_plain(self):
         try:
-            raise ds.DataAccessError("haha")
-        except ds.DataAccessError as e:
+            raise DataAccessError("haha")
+        except DataAccessError as e:
             self.assertEqual(str(e), "haha")
             self.assertEqual(e.source, None)
             self.assertEqual(e.cause, None)
@@ -280,8 +357,8 @@ class DataAccessErrorTest(unittest.TestCase):
     def test_with_cause(self):
         e1 = ValueError("a > 5")
         try:
-            raise ds.DataAccessError("hoho") from e1
-        except ds.DataAccessError as e2:
+            raise DataAccessError("hoho") from e1
+        except DataAccessError as e2:
             self.assertEqual(str(e2), "hoho")
             self.assertIs(e2.source, None)
             self.assertIs(e2.cause, e1)
@@ -289,16 +366,16 @@ class DataAccessErrorTest(unittest.TestCase):
     def test_with_source(self):
         store = SimpleDataStore('hihi', [])
         try:
-            raise ds.DataAccessError("haha", source=store)
-        except ds.DataAccessError as e:
+            raise DataAccessError("haha", source=store)
+        except DataAccessError as e:
             self.assertEqual(str(e), 'Data store "hihi": haha')
             self.assertIs(e.source, store)
             self.assertIs(e.cause, None)
 
         source = SimpleDataSource('hehe')
         try:
-            raise ds.DataAccessError("haha", source=source)
-        except ds.DataAccessError as e:
+            raise DataAccessError("haha", source=source)
+        except DataAccessError as e:
             self.assertEqual(str(e), 'Data source "hehe": haha')
             self.assertIs(e.source, source)
             self.assertIs(e.cause, None)

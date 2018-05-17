@@ -83,14 +83,21 @@ WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER = 5.0
 
 
 DEFAULT_VARIABLES = {
-    'absorbing_aerosol_index',  # Aerosol CCI
-    'cfc',                      # Cloud CCI
-    'lccs_class',               # LC CCI
-    'kd_490',                   # OC CCI
-    'O3_du',                    # Ozone CCI
-    'sm',                       # Soil Moisture CCI
-    'analysed_sst',             # SST CCI
-    'burned_area',              # Fire CCI
+    'AAOD550_mean',             # esacci.AEROSOL.*.L3C.AER_PRODUCTS.*
+    'absorbing_aerosol_index',  # esacci.AEROSOL.*.L3.AAI.*
+    'AOD550',                   # esacci.AEROSOL.*.L3C.AOD.*
+    'cfc',                      # esacci.CLOUD.*.L3C.CLD_PRODUCTS.*
+    'burned_area',              # esacci.FIRE.*.L4.BA.*
+    'lccs_class',               # esacci.LC.L4.LCCS.*
+    'atot_490',                 # esacci.OC.*.L3S.IOP.*, esacci.OC.*.L3S.OC_PRODUCTS.*
+    'chlor_a',                  # esacci.OC.*.L3S.CHLOR_A.*, esacci.OC.*.L3S.OC_PRODUCTS.*
+    'kd_490',                   # esacci.OC.*.L3S.K_490.*
+    'O3_du_tot',                # esacci.OZONE.*.L3.NP.*
+    'atmosphere_mole_content_of_ozone',  # esacci.OZONE.*.L3S.TC.*
+    'Rrs_490',                  # esacci.OC.*.L3S.RRS.*
+    'sm',                       # esacci.SOILMOISTURE.*.L3S.SSMS.*
+    'sea_surface_temperature',  # esacci.SST.*.L3U.SSTskin.*
+    'analysed_sst',             # esacci.SST.*.L4.SSTdepth.*
 }
 
 

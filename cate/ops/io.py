@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import itertools
 import json
 import os.path
 from abc import ABCMeta
@@ -27,10 +28,11 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 import xarray as xr
-
+from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
-from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame
+from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame, DataFrameLike, \
+    ValidationError
 from cate.ops.normalize import adjust_temporal_attrs
 from cate.ops.normalize import normalize as normalize_op
 from cate.util.monitor import Monitor
@@ -174,7 +176,7 @@ def write_text(obj: object, file: str, encoding: str = None):
             fp.write(str(obj))
     else:
         # noinspection PyUnresolvedReferences
-        return file.write(str(obj))
+        file.write(str(obj))
 
 
 @op(tags=['input'])
@@ -213,7 +215,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
         with open(file, 'w', encoding=encoding) as fp:
             json.dump(obj, fp, indent=indent)
     else:
-        return json.dump(obj, file, indent=indent)
+        json.dump(obj, file, indent=indent)
 
 
 @op(tags=['input'], res_pattern='df_{index}')
@@ -278,6 +280,134 @@ def read_csv(file: FileLike.TYPE,
     return data_frame
 
 
+@op(tags=['input'], res_pattern='df_{index}', no_cache=True)
+@op_input('obj', data_type=DataFrameLike)
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+@op_input('columns', value_set_source='obj', data_type=VarNamesLike)
+@op_input('na_rep')
+@op_input('delimiter', nullable=True)
+@op_input('quotechar', nullable=True)
+@op_input('more_args', nullable=True, data_type=DictLike)
+def write_csv(obj: DataFrameLike.TYPE,
+              file: FileLike.TYPE,
+              columns: VarNamesLike.TYPE = None,
+              na_rep: str = '',
+              delimiter: str = ',',
+              quotechar: str = None,
+              more_args: DictLike.TYPE = None,
+              monitor: Monitor = Monitor.NONE):
+    """
+    Write comma-separated values (CSV) to plain text file from a DataFrame or Dataset.
+
+    :param obj: The object to write as CSV; must be a ``DataFrame`` or a ``Dataset``.
+    :param file: The CSV file path.
+    :param columns: The names of variables that should be converted to columns. If given,
+           coordinate variables are included automatically.
+    :param delimiter: Delimiter to use.
+    :param na_rep: A string representation of a missing value (no-data value).
+    :param quotechar: The character used to denote the start and end of a quoted item.
+           Quoted items can include the delimiter and it will be ignored.
+    :param more_args: Other optional keyword arguments.
+           Please refer to Pandas documentation of ``pandas.to_csv()`` function.
+    :param monitor: optional progress monitor
+    """
+    if obj is None:
+        raise ValidationError('obj must not be None')
+
+    columns = VarNamesLike.convert(columns)
+
+    if isinstance(obj, pd.DataFrame):
+        # The following code is needed, because Pandas treats any kw given in kwargs as being set, even if just None.
+        kwargs = DictLike.convert(more_args)
+        if kwargs is None:
+            kwargs = {}
+        if columns:
+            kwargs.update(columns=columns)
+        if delimiter:
+            kwargs.update(sep=delimiter)
+        if na_rep:
+            kwargs.update(na_rep=na_rep)
+        if quotechar:
+            kwargs.update(quotechar=quotechar)
+        with monitor.starting('Writing to CSV', 1):
+            obj.to_csv(file, index_label='index', **kwargs)
+            monitor.progress(1)
+    elif isinstance(obj, xr.Dataset):
+        var_names = [var_name for var_name in obj.data_vars if columns is None or var_name in columns]
+        dim_names = None
+        data_vars = []
+        for var_name in var_names:
+            data_var = obj.data_vars[var_name]
+            if dim_names is None:
+                dim_names = data_var.dims
+            elif dim_names != data_var.dims:
+                raise ValidationError('Not all variables have the same dimensions. '
+                                      'Please select variables so that their dimensions are equal.')
+            data_vars.append(data_var)
+        if dim_names is None:
+            raise ValidationError('None of the selected variables has a dimension.')
+
+        coord_vars = []
+        for dim_name in dim_names:
+            if dim_name in obj.coords:
+                coord_var = obj.coords[dim_name]
+            else:
+                coord_var = None
+                for data_var in obj.coords.values():
+                    if len(data_var.dims) == 1 and data_var.dims[0] == dim_name:
+                        coord_var = data_var
+                        break
+                if coord_var is None:
+                    raise ValueError(f'No coordinate variable found for dimension "{dim_name}"')
+            coord_vars.append(coord_var)
+        coord_indexes = [range(len(coord_var)) for coord_var in coord_vars]
+        num_coords = len(coord_vars)
+
+        num_rows = 1
+        for coord_var in coord_vars:
+            num_rows *= len(coord_var)
+
+        stream = open(file, 'w') if isinstance(file, str) else file
+        try:
+            # Write header row
+            stream.write('index')
+            for i in range(num_coords):
+                stream.write(delimiter)
+                stream.write(coord_vars[i].name)
+            for data_var in data_vars:
+                stream.write(delimiter)
+                stream.write(data_var.name)
+            stream.write('\n')
+
+            with monitor.starting('Writing CSV', num_rows):
+                row = 0
+                for index in itertools.product(*coord_indexes):
+                    # Write data row
+                    stream.write(str(row))
+                    for i in range(num_coords):
+                        coord_value = coord_vars[i].values[index[i]]
+                        stream.write(delimiter)
+                        stream.write(str(coord_value))
+                    for data_var in data_vars:
+                        var_value = data_var.values[index]
+                        stream.write(delimiter)
+                        stream.write(str(var_value))
+                    stream.write('\n')
+                    monitor.progress(1)
+                    row += 1
+        finally:
+            if isinstance(file, str):
+                stream.close()
+
+    elif obj is None:
+        raise ValidationError('obj must not be None')
+    else:
+        raise ValidationError('obj must be a pandas.DataFrame or a xarray.Dataset')
+
+
 @op(tags=['input'], res_pattern='gdf_{index}')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
@@ -331,7 +461,10 @@ def read_netcdf(file: str,
                          decode_cf=decode_cf,
                          decode_times=decode_times,
                          engine=engine)
-    if ds and normalize:
+    chunks = get_spatial_ext_chunk_sizes(ds)
+    if chunks:
+        ds = ds.chunk(chunks)
+    if normalize:
         return adjust_temporal_attrs(normalize_op(ds))
     return ds
 

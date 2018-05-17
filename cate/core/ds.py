@@ -83,13 +83,13 @@ import re
 import itertools
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from math import ceil, sqrt
-from typing import Sequence, Optional, Union, Any
+from typing import Sequence, Optional, Union, Any, Dict, Set
 
 import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
+from .opimpl import normalize_missing_time, normalize_coord_vars
+from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -170,10 +170,10 @@ class DataSource(metaclass=ABCMeta):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         """
         Open a dataset from this data source.
-
 
         :param time_range: An optional time constraint comprising start and end date.
                 If given, it must be a :py:class:`TimeRangeLike`.
@@ -183,6 +183,7 @@ class DataSource(metaclass=ABCMeta):
                 If given, it must be a :py:class:`VarNamesLike`.
         :param protocol: **Deprecated.** Protocol name, if None selected default protocol
                 will be used to access data.
+        :param monitor: A progress monitor.
         :return: A dataset instance or ``None`` if no data is available for the given constraints.
         """
 
@@ -215,7 +216,7 @@ class DataSource(metaclass=ABCMeta):
                If given, it must be a :py:class:`PolygonLike`.
         :param var_names: Optional names of variables to be included.
                If given, it must be a :py:class:`VarNamesLike`.
-        :param monitor: a progress monitor.
+        :param monitor: A progress monitor.
         :return: the new local data source
         """
         pass
@@ -520,25 +521,31 @@ def open_dataset(data_source: Union[DataSource, str],
     :return: An new dataset instance
     """
     if not data_source:
-        raise ValueError('No data_source given')
+        raise ValidationError('No data source given')
 
     if isinstance(data_source, str):
         data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
         data_sources = find_data_sources(data_store_list, ds_id=data_source)
         if len(data_sources) == 0:
-            raise ValueError("No data_source found for the given query term", data_source)
+            raise ValidationError(f'No data sources found for the given ID {data_source!r}')
         elif len(data_sources) > 1:
-            raise ValueError("%s data_sources found for the given query term '%s'" % (len(data_sources), data_source))
+            raise ValidationError(f'{len(data_sources)} data sources found for the given ID {data_source!r}')
         data_source = data_sources[0]
-        if force_local:
+
+    if force_local:
+        with monitor.starting('Opening dataset', 100):
             data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
                                                  time_range=time_range, region=region, var_names=var_names,
-                                                 monitor=monitor)
-    return data_source.open_dataset(time_range, region, var_names)
+                                                 monitor=monitor.child(80))
+            return data_source.open_dataset(time_range, region, var_names, monitor=monitor.child(20))
+    else:
+        return data_source.open_dataset(time_range, region, var_names, monitor=monitor)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
-def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
+def open_xarray_dataset(paths,
+                        monitor: Monitor = Monitor.NONE,
+                        **kwargs) -> xr.Dataset:
     """
     Open multiple files as a single dataset. This uses dask. If each individual file
     of the dataset is small, one dask chunk will coincide with one temporal slice,
@@ -547,42 +554,12 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
 
     :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
-    :param concat_dim: Dimension to concatenate files along. You only
-        need to provide this argument if the dimension along which you want to
-        concatenate is not a dimension in the original datasets, e.g., if you
-        want to stack a collection of 2D arrays along a third dimension.
+    :param monitor: A progress monitor.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
-    # By default the dask chunk size of xr.open_mfdataset is (lat,lon,1). E.g.,
-    # the whole array is one dask slice irrespective of chunking on disk.
-    #
-    # netCDF files can also feature a significant level of compression rendering
-    # the known file size on disk useless to determine if the default dask chunk
-    # will be small enough that a few of them could comfortably fit in memory for
-    # parallel processing.
-    #
-    # Hence we open the first file of the dataset, find out its uncompressed size
-    # and use that, together with an empirically determined threshold, to find out
-    # the smallest amount of chunks such that each chunk is smaller than the
-    # threshold and the number of chunks is a squared number so that both axes,
-    # lat and lon could be divided evenly. We use a squared number to avoid
-    # in addition to all of this finding the best way how to split the number of
-    # chunks into two coefficients that would produce sane chunk shapes.
-    #
-    # When the number of chunks has been found, we use its root as the divisor
-    # to construct the dask chunks dictionary to use when actually opening
-    # the dataset.
-    #
-    # If the number of chunks is one, we use the default chunking.
-    #
-    # Check if the uncompressed file (the default dask Chunk) is too large to
-    # comfortably fit in memory
-    threshold = 250 * (2 ** 20)  # 250 MB
-
-    ds = None
     # paths could be a string or a list
     files = []
-    if type(paths) is str:
+    if isinstance(paths, str):
         files.append(paths)
     else:
         files.extend(paths)
@@ -595,51 +572,101 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
     if not files:
         raise IOError('File {} not found'.format(paths))
 
-    # Find number of chunks as the closest larger squared number (1,4,9,..
-    temp_ds = xr.open_dataset(files[0], **kwargs)
+    if 'concat_dim' in kwargs:
+        concat_dim = kwargs.pop('concat_dim')
+    else:
+        concat_dim = 'time'
 
-    n_chunks = ceil(sqrt(temp_ds.nbytes / threshold)) ** 2
+    if 'chunks' in kwargs:
+        chunks = kwargs.pop('chunks')
+    elif len(files) > 1:
+        # By default the dask chunk size of xr.open_mfdataset is (1, lat, lon). E.g.,
+        # the whole array is one dask slice irrespective of chunking on disk.
+        #
+        # netCDF files can also feature a significant level of compression rendering
+        # the known file size on disk useless to determine if the default dask chunk
+        # will be small enough that a few of them could comfortably fit in memory for
+        # parallel processing.
+        #
+        # Hence we open the first file of the dataset and detect the maximum chunk sizes
+        # used in the spatial dimensions.
+        #
+        # If no such sizes could be found, we use xarray's default chunking.
+        chunks = get_spatial_ext_chunk_sizes(files[0])
+    else:
+        chunks = None
 
-    if n_chunks == 1:
-        temp_ds.close()
-        # The file size is fine
+    def preprocess(raw_ds: xr.Dataset):
+        # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
+        norm_ds = normalize_missing_time(normalize_coord_vars(raw_ds))
+        monitor.progress(work=1)
+        return norm_ds
+
+    with monitor.starting('Opening dataset', len(files)):
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        ds = xr.open_mfdataset(files,
-                               concat_dim=concat_dim,
-                               autoclose=True,
-                               **kwargs)
+        return xr.open_mfdataset(files,
+                                 concat_dim=concat_dim,
+                                 autoclose=True,
+                                 coords='minimal',
+                                 data_vars='minimal',
+                                 chunks=chunks,
+                                 preprocess=preprocess,
+                                 **kwargs)
+
+
+def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
+    """
+    Get the spatial, external chunk sizes for the latitude and longitude dimensions
+    of a dataset as provided in a variable's encoding object.
+
+    :param ds_or_path: An xarray dataset or a path to file that can be opened by xarray.
+    :return: A mapping from dimension name to external chunk sizes.
+    """
+    if isinstance(ds_or_path, str):
+        ds = xr.open_dataset(ds_or_path, decode_times=False)
     else:
-        # lat/lon names are not yet known
-        lat = get_lat_dim_name(temp_ds)
-        lon = get_lon_dim_name(temp_ds)
-        n_lat = len(temp_ds[lat])
-        n_lon = len(temp_ds[lon])
+        ds = ds_or_path
+    lon_name = get_lon_dim_name(ds)
+    lat_name = get_lat_dim_name(ds)
+    if lon_name and lat_name:
+        chunk_sizes = get_ext_chunk_sizes(ds, {lat_name, lon_name})
+    else:
+        chunk_sizes = None
+    if isinstance(ds_or_path, str):
+        ds.close()
+    return chunk_sizes
 
-        # temp_ds is no longer used
-        temp_ds.close()
 
-        divisor = sqrt(n_chunks)
+def get_ext_chunk_sizes(ds: xr.Dataset, dim_names: Set[str] = None,
+                        init_value=0, map_fn=max, reduce_fn=None) -> Dict[str, int]:
+    """
+    Get the external chunk sizes for each dimension of a dataset as provided in a variable's encoding object.
 
-        # Chunking will pretty much 'always' be 2x2, very rarely 3x3 or 4x4. 5x5
-        # would imply an uncompressed single file of ~6GB! All expected grids
-        # should be divisible by 2,3 and 4.
-        if not (n_lat % divisor == 0) or not (n_lon % divisor == 0):
-            raise ValueError("Can't find a good chunking strategy for the given"
-                             "data source. Are lat/lon coordinates divisible by "
-                             "{}?".format(divisor))
-
-        chunks = {lat: n_lat // divisor, lon: n_lon // divisor}
-
-        ds = xr.open_mfdataset(files,
-                               concat_dim=concat_dim,
-                               chunks=chunks,
-                               autoclose=True,
-                               **kwargs)
-    if concat_dim not in ds.dims:
-        ds.expand_dims(concat_dim)
-
-    return ds
+    :param ds: The dataset.
+    :param dim_names: The names of dimensions of data variables whose external chunking should be collected.
+    :param init_value: The initial value (not necessarily a chunk size) for mapping multiple different chunk sizes.
+    :param map_fn: The mapper function that maps a chunk size from a previous (initial) value.
+    :param reduce_fn: The reducer function the reduces multiple mapped chunk sizes to a single one.
+    :return: A mapping from dimension name to external chunk sizes.
+    """
+    agg_chunk_sizes = None
+    for var_name in ds.variables:
+        var = ds[var_name]
+        if var.encoding:
+            chunk_sizes = var.encoding.get('chunksizes')
+            if chunk_sizes \
+                    and len(chunk_sizes) == len(var.dims)\
+                    and (not dim_names or dim_names.issubset(set(var.dims))):
+                for dim_name, size in zip(var.dims, chunk_sizes):
+                    if not dim_names or dim_name in dim_names:
+                        if agg_chunk_sizes is None:
+                            agg_chunk_sizes = dict()
+                        old_value = agg_chunk_sizes.get(dim_name)
+                        agg_chunk_sizes[dim_name] = map_fn(size, init_value if old_value is None else old_value)
+    if agg_chunk_sizes and reduce_fn:
+        agg_chunk_sizes = {k: reduce_fn(v) for k, v in agg_chunk_sizes.items()}
+    return agg_chunk_sizes
 
 
 def format_variables_info_string(variables: dict):

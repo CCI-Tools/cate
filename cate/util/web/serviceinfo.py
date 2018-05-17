@@ -75,7 +75,7 @@ def is_service_compatible(port: Optional[int], address: Optional[str], caller: O
 
 
 def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
-    url = 'http://%s:%s/' % (address or '127.0.0.1', port)
+    url = f'http://{join_address_and_port(address, port)}/'
     # noinspection PyBroadException
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
@@ -86,7 +86,7 @@ def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
     return json_response.get('status') == 'ok'
 
 
-def find_free_port():
+def find_free_port() -> int:
     s = socket.socket()
     # Bind to a free port provided by the host.
     s.bind(('', 0))
@@ -94,3 +94,14 @@ def find_free_port():
     s.close()
     # Return the port number assigned.
     return free_port
+
+
+def join_address_and_port(address: Optional[str], port: int) -> str:
+    """
+    Join address and port using format "{address}:{port}".
+
+    :param address: The address. If not given, "localhost" is used.
+    :param port: The port number.
+    :return: Joined address and port.
+    """
+    return '{}:{}'.format(address or 'localhost', port)
