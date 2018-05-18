@@ -22,6 +22,9 @@ dependencies:
   - h5netcdf >=0.4.2,<1.0
   - jdcal >=1.3,<2.0
   - matplotlib >=2.2,<3.0
+  # munch 2.3.2 caused a build error in Windows with error message:
+  # error: [WinError 32] The process cannot access the file because it is being used by another process:
+  - munch ==2.3.1
   - netcdf4 >=1.2,<2.0
   - numba >=0.33,<1.0
   # numpy 1.12 gave some trouble
