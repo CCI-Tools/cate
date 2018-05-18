@@ -445,7 +445,7 @@ def read_zarr(path: str,
     """
     Read a dataset from a Zarr directory, Zarr ZIP archive, or remote Zarr object storage.
 
-    For the Zarr format, refer to https://github.com/zarr-developers/zarr.
+    For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
 
     :param path: Zarr directory path, Zarr ZIP archive path, or object storage path or bucket name.
     :param file_system: File system identifier, "Local" is your locally mounted file system,
