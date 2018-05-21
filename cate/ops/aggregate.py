@@ -147,7 +147,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
                          custom_resolution: str = None,
                          monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
-    Perform monthly aggregation of dataset according to the given
+    Perform aggregation of dataset according to the given
     method and output resolution.
 
     Note that the operation does not perform weighting. Depending on the
