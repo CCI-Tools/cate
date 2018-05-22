@@ -49,15 +49,20 @@ def long_term_average(ds: DatasetLike.TYPE,
                       var: VarNamesLike.TYPE = None,
                       monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
-    Perform long term average of the given dataset by doing a mean of monthly
-    values over the time range covered by the dataset. E.g. it averages all
-    January values, all February values, etc, to create a dataset with twelve
-    time slices each containing a mean of respective monthly values.
+    Create a 'mean over years' dataset by averaging the values of the given input
+    dataset over all years. The output is a climatological dataset with the same
+    resolution as the input dataset. E.g. a daily input dataset will create a daily
+    climatology, a monthly input dataset will create a monthly climatology, etc.
+
+    Seasonal input datasets must have matching seasons over all years denoted by the
+    same date each year. E.g., first date of each quarter. The output dataset will
+    then be a seasonal climatology where each season is denoted with the same date
+    as in the input dataset.
 
     For further information on climatological datasets, see
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#climatological-statistics
 
-    :param ds: A monthly dataset to average
+    :param ds: A dataset to average
     :param var: If given, only these variables will be preserved in the resulting dataset
     :param monitor: A progress monitor
     :return: A climatological long term average dataset
@@ -70,12 +75,8 @@ def long_term_average(ds: DatasetLike.TYPE,
                               ' {}. Running the normalize operation on this'
                               ' dataset may help'.format(ds.time.dtype))
 
-    # Check if we have a monthly dataset
     try:
-        if ds.attrs['time_coverage_resolution'] != 'P1M':
-            raise ValidationError('Long term average operation expects a monthly dataset'
-                                  ' running temporal aggregation on this dataset'
-                                  ' beforehand may help.')
+        t_resolution = ds.attrs['time_coverage_resolution']
     except KeyError:
         raise ValidationError('Could not determine temporal resolution. Running'
                               ' the adjust_temporal_attrs operation beforehand may'
@@ -87,10 +88,22 @@ def long_term_average(ds: DatasetLike.TYPE,
     if var:
         retset = select_var(retset, var)
 
+    if t_resolution == 'P1D':
+        return lta_daily(retset, monitor)
+    elif t_resolution == 'P1M':
+        return lta_monthly(retset, monitor)
+    else:
+        return lta_general(retset, monitor)
+
+
+def lta_monthly(ds: xr.Dataset, monitor: Monitor):
+    """
+    Carry out a long term average on a monthly dataset
+    """
     time_min = pd.Timestamp(ds.time.values[0])
     time_max = pd.Timestamp(ds.time.values[-1])
-
     total_work = 100
+    retset = ds
 
     with monitor.starting('LTA', total_work=total_work):
         monitor.progress(work=0)
@@ -120,6 +133,20 @@ def long_term_average(ds: DatasetLike.TYPE,
             retset[var].attrs['cell_methods'] = 'time: mean over years'
 
     return retset
+
+
+def lta_daily(ds: xr.Dataset, monitor: Monitor):
+    """
+    Carry out a long term average of a daily dataset
+    """
+    return ds
+
+
+def lta_general(ds: xr.Dataset, monitor: Monitor):
+    """
+    Try to carry out a long term average in a general case
+    """
+    return ds
 
 
 def _mean(ds: xr.Dataset, monitor: Monitor, step: float):

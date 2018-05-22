@@ -84,18 +84,6 @@ class TestLTA(TestCase):
             long_term_average(ds)
         self.assertIn('normalize', str(err.exception))
 
-        ds = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90),
-            'time': pd.date_range('2000-01-01', periods=24)})
-
-        ds = adjust_temporal_attrs(ds)
-
-        with self.assertRaises(ValueError) as err:
-            long_term_average(ds)
-        self.assertIn('temporal aggregation', str(err.exception))
-
 
 class TestTemporalAggregation(TestCase):
     """
