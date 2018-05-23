@@ -75,7 +75,7 @@ class TestLTA(TestCase):
                                        'lon': 90})
         self.assertEqual(actual.time.attrs['climatology'],
                          'climatology_bounds')
-    
+
     def test_general(self):
         """
         Test creating a 'general' LTA dataset
@@ -89,8 +89,38 @@ class TestLTA(TestCase):
             'time': pd.date_range('1999-12-01', freq='QS-DEC', periods=5)})
         ds = adjust_temporal_attrs(ds)
         actual = long_term_average(ds)
+        self.assertEqual(actual['first'].attrs['cell_methods'],
+                         'time: mean over years')
+        self.assertEqual(actual.dims, {'time': 4,
+                                       'nv': 2,
+                                       'lat': 45,
+                                       'lon': 90})
+        self.assertEqual(actual.time.attrs['climatology'],
+                         'climatology_bounds')
 
-        print(actual)
+        # Test irregular seasons
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 6])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', freq='5M', periods=6)})
+        ds = adjust_temporal_attrs(ds)
+        with self.assertRaises(ValueError) as err:
+            long_term_average(ds)
+        self.assertIn('inconsistent seasons', str(err.exception))
+
+        # Test 8D
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 137])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 137])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2000-01-01', '2002-12-31', freq='8D')})
+        ds = adjust_temporal_attrs(ds)
+        with self.assertRaises(ValueError) as err:
+            long_term_average(ds)
+        self.assertIn('inconsistent seasons', str(err.exception))
 
     def test_registered(self):
         """

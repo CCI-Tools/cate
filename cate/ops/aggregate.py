@@ -226,7 +226,7 @@ def _lta_general(ds: xr.Dataset, monitor: Monitor):
     if not _is_seasonal(ds.time):
         raise ValidationError("A long term average dataset can not be created for"
                               " a dataset with inconsistent seasons.")
-    
+
     # Get 'representative year'
     c = 0
     for group in ds.time.groupby('time.year'):
