@@ -53,6 +53,29 @@ class TestLTA(TestCase):
         with self.assertRaises(KeyError):
             actual['second']
 
+    def test_daily(self):
+        """
+        Test creating a daily LTA dataset
+        """
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 730])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 730])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('2001-01-01', '2002-12-31')})
+        ds = adjust_temporal_attrs(ds)
+        actual = long_term_average(ds)
+
+        # Test CF attributes
+        self.assertEqual(actual['first'].attrs['cell_methods'],
+                         'time: mean over years')
+        self.assertEqual(actual.dims, {'time': 365,
+                                       'nv': 2,
+                                       'lat': 45,
+                                       'lon': 90})
+        self.assertEqual(actual.time.attrs['climatology'],
+                         'climatology_bounds')
+
     def test_registered(self):
         """
         Test registered operation execution

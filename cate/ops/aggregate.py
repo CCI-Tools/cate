@@ -52,7 +52,8 @@ def long_term_average(ds: DatasetLike.TYPE,
     Create a 'mean over years' dataset by averaging the values of the given input
     dataset over all years. The output is a climatological dataset with the same
     resolution as the input dataset. E.g. a daily input dataset will create a daily
-    climatology, a monthly input dataset will create a monthly climatology, etc.
+    climatology consisting of 365 days, a monthly input dataset will create a monthly
+    climatology, etc.
 
     Seasonal input datasets must have matching seasons over all years denoted by the
     same date each year. E.g., first date of each quarter. The output dataset will
@@ -89,16 +90,20 @@ def long_term_average(ds: DatasetLike.TYPE,
         retset = select_var(retset, var)
 
     if t_resolution == 'P1D':
-        return lta_daily(retset, monitor)
+        return _lta_daily(retset, monitor)
     elif t_resolution == 'P1M':
-        return lta_monthly(retset, monitor)
+        return _lta_monthly(retset, monitor)
     else:
-        return lta_general(retset, monitor)
+        return _lta_general(retset, monitor)
 
 
-def lta_monthly(ds: xr.Dataset, monitor: Monitor):
+def _lta_monthly(ds: xr.Dataset, monitor: Monitor):
     """
     Carry out a long term average on a monthly dataset
+
+    :param ds: Dataset to aggregate
+    :param monitor: Progress monitor
+    :return: Aggregated dataset
     """
     time_min = pd.Timestamp(ds.time.values[0])
     time_max = pd.Timestamp(ds.time.values[-1])
@@ -135,16 +140,81 @@ def lta_monthly(ds: xr.Dataset, monitor: Monitor):
     return retset
 
 
-def lta_daily(ds: xr.Dataset, monitor: Monitor):
+def _groupby_day(ds: xr.Dataset, monitor: Monitor, step: float):
+    """
+    Groupby the given dataset by day of month and apply mean to it
+    
+    :param ds: Dataset to aggregate
+    :param monitor: Progress monitor
+    :param step: Progress step
+    """
+    kwargs = {'monitor': monitor, 'step': step}
+    return ds.groupby('time.day', squeeze=False).apply(_mean, **kwargs)
+
+
+def _lta_daily(ds: xr.Dataset, monitor: Monitor):
     """
     Carry out a long term average of a daily dataset
+
+    :param ds: Dataset to aggregate
+    :param monitor: Progress monitor
+    :return: Aggregated dataset
     """
-    return ds
+    time_min = pd.Timestamp(ds.time.values[0])
+    time_max = pd.Timestamp(ds.time.values[-1])
+    total_work = 100
+    retset = ds
+
+    with monitor.starting('LTA', total_work=total_work):
+        monitor.progress(work=0)
+        step = total_work / 366
+        kwargs = {'monitor': monitor, 'step': step}
+        retset = retset.groupby('time.month', squeeze=False).apply(_groupby_day, **kwargs)
+
+    # Make the return dataset CF compliant
+    retset = retset.stack(time=('month', 'day'))
+
+    # Get rid of redundant dates
+    drop = [(2, 29), (2, 30), (2, 31), (4, 31), (6, 31),
+            (9, 31), (11, 31)]
+    retset = retset.drop(drop, dim='time')
+
+    # Turn month, day coordinates to time
+    retset = retset.reset_index('time')
+    retset = retset.drop(['month', 'day'])
+    time_coord = pd.date_range(start='{}-01-01'.format(time_min.year),
+                               end='{}-12-31'.format(time_min.year),
+                               freq='D')
+    if len(time_coord) == 366:
+        time_coord = time_coord.drop(np.datetime64('{}-02-29'.format(time_min.year)))
+    retset['time'] = time_coord
+
+    climatology_bounds = xr.DataArray(data=np.tile([time_min, time_max],
+                                                   (365, 1)),
+                                      dims=['time', 'nv'],
+                                      name='climatology_bounds')
+    retset['climatology_bounds'] = climatology_bounds
+    retset.time.attrs = ds.time.attrs
+    retset.time.attrs['climatology'] = 'climatology_bounds'
+
+    for var in retset.data_vars:
+        try:
+            retset[var].attrs['cell_methods'] = \
+                retset[var].attrs['cell_methods'] + ' time: mean over years'
+        except KeyError:
+            retset[var].attrs['cell_methods'] = 'time: mean over years'
+
+    return retset
 
 
-def lta_general(ds: xr.Dataset, monitor: Monitor):
+def _lta_general(ds: xr.Dataset, monitor: Monitor):
     """
-    Try to carry out a long term average in a general case
+    Try to carry out a long term average in a general case, notably
+    in the case of having seasonal datasets
+
+    :param ds: Dataset to aggregate
+    :param monitor: Progress monitor
+    :return: Aggregated dataset
     """
     return ds
 
