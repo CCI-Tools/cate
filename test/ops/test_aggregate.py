@@ -75,6 +75,22 @@ class TestLTA(TestCase):
                                        'lon': 90})
         self.assertEqual(actual.time.attrs['climatology'],
                          'climatology_bounds')
+    
+    def test_general(self):
+        """
+        Test creating a 'general' LTA dataset
+        """
+        # Test seasonal
+        ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([45, 90, 5])),
+            'second': (['lat', 'lon', 'time'], np.ones([45, 90, 5])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': pd.date_range('1999-12-01', freq='QS-DEC', periods=5)})
+        ds = adjust_temporal_attrs(ds)
+        actual = long_term_average(ds)
+
+        print(actual)
 
     def test_registered(self):
         """

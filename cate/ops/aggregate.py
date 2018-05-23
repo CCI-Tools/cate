@@ -143,7 +143,7 @@ def _lta_monthly(ds: xr.Dataset, monitor: Monitor):
 def _groupby_day(ds: xr.Dataset, monitor: Monitor, step: float):
     """
     Groupby the given dataset by day of month and apply mean to it
-    
+
     :param ds: Dataset to aggregate
     :param monitor: Progress monitor
     :param step: Progress step
@@ -216,7 +216,98 @@ def _lta_general(ds: xr.Dataset, monitor: Monitor):
     :param monitor: Progress monitor
     :return: Aggregated dataset
     """
-    return ds
+    time_min = pd.Timestamp(ds.time.values[0])
+    time_max = pd.Timestamp(ds.time.values[-1])
+    total_work = 100
+    retset = ds
+
+    # The dataset should feature time periods consistent over years
+    # and denoted with the same dates each year
+    if not _is_seasonal(ds.time):
+        raise ValidationError("A long term average dataset can not be created for"
+                              " a dataset with inconsistent seasons.")
+    
+    # Get 'representative year'
+    c = 0
+    for group in ds.time.groupby('time.year'):
+        c = c + 1
+        if c == 1:
+            rep_year = group[1].time
+            continue
+        if c == 2 and len(group[1].time) > len(rep_year):
+            rep_year = group[1].time
+            break
+
+    with monitor.starting('LTA', total_work=total_work):
+        monitor.progress(work=0)
+        step = total_work / len(rep_year.time)
+        kwargs = {'monitor': monitor, 'step': step}
+        retset = retset.groupby('time.month', squeeze=False).apply(_groupby_day, **kwargs)
+
+    # Make the return dataset CF compliant
+    retset = retset.stack(time=('month', 'day'))
+
+    # Turn month, day coordinates to time
+    retset = retset.reset_index('time')
+    retset = retset.drop(['month', 'day'])
+    retset['time'] = rep_year.time
+
+    climatology_bounds = xr.DataArray(data=np.tile([time_min, time_max],
+                                                   (len(rep_year), 1)),
+                                      dims=['time', 'nv'],
+                                      name='climatology_bounds')
+    retset['climatology_bounds'] = climatology_bounds
+    retset.time.attrs = ds.time.attrs
+    retset.time.attrs['climatology'] = 'climatology_bounds'
+
+    for var in retset.data_vars:
+        try:
+            retset[var].attrs['cell_methods'] = \
+                retset[var].attrs['cell_methods'] + ' time: mean over years'
+        except KeyError:
+            retset[var].attrs['cell_methods'] = 'time: mean over years'
+
+    return retset
+
+
+def _is_seasonal(time: xr.DataArray):
+    """
+    Check if the given timestamp dataarray features consistent
+    seasons. E.g. Each year has the same date-month values in it.
+    """
+    c = 0
+    for group in time.groupby('time.year'):
+        # Test (month, day) dates of all years against
+        # (month, day) dates of the first year, or second
+        # year in case the first year is not full
+        c = c + 1
+        np_time = group[1].time.values
+        months = pd.DatetimeIndex(np_time).month
+        days = pd.DatetimeIndex(np_time).day
+        if c == 1:
+            first_months = months
+            first_days = days
+            continue
+        elif c == 2:
+            second_months = months
+            second_days = days
+            if len(second_months) > len(first_months):
+                test = zip(second_months, second_days)
+                for date in zip(first_months, first_days):
+                    if date not in test:
+                        return False
+            else:
+                test = zip(first_months, first_days)
+                for date in zip(second_months, second_days):
+                    if date not in test:
+                        return False
+            continue
+
+        for date in zip(months, days):
+            if date not in test:
+                return False
+
+    return True
 
 
 def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
