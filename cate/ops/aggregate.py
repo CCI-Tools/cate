@@ -41,7 +41,7 @@ from cate.core.types import VarNamesLike, DatasetLike, ValidationError, DimNames
 from cate.ops.normalize import adjust_temporal_attrs
 
 
-@op(tags=['aggregate', 'temporal'], version='1.0')
+@op(tags=['aggregate', 'temporal'], version='1.5')
 @op_input('ds', data_type=DatasetLike)
 @op_input('var', value_set_source='ds', data_type=VarNamesLike)
 @op_return(add_history=True)
