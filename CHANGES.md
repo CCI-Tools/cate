@@ -1,4 +1,7 @@
-## Version 2.0.0.dev11 (in development)
+## Version 2.0.0.dev12 (in development)
+
+
+## Version 2.0.0.dev11
 
 * Lacking cancelable progress monitor when opening large datasets [#640](https://github.com/CCI-Tools/cate/issues/640)
 * Wrong chunk size does not allow to import some dataset [#631](https://github.com/CCI-Tools/cate/issues/631)
