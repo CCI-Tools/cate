@@ -1,5 +1,5 @@
 ## Version 2.0.0.dev12 (in development)
-
+* long_term_average operation now works with daily, monthly and seasonal datasets [#631](https://github.com/CCI-Tools/cate/issues/471)
 
 ## Version 2.0.0.dev11
 
