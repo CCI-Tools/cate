@@ -343,7 +343,7 @@ class ChunkUtilsTest(unittest.TestCase):
         right_path = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
         wrong_url = 'httpz://www.acme.com'
         path = [right_path, wrong_url]
-        dsa = ds.open_xarray_dataset(path)
+        dsa = open_xarray_dataset(path)
         self.assertIsNotNone(dsa)
 
 
