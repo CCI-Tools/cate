@@ -17,6 +17,9 @@
 #
 # data_stores_path = '~/.cate/data_stores'
 
+# 'dataset_persistence_format' names the data format to be used when persisting datasets in the workspace.
+# Possible values are 'netcdf4' or 'zarr'.
+# dataset_persistence_format = 'netcdf4'
 
 # If 'use_workspace_imagery_cache' is True, Cate will maintain a per-workspace
 # cache for imagery generated from dataset variables. Such cache can accelerate

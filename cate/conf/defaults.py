@@ -48,6 +48,9 @@ NETCDF_COMPRESSION_LEVEL = 9
 _ONE_MIB = 1024 * 1024
 _ONE_GIB = 1024 * _ONE_MIB
 
+#: The data format to be used when persisting datasets in the workspace.
+DATASET_PERSISTENCE_FORMAT = 'netcdf4'
+
 #: Use a per-workspace file imagery cache, see REST "/res/tile/" API
 WEBAPI_USE_WORKSPACE_IMAGERY_CACHE = False
 
