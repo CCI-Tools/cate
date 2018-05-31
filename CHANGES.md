@@ -1,7 +1,7 @@
 ## Version 2.0.0.dev12 (in development)
 
-* long_term_average operation now works with daily, monthly and seasonal datasets [#471](https://github.com/CCI-Tools/cate/issues/471)
-* fixed address problem occurring on linux when using localhost (related to [#627](https://github.com/CCI-Tools/cate/issues/627)) 
+* The operation  `long_term_average` now works with daily, monthly and seasonal datasets [#471](https://github.com/CCI-Tools/cate/issues/471)
+* Fixed problem in `cate-webapi-start` occurring on Linux when using address `localhost` (related to [#627](https://github.com/CCI-Tools/cate/issues/627)) 
 
 ## Version 2.0.0.dev11
 
