@@ -59,8 +59,10 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning
     DataSource, \
     open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError, \
+    GeometryLike
 from cate.util.monitor import Monitor
+
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -178,19 +180,25 @@ class LocalDataSource(DataSource):
                 if var_names:
                     ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
                 return ds
-            except (OSError, ValueError) as e:
+            except OSError as e:
+                raise DataAccessError("Cannot open local dataset:\n"
+                                      "{}"
+                                      .format(e), source=self) from e
+            except ValueError as e:
+                msg = "Cannot open local dataset"
                 if time_range:
-                    raise DataAccessError("Cannot open local dataset for time range {}:\n"
-                                          "{}"
-                                          .format(TimeRangeLike.format(time_range), e), source=self) from e
-                else:
-                    raise DataAccessError("Cannot open local dataset:\n"
-                                          "{}"
-                                          .format(e), source=self) from e
+                    msg += " for time range {}".format(TimeRangeLike.format(time_range))
+                if region:
+                    msg += " for region {}".format(GeometryLike.format(region))
+                if var_names:
+                    msg += " for variables {}".format(VarNamesLike.format(var_names))
+                msg += ":\n{}".format(e)
+                raise ValidationError(msg, source=self) from e
         else:
             if time_range:
-                raise DataAccessError("No local datasets available for\nspecified time range {}".format(
-                    TimeRangeLike.format(time_range)), source=self)
+                time = TimeRangeLike.format(time_range)
+                msg = "No local datasets available for\nspecified time range"
+                raise ValidationError(msg, "{}".format(time))
             else:
                 raise DataAccessError("No local datasets available", source=self)
 
@@ -647,7 +655,8 @@ class LocalDataStore(DataStore):
             meta_info['title'] = title
 
         if not re.match(r'^[\w\-. ]+$', data_source_id):
-            raise DataAccessError('Unaccepted characters in Data Source name', data_source_id)
+            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
+                                  hint='Do not use space, dot or dash symbol in the datasource name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
@@ -738,7 +747,7 @@ class LocalDataStore(DataStore):
                 data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
                 if data_source:
                     self._data_sources.append(data_source)
-            except DataAccessError as e:
+            except (DataAccessError, ValidationError) as e:
                 if skip_broken:
                     warnings.warn(str(e), DataAccessWarning, stacklevel=0)
                 else:

@@ -488,7 +488,7 @@ class TestAdjustTemporal(TestCase):
     def test_wrong_type(self):
         ds = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
-            'second': (['time','lat', 'lon'], np.zeros([12, 45, 90])),
+            'second': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
             'lon': (['lon'], np.linspace(-178, 178, 90)),
             'lat': (['lat'], np.linspace(-88, 88, 45)),
             'time': (['time'], np.linspace(0, 1, 12))})
