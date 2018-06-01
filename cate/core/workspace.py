@@ -232,11 +232,12 @@ class Workspace:
             format_props = _RESOURCE_PERSISTENCE_FORMATS.get(conf.get_dataset_persistence_format())
             if format_props:
                 ext, _, write_attr = format_props
-                if write_attr in res_value:
+                if hasattr(res_value, write_attr):
+                    write_method = getattr(res_value, write_attr)
                     # noinspection PyBroadException
                     try:
                         resource_file = os.path.join(self.workspace_dir, res_name + '.' + ext)
-                        res_value[write_attr](resource_file)
+                        write_method(resource_file)
                     except Exception:
                         _LOG.exception('writing resource "%s" to file failed' % res_name)
 
