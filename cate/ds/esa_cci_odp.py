@@ -401,17 +401,17 @@ class EsaCciOdpDataStore(DataStore):
         freezed dataset is updated too.
         :return:
         """
-        freezed_file = os.path.join(get_metadata_store_path(), 'dataset-list-freezed.json')
+        frozen_file = os.path.join(get_metadata_store_path(), 'dataset-list-freeze.json')
         diff_file = os.path.join(get_metadata_store_path(), 'dataset-list-diff.json')
         deleted = []
         added = []
 
-        if os.path.isfile(freezed_file):
-            with open(freezed_file, 'r') as json_in:
-                freezed_source = json.load(json_in)
+        if os.path.isfile(frozen_file):
+            with open(frozen_file, 'r') as json_in:
+                frozen_source = json.load(json_in)
 
             ds_new = set([ ds.to_json()['id'] for ds in self._data_sources ])
-            ds_old = set([ ds['id'] for ds in freezed_source['data']])
+            ds_old = set([ ds['id'] for ds in frozen_source['data']])
             for ds in (ds_old - ds_new):
                 deleted.append(ds)
 
@@ -421,7 +421,7 @@ class EsaCciOdpDataStore(DataStore):
         if deleted or added:
             generated = datetime.now()
             diff_source = {'generated': str(generated),
-                           'source_ref_time': freezed_source['source_ref_time'],
+                           'source_ref_time': frozen_source['source_ref_time'],
                            'new': added,
                            'del': deleted}
             with open(diff_file,'w') as json_out:
@@ -438,11 +438,11 @@ class EsaCciOdpDataStore(DataStore):
         'dataset-list-freezed.json'
         :return:
         """
-        freezed_file = os.path.join(get_metadata_store_path(),'dataset-list-freezed.json')
+        frozen_file = os.path.join(get_metadata_store_path(),'dataset-list-freeze.json')
         save_it = True
         now = datetime.now()
-        if os.path.isfile(freezed_file):
-            with open(freezed_file,'r') as json_in:
+        if os.path.isfile(frozen_file):
+            with open(frozen_file,'r') as json_in:
                 freezed_source = json.load(json_in)
             source_ref_time = pd.to_datetime(freezed_source['source_ref_time'])
             save_it = ( now > source_ref_time+timedelta(days=1) )
@@ -451,7 +451,7 @@ class EsaCciOdpDataStore(DataStore):
             data = [ ds.to_json() for ds in self._data_sources ]
             freezed_source = {'source_ref_time':str(now),
                               'data': data}
-            with open(freezed_file,'w') as json_out:
+            with open(frozen_file,'w') as json_out:
                 json.dump(freezed_source,json_out)
 
 
