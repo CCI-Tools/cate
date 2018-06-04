@@ -44,6 +44,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+import pandas as pd
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
@@ -60,6 +61,7 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
+from cate.util.misc import compare_data_sources
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
 
@@ -382,6 +384,76 @@ class EsaCciOdpDataStore(DataStore):
             for doc in docs:
                 data_sources.append(EsaCciOdpDataSource(self, doc))
         self._data_sources = data_sources
+        self._check_source_diff()
+        self._freeze_source()
+
+    def _check_source_diff(self):
+        """
+        This routine is responsible to find differences (new dataset or removed dataset)
+        between the most updated list and the provious freezed one.
+        It generate a file dataset-list-diff.json with the results.
+        generated time: time of report generation
+        source_ref_time : time of the freezed (previous) dataset list
+        new: list of item founded as new
+        del: list of items found as removed
+
+        It use a persistent output to keep trace of the previous changes in case the
+        freezed dataset is updated too.
+        :return:
+        """
+        freezed_file = os.path.join(get_metadata_store_path(), 'dataset-list-freezed.json')
+        diff_file = os.path.join(get_metadata_store_path(), 'dataset-list-diff.json')
+        deleted = []
+        added = []
+
+        if os.path.isfile(freezed_file):
+            with open(freezed_file, 'r') as json_in:
+                freezed_source = json.load(json_in)
+
+            ds_new = set([ ds.to_json()['id'] for ds in self._data_sources ])
+            ds_old = set([ ds['id'] for ds in freezed_source['data']])
+            for ds in (ds_old - ds_new):
+                deleted.append(ds)
+
+            for ds in (ds_new - ds_old):
+                added.append(ds)
+
+        if deleted or added:
+            generated = datetime.now()
+            diff_source = {'generated': str(generated),
+                           'source_ref_time': freezed_source['source_ref_time'],
+                           'new': added,
+                           'del': deleted}
+            with open(diff_file,'w') as json_out:
+                json.dump(diff_source,json_out)
+
+    def _freeze_source(self):
+        """
+        Freeze a dataset list when needed.
+        This file is a snapshop of the dataset list with an expiration time of one day.
+        It is updated to the current when is expired, the file is used to compare the
+        previous dataset status with the current in order to find differences.
+
+        the freezed file is safed in the dame directory of the currect with the nane
+        'dataset-list-freezed.json'
+        :return:
+        """
+        freezed_file = os.path.join(get_metadata_store_path(),'dataset-list-freezed.json')
+        save_it = True
+        now = datetime.now()
+        if os.path.isfile(freezed_file):
+            with open(freezed_file,'r') as json_in:
+                freezed_source = json.load(json_in)
+            source_ref_time = pd.to_datetime(freezed_source['source_ref_time'])
+            save_it = ( now > source_ref_time+timedelta(days=1) )
+
+        if save_it:
+            data = [ ds.to_json() for ds in self._data_sources ]
+            freezed_source = {'source_ref_time':str(now),
+                              'data': data}
+            with open(freezed_file,'w') as json_out:
+                json.dump(freezed_source,json_out)
+
 
     def _load_index(self):
         try:
@@ -930,6 +1002,9 @@ class EsaCciOdpDataSource(DataSource):
                 file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
+
+    def to_json(self):
+        return self._json_dict
 
     def __str__(self):
         return self.info_string

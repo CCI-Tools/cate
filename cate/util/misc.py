@@ -263,7 +263,6 @@ def is_str_constant(s: str) -> bool:
     """
     return s and len(s) >= 2 and s[0] == s[-1] and s[0] in _PYTHON_QUOTE_CHARS
 
-
 @contextmanager
 def cwd(path: str):
     """
