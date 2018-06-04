@@ -48,7 +48,7 @@ import pandas as pd
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
-from typing import Sequence, Tuple, Optional, Any
+from typing import Sequence, Tuple, Optional, Any, Dict
 
 import xarray as xr
 from owslib.csw import CatalogueServiceWeb
@@ -61,7 +61,6 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
-from cate.util.misc import compare_data_sources
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
 
@@ -345,6 +344,15 @@ class EsaCciOdpDataStore(DataStore):
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
+
+    def get_updates(self) -> Dict:
+        diff_file = os.path.join(get_metadata_store_path(), 'dataset-list-diff.json')
+
+        if os.path.isfile(diff_file):
+            with open(diff_file, 'r') as json_in:
+                report = json.load(json_in)
+            return report
+        return None
 
     def _repr_html_(self) -> str:
         self._init_data_sources()

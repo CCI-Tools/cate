@@ -338,6 +338,17 @@ class DataStore(metaclass=ABCMeta):
         """
         pass
 
+    def get_updates(self) -> Dict:
+        """
+        Ask the datastore to retrieve the differences found between a previous
+        dataStore status and the current one,
+        The implementation should return a dictionary with the new ['new'] and removed ['del'] dataset.
+        it also return the refenced time to the datastore configuration taken as previous, it could
+        be useful to know to which time the found differences are compared to.
+        :return:
+        """
+        return None
+
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -439,6 +450,20 @@ class DataAccessWarning(UserWarning):
     """
     pass
 
+
+def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Dict:
+    data_store_list = []
+    if data_stores is None:
+        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    response = dict()
+
+    for ds in data_store_list:
+        r = ds.get_updates()
+        if not r:
+            continue
+        response[ds.id] = r
+
+    return response
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
                       ds_id: str = None,
