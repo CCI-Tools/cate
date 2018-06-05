@@ -43,7 +43,7 @@ class CliTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # clean up frozen files
-        for d in DATA_STORE_REGISTRY.get_data_stores() :
+        for d in DATA_STORE_REGISTRY.get_data_stores():
             d.get_updates(reset=True)
 
         DATA_STORE_REGISTRY._data_stores.clear()

@@ -30,7 +30,7 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), 'esgf-index-cache.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
-    for d in DATA_STORE_REGISTRY.get_data_stores() :
+    for d in DATA_STORE_REGISTRY.get_data_stores():
         d.get_updates(reset=True)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
     data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1')

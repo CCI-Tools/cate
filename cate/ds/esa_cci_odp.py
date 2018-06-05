@@ -353,7 +353,7 @@ class EsaCciOdpDataStore(DataStore):
         :param reset: when true clean up differences and frozen DS file
         :return:
         """
-        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-diff.json')
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
         report = None
         if os.path.isfile(diff_file):
             with open(diff_file, 'r') as json_in:
@@ -363,10 +363,9 @@ class EsaCciOdpDataStore(DataStore):
         if reset:
             if os.path.isfile(diff_file):
                 os.remove(diff_file)
-            frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-freeze.json')
+            frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
             if os.path.isfile(frozen_file):
                 os.remove(frozen_file)
-            print('removed '+frozen_file)
         return report
 
     def _repr_html_(self) -> str:
@@ -435,8 +434,8 @@ class EsaCciOdpDataStore(DataStore):
         frozen dataset is updated too.
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-freeze.json')
-        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-diff.json')
+        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
         deleted = []
         added = []
 
@@ -444,8 +443,8 @@ class EsaCciOdpDataStore(DataStore):
             with open(frozen_file, 'r') as json_in:
                 frozen_source = json.load(json_in)
 
-            ds_new = set([ ds.to_json()['id'] for ds in self._data_sources ])
-            ds_old = set([ ds['id'] for ds in frozen_source['data']])
+            ds_new = set([ds.to_json()['id'] for ds in self._data_sources])
+            ds_old = set([ds['id'] for ds in frozen_source['data']])
             for ds in (ds_old - ds_new):
                 deleted.append(ds)
 
@@ -458,8 +457,8 @@ class EsaCciOdpDataStore(DataStore):
                            'source_ref_time': frozen_source['source_ref_time'],
                            'new': added,
                            'del': deleted}
-            with open(diff_file,'w') as json_out:
-                json.dump(diff_source,json_out)
+            with open(diff_file, 'w') as json_out:
+                json.dump(diff_source, json_out)
 
     def _freeze_source(self):
         """
@@ -472,22 +471,21 @@ class EsaCciOdpDataStore(DataStore):
         'dataset-list-freeze.json'
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(),self._get_update_tag()+'-freeze.json')
+        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
         save_it = True
         now = datetime.now()
         if os.path.isfile(frozen_file):
-            with open(frozen_file,'r') as json_in:
+            with open(frozen_file, 'r') as json_in:
                 freezed_source = json.load(json_in)
             source_ref_time = pd.to_datetime(freezed_source['source_ref_time'])
-            save_it = ( now > source_ref_time+timedelta(days=1) )
+            save_it = (now > source_ref_time + timedelta(days=1))
 
         if save_it:
-            data = [ ds.to_json() for ds in self._data_sources ]
-            freezed_source = {'source_ref_time':str(now),
+            data = [ds.to_json() for ds in self._data_sources]
+            freezed_source = {'source_ref_time': str(now),
                               'data': data}
-            with open(frozen_file,'w') as json_out:
-                json.dump(freezed_source,json_out)
-
+            with open(frozen_file, 'w') as json_out:
+                json.dump(freezed_source, json_out)
 
     def _load_index(self):
         try:

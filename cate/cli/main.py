@@ -316,6 +316,7 @@ def _parse_op_args(raw_args: List[str],
 
     return op_args, op_kwargs
 
+
 def _list_items(category_singular_name: str, category_plural_name: str, names: List, pattern: Optional[str]):
     if pattern:
         pattern = pattern.lower()
@@ -1220,14 +1221,12 @@ class DataSourceCommand(SubCommandCommand):
             else:
                 for k in ds_updates.keys():
                     upd = ds_updates[k]
-                    msg ='Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
+                    msg = 'Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
                     print(msg)
                     if upd['new']:
                         _list_items('new data source', 'new data sources', upd['new'], None)
                     if upd['del']:
                         _list_items('removed data source', 'removed data sources', upd['del'], None)
-
-
 
     @classmethod
     def _execute_info(cls, command_args):
