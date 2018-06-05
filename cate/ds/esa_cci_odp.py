@@ -382,6 +382,8 @@ class EsaCciOdpDataStore(DataStore):
         return "EsaCciOdpDataStore (%s)" % self.id
 
     def _init_data_sources(self):
+        os.makedirs(get_metadata_store_path(), exist_ok=True)
+        
         if self._data_sources:
             return
         if self._esgf_data is None:
@@ -444,7 +446,7 @@ class EsaCciOdpDataStore(DataStore):
                 frozen_source = json.load(json_in)
 
             ds_new = set([ds.to_json()['id'] for ds in self._data_sources])
-            ds_old = set([ds['id'] for ds in frozen_source['data']])
+            ds_old = set([ds for ds in frozen_source['data']])
             for ds in (ds_old - ds_new):
                 deleted.append(ds)
 
@@ -481,7 +483,7 @@ class EsaCciOdpDataStore(DataStore):
             save_it = (now > source_ref_time + timedelta(days=1))
 
         if save_it:
-            data = [ds.to_json() for ds in self._data_sources]
+            data = [ds.to_json()['id'] for ds in self._data_sources]
             freezed_source = {'source_ref_time': str(now),
                               'data': data}
             with open(frozen_file, 'w+') as json_out:

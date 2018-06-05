@@ -10,7 +10,7 @@ import urllib.request
 
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format, _DownloadStatistics
+from cate.ds.esa_cci_odp import EsaCciOdpDataStore, get_metadata_store_path, find_datetime_format, _DownloadStatistics
 from cate.ds.local import LocalDataStore
 
 
