@@ -322,6 +322,10 @@ class DataSourceCommandTest(CliTestCase):
         self.assert_main(['ds', 'list', '--name', 'CLOUD'],
                          expected_stdout=['14 data sources found'])
 
+    def test_ds_update(self):
+        self.assert_main(['ds', 'list', '-u'],
+                         expected_stdout=['All datastores are up to date.'])
+
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy(self):
         self.assert_main(['ds', 'copy', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])

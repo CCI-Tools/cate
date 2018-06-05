@@ -1217,7 +1217,7 @@ class DataSourceCommand(SubCommandCommand):
         if command_args.update:
             ds_updates = find_data_sources_update()
             if len(ds_updates) == 0:
-                print('All datastore are up to date.')
+                print('All datastores are up to date.')
             else:
                 for k in ds_updates.keys():
                     upd = ds_updates[k]
