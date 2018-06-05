@@ -42,7 +42,7 @@ dependencies:
   - shapely >=1.6,<2.0
   - tornado >=5.0,<6.0
   # Require >= 0.10.3 due to #579
-  - xarray >=0.10.3
+  - xarray >=0.10.6
   #
   # for testing only
   #
