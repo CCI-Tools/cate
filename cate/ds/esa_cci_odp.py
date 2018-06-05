@@ -383,7 +383,6 @@ class EsaCciOdpDataStore(DataStore):
 
     def _init_data_sources(self):
         os.makedirs(get_metadata_store_path(), exist_ok=True)
-        
         if self._data_sources:
             return
         if self._esgf_data is None:
