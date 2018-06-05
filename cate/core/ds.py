@@ -338,13 +338,14 @@ class DataStore(metaclass=ABCMeta):
         """
         pass
 
-    def get_updates(self) -> Dict:
+    def get_updates(self, reset=False) -> Dict:
         """
         Ask the datastore to retrieve the differences found between a previous
         dataStore status and the current one,
         The implementation should return a dictionary with the new ['new'] and removed ['del'] dataset.
-        it also return the refenced time to the datastore configuration taken as previous, it could
+        it also return the reference time to the datastore status taken as previous, it could
         be useful to know to which time the found differences are compared to.
+        Reset flag is used to clean up the support files, freeze and diff.
         :return:
         """
         return None
@@ -452,6 +453,16 @@ class DataAccessWarning(UserWarning):
 
 
 def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Dict:
+    """
+    find difference in the list of data source of the given data store (all when None).
+    The updateds will be returned as dictionaty where the key is the Data store ID.
+    The value is a dictionary too contining the list of 'new', 'de' (removed) dataset
+    :param data_stores: list of Data store(s) to be cheked. If None all the refgistered Data store
+                        will be checked
+    :return: dictionary index by data store ID, values are a second dictionary with the updates sorted by
+             new and del data source in addition to source_ref_time which is the time of snapshot used to
+             compare the data source list
+    """
     data_store_list = []
     if data_stores is None:
         data_store_list = DATA_STORE_REGISTRY.get_data_stores()

@@ -25,8 +25,10 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    DS = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
+    return DS
 
 
 class CliTestCase(unittest.TestCase):
@@ -40,6 +42,10 @@ class CliTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # clean up frozen files
+        for d in DATA_STORE_REGISTRY.get_data_stores() :
+            d.get_updates(reset=True)
+
         DATA_STORE_REGISTRY._data_stores.clear()
         for data_store in cls._orig_stores:
             DATA_STORE_REGISTRY.add_data_store(data_store)

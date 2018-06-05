@@ -1220,7 +1220,7 @@ class DataSourceCommand(SubCommandCommand):
             else:
                 for k in ds_updates.keys():
                     upd = ds_updates[k]
-                    msg ='Updates found in {} with reference time {}'.format(k, upd['source_ref_time'])
+                    msg ='Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
                     print(msg)
                     if upd['new']:
                         _list_items('new data source', 'new data sources', upd['new'], None)

@@ -318,11 +318,13 @@ class EsaCciOdpDataStore(DataStore):
                  title: str = 'ESA CCI Open Data Portal',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict = None):
+                 index_cache_json_dict: dict = None,
+                 index_cache_update_tag: str = None):
         super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._esgf_data = index_cache_json_dict
+        self._index_cache_update_tag = index_cache_update_tag
         self._data_sources = []
 
         self._csw_data = None
@@ -345,14 +347,27 @@ class EsaCciOdpDataStore(DataStore):
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
-    def get_updates(self) -> Dict:
-        diff_file = os.path.join(get_metadata_store_path(), 'dataset-list-diff.json')
-
+    def get_updates(self, reset=False) -> Dict:
+        """
+        read a previous generated difference json file and return it as DICTIONARY.
+        :param reset: when true clean up differences and frozen DS file
+        :return:
+        """
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-diff.json')
+        report = None
         if os.path.isfile(diff_file):
             with open(diff_file, 'r') as json_in:
                 report = json.load(json_in)
-            return report
-        return None
+
+        # clean up when requested
+        if reset:
+            if os.path.isfile(diff_file):
+                os.remove(diff_file)
+            frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-freeze.json')
+            if os.path.isfile(frozen_file):
+                os.remove(frozen_file)
+            print('removed '+frozen_file)
+        return report
 
     def _repr_html_(self) -> str:
         self._init_data_sources()
@@ -395,22 +410,33 @@ class EsaCciOdpDataStore(DataStore):
         self._check_source_diff()
         self._freeze_source()
 
+    def _get_update_tag(self):
+        """
+        return the name to be used and TAG to check and freee the dataset list
+        A datastore could be created with a json file so to avoid collision with a
+        previous frozen DS the user can set a TAG
+        :return:
+        """
+        if self._index_cache_update_tag:
+            return self._index_cache_update_tag
+        return 'dataset-list'
+
     def _check_source_diff(self):
         """
         This routine is responsible to find differences (new dataset or removed dataset)
-        between the most updated list and the provious freezed one.
+        between the most updated list and the provious frozen one.
         It generate a file dataset-list-diff.json with the results.
         generated time: time of report generation
-        source_ref_time : time of the freezed (previous) dataset list
+        source_ref_time : time of the frozen (previous) dataset list
         new: list of item founded as new
         del: list of items found as removed
 
         It use a persistent output to keep trace of the previous changes in case the
-        freezed dataset is updated too.
+        frozen dataset is updated too.
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(), 'dataset-list-freeze.json')
-        diff_file = os.path.join(get_metadata_store_path(), 'dataset-list-diff.json')
+        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-freeze.json')
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag()+'-diff.json')
         deleted = []
         added = []
 
@@ -442,11 +468,11 @@ class EsaCciOdpDataStore(DataStore):
         It is updated to the current when is expired, the file is used to compare the
         previous dataset status with the current in order to find differences.
 
-        the freezed file is safed in the dame directory of the currect with the nane
-        'dataset-list-freezed.json'
+        the frozen file is safed in the data store meta directory with the nane
+        'dataset-list-freeze.json'
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(),'dataset-list-freeze.json')
+        frozen_file = os.path.join(get_metadata_store_path(),self._get_update_tag()+'-freeze.json')
         save_it = True
         now = datetime.now()
         if os.path.isfile(frozen_file):
