@@ -35,6 +35,7 @@ from cate.util.monitor import Monitor
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
 from cate.core.types import TimeRangeLike, PolygonLike, ValidationError
+from cate.ops.normalize import adjust_spatial_attrs
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -98,7 +99,9 @@ def anomaly_external(ds: xr.Dataset,
     # Running groupby results in a redundant 'month' variable being added to
     # the dataset
     ret = ret.drop('month')
-    return ret
+    ret.attrs = ds.attrs
+    # The dataset may be cropped
+    return adjust_spatial_attrs(ret)
 
 
 def _group_anomaly(group: xr.Dataset,
