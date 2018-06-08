@@ -276,6 +276,7 @@ def _is_seasonal(time: xr.DataArray):
     seasons. E.g. Each year has the same date-month values in it.
     """
     c = 0
+    test = None
     for group in time.groupby('time.year'):
         # Test (month, day) dates of all years against
         # (month, day) dates of the first year, or second
@@ -292,12 +293,12 @@ def _is_seasonal(time: xr.DataArray):
             second_months = months
             second_days = days
             if len(second_months) > len(first_months):
-                test = zip(second_months, second_days)
+                test = list(zip(second_months, second_days))
                 for date in zip(first_months, first_days):
                     if date not in test:
                         return False
             else:
-                test = zip(first_months, first_days)
+                test = list(zip(first_months, first_days))
                 for date in zip(second_months, second_days):
                     if date not in test:
                         return False
