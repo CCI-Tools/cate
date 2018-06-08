@@ -3,6 +3,7 @@
 * Added experimental support for [Zarr](http://zarr.readthedocs.io/en/stable/) data I/O format [#659](https://github.com/CCI-Tools/cate/issues/659)
 * The operation  `long_term_average` now works with daily, monthly and seasonal datasets [#471](https://github.com/CCI-Tools/cate/issues/471)
 * Fixed problem in `cate-webapi-start` occurring on Linux when using address `localhost` (related to [#627](https://github.com/CCI-Tools/cate/issues/627))
+* Updated `anomaly_external` to retain global attributes and do more input validation [#666](https://github.com/CCI-Tools/cate/issues/666)
 
 ## Version 2.0.0.dev11
 
