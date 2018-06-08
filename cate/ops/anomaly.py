@@ -41,7 +41,7 @@ from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 
-@op(tags=['anomaly'], version='1.0')
+@op(tags=['anomaly'], version='1.1')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc']), _ALL_FILE_FILTER])
 @op_return(add_history=True)
 def anomaly_external(ds: xr.Dataset,
