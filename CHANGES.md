@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev12 (in development)
 
+* No longer hide any ODP datasets in GUI [#669](https://github.com/CCI-Tools/cate/issues/669)
 * Added experimental support for [Zarr](http://zarr.readthedocs.io/en/stable/) data I/O format [#659](https://github.com/CCI-Tools/cate/issues/659)
 * The operation  `long_term_average` now works with daily, monthly and seasonal datasets [#471](https://github.com/CCI-Tools/cate/issues/471)
 * Fixed problem in `cate-webapi-start` occurring on Linux when using address `localhost` (related to [#627](https://github.com/CCI-Tools/cate/issues/627))
