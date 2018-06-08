@@ -35,7 +35,7 @@ from cate.util.monitor import Monitor
 from cate.ops.subset import subset_spatial, subset_temporal
 from cate.ops.arithmetics import diff, ds_arithmetics
 from cate.core.types import TimeRangeLike, PolygonLike, ValidationError
-from cate.ops.normalize import adjust_spatial_attrs
+from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 
 
 _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
@@ -80,7 +80,30 @@ def anomaly_external(ds: xr.Dataset,
         raise ValidationError('The dataset provided for anomaly calculation'
                               ' is required to have a time coordinate.')
 
+    try:
+        if ds.attrs['time_coverage_resolution'] != 'P1M':
+            raise ValidationError('anomaly_external expects a monthly dataset'
+                                  ' got: {} instead.'.format(ds.attrs['time_coverate_resolution']))
+    except KeyError:
+        try:
+            ds = adjust_temporal_attrs(ds)
+            if ds.attrs['time_coverage_resolution'] != 'P1M':
+                raise ValidationError('anomaly_external expects a monthly dataset'
+                                      ' got: {} instead.'.format(ds.attrs['time_coverate_resolution']))
+        except KeyError:
+            raise ValidationError('Could not determine temporal resolution of'
+                                  ' of the given input dataset.')
+
     clim = xr.open_dataset(file)
+    try:
+        if len(clim.time) != 12:
+            raise ValidationError('The reference dataset is expected to be a '
+                                  'monthly climatology. The provided dataset has'
+                                  ' a time dimension with length: {}'.format(len(clim.time)))
+    except AttributeError:
+        raise ValidationError('The reference dataset is required to '
+                              'have a time coordinate.')
+
     ret = ds.copy()
     if transform:
         ret = ds_arithmetics(ds, transform)
