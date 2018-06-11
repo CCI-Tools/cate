@@ -193,7 +193,7 @@ class LocalDataSource(DataSource):
                 if var_names:
                     msg += " for variables {}".format(VarNamesLike.format(var_names))
                 msg += ":\n{}".format(e)
-                raise ValidationError(msg, source=self) from e
+                raise ValidationError(msg) from e
         else:
             if time_range:
                 time = TimeRangeLike.format(time_range)
