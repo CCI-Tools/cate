@@ -1,4 +1,8 @@
-## Version 2.0.0.dev12 (in development)
+## Version 2.0.0.dev13 (in development)
+
+* Extended max. table size to 10000 elements (workaround).
+
+## Version 2.0.0.dev12
 
 * No longer hide any ODP datasets in GUI [#669](https://github.com/CCI-Tools/cate/issues/669)
 * Added experimental support for [Zarr](http://zarr.readthedocs.io/en/stable/) data I/O format [#659](https://github.com/CCI-Tools/cate/issues/659)
