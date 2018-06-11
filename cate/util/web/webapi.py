@@ -303,7 +303,7 @@ class WebAPI:
         if service_info_file and service_info:
             print(f'{name}: service information file found: {service_info_file}')
 
-        print(f'{name}: stopping service on {join_address_and_port(address, port)}')
+        print(f'{name}: trying to stop any service on {join_address_and_port(address, port)}')
 
         # noinspection PyBroadException
         try:
