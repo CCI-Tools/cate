@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev13 (in development)
 
+* Added colour mapping defaults for CCI Sea Level data.
 * Extended max. table size to 10000 elements (workaround).
 
 ## Version 2.0.0.dev12
