@@ -28,6 +28,7 @@ import geopandas as gpd
 import pandas as pd
 import xarray as xr
 
+
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame
@@ -155,6 +156,16 @@ def read_text(file: str, encoding: str = None) -> str:
     else:
         # noinspection PyUnresolvedReferences
         return file.read()
+
+@op(tags=['input'], res_pattern='ds_{index}')
+@op_input('file', file_open_mode='r', file_filters=[dict(name='GeoTIFF', extensions=['tiff','tif']), _ALL_FILE_FILTER])
+@op_input('normalize')
+def read_geo_tiff(file: str,
+                  normalize: bool = False,
+                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+    import cate.core.ds
+
+    return cate.core.ds.open_geotiff(file, normalize, monitor)
 
 
 @op(tags=['output'], no_cache=True)

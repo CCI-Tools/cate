@@ -83,12 +83,17 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from math import ceil, sqrt
 from typing import Sequence, Optional, Union, Any
+import pandas as pd
+import numpy as np
+import gdal , osr, affine
+from pyproj import Proj, transform
 
 import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
+from ..util.misc import collapse_dimension
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -468,6 +473,98 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
     return results
 
 
+def open_geotiff(data_file: str,
+                 normalize: bool = False,
+                 monitor: Monitor = Monitor.NONE) -> Any:
+
+
+    try:
+        dg = gdal.Open(data_file)
+        proj = osr.SpatialReference(wkt = dg.GetProjection())
+        proj.AutoIdentifyEPSG()
+        epsg = proj.GetAttrValue('AUTHORITY', 1)
+        gt = dg.GetGeoTransform()
+        forward_transform = affine.Affine.from_gdal(*gt)
+        X = [ (forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasetrXSize)]
+        Y = [ (forward_transform * (0, i + 0.5))[1] for i in range(dg.RasetrYSize)]
+        bands = []
+        for b_idx in range(1, dg.RasterCount + 1):
+            band = dg.GetRasterBand(b_idx)
+            data = band.ReadAsArray(0, 0, dg.RasetrXSize, dg.RasterYsize)
+            bands.append(data)
+        bands_arr = np.array(bands)
+        da = xr.DataArray( bands_arr,
+                           dims = ('band', 'y', 'x'),
+                           coords = {'band' : list(range(1, dg.RasterCount + 1)),
+                                     'y' : Y,
+                                     'x': X },
+                           attrs = {'tranform': gt,
+                                    'res': (gt[1], -gt[5]),
+                                    'crs' : '+init=epsg:'+epsg})
+    except Exception as e:
+        raise e
+
+    if normalize:
+
+        total_w = da.sizes['band'] + 3
+        monitor.starting('Projection transformation', total_work=total_w)
+
+        x, y = np.meshgrid(da['x'], da['y'])
+        srcProj = Proj(da.crs)
+        tgtProj = Proj(init = 'epsg:4326')
+        lon, lat = transform(da.crs, '+init=epsg:4326', x.flatten(), y.flatten())
+
+        monitor.progress(work=1, msg='Collapse dimension')
+        # reduce the dimension removing duplicated point
+        lon_z = collapse_dimension(lon)
+        lat_z = collapse_dimension(lat)
+        lon_dim, lat_dim = lon_z[0], lat_z[0]
+        lon_size, lat_size = lon_z[4], lat_z[4]
+
+        # build map grid for each band values (compute avarage on stream)
+        # the averange of the stream a, b, c is at each step
+        # with x = previous avg value
+        #      y = step
+        #      z = new incoming value
+        # avg = xy + z / y + 1
+        b =  np.empty((da.sizes['band'], lon_size, lat_size,))
+        b.fill(np.nan)
+        for b_idx in range(da.sizes['band']):
+            monitor.progress(work = 2 + b_idx, msg='Band {} Projection' .format(b_idx))
+            b_val = da.values[b_idx,:,:].flatten()
+            count = np.zeros((lon_size, lat_size,), dtype = np.int32)
+            for v_idx in range(len(b_val)):
+                lat_p, lon_p = (lat_dim[v_idx], lon_dim[v_idx])
+                av = b[b_idx, lon_p, lat_p]
+                av = 0.0 if np.isnan(av) else av
+                v = b_val[v_idx]
+                cnt = count[lon_p, lat_p]
+                bv = ((av * cnt) + v) / (cnt + 1)
+                b[b_idx, lon_p, lat_p] = bv
+                count[lon_p, lat_p] = cnt + 1
+
+        monitor.progress(work=total_w, msg='Build Data Source')
+        lon_dim = np.linspace(lon_z[1], lon_z[2], lon_z[4])
+        lat_dim = np.linspace(lat_z[1], lat_z[2], lat_z[4])
+        da = xr.DataArray(b,
+                          dims = ('band', 'lon', 'lat'),
+                          coords = {'lon': lon_dim,
+                                    'lat': lat_dim},
+                          attrs= da.attrs)
+
+
+    da = da.to_dataset('band')
+    rename_vars = dict()
+    for v in da.data_vars:
+        rename_vars[v]='Band_'+str(v)
+
+    ds = da.rename(rename_vars)
+    monitor.done()
+
+    return ds
+
+
+
 def open_dataset(data_source: Union[DataSource, str],
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
@@ -600,6 +697,9 @@ def open_xarray_dataset(paths, concat_dim='time', **kwargs) -> xr.Dataset:
                                chunks=chunks,
                                autoclose=True,
                                **kwargs)
+
+    print(ds)
+
     if concat_dim not in ds.dims:
         ds.expand_dims(concat_dim)
 

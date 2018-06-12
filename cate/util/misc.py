@@ -138,6 +138,16 @@ def fetch_std_streams():
         sys.stdout = old_stdout
         sys.stderr = old_stderr
 
+def collapse_dimension(dim_val, precision = 1):
+    m = round(min(dim_val), precision)
+    M = round(max(dim_val), precision)
+    p = precision / 10.0
+    s = int(round(M - m) / p)
+    r = np.zeros((len(dim_val),), dtype=np.int32)
+    for i in range(len(dim_val)):
+        r[i] = int (round(dim_val[i] - m, 1) / p)
+    return (r, m, M, p, s)
+
 
 def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:
     """

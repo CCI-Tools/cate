@@ -61,13 +61,15 @@ from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, Var
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
+import time
+
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
 
-_ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
+_ESGF_CEDA_URL = "http://esgf-index1.ceda.ac.uk/esg-search/search/"
 
 _CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
@@ -325,6 +327,7 @@ class EsaCciOdpDataStore(DataStore):
         self._data_sources = []
 
         self._csw_data = None
+        print('index chached ',index_cache_json_dict)
 
     @property
     def index_cache_used(self):
@@ -338,7 +341,8 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return get_metadata_store_path()
 
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[
+        'DataSource']:
         self._init_data_sources()
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
@@ -358,6 +362,7 @@ class EsaCciOdpDataStore(DataStore):
         return "EsaCciOdpDataStore (%s)" % self.id
 
     def _init_data_sources(self):
+
         if self._data_sources:
             return
         if self._esgf_data is None:
@@ -689,6 +694,8 @@ class EsaCciOdpDataSource(DataSource):
                     var_names: VarNamesLike.TYPE = None,
                     monitor: Monitor = Monitor.NONE):
 
+        total_time = 0
+
         local_id = local_ds.id
         time_range = TimeRangeLike.convert(time_range)
         var_names = VarNamesLike.convert(var_names)
@@ -739,9 +746,13 @@ class EsaCciOdpDataSource(DataSource):
                     time_coverage_end = selected_file_list[idx][2]
 
                     child_monitor.start(label=file_name, total_work=1)
+                    et = time.time()
+                    remote_dataset = xr.open_dataset(dataset_uri,
+                                                     drop_variables=[variable.get('name') for variable in
+                                                                     excluded_variables])
 
-                    remote_dataset = xr.open_dataset(dataset_uri, drop_variables=[variable.get('name') for variable in
-                                                                                  excluded_variables])
+                    total_time += int(time.time() - et)
+
                     if var_names:
                         remote_dataset = remote_dataset.drop([var_name for var_name in remote_dataset.data_vars.keys()
                                                               if var_name not in var_names])
@@ -826,6 +837,7 @@ class EsaCciOdpDataSource(DataSource):
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
         local_ds.meta_info['exclude_variables'] = excluded_variables
         local_ds.save(True)
+        print('totale elapsed time ', total_time)
 
     def make_local(self,
                    local_name: str,
@@ -978,6 +990,12 @@ class EsaCciCatalogueService:
         self._catalogue = None
         self._catalogue_service = None
 
+    def check_update(self):
+        old_catalogue = self._catalogue
+        self.reset()
+        new_catalog = self.getrecords()
+
+
     def getrecords(self, monitor: Monitor = Monitor.NONE):
         if not self._catalogue_service:
             self._init_service()
@@ -985,6 +1003,7 @@ class EsaCciCatalogueService:
         if not self._catalogue:
             self._build_catalogue(monitor.child(1))
 
+        print('Catalogue is ',self._catalogue)
         return self._catalogue
 
     def _build_catalogue(self, monitor: Monitor = Monitor.NONE):
