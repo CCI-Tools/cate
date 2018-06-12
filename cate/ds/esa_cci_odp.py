@@ -327,7 +327,6 @@ class EsaCciOdpDataStore(DataStore):
         self._data_sources = []
 
         self._csw_data = None
-        print('index chached ',index_cache_json_dict)
 
     @property
     def index_cache_used(self):
@@ -341,8 +340,10 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return get_metadata_store_path()
 
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[
-        'DataSource']:
+    def query(self,
+              ds_id: str = None,
+              query_expr: str = None,
+              monitor: Monitor = Monitor.NONE) -> Sequence['DataSource']:
         self._init_data_sources()
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
@@ -991,10 +992,7 @@ class EsaCciCatalogueService:
         self._catalogue_service = None
 
     def check_update(self):
-        old_catalogue = self._catalogue
         self.reset()
-        new_catalog = self.getrecords()
-
 
     def getrecords(self, monitor: Monitor = Monitor.NONE):
         if not self._catalogue_service:
@@ -1003,7 +1001,6 @@ class EsaCciCatalogueService:
         if not self._catalogue:
             self._build_catalogue(monitor.child(1))
 
-        print('Catalogue is ',self._catalogue)
         return self._catalogue
 
     def _build_catalogue(self, monitor: Monitor = Monitor.NONE):

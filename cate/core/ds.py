@@ -83,9 +83,10 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from math import ceil, sqrt
 from typing import Sequence, Optional, Union, Any
-import pandas as pd
 import numpy as np
-import gdal , osr, affine
+import gdal
+import osr
+import affine
 from pyproj import Proj, transform
 
 import xarray as xr
@@ -97,7 +98,8 @@ from ..util.misc import collapse_dimension
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 
 class DataSource(metaclass=ABCMeta):
@@ -477,7 +479,6 @@ def open_geotiff(data_file: str,
                  normalize: bool = False,
                  monitor: Monitor = Monitor.NONE) -> Any:
 
-
     try:
         dg = gdal.Open(data_file)
         proj = osr.SpatialReference(wkt = dg.GetProjection())
@@ -485,22 +486,23 @@ def open_geotiff(data_file: str,
         epsg = proj.GetAttrValue('AUTHORITY', 1)
         gt = dg.GetGeoTransform()
         forward_transform = affine.Affine.from_gdal(*gt)
-        X = [ (forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasetrXSize)]
-        Y = [ (forward_transform * (0, i + 0.5))[1] for i in range(dg.RasetrYSize)]
+        X = [(forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasetrXSize)]
+        Y = [(forward_transform * (0, i + 0.5))[1] for i in range(dg.RasetrYSize)]
         bands = []
         for b_idx in range(1, dg.RasterCount + 1):
             band = dg.GetRasterBand(b_idx)
             data = band.ReadAsArray(0, 0, dg.RasetrXSize, dg.RasterYsize)
             bands.append(data)
+
         bands_arr = np.array(bands)
-        da = xr.DataArray( bands_arr,
-                           dims = ('band', 'y', 'x'),
-                           coords = {'band' : list(range(1, dg.RasterCount + 1)),
-                                     'y' : Y,
-                                     'x': X },
-                           attrs = {'tranform': gt,
-                                    'res': (gt[1], -gt[5]),
-                                    'crs' : '+init=epsg:'+epsg})
+        da = xr.DataArray(bands_arr,
+                          dims = ('band', 'y', 'x'),
+                          coords = {'band': list(range(1, dg.RasterCount + 1)),
+                                    'y': Y,
+                                    'x': X},
+                          attrs = {'tranform': gt,
+                                   'res': (gt[1], -gt[5]),
+                                   'crs': '+init=epsg:' + epsg})
     except Exception as e:
         raise e
 
@@ -512,7 +514,7 @@ def open_geotiff(data_file: str,
         x, y = np.meshgrid(da['x'], da['y'])
         srcProj = Proj(da.crs)
         tgtProj = Proj(init = 'epsg:4326')
-        lon, lat = transform(da.crs, '+init=epsg:4326', x.flatten(), y.flatten())
+        lon, lat = transform(srcProj, tgtProj, x.flatten(), y.flatten())
 
         monitor.progress(work=1, msg='Collapse dimension')
         # reduce the dimension removing duplicated point
@@ -527,12 +529,12 @@ def open_geotiff(data_file: str,
         #      y = step
         #      z = new incoming value
         # avg = xy + z / y + 1
-        b =  np.empty((da.sizes['band'], lon_size, lat_size,))
+        b = np.empty((da.sizes['band'], lon_size, lat_size,))
         b.fill(np.nan)
         for b_idx in range(da.sizes['band']):
-            monitor.progress(work = 2 + b_idx, msg='Band {} Projection' .format(b_idx))
-            b_val = da.values[b_idx,:,:].flatten()
-            count = np.zeros((lon_size, lat_size,), dtype = np.int32)
+            monitor.progress(work = 2 + b_idx, msg='Band {} Projection'.format(b_idx))
+            b_val = da.values[b_idx, :, :].flatten()
+            count = np.zeros((lon_size, lat_size, ), dtype = np.int32)
             for v_idx in range(len(b_val)):
                 lat_p, lon_p = (lat_dim[v_idx], lon_dim[v_idx])
                 av = b[b_idx, lon_p, lat_p]
@@ -552,17 +554,15 @@ def open_geotiff(data_file: str,
                                     'lat': lat_dim},
                           attrs= da.attrs)
 
-
     da = da.to_dataset('band')
     rename_vars = dict()
     for v in da.data_vars:
-        rename_vars[v]='Band_'+str(v)
+        rename_vars[v] = 'Band_' + str(v)
 
     ds = da.rename(rename_vars)
     monitor.done()
 
     return ds
-
 
 
 def open_dataset(data_source: Union[DataSource, str],

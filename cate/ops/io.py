@@ -157,8 +157,9 @@ def read_text(file: str, encoding: str = None) -> str:
         # noinspection PyUnresolvedReferences
         return file.read()
 
+
 @op(tags=['input'], res_pattern='ds_{index}')
-@op_input('file', file_open_mode='r', file_filters=[dict(name='GeoTIFF', extensions=['tiff','tif']), _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=[dict(name='GeoTIFF', extensions=['tiff', 'tif']), _ALL_FILE_FILTER])
 @op_input('normalize')
 def read_geo_tiff(file: str,
                   normalize: bool = False,
