@@ -648,14 +648,7 @@ class EsaCciOdpDataSource(DataSource):
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
-            ds = open_xarray_dataset(files, monitor=monitor)
-            if region:
-                ds = normalize_impl(ds)
-                ds = subset_spatial_impl(ds, region)
-            if var_names:
-                ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-            return ds
-
+            return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
         except OSError as e:
             if time_range:
                 raise ValidationError("Cannot open remote dataset for time range {}:\n"

@@ -14,7 +14,7 @@ from numpy.testing import assert_array_almost_equal
 
 from cate.core.op import OP_REGISTRY
 from cate.core.opimpl import normalize_missing_time, normalize_coord_vars
-from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs, fix_lon_360
+from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.misc import object_to_qualified_name
 
 
@@ -709,25 +709,40 @@ class TestNormalizeMissingTime(TestCase):
         new_ds = normalize_missing_time(ds)
         self.assertIs(ds, new_ds)
 
-
-class TestFix360Lon(TestCase):
     def test_fix_360_lon(self):
+
+        # The following simulates a strangely geo-coded soil moisture dataset
+        # we found at ...
+        #
         lon_size = 360
         lat_size = 130
         time_size = 12
         ds = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
-            'second': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
-            'lon': np.linspace(1., 360., lon_size),
-            'lat': np.linspace(-65, 65, lat_size),
-            'time': [datetime(2000, x, 1) for x in range(1, time_size + 1)]})
+            'second': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size]))},
+            coords={'lon': np.linspace(1., 360., lon_size),
+                    'lat': np.linspace(-64., 65., lat_size),
+                    'time': [datetime(2000, x, 1) for x in range(1, time_size + 1)]},
+            attrs=dict(geospatial_lon_min=0.,
+                       geospatial_lon_max=360.,
+                       geospatial_lat_min=-64.5,
+                       geospatial_lat_max=+65.5,
+                       geospatial_lon_resolution=1.,
+                       geospatial_lat_resolution=1.))
 
-        new_ds = fix_lon_360(ds)
+        new_ds = normalize(ds)
         self.assertIsNot(ds, new_ds)
         self.assertEqual(ds.dims, new_ds.dims)
         self.assertEqual(ds.sizes, new_ds.sizes)
         assert_array_almost_equal(new_ds.lon, np.linspace(-179.5, 179.5, 360))
+        assert_array_almost_equal(new_ds.lat, np.linspace(-64., 65., 130))
         assert_array_almost_equal(new_ds.first[..., :180], ds.first[..., 180:])
         assert_array_almost_equal(new_ds.first[..., 180:], ds.first[..., :180])
         assert_array_almost_equal(new_ds.second[..., :180], ds.second[..., 180:])
         assert_array_almost_equal(new_ds.second[..., 180:], ds.second[..., :180])
+        self.assertEqual(-180., new_ds.attrs['geospatial_lon_min'])
+        self.assertEqual(+180., new_ds.attrs['geospatial_lon_max'])
+        self.assertEqual(-64.5, new_ds.attrs['geospatial_lat_min'])
+        self.assertEqual(+65.5, new_ds.attrs['geospatial_lat_max'])
+        self.assertEqual(1., new_ds.attrs['geospatial_lon_resolution'])
+        self.assertEqual(1., new_ds.attrs['geospatial_lat_resolution'])

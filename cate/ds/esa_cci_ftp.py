@@ -135,7 +135,7 @@ class FileSetDataSource(DataSource):
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
-        return open_xarray_dataset(existing_paths, monitor=monitor)
+        return open_xarray_dataset(existing_paths, region=region, var_names=var_names, monitor=monitor)
 
     def make_local(self,
                    local_name: str,

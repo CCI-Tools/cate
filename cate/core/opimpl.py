@@ -62,6 +62,7 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
+    ds = _normalize_lon_360(ds)
     ds = normalize_coord_vars(ds)
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
@@ -137,6 +138,61 @@ def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
     ds = ds.assign_coords(lon=np.array(lon_data_1), lat=np.array(lat_data_1))
 
     return ds
+
+
+def _normalize_lon_360(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Fix the longitude of the given dataset ``ds`` so that it ranges from -180 to +180 degrees.
+
+    :param ds: The dataset whose longitudes may be given in the range 0 to 360.
+    :return: The fixed dataset or the original dataset.
+    """
+
+    if 'lon' not in ds.coords:
+        return ds
+
+    lon_var = ds.coords['lon']
+
+    if len(lon_var.shape) != 1:
+        return ds
+
+    lon_size = lon_var.shape[0]
+    if lon_size < 2:
+        return ds
+
+    lon_size_05 = lon_size // 2
+    lon_values = lon_var.values
+    if not np.any(lon_values[lon_size_05:] > 180.):
+        return ds
+
+    delta_lon = lon_values[1] - lon_values[0]
+
+    var_names = [var_name for var_name in ds.data_vars]
+
+    ds = ds.assign_coords(lon=xr.DataArray(np.linspace(-180. + 0.5 * delta_lon,
+                                                       +180. - 0.5 * delta_lon,
+                                                       lon_size),
+                                           dims=ds['lon'].dims,
+                                           attrs=dict(long_name='longitude',
+                                                      standard_name='longitude',
+                                                      units='degrees east')))
+
+    ds = adjust_spatial_attrs_impl(ds, True)
+
+    new_vars = dict()
+    for var_name in var_names:
+        var = ds[var_name]
+        if len(var.dims) >= 1 and var.dims[-1] == 'lon':
+            values = np.copy(var.values)
+            temp = np.copy(values[..., : lon_size_05])
+            values[..., : lon_size_05] = values[..., lon_size_05:]
+            values[..., lon_size_05:] = temp
+            # import matplotlib.pyplot as plt
+            # im = values[(len(values.shape) - 2) * [0] + [slice(None), slice(None)]]
+            # plt.imshow(im)
+            new_vars[var_name] = xr.DataArray(values, dims=var.dims, attrs=var.attrs, encoding=var.encoding)
+
+    return ds.assign(**new_vars)
 
 
 def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
@@ -536,8 +592,11 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
     units_name = 'geospatial_{}_units'.format(var_name)
 
     geo_spatial_attrs = dict()
+    # noinspection PyUnboundLocalVariable
     geo_spatial_attrs[res_name] = float(dim_res)
+    # noinspection PyUnboundLocalVariable
     geo_spatial_attrs[min_name] = float(dim_min)
+    # noinspection PyUnboundLocalVariable
     geo_spatial_attrs[max_name] = float(dim_max)
     geo_spatial_attrs[units_name] = dim_units
 

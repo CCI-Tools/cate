@@ -63,7 +63,6 @@ from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, Var
     GeometryLike
 from cate.util.monitor import Monitor
 
-
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
@@ -171,15 +170,16 @@ class LocalDataSource(DataSource):
         if paths:
             paths = sorted(set(paths))
             try:
-                excluded_variables = self._meta_info.get('exclude_variables', [])
-                ds = open_xarray_dataset(paths, drop_variables=[variable.get('name') for variable in
-                                                                excluded_variables], monitor=monitor)
-                if region:
-                    ds = normalize_impl(ds)
-                    ds = subset_spatial_impl(ds, region)
-                if var_names:
-                    ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-                return ds
+                excluded_variables = self._meta_info.get('exclude_variables')
+                if excluded_variables:
+                    drop_variables = [variable.get('name') for variable in excluded_variables]
+                else:
+                    drop_variables = None
+                # TODO: combine var_names and drop_variables
+                return open_xarray_dataset(paths,
+                                           region=region, var_names=var_names,
+                                           drop_variables=drop_variables,
+                                           monitor=monitor)
             except OSError as e:
                 raise DataAccessError("Cannot open local dataset:\n"
                                       "{}"
