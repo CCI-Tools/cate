@@ -24,7 +24,7 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
 .. _gui_initial:
 
 .. figure:: ../_static/figures/user_manual/gui_initial.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate Desktop initial layout
@@ -46,9 +46,10 @@ reflects what just has been described above with respect to data sources, operat
 
 Other panels are initially hidden. They are
 
-* On the upper left, the **LAYERS** panel, to manage the imagery layers displayed on the active *World view*;
-* On the upper left, the **PLACEMARKS** panel, to manage user-defined placemarks, which may be used as input to
+* On the upper right, the **LAYERS** panel, to manage the imagery layers displayed on the active *World view*;
+* On the upper right, the **PLACEMARKS** panel, to manage user-defined placemarks, which may be used as input to
   various operations, e.g. to create time series plots;
+* On the lower right, the **STYLES** panel, to adjust the styles of the selected layer or entity;
 * On the lower right, the **VIEWS** panel, to display and edit properties of the currently active view. It also allows
   for creating new *World views*;
 * On the lower right, the **TASKS** panel, to list and possibly cancel running background tasks.
@@ -197,8 +198,9 @@ After confirming the dialog, a download task will be started, which can be obser
 Once the download is finished, a notification will be displayed and a new local data source will be available for the
 ``local data store``.
 
-To choose the second option described above, press the **Open** button to open the **Open Remote Dataset** dialog shown
-in :ref:`gui_dialog_open_remote_dataset`.
+To choose the second option described above, press the **Download** button to open the **Download Dataset** dialog, and
+then uncheck **Download and make local data source (allocates space on disk)** as shown in
+:ref:`gui_dialog_open_remote_dataset`.
 
 .. _gui_dialog_open_remote_dataset:
 
@@ -403,7 +405,8 @@ VARIABLES Panel
 ---------------
 
 The **VARIABLES** panel lists the data variables of a selected resource in the **WORKSPACE** panel.
-The list entry shows the variable's name and its data type.
+The list entry shows the variable's name and its data type. When available, the value of each variable of the selected
+layer will be displayed next to its name after placing the mouse cursor at a point on the globe for ~600ms.
 
 The toolbar to the lower right of the list of variables offers the following functions (in order):
 
@@ -445,7 +448,13 @@ The toolbar to the lower right of the layer list offers the following functions 
 * Move selected layer up to render it on top of others
 * Move selected layer down so other layers are rendered on top of it
 
-The **Details** of the **LAYERS** panel lists various layer settings. The vailable settings depend on the type
+The **Details** of the **LAYERS** panel lists several layer settings:
+
+* *Data selection* with this configuration one can quickly browse through the dataset based on the layer index.
+* *Layer split* with this setting, user can create a split line with one side of the line showing the globe with
+  the selected layer and the other side showing only the globe.
+
+The available settings depend on the type
 of the selected layer. For image layers originating from a variable they are for example:
 
 * *Display Range* is the value range to which a given colour map is mapped.
@@ -549,8 +558,7 @@ Preferences Dialog
 On the **General** tab you can specify the following settings:
 
 * Whether to *reopen the last workspace on startup* of Cate
-* The *resource name prefix* which will be used by default for new resources
-  originating from opening datasets or executing operations.
+* Whether to automatically update the software once a newer version is available
 * Whether to *open a plot view for new Figure resources*. If selected and
   a newly created resource is of type ``Figure``, a plot view will be opened automatically.
   Note, ``Figure`` resources are created by operations named ``plot_<type>()``.
@@ -573,8 +581,16 @@ On the **Data Management** tab you can specify the following settings:
   of data required locally.
 * Whether to use a *per-workspace imagery cache* which may speed up image display performance.
   The cache is placed in each workspace directory and requires extra (disk) space.
+* The *resource name prefix* which will be used by default for new resources
+  originating from opening datasets or executing operations.
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+   :scale: 100 %
+   :align: center
+
+On the **Proxy Configuration** tab you can specify the proxy URL if required.
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
    :scale: 100 %
    :align: center
 

@@ -61,6 +61,7 @@ Create a new workspace.
 .. code-block:: console
 
     $ cate ws new
+    cate-webapi: started service, listening on localhost:49836
     Workspace created.
 
 Open the desired datasets, by providing their name and desired time-span.
@@ -68,11 +69,13 @@ Open the desired datasets, by providing their name and desired time-span.
 .. code-block:: console
 
     $ cate res open cl07 esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.ATSR2-AATSR.2-0.r1
+    Opening dataset: done
     Resource "cl07" set.
 
 .. code-block:: console
 
     $ cate res open oz07 esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1 2007-01-01 2007-12-30
+    Opening dataset: done
     Resource "oz07" set.
 
 
@@ -110,7 +113,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
     Operation 'plot_map' executed.
 
 .. figure:: _static/quick_start/fig1.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 .. code-block:: console
@@ -120,7 +123,7 @@ We can plot the datasets and save the plots using the ``plot_map`` operation:
     Operation 'plot_map' executed.
 
 .. figure:: _static/quick_start/fig2.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 
@@ -176,26 +179,31 @@ To find out more about a particular operation, use ``cate op info``
     $ cate op info coregister
 
     Operation cate.ops.coregistration.coregister
-    ===========================================
+    ============================================
 
     Perform coregistration of two datasets by resampling the slave dataset unto the
     grid of the master. If upsampling has to be performed, this is achieved using
     interpolation, if downsampling has to be performed, the pixels of the slave dataset
     are aggregated to form a coarser grid.
 
-    This operation works on datasets whose spatial dimensions are defined on global,
+    The returned dataset will contain the lat/lon intersection of provided
+    master and slave datasets, resampled unto the master grid frequency.
+
+    This operation works on datasets whose spatial dimensions are defined on
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
     define the middle of a pixel and pixels have the same size across the dataset.
 
     This operation will resample all variables in a dataset, as the lat/lon grid is
-    defined per dataset. It works only if all variables in the dataset have (time/lat/lon)
-    dimensions.
+    defined per dataset. It works only if all variables in the dataset have lat
+    and lon as dimensions.
 
     For an overview of downsampling/upsampling methods used in this operation, please
     see https://github.com/CAB-LAB/gridtools
 
     Whether upsampling or downsampling has to be performed is determined automatically
     based on the relationship of the grids of the provided datasets.
+
+    Version: 1.1
 
     Inputs:
       ds_master (Dataset)
@@ -214,6 +222,7 @@ To find out more about a particular operation, use ``cate op info``
     Output:
       return (Dataset)
           The slave dataset resampled on the grid of the master
+          add history: True
 
 To carry out coregistration, use ``cate res set`` again with appropriate operation parameters
 
@@ -259,7 +268,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
     Operation 'plot_map' executed.
 
 .. figure:: _static/quick_start/fig4.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 .. code-block:: console
@@ -269,7 +278,7 @@ To filter the datasets to contain only a particular region use the ``subset_spat
     Operation 'plot_map' executed.
 
 .. figure:: _static/quick_start/fig5.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 
@@ -318,7 +327,7 @@ To plot the time-series and save the ``plot`` operation can be used together wit
     Operation 'plot' executed.
 
 .. figure:: _static/quick_start/fig6.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 .. code-block:: console
@@ -328,7 +337,7 @@ To plot the time-series and save the ``plot`` operation can be used together wit
     Operation 'plot' executed.
 
 .. figure:: _static/quick_start/fig7.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 
@@ -341,9 +350,9 @@ To carry out a product-moment correlation on the mean time-series, the ``pearson
 .. code-block:: console
 
     $ cate op list --tag correlation
-    One operation found
-       1: pearson_correlation_scalar
-       2: pearson_correlation
+    2 operations found
+      0: pearson_correlation
+      1: pearson_correlation_scalar
 
 .. code-block:: console
 
@@ -381,7 +390,7 @@ probability values, one can use ``pearson_correlation``:
     Operation 'plot_map' executed.
 
 .. figure:: _static/quick_start/fig8.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 
