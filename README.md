@@ -150,7 +150,7 @@ Other recognized environment variables to customize the unit-level tests are
 ### Generating the Documentation
 
 We use the wonderful [Sphinx](http://www.sphinx-doc.org/en/stable/rest.html) tool to generate 
-Cate's documentation on [ReadTheDocs](http://ect-core.readthedocs.io/en/latest/?badge=latest). 
+Cate's documentation on [ReadTheDocs](https://cate.readthedocs.io/en/latest/index.html). 
 If there is a need to build the docs locally, some 
 additional software packages are required:
 
