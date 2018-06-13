@@ -25,7 +25,7 @@ Cate comprises three major software interfaces:
 
 
 .. figure:: _static/figures/about-gui.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate Desktop, this is GUI of the CCI Toolbox
@@ -36,7 +36,7 @@ Cate comprises three major software interfaces:
    automation.
 
 .. figure:: _static/figures/about-cli.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate CLI, this is the CLI of the CCI Toolbox
