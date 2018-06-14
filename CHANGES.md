@@ -2,6 +2,11 @@
 
 * Added colour mapping defaults for CCI Sea Level data.
 * Extended max. table size to 10000 elements (workaround).
+* Updated documentation:
+  * Replaced references to Cate 1.0 to Cate 2.0
+  * Updated the figures with the ones generated with the Cate 2.0.0
+  * Added a new Styles Panel section
+  * Updated Placemarks Panel to include information on how to generate a polyline, polygon, and box
 
 ## Version 2.0.0.dev12
 
