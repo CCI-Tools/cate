@@ -125,6 +125,7 @@ Index
 * :ref:`variables_panel`
 * :ref:`placemarks_panel`
 * :ref:`layers_panel`
+* :ref:`styles_panel`
 * :ref:`view_panel`
 * :ref:`tasks_panel`
 * :ref:`preferences_dialog`
@@ -468,27 +469,77 @@ The **Details** of the **LAYERS** panel lists several layer settings:
 PLACEMARKS Panel
 ----------------
 
-This panel manages a list of placemarks - points that have a name and a geographical coordinate.
-Placemarks can be used to create time series plots and to extract data at a given point. The toolbar
+This panel manages a list of placemarks - points, lines, polygons, or boxes that have a name and a geographical coordinate.
+Placemarks can be used to create time series plots and to extract data at a given point or area. The toolbar
 to the lower right of the list of placemarks offers the following functions (in order):
 
-* Click a point on the 3D globe view to add a new placemark
-* Add a new placemark
+* Add a new marker
+* Add a new polyline
+* Add a new polygon
+* Add a new box
 * Remove a selected placemark
+* Locate the selected placemark on the map
 * Copy name and/or coordinates of selected placemark to clipboard
 
-In the **Details** of the **PLACEMARKS** panel you can change the selected placemark's name and coordinates.
-Coordinates are given as longitude/latitude pair.
+In addition to these buttons, there is also a Details toggle button to display or allow modification of the selected
+placemark. What can be modified depends on which type of placemark is selected.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks.png
+To add **a new marker**, click the first (left-most) button, and then click any point on the Globe. A new entry is
+added to the list of placemarks in Placemarks Panel. When the Details toggle is enabled, you can modify the
+name and coordinates (in longitude and latitude) of this marker.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_marker.png
+   :width: 1024px
    :scale: 100 %
    :align: center
 
-   Placemarks Panel
+   Placemarks Panel - Marker details
+
+To add *a new polyline*, click the second left-most button. Click a point in the Globe to start the line, and then click
+the next n-lines as you wish. To finish, double-click at your final point. When the Details toggle is enabled, you can
+modify the name of this polyline.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_line.png
+   :width: 1024px
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel - Polyline details
+
+To add *a new polygon*, click the third left-most button. As when creating a polyline, click a point in the Globe to
+start the line, and then click the next n-lines as you wish. To finish, double-click at your final point.  When the
+Details toggle is enabled, you can modify the name of this polyline.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_polygon.png
+   :width: 1024px
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel - Polygon details
+
+To add *a new polygon*, click the fourth left-most button. To start, click a point in the Globe. This will be one of the
+vertices of the box you are going to create. Drag it to satisfy the region you desire, and click once more to confirm
+the box selection.  When the Details toggle is enabled, you can modify the name of this box.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_box.png
+   :width: 1024px
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel - Polygon details
 
 
 The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
 and restored for every Cate Desktop session.
+
+To *copy the selected placemark to clipboard*, click the right-most button. There are three options how the selected
+placemark can be represented in three different formats: CSV, WKT, and GeoJSON.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_copy.png
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel - Copy to clipboards
 
 .. _styles_panel:
 
