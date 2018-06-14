@@ -2,7 +2,7 @@
 Cate Desktop (GUI)
 ==================
 
-*Applies to Cate Desktop, version 0.9.0.dev7*
+*Applies to Cate Desktop, version 2.0.0-dev13*
 
 Overview
 ========
@@ -302,7 +302,7 @@ This will exchange the input field by a resource selector.
 .. _gui_dialog_new_op_step:
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    New Operation Step dialog
@@ -454,18 +454,6 @@ The **Details** of the **LAYERS** panel lists several layer settings:
 * *Layer split* with this setting, user can create a split line with one side of the line showing the globe with
   the selected layer and the other side showing only the globe.
 
-The available settings depend on the type
-of the selected layer. For image layers originating from a variable they are for example:
-
-* *Display Range* is the value range to which a given colour map is mapped.
-* *Colour bar* is applied to gridded variables.
-* *Alpha Blending* is used to mask/fade out the lower half of the display range.
-  With *Alpha Blending* switched on, the minimum value of the display range corresponds to full transparency while
-  opacity increases until half of the display range is reached.
-* For any extra dimension of a variable that is not latitude and longitude, an *Index into <Dimension>* slider is
-  displayed and can be used to selected the dimension's index to be displayed as layer.
-* The *Opacity* controls the opacity of the selected layer
-* Various *Image Enhancement* settings, like *Brightness*, * Contrast*, *Hue*.
 
 .. figure:: ../_static/figures/user_manual/gui_panel_layers.png
    :scale: 100 %
@@ -501,6 +489,47 @@ Coordinates are given as longitude/latitude pair.
 
 The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
 and restored for every Cate Desktop session.
+
+.. _styles_panel:
+
+------------
+STYLES Panel
+------------
+
+This panel manages styles that can be applied to the selected layer. It has two different modesdepending on whether an
+image or a vector layer is selected. Here are the available settings for a vector layer:
+
+* *Fill* controls the fill colour and the opacity of a polygon or a box.
+* *Stroke* controls the width, colour, and opacity of the lines surrounding the polygon or the box.
+* *Marker* controls the colour, size, and caption of the placemark. The symbol can be either a single digit of number,
+  a letter, or any valid **Maki** identifier (more information `here <https://www.mapbox.com/maki-icons/>`_)
+
+.. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
+   :width: 1024px
+   :scale: 100 %
+   :align: center
+
+   Styles Panel for styling a placemark
+
+.. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
+   :width: 1024px
+   :scale: 100 %
+   :align: center
+
+   Styles Panel for styling a polygon/box
+
+And here are the available settings for an image layer:
+
+* *Display Range* is the value range to which a given colour map is mapped.
+* *Colour bar* is applied to gridded variables.
+* *Alpha Blending* is used to mask/fade out the lower half of the display range.
+  With *Alpha Blending* switched on, the minimum value of the display range corresponds to full transparency while
+  opacity increases until half of the display range is reached.
+* For any extra dimension of a variable that is not latitude and longitude, an *Index into <Dimension>* slider is
+  displayed and can be used to selected the dimension's index to be displayed as layer.
+* The *Opacity* controls the opacity of the selected layer
+* Various *Image Enhancement* settings, like *Brightness*, * Contrast*, *Hue*.
+
 
 .. _view_panel:
 
@@ -588,11 +617,13 @@ On the **Data Management** tab you can specify the following settings:
    :scale: 100 %
    :align: center
 
+   Preferences Dialog / Data Management
+
 On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
    :scale: 100 %
    :align: center
 
-   Preferences Dialog / Data Management
+   Preferences Dialog / Proxy Configuration
 
