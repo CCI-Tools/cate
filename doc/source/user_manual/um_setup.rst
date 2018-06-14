@@ -29,7 +29,7 @@ Installation
 
 Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
 web page at `cci-tools.github.io <https://cci-tools.github.io/>`_
-or on Cate's release page on `GitHub <https://github.com/CCI-Tools/cate/releases>`_.
+or on Cate's release page on `GitHub <https://github.com/CCI-Tools/cate-desktop/releases>`_.
 
 We provide two Cate installers for *Cate Core* and *Cate Desktop*, Cate's graphical user interface.
 Note that *Cate Desktop* cannot be run without *Cate Core* installed. This may change in the future.
@@ -56,7 +56,7 @@ When you run the installer on Windows, make sure you un-check **Add Anaconda to 
 Otherwise the Anaconda Python distribution used by the Cate would become your system's default Python.
 
 .. figure:: ../_static/figures/installer-win.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
 
