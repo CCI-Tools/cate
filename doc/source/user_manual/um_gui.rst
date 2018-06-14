@@ -506,14 +506,12 @@ image or a vector layer is selected. Here are the available settings for a vecto
 
 .. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
    Styles Panel for styling a placemark
 
 .. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
    Styles Panel for styling a polygon/box
