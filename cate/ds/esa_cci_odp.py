@@ -824,7 +824,7 @@ class EsaCciOdpDataSource(DataSource):
         except OSError as e:
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         except ValueError as e:
-            raise ValidationError("Copying remote data source failed: {}".format(e), source=self) from e
+            raise ValidationError("Copying remote data source failed: {}".format(e)) from e
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)

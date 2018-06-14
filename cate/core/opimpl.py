@@ -704,13 +704,13 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     lon_min, lat_min, lon_max, lat_max = extents
 
-    # Validate the bounding box
     if (not (-90 <= lat_min <= 90)) or \
             (not (-90 <= lat_max <= 90)) or \
             (not (-180 <= lon_min <= 180)) or \
             (not (-180 <= lon_max <= 180)):
         raise ValueError('Provided polygon extends outside of geospatial'
-                         ' bounds: latitude [-90;90], longitude [-180;180]')
+                         '\nbounds : latitude [-90;90], longitude [-180;180]'
+                         f'\nrequest: latitude [{lat_min};{lat_max}], longitude[{lon_min};{lon_max}]')
 
     # Don't do the computationally intensive masking if the provided
     # region is a simple box-polygon, for which there will be nothing to
