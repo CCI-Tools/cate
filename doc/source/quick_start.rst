@@ -2,12 +2,13 @@
 Quick Start
 ===========
 
-This section provides a quick start into the CCI Toolbox by demonstrating how a particular climate use case
+This section provides a quick start into Cate by demonstrating how a particular climate use case
 is performed.
 
-Refer to the :doc:`user_manual` for installing the CCI Toolbox.
+Refer to the :doc:`user_manual` for installing the Cate.
 
-The use case describes a climate scientist wishing to analyse potential correlations between the geophysical quantities *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
+The use case describes a climate scientist wishing to analyse potential correlations between the geophysical
+quantities *Ozone Mole Content* and *Cloud Coverage* in a certain region (see use case description for
 :ref:`uc_09`). It requires the toolbox to do the following:
 
 * Access to and ingestion of ESA CCI Ozone and Cloud data (Atmosphere Mole Content of Ozone and Cloud Cover)
@@ -20,7 +21,7 @@ The use case describes a climate scientist wishing to analyse potential correlat
 Using the CLI
 =============
 
-In the following, a demonstration is given how the use case described above is performed using the CCI Toolbox'
+In the following, a demonstration is given how the use case described above is performed using the Cate's
 :doc:`user_manual/um_cli`.
 
 -----------------
