@@ -9,8 +9,7 @@ Configuration
 Configuration file
 ------------------
 
-Cate's configuration settings are read from ``~/.cate/conf.py``, where ``~`` is the current user's
-home directory.
+Cate's configuration settings are read from ``.cate/conf.py`` located in the current user's home directory.
 
 Given here is an overview of the possible configuration settings:
 
@@ -30,7 +29,7 @@ Given here is an overview of the possible configuration settings:
     cache for imagery generated from dataset variables. Such cache can accelerate
     image display, however at the cost of disk space.
 
-:``default_res_pattern:``:
+:``default_res_pattern``:
     Default prefix for names generated for new workspace resources originating from opening data sources
     or executing workflow steps.
     This prefix is used only if no specific prefix is defined for a given operation.

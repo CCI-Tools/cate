@@ -12,7 +12,7 @@ or compatible Cate Python package, it will install a new or update an existing o
 
 If you only want the Cate CLI or API, you can install just the Python package into a dedicated
 `Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda <https://www.anaconda.com/download/>`_ Python 3
-environment. In this case, please read :ref:`_setup_install_cate_py_package`.
+environment. In this case, please read :ref:`setup_install_cate`.
 
 System Requirements
 ===================
@@ -28,8 +28,8 @@ in order to cache it locally.
 
 .. _setup_install_cate_desktop:
 
-Installing Cate Desktop
-=======================
+Installing Cate Desktop (GUI)
+=============================
 
 
 First time installs
@@ -114,10 +114,10 @@ The auto-update feature of Cate Desktop can be disabled in the **Preferences**:
    Preferences Dialog / General
 
 
-.. _setup_install_cate_py_package:
+.. _setup_install_cate:
 
-Installing Cate (Python package)
-================================
+Installing Cate (CLI, API)
+==========================
 
 First time installs
 -------------------
