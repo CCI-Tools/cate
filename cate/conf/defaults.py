@@ -98,6 +98,7 @@ DEFAULT_VARIABLES = {
     'O3_du_tot',                # esacci.OZONE.*.L3.NP.*
     'atmosphere_mole_content_of_ozone',  # esacci.OZONE.*.L3S.TC.*
     'Rrs_490',                  # esacci.OC.*.L3S.RRS.*
+    'local_msl_trend',          # esacci.SEALEVEL.*.IND.MSL.*
     'sm',                       # esacci.SOILMOISTURE.*.L3S.SSMS.*
     'sea_surface_temperature',  # esacci.SST.*.L3U.SSTskin.*
     'analysed_sst',             # esacci.SST.*.L4.SSTdepth.*

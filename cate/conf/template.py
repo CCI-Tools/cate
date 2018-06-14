@@ -67,9 +67,8 @@ excluded_ds_ids = [
 ]
 
 
-# Configure any default variables of a dataset that will be initially selected and displayed first.
-# 'default_display_variables' is a list comprising variable name sets. Each set may represent
-# multiple similar datasets.
+# Configure names of variables that will be initially selected once a new
+# dataset resource is opened in the GUI.
 # default_variables = {
 #     'cfc',             # Cloud CCI
 #     'lccs_class',      # Land Cover CCI
