@@ -70,3 +70,7 @@ cate/bin
 .mypy_cache/
 .vscode
 .pytest_cache/
+
+# Test outputs
+
+pytest-service-info.json
