@@ -303,7 +303,7 @@ This will exchange the input field by a resource selector.
 .. _gui_dialog_new_op_step:
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
-   :width: 1024px
+   :scale: 100 %
    :align: center
 
    New Operation Step dialog
@@ -317,10 +317,10 @@ The new *workflow step* and the new *resource*, if any, are shown in the **WORKS
 .. _gui_dialog_new_op_step_applied:
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step_applied.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
-   New Operation Step dialog
+   New Operation Step in WORKSPACE Panel
 
 
 .. note::
