@@ -51,7 +51,7 @@ def cate_init():
 from .select import select_var
 from .coregistration import coregister
 from .correlation import pearson_correlation_scalar, pearson_correlation
-from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs, fix_lon_360
+from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs
 from .io import (open_dataset, save_dataset, read_object, write_object,
                  read_text, write_text, read_json, write_json, read_csv,
                  read_geo_data_frame, read_netcdf, write_netcdf3, write_netcdf4)
