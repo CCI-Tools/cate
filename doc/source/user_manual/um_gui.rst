@@ -303,7 +303,7 @@ This will exchange the input field by a resource selector.
 .. _gui_dialog_new_op_step:
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    New Operation Step dialog
@@ -490,7 +490,6 @@ name and coordinates (in longitude and latitude) of this marker.
 
 .. figure:: ../_static/figures/user_manual/gui_panel_placemarks_marker.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
    Placemarks Panel - Marker details
@@ -501,7 +500,6 @@ is enabled, you can modify the name of this polyline.
 
 .. figure:: ../_static/figures/user_manual/gui_panel_placemarks_line.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
    Placemarks Panel - Polyline details
@@ -512,7 +510,6 @@ point.  When the Details toggle is enabled, you can modify the name of this poly
 
 .. figure:: ../_static/figures/user_manual/gui_panel_placemarks_polygon.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
    Placemarks Panel - Polygon details
@@ -523,10 +520,9 @@ once more to confirm the box selection.  When the Details toggle is enabled, you
 
 .. figure:: ../_static/figures/user_manual/gui_panel_placemarks_box.png
    :width: 1024px
-   :scale: 100 %
    :align: center
 
-   Placemarks Panel - Polygon details
+   Placemarks Panel - Box details
 
 
 The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
