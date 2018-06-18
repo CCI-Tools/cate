@@ -2,7 +2,7 @@
 Cate Desktop (GUI)
 ==================
 
-*Applies to Cate Desktop, version 2.0.0-dev13*
+*Applies to Cate Desktop, version 2.0.0-dev14*
 
 Overview
 ========

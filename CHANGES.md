@@ -1,13 +1,18 @@
-## Version 2.0.0.dev13 (in development)
+## Version 2.0.0.dev14 (in development)
 
+* ESA sea-level data not correctly displayed [#661](https://github.com/CCI-Tools/cate/issues/661)
 * Added colour mapping defaults for CCI Sea Level data.
 * Extended max. table size to 10000 elements (workaround).
-* Updated user manual:
+* User Guide Improvements and Updates [#409](https://github.com/CCI-Tools/cate/issues/409):
   * Replaced references to Cate 1.0 to Cate 2.0 and updated most of figures
   * Rewrote section about setup including installation and configuration
   * Added a new section about the new **STYLES** panel 
   * Updated section about **PLACES** panel to include information on how to generate a polyline, polygon, and box
   * Updated section about **LAYERS** panel to describe its new elements
+
+## Version 2.0.0.dev13
+
+*Skipped.*
 
 ## Version 2.0.0.dev12
 
