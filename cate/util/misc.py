@@ -139,15 +139,50 @@ def fetch_std_streams():
         sys.stderr = old_stderr
 
 
-def collapse_dimension(dim_val, precision = 1):
-    m = round(min(dim_val), precision)
-    M = round(max(dim_val), precision)
-    p = precision / 10.0
-    s = int(round(M - m) / p)
-    r = np.zeros((len(dim_val), ), dtype=np.int32)
-    for i in range(len(dim_val)):
-        r[i] = int(round(dim_val[i] - m, 1) / p)
-    return (r, m, M, p, s)
+def collapse_dimension(dim_val, precision=1):
+    """
+    return :
+    idx = array of index relative to the collapsed array dim_val.
+          for each element i od dim_val its index in the new collapsed
+          array is dim_val[i] -> reduced[idx[i]]
+    len = size of the collapsed output
+    reduced = reduced output
+    """
+    P = 10.0 ** precision
+
+    m = dim_val.min()
+    idx = (dim_val - m) * P
+    idx = idx.astype(int)
+
+    s = idx.max() + 1
+    p = 1.0 / P
+    o = np.array([m + (i * p) for i in range(s)])
+    return ({'index': idx, 'len': s, 'reduced': o})
+
+
+def map_dimensions(lat_idx, lon_idx, value_in, out_shape):
+    """
+    :param lat_idx: array containing the new index which map each value_in element
+                    into the target one
+    :param lon_idx:
+    :param value_in: input values array
+    :param out_shape: the shpae ot target array
+    :return: a reduced array of out_shape dimesion filled with the mean of the values
+             from value_in mapped into the target. More values could be mappaed in yhe same
+             location thus we use the mean.
+    """
+    ll = np.array([lat_idx, lon_idx])
+    i = np.ravel_multi_index(ll, out_shape)
+
+    B = value_in.flatten()
+    A = np.zeros(out_shape).flatten()
+    C = np.bincount(i)
+    D = np.zeros(A.shape)
+    D[:C.shape[0]] = C
+    np.add.at(A, i, B)
+    A = np.divide(A, D)
+    A = np.reshape(A, out_shape)
+    return A
 
 
 def encode_url_path(path_pattern: str, path_args: dict = None, query_args: dict = None) -> str:

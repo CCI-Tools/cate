@@ -94,7 +94,7 @@ import xarray as xr
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from ..util.monitor import Monitor
-from ..util.misc import collapse_dimension
+from ..util.misc import collapse_dimension, map_dimensions
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
@@ -477,82 +477,89 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
 
 def open_geotiff(data_file: str,
                  normalize: bool = False,
+                 precision: int = 2,
                  monitor: Monitor = Monitor.NONE) -> Any:
+    """
+    open and optionally normalize a geo tiff file
 
+    :param data_file. full pathname of geo tiff file to open
+    :param normalize. optional mark to normalize the image according to cate data format
+                    necessary to be plotted on the globe
+    :param precision. normalization phase reduce the size of the image up to a certain
+                    number of decimals. Precision parameter specify this number.
+    """
     try:
         dg = gdal.Open(data_file)
-        proj = osr.SpatialReference(wkt = dg.GetProjection())
-        proj.AutoIdentifyEPSG()
-        epsg = proj.GetAttrValue('AUTHORITY', 1)
+        proj = osr.SpatialReference(wkt=dg.GetProjection())
+        epsg = proj.AutoIdentifyEPSG()
+
+        if epsg == 0:
+            epsg = proj.GetAttrValue('AUTHORITY', 1)
+            crs = '+init=epsg:' + str(epsg)
+        else:
+            crs = proj.ExportToProj4()
+
         gt = dg.GetGeoTransform()
         forward_transform = affine.Affine.from_gdal(*gt)
-        X = [(forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasetrXSize)]
-        Y = [(forward_transform * (0, i + 0.5))[1] for i in range(dg.RasetrYSize)]
+        X = [(forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasterXSize)]
+        Y = [(forward_transform * (0, i + 0.5))[1] for i in range(dg.RasterYSize)]
         bands = []
         for b_idx in range(1, dg.RasterCount + 1):
             band = dg.GetRasterBand(b_idx)
-            data = band.ReadAsArray(0, 0, dg.RasetrXSize, dg.RasterYsize)
+            data = band.ReadAsArray(0, 0, dg.RasterXSize, dg.RasterYSize)
             bands.append(data)
 
-        bands_arr = np.array(bands)
-        da = xr.DataArray(bands_arr,
-                          dims = ('band', 'y', 'x'),
-                          coords = {'band': list(range(1, dg.RasterCount + 1)),
-                                    'y': Y,
-                                    'x': X},
-                          attrs = {'tranform': gt,
-                                   'res': (gt[1], -gt[5]),
-                                   'crs': '+init=epsg:' + epsg})
+        attrs = {'tranform': gt,
+                 'res': (gt[1], -gt[5]),
+                 'crs': crs}
+
+        if not normalize:
+            da = xr.DataArray(bands,
+                              dims=('band', 'y', 'x'),
+                              coords={'band': list(range(1, dg.RasterCount + 1)),
+                                      'y': Y,
+                                      'x': X},
+                              attrs=attrs)
+
+        else:
+            total_w = dg.RasterCount + 4
+            monitor.starting('Projection transformation', total_work=total_w)
+
+            srcProj = Proj(crs)
+            tgtProj = Proj(init='epsg:4326')
+            x, y = np.meshgrid(X, Y)
+            lon, lat = transform(srcProj, tgtProj, x.flatten(), y.flatten())
+
+            monitor.progress(work=1, msg='Collapse longitude dimension')
+            # reduce the dimension removing duplicated point
+            lon_z = collapse_dimension(lon, precision=precision)
+
+            monitor.progress(work=2, msg='Collapse latitude dimension')
+            lat_z = collapse_dimension(lat, precision=precision)
+
+            r_shape = (lat_z['len'], lon_z['len'])
+
+            # build map grid for each band values (compute avarage on stream)
+            # the averange of the stream a, b, c is at each step
+            # with x = previous avg value
+            #      y = step
+            #      z = new incoming value
+            # avg = xy + z / y + 1
+            bands_map = []
+            for b_idx in range(len(bands)):
+                monitor.progress(work=2 + b_idx, msg='Band {} Projection'.format(b_idx))
+                b = map_dimensions(lat_z['index'], lon_z['index'], bands[b_idx], r_shape)
+                bands_map.append(b)
+
+            monitor.progress(work=total_w, msg='Build Data Source')
+            da = xr.DataArray(bands_map,
+                              dims=('band', 'lat', 'lon'),
+                              coords={'lat': lat_z['reduced'],
+                                      'lon': lon_z['reduced']},
+                              attrs=attrs)
+
     except Exception as e:
         raise e
-
-    if normalize:
-
-        total_w = da.sizes['band'] + 3
-        monitor.starting('Projection transformation', total_work=total_w)
-
-        x, y = np.meshgrid(da['x'], da['y'])
-        srcProj = Proj(da.crs)
-        tgtProj = Proj(init = 'epsg:4326')
-        lon, lat = transform(srcProj, tgtProj, x.flatten(), y.flatten())
-
-        monitor.progress(work=1, msg='Collapse dimension')
-        # reduce the dimension removing duplicated point
-        lon_z = collapse_dimension(lon)
-        lat_z = collapse_dimension(lat)
-        lon_dim, lat_dim = lon_z[0], lat_z[0]
-        lon_size, lat_size = lon_z[4], lat_z[4]
-
-        # build map grid for each band values (compute avarage on stream)
-        # the averange of the stream a, b, c is at each step
-        # with x = previous avg value
-        #      y = step
-        #      z = new incoming value
-        # avg = xy + z / y + 1
-        b = np.empty((da.sizes['band'], lon_size, lat_size,))
-        b.fill(np.nan)
-        for b_idx in range(da.sizes['band']):
-            monitor.progress(work = 2 + b_idx, msg='Band {} Projection'.format(b_idx))
-            b_val = da.values[b_idx, :, :].flatten()
-            count = np.zeros((lon_size, lat_size, ), dtype = np.int32)
-            for v_idx in range(len(b_val)):
-                lat_p, lon_p = (lat_dim[v_idx], lon_dim[v_idx])
-                av = b[b_idx, lon_p, lat_p]
-                av = 0.0 if np.isnan(av) else av
-                v = b_val[v_idx]
-                cnt = count[lon_p, lat_p]
-                bv = ((av * cnt) + v) / (cnt + 1)
-                b[b_idx, lon_p, lat_p] = bv
-                count[lon_p, lat_p] = cnt + 1
-
-        monitor.progress(work=total_w, msg='Build Data Source')
-        lon_dim = np.linspace(lon_z[1], lon_z[2], lon_z[4])
-        lat_dim = np.linspace(lat_z[1], lat_z[2], lat_z[4])
-        da = xr.DataArray(b,
-                          dims = ('band', 'lon', 'lat'),
-                          coords = {'lon': lon_dim,
-                                    'lat': lat_dim},
-                          attrs= da.attrs)
 
     da = da.to_dataset('band')
     rename_vars = dict()
