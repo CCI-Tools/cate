@@ -490,6 +490,10 @@ def open_geotiff(data_file: str,
     """
     try:
         dg = gdal.Open(data_file)
+
+        if dg is None:
+            raise DataAccessError(f'Cannot open file {data_file}')
+
         proj = osr.SpatialReference(wkt=dg.GetProjection())
         epsg = proj.AutoIdentifyEPSG()
 
