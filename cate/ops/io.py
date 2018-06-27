@@ -161,14 +161,12 @@ def read_text(file: str, encoding: str = None) -> str:
 @op(tags=['input'], res_pattern='ds_{index}')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='GeoTIFF', extensions=['tiff', 'tif']), _ALL_FILE_FILTER])
 @op_input('normalize')
-@op_input('precision')
 def read_geo_tiff(file: str,
                   normalize: bool = False,
-                  precision: int = 2,
                   monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     import cate.core.ds
-
-    return cate.core.ds.open_geotiff(file, normalize, precision, monitor)
+    # cate globe allow a maximun of two decimal point
+    return cate.core.ds.open_geotiff(file, normalize, 2, monitor)
 
 
 @op(tags=['output'], no_cache=True)
