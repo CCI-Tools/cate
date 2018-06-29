@@ -558,7 +558,8 @@ def open_geotiff(data_file: str,
             monitor.progress(work=total_w, msg='Build Data Source')
             da = xr.DataArray(bands_map,
                               dims=('band', 'lat', 'lon'),
-                              coords={'lat': lat_z['reduced'],
+                              coords={'band': list(range(1, len(bands_map) + 1)),
+                                      'lat': lat_z['reduced'],
                                       'lon': lon_z['reduced']},
                               attrs=attrs)
 
