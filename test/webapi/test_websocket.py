@@ -86,7 +86,7 @@ class WebSocketServiceTest(unittest.TestCase):
                                                               res_name='ds',
                                                               var_name='temperature',
                                                               var_index=[0])
-        self.assertAlmostEqual(stat['min'], -0.9)
+        self.assertAlmostEqual(stat['min'], 5.1)
         self.assertAlmostEqual(stat['max'], 26.2)
 
     def test_get_resource_values(self):
