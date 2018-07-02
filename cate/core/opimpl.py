@@ -66,6 +66,7 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = normalize_coord_vars(ds)
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
+    ds = _normalize_dim_order(ds)
     return ds
 
 
@@ -289,12 +290,7 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     :param ds: Dataset to adjust
     :return: Adjusted dataset
     """
-    has_time = 'time' in ds.coords or 'time' in ds
-    if has_time:
-        return ds
-
     time_coverage_start = ds.attrs.get('time_coverage_start')
-    time_coverage_end = ds.attrs.get('time_coverage_end')
     if time_coverage_start is not None:
         # noinspection PyBroadException
         try:
@@ -302,6 +298,7 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
         except BaseException:
             pass
 
+    time_coverage_end = ds.attrs.get('time_coverage_end')
     if time_coverage_end is not None:
         # noinspection PyBroadException
         try:
@@ -312,6 +309,22 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
         return ds
+
+    if 'time' in ds:
+        time = ds.time
+        if not time.dims:
+            ds = ds.drop('time')
+        elif len(time.dims) == 1:
+            time_dim_name = time.dims[0]
+            is_time_used_as_dim = any([(time_dim_name in ds[var_name].dims) for var_name in ds.data_vars])
+            if is_time_used_as_dim:
+                # It seems we already have valid time coordinates
+                return ds
+            time_bnds_var_name = time.attrs.get('bounds')
+            if time_bnds_var_name in ds:
+                ds = ds.drop(time_bnds_var_name)
+            ds = ds.drop('time')
+            ds = ds.drop([var_name for var_name in ds.coords if time_dim_name in ds.coords[var_name].dims])
 
     if time_coverage_start or time_coverage_end:
         # noinspection PyBroadException
@@ -768,8 +781,8 @@ def subset_spatial_impl(ds: xr.Dataset,
             (not (-90 <= lat_max <= 90)) or \
             (not (-180 <= lon_min <= 180)) or \
             (not (-180 <= lon_max <= 180)):
-        raise ValueError('Provided polygon extends outside of geospatial'
-                         ' bounds: latitude [-90;90], longitude [-180;180]')
+        raise ValidationError('Provided polygon extends outside of geo-spatial bounds.'
+                              ' Latitudes should be from -90 to 90 and longitudes from -180 to 180 degrees.')
 
     # Don't do the computationally intensive masking if the provided
     # region is a simple box-polygon, for which there will be nothing to
@@ -984,3 +997,44 @@ def subset_temporal_index_impl(ds: xr.Dataset,
     time_slice = slice(time_ind_min, time_ind_max + 1)
     indexers = {'time': time_slice}
     return ds.isel(**indexers)
+
+
+def _normalize_dim_order(ds: xr.Dataset) -> xr.Dataset:
+
+    copy_created = False
+
+    for var_name in ds.data_vars:
+        var = ds[var_name]
+        dim_names = list(var.dims)
+        num_dims = len(dim_names)
+        if num_dims == 0:
+            continue
+
+        must_transpose = False
+
+        if 'time' in dim_names:
+            time_index = dim_names.index('time')
+            if time_index > 0:
+                must_transpose = _swap_pos(dim_names, time_index, 0)
+
+        if num_dims >= 2 and 'lat' in dim_names and 'lon' in dim_names:
+            lat_index = dim_names.index('lat')
+            if lat_index != num_dims - 2:
+               must_transpose = _swap_pos(dim_names, lat_index, -2)
+            lon_index = dim_names.index('lon')
+            if lon_index != num_dims - 1:
+                must_transpose = _swap_pos(dim_names, lon_index, -1)
+
+        if must_transpose:
+            if not copy_created:
+                ds = ds.copy()
+                copy_created = True
+            ds[var_name] = var.transpose(*dim_names)
+
+    return ds
+
+
+def _swap_pos(lst, i1, i2):
+    e1, e2 = lst[i1], lst[i2]
+    lst[i2], lst[i1] = e1, e2
+    return True

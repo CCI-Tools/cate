@@ -146,8 +146,8 @@ class TestNormalize(TestCase):
         ds.time.attrs['long_name'] = 'time in julian days'
 
         expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
-            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+            'first': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'second': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
             'time': [datetime(2000, x, 1) for x in range(1, 13)]})
@@ -709,8 +709,10 @@ class TestNormalizeMissingTime(TestCase):
         new_ds = normalize_missing_time(ds)
         self.assertIs(ds, new_ds)
 
-    def test_fix_360_lon(self):
 
+class Fix360Test(TestCase):
+
+    def test_fix_360_lon(self):
         # The following simulates a strangely geo-coded soil moisture dataset
         # we found at ...
         #
@@ -746,3 +748,60 @@ class TestNormalizeMissingTime(TestCase):
         self.assertEqual(+65.5, new_ds.attrs['geospatial_lat_max'])
         self.assertEqual(1., new_ds.attrs['geospatial_lon_resolution'])
         self.assertEqual(1., new_ds.attrs['geospatial_lat_resolution'])
+
+
+class NormalizeDimOrder(TestCase):
+    """
+    Test normalize_cci_sea_level operation
+    """
+
+    def test_no_change(self):
+        """
+        Test nominal operation
+        """
+        lon_size = 360
+        lat_size = 130
+        time_size = 12
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
+            'second': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size]))},
+            coords={'lon': np.linspace(-179.5, -179.5, lon_size),
+                    'lat': np.linspace(-64., 65., lat_size),
+                    'time': [datetime(2000, x, 1) for x in range(1, time_size + 1)]})
+        ds2 = normalize(ds)
+        self.assertIs(ds2, ds)
+
+    def test_nominal(self):
+        """
+        Test nominal operation
+        """
+        ds = self.new_cci_seal_level_ds()
+        ds2 = normalize(ds)
+        self.assertIsNot(ds2, ds)
+        self.assertIn('ampl', ds2)
+        self.assertIn('phase', ds2)
+        self.assertIn('time', ds2.coords)
+        self.assertIn('time_bnds', ds2.coords)
+        self.assertNotIn('time_step', ds2.coords)
+        self.assertEqual(['time', 'period', 'lat', 'lon'], list(ds2.ampl.dims))
+        self.assertEqual(['time', 'period', 'lat', 'lon'], list(ds2.phase.dims))
+
+    def new_cci_seal_level_ds(self):
+        period_size = 2
+        lon_size = 4
+        lat_size = 2
+
+        dataset = xr.Dataset(dict(ampl=(['lat', 'lon', 'period'], np.ones(shape=(lat_size, lon_size, period_size))),
+                                  phase=(['lat', 'lon', 'period'], np.zeros(shape=(lat_size, lon_size, period_size)))),
+                             coords=dict(lon=np.array([-135, -45., 45., 135.]), lat=np.array([-45., 45.]),
+                                         time=pd.to_datetime(
+                                             ['1993-01-15T00:00:00.000000000', '1993-02-15T00:00:00.000000000',
+                                              '2015-11-15T00:00:00.000000000', '2015-12-15T00:00:00.000000000'])))
+
+        dataset.coords['time'].encoding.update(units='days since 1950-01-01', dtype=np.dtype(np.float32))
+        dataset.coords['time'].attrs.update(long_name='time', standard_name='time')
+
+        dataset.attrs['time_coverage_start'] = '1993-01-01 00:00:00'
+        dataset.attrs['time_coverage_end'] = '2015-12-31 23:59:59'
+
+        return dataset
