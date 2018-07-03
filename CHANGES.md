@@ -1,3 +1,12 @@
+## Version 2.0.0.dev16 (in development)
+
+* Allow displaying and working with CCI Sea Level MSLAMPH data.
+  Addresses [#531](https://github.com/CCI-Tools/cate/issues/531).
+
+## Version 2.0.0.dev15
+
+* Fixed operation progress monitor which was broken due to an update of the Dask library
+
 ## Version 2.0.0.dev15
 
 * Fixed operation progress monitor which was broken due to an update of the Dask library
