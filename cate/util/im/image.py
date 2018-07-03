@@ -457,7 +457,8 @@ class ColorMappedRgbaImage(DecoratorImage):
         # check if we can optimize the following calls by using Numexpr
         # see https://github.com/pydata/numexpr/wiki/Numexpr-Users-Guide
         array -= value_min
-        array *= 1.0 / (value_max - value_min)
+        if value_min != value_max:
+            array *= 1.0 / (value_max - value_min)
         array = self._cmap(array, bytes=True)
         image = Image.fromarray(array, mode=self.mode)
 
