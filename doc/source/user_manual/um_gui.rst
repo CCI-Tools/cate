@@ -2,7 +2,7 @@
 Cate Desktop (GUI)
 ==================
 
-*Applies to Cate Desktop, version 0.9.0.dev7*
+*Applies to Cate Desktop, version 2.0.0-dev15*
 
 Overview
 ========
@@ -24,7 +24,7 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
 .. _gui_initial:
 
 .. figure:: ../_static/figures/user_manual/gui_initial.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate Desktop initial layout
@@ -46,9 +46,10 @@ reflects what just has been described above with respect to data sources, operat
 
 Other panels are initially hidden. They are
 
-* On the upper left, the **LAYERS** panel, to manage the imagery layers displayed on the active *World view*;
-* On the upper left, the **PLACEMARKS** panel, to manage user-defined placemarks, which may be used as input to
+* On the upper right, the **LAYERS** panel, to manage the imagery layers displayed on the active *World view*;
+* On the upper right, the **PLACEMARKS** panel, to manage user-defined placemarks, which may be used as input to
   various operations, e.g. to create time series plots;
+* On the lower right, the **STYLES** panel, to adjust the styles of the selected layer or entity;
 * On the lower right, the **VIEWS** panel, to display and edit properties of the currently active view. It also allows
   for creating new *World views*;
 * On the lower right, the **TASKS** panel, to list and possibly cancel running background tasks.
@@ -124,6 +125,7 @@ Index
 * :ref:`variables_panel`
 * :ref:`placemarks_panel`
 * :ref:`layers_panel`
+* :ref:`styles_panel`
 * :ref:`view_panel`
 * :ref:`tasks_panel`
 * :ref:`preferences_dialog`
@@ -197,8 +199,9 @@ After confirming the dialog, a download task will be started, which can be obser
 Once the download is finished, a notification will be displayed and a new local data source will be available for the
 ``local data store``.
 
-To choose the second option described above, press the **Open** button to open the **Open Remote Dataset** dialog shown
-in :ref:`gui_dialog_open_remote_dataset`.
+To choose the second option described above, press the **Download** button to open the **Download Dataset** dialog, and
+then uncheck **Download and make local data source (allocates space on disk)** as shown in
+:ref:`gui_dialog_open_remote_dataset`.
 
 .. _gui_dialog_open_remote_dataset:
 
@@ -314,10 +317,10 @@ The new *workflow step* and the new *resource*, if any, are shown in the **WORKS
 .. _gui_dialog_new_op_step_applied:
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step_applied.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
-   New Operation Step dialog
+   New Operation Step in WORKSPACE Panel
 
 
 .. note::
@@ -403,7 +406,8 @@ VARIABLES Panel
 ---------------
 
 The **VARIABLES** panel lists the data variables of a selected resource in the **WORKSPACE** panel.
-The list entry shows the variable's name and its data type.
+The list entry shows the variable's name and its data type. When available, the value of each variable of the selected
+layer will be displayed next to its name after placing the mouse cursor at a point on the globe for ~600ms.
 
 The toolbar to the lower right of the list of variables offers the following functions (in order):
 
@@ -445,18 +449,12 @@ The toolbar to the lower right of the layer list offers the following functions 
 * Move selected layer up to render it on top of others
 * Move selected layer down so other layers are rendered on top of it
 
-The **Details** of the **LAYERS** panel lists various layer settings. The vailable settings depend on the type
-of the selected layer. For image layers originating from a variable they are for example:
+The **Details** of the **LAYERS** panel lists several layer settings:
 
-* *Display Range* is the value range to which a given colour map is mapped.
-* *Colour bar* is applied to gridded variables.
-* *Alpha Blending* is used to mask/fade out the lower half of the display range.
-  With *Alpha Blending* switched on, the minimum value of the display range corresponds to full transparency while
-  opacity increases until half of the display range is reached.
-* For any extra dimension of a variable that is not latitude and longitude, an *Index into <Dimension>* slider is
-  displayed and can be used to selected the dimension's index to be displayed as layer.
-* The *Opacity* controls the opacity of the selected layer
-* Various *Image Enhancement* settings, like *Brightness*, * Contrast*, *Hue*.
+* *Data selection* with this configuration one can quickly browse through the dataset based on the layer index.
+* *Layer split* with this setting, user can create a split line with one side of the line showing the globe with
+  the selected layer and the other side showing only the globe.
+
 
 .. figure:: ../_static/figures/user_manual/gui_panel_layers.png
    :scale: 100 %
@@ -471,27 +469,112 @@ of the selected layer. For image layers originating from a variable they are for
 PLACEMARKS Panel
 ----------------
 
-This panel manages a list of placemarks - points that have a name and a geographical coordinate.
-Placemarks can be used to create time series plots and to extract data at a given point. The toolbar
+This panel manages a list of placemarks - points, lines, polygons, or boxes that have a name and a geographical coordinate.
+Placemarks can be used to create time series plots and to extract data at a given point or area. The toolbar
 to the lower right of the list of placemarks offers the following functions (in order):
 
-* Click a point on the 3D globe view to add a new placemark
-* Add a new placemark
+* Add a new marker
+* Add a new polyline
+* Add a new polygon
+* Add a new box
 * Remove a selected placemark
+* Locate the selected placemark on the map
 * Copy name and/or coordinates of selected placemark to clipboard
 
-In the **Details** of the **PLACEMARKS** panel you can change the selected placemark's name and coordinates.
-Coordinates are given as longitude/latitude pair.
+In addition to these buttons, there is also a Details toggle button to display or allow modification of the selected
+placemark. What can be modified depends on which type of placemark is selected.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks.png
-   :scale: 100 %
+To add a new marker, click **New marker** button (the left-most), and then click any point on the Globe. A new entry is
+added to the list of placemarks in Placemarks Panel. When the Details toggle is enabled, you can modify the
+name and coordinates (in longitude and latitude) of this marker.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_marker.png
+   :width: 1024px
    :align: center
 
-   Placemarks Panel
+   Placemarks Panel - Marker details
+
+To add a new polyline, click **New polyline** button (the second left-most). Click a point in the Globe to start the
+line, and then click the next n-lines as you wish. To finish, double-click at your final point. When the Details toggle
+is enabled, you can modify the name of this polyline.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_line.png
+   :width: 1024px
+   :align: center
+
+   Placemarks Panel - Polyline details
+
+To add a new polygon, click the **New polygon** button (the third left-most). As when creating a polyline, click a
+point in the Globe to start the line, and then click the next n-lines as you wish. To finish, double-click at your final
+point.  When the Details toggle is enabled, you can modify the name of this polygon.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_polygon.png
+   :width: 1024px
+   :align: center
+
+   Placemarks Panel - Polygon details
+
+To add a new polygon, click the **New box** button (the fourth left-most). To start, click a point in the Globe.
+This will be one of the vertices of the box you are going to create. Drag it to satisfy the region you desire, and click
+once more to confirm the box selection.  When the Details toggle is enabled, you can modify the name of this box.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_box.png
+   :width: 1024px
+   :align: center
+
+   Placemarks Panel - Box details
 
 
 The list of placemarks is currently stored as a GeoJSON entry in ``.cate/preferences.json`` in the users home directory
 and restored for every Cate Desktop session.
+
+To copy the selected placemark to clipboard, click the right-most button. There are three options how the selected
+placemark can be represented in three different formats: CSV, WKT, and GeoJSON.
+
+.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_copy.png
+   :scale: 100 %
+   :align: center
+
+   Placemarks Panel - Copy to clipboards
+
+.. _styles_panel:
+
+------------
+STYLES Panel
+------------
+
+This panel manages styles that can be applied to the selected layer. It has two different modesdepending on whether an
+image or a vector layer is selected. Here are the available settings for a vector layer:
+
+* *Fill* controls the fill colour and the opacity of a polygon or a box.
+* *Stroke* controls the width, colour, and opacity of the lines surrounding the polygon or the box.
+* *Marker* controls the colour, size, and caption of the placemark. The symbol can be either a single digit of number,
+  a letter, or any valid **Maki** identifier (more information `here <https://www.mapbox.com/maki-icons/>`_)
+
+.. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
+   :width: 1024px
+   :align: center
+
+   Styles Panel for styling a placemark
+
+.. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
+   :width: 1024px
+   :align: center
+
+   Styles Panel for styling a polygon/box
+
+And here are the available settings for an image layer:
+
+* *Display Range* is the value range to which a given colour map is mapped.
+* *Colour bar* is applied to gridded variables.
+* *Alpha Blending* is used to mask/fade out the lower half of the display range.
+  With *Alpha Blending* switched on, the minimum value of the display range corresponds to full transparency while
+  opacity increases until half of the display range is reached.
+* For any extra dimension of a variable that is not latitude and longitude, an *Index into <Dimension>* slider is
+  displayed and can be used to selected the dimension's index to be displayed as layer.
+* The *Opacity* controls the opacity of the selected layer
+* Various *Image Enhancement* settings, like *Brightness*, * Contrast*, *Hue*.
+
 
 .. _view_panel:
 
@@ -549,8 +632,7 @@ Preferences Dialog
 On the **General** tab you can specify the following settings:
 
 * Whether to *reopen the last workspace on startup* of Cate
-* The *resource name prefix* which will be used by default for new resources
-  originating from opening datasets or executing operations.
+* Whether to automatically update the software once a newer version is available
 * Whether to *open a plot view for new Figure resources*. If selected and
   a newly created resource is of type ``Figure``, a plot view will be opened automatically.
   Note, ``Figure`` resources are created by operations named ``plot_<type>()``.
@@ -573,10 +655,20 @@ On the **Data Management** tab you can specify the following settings:
   of data required locally.
 * Whether to use a *per-workspace imagery cache* which may speed up image display performance.
   The cache is placed in each workspace directory and requires extra (disk) space.
+* The *resource name prefix* which will be used by default for new resources
+  originating from opening datasets or executing operations.
 
 .. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
    :scale: 100 %
    :align: center
 
    Preferences Dialog / Data Management
+
+On the **Proxy Configuration** tab you can specify the proxy URL if required.
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog / Proxy Configuration
 

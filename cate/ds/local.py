@@ -59,7 +59,8 @@ from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning
     DataSource, \
     open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError, \
+    GeometryLike
 from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -146,10 +147,12 @@ class LocalDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        if var_names:
-            var_names = VarNamesLike.convert(var_names)
+        region = PolygonLike.convert(region) if region else None
+        var_names = VarNamesLike.convert(var_names) if var_names else None
+
         paths = []
         if time_range:
             time_series = list(self._files.values())
@@ -168,28 +171,35 @@ class LocalDataSource(DataSource):
         if paths:
             paths = sorted(set(paths))
             try:
-                excluded_variables = self._meta_info.get('exclude_variables', [])
-                ds = open_xarray_dataset(paths, drop_variables=[variable.get('name') for variable in
-                                                                excluded_variables])
-                if region:
-                    ds = normalize_impl(ds)
-                    ds = subset_spatial_impl(ds, region)
-                if var_names:
-                    ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-                return ds
-            except (OSError, ValueError) as e:
-                if time_range:
-                    raise DataAccessError("Cannot open local dataset for time range {}:\n"
-                                          "{}"
-                                          .format(TimeRangeLike.format(time_range), e), source=self) from e
+                excluded_variables = self._meta_info.get('exclude_variables')
+                if excluded_variables:
+                    drop_variables = [variable.get('name') for variable in excluded_variables]
                 else:
-                    raise DataAccessError("Cannot open local dataset:\n"
-                                          "{}"
-                                          .format(e), source=self) from e
+                    drop_variables = None
+                # TODO: combine var_names and drop_variables
+                return open_xarray_dataset(paths,
+                                           region=region, var_names=var_names,
+                                           drop_variables=drop_variables,
+                                           monitor=monitor)
+            except OSError as e:
+                raise DataAccessError("Cannot open local dataset:\n"
+                                      "{}"
+                                      .format(e), source=self) from e
+            except ValueError as e:
+                msg = "Cannot open local dataset"
+                if time_range:
+                    msg += " for time range {}".format(TimeRangeLike.format(time_range))
+                if region:
+                    msg += " for region {}".format(GeometryLike.format(region))
+                if var_names:
+                    msg += " for variables {}".format(VarNamesLike.format(var_names))
+                msg += ":\n{}".format(e)
+                raise ValidationError(msg) from e
         else:
             if time_range:
-                raise DataAccessError("No local datasets available for\nspecified time range {}".format(
-                    TimeRangeLike.format(time_range)), source=self)
+                time = TimeRangeLike.format(time_range)
+                msg = "No local datasets available for\nspecified time range"
+                raise ValidationError(msg, "{}".format(time))
             else:
                 raise DataAccessError("No local datasets available", source=self)
 
@@ -646,7 +656,8 @@ class LocalDataStore(DataStore):
             meta_info['title'] = title
 
         if not re.match(r'^[\w\-. ]+$', data_source_id):
-            raise DataAccessError('Unaccepted characters in Data Source name', data_source_id)
+            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
+                                  hint='Do not use space, dot or dash symbol in the datasource name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
@@ -719,7 +730,6 @@ class LocalDataStore(DataStore):
 
     def _init_data_sources(self, skip_broken: bool = True):
         """
-
         :param skip_broken: In case of broken data sources skip loading and log warning instead of rising Error.
         :return:
         """
@@ -738,7 +748,7 @@ class LocalDataStore(DataStore):
                 data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
                 if data_source:
                     self._data_sources.append(data_source)
-            except DataAccessError as e:
+            except (DataAccessError, ValidationError) as e:
                 if skip_broken:
                     warnings.warn(str(e), DataAccessWarning, stacklevel=0)
                 else:
@@ -766,6 +776,10 @@ class LocalDataStore(DataStore):
         json_dict = self._load_json_file(json_path)
         if json_dict:
             return LocalDataSource.from_json_dict(json_dict, self)
+
+    def invalidate(self):
+        self._data_sources = None
+        self._init_data_sources()
 
     @staticmethod
     def _load_json_file(json_path: str):

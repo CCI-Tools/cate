@@ -2,19 +2,23 @@
 Test for the harmonization operation
 """
 
+import calendar
+from datetime import datetime
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
 import xarray as xr
 from jdcal import gcal2jd
-import numpy as np
-from datetime import datetime
-import calendar
+from numpy.testing import assert_array_almost_equal
 
-from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.core.op import OP_REGISTRY
+from cate.core.opimpl import normalize_missing_time, normalize_coord_vars
+from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.misc import object_to_qualified_name
 
 
+# noinspection PyPep8Naming
 def assertDatasetEqual(expected, actual):
     # this method is functionally equivalent to
     # `assert expected == actual`, but it
@@ -106,6 +110,27 @@ class TestNormalize(TestCase):
         actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
 
+    def test_normalize_with_missing_time_dim(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101',
+                               'time_coverage_end': '20121231'})
+        norm_ds = normalize(ds)
+        self.assertIsNot(norm_ds, ds)
+        self.assertEqual(len(norm_ds.coords), 4)
+        self.assertIn('lon', norm_ds.coords)
+        self.assertIn('lat', norm_ds.coords)
+        self.assertIn('time', norm_ds.coords)
+        self.assertIn('time_bnds', norm_ds.coords)
+
+        self.assertEqual(norm_ds.first.shape, (1, 90, 180))
+        self.assertEqual(norm_ds.second.shape, (1, 90, 180))
+        self.assertEqual(norm_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
+        self.assertEqual(norm_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+        self.assertEqual(norm_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
+
     def test_normalize_julian_day(self):
         """
         Test Julian Day -> Datetime conversion
@@ -162,6 +187,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -212,6 +238,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -276,6 +303,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -341,6 +369,7 @@ class TestAdjustSpatial(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['geospatial_lat_min']
 
         # Make sure expected values are in the new dataset
@@ -410,10 +439,9 @@ class TestAdjustSpatial(TestCase):
         ds.lon.attrs['units'] = 'degrees_east'
         ds.lat.attrs['units'] = 'degrees_north'
 
-        with self.assertRaises(ValueError) as cm:
-            adjust_spatial_attrs(ds)
-
-        self.assertEqual(str(cm.exception), 'Cannot determine spatial extent for dimension "lon"')
+        ds2 = adjust_spatial_attrs(ds)
+        # Datasets should be the same --> not modified
+        self.assertIs(ds2, ds)
 
 
 class TestAdjustTemporal(TestCase):
@@ -429,6 +457,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -442,6 +471,7 @@ class TestAdjustTemporal(TestCase):
                          'P336D')
 
         # Test existing attributes update
+        # noinspection PyTypeChecker
         indexers = {'time': slice(datetime(2000, 2, 15), datetime(2000, 6, 15))}
         ds2 = ds1.sel(**indexers)
         ds2 = adjust_temporal_attrs(ds2)
@@ -454,6 +484,22 @@ class TestAdjustTemporal(TestCase):
                          'P1M')
         self.assertEqual(ds2.attrs['time_coverage_duration'],
                          'P93D')
+
+    def test_wrong_type(self):
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'second': (['time', 'lat', 'lon'], np.zeros([12, 45, 90])),
+            'lon': (['lon'], np.linspace(-178, 178, 90)),
+            'lat': (['lat'], np.linspace(-88, 88, 45)),
+            'time': (['time'], np.linspace(0, 1, 12))})
+
+        ds1 = adjust_temporal_attrs(ds)
+
+        self.assertIs(ds1, ds)
+        self.assertNotIn('time_coverage_start', ds1)
+        self.assertNotIn('time_coverage_end', ds1)
+        self.assertNotIn('time_coverage_resolution', ds1)
+        self.assertNotIn('time_coverage_duration', ds1)
 
     def test_bnds(self):
         """Test a case when time_bnds is available"""
@@ -480,6 +526,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -510,6 +557,7 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure original dataset is not altered
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_start']
 
         # Make sure expected values are in the new dataset
@@ -521,6 +569,7 @@ class TestAdjustTemporal(TestCase):
                          'P31D')
         with self.assertRaises(KeyError):
             # Resolution is not defined for a single slice
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_resolution']
 
         # Without bnds
@@ -538,6 +587,162 @@ class TestAdjustTemporal(TestCase):
         self.assertEqual(ds1.attrs['time_coverage_end'],
                          '2000-01-01T00:00:00.000000000')
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_resolution']
         with self.assertRaises(KeyError):
+            # noinspection PyStatementEffect
             ds.attrs['time_coverage_duration']
+
+
+class TestNormalizeCoordVars(TestCase):
+
+    def test_ds_with_potential_coords(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180])),
+                         'lat_bnds': (['lat', 'bnds'], np.zeros([90, 2])),
+                         'lon_bnds': (['lon', 'bnds'], np.zeros([180, 2]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)})
+
+        new_ds = normalize_coord_vars(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('lat_bnds', new_ds.coords)
+        self.assertIn('lon_bnds', new_ds.coords)
+
+        self.assertEqual(len(new_ds.data_vars), 2)
+        self.assertIn('first', new_ds.data_vars)
+        self.assertIn('second', new_ds.data_vars)
+
+    def test_ds_with_potential_coords_and_bounds(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180])),
+                         'lat_bnds': (['lat', 'bnds'], np.zeros([90, 2])),
+                         'lon_bnds': (['lon', 'bnds'], np.zeros([180, 2])),
+                         'lat': (['lat'], np.linspace(-89.5, 89.5, 90)),
+                         'lon': (['lon'], np.linspace(-179.5, 179.5, 180))})
+
+        new_ds = normalize_coord_vars(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('lat_bnds', new_ds.coords)
+        self.assertIn('lon_bnds', new_ds.coords)
+
+        self.assertEqual(len(new_ds.data_vars), 2)
+        self.assertIn('first', new_ds.data_vars)
+        self.assertIn('second', new_ds.data_vars)
+
+    def test_ds_with_no_potential_coords(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101'})
+        new_ds = normalize_coord_vars(ds)
+        self.assertIs(ds, new_ds)
+
+
+class TestNormalizeMissingTime(TestCase):
+    def test_ds_without_time(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101',
+                               'time_coverage_end': '20121231'})
+
+        new_ds = normalize_missing_time(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 4)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('time', new_ds.coords)
+        self.assertIn('time_bnds', new_ds.coords)
+
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), 'time_bnds')
+
+        self.assertEqual(new_ds.first.shape, (1, 90, 180))
+        self.assertEqual(new_ds.second.shape, (1, 90, 180))
+        self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-07-01T12:00:00')))
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), 'time_bnds')
+        self.assertEqual(new_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+        self.assertEqual(new_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
+        self.assertEqual(new_ds.coords['time_bnds'].attrs.get('long_name'), 'time')
+
+    def test_ds_without_bounds(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '20120101'})
+
+        new_ds = normalize_missing_time(ds)
+
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(len(new_ds.coords), 3)
+        self.assertIn('lon', new_ds.coords)
+        self.assertIn('lat', new_ds.coords)
+        self.assertIn('time', new_ds.coords)
+        self.assertNotIn('time_bnds', new_ds.coords)
+
+        self.assertEqual(new_ds.first.shape, (1, 90, 180))
+        self.assertEqual(new_ds.second.shape, (1, 90, 180))
+        self.assertEqual(new_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2012-01-01')))
+        self.assertEqual(new_ds.coords['time'].attrs.get('long_name'), 'time')
+        self.assertEqual(new_ds.coords['time'].attrs.get('bounds'), None)
+
+    def test_ds_without_time_attrs(self):
+        ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
+                         'second': (['lat', 'lon'], np.zeros([90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)})
+
+        new_ds = normalize_missing_time(ds)
+        self.assertIs(ds, new_ds)
+
+    def test_fix_360_lon(self):
+
+        # The following simulates a strangely geo-coded soil moisture dataset
+        # we found at ...
+        #
+        lon_size = 360
+        lat_size = 130
+        time_size = 12
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size])),
+            'second': (['time', 'lat', 'lon'], np.random.random_sample([time_size, lat_size, lon_size]))},
+            coords={'lon': np.linspace(1., 360., lon_size),
+                    'lat': np.linspace(-64., 65., lat_size),
+                    'time': [datetime(2000, x, 1) for x in range(1, time_size + 1)]},
+            attrs=dict(geospatial_lon_min=0.,
+                       geospatial_lon_max=360.,
+                       geospatial_lat_min=-64.5,
+                       geospatial_lat_max=+65.5,
+                       geospatial_lon_resolution=1.,
+                       geospatial_lat_resolution=1.))
+
+        new_ds = normalize(ds)
+        self.assertIsNot(ds, new_ds)
+        self.assertEqual(ds.dims, new_ds.dims)
+        self.assertEqual(ds.sizes, new_ds.sizes)
+        assert_array_almost_equal(new_ds.lon, np.linspace(-179.5, 179.5, 360))
+        assert_array_almost_equal(new_ds.lat, np.linspace(-64., 65., 130))
+        assert_array_almost_equal(new_ds.first[..., :180], ds.first[..., 180:])
+        assert_array_almost_equal(new_ds.first[..., 180:], ds.first[..., :180])
+        assert_array_almost_equal(new_ds.second[..., :180], ds.second[..., 180:])
+        assert_array_almost_equal(new_ds.second[..., 180:], ds.second[..., :180])
+        self.assertEqual(-180., new_ds.attrs['geospatial_lon_min'])
+        self.assertEqual(+180., new_ds.attrs['geospatial_lon_max'])
+        self.assertEqual(-64.5, new_ds.attrs['geospatial_lat_min'])
+        self.assertEqual(+65.5, new_ds.attrs['geospatial_lat_max'])
+        self.assertEqual(1., new_ds.attrs['geospatial_lon_resolution'])
+        self.assertEqual(1., new_ds.attrs['geospatial_lat_resolution'])

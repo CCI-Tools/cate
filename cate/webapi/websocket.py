@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from collections import OrderedDict
-from typing import List, Sequence, Optional, Any, Union, Tuple
+from typing import List, Sequence, Optional, Any, Union, Tuple, Dict
 
 import xarray as xr
 
@@ -130,9 +130,11 @@ class WebSocketService:
             # Filter ESA Open Data Portal data sources
             data_source_dict = {ds.id: ds for ds in data_sources}
             # noinspection PyTypeChecker
-            data_source_ids = filter_fileset(data_source_dict.keys(),
-                                             includes=conf.get_config_value('included_data_sources', default=None),
-                                             excludes=conf.get_config_value('excluded_data_sources', default=None))
+            includes = conf.get_config_value('included_ds_ids', default=None)
+            excludes = conf.get_config_value('excluded_ds_ids', default=None)
+            data_source_ids = filter_fileset(list(data_source_dict.keys()),
+                                             includes=includes,
+                                             excludes=excludes)
             data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
@@ -307,10 +309,12 @@ class WebSocketService:
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def extract_pixel_values(self, base_dir: str, source: str,
-                             point: Tuple[float, float], indexers: dict) -> Union[Any, None]:
+                             point: Tuple[float, float], indexers: dict) -> Dict[str, Any]:
         with cwd(base_dir):
             from cate.ops.subset import extract_point
             ds = self.workspace_manager.get_workspace(base_dir).resource_cache.get(source)
+            if ds is None:
+                return {}
             return extract_point(ds, point, indexers)
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,

@@ -57,7 +57,7 @@ from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
-from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
@@ -640,7 +640,8 @@ class EsaCciOdpDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
@@ -649,21 +650,14 @@ class EsaCciOdpDataSource(DataSource):
             msg = 'CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets'.format(self.id)
             if time_range is not None:
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise DataAccessError(msg)
+            raise ValidationError(msg)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
-            ds = open_xarray_dataset(files)
-            if region:
-                ds = normalize_impl(ds)
-                ds = subset_spatial_impl(ds, region)
-            if var_names:
-                ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-            return ds
-
+            return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
         except OSError as e:
             if time_range:
-                raise DataAccessError("Cannot open remote dataset for time range {}:\n"
+                raise ValidationError("Cannot open remote dataset for time range {}:\n"
                                       "{}"
                                       .format(TimeRangeLike.format(time_range), e), source=self) from e
             else:
@@ -832,8 +826,11 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = coverage_from
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
-        except (OSError, ValueError) as e:
+        except OSError as e:
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
+        except ValueError as e:
+            raise ValidationError("Copying remote data source failed: {}".format(e), source=self) from e
+
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
         local_ds.meta_info['exclude_variables'] = excluded_variables

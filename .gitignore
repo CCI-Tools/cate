@@ -69,3 +69,8 @@ cate/bin
 # Used by Janis (VS Code)
 .mypy_cache/
 .vscode
+.pytest_cache/
+
+# Test outputs
+
+pytest-service-info.json

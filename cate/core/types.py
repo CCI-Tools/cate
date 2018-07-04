@@ -81,7 +81,7 @@ class Like(Generic[T], metaclass=ABCMeta):
     #: A type that represents the varying source types. This is usually a ``typing.Union`` instance which
     #: combines the varying source types. The ``str`` type shall always be among them so that textual value
     #: representations are supported.
-    TYPE = None
+    TYPE = Any
 
     @classmethod
     def name(cls) -> str:
@@ -576,7 +576,8 @@ class PolygonLike(GeometryLike, Like[shapely.geometry.Polygon]):
         if polygon is None:
             return None
 
-        assert isinstance(polygon, shapely.geometry.Polygon)
+        if not isinstance(polygon, shapely.geometry.Polygon):
+            raise ValidationError('Polygon expected.')
 
         if not polygon.is_valid:
             # Heal polygon, see #506 and Shapely User Manual

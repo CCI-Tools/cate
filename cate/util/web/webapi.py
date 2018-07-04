@@ -41,14 +41,12 @@ from tornado.web import RequestHandler, Application
 
 from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
-    find_free_port, is_service_compatible, is_service_running
+    find_free_port, is_service_compatible, is_service_running, join_address_and_port
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
-
-LOCALHOST = '127.0.0.1'
 
 ApplicationFactory = Callable[[], Application]
 
@@ -61,7 +59,7 @@ def _get_common_cli_parser(name: str,
     parser.add_argument('--port', '-p', dest='port', metavar='PORT', type=int,
                         help='start/stop WebAPI service on port number PORT')
     parser.add_argument('--address', '-a', dest='address', metavar='ADDRESS',
-                        help='start/stop WebAPI service using address ADDRESS', default='')
+                        help='start/stop WebAPI service using address ADDRESS', default='localhost')
     parser.add_argument('--caller', '-c', dest='caller', default=name,
                         help='name of the calling application')
     parser.add_argument('--file', '-f', dest='file', metavar='FILE',
@@ -216,20 +214,20 @@ class WebAPI:
             service_info = read_service_info(service_info_file)
             if is_service_compatible(port, address, caller, service_info):
                 port = service_info.get('port')
-                address = service_info.get('address') or LOCALHOST
+                address = service_info.get('address') or address
                 if is_service_running(port, address):
-                    print('%s: detected service running on %s:%s' % (name, address, port))
+                    print(f'{name}: detected service running on {join_address_and_port(address, port)}')
                     return service_info
                 else:
                     # Try shutting down the service, even violently
                     self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
             else:
-                print('%s: service info file exists: %s, removing it' % (name, service_info_file))
+                print(f'{name}: service info file exists:{service_info_file}, removing it')
                 os.remove(service_info_file)
 
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
-        options.log_file_prefix = log_file_prefix or ('%s.log' % name)
+        options.log_file_prefix = log_file_prefix or f'{name}.log'
         options.log_to_stderr = log_to_stderr
         enable_pretty_logging()
 
@@ -251,9 +249,9 @@ class WebAPI:
         application.time_of_last_activity = time.clock()
         self.application = application
 
-        print('{}: started service, listening on {}:{}'.format(self.name, address or LOCALHOST, port))
+        print(f'{name}: started service, listening on {join_address_and_port(address, port)}')
 
-        self.server = application.listen(port, address=address or '')
+        self.server = application.listen(port, address='' if address == 'localhost' else address)
         # Ensure we have the same event loop in all threads
         asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
         # Register handlers for common termination signals
@@ -302,12 +300,15 @@ class WebAPI:
         if not port:
             raise WebAPIServiceError('cannot stop %s service on unknown port (caller: %s)' % (name, caller))
 
-        address_and_port = '%s:%s' % (address or LOCALHOST, port)
-        print('{}: stopping service on {}'.format(name, address_and_port))
+        if service_info_file and service_info:
+            print(f'{name}: service information file found: {service_info_file}')
+
+        print(f'{name}: trying to stop any service on {join_address_and_port(address, port)}')
 
         # noinspection PyBroadException
         try:
-            with urllib.request.urlopen('http://%s/exit' % address_and_port, timeout=timeout * 0.3) as response:
+            with urllib.request.urlopen(f'http://{join_address_and_port(address, port)}/exit',
+                                        timeout=timeout * 0.3) as response:
                 response.read()
         except Exception:
             # Either process does not exist, or timeout, or some other error
@@ -419,7 +420,7 @@ class WebAPI:
         command = cls._join_subprocess_command(module, port, address, caller, service_info_file,
                                                auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
-        webapi_url = 'http://%s:%s/' % (address or '127.0.0.1', port)
+        webapi_url = f'http://{join_address_and_port(address, port)}/'
         t0 = time.clock()
         while True:
             exit_code = webapi.poll()

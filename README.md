@@ -95,6 +95,11 @@ HDF-5 C-libraries to be present on your computer. You may get around this by pre
 on your own, for example by using Christoph Gohlke's 
 [Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
 
+For **Linux and MacOS** environment, there may be an issue when starting a webapi due to unavailable json-c shared
+object file. When this happens, please downgrade the **json-c** library by running the following command inside cate-env:
+
+    $ conda install -c conda-forge json-c=0.12.1
+
 ## Getting started
 
 To test the installation, first run the Cate command-line interface. Type
@@ -145,13 +150,11 @@ Other recognized environment variables to customize the unit-level tests are
 ### Generating the Documentation
 
 We use the wonderful [Sphinx](http://www.sphinx-doc.org/en/stable/rest.html) tool to generate 
-Cate's documentation on [ReadTheDocs](http://ect-core.readthedocs.io/en/latest/?badge=latest). 
-If there is a need to build the docs locally, some 
-additional software packages are required:
+Cate's documentation on [ReadTheDocs](https://cate.readthedocs.io/en/latest/index.html). 
+If there is a need to build the docs locally, first create a Conda environment:
 
-    $ conda install sphinx sphinx_rtd_theme mock
-    $ conda install -c conda-forge sphinx-argparse
-    $ pip install sphinx_autodoc_annotation
+    $ cd cate
+    $ conda env create -f environment-rtd.yml
 
 To regenerate the HTML docs, type    
     

@@ -1,5 +1,45 @@
-## Version 2.0.0.dev10 (in development)
+## Version 2.0.0.dev15
 
+* Fixed operation progress monitor which was broken due to an update of the Dask library
+
+## Version 2.0.0.dev14
+
+* ESA sea-level data not correctly displayed [#661](https://github.com/CCI-Tools/cate/issues/661)
+* Added colour mapping defaults for CCI Sea Level data.
+* Extended max. table size to 10000 elements (workaround).
+* User Guide Improvements and Updates [#409](https://github.com/CCI-Tools/cate/issues/409):
+  * Replaced references to Cate 1.0 to Cate 2.0 and updated most of figures
+  * Rewrote section about setup including installation and configuration
+  * Added a new section about the new **STYLES** panel 
+  * Updated section about **PLACES** panel to include information on how to generate a polyline, polygon, and box
+  * Updated section about **LAYERS** panel to describe its new elements
+
+## Version 2.0.0.dev13
+
+*Skipped.*
+
+## Version 2.0.0.dev12
+
+* No longer hide any ODP datasets in GUI [#669](https://github.com/CCI-Tools/cate/issues/669)
+* Added experimental support for [Zarr](http://zarr.readthedocs.io/en/stable/) data I/O format [#659](https://github.com/CCI-Tools/cate/issues/659)
+* The operation  `long_term_average` now works with daily, monthly and seasonal datasets [#471](https://github.com/CCI-Tools/cate/issues/471)
+* Fixed problem in `cate-webapi-start` occurring on Linux when using address `localhost` (related to [#627](https://github.com/CCI-Tools/cate/issues/627))
+* Updated `anomaly_external` to retain global attributes and do more input validation [#666](https://github.com/CCI-Tools/cate/issues/666)
+
+## Version 2.0.0.dev11
+
+* Lacking cancelable progress monitor when opening large datasets [#640](https://github.com/CCI-Tools/cate/issues/640)
+* Wrong chunk size does not allow to import some dataset [#631](https://github.com/CCI-Tools/cate/issues/631)
+* Local dataset not recognised [#557](https://github.com/CCI-Tools/cate/issues/557)
+* Allow exporting any data as CSV [#637](https://github.com/CCI-Tools/cate/issues/637)
+* Using `localhost` instead of explicit IP to maybe target [#627](https://github.com/CCI-Tools/cate/issues/627) 
+* The `read_netcdf()` operation uses Dask chunking so we can expand all variables by a 'time' dimension 
+  without loading all data into memory. 
+
+## Version 2.0.0.dev10
+
+* Support datasets with 0,360 degree longitude ranges [#620](https://github.com/CCI-Tools/cate/issues/620)
+* Temporal aggregation operation can now aggregate to pre-defined seasons, as well as custom resolutions [#472](https://github.com/CCI-Tools/cate/issues/472)
 * We now use "MB" units instead of "MiB" (part of [#325](https://github.com/CCI-Tools/cate/issues/325))
 * Fixed a bug with animation generation [#585](https://github.com/CCI-Tools/cate/issues/585)
 * Upgrade to using newer xarray version after an upstream bugfix [#579](https://github.com/CCI-Tools/cate/issues/579)

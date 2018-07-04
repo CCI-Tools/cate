@@ -128,13 +128,14 @@ class FileSetDataSource(DataSource):
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None) -> Any:
+                     protocol: str = None,
+                     monitor: Monitor = Monitor.NONE) -> Any:
         paths = self.resolve_paths(TimeRangeLike.convert(time_range) if time_range else (None, None))
         unique_paths = list(set(paths))
         existing_paths = [p for p in unique_paths if os.path.exists(p)]
         if len(existing_paths) == 0:
             raise ValueError('No local file available. Consider syncing the dataset.')
-        return open_xarray_dataset(existing_paths)
+        return open_xarray_dataset(existing_paths, region=region, var_names=var_names, monitor=monitor)
 
     def make_local(self,
                    local_name: str,

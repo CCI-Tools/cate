@@ -1,6 +1,11 @@
 ################################################################################
 # This is a Cate configuration file.                                           #
 #                                                                              #
+# If this file is "~/.cate/conf.py", it is the active Cate configuration.      #
+#                                                                              #
+# If this file is named "conf.py.template" you can rename it and move          #
+# it "~/.cate/conf.py" to make it the active Cate configuration file.          #
+#                                                                              #
 # As this is a regular Python script, you may use any Python code to compute   #
 # the settings provided here.                                                  #
 #                                                                              #
@@ -17,6 +22,9 @@
 #
 # data_stores_path = '~/.cate/data_stores'
 
+# 'dataset_persistence_format' names the data format to be used when persisting datasets in the workspace.
+# Possible values are 'netcdf4' or 'zarr'.
+# dataset_persistence_format = 'netcdf4'
 
 # If 'use_workspace_imagery_cache' is True, Cate will maintain a per-workspace
 # cache for imagery generated from dataset variables. Such cache can accelerate
@@ -47,68 +55,20 @@
 # 'included_data_sources' then remove entries that match any result from applying 'excluded_data_sources'.
 #
 # We put wildcards here that match all data sources that are known to work in GUI
-included_data_sources = [
-    'esacci.AEROSOL.day.L3.AAI.multi-sensor.multi-platform.ms_uvai.1-5-7.r1',
-    'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.03-02.r1',
-    'esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1',
-    'esacci.AEROSOL.day.L3C.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1',
-    'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.03-02.r1',
-    'esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.multi-platform.AVHRR-AM.2-0.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.AVHRR.multi-platform.AVHRR-PM.2-0.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Aqua.MODIS_AQUA.2-0.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.Envisat.MERIS-AATSR.2-0.r1',
-    'esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.ATSR2-AATSR.2-0.r1',
-    'esacci.FIRE.day.L4.BA.multi-sensor.multi-platform.MERIS.v4-1.r1',
-    'esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.5-days.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.5-days.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.8-days.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.8-days.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.1997-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.1998-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.1999-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2000-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2001-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2002-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2003-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2004-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2005-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2006-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2007-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2008-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2009-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2010-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2011-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2012-r1',
-    'esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.2013-r1',
-    'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.2-0.r1',
-    'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1',
-    'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
-    'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
-    'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1',
-    'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
-]
+# included_ds_ids = []
+
 # We put wildcards here that match all data sources that are known NOT to work in GUI
-excluded_data_sources = [
+excluded_ds_ids = [
     # Exclude datasets that usually take too long to download or cannot be easily aggregated
     # e.g.
     # 'esacci.*.day.*',
     # 'esacci.*.satellite-orbit-frequency.*',
-    # Exclude Land Cover CCI, see issues #361, #364, #371
-    'esacci.LC.*',
+    # 'esacci.LC.*',
 ]
 
 
-# Configure any default variables of a dataset that will be initially selected and displayed first.
-# 'default_display_variables' is a list comprising variable name sets. Each set may represent
-# multiple similar datasets.
+# Configure names of variables that will be initially selected once a new
+# dataset resource is opened in the GUI.
 # default_variables = {
 #     'cfc',             # Cloud CCI
 #     'lccs_class',      # Land Cover CCI

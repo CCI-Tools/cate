@@ -148,7 +148,7 @@ class Monitor(metaclass=ABCMeta):
         Call to signal that a task has been done.
         """
 
-    def child(self, work: float = 1):
+    def child(self, work: float = 1) -> 'Monitor':
         """
         Return a child monitor for the given partial amount of *work*.
 
@@ -399,9 +399,12 @@ def _get_dask_monitor():
                     super().__init__()
                     self._label = label
                     self._monitor = monitor
+                    self._is_done = False
 
                 # noinspection PyUnusedLocal
                 def _start_state(self, dsk, state):
+                    if self._is_done:
+                        return
                     num_tasks = sum(len(state[k]) for k in ['ready', 'waiting'])
                     self._monitor.start(label=self._label, total_work=num_tasks)
                     if _DEBUG_DASK_PROGRESS:
@@ -409,13 +412,18 @@ def _get_dask_monitor():
 
                 # noinspection PyUnusedLocal
                 def _posttask(self, key, result, dsk, state, worker_id):
+                    if self._is_done:
+                        return
                     self._monitor.progress(work=1)
                     if _DEBUG_DASK_PROGRESS:
                         print("DaskMonitor.posttask: key=", key)
 
                 # noinspection PyUnusedLocal
                 def _finish(self, dsk, state, failed):
+                    if self._is_done:
+                        return
                     self._monitor.done()
+                    self._is_done = True
                     if _DEBUG_DASK_PROGRESS:
                         print("DaskMonitor.finish")
 

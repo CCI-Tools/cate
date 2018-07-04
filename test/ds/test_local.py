@@ -5,11 +5,13 @@ import unittest
 import unittest.mock
 import datetime
 import shutil
+import json
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore, LocalDataSource
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from collections import OrderedDict
+from cate.core.types import ValidationError
 
 
 class LocalDataStoreTest(unittest.TestCase):
@@ -40,9 +42,10 @@ class LocalDataStoreTest(unittest.TestCase):
         self.assertEqual("test.%s" % new_ds_id, new_ds.id)
 
         new_ds_id = 'test_name.200*'
-        with self.assertRaises(DataAccessError) as cm:
+        with self.assertRaises(ValidationError) as cm:
             self.data_store.create_data_source(new_ds_id)
-        self.assertEqual('Unaccepted characters in Data Source name', str(cm.exception))
+        self.assertEqual('Unaccepted characters in Data Source name "{}"'.format(new_ds_id),
+                         str(cm.exception))
 
     def test_add_pattern(self):
         data_sources = self.data_store.query()
@@ -175,6 +178,41 @@ class LocalDataStoreTest(unittest.TestCase):
                              test_data.get('meta_info').get('bbox_maxy'),
                          ])))
         self.assertListEqual(data_source.variables_info, test_data.get('meta_info').get('variables'))
+
+    def test_cache_synch(self):
+        #
+        # check if test.asynch is not present
+        #
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 0)
+        #
+        # manualy create test-asynch dataset to simulate
+        # an copy from a second process
+        #
+        test_asynch = {
+            "name": "test.asynch",
+            "meta_info": {
+                "status": "PROCESSING"
+            },
+            "files": [
+                ["/DATA/asynch/*/*.nc"]
+            ]
+        }
+        json_file = os.path.join(self.data_store.data_store_path, 'test.asynch.json')
+        with open(json_file, 'w') as f:
+            json.dump(test_asynch, f)
+        #
+        # check the new dataset is not visible
+        #
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 0)
+        #
+        # invalidate the cache and check if the new dataset
+        # is now visible
+        #
+        self.data_store.invalidate()
+        ds_asynch = self.data_store.query('test.asynch')
+        self.assertEqual(len(ds_asynch), 1)
 
 
 class LocalDataSourceTest(unittest.TestCase):
@@ -314,7 +352,7 @@ class LocalDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 3)
 
-        with self.assertRaises(DataAccessError):
+        with self.assertRaises(ValidationError):
             ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
                                         datetime.datetime(1978, 11, 15)))
 
@@ -329,7 +367,7 @@ class LocalDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 1)
 
-        with self.assertRaises(DataAccessError):
+        with self.assertRaises(ValidationError):
             ds.open_dataset(time_range=(datetime.datetime(1978, 11, 20),
                                         datetime.datetime(1978, 11, 21)))
 
@@ -403,3 +441,11 @@ class LocalDataSourceTest(unittest.TestCase):
         data_sources = self._local_data_store.query('local_w_temporal')
         data_sources_len_after_remove = len(data_sources)
         self.assertGreater(data_sources_len_before_remove, data_sources_len_after_remove)
+
+    def test_validation_error(self):
+        ds = self._local_data_store.query('local')[0]
+        with self.assertRaises(ValidationError):
+            ds.open_dataset(time_range=(datetime.datetime(1974, 1, 1),
+                                        datetime.datetime(1975, 1, 1)),
+                            region=(1, -1, 3, 6),
+                            var_names=('pippo', ))

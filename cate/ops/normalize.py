@@ -60,7 +60,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
 
 
 @op(tags=['utility'], version='1.0')
-def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool=False) -> xr.Dataset:
+def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool = False) -> xr.Dataset:
     """
     Adjust the global spatial attributes of the dataset by doing some
     introspection of the dataset and adjusting the appropriate attributes
@@ -88,6 +88,11 @@ def adjust_temporal_attrs(ds: xr.Dataset) -> xr.Dataset:
 
     In case the determined attributes do not exist in the dataset, these will
     be added.
+
+    If the temporal attributes exist, but the dataset lacks a variable 'time', a
+    new dimension 'time' of size one will be added and related coordinate variables 'time' and 'time_bnds'
+    are added to the dataset. The dimension of all non-coordinate variables
+    will be expanded by the new time dimension.
 
     For more information on suggested global attributes see
     `Attribute Convention for Data Discovery <http://wiki.esipfed.org/index.php/Attribute_Convention_for_Data_Discovery>`_

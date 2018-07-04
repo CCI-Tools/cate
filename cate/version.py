@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 # Cate version string (PEP440-compatible), e.g. "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-__version__ = '2.0.0.dev11'
+__version__ = '2.0.0.dev15'
 
 # Other package metainfo
 __title__ = 'cate'
-__description__ = ' ESA CCI Toolbox "Cate"'
+__description__ = 'ESA CCI Toolbox "Cate"'
 __url__ = 'https://climatetoolbox.io/'

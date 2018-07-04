@@ -25,7 +25,7 @@ Cate comprises three major software interfaces:
 
 
 .. figure:: _static/figures/about-gui.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate Desktop, this is GUI of the CCI Toolbox
@@ -36,7 +36,7 @@ Cate comprises three major software interfaces:
    automation.
 
 .. figure:: _static/figures/about-cli.png
-   :scale: 100 %
+   :width: 1024px
    :align: center
 
    Cate CLI, this is the CLI of the CCI Toolbox
@@ -64,11 +64,13 @@ A data store comprises multiple **data sources** which know each dataset's uniqu
 information about the dataset. Each data source also knows about the available data access protocols, which may be
 direct file access, file download via HTTP, or access through OPeNDAP, or a Web Coverage Service (WCS).
 
-In Cate's CLI, ``cate ds`` is used to perform numerous dataset-related tasks. Type:::
+In Cate's CLI, ``cate ds`` is used to perform numerous dataset-related tasks. Type::
 
     $ cate ds --help
 
-to get an overview of the supported sub-comands. For example, use:::
+to get an overview of the supported sub-comands.
+
+For example, use::
 
     $ cate ds list
 
@@ -164,7 +166,7 @@ associated in-memory resource objects.
 .. _about_workspace_fig:
 
 .. figure:: _static/figures/about-workspace.png
-   :scale: 100 %
+   :width: : 1024px
    :align: center
 
    Cate's workspace/workflow concept

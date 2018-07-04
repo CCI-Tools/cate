@@ -74,6 +74,11 @@ class GeoRectTest(TestCase):
         np.testing.assert_almost_equal(np.array(rect.coords), np.array((-180.0, -90.0, 180.0, 90.0)))
         self.assertEqual(rect.inv_y, False)
 
+        # Example from https://research.csiro.au/slrwavescoast/sea-level/measurements-and-data/sea-level-data/
+        with self.assertRaises(ValueError) as cm:
+            GeoExtent.from_coord_arrays(np.arange(1., 361., 1.), np.arange(-65., 66., 1.))
+        self.assertEqual(str(cm.exception), 'east out of bounds: 360.5')
+
     def test_from_coord_arrays_with_eps(self):
         eps = 1e-4
         eps025 = 0.25 * eps

@@ -52,6 +52,9 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
 
+_RESOURCE_PERSISTENCE_FORMATS = dict(netcdf4=('nc', xr.open_dataset, 'to_netcdf'),
+                                     zarr=('zarr', xr.open_zarr, 'to_zarr'))
+
 #: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
 #: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
 #: 2. dict(source=str): a reference to a step port name
@@ -225,25 +228,29 @@ class Workspace:
 
     def _write_resource_to_file(self, res_name):
         res_value = self._resource_cache.get(res_name)
-        if res_value is not None:
-            resource_file = os.path.join(self.workspace_dir, res_name + '.nc')
-            # noinspection PyBroadException
-            try:
-                res_value.to_netcdf(resource_file)
-            except AttributeError:
-                pass
-            except Exception:
-                _LOG.exception('writing resource "%s" to file failed' % res_name)
+        if isinstance(res_value, xr.Dataset):
+            format_props = _RESOURCE_PERSISTENCE_FORMATS.get(conf.get_dataset_persistence_format())
+            if format_props:
+                ext, _, write_attr = format_props
+                if hasattr(res_value, write_attr):
+                    write_method = getattr(res_value, write_attr)
+                    # noinspection PyBroadException
+                    try:
+                        resource_file = os.path.join(self.workspace_dir, res_name + '.' + ext)
+                        write_method(resource_file)
+                    except Exception:
+                        _LOG.exception('writing resource "%s" to file failed' % res_name)
 
     def _read_resource_from_file(self, res_name):
-        res_file = os.path.join(self.workspace_dir, res_name + '.nc')
-        if os.path.isfile(res_file):
-            # noinspection PyBroadException
-            try:
-                res_value = xr.open_dataset(res_file)
-                self._resource_cache[res_name] = res_value
-            except Exception:
-                _LOG.exception('reading resource "%s" from file failed' % res_name)
+        for ext, open_dataset, _ in _RESOURCE_PERSISTENCE_FORMATS.values():
+            res_file = os.path.join(self.workspace_dir, res_name + '.' + ext)
+            if os.path.exists(res_file):
+                # noinspection PyBroadException
+                try:
+                    res_value = open_dataset(res_file)
+                    self._resource_cache[res_name] = res_value
+                except Exception:
+                    _LOG.exception('reading resource "%s" from file failed' % res_name)
 
     def set_resource_persistence(self, res_name: str, persistent: bool):
         with self._lock:

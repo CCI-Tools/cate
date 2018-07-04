@@ -60,6 +60,7 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        capacity=WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY,
                        threshold=0.75)
 
+# Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 TRACE_PERF = False
@@ -67,6 +68,9 @@ TRACE_PERF = False
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
 _NUM_GEOM_SIMP_LEVELS = 8
+
+_MAX_CSV_ROW_COUNT = 10000
+
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -408,22 +412,20 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
 
             # noinspection PyBroadException
             try:
-                # TODO: remove this crappy threshold 1000
                 # assume var_data is a pandas.dataframe
                 dataframe = var_data
                 num_rows, _ = dataframe.shape
-                if num_rows > 1000:
-                    dataframe = dataframe[:1000]
+                if num_rows > _MAX_CSV_ROW_COUNT:
+                    dataframe = dataframe[:_MAX_CSV_ROW_COUNT]
                 csv = dataframe.to_csv()
             except Exception:
                 # noinspection PyBroadException
                 try:
-                    # TODO: remove this crappy threshold 1000
                     # assume var_data is a xarray.dataset or xarray.dataarray
                     dataframe = var_data.to_dataframe()
                     num_rows, _ = dataframe.shape
-                    if num_rows > 1000:
-                        dataframe = dataframe[:1000]
+                    if num_rows > _MAX_CSV_ROW_COUNT:
+                        dataframe = dataframe[:_MAX_CSV_ROW_COUNT]
                     csv = dataframe.to_csv()
                 except Exception:
                     csv = var_data.to_series().to_csv()

@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional, Sequence, Union
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
     VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_VERSION_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
-    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE, DEFAULT_VARIABLES
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE, DEFAULT_VARIABLES, DATASET_PERSISTENCE_FORMAT
 
 _CONFIG = None
 
@@ -70,6 +70,10 @@ def get_data_stores_path() -> str:
              the default value ``~/.cate/data_stores``.
     """
     return get_config_path('data_stores_path', os.path.join(DEFAULT_DATA_PATH, 'data_stores'))
+
+
+def get_dataset_persistence_format() -> str:
+    return get_config_value('dataset_persistence_format', DATASET_PERSISTENCE_FORMAT)
 
 
 def get_use_workspace_imagery_cache() -> bool:
@@ -180,11 +184,20 @@ def _read_config_files(config_files: Sequence[str],
     """
     default_config_file = config_files[0]
     if default_config_file and template_module:
+        # Always write a 'conf.py.template' so users can rename and use that instead.
+        # See also discussions on https://github.com/CCI-Tools/cate/issues/635
+        default_config_dir = os.path.dirname(default_config_file)
+        config_template_file = os.path.join(default_config_dir, 'conf.py.template')
+        try:
+            _write_default_config_file(config_template_file, template_module)
+        except (IOError, OSError) as error:
+            _LOG.warning('failed writing %s: %s' % (config_template_file, str(error)))
+
         if not os.path.exists(default_config_file):
             try:
                 _write_default_config_file(default_config_file, template_module)
             except (IOError, OSError) as error:
-                _LOG.warning('failed writing %s: %s' % (default_config_file, str(error)))
+                _LOG.error('failed writing %s: %s' % (default_config_file, str(error)))
 
     new_config = None
     for config_file in config_files:
