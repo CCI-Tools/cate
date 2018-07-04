@@ -84,6 +84,11 @@ import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import Sequence, Optional, Union, Any, Dict, Set
+import numpy as np
+import gdal
+import osr
+import affine
+from pyproj import Proj, transform
 
 import xarray as xr
 
@@ -91,10 +96,12 @@ from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import Monitor
+from ..util.misc import collapse_dimension, map_dimensions
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 URL_REGEX = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -493,6 +500,108 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
         for data_store in data_store_list:
             results.extend(data_store.query(ds_id=ds_id, query_expr=query_expr))
     return results
+
+
+def open_geotiff(data_file: str,
+                 normalize: bool = False,
+                 precision: int = 2,
+                 monitor: Monitor = Monitor.NONE) -> Any:
+    """
+    open and optionally normalize a geo tiff file
+
+    :param data_file. full pathname of geo tiff file to open
+    :param normalize. optional mark to normalize the image according to cate data format
+                    necessary to be plotted on the globe
+    :param precision. normalization phase reduce the size of the image up to a certain
+                    number of decimals. Precision parameter specify this number.
+    """
+    try:
+        dg = gdal.Open(data_file)
+
+        if dg is None:
+            raise DataAccessError(f'Cannot open file {data_file}')
+
+        proj = osr.SpatialReference(wkt=dg.GetProjection())
+        epsg = proj.AutoIdentifyEPSG()
+
+        if epsg == 0:
+            epsg = proj.GetAttrValue('AUTHORITY', 1)
+            crs = '+init=epsg:' + str(epsg)
+        else:
+            crs = proj.ExportToProj4()
+
+        gt = dg.GetGeoTransform()
+        forward_transform = affine.Affine.from_gdal(*gt)
+        X = [(forward_transform * (i + 0.5, 0))[0] for i in range(dg.RasterXSize)]
+        Y = [(forward_transform * (0, i + 0.5))[1] for i in range(dg.RasterYSize)]
+        bands = []
+        for b_idx in range(1, dg.RasterCount + 1):
+            band = dg.GetRasterBand(b_idx)
+            data = band.ReadAsArray(0, 0, dg.RasterXSize, dg.RasterYSize)
+            bands.append(data)
+
+        attrs = {'tranform': gt,
+                 'res': (gt[1], -gt[5]),
+                 'crs': crs}
+
+        if not normalize:
+            da = xr.DataArray(bands,
+                              dims=('band', 'y', 'x'),
+                              coords={'band': list(range(1, dg.RasterCount + 1)),
+                                      'y': Y,
+                                      'x': X},
+                              attrs=attrs)
+
+        else:
+            total_w = dg.RasterCount + 4
+            monitor.starting('Projection transformation', total_work=total_w)
+
+            srcProj = Proj(crs)
+            tgtProj = Proj(init='epsg:4326')
+            x, y = np.meshgrid(X, Y)
+            lon, lat = transform(srcProj, tgtProj, x.flatten(), y.flatten())
+
+            monitor.progress(work=1, msg='Collapse longitude dimension')
+            # reduce the dimension removing duplicated point
+            lon_z = collapse_dimension(lon, precision=precision)
+
+            monitor.progress(work=2, msg='Collapse latitude dimension')
+            lat_z = collapse_dimension(lat, precision=precision)
+
+            r_shape = (lat_z['len'], lon_z['len'])
+
+            # build map grid for each band values (compute avarage on stream)
+            # the averange of the stream a, b, c is at each step
+            # with x = previous avg value
+            #      y = step
+            #      z = new incoming value
+            # avg = xy + z / y + 1
+            bands_map = []
+            for b_idx in range(len(bands)):
+                monitor.progress(work=2 + b_idx, msg='Band {} Projection'.format(b_idx))
+                b = map_dimensions(lat_z['index'], lon_z['index'], bands[b_idx], r_shape)
+                bands_map.append(b)
+
+            monitor.progress(work=total_w, msg='Build Data Source')
+            da = xr.DataArray(bands_map,
+                              dims=('band', 'lat', 'lon'),
+                              coords={'band': list(range(1, len(bands_map) + 1)),
+                                      'lat': lat_z['reduced'],
+                                      'lon': lon_z['reduced']},
+                              attrs=attrs)
+
+    except Exception as e:
+        raise e
+
+    da = da.to_dataset('band')
+    rename_vars = dict()
+    for v in da.data_vars:
+        rename_vars[v] = 'Band_' + str(v)
+
+    ds = da.rename(rename_vars)
+    monitor.done()
+
+    return ds
 
 
 def open_dataset(data_source: Union[DataSource, str],

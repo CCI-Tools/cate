@@ -6,11 +6,10 @@ import os
 import unittest
 from io import StringIO
 from unittest import TestCase
-
+import xarray as xr
 import geopandas as gpd
-
 from cate.core.types import ValidationError
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv, read_geo_tiff
 
 
 class TestIO(TestCase):
@@ -82,6 +81,20 @@ class TestIO(TestCase):
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
         self.assertEqual(len(data_frame), 179)
         data_frame.close()
+
+    def test_read_geo_tiff(self):
+        file = os.path.join(os.path.dirname(__file__), '..', 'data',
+                            'ais_cci_iv_PIG_S1t065_20141010_20141022_v1_vv.tif')
+
+        data_tiff = read_geo_tiff(file, normalize=True)
+        self.assertIsInstance(data_tiff, xr.Dataset)
+        self.assertIn('lon', data_tiff.dims)
+        self.assertIn('lat', data_tiff.dims)
+        # read only tiff
+        data_tiff = read_geo_tiff(file)
+        self.assertIsInstance(data_tiff, xr.Dataset)
+        self.assertIn('x', data_tiff.dims)
+        self.assertIn('y', data_tiff.dims)
 
     def test_write_csv_with_dataset(self):
         import io
