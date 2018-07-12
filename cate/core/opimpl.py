@@ -871,18 +871,32 @@ def subset_spatial_impl(ds: xr.Dataset,
     lat_min = retset.lat.values[0] - lat_pixel / 2
     lat_max = retset.lat.values[-1] + lat_pixel / 2
 
-    lat_grid = np.linspace(lat_min, lat_max, len(retset.lat.values) + 1)
-    lon_grid = np.linspace(lon_min, lon_max, len(retset.lon.values) + 1)
+    lat_grid = np.linspace(lat_min, lat_max, len(retset.lat.values) + 1, dtype='float32')
+    lon_grid = np.linspace(lon_min, lon_max, len(retset.lon.values) + 1, dtype='float32')
 
-    lonm, latm = np.meshgrid(lon_grid, lat_grid)
+    try:
+        lonm, latm = np.meshgrid(lon_grid, lat_grid)
+    except MemoryError:
+        raise ValidationError('Not enough memory to mask the dataset with the given'
+                              ' polygon. Try subsetting with masking disabled')
 
     # Mark all grid points falling within the polygon as True
 
     monitor.progress(1)
-    grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
+    try:
+        grid_points = np.empty((len(lat_grid) * len(lon_grid), 2), dtype='float32')
+    except MemoryError:
+        raise ValidationError('Not enough memory to mask the dataset with the given'
+                              ' polygon. Try subsetting with masking disabled')
+    for i, el in enumerate(((lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel()))):
+        grid_points[i] = el
 
     monitor.progress(1)
-    mask_arr = polypath.contains_points(grid_points)
+    try:
+        mask_arr = polypath.contains_points(grid_points)
+    except MemoryError:
+        raise ValidationError('Not enough memory to mask the dataset with the given'
+                              ' polygon. Try subsetting with masking disabled')
 
     monitor.progress(1)
 
