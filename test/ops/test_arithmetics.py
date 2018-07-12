@@ -219,8 +219,8 @@ class ComputeTest(TestCase):
             'lat': lat,
             'lon': lon
         })
-        actual = arithmetics.compute(ds=dataset,
-                                     script="third = 6 * first - 3 * second")
+        actual = arithmetics.compute_dataset(ds=dataset,
+                                             script="third = 6 * first - 3 * second")
         expected = xr.Dataset({
             'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
             'lat': lat,
@@ -228,9 +228,9 @@ class ComputeTest(TestCase):
         })
         assert_dataset_equal(expected, actual)
 
-        actual = arithmetics.compute(ds=dataset,
-                                     script="third = 6 * first - 3 * second",
-                                     copy=True)
+        actual = arithmetics.compute_dataset(ds=dataset,
+                                             script="third = 6 * first - 3 * second",
+                                             copy=True)
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], first),
             'second': (['lat', 'lon', 'time'], second),
@@ -241,7 +241,7 @@ class ComputeTest(TestCase):
         assert_dataset_equal(expected, actual)
 
     def test_registered_compute(self):
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute_dataset))
         first = np.ones([45, 90, 3])
         second = np.ones([45, 90, 3])
         dataset = xr.Dataset({
@@ -287,9 +287,9 @@ class ComputeTest(TestCase):
 
         # Note, if executed from a workflow, _ctx will be set by the framework
         _ctx = dict(value_cache=dict(res_1=res_1, res_2=res_2))
-        actual = arithmetics.compute(ds=None,
-                                     script="third = 6 * res_1.first - 3 * res_2.second",
-                                     _ctx=_ctx)
+        actual = arithmetics.compute_dataset(ds=None,
+                                             script="third = 6 * res_1.first - 3 * res_2.second",
+                                             _ctx=_ctx)
         expected = xr.Dataset({
             'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
             'lat': lat,
@@ -297,7 +297,7 @@ class ComputeTest(TestCase):
         assert_dataset_equal(expected, actual)
 
     def test_registered_compute_with_context(self):
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute_dataset))
         first = np.ones([45, 90, 3])
         second = np.ones([45, 90, 3])
         lon = np.linspace(-178, 178, 90)

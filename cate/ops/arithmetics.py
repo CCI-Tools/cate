@@ -167,11 +167,11 @@ def diff(ds: xr.Dataset,
 @op_input('copy')
 @op_input('_ctx', context=True)
 # @op_return(add_history=True)
-def compute(ds: DatasetLike.TYPE,
-            script: str,
-            copy: bool = False,
-            _ctx: dict = None,
-            monitor: Monitor = Monitor.NONE) -> xr.Dataset:
+def compute_dataset(ds: DatasetLike.TYPE,
+                    script: str,
+                    copy: bool = False,
+                    _ctx: dict = None,
+                    monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Compute a new dataset from the given Python *script*.
     The argument *script* must be valid Python code or a single expression comprising at least one
