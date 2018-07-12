@@ -8,10 +8,6 @@
 
 * Fixed operation progress monitor which was broken due to an update of the Dask library
 
-## Version 2.0.0.dev15
-
-* Fixed operation progress monitor which was broken due to an update of the Dask library
-
 ## Version 2.0.0.dev14
 
 * ESA sea-level data not correctly displayed [#661](https://github.com/CCI-Tools/cate/issues/661)
