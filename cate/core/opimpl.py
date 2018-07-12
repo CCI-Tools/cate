@@ -851,22 +851,21 @@ def subset_spatial_impl(ds: xr.Dataset,
         # Create a mask directly on pixel centers
         lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
         grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
-        mask = polypath.contains_points(grid_points)
-        mask = mask.reshape(lonm.shape)
-        mask = xr.DataArray(mask,
-                            coords={'lon': retset.lon.values, 'lat': retset.lat.values},
-                            dims=['lat', 'lon'])
+        mask_arr = polypath.contains_points(grid_points)
+        mask_arr = mask_arr.reshape(lonm.shape)
+        mask_arr = xr.DataArray(mask_arr,
+                                coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                                dims=['lat', 'lon'])
 
         with monitor.observing('subset'):
             # Apply the mask to data
-            retset = retset.where(mask, drop=True)
+            retset = retset.where(mask_arr, drop=True)
         return retset
 
     # The normal case
     # Create a grid of pixel vertices
     lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
     lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
-
     lon_min = retset.lon.values[0] - lon_pixel / 2
     lon_max = retset.lon.values[-1] + lon_pixel / 2
     lat_min = retset.lat.values[0] - lat_pixel / 2
@@ -883,21 +882,21 @@ def subset_spatial_impl(ds: xr.Dataset,
     grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
 
     monitor.progress(1)
-    mask = polypath.contains_points(grid_points)
+    mask_arr = polypath.contains_points(grid_points)
 
     monitor.progress(1)
 
-    mask = mask.reshape(lonm.shape)
+    mask_arr = mask_arr.reshape(lonm.shape)
     # Vectorized 'rolling window' numpy magic to go from pixel vertices to pixel centers
-    mask = mask[1:, 1:] + mask[1:, :-1] + mask[:-1, 1:] + mask[:-1, :-1]
+    mask_arr = mask_arr[1:, 1:] + mask_arr[1:, :-1] + mask_arr[:-1, 1:] + mask_arr[:-1, :-1]
 
-    mask = xr.DataArray(mask,
-                        coords={'lon': retset.lon.values, 'lat': retset.lat.values},
-                        dims=['lat', 'lon'])
+    mask_arr = xr.DataArray(mask_arr,
+                            coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                            dims=['lat', 'lon'])
 
     with monitor.observing('subset'):
         # Apply the mask to data
-        retset = retset.where(mask, drop=True)
+        retset = retset.where(mask_arr, drop=False)
 
     monitor.done()
     return retset
@@ -1020,7 +1019,7 @@ def _normalize_dim_order(ds: xr.Dataset) -> xr.Dataset:
         if num_dims >= 2 and 'lat' in dim_names and 'lon' in dim_names:
             lat_index = dim_names.index('lat')
             if lat_index != num_dims - 2:
-               must_transpose = _swap_pos(dim_names, lat_index, -2)
+                must_transpose = _swap_pos(dim_names, lat_index, -2)
             lon_index = dim_names.index('lon')
             if lon_index != num_dims - 1:
                 must_transpose = _swap_pos(dim_names, lon_index, -1)

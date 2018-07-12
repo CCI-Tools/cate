@@ -507,6 +507,8 @@ def read_netcdf(file: str,
                          decode_times=decode_times,
                          engine=engine)
     chunks = get_spatial_ext_chunk_sizes(ds)
+    if chunks and 'time' in ds.dims:
+        chunks['time'] = 1
     if chunks:
         ds = ds.chunk(chunks)
     if normalize:
