@@ -140,6 +140,25 @@ class TestPearson(TestCase):
         self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
                                           pv_sp)))
 
+        # Test non-overlapping times
+        ds1 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], x_3d),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.linspace(0, 5, 6)})
+
+        ds2 = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], y_3d),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.linspace(6, 11, 6)})
+
+        correlation = pearson_correlation(ds1, ds2, 'first', 'first')
+        self.assertTrue(np.all(np.isclose(correlation['corr_coef'].values,
+                                          cc_sp)))
+        self.assertTrue(np.all(np.isclose(correlation['p_value'].values,
+                                          pv_sp)))
+
     def test_broadcasting(self):
         """
         Test a (3d, 1d) input pair
