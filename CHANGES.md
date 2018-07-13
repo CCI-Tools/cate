@@ -6,6 +6,8 @@
 * Improved chunking when opening local netCDF datasets, improved memory footprint of
   ``subset_spatial`` operation when masking is enabled
   Addresses [#701](https://github.com/CCI-Tools/cate/issues/701)
+* Fix a bug where correlation would fail with differing time dimensions
+  Addresses [#700](https://github.com/CCI-Tools/cate/issues/700)
 
 ## Version 2.0.0.dev15
 
