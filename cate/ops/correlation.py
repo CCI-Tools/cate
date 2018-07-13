@@ -245,6 +245,8 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
         n = len(x['time'])
 
         xm, ym = x - x.mean(dim='time'), y - y.mean(dim='time')
+        xm.time.values = [i for i in range(0, len(xm.time))]
+        ym.time.values = [i for i in range(0, len(ym.time))]
         xm_ym = xm * ym
         r_num = xm_ym.sum(dim='time')
         xm_squared = xr.ufuncs.square(xm)
