@@ -29,11 +29,19 @@ form (Feature) Attribute Tables (FAT).
 Functions
 =========
 """
+
+import math
+
 import geopandas as gpd
+import numpy as np
 import pandas as pd
+import shapely.geometry
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike, GeometryLike
+from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError
+from cate.util.monitor import Monitor
+
+_DEG2RAD = math.pi / 180.
 
 
 @op(tags=['filter'], version='1.0')
@@ -140,6 +148,115 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
                                          global_dict={})
 
     return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
+
+
+@op(tags=['filter'], version='1.0')
+@op_input('gdf', data_type=DataFrameLike)
+@op_input('location', data_type=GeometryLike)
+@op_input('max_results')
+@op_input('max_dist')
+@op_input('dist_col_name')
+def data_frame_find_closest(gdf: gpd.GeoDataFrame,
+                            location: GeometryLike.TYPE,
+                            max_results: int = 1,
+                            max_dist: float = 180,
+                            dist_col_name: str = 'distance',
+                            monitor: Monitor = Monitor.NONE) -> gpd.GeoDataFrame:
+    """
+    Find the *max_results* records closest to given *location* in the given GeoDataFrame *gdf*.
+    Return a new GeoDataFrame containing the closest records.
+
+    If *dist_col_name* is given, store the actual distances in this column.
+
+    Distances are great-circle distances measured in degrees from a representative center of
+    the given *location* geometry to the representative centres of each geometry in the *gdf*.
+
+    :param gdf: The GeoDataFrame.
+    :param location: A location given as arbitrary geometry.
+    :param max_results: Maximum number of results.
+    :param max_dist: Ignore records whose distance is greater than this value.
+    :param dist_col_name: Optional name of a new column that will store the actual distances.
+    :return: A new GeoDataFrame containing the closest records.
+    """
+    location = GeometryLike.convert(location)
+    location_point = location.representative_point()
+
+    try:
+        geometries = gdf.geometry
+    except AttributeError as e:
+        raise ValidationError('Missing default geometry column.') from e
+
+    num_rows = len(geometries)
+    indexes = list()
+
+    # PERF: Note, this operation may be optimized by computing the great-circle distances using numpy array math!
+
+    total_work = 100
+    num_work_rows = 1 + num_rows // total_work
+    with monitor.starting('Finding closest records', total_work):
+        for i in range(num_rows):
+            geometry = geometries[i]
+            if geometry is not None:
+                try:
+                    geom_point = geometry.representative_point()
+                except AttributeError as e:
+                    raise ValidationError('Invalid geometry column.') from e
+                dist = great_circle_distance(location_point, geom_point)
+                if dist <= max_dist:
+                    indexes.append((i, dist))
+            if i % num_work_rows == 0:
+                monitor.progress(work=1)
+
+    indexes = sorted(indexes, key=lambda item: item[1])
+    num_results = min(max_results, len(indexes))
+    indexes, distances = zip(*indexes[0:num_results])
+
+    new_gdf = gdf.iloc[list(indexes)]
+    if not isinstance(new_gdf, gpd.GeoDataFrame):
+        new_gdf = gpd.GeoDataFrame(new_gdf)
+
+    if dist_col_name:
+        new_gdf[dist_col_name] = np.array(distances)
+
+    return new_gdf
+
+
+def great_circle_distance(p1: shapely.geometry.Point, p2: shapely.geometry.Point) -> float:
+    """
+    Compute great-circle distance on a Sphere in degrees.
+
+    See https://en.wikipedia.org/wiki/Great-circle_distance.
+
+    :param p1: First point (lon, lat) in degrees
+    :param p2: Second point (lon, lat) in degrees
+    :return: Great-circle distance in degree
+    """
+
+    lam1, phi1 = p1.x, p1.y
+    lam2, phi2 = p2.x, p2.y
+    dlam = abs(lam2 - lam1)
+
+    if dlam > 180.:
+        dlam = 360. - dlam
+
+    phi1 *= _DEG2RAD
+    phi2 *= _DEG2RAD
+    dlam *= _DEG2RAD
+
+    sin_phi1 = math.sin(phi1)
+    cos_phi1 = math.cos(phi1)
+    sin_phi2 = math.sin(phi2)
+    cos_phi2 = math.cos(phi2)
+    sin_dlam = math.sin(dlam)
+    cos_dlam = math.cos(dlam)
+
+    dx = cos_phi2 * sin_dlam
+    dy = cos_phi1 * sin_phi2 - sin_phi1 * cos_phi2 * cos_dlam
+
+    y = math.sqrt(dx * dx + dy * dy)
+    x = sin_phi1 * sin_phi2 + cos_phi1 * cos_phi2 * cos_dlam
+
+    return math.atan2(y, x) / _DEG2RAD
 
 
 def _data_frame_geometry_op(instance_method, geometry: GeometryLike):

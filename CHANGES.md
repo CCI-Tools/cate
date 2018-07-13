@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev16 (in development)
 
+* Added new operation `data_frame_find_closest()` [#706](https://github.com/CCI-Tools/cate/issues/706)
 * Fixed division by zero error in RGB tile generation if data min and max were equal 
 * Allow displaying and working with CCI Sea Level MSLAMPH data.
   Addresses [#531](https://github.com/CCI-Tools/cate/issues/531).
