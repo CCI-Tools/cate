@@ -1,213 +1,185 @@
-.. _Matplotlib Color Maps Reference: https://matplotlib.org/examples/color/colormaps_reference.html
-
-
 =====
 Setup
 =====
 
+Cate at its core is a Python package that provides Cate's command-line interface (CLI) and
+application programming interface (API). In addition, the Python package provides a visualisation and
+processing service for *Cate Desktop*, Cate's graphical user interface (GUI).
+
+For *Cate Desktop*, we provide an installer for the Windows, Mac OS X, and Linux operating systems.
+The Cate Desktop installer will also ensure the Cate Python package is installed. If it can't find an existing
+or compatible Cate Python package, it will install a new or update an existing one.
+
+If you only want the Cate CLI or API, you can install just the Python package into a dedicated
+`Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda <https://www.anaconda.com/download/>`_ Python 3
+environment. In this case, please read :ref:`setup_install_cate`.
+
 System Requirements
 ===================
 
-Hardware
---------
-
-It is recommended to use an up-to-date computer, with at least 8GB of RAM and a multi-core CPU.
+**Hardware**: It is recommended to use an up-to-date computer, with at least 8GB of RAM and a multi-core CPU.
 The most important bottlenecks will first be the data transfer rate from local data caches into the
 executing program, so it is advised to use fast solid state disks. Secondly, the internet connection
 speed matters, because Cate will frequently have to download data from remote services
 in order to cache it locally.
 
-Operating Systems
------------------
-
-The Cate is supposed to work on up-to-date Windows, Mac OS X, and Linux operating systems.
+**Operating Systems**: Cate is supposed to work on up-to-date Windows, Mac OS X, and Linux operating systems.
 
 
-Installation
-============
+.. _setup_install_cate_desktop:
+
+Installing Cate Desktop (GUI)
+=============================
 
 
-Installers for the Linux, Mac OS X, and Windows platform can be downloaded from the project's
-web page at `cci-tools.github.io <https://cci-tools.github.io/>`_
-or on Cate's release page on `GitHub <https://github.com/CCI-Tools/cate/releases>`_.
+First time installs
+-------------------
 
-We provide two Cate installers for *Cate Core* and *Cate Desktop*, Cate's graphical user interface.
-Note that *Cate Desktop* cannot be run without *Cate Core* installed. This may change in the future.
+The Cate Desktop installer for your platform is available from the `Cate website <https://climatetoolbox.io/>`_.
 
-Installing Cate Core
---------------------
+Should the website be unavailable, you can get the installer directly from
+the `releases page <https://github.com/CCI-Tools/cate-desktop/releases>`_ in Cate Desktop's GitHub repository:
 
-*Cate Core* includes a Python runtime environment, bundled with the Cate Python package.  The latter provides
-the Cate command-line interface (CLI) and Cate Python API.
+* ``cate-desktop-2.x.y.dmg`` and for OS X;
+* ``cate-desktop-2.x.y-x86_64.AppImage`` for Linux;
+* ``cate-desktop-setup-2.x.y.exe`` for Windows.
 
-The installers for the supported platforms are:
+All Cate Desktop installers are quite light-weight and executed by double clicking them.
 
-* ``cate-1.0.0-MacOSX-x86_64.sh`` for OS X
-* ``cate-1.0.0-Linux-x86_64.sh`` for Linux
-* ``cate-1.0.0-Windows-x86_64.sh`` for Windows
+They don't require any extra user input up to the point where no existing or compatible Cate Python package is found.
+In this case, Cate's *Setup process* is run:
 
-
-The Cate Core installers are currently customized `Anaconda <https://www.continuum.io/why-anaconda>`_
-installers. In the following, we provide some notes regarding its usage on Windows, Mac OS X, and Linux systems.
-
-**Windows Installer**
-
-When you run the installer on Windows, make sure you un-check **Add Anaconda to my PATH environment variable**.
-Otherwise the Anaconda Python distribution used by the Cate would become your system's default Python.
-
-.. figure:: ../_static/figures/installer-win.png
+.. figure:: ../_static/figures/user_manual/gui_setup_screen_1.png
    :scale: 100 %
    :align: center
 
+   Setup dialog - start screen
 
-**Mac OS X and Linux Installers**
+You can just click **Next** button to use *Automatic setup* with default settings.
+To see what these settings are, you could select **User-defined setup** and press **Next** in which case the
+default settings are shown:
 
-On Mac OS X and Linux systems, the downloaded installer is a shell script. To run it, open a terminal window,
-``cd`` into the directory where you've downloaded the installer and execute the shell script using ``bash``:
+.. figure:: ../_static/figures/user_manual/gui_setup_screen_2.png
+   :scale: 100 %
+   :align: center
+
+   Setup dialog - user defined settings
+
+
+Pressing **Next** will perform the following setup steps for a new Cate Python package:
+
+1. Downloading a Miniconda installer;
+2. Running the Miniconda in installer in the background to install a dedicated Python environment;
+3. Installing the Python conda package ``cate-cli`` into that environment.
+
+For an existing, outdated Cate Python package it will just update it to the required version and also update all
+required 3rd-party Python packages.
+
+.. figure:: ../_static/figures/user_manual/gui_setup_screen_3.png
+   :scale: 100 %
+   :align: center
+
+   Setup dialog - setup in progress
+
+
+After successful installation, press **End** to start Cate Desktop:
+
+.. figure:: ../_static/figures/user_manual/gui_setup_screen_4.png
+   :scale: 100 %
+   :align: center
+
+   Setup dialog - setup successful
+
+Should you encounter any problems with the setup, please consider filing an error report in the
+`Cate issue tracker <https://github.com/CCI-Tools/cate/issues>`_.
+
+
+Updating
+--------
+
+By default, Cate Desktop is supposed to keep itself up-to-date automatically. Once the update is installed,
+Cate Desktop might detect an outdated Cate Python package. In this case the *Setup process*
+described above is run again to update the Python package to the required version.
+
+In case the update procedure fails,
+uninstall Cate Desktop, then `download the latest version <https://github.com/CCI-Tools/cate-desktop/releases>`_
+for your operating system and install again.
+
+The auto-update feature of Cate Desktop can be disabled in the **Preferences**:
+
+.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+   :scale: 100 %
+   :align: center
+
+   Preferences Dialog / General
+
+
+.. _setup_install_cate:
+
+Installing Cate (CLI, API)
+==========================
+
+First time installs
+-------------------
+
+The Cate Python package requires a *Conda environment* for Python 3.6+ either provided by a
+`Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda <https://www.anaconda.com/download/>`_ installation.
+
+If you haven't yet installed either of the two, we recommend you install Miniconda for Python 3 first.
+
+With Miniconda/Anaconda installed and accessible (installation path should be on ``PATH`` environment variable)
+open a shell / terminal window (Windows users type "cmd" in search field of start menu).
+
+The steps are:
+
+    1. create a dedicate Python environment for Cate so it doesn't interfere with other Python packages you
+       might already have installed;
+    2. activate that newly create Python environment for Cate;
+    3. install the Cate Python package;
+    4. test the installation by invoking the Cate command-line interface.
+
+Mac OS / Linux:
 
 .. code-block:: console
 
-    $ cd ~/Downloads
-    $ bash cate-1.0.0-Linux-x86_64.sh
+    $ conda env create -n cate-env
+    $ source activate cate-env
+    $ conda install -c conda-forge -c ccitools cate-cli
+    $ cate --help
 
-By default, the installer will install Cate Core into ``~/cate``. If you want it in another location, use the
-``-p`` (=prefix) option, e.g.
-
-.. code-block:: console
-
-    $ bash cate-1.0.0-Linux-x86_64.sh -p cate-1.0.0
-
-Use the ``-h`` option to display other install options.
-
-After successful installation a link to "Cate CLI" will be created on a Linux desktop (if any) aor as a Startmenu entry
-on Windows.
-
-The actual Cate CLI executables ``cate-cli`` can be found in the Cate Python environment:
-
-* ``cate/bin/cate-cli`` on Linux
-* ``cate/bin/cate-cli.app`` on Mac
-* ``cate/Scripts/cate-cli.bat`` on Windows
-
-As ``cate-cli`` is an application Mac, it can started using a double-click.
-
-
-Updating an existing Cate Core
-------------------------------
-
-The fastest method to update an existing Cate installation is to update its Python environment using the the
-``cate-cli`` command-line tool. This is how you find out the current Cate version number:
+Windows:
 
 .. code-block:: console
 
-    $ cate --version
+    > conda env create -n cate-env
+    > activate cate-env
+    > conda install -c conda-forge -c ccitools cate-cli
+    > cate --help
 
-Updating with the Cate 2.x CLI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are using Cate 2.0 and higher you can use the ``cate upd`` command to the latest Cate version. If you want to
-update to a specific version, append the version number, e.g.:
+Updating
+--------
 
-.. code-block:: console
-
-    $ cate upd 2.0.2
-
-Type ``cate upd -h`` to find out more about the update command.
-
-Updating with the Cate 1.x CLI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you are using a Cate version less than 2.0, you can update to the latest version using the ``conda`` tool
-included in the Cate Python environment:
+You can easily update an existing Cate installation using the ``cate upd`` command:
 
 .. code-block:: console
 
-    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli
+    $ cate upd
 
-To update to specific version number, type:
+Or you use Conda to install the latest version:
 
 .. code-block:: console
 
-    $ conda install --no-shortcuts -c ccitools -c conda-forge cate-cli=1.0.1
-
-Updating with a Cate installer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The Cate Core installers are pretty large files because they include a complete Python 3 environment bundled
-with various "heavy" Python packages such as numpy, pandas, matplotlib, gdal, etc.
-
-When you install a Cate Core software update using the installer, you can not use the same target directory again,
-because the installer requires it to be non-existing or empty. So you either have to choose a different target
-directory, or you uninstall the previous version first, or you simply remove all contained files in the old directory.
+    $ conda update -c conda-forge -c ccitools cate-cli
 
 
-Installing Cate Core from Sources
----------------------------------
+Installing from Sources
+=======================
 
 If you are a developer you may wish to build and install Cate from Python sources.
-In this case, please follow the instructions given in the project's
-`README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
+In this case, please follow the instructions given in the
+`Cate README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
 
-
-Installing Cate Desktop
------------------------
-
-*Cate Desktop* is Cate's graphical user interface and depends on Cate Core.
-Hence, you need a compatible Cate Core installation before you can install and run Cate Desktop.
-
-The Cate Desktop installers for the supported platforms are:
-
-* ``Cate.Desktop-1.0.0.dmg`` for OS X
-* ``cate-desktop-1.0.0-x86_64.AppImage`` for Linux
-* ``Cate.Desktop.Setup.1.0.0.exe`` for Windows
-
-All Cate Desktop installers are light-weight and executed by double clicking them.
-They don't require any extra user input.
-
-Configuration
-=============
-
-Cate's configuration file is called ``conf.py`` and is located in the ``~/.cate/1.0.0`` directory, where ``~`` is
-the current user's home directory.
-
-Given here is an overview of the possible configuration parameters:
-
-:``data_stores_path``:
-    Directory where Cate stores information about data stores and also saves local data files synchronized with their
-    remote versions. Use the tilde '~' (also on Windows) within the path to point to your home directory.
-    This directory can become rather populated once after a while and it is advisable to place it where there exists
-    a high transfer rate and sufficient capacity. Ideally, you would let it point to a dedicated solid state disc (SSD).
-    The default value for ``data_stores_path`` is the ``~/.cate/data_stores`` directory.
-
-:``use_workspace_imagery_cache``:
-    If set to ``True``, Cate will maintain a per-workspace
-    cache for imagery generated from dataset variables. Such cache can accelerate
-    image display, however at the cost of disk space.
-
-:``included_data_sources``:
-    If ``included_data_sources`` is a list, its entries are expected to be wildcard patterns for the identifiers of data
-    sources to be included. By default, or if 'included_data_sources' is None, all data sources are included.
-
-:``excluded_data_sources``:
-    If ``excluded_data_sources`` is a list, its entries are expected to be wildcard patterns for the identifiers of data
-    sources to be excluded. By default, or if 'excluded_data_sources' is None, no data sources are excluded.
-    If both ``included_data_sources`` and ``excluded_data_sources`` are lists, we first include data sources using
-    ``included_data_sources`` then remove entries that match any result from applying ``excluded_data_sources``.
-
-:``variable_display_settings``:
-    Configure / overwrite default variable display settings as used in various plot_<type>() operations
-    and in the Cate Desktop GUI.
-    Each entry maps a variable name to a dictionary with the following entries:
-    * ``color_map``   - name of a color map taken from from `Matplotlib Color Maps Reference`_
-    * ``display_min`` - minimum variable value that corresponds to the lower end of the color map
-    * ``display_max`` - maximum variable value that corresponds to the upper end of the color map
-
-    For example:::
-
-        variable_display_settings = {
-            'my_var': dict(color_map='viridis', display_min=0.1, display_max=0.8),
-        }
-
-:``default_color_map``:
-    Default color map to be used for any variable not configured in 'variable_display_settings'
-    'default_color_map' must be the name of a color map taken from from `Matplotlib Color Maps Reference`_.
-    If not specified, the ultimate default is ``'inferno'``.
+After building and installing the Cate Python package from sources you can build an run
+Cate Desktop from sources by following the instructions given in the
+`Cate Desktop README <https://github.com/CCI-Tools/cate-desktop/blob/master/README.md>`_ on GitHub.

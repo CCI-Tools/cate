@@ -48,6 +48,9 @@ NETCDF_COMPRESSION_LEVEL = 9
 _ONE_MIB = 1024 * 1024
 _ONE_GIB = 1024 * _ONE_MIB
 
+#: The data format to be used when persisting datasets in the workspace.
+DATASET_PERSISTENCE_FORMAT = 'netcdf4'
+
 #: Use a per-workspace file imagery cache, see REST "/res/tile/" API
 WEBAPI_USE_WORKSPACE_IMAGERY_CACHE = False
 
@@ -95,6 +98,7 @@ DEFAULT_VARIABLES = {
     'O3_du_tot',                # esacci.OZONE.*.L3.NP.*
     'atmosphere_mole_content_of_ozone',  # esacci.OZONE.*.L3S.TC.*
     'Rrs_490',                  # esacci.OC.*.L3S.RRS.*
+    'local_msl_trend',          # esacci.SEALEVEL.*.IND.MSL.*
     'sm',                       # esacci.SOILMOISTURE.*.L3S.SSMS.*
     'sea_surface_temperature',  # esacci.SST.*.L3U.SSTskin.*
     'analysed_sst',             # esacci.SST.*.L4.SSTdepth.*
@@ -142,6 +146,10 @@ VARIABLE_DISPLAY_SETTINGS = {
 
     # Fire CCI
     'burned_area': dict(color_map="hot", display_min=0, display_max=300000000),
+
+    # Sea Level
+    'local_msl_trend': dict(color_map="coolwarm", display_min=-12., display_max=12.),
+    'local_msl_trend_error': dict(color_map="afmhot", display_min=0., display_max=5.),
 }
 
 DEFAULT_COLOR_MAP = 'inferno'

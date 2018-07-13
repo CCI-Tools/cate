@@ -251,7 +251,7 @@ class WebAPI:
 
         print(f'{name}: started service, listening on {join_address_and_port(address, port)}')
 
-        self.server = application.listen(port, address=address or 'localhost')
+        self.server = application.listen(port, address='' if address == 'localhost' else address)
         # Ensure we have the same event loop in all threads
         asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
         # Register handlers for common termination signals
@@ -303,7 +303,7 @@ class WebAPI:
         if service_info_file and service_info:
             print(f'{name}: service information file found: {service_info_file}')
 
-        print(f'{name}: stopping service on {join_address_and_port(address, port)}')
+        print(f'{name}: trying to stop any service on {join_address_and_port(address, port)}')
 
         # noinspection PyBroadException
         try:

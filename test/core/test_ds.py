@@ -5,6 +5,7 @@ from unittest import TestCase, skipIf
 
 import numpy as np
 import xarray as xr
+
 from cate.core.ds import DataStore, DataSource, Schema, DataAccessError, open_xarray_dataset, find_data_sources, \
     open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
@@ -329,6 +330,21 @@ class ChunkUtilsTest(unittest.TestCase):
         chunk_sizes = get_ext_chunk_sizes(ds, init_value=[], map_fn=map_fn, reduce_fn=reduce_fn)
         self.assertIsNotNone(chunk_sizes)
         self.assertEqual(chunk_sizes, dict(time=12, lat=5, lon=10))
+
+    def test_open_xarray(self):
+        wrong_path = os.path.join(_TEST_DATA_PATH, 'small', '*.nck')
+        wrong_url = 'httpz://www.acme.com'
+        path = [wrong_path, wrong_url]
+        try:
+            open_xarray_dataset(path)
+        except IOError as e:
+            self.assertEqual(str(e), 'File {} not found'.format(path))
+
+        right_path = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
+        wrong_url = 'httpz://www.acme.com'
+        path = [right_path, wrong_url]
+        dsa = open_xarray_dataset(path)
+        self.assertIsNotNone(dsa)
 
 
 class DataAccessErrorTest(unittest.TestCase):

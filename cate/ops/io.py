@@ -433,6 +433,51 @@ def read_geo_data_frame(file: str, crs: str = None,
 
 
 @op(tags=['input'], res_pattern='ds_{index}')
+@op_input('path', file_open_mode='r', file_filters=[dict(name='Zarr', extensions=['zarr'])])
+@op_input('file_system', value_set=['Local', 'S3', 'OBS'])
+@op_input('drop_variables', data_type=VarNamesLike)
+def read_zarr(path: str,
+              file_system: str = 'Local',
+              drop_variables: VarNamesLike.TYPE = None,
+              decode_cf: bool = True,
+              decode_times: bool = True,
+              normalize: bool = True) -> xr.Dataset:
+    """
+    Read a dataset from a Zarr directory, Zarr ZIP archive, or remote Zarr object storage.
+
+    For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
+
+    :param path: Zarr directory path, Zarr ZIP archive path, or object storage path or bucket name.
+    :param file_system: File system identifier, "Local" is your locally mounted file system,
+           for Amazon S3 use "S3", for general Object Storage use "OBS".
+    :param drop_variables: List of variables to be dropped.
+    :param decode_cf: Whether to decode CF attributes and coordinate variables.
+    :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
+    :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
+    """
+    drop_variables = VarNamesLike.convert(drop_variables)
+
+    if file_system == 'Local':
+        ds = xr.open_zarr(path,
+                          drop_variables=drop_variables,
+                          decode_cf=decode_cf,
+                          decode_times=decode_times)
+    elif file_system == 'S3' or file_system == 'OBS':
+        import s3fs
+        store = s3fs.S3Map(path, s3=(s3fs.S3FileSystem(anon=True)))
+        ds = xr.open_zarr(store,
+                          drop_variables=drop_variables,
+                          decode_cf=decode_cf,
+                          decode_times=decode_times)
+    else:
+        raise ValidationError(f'Unknown file_system {file_system!r}')
+
+    if normalize:
+        return adjust_temporal_attrs(normalize_op(ds))
+    return ds
+
+
+@op(tags=['input'], res_pattern='ds_{index}')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='NetCDF', extensions=['nc'])])
 @op_input('drop_variables', data_type=VarNamesLike)
 @op_input('decode_cf')

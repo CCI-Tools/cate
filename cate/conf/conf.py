@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional, Sequence, Union
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
     VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_VERSION_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
-    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE, DEFAULT_VARIABLES
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE, DEFAULT_VARIABLES, DATASET_PERSISTENCE_FORMAT
 
 _CONFIG = None
 
@@ -70,6 +70,10 @@ def get_data_stores_path() -> str:
              the default value ``~/.cate/data_stores``.
     """
     return get_config_path('data_stores_path', os.path.join(DEFAULT_DATA_PATH, 'data_stores'))
+
+
+def get_dataset_persistence_format() -> str:
+    return get_config_value('dataset_persistence_format', DATASET_PERSISTENCE_FORMAT)
 
 
 def get_use_workspace_imagery_cache() -> bool:

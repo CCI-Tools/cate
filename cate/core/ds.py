@@ -79,6 +79,8 @@ Components
 """
 
 import glob
+import itertools
+import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import Sequence, Optional, Union, Any, Dict, Set
@@ -86,13 +88,21 @@ from typing import Sequence, Optional, Union, Any, Dict, Set
 import xarray as xr
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from .opimpl import normalize_missing_time, normalize_coord_vars
+from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
 from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd)"
+
+URL_REGEX = re.compile(
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
 class DataSource(metaclass=ABCMeta):
@@ -571,17 +581,21 @@ def open_dataset(data_source: Union[DataSource, str],
 
 # noinspection PyUnresolvedReferences,PyProtectedMember
 def open_xarray_dataset(paths,
+                        region: PolygonLike.TYPE = None,
+                        var_names: VarNamesLike.TYPE = None,
                         monitor: Monitor = Monitor.NONE,
                         **kwargs) -> xr.Dataset:
     """
     Open multiple files as a single dataset. This uses dask. If each individual file
-    of the dataset is small, one dask chunk will coincide with one temporal slice,
+    of the dataset is small, one Dask chunk will coincide with one temporal slice,
     e.g. the whole array in the file. Otherwise smaller dask chunks will be used
     to split the dataset.
 
     :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
-    :param monitor: A progress monitor.
+    :param region: Optional region constraint.
+    :param var_names: Optional variable names constraint.
+    :param monitor: Optional progress monitor.
     :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
     """
     # paths could be a string or a list
@@ -591,9 +605,10 @@ def open_xarray_dataset(paths,
     else:
         files.extend(paths)
 
-    # should be a file or a glob
-    # unroll glob list into list of files
-    files = [i for path in files for i in glob.iglob(path)]
+    # should be a file or a glob or an URL
+    files = [(i,) if re.match(URL_REGEX, i) else glob.glob(i) for i in files]
+    # make a flat list
+    files = list(itertools.chain.from_iterable(files))
 
     if not files:
         raise IOError('File {} not found'.format(paths))
@@ -631,14 +646,24 @@ def open_xarray_dataset(paths,
     with monitor.starting('Opening dataset', len(files)):
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        return xr.open_mfdataset(files,
-                                 concat_dim=concat_dim,
-                                 autoclose=True,
-                                 coords='minimal',
-                                 data_vars='minimal',
-                                 chunks=chunks,
-                                 preprocess=preprocess,
-                                 **kwargs)
+        ds = xr.open_mfdataset(files,
+                               concat_dim=concat_dim,
+                               autoclose=True,
+                               coords='minimal',
+                               data_vars='minimal',
+                               chunks=chunks,
+                               preprocess=preprocess,
+                               **kwargs)
+
+    if var_names:
+        ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
+
+    ds = normalize_impl(ds)
+
+    if region:
+        ds = subset_spatial_impl(ds, region)
+
+    return ds
 
 
 def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
@@ -682,7 +707,7 @@ def get_ext_chunk_sizes(ds: xr.Dataset, dim_names: Set[str] = None,
         if var.encoding:
             chunk_sizes = var.encoding.get('chunksizes')
             if chunk_sizes \
-                    and len(chunk_sizes) == len(var.dims)\
+                    and len(chunk_sizes) == len(var.dims) \
                     and (not dim_names or dim_names.issubset(set(var.dims))):
                 for dim_name, size in zip(var.dims, chunk_sizes):
                     if not dim_names or dim_name in dim_names:
