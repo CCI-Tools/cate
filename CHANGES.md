@@ -1,15 +1,12 @@
 ## Version 2.0.0.dev16 (in development)
 
+* Added new operations `compute_dataset()` and `compute_data_frame()` [#703](https://github.com/CCI-Tools/cate/issues/703).
 * Fixed division by zero error in RGB tile generation if data min and max were equal 
 * Allow displaying and working with CCI Sea Level MSLAMPH data.
   Addresses [#531](https://github.com/CCI-Tools/cate/issues/531).
 * Improved chunking when opening local netCDF datasets, improved memory footprint of
   ``subset_spatial`` operation when masking is enabled
   Addresses [#701](https://github.com/CCI-Tools/cate/issues/701)
-
-## Version 2.0.0.dev15
-
-* Fixed operation progress monitor which was broken due to an update of the Dask library
 
 ## Version 2.0.0.dev15
 

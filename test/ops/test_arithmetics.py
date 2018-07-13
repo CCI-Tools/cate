@@ -2,14 +2,15 @@
 Tests for arithmetic operations
 """
 
+from datetime import datetime
 from unittest import TestCase
 
 import numpy as np
+import pandas as pd
 import xarray as xr
-from datetime import datetime
 
-from cate.ops import arithmetics
 from cate.core.op import OP_REGISTRY
+from cate.ops import arithmetics
 from cate.util.misc import object_to_qualified_name
 
 
@@ -205,68 +206,55 @@ class TestDiff(TestCase):
         assert_dataset_equal(expected * -1, actual)
 
 
-# noinspection PyMethodMayBeStatic
-class ComputeTest(TestCase):
+class ComputeDatasetTest(TestCase):
 
     def test_plain_compute(self):
-        first = np.ones([45, 90, 3])
-        second = np.ones([45, 90, 3])
+        da1 = np.ones([45, 90, 3])
+        da2 = np.ones([45, 90, 3])
         lon = np.linspace(-178, 178, 90)
         lat = np.linspace(-88, 88, 45)
-        dataset = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], first),
-            'second': (['lat', 'lon', 'time'], second),
+
+        ds1 = xr.Dataset({
+            'da1': (['lat', 'lon', 'time'], da1),
+            'da2': (['lat', 'lon', 'time'], da2),
             'lat': lat,
             'lon': lon
         })
-        actual = arithmetics.compute(ds=dataset,
-                                     script="third = 6 * first - 3 * second")
-        expected = xr.Dataset({
-            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
-            'lat': lat,
-            'lon': lon
-        })
-        assert_dataset_equal(expected, actual)
 
-        actual = arithmetics.compute(ds=dataset,
-                                     script="third = 6 * first - 3 * second",
-                                     copy=True)
-        expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], first),
-            'second': (['lat', 'lon', 'time'], second),
-            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
-            'lat': lat,
-            'lon': lon
-        })
-        assert_dataset_equal(expected, actual)
+        ds2 = arithmetics.compute_dataset(ds=ds1,
+                                          script="_x = 0.5 * da2\n"
+                                                 "x1 = 2 * da1 - 3 * _x\n"
+                                                 "x2 = 3 * da1 + 4 * _x\n")
+        self.assertIsInstance(ds2, xr.Dataset)
+        self.assertIn('lon', ds2)
+        self.assertIn('lat', ds2)
+        self.assertIn('x1', ds2)
+        self.assertIn('x2', ds2)
+        self.assertNotIn('da1', ds2)
+        self.assertNotIn('da2', ds2)
+        _x = 0.5 * da2
+        expected_x1 = 2 * da1 - 3 * _x
+        expected_x2 = 3 * da1 + 4 * _x
+        np.testing.assert_array_almost_equal(expected_x1, ds2['x1'].values)
+        np.testing.assert_array_almost_equal(expected_x2, ds2['x2'].values)
 
-    def test_registered_compute(self):
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
-        first = np.ones([45, 90, 3])
-        second = np.ones([45, 90, 3])
-        dataset = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], first),
-            'second': (['lat', 'lon', 'time'], second),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90)})
-        actual = reg_op(ds=dataset,
-                        script="third = 6 * first - 3 * second")
-        expected = xr.Dataset({
-            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90)})
-        assert_dataset_equal(expected, actual)
-
-        actual = reg_op(ds=dataset,
-                        script="third = 6 * first - 3 * second",
-                        copy=True)
-        expected = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], first),
-            'second': (['lat', 'lon', 'time'], second),
-            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90)})
-        assert_dataset_equal(expected, actual)
+        ds2 = arithmetics.compute_dataset(ds=ds1,
+                                          script="_x = 0.6 * da2\n"
+                                                 "x1 = 4 * da1 - 4 * _x\n"
+                                                 "x2 = 5 * da1 + 3 * _x\n",
+                                          copy=True)
+        self.assertIsInstance(ds2, xr.Dataset)
+        self.assertIn('lon', ds2)
+        self.assertIn('lat', ds2)
+        self.assertIn('x1', ds2)
+        self.assertIn('x2', ds2)
+        self.assertIn('da1', ds2)
+        self.assertIn('da2', ds2)
+        _x = 0.6 * da2
+        expected_x1 = 4 * da1 - 4 * _x
+        expected_x2 = 5 * da1 + 3 * _x
+        np.testing.assert_array_almost_equal(expected_x1, ds2['x1'].values)
+        np.testing.assert_array_almost_equal(expected_x2, ds2['x2'].values)
 
     def test_plain_compute_with_context(self):
         first = np.ones([45, 90, 3])
@@ -287,40 +275,104 @@ class ComputeTest(TestCase):
 
         # Note, if executed from a workflow, _ctx will be set by the framework
         _ctx = dict(value_cache=dict(res_1=res_1, res_2=res_2))
-        actual = arithmetics.compute(ds=None,
-                                     script="third = 6 * res_1.first - 3 * res_2.second",
-                                     _ctx=_ctx)
+        actual = arithmetics.compute_dataset(ds=None,
+                                             script="third = 6 * res_1.first - 3 * res_2.second",
+                                             _ctx=_ctx)
+        self.assertIsInstance(actual, xr.Dataset)
         expected = xr.Dataset({
             'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
             'lat': lat,
             'lon': lon})
         assert_dataset_equal(expected, actual)
 
-    def test_registered_compute_with_context(self):
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(arithmetics.compute))
-        first = np.ones([45, 90, 3])
-        second = np.ones([45, 90, 3])
-        lon = np.linspace(-178, 178, 90)
-        lat = np.linspace(-88, 88, 45)
 
-        res_1 = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], first),
-            'lat': lat,
-            'lon': lon
-        })
-        res_2 = xr.Dataset({
-            'second': (['lat', 'lon', 'time'], second),
-            'lat': lat,
-            'lon': lon
-        })
+class ComputeDataFrameTest(TestCase):
 
-        # Note, if executed from a workflow, _ctx will be set by the framework
-        _ctx = dict(value_cache=dict(res_1=res_1, res_2=res_2))
-        actual = reg_op(ds=None,
-                        script="third = 6 * res_1.first - 3 * res_2.second",
-                        _ctx=_ctx)
-        expected = xr.Dataset({
-            'third': (['lat', 'lon', 'time'], 6 * first - 3 * second),
-            'lat': lat,
-            'lon': lon})
-        assert_dataset_equal(expected, actual)
+    def test_compute_simple(self):
+        s1 = 10. * np.linspace(0, 1, 11)
+        s2 = -2 * np.linspace(0, 1, 11)
+        s3 = +2 * np.linspace(0, 1, 11)
+
+        df1 = pd.DataFrame(dict(s1=s1, s2=s2, s3=s3))
+
+        df2 = arithmetics.compute_data_frame(df=df1,
+                                             script="_a = 3 * s2 - 4 * s3\n"
+                                                    "a1 = 1 + 2 * s1 + _a\n"
+                                                    "a2 = 2 + 3 * s1 + _a\n")
+
+        self.assertIsInstance(df2, pd.DataFrame)
+        self.assertEqual(11, len(df2))
+        self.assertIn('a1', df2)
+        self.assertIn('a2', df2)
+        self.assertNotIn('_a', df2)
+        self.assertNotIn('s1', df2)
+        self.assertNotIn('s2', df2)
+        self.assertNotIn('s3', df2)
+        expected_a = 3 * s2 - 4 * s3
+        expected_a1 = 1 + 2 * s1 + expected_a
+        expected_a2 = 2 + 3 * s1 + expected_a
+        np.testing.assert_array_almost_equal(expected_a1, df2['a1'].values)
+        np.testing.assert_array_almost_equal(expected_a2, df2['a2'].values)
+
+        df2 = arithmetics.compute_data_frame(df=df1,
+                                             script="_a = 3 * s2 - 4 * s3\n"
+                                                    "a1 = 1 + 2 * s1 + _a\n"
+                                                    "a2 = 2 + 3 * s1 + _a\n",
+                                             copy=True)
+
+        self.assertIsInstance(df2, pd.DataFrame)
+        self.assertEqual(11, len(df2))
+        self.assertIn('a1', df2)
+        self.assertIn('a2', df2)
+        self.assertNotIn('_a', df2)
+        self.assertIn('s1', df2)
+        self.assertIn('s2', df2)
+        self.assertIn('s3', df2)
+        expected_a = 3 * s2 - 4 * s3
+        expected_a1 = 1 + 2 * s1 + expected_a
+        expected_a2 = 2 + 3 * s1 + expected_a
+        np.testing.assert_array_almost_equal(expected_a1, df2['a1'].values)
+        np.testing.assert_array_almost_equal(expected_a2, df2['a2'].values)
+
+    def test_compute_aggregations(self):
+        s1 = 10. * np.linspace(0, 1, 11)
+        s2 = -2 * np.linspace(0, 1, 11)
+        s3 = +2 * np.linspace(0, 1, 11)
+
+        df1 = pd.DataFrame(dict(s1=s1, s2=s2, s3=s3))
+
+        df2 = arithmetics.compute_data_frame(df=df1,
+                                             script="s1_mean = s1.mean()\n"
+                                                    "s2_sum = s2.sum()\n"
+                                                    "s3_median = s3.median()\n")
+
+        self.assertIsInstance(df2, pd.DataFrame)
+        self.assertEqual(1, len(df2))
+        self.assertIn('s1_mean', df2)
+        self.assertIn('s2_sum', df2)
+        self.assertIn('s3_median', df2)
+        self.assertNotIn('s1', df2)
+        self.assertNotIn('s2', df2)
+        self.assertNotIn('s3', df2)
+        np.testing.assert_almost_equal(np.mean(s1), df2['s1_mean'].values)
+        np.testing.assert_almost_equal(np.sum(s2), df2['s2_sum'].values)
+        np.testing.assert_almost_equal(np.median(s3), df2['s3_median'].values)
+
+        df2 = arithmetics.compute_data_frame(df=df1,
+                                             script="s1_mean = s1.mean()\n"
+                                                    "s2_sum = s2.sum()\n"
+                                                    "s3_median = s3.median()\n",
+                                             copy=True)
+
+        self.assertIsInstance(df2, pd.DataFrame)
+        self.assertEqual(11, len(df2))
+        self.assertIn('s1_mean', df2)
+        self.assertIn('s2_sum', df2)
+        self.assertIn('s3_median', df2)
+        self.assertIn('s1', df2)
+        self.assertIn('s2', df2)
+        self.assertIn('s3', df2)
+
+        np.testing.assert_almost_equal(np.mean(s1), df2['s1_mean'].values)
+        np.testing.assert_almost_equal(np.sum(s2), df2['s2_sum'].values)
+        np.testing.assert_almost_equal(np.median(s3), df2['s3_median'].values)
