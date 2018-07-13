@@ -12,11 +12,11 @@ from unittest import TestCase
 from cate.cli import main
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
+from cate.core.types import PointLike, TimeRangeLike
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
-from cate.core.types import PointLike, TimeRangeLike
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 

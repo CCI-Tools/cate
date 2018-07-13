@@ -171,6 +171,7 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(shapely.wkt.loads('POINT(20 30)'), df2['geometry'].iloc[0])
         self.assertEqual(shapely.wkt.loads('POINT(20 20)'), df2['geometry'].iloc[1])
 
+
 class GreatCircleDistanceTest(TestCase):
     def test_great_circle_distance(self):
         dist = great_circle_distance(Point(20, 20), Point(20, 20))
