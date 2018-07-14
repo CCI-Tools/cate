@@ -206,7 +206,8 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     """
     monitor = parent_monitor.child(1)
     with monitor.observing("resample slice"):
-        result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
+        # TODO (JG, 14.07.18) redundant squeeze should not be neccessary, see <xarray_issue>
+        result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.squeeze().values),
                                         w,
                                         h,
                                         ds_method,
@@ -251,6 +252,7 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
                                 attrs=array.attrs).chunk()
 
     num_steps = 1
+    # print(groupby_list)
     for dim in groupby_list:
         num_steps = num_steps * len(array[dim])
 
@@ -263,6 +265,10 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
             # One spatial slice is one dask chunk, e.g. chunking is
             # (1,1,1..1,len(lat),len(lon))
             chunks[dim] = 1
+            # print(array)
+            # print(array.values.shape)
+            # print(temp_array)
+            # print(temp_array.values.shape)
         return xr.DataArray(temp_array.values,
                             name=array.name,
                             dims=array.dims,
@@ -385,9 +391,9 @@ def _nested_groupby_apply(array: xr.DataArray,
     :return: groupby-split-appy result
     """
     if len(groupby) == 1:
-        return array.groupby(groupby[0]).apply(apply_fn, **kwargs)
+        return array.groupby(groupby[0], squeeze=True).apply(apply_fn, **kwargs)
     else:
-        return array.groupby(groupby[0]).apply(_nested_groupby_apply,
-                                               groupby=groupby[1:],
-                                               apply_fn=apply_fn,
-                                               kwargs=kwargs)
+        return array.groupby(groupby[0], squeeze=True).apply(_nested_groupby_apply,
+                                                             groupby=groupby[1:],
+                                                             apply_fn=apply_fn,
+                                                             kwargs=kwargs)
