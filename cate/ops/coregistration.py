@@ -206,7 +206,7 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     """
     monitor = parent_monitor.child(1)
     with monitor.observing("resample slice"):
-        # TODO (JG, 14.07.18) redundant squeeze should not be neccessary, see <xarray_issue>
+        # In some cases the grouped dimension is not automatically squeezed out
         result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.squeeze().values),
                                         w,
                                         h,
