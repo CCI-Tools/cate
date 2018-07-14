@@ -348,8 +348,8 @@ def _find_intersection(first: np.ndarray,
     finer = min(first_px_size, second_px_size)
     safety = 100
     i = 0
-    while (math.isclose(((minimum - global_bounds[0]) % first_px_size), 0, abs_tol=0.1) and
-           math.isclose(((minimum - global_bounds[0]) % second_px_size), 0, abs_tol=0.1)):
+    while (not math.isclose(((minimum - global_bounds[0]) % first_px_size), 0, abs_tol=0.1) and
+           not math.isclose(((minimum - global_bounds[0]) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')
@@ -357,8 +357,8 @@ def _find_intersection(first: np.ndarray,
         i = i + 1
 
     i = 0
-    while (math.isclose(((global_bounds[1] - maximum) % first_px_size), 0, abs_tol=0.1) and
-           math.isclose(((global_bounds[1] - maximum) % second_px_size), 0, abs_tol=0.1)):
+    while (not math.isclose(((global_bounds[1] - maximum) % first_px_size), 0, abs_tol=0.1) and
+           not math.isclose(((global_bounds[1] - maximum) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')
