@@ -29,7 +29,7 @@ Functions
 =========
 """
 import math
-from typing import Dict, Any, Mapping, Sequence, Tuple
+from typing import Dict, Any, Mapping, Tuple
 
 import geopandas
 import geopandas as gpd
