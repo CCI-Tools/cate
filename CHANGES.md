@@ -10,6 +10,12 @@
   Addresses [#701](https://github.com/CCI-Tools/cate/issues/701)
 * Fix a bug where correlation would fail with differing time dimensions
   Addresses [#700](https://github.com/CCI-Tools/cate/issues/700)
+* Fix a bug where coregistration would fail in some cases when the grouped by dimension
+  is not squeezed out automatically.
+  Addresses [#684](https://github.com/CCI-Tools/cate/issues/684)
+* Fix a bug where coregistration would fail with some datasets on very fine grids due to
+  floating point calculation errors
+  Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
 
 ## Version 2.0.0.dev15
 
