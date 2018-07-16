@@ -90,8 +90,7 @@ class CliTestCase(unittest.TestCase):
 
     def create_catalog_differences(self, new_ds):
         for d in DATA_STORE_REGISTRY.get_data_stores():
-            diff_file = os.path.join(d.get_metadata_store_path(), d._get_update_tag() + '-diff.json')
-
+            diff_file = os.path.join(d.data_store_path, d._get_update_tag() + '-diff.json')
             if os.path.isfile(diff_file):
                 with open(diff_file, 'r') as json_in:
                     report = json.load(json_in)
@@ -318,7 +317,11 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['One operation found'])
 
 
+'''
 @unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
+'''
+
+
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
@@ -343,7 +346,6 @@ class DataSourceCommandTest(CliTestCase):
     def test_ds_update(self):
         self.assert_main(['ds', 'list', '-u'],
                          expected_stdout=['All datastores are up to date.'])
-
         self.create_catalog_differences('test_diff_new')
         self.assert_main(['ds', 'list', '-u'],
                          expected_stdout=['test_diff_new'])
