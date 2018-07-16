@@ -81,6 +81,7 @@ Components
 import glob
 import itertools
 import re
+import datetime
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import Sequence, Optional, Union, Any, Dict, Set
@@ -365,7 +366,12 @@ class DataStore(metaclass=ABCMeta):
                  new: a list of new dataset entry
                  del: a list of removed datset
         """
-        return None
+        generated = datetime.datetime.now()
+        report = {"generated": str(generated),
+                  "source_ref_time": str(generated),
+                  "new": list(),
+                  "del": list()}
+        return report
 
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
@@ -487,9 +493,8 @@ def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] 
 
     for ds in data_store_list:
         r = ds.get_updates()
-        if not r:
-            continue
-        response[ds.id] = r
+        if r['new'] or r['del']:
+            response[ds.id] = r
 
     return response
 

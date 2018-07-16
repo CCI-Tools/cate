@@ -4,6 +4,7 @@ import os.path
 import shutil
 import sys
 import unittest
+import datetime
 from collections import OrderedDict
 from time import sleep
 from typing import Union, List
@@ -86,6 +87,23 @@ class CliTestCase(unittest.TestCase):
             shutil.rmtree(dir_path, ignore_errors=ignore_errors)
         if ignore_errors and os.path.isdir(dir_path):
             self.fail("Can't remove dir %s" % dir_path)
+
+    def create_catalog_differences(self, new_ds):
+        for d in DATA_STORE_REGISTRY.get_data_stores():
+            diff_file = os.path.join(d.get_metadata_store_path(), d._get_update_tag() + '-diff.json')
+
+            if os.path.isfile(diff_file):
+                with open(diff_file, 'r') as json_in:
+                    report = json.load(json_in)
+                report['new'].append(new_ds)
+            else:
+                generated = datetime.datetime.now()
+                report = {"generated": str(generated),
+                          "source_ref_time": str(generated),
+                          "new": [new_ds],
+                          "del": list()}
+            with open(diff_file, 'w') as json_out:
+                json.dump(report, json_out)
 
 
 class CliTest(CliTestCase):
@@ -325,6 +343,10 @@ class DataSourceCommandTest(CliTestCase):
     def test_ds_update(self):
         self.assert_main(['ds', 'list', '-u'],
                          expected_stdout=['All datastores are up to date.'])
+
+        self.create_catalog_differences('test_diff_new')
+        self.assert_main(['ds', 'list', '-u'],
+                         expected_stdout=['test_diff_new'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy(self):

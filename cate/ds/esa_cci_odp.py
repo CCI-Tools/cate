@@ -362,15 +362,21 @@ class EsaCciOdpDataStore(DataStore):
                                   It is also used by the system to refresh the current images when
                                   is older then 1 day.
                  new: a list of new dataset entry
-                 del: a list of removed datset
+                 del: a list of removed dataset
         """
         diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
-        report = None
+
         if os.path.isfile(diff_file):
             with open(diff_file, 'r') as json_in:
                 report = json.load(json_in)
+        else:
+            generated = datetime.now()
+            report = {"generated": str(generated),
+                      "source_ref_time": str(generated),
+                      "new": list(),
+                      "del": list()}
 
-        # clean up when requested
+            # clean up when requested
         if reset:
             if os.path.isfile(diff_file):
                 os.remove(diff_file)
