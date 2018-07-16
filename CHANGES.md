@@ -16,6 +16,8 @@
 * Fix a bug where coregistration would fail with some datasets on very fine grids due to
   floating point calculation errors
   Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
+* fix issue [#677](https://github.com/CCI-Tools/cate/issues/677) removed option data_var from 
+  open_dataset 
 
 ## Version 2.0.0.dev15
 
