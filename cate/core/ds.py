@@ -352,11 +352,18 @@ class DataStore(metaclass=ABCMeta):
         """
         Ask the datastore to retrieve the differences found between a previous
         dataStore status and the current one,
-        The implementation should return a dictionary with the new ['new'] and removed ['del'] dataset.
-        it also return the reference time to the datastore status taken as previous, it could
-        be useful to know to which time the found differences are compared to.
+        The implementation return a dictionary with the new ['new'] and removed ['del'] dataset.
+        it also return the reference time to the datastore status taken as previous.
         Reset flag is used to clean up the support files, freeze and diff.
-        :return:
+        :param: reset=False. Set this flag to true to clean up all the support files forcing a
+                synchronization with the remote catalog
+        :return: A dictionary with keys { 'generated', 'source_ref_time', 'new', 'del' }.
+                 genetated: generation time, when the check has been executed
+                 source_ref_time: when the local copy of the remoted dataset hes been made.
+                                  It is also used by the system to refresh the current images when
+                                  is older then 1 day.
+                 new: a list of new dataset entry
+                 del: a list of removed datset
         """
         return None
 
