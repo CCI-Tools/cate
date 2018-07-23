@@ -44,10 +44,11 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+import pandas as pd
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
-from typing import Sequence, Tuple, Optional, Any
+from typing import Sequence, Tuple, Optional, Any, Dict
 
 import xarray as xr
 from owslib.csw import CatalogueServiceWeb
@@ -317,11 +318,13 @@ class EsaCciOdpDataStore(DataStore):
                  title: str = 'ESA CCI Open Data Portal',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict = None):
+                 index_cache_json_dict: dict = None,
+                 index_cache_update_tag: str = None):
         super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._esgf_data = index_cache_json_dict
+        self._index_cache_update_tag = index_cache_update_tag
         self._data_sources = []
 
         self._csw_data = None
@@ -344,6 +347,44 @@ class EsaCciOdpDataStore(DataStore):
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
 
+    def get_updates(self, reset=False) -> Dict:
+        """
+        Ask to retrieve the differences found between a previous
+        dataStore status and the current one,
+        The implementation return a dictionary with the new ['new'] and removed ['del'] dataset.
+        it also return the reference time to the datastore status taken as previous snapshot,
+        Reset flag is used to clean up the support files, freeze and diff.
+        :param: reset=False. Set this flag to true to clean up all the support files forcing a
+                synchronization with the remote catalog
+        :return: A dictionary with keys { 'generated', 'source_ref_time', 'new', 'del' }.
+                 genetated: generation time, when the check has been executed
+                 source_ref_time: when the local copy of the remoted dataset hes been made.
+                                  It is also used by the system to refresh the current images when
+                                  is older then 1 day.
+                 new: a list of new dataset entry
+                 del: a list of removed dataset
+        """
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
+
+        if os.path.isfile(diff_file):
+            with open(diff_file, 'r') as json_in:
+                report = json.load(json_in)
+        else:
+            generated = datetime.now()
+            report = {"generated": str(generated),
+                      "source_ref_time": str(generated),
+                      "new": list(),
+                      "del": list()}
+
+            # clean up when requested
+        if reset:
+            if os.path.isfile(diff_file):
+                os.remove(diff_file)
+            frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+            if os.path.isfile(frozen_file):
+                os.remove(frozen_file)
+        return report
+
     def _repr_html_(self) -> str:
         self._init_data_sources()
         rows = []
@@ -358,6 +399,7 @@ class EsaCciOdpDataStore(DataStore):
         return "EsaCciOdpDataStore (%s)" % self.id
 
     def _init_data_sources(self):
+        os.makedirs(get_metadata_store_path(), exist_ok=True)
         if self._data_sources:
             return
         if self._esgf_data is None:
@@ -382,6 +424,86 @@ class EsaCciOdpDataStore(DataStore):
             for doc in docs:
                 data_sources.append(EsaCciOdpDataSource(self, doc))
         self._data_sources = data_sources
+        self._check_source_diff()
+        self._freeze_source()
+
+    def _get_update_tag(self):
+        """
+        return the name to be used and TAG to check and freee the dataset list
+        A datastore could be created with a json file so to avoid collision with a
+        previous frozen DS the user can set a TAG
+        :return:
+        """
+        if self._index_cache_update_tag:
+            return self._index_cache_update_tag
+        return 'dataset-list'
+
+    def _check_source_diff(self):
+        """
+        This routine is responsible to find differences (new dataset or removed dataset)
+        between the most updated list and the provious frozen one.
+        It generate a file dataset-list-diff.json with the results.
+        generated time: time of report generation
+        source_ref_time : time of the frozen (previous) dataset list
+        new: list of item founded as new
+        del: list of items found as removed
+
+        It use a persistent output to keep trace of the previous changes in case the
+        frozen dataset is updated too.
+        :return:
+        """
+        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
+        deleted = []
+        added = []
+
+        if os.path.isfile(frozen_file):
+            with open(frozen_file, 'r') as json_in:
+                frozen_source = json.load(json_in)
+
+            ds_new = set([ds.to_json()['id'] for ds in self._data_sources])
+            ds_old = set([ds for ds in frozen_source['data']])
+            for ds in (ds_old - ds_new):
+                deleted.append(ds)
+
+            for ds in (ds_new - ds_old):
+                added.append(ds)
+
+        if deleted or added:
+            generated = datetime.now()
+            diff_source = {'generated': str(generated),
+                           'source_ref_time': frozen_source['source_ref_time'],
+                           'new': added,
+                           'del': deleted}
+            with open(diff_file, 'w+') as json_out:
+                json.dump(diff_source, json_out)
+
+    def _freeze_source(self):
+        """
+        Freeze a dataset list when needed.
+        The file generated by this method is a snapshop of the dataset list with an expiration time of one day.
+        It is updated to the current when is expired, the file is used to compare the
+        previous dataset status with the current in order to find differences.
+
+        the frozen file is saved in the data store meta directory with the nane
+        'dataset-list-freeze.json'
+        :return:
+        """
+        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+        save_it = True
+        now = datetime.now()
+        if os.path.isfile(frozen_file):
+            with open(frozen_file, 'r') as json_in:
+                freezed_source = json.load(json_in)
+            source_ref_time = pd.to_datetime(freezed_source['source_ref_time'])
+            save_it = (now > source_ref_time + timedelta(days=1))
+
+        if save_it:
+            data = [ds.to_json()['id'] for ds in self._data_sources]
+            freezed_source = {'source_ref_time': str(now),
+                              'data': data}
+            with open(frozen_file, 'w+') as json_out:
+                json.dump(freezed_source, json_out)
 
     def _load_index(self):
         try:
@@ -927,6 +1049,9 @@ class EsaCciOdpDataSource(DataSource):
                 file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
+
+    def to_json(self):
+        return self._json_dict
 
     def __str__(self):
         return self.info_string
