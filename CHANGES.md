@@ -18,6 +18,7 @@
   Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
 * Fix a bug with a wrong spatial subset appearing when saving/opening a workspace
   Addresses [#693](https://github.com/CCI-Tools/cate/issues/693)
+* Fix window certificate error [#696](https://github.com/CCI-Tools/cate/issues/696)
 
 ## Version 2.0.0.dev15
 
