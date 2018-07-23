@@ -41,6 +41,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -170,7 +171,8 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
             try:
-                with urllib.request.urlopen(url, timeout=timeout) as response:
+                context = ssl._create_unverified_context()
+                with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
                     json_text = response.read()
                     json_dict = json.loads(json_text.decode('utf-8'))
                     if num_found is -1:
