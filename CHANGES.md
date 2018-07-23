@@ -16,6 +16,8 @@
 * Fix a bug where coregistration would fail with some datasets on very fine grids due to
   floating point calculation errors
   Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
+* Fix a bug with a wrong spatial subset appearing when saving/opening a workspace
+  Addresses [#693](https://github.com/CCI-Tools/cate/issues/693)
 
 ## Version 2.0.0.dev15
 
