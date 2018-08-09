@@ -1,4 +1,6 @@
-## Version 2.0.0.dev16 (in development)
+## Version 2.0.0.dev17 (in development)
+
+## Version 2.0.0.dev16
 
 * Added new operation `data_frame_find_closest()` [#706](https://github.com/CCI-Tools/cate/issues/706)
 * Added new operations `compute_dataset()` and `compute_data_frame()` [#703](https://github.com/CCI-Tools/cate/issues/703).
