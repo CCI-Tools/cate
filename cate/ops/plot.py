@@ -76,7 +76,7 @@ import cartopy.crs as ccrs
 import numpy as np
 
 from cate.core.op import op, op_input
-from cate.core.types import (VarName, DictLike, PolygonLike, TimeLike, DatasetLike,
+from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, TimeLike, DatasetLike,
                              ValidationError, DimName)
 
 from cate.ops.plot_helpers import get_var_data
@@ -297,23 +297,23 @@ def plot_contour(ds: xr.Dataset,
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds', data_type=DatasetLike)
-@op_input('var', value_set_source='ds', data_type=VarName)
+@op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: DatasetLike.TYPE,
-         var: VarName.TYPE,
+         var_names: VarNamesLike.TYPE,
          indexers: DictLike.TYPE = None,
          title: str = None,
          properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
     """
-    Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *var*.
+    Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *vars*.
 
-    :param ds: Dataset or Dataframe that contains the variable named by *var*.
-    :param var: The name of the variable to plot
-    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+    :param ds: Dataset or Dataframe that contains the variable named by *vars*.
+    :param var_names: The name of the variable to plot
+    :param indexers: Optional indexers into data array of *vars*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "lat=12.4, time='2012-05-02'".
     :param title: an optional plot title
@@ -327,19 +327,12 @@ def plot(ds: DatasetLike.TYPE,
     """
     ds = DatasetLike.convert(ds)
 
-    var_name = VarName.convert(var)
-    if not var_name:
-        raise ValidationError("Missing name for 'var'")
-    var = ds[var_name]
-
-    indexers = DictLike.convert(indexers)
-    properties = DictLike.convert(properties) or {}
+    var_names = VarNamesLike.convert(var_names)
+    if not var_names:
+        raise ValidationError("Missing name for 'vars'")
 
     figure = plt.figure()
     ax = figure.add_subplot(111)
-
-    var_data = get_var_data(var, indexers)
-    var_data.plot(ax=ax, **properties)
 
     if title:
         ax.set_title(title)
@@ -348,6 +341,23 @@ def plot(ds: DatasetLike.TYPE,
 
     if file:
         figure.savefig(file)
+
+    plots = []
+
+    for var_name in var_names:
+        var = ds[var_name]
+
+        indexers = DictLike.convert(indexers)
+        properties = DictLike.convert(properties) or {}
+
+        var_data = get_var_data(var, indexers)
+        if var.time is not None:
+            var_plot, = plt.plot(var.time, var_data, **properties)
+        else:
+            var_plot, = plt.plot(var_data, **properties)
+        plots.append(var_plot)
+
+    plt.legend(plots, var_names)
 
     return figure if not in_notebook() else None
 
