@@ -343,6 +343,7 @@ def plot(ds: DatasetLike.TYPE,
         figure.savefig(file)
 
     plots = []
+    var_labels = []
 
     for var_name in var_names:
         var = ds[var_name]
@@ -356,8 +357,9 @@ def plot(ds: DatasetLike.TYPE,
         else:
             var_plot, = plt.plot(var_data, **properties)
         plots.append(var_plot)
+        var_labels.append(var_name + ' (' + var.attrs['units'] + ')')
 
-    plt.legend(plots, var_names)
+    plt.legend(plots, var_labels)
 
     return figure if not in_notebook() else None
 
