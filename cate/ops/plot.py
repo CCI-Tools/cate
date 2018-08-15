@@ -82,6 +82,7 @@ from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, TimeL
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
 from cate.ops.plot_helpers import handle_plot_polygon
+from cate.ops.timeseries import tseries_mean
 from cate.util.monitor import Monitor
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
@@ -326,6 +327,9 @@ def plot(ds: DatasetLike.TYPE,
     :return: a matplotlib figure object or None if in IPython mode
     """
     ds = DatasetLike.convert(ds)
+
+    if ds.lat is not None and ds.lon is not None:
+        ds = tseries_mean(ds=ds, var='*')
 
     var_names = VarNamesLike.convert(var_names)
     if not var_names:
