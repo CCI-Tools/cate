@@ -375,8 +375,12 @@ def plot_line(ds: DatasetLike.TYPE,
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "lat=12.4, time='2012-05-02'".
     :param title: an optional plot title
-    :param properties: optional plot properties for Python matplotlib,
-           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+    :param properties: optional plot properties for Python matplotlib as a key-value-pair string array,
+           e.g.
+           1 variable - "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           2 variables - "[bins=512, color='blue'],[range=(-1.5, +1.5), label='Sea Surface Temperature, marker='o']"
+           If the number of properties is less than the number of selected variables, the next non-corresponding
+           variable will use the
            For full reference refer to
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
