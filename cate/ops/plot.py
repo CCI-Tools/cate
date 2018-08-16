@@ -298,17 +298,74 @@ def plot_contour(ds: xr.Dataset,
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds', data_type=DatasetLike)
-@op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
+@op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot(ds: DatasetLike.TYPE,
-         var_names: VarNamesLike.TYPE,
+         var: VarName.TYPE,
          indexers: DictLike.TYPE = None,
          title: str = None,
          properties: DictLike.TYPE = None,
          file: str = None) -> Figure:
+    """
+    Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *var*.
+
+    :param ds: Dataset or Dataframe that contains the variable named by *var*.
+    :param var: The name of the variable to plot
+    :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
+    :param title: an optional plot title
+    :param properties: optional plot properties for Python matplotlib,
+           e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
+           For full reference refer to
+           https://matplotlib.org/api/lines_api.html and
+           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+    :param file: path to a file in which to save the plot
+    :return: a matplotlib figure object or None if in IPython mode
+    """
+    ds = DatasetLike.convert(ds)
+
+    var_name = VarName.convert(var)
+    if not var_name:
+        raise ValidationError("Missing name for 'var'")
+    var = ds[var_name]
+
+    indexers = DictLike.convert(indexers)
+    properties = DictLike.convert(properties) or {}
+
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+
+    var_data = get_var_data(var, indexers)
+    var_data.plot(ax=ax, **properties)
+
+    if title:
+        ax.set_title(title)
+
+    figure.tight_layout()
+
+    if file:
+        figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'], res_pattern='plot_{index}')
+@op_input('ds', data_type=DatasetLike)
+@op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
+@op_input('indexers', data_type=DictLike)
+@op_input('title')
+@op_input('properties')
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_line(ds: DatasetLike.TYPE,
+              var_names: VarNamesLike.TYPE,
+              indexers: DictLike.TYPE = None,
+              title: str = None,
+              properties: str = None,
+              file: str = None) -> Figure:
     """
     Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *vars*.
 
@@ -328,6 +385,10 @@ def plot(ds: DatasetLike.TYPE,
     """
     ds = DatasetLike.convert(ds)
 
+    properties = properties.split("],[")
+    properties[0] = properties[0].replace("[", "") if properties[0].startswith("[") else properties[0]
+    properties[-1] = properties[-1].replace("]", "") if properties[-1].endswith("]") else properties[-1]
+
     if ds.lat is not None and ds.lon is not None:
         ds = tseries_mean(ds=ds, var='*')
 
@@ -343,27 +404,44 @@ def plot(ds: DatasetLike.TYPE,
 
     figure.tight_layout()
 
-    if file:
-        figure.savefig(file)
-
     plots = []
     var_labels = []
+    ax_var = {}
+    var_count = len(var_names)
+    properties_count = len(properties)
+    plot_colors = ['red', 'green', 'blue', 'grey', 'brown', 'orange', 'olive', 'cyan', 'purple', 'pink']
 
-    for var_name in var_names:
-        var = ds[var_name]
+    for i in range(var_count):
+        var = ds[var_names[i]]
 
         indexers = DictLike.convert(indexers)
-        properties = DictLike.convert(properties) or {}
+        properties_dict = DictLike.convert(properties[i % properties_count]) or {}
 
         var_data = get_var_data(var, indexers)
+        # ax_var[var_name] = ax.twinx()
+        if 'color' not in properties_dict:
+            properties_dict['color'] = plot_colors[i % len(plot_colors)]
         if var.time is not None:
-            var_plot, = plt.plot(var.time, var_data, **properties)
+            # var_plot, = ax_var[var_name].plot(var.time, var_data, 'r-', **properties)
+            var_plot, = plt.plot(var.time, var_data, **properties_dict)
         else:
-            var_plot, = plt.plot(var_data, **properties)
+            # var_plot, = ax_var[var_name].plot(var_data, 'r-', **properties)
+            var_plot, = plt.plot(var_data, **properties_dict)
+        # ax_var[var_name].set_ylabel(var.attrs['long_name'])
+        # ax_var[var_name].yaxis.label.set_color(var_plot.get_color())
+        # ax_var[var_name].tick_params(axis='y', colors=var_plot.get_color())
         plots.append(var_plot)
-        var_labels.append(var_name + ' (' + var.attrs['units'] + ')')
+        var_labels.append(var_names[i] + ' (' + var.attrs['units'] + ')')
 
+    # do not rotate for now because of the height limitation to 30em on the MplFigureContainer
+    # plt.xticks(rotation=45)
+    x_label = ds.time.attrs['long_name']
+    if x_label:
+        plt.xlabel(x_label)
     plt.legend(plots, var_labels)
+
+    if file:
+        figure.savefig(file, dpi=600)
 
     return figure if not in_notebook() else None
 
