@@ -418,6 +418,7 @@ def plot_line(ds: DatasetLike.TYPE,
     for i in range(var_count):
         var_name = var_names[i]
         var = ds[var_name]
+        var_label = var_name + ' (' + var.attrs['units'] + ')' if 'units' in var.attrs else var_name
 
         indexers = DictLike.convert(indexers)
         properties_dict = DictLike.convert(properties[i % properties_count]) if properties_count else {}
@@ -431,7 +432,7 @@ def plot_line(ds: DatasetLike.TYPE,
                 ax.plot(var.time, var_data, **properties_dict)
             else:
                 ax.plot(var_data, **properties_dict)
-            ax.set_ylabel(var_name + ' (' + var.attrs['units'] + ')', wrap=True)
+            ax.set_ylabel(var_label, wrap=True)
             ax.yaxis.label.set_color(properties_dict['color'])
             ax.tick_params(axis='y', colors=properties_dict['color'])
         else:
@@ -444,7 +445,7 @@ def plot_line(ds: DatasetLike.TYPE,
                 ax_var[var_name].plot(var.time, var_data, **properties_dict)
             else:
                 ax_var[var_name].plot(var_data, **properties_dict)
-            ax_var[var_name].set_ylabel(var_name + ' (' + var.attrs['units'] + ')', wrap=True)
+            ax_var[var_name].set_ylabel(var_label, wrap=True)
             ax_var[var_name].yaxis.label.set_color(properties_dict['color'])
             ax_var[var_name].tick_params(axis='y', colors=properties_dict['color'])
 
