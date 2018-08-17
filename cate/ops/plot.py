@@ -380,8 +380,8 @@ def plot_line(ds: DatasetLike.TYPE,
            1 variable - "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
            2 variables - "[bins=512, color='blue'],[range=(-1.5, +1.5), label='Sea Surface Temperature, marker='o']"
            If the number of properties is less than the number of selected variables, the next non-corresponding
-           variable will use the
-           For full reference refer to
+           variable will repeat the first style on the list, and so on.
+           For full reference and matplotlib API, refer to
            https://matplotlib.org/api/lines_api.html and
            https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
     :param file: path to a file in which to save the plot
@@ -389,9 +389,13 @@ def plot_line(ds: DatasetLike.TYPE,
     """
     ds = DatasetLike.convert(ds)
 
-    properties = properties.split("],[")
-    properties[0] = properties[0].replace("[", "") if properties[0].startswith("[") else properties[0]
-    properties[-1] = properties[-1].replace("]", "") if properties[-1].endswith("]") else properties[-1]
+    properties_count = 0
+
+    if properties:
+        properties = properties.split("],[")
+        properties[0] = properties[0].replace("[", "") if properties[0].startswith("[") else properties[0]
+        properties[-1] = properties[-1].replace("]", "") if properties[-1].endswith("]") else properties[-1]
+        properties_count = len(properties)
 
     if ds.lat is not None and ds.lon is not None:
         ds = tseries_mean(ds=ds, var='*')
@@ -402,47 +406,52 @@ def plot_line(ds: DatasetLike.TYPE,
 
     figure = plt.figure()
     ax = figure.add_subplot(111)
+    figure.subplots_adjust(right=0.65)
 
     if title:
         ax.set_title(title)
 
-    figure.tight_layout()
-
-    plots = []
-    var_labels = []
     ax_var = {}
     var_count = len(var_names)
-    properties_count = len(properties)
     plot_colors = ['red', 'green', 'blue', 'grey', 'brown', 'orange', 'olive', 'cyan', 'purple', 'pink']
 
     for i in range(var_count):
-        var = ds[var_names[i]]
+        var_name = var_names[i]
+        var = ds[var_name]
 
         indexers = DictLike.convert(indexers)
-        properties_dict = DictLike.convert(properties[i % properties_count]) or {}
+        properties_dict = DictLike.convert(properties[i % properties_count]) if properties_count else {}
 
         var_data = get_var_data(var, indexers)
-        # ax_var[var_name] = ax.twinx()
         if 'color' not in properties_dict:
             properties_dict['color'] = plot_colors[i % len(plot_colors)]
-        if var.time is not None:
-            # var_plot, = ax_var[var_name].plot(var.time, var_data, 'r-', **properties)
-            var_plot, = plt.plot(var.time, var_data, **properties_dict)
-        else:
-            # var_plot, = ax_var[var_name].plot(var_data, 'r-', **properties)
-            var_plot, = plt.plot(var_data, **properties_dict)
-        # ax_var[var_name].set_ylabel(var.attrs['long_name'])
-        # ax_var[var_name].yaxis.label.set_color(var_plot.get_color())
-        # ax_var[var_name].tick_params(axis='y', colors=var_plot.get_color())
-        plots.append(var_plot)
-        var_labels.append(var_names[i] + ' (' + var.attrs['units'] + ')')
 
-    # do not rotate for now because of the height limitation to 30em on the MplFigureContainer
-    # plt.xticks(rotation=45)
-    x_label = ds.time.attrs['long_name']
-    if x_label:
-        plt.xlabel(x_label)
-    plt.legend(plots, var_labels)
+        if i == 0:
+            if var.time is not None:
+                ax.plot(var.time, var_data, **properties_dict)
+            else:
+                ax.plot(var_data, **properties_dict)
+            ax.set_ylabel(var_name + ' (' + var.attrs['units'] + ')', wrap=True)
+            ax.yaxis.label.set_color(properties_dict['color'])
+            ax.tick_params(axis='y', colors=properties_dict['color'])
+        else:
+            ax_var[var_name] = ax.twinx()
+            if len(ax_var) > 1:
+                ax_var[var_name].spines["right"].set_position(("axes", 1 + ((i - 1) * 0.2)))
+                ax_var[var_name].set_frame_on(True)
+                ax_var[var_name].patch.set_visible(False)
+            if var.time is not None:
+                ax_var[var_name].plot(var.time, var_data, **properties_dict)
+            else:
+                ax_var[var_name].plot(var_data, **properties_dict)
+            ax_var[var_name].set_ylabel(var_name + ' (' + var.attrs['units'] + ')', wrap=True)
+            ax_var[var_name].yaxis.label.set_color(properties_dict['color'])
+            ax_var[var_name].tick_params(axis='y', colors=properties_dict['color'])
+
+    ax.tick_params(axis='x', rotation=45)
+    if 'long_name' in ds.time.attrs:
+        ax.set_xlabel(ds.time.attrs['long_name'])
+    figure.tight_layout()
 
     if file:
         figure.savefig(file, dpi=600)
