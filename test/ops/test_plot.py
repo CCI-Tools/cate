@@ -216,10 +216,15 @@ class TestPlotLine(TestCase):
         # Test value error is raised when there are too many dimensions to plot
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
             with self.assertRaises(ValueError) as cm:
-                plot_line(multi_dim_ds, ['first', 'second'], fmt='r^-', file=tmp_file)
+                plot_line(multi_dim_ds, ['first', 'second'], file=tmp_file)
             self.assertEqual(str(cm.exception),
                              "x and y must have same first dimension, but have shapes (2,) and (5, 10, 2)")
             self.assertFalse(os.path.isfile(tmp_file))
+
+        # Now with indexers
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            plot_line(multi_dim_ds, ['first', 'second'], indexers="lat=89.5, lon=-179.5", file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
