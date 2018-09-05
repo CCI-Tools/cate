@@ -356,15 +356,15 @@ def plot(ds: DatasetLike.TYPE,
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds', data_type=DatasetLike)
 @op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
+@op_input('fmt')
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
-@op_input('properties')
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_line(ds: DatasetLike.TYPE,
               var_names: VarNamesLike.TYPE,
+              fmt: str = None,
               indexers: DictLike.TYPE = None,
               title: str = None,
-              properties: str = None,
               file: str = None) -> Figure:
     """
     Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *vars*.
@@ -375,30 +375,25 @@ def plot_line(ds: DatasetLike.TYPE,
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "lat=12.4, time='2012-05-02'".
     :param title: an optional plot title
-    :param properties: optional plot properties for Python matplotlib as a key-value-pair string array,
+    :param fmt: optional matplotlib plot formats in a semicolon-separated strings,
            e.g.
-           1 variable - "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
-           2 variables - "[bins=512, color='blue'],[range=(-1.5, +1.5), label='Sea Surface Temperature, marker='o']"
+           1 variable - "b.-"
+           2 variables - "b.-;r+:"
            If the number of properties is less than the number of selected variables, the next non-corresponding
            variable will repeat the first style on the list, and so on.
-           For full reference and matplotlib API, refer to
-           https://matplotlib.org/api/lines_api.html and
-           https://matplotlib.org/devdocs/api/_as_gen/matplotlib.patches.Patch.html#matplotlib.patches.Patch
+           For full reference on matplotlib plot() function, refer to
+           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html
     :param file: path to a file in which to save the plot
     :return: a matplotlib figure object or None if in IPython mode
     """
     ds = DatasetLike.convert(ds)
 
-    properties_count = 0
+    fmt_count = 0
+    fmt_list = []
 
-    if properties:
-        properties = properties.split("],[")
-        properties[0] = properties[0].replace("[", "") if properties[0].startswith("[") else properties[0]
-        properties[-1] = properties[-1].replace("]", "") if properties[-1].endswith("]") else properties[-1]
-        properties_count = len(properties)
-
-    if ds.lat is not None and ds.lon is not None:
-        ds = tseries_mean(ds=ds, var='*')
+    if fmt:
+        fmt_list = fmt.split(";")
+        fmt_count = len(fmt_list)
 
     var_names = VarNamesLike.convert(var_names)
     if not var_names:
@@ -413,44 +408,47 @@ def plot_line(ds: DatasetLike.TYPE,
 
     ax_var = {}
     var_count = len(var_names)
-    plot_colors = ['red', 'green', 'blue', 'grey', 'brown', 'orange', 'olive', 'cyan', 'purple', 'pink']
+    predefined_fmt = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
 
     for i in range(var_count):
         var_name = var_names[i]
         var = ds[var_name]
         var_label = var_name + ' (' + var.attrs['units'] + ')' if 'units' in var.attrs else var_name
+        properties_dict = {}
 
         indexers = DictLike.convert(indexers)
-        properties_dict = DictLike.convert(properties[i % properties_count]) if properties_count else {}
 
         var_data = get_var_data(var, indexers)
-        if 'color' not in properties_dict:
-            properties_dict['color'] = plot_colors[i % len(plot_colors)]
+        if fmt is None:
+            selected_fmt = predefined_fmt[i % len(predefined_fmt)]
+        else:
+            selected_fmt = fmt_list[i % fmt_count]
 
+        time_axis = var.time if 'time' in var else []
         if i == 0:
-            if var.time is not None:
-                ax.plot(var.time, var_data, **properties_dict)
+            if len(time_axis) > 0:
+                ax.plot(var.time, var_data, selected_fmt, **properties_dict)
             else:
-                ax.plot(var_data, **properties_dict)
+                ax.plot(var_data, selected_fmt, **properties_dict)
             ax.set_ylabel(var_label, wrap=True)
-            ax.yaxis.label.set_color(properties_dict['color'])
-            ax.tick_params(axis='y', colors=properties_dict['color'])
+            ax.yaxis.label.set_color(selected_fmt[0])
+            ax.tick_params(axis='y', colors=selected_fmt[0])
         else:
             ax_var[var_name] = ax.twinx()
             if len(ax_var) > 1:
                 ax_var[var_name].spines["right"].set_position(("axes", 1 + ((i - 1) * 0.2)))
                 ax_var[var_name].set_frame_on(True)
                 ax_var[var_name].patch.set_visible(False)
-            if var.time is not None:
-                ax_var[var_name].plot(var.time, var_data, **properties_dict)
+            if len(time_axis) > 0:
+                ax_var[var_name].plot(var.time, var_data, selected_fmt, **properties_dict)
             else:
-                ax_var[var_name].plot(var_data, **properties_dict)
+                ax_var[var_name].plot(var_data, selected_fmt, **properties_dict)
             ax_var[var_name].set_ylabel(var_label, wrap=True)
-            ax_var[var_name].yaxis.label.set_color(properties_dict['color'])
-            ax_var[var_name].tick_params(axis='y', colors=properties_dict['color'])
+            ax_var[var_name].yaxis.label.set_color(selected_fmt[0])
+            ax_var[var_name].tick_params(axis='y', colors=selected_fmt[0])
 
     ax.tick_params(axis='x', rotation=45)
-    if 'long_name' in ds.time.attrs:
+    if 'time' in ds and 'long_name' in ds.time.attrs:
         ax.set_xlabel(ds.time.attrs['long_name'])
     figure.tight_layout()
 

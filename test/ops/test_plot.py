@@ -16,7 +16,7 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.plot import plot, plot_map, plot_data_frame, plot_hovmoeller
+from cate.ops.plot import plot, plot_line, plot_map, plot_data_frame, plot_hovmoeller
 from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
@@ -169,6 +169,71 @@ class TestPlot(TestCase):
 
         with create_tmp_file('remove_me', 'jpg') as tmp_file:
             reg_op(ds=dataset, var='first', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
+class TestPlotLine(TestCase):
+    """
+    Test plot_line() function
+    """
+
+    def test_plot(self):
+        # Test plot_line
+        single_dim_ds = xr.Dataset({
+            'first': (['time'], np.random.rand(10)),
+            'second': (['time'], np.random.rand(10)),
+            'time': pd.date_range('2000-01-01', periods=10)})
+
+        # Test with only 1 variable selected
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            plot_line(single_dim_ds, ['first'], file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Test with 2 variables selected
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            plot_line(single_dim_ds, ['first', 'second'], file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Test with specified formats for each variable
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            plot_line(single_dim_ds, ['first', 'second'], fmt='r^--;b-',  file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Test with partially specified formats
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            plot_line(single_dim_ds, ['first', 'second'], fmt='r^-', file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        multi_dim_ds = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'lat': np.linspace(-89.5, 89.5, 5),
+            'lon': np.linspace(-179.5, 179.5, 10),
+            'time': pd.date_range('2000-01-01', periods=2)})
+
+        # Test value error is raised when there are too many dimensions to plot
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            with self.assertRaises(ValueError) as cm:
+                plot_line(multi_dim_ds, ['first', 'second'], fmt='r^-', file=tmp_file)
+            self.assertEqual(str(cm.exception),
+                             "x and y must have same first dimension, but have shapes (2,) and (5, 10, 2)")
+            self.assertFalse(os.path.isfile(tmp_file))
+
+    def test_registered(self):
+        """
+        Test nominal execution of the function as a registered operation.
+        """
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_line))
+        # Test plot
+        dataset = xr.Dataset({
+            'first': (['time'], np.random.rand(10)),
+            'second': (['time'], np.random.rand(10)),
+            'time': pd.date_range('2000-01-01', periods=10)})
+
+        with create_tmp_file('remove_me', 'jpg') as tmp_file:
+            reg_op(ds=dataset, var_names=['first', 'second'], file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
 
