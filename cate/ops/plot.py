@@ -76,7 +76,7 @@ import cartopy.crs as ccrs
 import numpy as np
 
 from cate.core.op import op, op_input
-from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, TimeLike, DatasetLike,
+from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, TimeLike, DatasetLike, DataFrameLike,
                              ValidationError, DimName)
 
 from cate.ops.plot_helpers import get_var_data
@@ -368,10 +368,10 @@ def plot_line(ds: DatasetLike.TYPE,
               title: str = None,
               file: str = None) -> Figure:
     """
-    Create a 1D/line or 2D/image plot of a variable given by dataset *ds* and variable name *vars*.
+    Create a 1D/line plot of variable(s) given by dataset *ds* and variable name(s) *var_names*.
 
-    :param ds: Dataset or Dataframe that contains the variable named by *vars*.
-    :param var_names: The name of the variable to plot
+    :param ds: Dataset or Dataframe that contains the variable(s) named by *var_names*.
+    :param var_names: The name of the variable(s) to plot
     :param fmt: optional matplotlib plot formats in a semicolon-separated strings,
            e.g.
            1 variable - "b.-"
@@ -382,7 +382,7 @@ def plot_line(ds: DatasetLike.TYPE,
            https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html
     :param file: path to a file in which to save the plot
     :param label: dimension name to be selected as the x-axis of the plot
-    :param indexers: Optional indexers into data array of *vars*. The *indexers* is a dictionary
+    :param indexers: Optional indexers into data array of *var_names*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "lat=12.4, time='2012-05-02'".
     :param title: an optional plot title
