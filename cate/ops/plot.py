@@ -82,7 +82,6 @@ from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, TimeL
 from cate.ops.plot_helpers import get_var_data
 from cate.ops.plot_helpers import in_notebook
 from cate.ops.plot_helpers import handle_plot_polygon
-from cate.ops.timeseries import tseries_mean
 from cate.util.monitor import Monitor
 
 PLOT_FILE_EXTENSIONS = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf',
@@ -357,12 +356,14 @@ def plot(ds: DatasetLike.TYPE,
 @op_input('ds', data_type=DatasetLike)
 @op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
 @op_input('fmt')
+@op_input('label', value_set_source='ds.var_names', data_type=DimName)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_line(ds: DatasetLike.TYPE,
               var_names: VarNamesLike.TYPE,
               fmt: str = None,
+              label: DimName.TYPE = None,
               indexers: DictLike.TYPE = None,
               title: str = None,
               file: str = None) -> Figure:
@@ -371,10 +372,6 @@ def plot_line(ds: DatasetLike.TYPE,
 
     :param ds: Dataset or Dataframe that contains the variable named by *vars*.
     :param var_names: The name of the variable to plot
-    :param indexers: Optional indexers into data array of *vars*. The *indexers* is a dictionary
-           or a comma-separated string of key-value pairs that maps the variable's dimension names
-           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
-    :param title: an optional plot title
     :param fmt: optional matplotlib plot formats in a semicolon-separated strings,
            e.g.
            1 variable - "b.-"
@@ -384,6 +381,11 @@ def plot_line(ds: DatasetLike.TYPE,
            For full reference on matplotlib plot() function, refer to
            https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html
     :param file: path to a file in which to save the plot
+    :param label: dimension name to be selected as the x-axis of the plot
+    :param indexers: Optional indexers into data array of *vars*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
+    :param title: an optional plot title
     :return: a matplotlib figure object or None if in IPython mode
     """
     ds = DatasetLike.convert(ds)
@@ -419,15 +421,37 @@ def plot_line(ds: DatasetLike.TYPE,
         indexers = DictLike.convert(indexers)
 
         var_data = get_var_data(var, indexers)
+        if label and label not in var_data.dims:
+            raise ValidationError(f'The specified label \'{label}\' does not match with any dimension names of the '
+                                  f'dataset. It is possible that it has been accidentally specified as one of the '
+                                  f'indexers.')
+        if len(var_data.dims) > 1:
+            dims = list(var_data.dims)
+            if label:
+                dims.remove(label)
+            if len(dims) > 1:
+                raise ValidationError(f'One dimension is expected, but multiple dimensions are present. '
+                                      f'Please use indexers to specify values from {len(dims) - 1} of '
+                                      f'the following dimensions {dims}')
+            else:
+                raise ValidationError(f'One dimension is expected, but multiple dimensions are present. '
+                                      f'Please use indexers to specify the value of dimension {dims}')
         if fmt is None:
             selected_fmt = predefined_fmt[i % len(predefined_fmt)]
         else:
             selected_fmt = fmt_list[i % fmt_count]
 
-        time_axis = var.time if 'time' in var else []
+        if label:
+            x_axis = var[label]
+        elif 'time' in var:
+            x_axis = var.time
+            label = 'time'
+        else:
+            x_axis = []
+        # to differentiate the creation of y-axis of the first and the nth variable
         if i == 0:
-            if len(time_axis) > 0:
-                ax.plot(var.time, var_data, selected_fmt, **properties_dict)
+            if len(x_axis) > 0:
+                ax.plot(x_axis, var_data, selected_fmt, **properties_dict)
             else:
                 ax.plot(var_data, selected_fmt, **properties_dict)
             ax.set_ylabel(var_label, wrap=True)
@@ -439,8 +463,8 @@ def plot_line(ds: DatasetLike.TYPE,
                 ax_var[var_name].spines["right"].set_position(("axes", 1 + ((i - 1) * 0.2)))
                 ax_var[var_name].set_frame_on(True)
                 ax_var[var_name].patch.set_visible(False)
-            if len(time_axis) > 0:
-                ax_var[var_name].plot(var.time, var_data, selected_fmt, **properties_dict)
+            if len(x_axis) > 0:
+                ax_var[var_name].plot(x_axis, var_data, selected_fmt, **properties_dict)
             else:
                 ax_var[var_name].plot(var_data, selected_fmt, **properties_dict)
             ax_var[var_name].set_ylabel(var_label, wrap=True)
@@ -448,8 +472,8 @@ def plot_line(ds: DatasetLike.TYPE,
             ax_var[var_name].tick_params(axis='y', colors=selected_fmt[0])
 
     ax.tick_params(axis='x', rotation=45)
-    if 'time' in ds and 'long_name' in ds.time.attrs:
-        ax.set_xlabel(ds.time.attrs['long_name'])
+    if label in ds and 'long_name' in ds[label].attrs:
+        ax.set_xlabel(ds[label].attrs['long_name'])
     figure.tight_layout()
 
     if file:

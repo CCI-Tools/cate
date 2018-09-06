@@ -207,24 +207,52 @@ class TestPlotLine(TestCase):
             self.assertTrue(os.path.isfile(tmp_file))
 
         multi_dim_ds = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
-            'second': (['lat', 'lon', 'time'], np.random.rand(5, 10, 2)),
+            'first': (['lat', 'lon', 'layers', 'time'], np.random.rand(5, 10, 12, 2)),
+            'second': (['lat', 'lon', 'layers', 'time'], np.random.rand(5, 10, 12, 2)),
             'lat': np.linspace(-89.5, 89.5, 5),
             'lon': np.linspace(-179.5, 179.5, 10),
+            'layers': np.linspace(0, 12, 12),
             'time': pd.date_range('2000-01-01', periods=2)})
 
         # Test value error is raised when there are too many dimensions to plot
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
             with self.assertRaises(ValueError) as cm:
                 plot_line(multi_dim_ds, ['first', 'second'], file=tmp_file)
-            self.assertEqual(str(cm.exception),
-                             "x and y must have same first dimension, but have shapes (2,) and (5, 10, 2)")
+            self.assertEqual("One dimension is expected, but multiple dimensions are present. Please use indexers to "
+                             "specify values from 3 of the following dimensions ['lat', 'lon', 'layers', 'time']",
+                             str(cm.exception))
             self.assertFalse(os.path.isfile(tmp_file))
 
-        # Now with indexers
+        # Now with indexers but there are still some unspecified dimension
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
-            plot_line(multi_dim_ds, ['first', 'second'], indexers="lat=89.5, lon=-179.5", file=tmp_file)
+            with self.assertRaises(ValueError) as cm:
+                plot_line(multi_dim_ds, ['first', 'second'], indexers="lat=89.5, lon=-179.5", file=tmp_file)
+            self.assertEqual("One dimension is expected, but multiple dimensions are present. Please use indexers to "
+                             "specify values from 1 of the following dimensions ['layers', 'time']",
+                             str(cm.exception))
+            self.assertFalse(os.path.isfile(tmp_file))
+
+        # Now with indexers with all dimensions (except 1) specified
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            plot_line(multi_dim_ds, ['first', 'second'], indexers="lat=89.5, lon=-179.5, layers=0", file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
+
+        # Now with indexers with all dimensions (except 1) and label specified
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            plot_line(multi_dim_ds, ['first', 'second'], label='time', indexers="lat=89.5, lon=-179.5, layers=0",
+                      file=tmp_file)
+            self.assertTrue(os.path.isfile(tmp_file))
+
+        # Now with indexers and label specified with some overlapping
+        with create_tmp_file('remove_me', 'jpeg') as tmp_file:
+            with self.assertRaises(ValueError) as cm:
+                plot_line(multi_dim_ds, ['first', 'second'], label='layers', indexers="lat=89.5, lon=-179.5, layers=0",
+                          file=tmp_file)
+            self.assertEqual(
+                "The specified label 'layers' does not match with any dimension names of the dataset. It is possible "
+                "that it has been accidentally specified as one of the indexers.",
+                str(cm.exception))
+            self.assertFalse(os.path.isfile(tmp_file))
 
     def test_registered(self):
         """
