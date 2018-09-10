@@ -1,5 +1,9 @@
 ## Version 2.0.0.dev17 (in development)
 
+* Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
+  [#730](https://github.com/CCI-Tools/cate/issues/730)
+* Improve plotting capabilities to allow multi-variable plotting and format specification [#704](https://github.com/CCI-Tools/cate/issues/704)
+
 ## Version 2.0.0.dev16
 
 * Added new operation `data_frame_find_closest()` [#706](https://github.com/CCI-Tools/cate/issues/706)
