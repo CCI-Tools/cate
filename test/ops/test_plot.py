@@ -76,7 +76,7 @@ class TestPlotMap(TestCase):
 
         # Test time slice selection
         with create_tmp_file('remove_me', 'png') as tmp_file:
-            plot_map(dataset, time='2000-01-01', file=tmp_file)
+            plot_map(dataset, indexers="time='2000-01-01'", file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
     def test_plot_map_exceptions(self):
@@ -218,8 +218,9 @@ class TestPlotLine(TestCase):
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
             with self.assertRaises(ValueError) as cm:
                 plot_line(multi_dim_ds, ['first', 'second'], file=tmp_file)
-            self.assertEqual("One dimension is expected, but multiple dimensions are present. Please use indexers to "
-                             "specify values from 3 of the following dimensions ['lat', 'lon', 'layers', 'time']",
+            self.assertEqual("Unable to plot because variable first has more than one dimension: "
+                             "('lat', 'lon', 'layers', 'time'). To specify value(s) of these dimension(s), "
+                             "please use the indexers.",
                              str(cm.exception))
             self.assertFalse(os.path.isfile(tmp_file))
 
@@ -227,8 +228,8 @@ class TestPlotLine(TestCase):
         with create_tmp_file('remove_me', 'jpeg') as tmp_file:
             with self.assertRaises(ValueError) as cm:
                 plot_line(multi_dim_ds, ['first', 'second'], indexers="lat=89.5, lon=-179.5", file=tmp_file)
-            self.assertEqual("One dimension is expected, but multiple dimensions are present. Please use indexers to "
-                             "specify values from 1 of the following dimensions ['layers', 'time']",
+            self.assertEqual("Unable to plot because variable first has more than one dimension: ('layers', 'time'). "
+                             "To specify value(s) of these dimension(s), please use the indexers.",
                              str(cm.exception))
             self.assertFalse(os.path.isfile(tmp_file))
 
@@ -249,8 +250,8 @@ class TestPlotLine(TestCase):
                 plot_line(multi_dim_ds, ['first', 'second'], label='layers', indexers="lat=89.5, lon=-179.5, layers=0",
                           file=tmp_file)
             self.assertEqual(
-                "The specified label 'layers' does not match with any dimension names of the dataset. It is possible "
-                "that it has been accidentally specified as one of the indexers.",
+                "Dimension 'layers' is also specified as indexers. Please ensure that a dimension is used exclusively "
+                "either as indexers or as the selected dimension.",
                 str(cm.exception))
             self.assertFalse(os.path.isfile(tmp_file))
 

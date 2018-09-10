@@ -94,13 +94,18 @@ def in_notebook():
     return ipykernel_in_sys_modules
 
 
-def get_var_data(var, indexers: dict, time=None, remaining_dims=None):
+def get_var_data(var, indexers: dict, remaining_dims=None):
     """Select an arbitrary piece of an xarray dataset by using indexers."""
-    if time is not None:
-        indexers = dict(indexers) if indexers else dict()
-        indexers['time'] = time
-
     if indexers:
+        for dim in remaining_dims:
+            if dim not in var.dims:
+                raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
+            if dim in indexers:
+                raise ValidationError(f'Dimension \'{dim}\' is also specified as indexers. Please ensure that a '
+                                      f'dimension is used exclusively either as indexers or as the selected dimension.')
+        for dim in indexers:
+            if dim not in var.dims:
+                raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
         var = var.sel(method='nearest', **indexers)
 
     if remaining_dims:
@@ -108,6 +113,45 @@ def get_var_data(var, indexers: dict, time=None, remaining_dims=None):
         var = var.isel(**isel_indexers)
 
     return var
+
+
+def get_vars_data(ds, indexers: dict, remaining_dims=None):
+    """Select an arbitrary piece of an xarray dataset by using indexers."""
+    # to avoid the original dataset being affected (especially useful in unit tests)
+    ds = ds.copy()
+
+    if indexers:
+        invalid_indexers = list(indexers)
+        for var_name in ds:
+            if ds[var_name].name in ds[var_name].dims:
+                continue
+            var_indexers = {}
+            if remaining_dims:
+                for dim in remaining_dims:
+                    if dim not in ds[var_name].dims:
+                        raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
+                    if dim in indexers:
+                        raise ValidationError(
+                            f'Dimension \'{dim}\' is also specified as indexers. Please ensure that a '
+                            f'dimension is used exclusively either as indexers or as the selected '
+                            f'dimension.')
+            for dim in ds[var_name].dims:
+                if dim in indexers:
+                    var_indexers[dim] = indexers[dim]
+            for dim in invalid_indexers:
+                if dim in ds[var_name].dims:
+                    invalid_indexers.remove(dim)
+            ds[var_name] = ds[var_name].sel(method='nearest', **var_indexers)
+
+            if remaining_dims:
+                isel_indexers = {dim_name: 0 for dim_name in ds[var_name].dims if dim_name not in remaining_dims}
+                ds[var_name] = ds[var_name].isel(**isel_indexers)
+
+        if len(invalid_indexers) > 0:
+            raise ValidationError(f'There are dimensions specified in indexers but do not match dimensions in '
+                                  f'any variables: {invalid_indexers}')
+
+    return ds
 
 
 # determine_cmap_params is adapted from Xarray through Seaborn:
@@ -282,6 +326,6 @@ def _is_scalar(value):
     from collections import Iterable
 
     return (
-        getattr(value, 'ndim', None) == 0 or
-        isinstance(value, (str, bytes)) or not
-        isinstance(value, (Iterable, )))
+            getattr(value, 'ndim', None) == 0 or
+            isinstance(value, (str, bytes)) or not
+            isinstance(value, (Iterable,)))
