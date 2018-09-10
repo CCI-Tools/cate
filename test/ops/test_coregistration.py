@@ -419,8 +419,16 @@ class TestCoregistration(TestCase):
         slice_coarse = np.eye(3, 6)
         ndarr_fine = np.zeros([2, 2, 2, 4, 8])
         ndarr_coarse = np.zeros([2, 2, 2, 3, 6])
+        ndarr_fine_l1 = np.zeros([2, 2, 4, 8])
+        ndarr_coarse_l1 = np.zeros([2, 2, 3, 6])
+        ndarr_fine_l2 = np.zeros([2, 2, 4, 8])
+        ndarr_coarse_l2 = np.zeros([2, 2, 3, 6])
         ndarr_fine[:] = slice_fine
         ndarr_coarse[:] = slice_coarse
+        ndarr_fine_l1[:] = slice_fine
+        ndarr_coarse_l1[:] = slice_coarse
+        ndarr_fine_l2[:] = slice_fine
+        ndarr_coarse_l2[:] = slice_coarse
 
         ds_fine = xr.Dataset({
             'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_fine),
@@ -576,6 +584,41 @@ class TestCoregistration(TestCase):
         expected = xr.Dataset({
             'first': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse_exp),
             'second': (['time', 'layer', 'layer2', 'lat', 'lon'], ndarr_coarse_exp),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2]),
+            'time': np.array([1, 2])})
+
+        assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)
+
+        # Test that coregistering with data arrays with less than all possible
+        # dimensions works
+        ds_fine = xr.Dataset({
+            'first': (['time', 'layer', 'lat', 'lon'], ndarr_fine_l1),
+            'second': (['time', 'layer2', 'lat', 'lon'], ndarr_fine_l2),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2]),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'layer', 'lat', 'lon'], ndarr_coarse_l1),
+            'second': (['time', 'layer2', 'lat', 'lon'], ndarr_coarse_l2),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2]),
+            'layer': np.array([1, 2]),
+            'layer2': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
+
+        ds_fine_resampled = coregister(ds_coarse, ds_fine)
+        ndarr_coarse_exp = np.zeros([2, 2, 3, 6])
+        ndarr_coarse_exp[:] = slice_exp
+
+        expected = xr.Dataset({
+            'first': (['time', 'layer', 'lat', 'lon'], ndarr_coarse_exp),
+            'second': (['time', 'layer2', 'lat', 'lon'], ndarr_coarse_exp),
             'lat': np.linspace(-60, 60, 3),
             'lon': np.linspace(-150, 150, 6),
             'layer': np.array([1, 2]),

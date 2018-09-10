@@ -591,6 +591,20 @@ class PolygonLike(GeometryLike, Like[shapely.geometry.Polygon]):
         return polygon
 
     @classmethod
+    def from_json(cls, value: Any) -> Optional[T]:
+        """
+        Deserialize the given JSON value into a value of target type *T*.
+
+        :param value: a JSON value
+        :return: a optional value of target type *T*
+        """
+        if cls.convert(value):
+            # We want to preserve tuples if that's how a polygon was defined
+            return value
+        else:
+            return None
+
+    @classmethod
     def format(cls, value: Optional[shapely.geometry.Polygon]) -> str:
         return value.wkt if value else ''
 

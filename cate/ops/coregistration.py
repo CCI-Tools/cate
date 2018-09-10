@@ -36,6 +36,7 @@ from typing import Tuple
 
 import numpy as np
 import xarray as xr
+import math
 
 from cate.core.op import op_input, op, op_return
 from cate.core.types import ValidationError
@@ -149,7 +150,7 @@ def _is_equidistant(array: np.ndarray) -> bool:
     step = abs(array[1] - array[0])
     for i in range(0, len(array) - 1):
         curr_step = abs(array[i + 1] - array[i])
-        if curr_step != step:
+        if not math.isclose(curr_step, step, rel_tol=1e-3):
             return False
 
     return True
@@ -164,7 +165,7 @@ def _is_pixel_registered(array: np.ndarray, origin) -> bool:
     :param origin: The origin value for the values in the given array
     """
     step = abs(array[1] - array[0])
-    return ((array[0] - step / 2) - origin) % step == 0
+    return math.isclose((((array[0] - step / 2) - origin) % step), 0, abs_tol=0.1)
 
 
 def _is_valid_array(array: xr.DataArray) -> bool:
@@ -206,7 +207,8 @@ def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_
     """
     monitor = parent_monitor.child(1)
     with monitor.observing("resample slice"):
-        result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.values),
+        # In some cases the grouped dimension is not automatically squeezed out
+        result = resampling.resample_2d(np.ma.masked_invalid(arr_slice.squeeze().values),
                                         w,
                                         h,
                                         ds_method,
@@ -346,8 +348,8 @@ def _find_intersection(first: np.ndarray,
     finer = min(first_px_size, second_px_size)
     safety = 100
     i = 0
-    while (0 != (minimum - global_bounds[0]) % first_px_size and
-           0 != (minimum - global_bounds[0]) % second_px_size):
+    while (not math.isclose(((minimum - global_bounds[0]) % first_px_size), 0, abs_tol=0.1) and
+           not math.isclose(((minimum - global_bounds[0]) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')
@@ -355,8 +357,8 @@ def _find_intersection(first: np.ndarray,
         i = i + 1
 
     i = 0
-    while (0 != (global_bounds[1] - maximum) % first_px_size and
-           0 != (global_bounds[1] - maximum) % second_px_size):
+    while (not math.isclose(((global_bounds[1] - maximum) % first_px_size), 0, abs_tol=0.1) and
+           not math.isclose(((global_bounds[1] - maximum) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')
@@ -385,9 +387,9 @@ def _nested_groupby_apply(array: xr.DataArray,
     :return: groupby-split-appy result
     """
     if len(groupby) == 1:
-        return array.groupby(groupby[0]).apply(apply_fn, **kwargs)
+        return array.groupby(groupby[0], squeeze=True).apply(apply_fn, **kwargs)
     else:
-        return array.groupby(groupby[0]).apply(_nested_groupby_apply,
-                                               groupby=groupby[1:],
-                                               apply_fn=apply_fn,
-                                               kwargs=kwargs)
+        return array.groupby(groupby[0], squeeze=True).apply(_nested_groupby_apply,
+                                                             groupby=groupby[1:],
+                                                             apply_fn=apply_fn,
+                                                             kwargs=kwargs)

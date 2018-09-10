@@ -81,6 +81,7 @@ Components
 import glob
 import itertools
 import re
+import datetime
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import Sequence, Optional, Union, Any, Dict, Set
@@ -348,6 +349,30 @@ class DataStore(metaclass=ABCMeta):
         """
         pass
 
+    def get_updates(self, reset=False) -> Dict:
+        """
+        Ask the datastore to retrieve the differences found between a previous
+        dataStore status and the current one,
+        The implementation return a dictionary with the new ['new'] and removed ['del'] dataset.
+        it also return the reference time to the datastore status taken as previous.
+        Reset flag is used to clean up the support files, freeze and diff.
+        :param: reset=False. Set this flag to true to clean up all the support files forcing a
+                synchronization with the remote catalog
+        :return: A dictionary with keys { 'generated', 'source_ref_time', 'new', 'del' }.
+                 genetated: generation time, when the check has been executed
+                 source_ref_time: when the local copy of the remoted dataset hes been made.
+                                  It is also used by the system to refresh the current images when
+                                  is older then 1 day.
+                 new: a list of new dataset entry
+                 del: a list of removed datset
+        """
+        generated = datetime.datetime.now()
+        report = {"generated": str(generated),
+                  "source_ref_time": str(generated),
+                  "new": list(),
+                  "del": list()}
+        return report
+
     # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
     # @abstractmethod
     # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
@@ -448,6 +473,30 @@ class DataAccessWarning(UserWarning):
     Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
     """
     pass
+
+
+def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Dict:
+    """
+    find difference in the list of data source of the given data store (all when None).
+    The updateds will be returned as dictionaty where the key is the Data store ID.
+    The value is a dictionary too contining the list of 'new', 'de' (removed) dataset
+    :param data_stores: list of Data store(s) to be cheked. If None all the refgistered Data store
+                        will be checked
+    :return: dictionary index by data store ID, values are a second dictionary with the updates sorted by
+             new and del data source in addition to source_ref_time which is the time of snapshot used to
+             compare the data source list
+    """
+    data_store_list = []
+    if data_stores is None:
+        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    response = dict()
+
+    for ds in data_store_list:
+        r = ds.get_updates()
+        if r['new'] or r['del']:
+            response[ds.id] = r
+
+    return response
 
 
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
@@ -613,7 +662,6 @@ def open_xarray_dataset(paths,
                                concat_dim=concat_dim,
                                autoclose=True,
                                coords='minimal',
-                               data_vars='minimal',
                                chunks=chunks,
                                preprocess=preprocess,
                                **kwargs)

@@ -372,6 +372,9 @@ class PolygonLikeTest(TestCase):
         pol = PolygonLike.convert(coords)
         self.assertEqual(PolygonLike.format(pol), 'POLYGON ((10.4 20.2, 30.8 20.2, 30.8 40.8, 10.4 40.8, 10.4 20.2))')
 
+    def test_json(self):
+        self.assertEqual(PolygonLike.from_json("-10, -10, 10, 10"), "-10, -10, 10, 10")
+
 
 class GeometryLikeTest(TestCase):
 

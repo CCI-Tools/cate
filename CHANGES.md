@@ -1,4 +1,10 @@
-## Version 2.0.0.dev16 (in development)
+## Version 2.0.0.dev17 (in development)
+
+* Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
+* Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
+* Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
+
+## Version 2.0.0.dev16
 
 * Added new operation `data_frame_find_closest()` [#706](https://github.com/CCI-Tools/cate/issues/706)
 * Added new operations `compute_dataset()` and `compute_data_frame()` [#703](https://github.com/CCI-Tools/cate/issues/703).
@@ -10,10 +16,20 @@
   Addresses [#701](https://github.com/CCI-Tools/cate/issues/701)
 * Fix a bug where correlation would fail with differing time dimensions
   Addresses [#700](https://github.com/CCI-Tools/cate/issues/700)
+* Fix a bug where coregistration would fail in some cases when the grouped by dimension
+  is not squeezed out automatically.
+  Addresses [#684](https://github.com/CCI-Tools/cate/issues/684)
+* Fix a bug where coregistration would fail with some datasets on very fine grids due to
+  floating point calculation errors
+  Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
+* Fix a bug with a wrong spatial subset appearing when saving/opening a workspace
+  Addresses [#693](https://github.com/CCI-Tools/cate/issues/693)
+* Fix window certificate error [#696](https://github.com/CCI-Tools/cate/issues/696)
 
 ## Version 2.0.0.dev15
 
 * Fixed operation progress monitor which was broken due to an update of the Dask library
+* Added dataset detection funcionality for new or removed DS [#227](https://github.com/CCI-Tools/cate/issues/227) 
 
 ## Version 2.0.0.dev14
 

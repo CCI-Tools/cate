@@ -4,6 +4,7 @@ import os.path
 import shutil
 import sys
 import unittest
+import datetime
 from collections import OrderedDict
 from time import sleep
 from typing import Union, List
@@ -25,8 +26,10 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    DS = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
+    return DS
 
 
 class CliTestCase(unittest.TestCase):
@@ -40,6 +43,10 @@ class CliTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # clean up frozen files
+        for d in DATA_STORE_REGISTRY.get_data_stores():
+            d.get_updates(reset=True)
+
         DATA_STORE_REGISTRY._data_stores.clear()
         for data_store in cls._orig_stores:
             DATA_STORE_REGISTRY.add_data_store(data_store)
@@ -80,6 +87,22 @@ class CliTestCase(unittest.TestCase):
             shutil.rmtree(dir_path, ignore_errors=ignore_errors)
         if ignore_errors and os.path.isdir(dir_path):
             self.fail("Can't remove dir %s" % dir_path)
+
+    def create_catalog_differences(self, new_ds):
+        for d in DATA_STORE_REGISTRY.get_data_stores():
+            diff_file = os.path.join(d.data_store_path, d._get_update_tag() + '-diff.json')
+            if os.path.isfile(diff_file):
+                with open(diff_file, 'r') as json_in:
+                    report = json.load(json_in)
+                report['new'].append(new_ds)
+            else:
+                generated = datetime.datetime.now()
+                report = {"generated": str(generated),
+                          "source_ref_time": str(generated),
+                          "new": [new_ds],
+                          "del": list()}
+            with open(diff_file, 'w') as json_out:
+                json.dump(report, json_out)
 
 
 class CliTest(CliTestCase):
@@ -294,17 +317,21 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['2 operations found'])
 
 
+'''
 @unittest.skip(reason='Hardcoded values from remote service, contains outdated assumptions')
+'''
+
+
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
                          expected_status=0,
                          expected_stdout=['Data source esacci.OZONE.mon.L3.',
-                                          'cci_project:             OZONE'])
+                                          'project:                  esacci'])
         self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--var'],
                          expected_status=0,
                          expected_stdout=['Data source esacci.OZONE.mon.L3.',
-                                          'cci_project:             OZONE',
+                                          'project:                  esacci',
                                           'air_pressure (hPa):'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
@@ -315,6 +342,13 @@ class DataSourceCommandTest(CliTestCase):
                          expected_stdout=['61 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'CLOUD'],
                          expected_stdout=['14 data sources found'])
+
+    def test_ds_update(self):
+        self.assert_main(['ds', 'list', '-u'],
+                         expected_stdout=['All datastores are up to date.'])
+        self.create_catalog_differences('test_diff_new')
+        self.assert_main(['ds', 'list', '-u'],
+                         expected_stdout=['test_diff_new'])
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy(self):
