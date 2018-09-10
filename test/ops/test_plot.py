@@ -198,7 +198,7 @@ class TestPlotLine(TestCase):
 
         # Test with specified formats for each variable
         with create_tmp_file('remove_me', 'jpg') as tmp_file:
-            plot_line(single_dim_ds, ['first', 'second'], fmt='r^--;b-',  file=tmp_file)
+            plot_line(single_dim_ds, ['first', 'second'], fmt='r^--;b-', file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
         # Test with partially specified formats
