@@ -169,9 +169,9 @@ REGION_MODES = [
 def data_frame_subset(gdf: gpd.GeoDataFrame,
                       vars: VarNamesLike.TYPE = None,
                       region: PolygonLike.TYPE = None,
-                      geom_op: bool = 'intersects'):
+                      geom_op: bool = 'intersects') -> gpd.GeoDataFrame:
     """
-    Create a GeoDataFrame subset from given variables and/or region.
+    Create a GeoDataFrame subset from given variables (data frame columns) and/or region.
 
     :param gdf: A GeoDataFrame.
     :param vars: The variables (columns) to select.
