@@ -60,13 +60,13 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to normalize.
     :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
+    ds = normalize_coord_vars(ds)
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
+    ds = _normalize_dim_order(ds)
     ds = _normalize_lon_360(ds)
-    ds = normalize_coord_vars(ds)
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
-    ds = _normalize_dim_order(ds)
     return ds
 
 

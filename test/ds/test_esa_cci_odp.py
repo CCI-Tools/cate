@@ -30,8 +30,10 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), 'esgf-index-cache.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+    for d in DATA_STORE_REGISTRY.get_data_stores():
+        d.get_updates(reset=True)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict)
+    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1')
     DATA_STORE_REGISTRY.add_data_store(data_store)
     return data_store
 
@@ -39,6 +41,9 @@ def _create_test_data_store():
 class EsaCciOdpDataStoreTest(unittest.TestCase):
     def setUp(self):
         self.data_store = _create_test_data_store()
+
+    def tearDown(self):
+        self.data_store.get_updates(reset=True)
 
     def test_id_title_and_is_local(self):
         self.assertEqual(self.data_store.id, 'test-odp')
@@ -72,6 +77,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         if self._existing_local_data_store:
             DATA_STORE_REGISTRY.add_data_store(self._existing_local_data_store)
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
+        self.data_store.get_updates(reset=True)
 
     def test_make_local_and_update(self):
 

@@ -11,7 +11,9 @@ dependencies:
   - conda >=4.5.1,<5.0
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25,<1.0
-  - dask >=0.15.4,<1.0
+  # TODO: investigate test_anomaly.py line 235 that fails using dask 0.18
+  # dask 0.18 causes a unit test to fail
+  - dask >=0.15.4,<0.18
   - fiona >=1.7,<2.0
   - gdal >=2.2.3,<3.0
   - geopandas >=0.3,<1.0

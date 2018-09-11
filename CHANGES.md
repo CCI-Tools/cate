@@ -1,4 +1,14 @@
-## Version 2.0.0.dev16 (in development)
+## Version 2.0.0.dev17 (in development)
+
+* Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
+* Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
+  [#730](https://github.com/CCI-Tools/cate/issues/730)
+* Improve plotting capabilities to allow multi-variable plotting and format specification [#704](https://github.com/CCI-Tools/cate/issues/704)
+* Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
+* Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
+* Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
+
+## Version 2.0.0.dev16
 
 * Added new operation `data_frame_find_closest()` [#706](https://github.com/CCI-Tools/cate/issues/706)
 * Added new operations `compute_dataset()` and `compute_data_frame()` [#703](https://github.com/CCI-Tools/cate/issues/703).
@@ -16,12 +26,14 @@
 * Fix a bug where coregistration would fail with some datasets on very fine grids due to
   floating point calculation errors
   Addresses [#714](https://github.com/CCI-Tools/cate/issues/714)
-* fix issue [#677](https://github.com/CCI-Tools/cate/issues/677) removed option data_var from 
-  open_dataset 
+* Fix a bug with a wrong spatial subset appearing when saving/opening a workspace
+  Addresses [#693](https://github.com/CCI-Tools/cate/issues/693)
+* Fix window certificate error [#696](https://github.com/CCI-Tools/cate/issues/696)
 
 ## Version 2.0.0.dev15
 
 * Fixed operation progress monitor which was broken due to an update of the Dask library
+* Added dataset detection funcionality for new or removed DS [#227](https://github.com/CCI-Tools/cate/issues/227) 
 
 ## Version 2.0.0.dev14
 

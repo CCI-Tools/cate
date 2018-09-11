@@ -1146,6 +1146,8 @@ class DataSourceCommand(SubCommandCommand):
                                       "The comparison is case insensitive.")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
+        list_parser.add_argument('--update', '-u', action='store_true',
+                                 help='Display data store updates')
         # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
@@ -1161,6 +1163,7 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Also display information about contained dataset variables.")
         info_parser.add_argument('--local', '-l', action='store_true',
                                  help="Also display temporal coverage of cached datasets.")
+
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
         add_parser = subparsers.add_parser('add', help='Add a new local data source using a file pattern.')
@@ -1194,7 +1197,7 @@ class DataSourceCommand(SubCommandCommand):
     # noinspection PyShadowingNames
     @classmethod
     def _execute_list(cls, command_args):
-        from cate.core.ds import find_data_sources
+        from cate.core.ds import find_data_sources, find_data_sources_update
         from cate.core.types import TimeRangeLike
 
         ds_name = command_args.name
@@ -1210,6 +1213,20 @@ class DataSourceCommand(SubCommandCommand):
         else:
             ds_names = [ds.id for ds in data_sources]
         _list_items('data source', 'data sources', ds_names, None)
+
+        if command_args.update:
+            ds_updates = find_data_sources_update()
+            if len(ds_updates) == 0:
+                print('All datastores are up to date.')
+            else:
+                for k in ds_updates.keys():
+                    upd = ds_updates[k]
+                    msg = 'Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
+                    print(msg)
+                    if upd['new']:
+                        _list_items('new data source', 'new data sources', upd['new'], None)
+                    if upd['del']:
+                        _list_items('removed data source', 'removed data sources', upd['del'], None)
 
     @classmethod
     def _execute_info(cls, command_args):
