@@ -38,7 +38,7 @@ import pandas as pd
 import shapely.geometry
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError
+from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
 from cate.util.monitor import Monitor
 
 _DEG2RAD = math.pi / 180.
@@ -148,6 +148,52 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
                                          global_dict={})
 
     return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
+
+
+REGION_MODES = [
+    'almost_equals',
+    'contains',
+    'crosses',
+    'disjoint',
+    'intersects',
+    'touches',
+    'within',
+]
+
+
+@op(tags=['filter'], version='1.0')
+@op_input('gdf', data_type=DataFrameLike)
+@op_input('vars', data_type=VarNamesLike)
+@op_input('region', data_type=PolygonLike)
+@op_input('geom_op', data_type=str, value_set=REGION_MODES)
+def data_frame_subset(gdf: gpd.GeoDataFrame,
+                      vars: VarNamesLike.TYPE = None,
+                      region: PolygonLike.TYPE = None,
+                      geom_op: bool = 'intersects'):
+    """
+    Create a GeoDataFrame subset from given variables and/or region.
+
+    :param gdf: A GeoDataFrame.
+    :param vars: The variables (columns) to select.
+    :param region: A region polygon used to filter rows.
+    :param geom_op: The geometric operation to be performed if *region* is given.
+    :return: A GeoDataFrame subset.
+    """
+    vars = VarNamesLike.convert(vars)
+    region = PolygonLike.convert(region)
+    if not vars and not region:
+        return gdf
+
+    if vars:
+        if 'geometry' not in vars:
+            vars.append('geometry')
+        gdf = gdf[vars]
+
+    if region and geom_op:
+        geom_str = PolygonLike.format(region)
+        gdf = data_frame_query(gdf, f'@{geom_op}("{geom_str}")')
+
+    return gdf
 
 
 @op(tags=['filter'], version='1.0')
