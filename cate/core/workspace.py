@@ -363,13 +363,17 @@ class Workspace:
                     'isFeatureAttribute': True,
                 })
         geometry = features.schema.get('geometry')
-
+        crs = str(features.crs)
+        crs_wkt = str(features.crs_wkt)
+        driver = features.driver
         # noinspection PyArgumentList
 
         attributes = {
+            'driver': driver,
             'geometry': geometry,
+            'crs': crs,
+            'crs_wkt': crs_wkt,
             'numFeatures': num_features,
-            'name': resource_json['name'],
         }
 
         resource_json.update(variables=variable_descriptors,
