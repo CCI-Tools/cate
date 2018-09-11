@@ -8,7 +8,7 @@ import shapely.wkt
 from shapely.geometry import Point
 
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
-    great_circle_distance
+    great_circle_distance, data_frame_subset
 
 
 class TestDataFrameOps(TestCase):
@@ -123,6 +123,34 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[0, 1], 'x')
         self.assertEqual(df2.iloc[0, 2], False)
         self.assertEqual(df2.iloc[0, 3], 0.3)
+
+    def test_data_frame_subset(self):
+        df2 = data_frame_subset(TestDataFrameOps.gdf,
+                                region='POLYGON((-10 0, 25 0, 25 30, -10 0))')
+        self.assertIsInstance(df2, gpd.GeoDataFrame)
+        self.assertEqual(len(df2), 3)
+        self.assertIn('A', df2)
+        self.assertIn('B', df2)
+        self.assertIn('C', df2)
+        self.assertIn('D', df2)
+        self.assertIn('geometry', df2)
+
+        df2 = data_frame_subset(TestDataFrameOps.gdf,
+                                var_names="A,C",
+                                region='POLYGON((-10 0, 25 0, 25 30, -10 0))')
+        self.assertIsInstance(df2, gpd.GeoDataFrame)
+        self.assertEqual(len(df2), 3)
+        self.assertIn('A', df2)
+        self.assertNotIn('B', df2)
+        self.assertIn('C', df2)
+        self.assertNotIn('D', df2)
+        self.assertIn('geometry', df2)
+
+        df2 = data_frame_subset(TestDataFrameOps.gdf,
+                                var_names="A,C",
+                                region='POLYGON((30 30, 40 30, 40 40, 30 30))')
+        self.assertIsInstance(df2, gpd.GeoDataFrame)
+        self.assertEqual(len(df2), 0)
 
     def test_data_frame_find_closest(self):
         df2 = data_frame_find_closest(TestDataFrameOps.gdf, 'POINT(20 30)',

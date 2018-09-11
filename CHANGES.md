@@ -1,5 +1,10 @@
 ## Version 2.0.0.dev17 (in development)
 
+* Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
+* Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
+* Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
+  [#730](https://github.com/CCI-Tools/cate/issues/730)
+* Improve plotting capabilities to allow multi-variable plotting and format specification [#704](https://github.com/CCI-Tools/cate/issues/704)
 * Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
 * Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
 * Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)

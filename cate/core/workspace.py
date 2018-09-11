@@ -343,7 +343,13 @@ class Workspace:
             variable = data_frame[var_name]
             variable_descriptors.append(cls._get_pandas_variable_descriptor(variable))
         # noinspection PyArgumentList,PyTypeChecker
-        resource_json.update(variables=variable_descriptors)
+
+        attributes = {
+            'name': resource_json['name'],
+        }
+
+        resource_json.update(variables=variable_descriptors,
+                             attributes=attributes)
 
     @classmethod
     def _update_resource_json_from_feature_collection(cls, resource_json, features: fiona.Collection):
@@ -368,10 +374,23 @@ class Workspace:
                     variable_descriptors[0]['value'] = scalar_value
 
         geometry = features.schema.get('geometry')
+        crs = str(features.crs)
+        crs_wkt = str(features.crs_wkt)
+        driver = features.driver
         # noinspection PyArgumentList
+
+        attributes = {
+            'driver': driver,
+            'geometry': geometry,
+            'crs': crs,
+            'crs_wkt': crs_wkt,
+            'numFeatures': num_features,
+        }
+
         resource_json.update(variables=variable_descriptors,
                              geometry=geometry,
-                             numFeatures=num_features)
+                             numFeatures=num_features,
+                             attributes=attributes)
 
     @classmethod
     def _attrs_to_json_dict(cls, attrs: dict) -> Dict[str, Any]:
