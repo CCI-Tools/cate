@@ -32,6 +32,7 @@ from typing import List, Any, Dict, Optional
 
 import fiona
 import pandas as pd
+import geopandas as gpd
 import xarray as xr
 
 from .workflow import Workflow, OpStep, NodePort, ValueCache
@@ -343,12 +344,7 @@ class Workspace:
             variable_descriptors.append(cls._get_pandas_variable_descriptor(variable))
         # noinspection PyArgumentList,PyTypeChecker
 
-        attributes = {
-            'name': resource_json['name'],
-        }
-
-        resource_json.update(variables=variable_descriptors,
-                             attributes=attributes)
+        resource_json.update(variables=variable_descriptors)
 
     @classmethod
     def _update_resource_json_from_feature_collection(cls, resource_json, features: fiona.Collection):
@@ -362,6 +358,7 @@ class Workspace:
                     'dataType': var_type,
                     'isFeatureAttribute': True,
                 })
+
         geometry = features.schema.get('geometry')
         crs = str(features.crs)
         crs_wkt = str(features.crs_wkt)
@@ -375,7 +372,7 @@ class Workspace:
             'crs_wkt': crs_wkt,
             'numFeatures': num_features,
         }
-
+        print('Hello')
         resource_json.update(variables=variable_descriptors,
                              geometry=geometry,
                              numFeatures=num_features,
