@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev17 (in development)
 
+* Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
 * Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
 * Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
   [#730](https://github.com/CCI-Tools/cate/issues/730)
