@@ -74,6 +74,7 @@ import xarray as xr
 import pandas as pd
 import cartopy.crs as ccrs
 import numpy as np
+import json
 
 from cate.core.op import op, op_input
 from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, DatasetLike, ValidationError, DimName)
@@ -389,8 +390,6 @@ def plot_line(ds: DatasetLike.TYPE,
         fmt_list = fmt.split(";")
         fmt_count = len(fmt_list)
 
-    var_names = VarNamesLike.convert(var_names)
-    indexers = DictLike.convert(indexers)
     if not var_names:
         raise ValidationError("Missing name for 'vars'")
 
@@ -398,8 +397,16 @@ def plot_line(ds: DatasetLike.TYPE,
     ax = figure.add_subplot(111)
     figure.subplots_adjust(right=0.65)
 
-    if title:
-        ax.set_title(title)
+    var_names = VarNamesLike.convert(var_names)
+    if not title:
+        if label:
+            title = '"' + ','.join(var_names) + '" over "' + label + '"'
+        else:
+            title = '"' + ','.join(var_names)
+    title = title + '\n' + ' at ' + json.dumps(indexers)
+    ax.set_title(title)
+
+    indexers = DictLike.convert(indexers)
 
     ax_var = {}
     var_count = len(var_names)
