@@ -136,7 +136,7 @@ class TestDataFrameOps(TestCase):
         self.assertIn('geometry', df2)
 
         df2 = data_frame_subset(TestDataFrameOps.gdf,
-                                vars="A,C",
+                                var_names="A,C",
                                 region='POLYGON((-10 0, 25 0, 25 30, -10 0))')
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 3)
@@ -147,7 +147,7 @@ class TestDataFrameOps(TestCase):
         self.assertIn('geometry', df2)
 
         df2 = data_frame_subset(TestDataFrameOps.gdf,
-                                vars="A,C",
+                                var_names="A,C",
                                 region='POLYGON((30 30, 40 30, 40 40, 30 30))')
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 0)

@@ -163,31 +163,31 @@ REGION_MODES = [
 
 @op(tags=['filter'], version='1.0')
 @op_input('gdf', data_type=DataFrameLike)
-@op_input('vars', data_type=VarNamesLike)
+@op_input('var_names', data_type=VarNamesLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('geom_op', data_type=str, value_set=REGION_MODES)
 def data_frame_subset(gdf: gpd.GeoDataFrame,
-                      vars: VarNamesLike.TYPE = None,
+                      var_names: VarNamesLike.TYPE = None,
                       region: PolygonLike.TYPE = None,
                       geom_op: bool = 'intersects') -> gpd.GeoDataFrame:
     """
     Create a GeoDataFrame subset from given variables (data frame columns) and/or region.
 
     :param gdf: A GeoDataFrame.
-    :param vars: The variables (columns) to select.
+    :param var_names: The variables (columns) to select.
     :param region: A region polygon used to filter rows.
     :param geom_op: The geometric operation to be performed if *region* is given.
     :return: A GeoDataFrame subset.
     """
-    vars = VarNamesLike.convert(vars)
+    var_names = VarNamesLike.convert(var_names)
     region = PolygonLike.convert(region)
-    if not vars and not region:
+    if not var_names and not region:
         return gdf
 
-    if vars:
-        if 'geometry' not in vars:
-            vars.append('geometry')
-        gdf = gdf[vars]
+    if var_names:
+        if 'geometry' not in var_names:
+            var_names = ['geometry'] + var_names
+        gdf = gdf[var_names]
 
     if region and geom_op:
         geom_str = PolygonLike.format(region)
