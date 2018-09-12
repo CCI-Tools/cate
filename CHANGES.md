@@ -1,5 +1,8 @@
 ## Version 2.0.0.dev17 (in development)
 
+* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
+* Added information about resources of type `GeoDataFrame` (Shapefiles, GeoJSON) in the details section 
+  of the **WORSPACE** panel in Cate Desktop [#705](https://github.com/CCI-Tools/cate/issues/705)
 * Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
 * Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
 * Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
@@ -8,7 +11,6 @@
 * Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
 * Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
 * Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
-* Cate Desktop: Added information about GeoDataFrames in the details section [#705](https://github.com/CCI-Tools/cate/issues/705)
 
 ## Version 2.0.0.dev16
 
