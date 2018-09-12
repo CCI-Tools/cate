@@ -359,21 +359,19 @@ class Workspace:
                     'isFeatureAttribute': True,
                 })
 
-        # TODO: check/test new code here, issue #702
         if num_features == 1 and len(variable_descriptors) >= 1:
             # For single rows we can provide feature values directly, given they are scalars
             feature = list(features)[0]
             if feature.properties:
                 for var_name, var_value in feature.properties.items():
                     scalar_value = to_scalar(var_value)
-                    variable_descriptors[0]['value'] = scalar_value
-
+                    if scalar_value is not UNDEFINED:
+                        variable_descriptors[0]['value'] = scalar_value
 
         geometry = features.schema.get('geometry')
         crs = str(features.crs)
         crs_wkt = str(features.crs_wkt)
         driver = features.driver
-        # noinspection PyArgumentList
 
         attributes = {
             'driver': driver,
@@ -404,7 +402,6 @@ class Workspace:
             'shape': variable.shape,
             'isFeatureAttribute': True,
         }
-        # TODO: check/test new code here, issue #702
         scalar_value = to_scalar(variable)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
@@ -436,7 +433,6 @@ class Workspace:
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
-        # TODO: check/test new code here, issue #702
         scalar_value = to_scalar(variable)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
@@ -669,23 +665,38 @@ class Workspace:
                 "except for the first character, the digits 0 through 9." % res_name)
 
 
-# TODO: write unit-test for to_scalar(), issue #702
-def to_scalar(value) -> Any:
+def to_scalar(value, max_text_len=1000) -> Any:
+    if isinstance(value, (int, float, str, bool)):
+        return value
+
     if hasattr(value, 'shape') and hasattr(value, 'dtype'):
         shape = value.shape
+        dtype = value.dtype
         try:
             ndim = len(shape)
         except TypeError:
             return UNDEFINED
-        if ndim == 0 or ndim == 1 and shape[0] == 1:
-            dtype = value.dtype
-            if np.issubdtype(dtype, np.integer):
-                return int(value)
-            elif np.issubdtype(dtype, np.float):
-                return float(value)
-            else:
-                return str(value)
-    elif isinstance(value, (int, float, str, bool)):
-        return value
+        for dim_size in shape:
+            if dim_size != 1:
+                return UNDEFINED
+        if ndim == 1:
+            index = 0
+        elif ndim > 1:
+            index = (0,) * ndim
+        else:
+            return UNDEFINED
+        try:
+            value = value[index]
+        except IndexError:
+            return UNDEFINED
+        if np.issubdtype(dtype, np.integer):
+            return int(value)
+        elif np.issubdtype(dtype, np.floating):
+            return float(value)
+        else:
+            value = str(value)
+            if len(value) > max_text_len:
+                value = value[0: max_text_len] + '...'
+            return value
 
     return UNDEFINED
