@@ -26,28 +26,6 @@ import os
 
 from setuptools import setup, find_packages
 
-# in alphabetical oder
-requirements = [
-    'cartopy',
-    'dask',
-    'geopandas',
-    'fiona',
-    'jdcal',
-    'matplotlib',
-    'netcdf4',
-    'numba',
-    'numpy',
-    'owslib',
-    'pandas',
-    'pillow',
-    'psutil',
-    'pyproj',
-    'scipy',
-    'shapely',
-    'tornado',
-    'xarray',
-]
-
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # On READTHEDOCS, all dependencies are mocked (except tornado)
@@ -84,5 +62,4 @@ setup(
             'cate_ds = cate.ds:cate_init',
         ],
     },
-    install_requires=requirements,
 )
