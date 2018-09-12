@@ -5,7 +5,10 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Point
 import xarray as xr
+
 
 from cate.core.types import ValidationError
 from cate.core.workflow import Workflow, OpStep
@@ -93,6 +96,16 @@ class WorkspaceTest(unittest.TestCase):
             time = pd.date_range('2000-01-01', freq='MS', periods=12)
             return pd.DataFrame(data=data, index=time, dtype=float)
 
+        def geo_data_frame_op() -> gpd.GeoDataFrame:
+            data = {'name': ['A', 'B', 'C'],
+                    'lat': [45, 46, 47.5],
+                    'lon': [-120, -121.2, -122.9]}
+
+            df = pd.DataFrame(data)
+            geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
+
+            return gpd.GeoDataFrame(df, geometry=geometry)
+
         def int_op() -> int:
             return 394852
 
@@ -104,11 +117,13 @@ class WorkspaceTest(unittest.TestCase):
         try:
             OP_REGISTRY.add_op(dataset_op)
             OP_REGISTRY.add_op(data_frame_op)
+            OP_REGISTRY.add_op(geo_data_frame_op)
             OP_REGISTRY.add_op(int_op)
             OP_REGISTRY.add_op(str_op)
             workflow = Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!')))
             workflow.add_step(OpStep(dataset_op, node_id='ds'))
             workflow.add_step(OpStep(data_frame_op, node_id='df'))
+            workflow.add_step(OpStep(geo_data_frame_op, node_id='gdf'))
             workflow.add_step(OpStep(int_op, node_id='i'))
             workflow.add_step(OpStep(str_op, node_id='s'))
             ws = Workspace('/path', workflow)
@@ -123,7 +138,7 @@ class WorkspaceTest(unittest.TestCase):
 
             l_res = d_ws.get('resources')
             self.assertIsNotNone(l_res)
-            self.assertEqual(len(l_res), 4)
+            self.assertEqual(len(l_res), 5)
 
             res_1 = l_res[0]
             self.assertEqual(res_1.get('name'), 'ds')
@@ -176,13 +191,53 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(var_2.get('isFeatureAttribute'), True)
             self.assertIsNone(var_2.get('attributes'))
 
-            res_3 = l_res[2]
+            res_2 = l_res[2]
+            self.assertEqual(res_2.get('name'), 'gdf')
+            self.assertEqual(res_2.get('dataType'), 'geopandas.geodataframe.GeoDataFrame')
+            self.assertIsNone(res_2.get('attributes'))
+            res_2_vars = res_2.get('variables')
+            self.assertIsNotNone(res_2_vars)
+            self.assertEqual(len(res_2_vars), 4)
+            var_1 = res_2_vars[0]
+            self.assertEqual(var_1.get('name'), 'name')
+            self.assertEqual(var_1.get('dataType'), 'object')
+            self.assertEqual(var_1.get('numDims'), 1)
+            self.assertEqual(var_1.get('shape'), (3,))
+            self.assertEqual(var_1.get('isYFlipped'), None)
+            self.assertEqual(var_1.get('isFeatureAttribute'), True)
+            self.assertIsNone(var_1.get('attributes'))
+            var_2 = res_2_vars[1]
+            self.assertEqual(var_2.get('name'), 'lat')
+            self.assertEqual(var_2.get('dataType'), 'float64')
+            self.assertEqual(var_2.get('numDims'), 1)
+            self.assertEqual(var_2.get('shape'), (3,))
+            self.assertEqual(var_2.get('isYFlipped'), None)
+            self.assertEqual(var_2.get('isFeatureAttribute'), True)
+            self.assertIsNone(var_2.get('attributes'))
+            var_2 = res_2_vars[2]
+            self.assertEqual(var_2.get('name'), 'lon')
+            self.assertEqual(var_2.get('dataType'), 'float64')
+            self.assertEqual(var_2.get('numDims'), 1)
+            self.assertEqual(var_2.get('shape'), (3,))
+            self.assertEqual(var_2.get('isYFlipped'), None)
+            self.assertEqual(var_2.get('isFeatureAttribute'), True)
+            self.assertIsNone(var_2.get('attributes'))
+            var_2 = res_2_vars[3]
+            self.assertEqual(var_2.get('name'), 'geometry')
+            self.assertEqual(var_2.get('dataType'), 'object')
+            self.assertEqual(var_2.get('numDims'), 1)
+            self.assertEqual(var_2.get('shape'), (3,))
+            self.assertEqual(var_2.get('isYFlipped'), None)
+            self.assertEqual(var_2.get('isFeatureAttribute'), True)
+            self.assertIsNone(var_2.get('attributes'))
+
+            res_3 = l_res[3]
             self.assertEqual(res_3.get('name'), 'i')
             self.assertEqual(res_3.get('dataType'), 'int')
             self.assertIsNone(res_3.get('attributes'))
             self.assertIsNone(res_3.get('variables'))
 
-            res_4 = l_res[3]
+            res_4 = l_res[4]
             self.assertEqual(res_4.get('name'), 's')
             self.assertEqual(res_4.get('dataType'), 'str')
             self.assertIsNone(res_4.get('attrs'))
@@ -191,6 +246,7 @@ class WorkspaceTest(unittest.TestCase):
         finally:
             OP_REGISTRY.remove_op(dataset_op)
             OP_REGISTRY.remove_op(data_frame_op)
+            OP_REGISTRY.remove_op(geo_data_frame_op)
             OP_REGISTRY.remove_op(int_op)
             OP_REGISTRY.remove_op(str_op)
 

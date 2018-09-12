@@ -8,6 +8,7 @@
 * Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
 * Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
 * Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
+* Cate Desktop: Added information about GeoDataFrames in the details section [#705](https://github.com/CCI-Tools/cate/issues/705)
 
 ## Version 2.0.0.dev16
 
