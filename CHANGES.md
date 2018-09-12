@@ -3,6 +3,7 @@
 * Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
 * Added information about resources of type `GeoDataFrame` (Shapefiles, GeoJSON) in the details section 
   of the **WORSPACE** panel in Cate Desktop [#705](https://github.com/CCI-Tools/cate/issues/705)
+* Added new operation `merge()` [#740](https://github.com/CCI-Tools/cate/issues/740)
 * Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
 * Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
 * Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims
