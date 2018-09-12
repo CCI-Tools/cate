@@ -32,7 +32,6 @@ from typing import List, Any, Dict, Optional
 
 import fiona
 import pandas as pd
-import geopandas as gpd
 import xarray as xr
 
 from .workflow import Workflow, OpStep, NodePort, ValueCache
@@ -369,10 +368,10 @@ class Workspace:
             'driver': driver,
             'geometry': geometry,
             'crs': crs,
-            'crs_wkt': crs_wkt,
+            'crsWkt': crs_wkt,
             'numFeatures': num_features,
         }
-        print('Hello')
+
         resource_json.update(variables=variable_descriptors,
                              geometry=geometry,
                              numFeatures=num_features,
