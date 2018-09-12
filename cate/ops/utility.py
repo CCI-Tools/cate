@@ -37,7 +37,69 @@ from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrar
 from cate.util.monitor import Monitor
 
 
-@op(tags=['utility', 'internal'])
+@op(tags=['utility'])
+@op_input('ds_1', data_type=DatasetLike)
+@op_input('ds_2', data_type=DatasetLike)
+@op_input('ds_3', data_type=DatasetLike)
+@op_input('ds_4', data_type=DatasetLike)
+@op_input('join', value_set=["outer", "inner", "left", "right", "exact"])
+@op_input('compat', value_set=["identical", "equals", "broadcast_equals", "no_conflicts"])
+def merge(ds_1: DatasetLike.TYPE,
+          ds_2: DatasetLike.TYPE,
+          ds_3: DatasetLike.TYPE = None,
+          ds_4: DatasetLike.TYPE = None,
+          join: str = 'outer',
+          compat: str = 'no_conflicts') -> xr.Dataset:
+    """
+    Merge up to four datasets to produce a new dataset with combined variables from each input dataset.
+
+    This is a wrapper for the ``xarray.merge()`` function.
+
+    For documentation refer to xarray documentation at
+    http://xarray.pydata.org/en/stable/generated/xarray.Dataset.merge.html#xarray.Dataset.merge
+
+    The *compat* argument indicates how to compare variables of the same name for potential conflicts:
+
+    * "broadcast_equals": all values must be equal when variables are broadcast
+      against each other to ensure common dimensions.
+    * "equals": all values and dimensions must be the same.
+    * "identical": all values, dimensions and attributes must be the same.
+    * "no_conflicts": only values which are not null in both datasets must be equal.
+      The returned dataset then contains the combination of all non-null values.
+
+    :param ds_1: The first input dataset.
+    :param ds_2: The second input dataset.
+    :param ds_3: An optional 3rd input dataset.
+    :param ds_4: An optional 4th input dataset.
+    :param join: How to combine objects with different indexes.
+    :param compat: How to compare variables of the same name for potential conflicts.
+    :return: A new dataset with combined variables from each input dataset.
+    """
+
+    ds_1 = DatasetLike.convert(ds_1)
+    ds_2 = DatasetLike.convert(ds_2)
+    ds_3 = DatasetLike.convert(ds_3)
+    ds_4 = DatasetLike.convert(ds_4)
+
+    datasets = []
+    for ds in (ds_1, ds_2, ds_3, ds_4):
+        if ds is not None:
+            included = False
+            for ds2 in datasets:
+                if ds is ds2:
+                    included = True
+            if not included:
+                datasets.append(ds)
+
+    if len(datasets) == 0:
+        raise ValidationError('At least two different datasets must be given')
+    elif len(datasets) == 1:
+        return datasets[0]
+    else:
+        return xr.merge(datasets, compat=compat, join=join)
+
+
+@op(tags=['utility'])
 @op_input('ds', data_type=DatasetLike)
 @op_input('point', data_type=PointLike, units='degree')
 @op_input('time', data_type=TimeLike)
