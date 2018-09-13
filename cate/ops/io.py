@@ -411,7 +411,6 @@ def write_csv(obj: DataFrameLike.TYPE,
 @op(tags=['input'], res_pattern='gdf_{index}')
 @op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
                                                     dict(name='GeoJSON', extensions=['json', 'geojson']),
-                                                    dict(name='GML', extensions=['gml']),
                                                     _ALL_FILE_FILTER])
 @op_input('crs', nullable=True)
 @op_input('more_args', nullable=True, data_type=DictLike)
