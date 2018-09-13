@@ -105,6 +105,22 @@ class WorkspaceTest(unittest.TestCase):
                 })
             return ds
 
+        def empty_dataset_op() -> xr.Dataset:
+            ds = xr.Dataset(
+                data_vars={
+                    'temperature': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32)),
+                    'precipitation': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32))
+                },
+                coords={
+                    'lon': np.ndarray(shape=(0,), dtype=np.float32),
+                    'lat': np.ndarray(shape=(0,), dtype=np.float32),
+                    'time': np.ndarray(shape=(0,), dtype=np.datetime64),
+                },
+                attrs={
+                    'history': 'a b c'
+                })
+            return ds
+
         def data_frame_op() -> pd.DataFrame:
             data = {'A': [1, 2, 3, np.nan, 4, 9, np.nan, np.nan, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 9, 1, 2, 7, 6]}
@@ -114,6 +130,11 @@ class WorkspaceTest(unittest.TestCase):
         def scalar_data_frame_op() -> pd.DataFrame:
             data = {'A': [1.3],
                     'B': [5.9]}
+            return pd.DataFrame(data=data, dtype=float)
+
+        def empty_data_frame_op() -> pd.DataFrame:
+            data = {'A': [],
+                    'B': []}
             return pd.DataFrame(data=data, dtype=float)
 
         def geo_data_frame_op() -> gpd.GeoDataFrame:
@@ -147,6 +168,8 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.add_op(scalar_dataset_op)
             OP_REGISTRY.add_op(scalar_data_frame_op)
             OP_REGISTRY.add_op(scalar_geo_data_frame_op)
+            OP_REGISTRY.add_op(empty_dataset_op)
+            OP_REGISTRY.add_op(empty_data_frame_op)
             OP_REGISTRY.add_op(int_op)
             OP_REGISTRY.add_op(str_op)
             workflow = Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!')))
@@ -156,6 +179,8 @@ class WorkspaceTest(unittest.TestCase):
             workflow.add_step(OpStep(scalar_dataset_op, node_id='scalar_ds'))
             workflow.add_step(OpStep(scalar_data_frame_op, node_id='scalar_df'))
             workflow.add_step(OpStep(scalar_geo_data_frame_op, node_id='scalar_gdf'))
+            workflow.add_step(OpStep(empty_dataset_op, node_id='empty_ds'))
+            workflow.add_step(OpStep(empty_data_frame_op, node_id='empty_df'))
             workflow.add_step(OpStep(int_op, node_id='i'))
             workflow.add_step(OpStep(str_op, node_id='s'))
             ws = Workspace('/path', workflow)
@@ -170,7 +195,7 @@ class WorkspaceTest(unittest.TestCase):
 
             l_res = d_ws.get('resources')
             self.assertIsNotNone(l_res)
-            self.assertEqual(len(l_res), 8)
+            self.assertEqual(len(l_res), 10)
 
             res_ds = l_res[0]
             self.assertEqual(res_ds.get('name'), 'ds')
@@ -292,13 +317,29 @@ class WorkspaceTest(unittest.TestCase):
                                              'lon': -120,
                                              'geometry': 'POINT (-120 45)'})
 
-            res_int = l_res[6]
+            res_empty_ds = l_res[6]
+            res_empty_ds_vars = res_empty_ds.get('variables')
+            self.assertIsNotNone(res_empty_ds_vars)
+            self.assertEqual(len(res_empty_ds_vars), 2)
+            scalar_values = {res_empty_ds_vars[0].get('name'): res_empty_ds_vars[0].get('value'),
+                             res_empty_ds_vars[1].get('name'): res_empty_ds_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'temperature': None, 'precipitation': None})
+
+            res_empty_df = l_res[7]
+            res_empty_df_vars = res_empty_df.get('variables')
+            self.assertIsNotNone(res_empty_df_vars)
+            self.assertEqual(len(res_empty_df_vars), 2)
+            scalar_values = {res_empty_df_vars[0].get('name'): res_empty_df_vars[0].get('value'),
+                             res_empty_df_vars[1].get('name'): res_empty_df_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'A': None, 'B': None})
+
+            res_int = l_res[8]
             self.assertEqual(res_int.get('name'), 'i')
             self.assertEqual(res_int.get('dataType'), 'int')
             self.assertIsNone(res_int.get('attributes'))
             self.assertIsNone(res_int.get('variables'))
 
-            res_str = l_res[7]
+            res_str = l_res[9]
             self.assertEqual(res_str.get('name'), 's')
             self.assertEqual(res_str.get('dataType'), 'str')
             self.assertIsNone(res_str.get('attributes'))
@@ -308,6 +349,11 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.remove_op(dataset_op)
             OP_REGISTRY.remove_op(data_frame_op)
             OP_REGISTRY.remove_op(geo_data_frame_op)
+            OP_REGISTRY.remove_op(scalar_dataset_op)
+            OP_REGISTRY.remove_op(scalar_data_frame_op)
+            OP_REGISTRY.remove_op(scalar_geo_data_frame_op)
+            OP_REGISTRY.remove_op(empty_dataset_op)
+            OP_REGISTRY.remove_op(empty_data_frame_op)
             OP_REGISTRY.remove_op(int_op)
             OP_REGISTRY.remove_op(str_op)
 

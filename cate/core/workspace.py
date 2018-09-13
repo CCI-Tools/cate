@@ -686,8 +686,12 @@ def to_scalar(value, max_text_len=1000) -> Any:
         else:
             return UNDEFINED
         try:
+            value = value.values
+        except AttributeError:
+            pass
+        try:
             value = value[index]
-        except IndexError:
+        except (IndexError, KeyError):
             return UNDEFINED
         if np.issubdtype(dtype, np.integer):
             return int(value)

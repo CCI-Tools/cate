@@ -1,6 +1,9 @@
 ## Version 2.0.0.dev18 (in development)
 
-* Cate (Desktop): Removed option to load GML files solving [#734](https://github.com/CCI-Tools/cate/issues/734)
+* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
+  Unfortunately, this feature did not find its way into 2.0.0.dev17, instead only its related bug [#743](https://github.com/CCI-Tools/cate/issues/743).
+* Fixed "KeyError: 0" for one one-record data frames [#743](https://github.com/CCI-Tools/cate/issues/743)
+* Removed option to load GML files in Cate Desktop solving [#734](https://github.com/CCI-Tools/cate/issues/734)
 
 ## Version 2.0.0.dev17
 
