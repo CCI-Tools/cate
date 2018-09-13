@@ -74,12 +74,12 @@ import xarray as xr
 import pandas as pd
 import cartopy.crs as ccrs
 import numpy as np
+import json
 
 from cate.core.op import op, op_input
-from cate.core.types import (VarName, DictLike, PolygonLike, TimeLike, DatasetLike,
-                             ValidationError, DimName)
+from cate.core.types import (VarName, VarNamesLike, DictLike, PolygonLike, DatasetLike, ValidationError, DimName)
 
-from cate.ops.plot_helpers import get_var_data
+from cate.ops.plot_helpers import get_var_data, get_vars_data
 from cate.ops.plot_helpers import in_notebook
 from cate.ops.plot_helpers import handle_plot_polygon
 from cate.util.monitor import Monitor
@@ -94,7 +94,6 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 @op_input('ds')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('indexers', data_type=DictLike)
-@op_input('time', data_type=TimeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('projection', value_set=['PlateCarree', 'LambertCylindrical', 'Mercator', 'Miller',
                                    'Mollweide', 'Orthographic', 'Robinson', 'Sinusoidal',
@@ -106,7 +105,6 @@ PLOT_FILE_FILTER = dict(name='Plot Outputs', extensions=PLOT_FILE_EXTENSIONS)
 def plot_map(ds: xr.Dataset,
              var: VarName.TYPE = None,
              indexers: DictLike.TYPE = None,
-             time: TimeLike.TYPE = None,
              region: PolygonLike.TYPE = None,
              projection: str = 'PlateCarree',
              central_lon: float = 0.0,
@@ -133,7 +131,6 @@ def plot_map(ds: xr.Dataset,
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
-    :param time: time slice index to plot, can be a string "YYYY-MM-DD" or an integer number
     :param region: Region to plot
     :param projection: name of a global projection, see http://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html
     :param central_lon: central longitude of the projection in degrees
@@ -159,7 +156,6 @@ def plot_map(ds: xr.Dataset,
         var_name = VarName.convert(var)
     var = ds[var_name]
 
-    time = TimeLike.convert(time)
     indexers = DictLike.convert(indexers) or {}
     properties = DictLike.convert(properties) or {}
 
@@ -207,7 +203,7 @@ def plot_map(ds: xr.Dataset,
         ax.set_global()
 
     ax.coastlines()
-    var_data = get_var_data(var, indexers, time=time, remaining_dims=('lon', 'lat'))
+    var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
 
     # transform keyword is for the coordinate our data is in, which in case of a
     # 'normal' lat/lon dataset is PlateCarree.
@@ -233,7 +229,6 @@ def plot_map(ds: xr.Dataset,
 
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('var', value_set_source='ds', data_type=VarName)
-@op_input('time', data_type=TimeLike)
 @op_input('indexers', data_type=DictLike)
 @op_input('title')
 @op_input('filled')
@@ -241,7 +236,6 @@ def plot_map(ds: xr.Dataset,
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
 def plot_contour(ds: xr.Dataset,
                  var: VarName.TYPE,
-                 time: TimeLike.TYPE = None,
                  indexers: DictLike.TYPE = None,
                  title: str = None,
                  filled: bool = True,
@@ -271,14 +265,13 @@ def plot_contour(ds: xr.Dataset,
         raise ValidationError("Missing name for 'var'")
     var = ds[var_name]
 
-    time = TimeLike.convert(time)
     indexers = DictLike.convert(indexers) or {}
     properties = DictLike.convert(properties) or {}
 
     figure = plt.figure(figsize=(8, 4))
     ax = figure.add_subplot(111)
 
-    var_data = get_var_data(var, indexers, time=time)
+    var_data = get_var_data(var, indexers)
     if filled:
         var_data.plot.contourf(ax=ax, **properties)
     else:
@@ -348,6 +341,134 @@ def plot(ds: DatasetLike.TYPE,
 
     if file:
         figure.savefig(file)
+
+    return figure if not in_notebook() else None
+
+
+@op(tags=['plot'], res_pattern='plot_{index}')
+@op_input('ds', data_type=DatasetLike)
+@op_input('var_names', value_set_source='ds', data_type=VarNamesLike)
+@op_input('fmt')
+@op_input('label', value_set_source='ds.var_names', data_type=DimName)
+@op_input('indexers', data_type=DictLike)
+@op_input('title')
+@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
+def plot_line(ds: DatasetLike.TYPE,
+              var_names: VarNamesLike.TYPE,
+              fmt: str = None,
+              label: DimName.TYPE = None,
+              indexers: DictLike.TYPE = None,
+              title: str = None,
+              file: str = None) -> Figure:
+    """
+    Create a 1D/line plot of variable(s) given by dataset *ds* and variable name(s) *var_names*.
+
+    :param ds: Dataset or Dataframe that contains the variable(s) named by *var_names*.
+    :param var_names: The name of the variable(s) to plot
+    :param fmt: optional matplotlib plot formats in a semicolon-separated strings,
+           e.g.
+           1 variable - "b.-"
+           2 variables - "b.-;r+:"
+           If the number of properties is less than the number of selected variables, the next non-corresponding
+           variable will repeat the first style on the list, and so on.
+           For full reference on matplotlib plot() function, refer to
+           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.plot.html
+    :param file: path to a file in which to save the plot
+    :param label: dimension name to be selected as the x-axis of the plot
+    :param indexers: Optional indexers into data array of *var_names*. The *indexers* is a dictionary
+           or a comma-separated string of key-value pairs that maps the variable's dimension names
+           to constant labels. e.g. "lat=12.4, time='2012-05-02'".
+    :param title: an optional plot title
+    :return: a matplotlib figure object or None if in IPython mode
+    """
+    ds = DatasetLike.convert(ds)
+
+    fmt_count = 0
+    fmt_list = []
+
+    if fmt:
+        fmt_list = fmt.split(";")
+        fmt_count = len(fmt_list)
+
+    if not var_names:
+        raise ValidationError("Missing name for 'vars'")
+
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+    figure.subplots_adjust(right=0.65)
+
+    var_names = VarNamesLike.convert(var_names)
+    if not title:
+        if label:
+            title = '"' + ','.join(var_names) + '" over "' + label + '"'
+        else:
+            title = '"' + ','.join(var_names)
+    title = title + '\n' + ' at ' + json.dumps(indexers)
+    ax.set_title(title)
+
+    indexers = DictLike.convert(indexers)
+
+    ax_var = {}
+    var_count = len(var_names)
+    predefined_fmt = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
+    if label:
+        ds = get_vars_data(ds, indexers, remaining_dims=[label])
+    else:
+        ds = get_vars_data(ds, indexers)
+
+    for i in range(var_count):
+        var_name = var_names[i]
+        var = ds[var_name]
+        if len(var.dims) > 1:
+            raise ValidationError(f'Unable to plot because variable {var_name} has more than one dimension: {var.dims}.'
+                                  f' To specify value(s) of these dimension(s), please use the indexers.')
+
+        var_label = var_name + ' (' + var.attrs['units'] + ')' if 'units' in var.attrs else var_name
+        properties_dict = {}
+
+        indexers = DictLike.convert(indexers)
+
+        if fmt is None:
+            selected_fmt = predefined_fmt[i % len(predefined_fmt)]
+        else:
+            selected_fmt = fmt_list[i % fmt_count]
+
+        if label:
+            x_axis = var[label]
+        elif 'time' in var:
+            x_axis = var.time
+        else:
+            x_axis = []
+        # to differentiate the creation of y-axis of the first and the nth variable
+        if i == 0:
+            if len(x_axis) > 0:
+                ax.plot(x_axis, var, selected_fmt, **properties_dict)
+            else:
+                ax.plot(var, selected_fmt, **properties_dict)
+            ax.set_ylabel(var_label, wrap=True)
+            ax.yaxis.label.set_color(selected_fmt[0])
+            ax.tick_params(axis='y', colors=selected_fmt[0])
+        else:
+            ax_var[var_name] = ax.twinx()
+            if len(ax_var) > 1:
+                ax_var[var_name].spines["right"].set_position(("axes", 1 + ((i - 1) * 0.2)))
+                ax_var[var_name].set_frame_on(True)
+                ax_var[var_name].patch.set_visible(False)
+            if len(x_axis) > 0:
+                ax_var[var_name].plot(x_axis, var, selected_fmt, **properties_dict)
+            else:
+                ax_var[var_name].plot(var, selected_fmt, **properties_dict)
+            ax_var[var_name].set_ylabel(var_label, wrap=True)
+            ax_var[var_name].yaxis.label.set_color(selected_fmt[0])
+            ax_var[var_name].tick_params(axis='y', colors=selected_fmt[0])
+
+    ax.tick_params(axis='x', rotation=45)
+    if label in ds and 'long_name' in ds[label].attrs:
+        ax.set_xlabel(ds[label].attrs['long_name'])
+    figure.tight_layout()
+
+    if file:
+        figure.savefig(file, dpi=600)
 
     return figure if not in_notebook() else None
 

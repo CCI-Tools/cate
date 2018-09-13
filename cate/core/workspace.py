@@ -31,6 +31,7 @@ from threading import RLock
 from typing import List, Any, Dict, Optional
 
 import fiona
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -358,11 +359,19 @@ class Workspace:
                     'isFeatureAttribute': True,
                 })
 
+        if num_features == 1 and len(variable_descriptors) >= 1:
+            # For single rows we can provide feature values directly, given they are scalars
+            feature = list(features)[0]
+            if feature.properties:
+                for var_name, var_value in feature.properties.items():
+                    scalar_value = to_scalar(var_value)
+                    if scalar_value is not UNDEFINED:
+                        variable_descriptors[0]['value'] = scalar_value
+
         geometry = features.schema.get('geometry')
         crs = str(features.crs)
         crs_wkt = str(features.crs_wkt)
         driver = features.driver
-        # noinspection PyArgumentList
 
         attributes = {
             'driver': driver,
@@ -386,13 +395,17 @@ class Workspace:
 
     @classmethod
     def _get_pandas_variable_descriptor(cls, variable: pd.Series):
-        return {
+        variable_info = {
             'name': variable.name,
             'dataType': object_to_qualified_name(variable.dtype),
             'numDims': variable.ndim,
             'shape': variable.shape,
             'isFeatureAttribute': True,
         }
+        scalar_value = to_scalar(variable)
+        if scalar_value is not UNDEFINED:
+            variable_info['value'] = scalar_value
+        return variable_info
 
     @classmethod
     def _get_xarray_variable_descriptor(cls, variable: xr.DataArray, is_coord=False):
@@ -419,6 +432,10 @@ class Workspace:
             # To limit data transfer volume, we serialize data arrays only if they are 1D.
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
+
+        scalar_value = to_scalar(variable)
+        if scalar_value is not UNDEFINED:
+            variable_info['value'] = scalar_value
 
         display_settings = conf.get_variable_display_settings(variable.name)
         if display_settings:
@@ -646,3 +663,40 @@ class Workspace:
                 "Resource name '%s' is not valid. "
                 "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
                 "except for the first character, the digits 0 through 9." % res_name)
+
+
+def to_scalar(value, max_text_len=1000) -> Any:
+    if isinstance(value, (int, float, str, bool)):
+        return value
+
+    if hasattr(value, 'shape') and hasattr(value, 'dtype'):
+        shape = value.shape
+        dtype = value.dtype
+        try:
+            ndim = len(shape)
+        except TypeError:
+            return UNDEFINED
+        for dim_size in shape:
+            if dim_size != 1:
+                return UNDEFINED
+        if ndim == 1:
+            index = 0
+        elif ndim > 1:
+            index = (0,) * ndim
+        else:
+            return UNDEFINED
+        try:
+            value = value[index]
+        except IndexError:
+            return UNDEFINED
+        if np.issubdtype(dtype, np.integer):
+            return int(value)
+        elif np.issubdtype(dtype, np.floating):
+            return float(value)
+        else:
+            value = str(value)
+            if len(value) > max_text_len:
+                value = value[0: max_text_len] + '...'
+            return value
+
+    return UNDEFINED

@@ -231,8 +231,8 @@ class TestExternal(TestCase):
 
                 actual = anomaly.anomaly_external(ds, tmp1)
                 assert_dataset_equal(actual, expected)
-                # Test that actual is also a dask array, based on ds
-                self.assertEqual(actual.chunks, ds.chunks)
+                # Test that actual is also a dask array
+                self.assertFalse(not actual.chunks)
 
     def test_registered(self):
         """
