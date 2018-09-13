@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev18 (in development)
 
+* Cate (Desktop): Removed option to load GML files solving [#734](https://github.com/CCI-Tools/cate/issues/734)
+
 ## Version 2.0.0.dev17
 
 * Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
@@ -13,7 +15,6 @@
 * Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
 * Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
 * User-defined Setup fails with existing Miniconda/Anaconda installation [#728](https://github.com/CCI-Tools/cate/issues/728)
-
 
 ## Version 2.0.0.dev16
 
