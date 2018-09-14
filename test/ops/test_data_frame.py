@@ -9,9 +9,7 @@ from shapely.geometry import Point
 
 from cate.core.types import ValidationError
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
-    great_circle_distance, data_frame_aggregate
-from cate.util.monitor import Monitor
-    great_circle_distance, data_frame_subset
+    great_circle_distance, data_frame_aggregate, data_frame_subset
 
 
 class TestDataFrameOps(TestCase):
