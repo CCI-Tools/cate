@@ -382,7 +382,7 @@ class Workspace:
         }
 
         resource_json.update(variables=variable_descriptors,
-                             geometry=geometry,
+                             geometry=geometry_type,
                              numFeatures=num_features,
                              attributes=attributes)
 
