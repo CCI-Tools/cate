@@ -236,7 +236,7 @@ class TestDataFrameOps(TestCase):
             data_frame_aggregate(df=gdf_empty_geo, var_names='lat')
 
         # assert that a input and output types for df are the same
-        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid)
+        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid, aggregate_geometry=True)
         self.assertEqual(type(rdf), type(gdf))
 
         # assert that the number of rows = 1
@@ -247,11 +247,11 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(len(rdf.columns), len(aggregations) * len(var_names_valid))
 
         # assert that columns are return if var_names = None for a GeoDataFrame
-        rdf = data_frame_aggregate(df=gdf, var_names=None)
+        rdf = data_frame_aggregate(df=gdf, var_names=None, aggregate_geometry=True)
         self.assertEqual(len(rdf.columns), len(aggregations) * len(var_names_valid) + 1)
 
         # assert that geometry union is created
-        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid)
+        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid, aggregate_geometry=True)
         self.assertIsNotNone(rdf.geometry)
 
 
