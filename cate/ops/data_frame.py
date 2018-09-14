@@ -37,6 +37,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
+from shapely.geometry import MultiPolygon
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike
@@ -225,8 +226,10 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
 @op(tags=['arithmetic'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('var_names', data_type=VarNamesLike)
+@op_input('agg_geo', data_type=bool)
 def data_frame_aggregate(df: DataFrameLike.TYPE,
                          var_names: VarNamesLike.TYPE = None,
+                         agg_geo: bool = False,
                          monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Description
@@ -249,13 +252,13 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
     if vns is None:
         vns = agg_columns
 
-    diff = list(set(vns) - set(agg_columns))
-    if len(diff) > 0:
-        raise ValidationError('Variable(s) ' + ','.join(diff) + ' not aggregatable!')
-
     diff = list(set(vns) - set(columns))
     if len(diff) > 0:
         raise ValidationError('Variable ' + ','.join(diff) + ' not in data frame!')
+
+    diff = list(set(vns) - set(agg_columns))
+    if len(diff) > 0:
+        raise ValidationError('Variable(s) ' + ','.join(diff) + ' not aggregatable!')
 
     try:
         df['geometry']
@@ -275,13 +278,26 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
             h = n + '_' + a
             res[h] = [val]
 
+    df_agg = pd.DataFrame(res)
+
     # Aggregate (union) geometry if GeoDataFrame
     if df_is_geo:
-        buffer = gpd.GeoDataFrame({'geometry': df.geometry, 'diss': 1}).dissolve(by='diss')
-        df_agg = gpd.GeoDataFrame(res)
-        df_agg.geometry = list(buffer.geometry)
-    else:
-        df_agg = pd.DataFrame(res)
+        total_work = 100
+        num_work_rows = 1 + len(df) // total_work
+        with monitor.starting('Aggregating geometry: ', total_work):
+            polys = MultiPolygon()
+            i = 0
+            for rec in df.geometry:
+                if monitor.is_cancelled():
+                    break
+
+                polys = polys.union(other=rec)
+                if i % num_work_rows == 0:
+                    monitor.progress(work=1)
+                i += 1
+
+        df_agg = gpd.GeoDataFrame(df_agg, geometry=[polys])
+        df_agg.crs = df.crs
 
     return df_agg
 
