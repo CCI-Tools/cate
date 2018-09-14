@@ -365,7 +365,7 @@ def plot_line(ds: DatasetLike.TYPE,
 
     :param ds: Dataset or Dataframe that contains the variable(s) named by *var_names*.
     :param var_names: The name of the variable(s) to plot
-    :param fmt: optional matplotlib plot formats in a semicolon-separated strings,
+    :param fmt: optional semicolon-separated matplotlib formats,
            e.g.
            1 variable - "b.-"
            2 variables - "b.-;r+:"
@@ -400,10 +400,11 @@ def plot_line(ds: DatasetLike.TYPE,
     var_names = VarNamesLike.convert(var_names)
     if not title:
         if label:
-            title = '"' + ','.join(var_names) + '" over "' + label + '"'
+            title = ','.join(var_names) + ' over ' + label
         else:
-            title = '"' + ','.join(var_names)
-    title = title + '\n' + ' at ' + json.dumps(indexers)
+            title = ','.join(var_names)
+    if indexers:
+        title = title + '\n' + ' at ' + json.dumps(indexers)
     ax.set_title(title)
 
     indexers = DictLike.convert(indexers)
