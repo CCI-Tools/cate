@@ -356,8 +356,6 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
 
         df_agg = gpd.GeoDataFrame(df_agg, geometry=[multi_polygon])
         df_agg.crs = df.crs
-    elif df_is_geo:
-        df_agg = gpd.GeoDataFrame(df_agg)
 
     return df_agg
 
