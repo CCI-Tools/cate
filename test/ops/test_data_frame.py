@@ -236,10 +236,7 @@ class TestDataFrameOps(TestCase):
             data_frame_aggregate(df=gdf_empty_geo, var_names='lat')
 
         # assert that a input and output types for df are the same
-        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid, aggregate_geometry=True)
-        self.assertEqual(type(rdf), type(gdf))
-
-        # assert that the number of rows = 1
+        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid)
         self.assertEqual(len(rdf), 1)
 
         # assert that columns are return if var_names = None for a DataFrame
