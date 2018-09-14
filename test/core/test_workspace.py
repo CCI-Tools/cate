@@ -3,12 +3,11 @@ import os
 import unittest
 from collections import OrderedDict
 
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-from shapely.geometry import Point
 import xarray as xr
-
+from shapely.geometry import Point
 
 from cate.core.types import ValidationError
 from cate.core.workflow import Workflow, OpStep
@@ -90,20 +89,68 @@ class WorkspaceTest(unittest.TestCase):
                 })
             return ds
 
+        def scalar_dataset_op() -> xr.Dataset:
+            ds = xr.Dataset(
+                data_vars={
+                    'temperature': (('time', 'lat', 'lon'), [[[15.2]]]),
+                    'precipitation': (('time', 'lat', 'lon'), [[[10.1]]])
+                },
+                coords={
+                    'lon': [12.],
+                    'lat': [50.],
+                    'time': [pd.to_datetime('2014-09-06')],
+                },
+                attrs={
+                    'history': 'a b c'
+                })
+            return ds
+
+        def empty_dataset_op() -> xr.Dataset:
+            ds = xr.Dataset(
+                data_vars={
+                    'temperature': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32)),
+                    'precipitation': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32))
+                },
+                coords={
+                    'lon': np.ndarray(shape=(0,), dtype=np.float32),
+                    'lat': np.ndarray(shape=(0,), dtype=np.float32),
+                    'time': np.ndarray(shape=(0,), dtype=np.datetime64),
+                },
+                attrs={
+                    'history': 'a b c'
+                })
+            return ds
+
         def data_frame_op() -> pd.DataFrame:
             data = {'A': [1, 2, 3, np.nan, 4, 9, np.nan, np.nan, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 9, 1, 2, 7, 6]}
             time = pd.date_range('2000-01-01', freq='MS', periods=12)
             return pd.DataFrame(data=data, index=time, dtype=float)
 
+        def scalar_data_frame_op() -> pd.DataFrame:
+            data = {'A': [1.3],
+                    'B': [5.9]}
+            return pd.DataFrame(data=data, dtype=float)
+
+        def empty_data_frame_op() -> pd.DataFrame:
+            data = {'A': [],
+                    'B': []}
+            return pd.DataFrame(data=data, dtype=float)
+
         def geo_data_frame_op() -> gpd.GeoDataFrame:
             data = {'name': ['A', 'B', 'C'],
                     'lat': [45, 46, 47.5],
                     'lon': [-120, -121.2, -122.9]}
-
             df = pd.DataFrame(data)
             geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
+            return gpd.GeoDataFrame(df, geometry=geometry)
 
+        def scalar_geo_data_frame_op() -> gpd.GeoDataFrame:
+            data = {'name': [2000 * 'A'],
+                    'lat': [45],
+                    'lon': [-120]}
+            df = pd.DataFrame(data)
+            geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
             return gpd.GeoDataFrame(df, geometry=geometry)
 
         def int_op() -> int:
@@ -118,12 +165,22 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.add_op(dataset_op)
             OP_REGISTRY.add_op(data_frame_op)
             OP_REGISTRY.add_op(geo_data_frame_op)
+            OP_REGISTRY.add_op(scalar_dataset_op)
+            OP_REGISTRY.add_op(scalar_data_frame_op)
+            OP_REGISTRY.add_op(scalar_geo_data_frame_op)
+            OP_REGISTRY.add_op(empty_dataset_op)
+            OP_REGISTRY.add_op(empty_data_frame_op)
             OP_REGISTRY.add_op(int_op)
             OP_REGISTRY.add_op(str_op)
             workflow = Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!')))
             workflow.add_step(OpStep(dataset_op, node_id='ds'))
             workflow.add_step(OpStep(data_frame_op, node_id='df'))
             workflow.add_step(OpStep(geo_data_frame_op, node_id='gdf'))
+            workflow.add_step(OpStep(scalar_dataset_op, node_id='scalar_ds'))
+            workflow.add_step(OpStep(scalar_data_frame_op, node_id='scalar_df'))
+            workflow.add_step(OpStep(scalar_geo_data_frame_op, node_id='scalar_gdf'))
+            workflow.add_step(OpStep(empty_dataset_op, node_id='empty_ds'))
+            workflow.add_step(OpStep(empty_data_frame_op, node_id='empty_df'))
             workflow.add_step(OpStep(int_op, node_id='i'))
             workflow.add_step(OpStep(str_op, node_id='s'))
             ws = Workspace('/path', workflow)
@@ -138,115 +195,165 @@ class WorkspaceTest(unittest.TestCase):
 
             l_res = d_ws.get('resources')
             self.assertIsNotNone(l_res)
-            self.assertEqual(len(l_res), 5)
+            self.assertEqual(len(l_res), 10)
 
-            res_1 = l_res[0]
-            self.assertEqual(res_1.get('name'), 'ds')
-            self.assertEqual(res_1.get('dataType'), 'xarray.core.dataset.Dataset')
-            self.assertEqual(res_1.get('dimSizes'), dict(lat=2, lon=2, time=5))
-            self.assertEqual(res_1.get('attributes'), {'history': 'a b c'})
-            res_1_vars = res_1.get('variables')
-            self.assertIsNotNone(res_1_vars)
-            self.assertEqual(len(res_1_vars), 2)
-            var_1 = res_1_vars[0]
-            self.assertEqual(var_1.get('name'), 'precipitation')
-            self.assertEqual(var_1.get('dataType'), 'float64')
-            self.assertEqual(var_1.get('numDims'), 3)
-            self.assertEqual(var_1.get('shape'), (5, 2, 2))
-            self.assertEqual(var_1.get('chunkSizes'), None)
-            self.assertEqual(var_1.get('isYFlipped'), True)
-            self.assertEqual(var_1.get('isFeatureAttribute'), None)
-            self.assertEqual(var_1.get('attributes'), dict(x=True, comment='wet', _FillValue=-1.))
-            var_2 = res_1_vars[1]
-            self.assertEqual(var_2.get('name'), 'temperature')
-            self.assertEqual(var_2.get('dataType'), 'float64')
-            self.assertEqual(var_2.get('numDims'), 3)
-            self.assertEqual(var_2.get('shape'), (5, 2, 2))
-            self.assertEqual(var_2.get('chunkSizes'), None)
-            self.assertEqual(var_2.get('isYFlipped'), True)
-            self.assertEqual(var_2.get('isFeatureAttribute'), None)
-            self.assertEqual(var_2.get('attributes'), dict(a=[1, 2, 3], comment='hot', _FillValue=np.nan))
+            res_ds = l_res[0]
+            self.assertEqual(res_ds.get('name'), 'ds')
+            self.assertEqual(res_ds.get('dataType'), 'xarray.core.dataset.Dataset')
+            self.assertEqual(res_ds.get('dimSizes'), dict(lat=2, lon=2, time=5))
+            self.assertEqual(res_ds.get('attributes'), {'history': 'a b c'})
+            res_ds_vars = res_ds.get('variables')
+            self.assertIsNotNone(res_ds_vars)
+            self.assertEqual(len(res_ds_vars), 2)
+            res_ds_var_1 = res_ds_vars[0]
+            self.assertEqual(res_ds_var_1.get('name'), 'precipitation')
+            self.assertEqual(res_ds_var_1.get('dataType'), 'float64')
+            self.assertEqual(res_ds_var_1.get('numDims'), 3)
+            self.assertEqual(res_ds_var_1.get('shape'), (5, 2, 2))
+            self.assertEqual(res_ds_var_1.get('chunkSizes'), None)
+            self.assertEqual(res_ds_var_1.get('isYFlipped'), True)
+            self.assertEqual(res_ds_var_1.get('isFeatureAttribute'), None)
+            self.assertEqual(res_ds_var_1.get('attributes'), dict(x=True, comment='wet', _FillValue=-1.))
+            res_ds_var_2 = res_ds_vars[1]
+            self.assertEqual(res_ds_var_2.get('name'), 'temperature')
+            self.assertEqual(res_ds_var_2.get('dataType'), 'float64')
+            self.assertEqual(res_ds_var_2.get('numDims'), 3)
+            self.assertEqual(res_ds_var_2.get('shape'), (5, 2, 2))
+            self.assertEqual(res_ds_var_2.get('chunkSizes'), None)
+            self.assertEqual(res_ds_var_2.get('isYFlipped'), True)
+            self.assertEqual(res_ds_var_2.get('isFeatureAttribute'), None)
+            self.assertEqual(res_ds_var_2.get('attributes'), dict(a=[1, 2, 3], comment='hot', _FillValue=np.nan))
 
-            res_2 = l_res[1]
-            self.assertEqual(res_2.get('name'), 'df')
-            self.assertEqual(res_2.get('dataType'), 'pandas.core.frame.DataFrame')
-            self.assertIsNone(res_2.get('attributes'))
-            res_2_vars = res_2.get('variables')
-            self.assertIsNotNone(res_2_vars)
-            self.assertEqual(len(res_2_vars), 2)
-            var_1 = res_2_vars[0]
-            self.assertEqual(var_1.get('name'), 'A')
-            self.assertEqual(var_1.get('dataType'), 'float64')
-            self.assertEqual(var_1.get('numDims'), 1)
-            self.assertEqual(var_1.get('shape'), (12,))
-            self.assertEqual(var_1.get('isYFlipped'), None)
-            self.assertEqual(var_1.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_1.get('attributes'))
-            var_2 = res_2_vars[1]
-            self.assertEqual(var_2.get('name'), 'B')
-            self.assertEqual(var_2.get('dataType'), 'float64')
-            self.assertEqual(var_2.get('numDims'), 1)
-            self.assertEqual(var_2.get('shape'), (12,))
-            self.assertEqual(var_2.get('isYFlipped'), None)
-            self.assertEqual(var_2.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_2.get('attributes'))
+            res_df = l_res[1]
+            self.assertEqual(res_df.get('name'), 'df')
+            self.assertEqual(res_df.get('dataType'), 'pandas.core.frame.DataFrame')
+            self.assertIsNone(res_df.get('attributes'))
+            res_df_vars = res_df.get('variables')
+            self.assertIsNotNone(res_df_vars)
+            self.assertEqual(len(res_df_vars), 2)
+            res_df_var_1 = res_df_vars[0]
+            self.assertEqual(res_df_var_1.get('name'), 'A')
+            self.assertEqual(res_df_var_1.get('dataType'), 'float64')
+            self.assertEqual(res_df_var_1.get('numDims'), 1)
+            self.assertEqual(res_df_var_1.get('shape'), (12,))
+            self.assertEqual(res_df_var_1.get('isYFlipped'), None)
+            self.assertEqual(res_df_var_1.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_df_var_1.get('attributes'))
+            res_df_var_2 = res_df_vars[1]
+            self.assertEqual(res_df_var_2.get('name'), 'B')
+            self.assertEqual(res_df_var_2.get('dataType'), 'float64')
+            self.assertEqual(res_df_var_2.get('numDims'), 1)
+            self.assertEqual(res_df_var_2.get('shape'), (12,))
+            self.assertEqual(res_df_var_2.get('isYFlipped'), None)
+            self.assertEqual(res_df_var_2.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_df_var_2.get('attributes'))
 
-            res_2 = l_res[2]
-            self.assertEqual(res_2.get('name'), 'gdf')
-            self.assertEqual(res_2.get('dataType'), 'geopandas.geodataframe.GeoDataFrame')
-            self.assertIsNone(res_2.get('attributes'))
-            res_2_vars = res_2.get('variables')
-            self.assertIsNotNone(res_2_vars)
-            self.assertEqual(len(res_2_vars), 4)
-            var_1 = res_2_vars[0]
-            self.assertEqual(var_1.get('name'), 'name')
-            self.assertEqual(var_1.get('dataType'), 'object')
-            self.assertEqual(var_1.get('numDims'), 1)
-            self.assertEqual(var_1.get('shape'), (3,))
-            self.assertEqual(var_1.get('isYFlipped'), None)
-            self.assertEqual(var_1.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_1.get('attributes'))
-            var_2 = res_2_vars[1]
-            self.assertEqual(var_2.get('name'), 'lat')
-            self.assertEqual(var_2.get('dataType'), 'float64')
-            self.assertEqual(var_2.get('numDims'), 1)
-            self.assertEqual(var_2.get('shape'), (3,))
-            self.assertEqual(var_2.get('isYFlipped'), None)
-            self.assertEqual(var_2.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_2.get('attributes'))
-            var_2 = res_2_vars[2]
-            self.assertEqual(var_2.get('name'), 'lon')
-            self.assertEqual(var_2.get('dataType'), 'float64')
-            self.assertEqual(var_2.get('numDims'), 1)
-            self.assertEqual(var_2.get('shape'), (3,))
-            self.assertEqual(var_2.get('isYFlipped'), None)
-            self.assertEqual(var_2.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_2.get('attributes'))
-            var_2 = res_2_vars[3]
-            self.assertEqual(var_2.get('name'), 'geometry')
-            self.assertEqual(var_2.get('dataType'), 'object')
-            self.assertEqual(var_2.get('numDims'), 1)
-            self.assertEqual(var_2.get('shape'), (3,))
-            self.assertEqual(var_2.get('isYFlipped'), None)
-            self.assertEqual(var_2.get('isFeatureAttribute'), True)
-            self.assertIsNone(var_2.get('attributes'))
+            res_gdf = l_res[2]
+            self.assertEqual(res_gdf.get('name'), 'gdf')
+            self.assertEqual(res_gdf.get('dataType'), 'geopandas.geodataframe.GeoDataFrame')
+            self.assertIsNone(res_gdf.get('attributes'))
+            res_gdf_vars = res_gdf.get('variables')
+            self.assertIsNotNone(res_gdf_vars)
+            self.assertEqual(len(res_gdf_vars), 4)
+            res_gdf_var_1 = res_gdf_vars[0]
+            self.assertEqual(res_gdf_var_1.get('name'), 'name')
+            self.assertEqual(res_gdf_var_1.get('dataType'), 'object')
+            self.assertEqual(res_gdf_var_1.get('numDims'), 1)
+            self.assertEqual(res_gdf_var_1.get('shape'), (3,))
+            self.assertEqual(res_gdf_var_1.get('isYFlipped'), None)
+            self.assertEqual(res_gdf_var_1.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_gdf_var_1.get('attributes'))
+            res_gdf_var_2 = res_gdf_vars[1]
+            self.assertEqual(res_gdf_var_2.get('name'), 'lat')
+            self.assertEqual(res_gdf_var_2.get('dataType'), 'float64')
+            self.assertEqual(res_gdf_var_2.get('numDims'), 1)
+            self.assertEqual(res_gdf_var_2.get('shape'), (3,))
+            self.assertEqual(res_gdf_var_2.get('isYFlipped'), None)
+            self.assertEqual(res_gdf_var_2.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_gdf_var_2.get('attributes'))
+            res_gdf_var_3 = res_gdf_vars[2]
+            self.assertEqual(res_gdf_var_3.get('name'), 'lon')
+            self.assertEqual(res_gdf_var_3.get('dataType'), 'float64')
+            self.assertEqual(res_gdf_var_3.get('numDims'), 1)
+            self.assertEqual(res_gdf_var_3.get('shape'), (3,))
+            self.assertEqual(res_gdf_var_3.get('isYFlipped'), None)
+            self.assertEqual(res_gdf_var_3.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_gdf_var_3.get('attributes'))
+            res_gdf_var_4 = res_gdf_vars[3]
+            self.assertEqual(res_gdf_var_4.get('name'), 'geometry')
+            self.assertEqual(res_gdf_var_4.get('dataType'), 'object')
+            self.assertEqual(res_gdf_var_4.get('numDims'), 1)
+            self.assertEqual(res_gdf_var_4.get('shape'), (3,))
+            self.assertEqual(res_gdf_var_4.get('isYFlipped'), None)
+            self.assertEqual(res_gdf_var_4.get('isFeatureAttribute'), True)
+            self.assertIsNone(res_gdf_var_4.get('attributes'))
 
-            res_3 = l_res[3]
-            self.assertEqual(res_3.get('name'), 'i')
-            self.assertEqual(res_3.get('dataType'), 'int')
-            self.assertIsNone(res_3.get('attributes'))
-            self.assertIsNone(res_3.get('variables'))
+            res_scalar_ds = l_res[3]
+            res_scalar_ds_vars = res_scalar_ds.get('variables')
+            self.assertIsNotNone(res_scalar_ds_vars)
+            self.assertEqual(len(res_scalar_ds_vars), 2)
+            scalar_values = {res_scalar_ds_vars[0].get('name'): res_scalar_ds_vars[0].get('value'),
+                             res_scalar_ds_vars[1].get('name'): res_scalar_ds_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'temperature': 15.2, 'precipitation': 10.1})
 
-            res_4 = l_res[4]
-            self.assertEqual(res_4.get('name'), 's')
-            self.assertEqual(res_4.get('dataType'), 'str')
-            self.assertIsNone(res_4.get('attrs'))
-            self.assertIsNone(res_4.get('variables'))
+            res_scalar_df = l_res[4]
+            res_scalar_df_vars = res_scalar_df.get('variables')
+            self.assertIsNotNone(res_scalar_df_vars)
+            self.assertEqual(len(res_scalar_df_vars), 2)
+            scalar_values = {res_scalar_df_vars[0].get('name'): res_scalar_df_vars[0].get('value'),
+                             res_scalar_df_vars[1].get('name'): res_scalar_df_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'A': 1.3, 'B': 5.9})
+
+            res_scalar_gdf = l_res[5]
+            res_scalar_gdf_vars = res_scalar_gdf.get('variables')
+            self.assertIsNotNone(res_scalar_gdf_vars)
+            self.assertEqual(len(res_scalar_gdf_vars), 4)
+            scalar_values = {res_scalar_gdf_vars[0].get('name'): res_scalar_gdf_vars[0].get('value'),
+                             res_scalar_gdf_vars[1].get('name'): res_scalar_gdf_vars[1].get('value'),
+                             res_scalar_gdf_vars[2].get('name'): res_scalar_gdf_vars[2].get('value'),
+                             res_scalar_gdf_vars[3].get('name'): res_scalar_gdf_vars[3].get('value')}
+            self.assertEqual(scalar_values, {'name': (1000 * 'A') + '...',
+                                             'lat': 45,
+                                             'lon': -120,
+                                             'geometry': 'POINT (-120 45)'})
+
+            res_empty_ds = l_res[6]
+            res_empty_ds_vars = res_empty_ds.get('variables')
+            self.assertIsNotNone(res_empty_ds_vars)
+            self.assertEqual(len(res_empty_ds_vars), 2)
+            scalar_values = {res_empty_ds_vars[0].get('name'): res_empty_ds_vars[0].get('value'),
+                             res_empty_ds_vars[1].get('name'): res_empty_ds_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'temperature': None, 'precipitation': None})
+
+            res_empty_df = l_res[7]
+            res_empty_df_vars = res_empty_df.get('variables')
+            self.assertIsNotNone(res_empty_df_vars)
+            self.assertEqual(len(res_empty_df_vars), 2)
+            scalar_values = {res_empty_df_vars[0].get('name'): res_empty_df_vars[0].get('value'),
+                             res_empty_df_vars[1].get('name'): res_empty_df_vars[1].get('value')}
+            self.assertEqual(scalar_values, {'A': None, 'B': None})
+
+            res_int = l_res[8]
+            self.assertEqual(res_int.get('name'), 'i')
+            self.assertEqual(res_int.get('dataType'), 'int')
+            self.assertIsNone(res_int.get('attributes'))
+            self.assertIsNone(res_int.get('variables'))
+
+            res_str = l_res[9]
+            self.assertEqual(res_str.get('name'), 's')
+            self.assertEqual(res_str.get('dataType'), 'str')
+            self.assertIsNone(res_str.get('attributes'))
+            self.assertIsNone(res_str.get('variables'))
 
         finally:
             OP_REGISTRY.remove_op(dataset_op)
             OP_REGISTRY.remove_op(data_frame_op)
             OP_REGISTRY.remove_op(geo_data_frame_op)
+            OP_REGISTRY.remove_op(scalar_dataset_op)
+            OP_REGISTRY.remove_op(scalar_data_frame_op)
+            OP_REGISTRY.remove_op(scalar_geo_data_frame_op)
+            OP_REGISTRY.remove_op(empty_dataset_op)
+            OP_REGISTRY.remove_op(empty_data_frame_op)
             OP_REGISTRY.remove_op(int_op)
             OP_REGISTRY.remove_op(str_op)
 

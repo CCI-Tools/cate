@@ -1,11 +1,23 @@
-## Version 2.0.0.dev17 (in development)
+## Version 2.0.0.dev18 (in development)
 
+* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
+  Unfortunately, this feature did not find its way into 2.0.0.dev17, instead only its related bug [#743](https://github.com/CCI-Tools/cate/issues/743).
+* Fixed "KeyError: 0" for one one-record data frames [#743](https://github.com/CCI-Tools/cate/issues/743)
+* Removed option to load GML files in Cate Desktop solving [#734](https://github.com/CCI-Tools/cate/issues/734)
+
+## Version 2.0.0.dev17
+
+* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
+* Added information about resources of type `GeoDataFrame` (Shapefiles, GeoJSON) in the details section of the **WORSPACE** panel in Cate Desktop [#705](https://github.com/CCI-Tools/cate/issues/705)
+* Added new operation `merge()` [#740](https://github.com/CCI-Tools/cate/issues/740)
+* Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
 * Fixed display of CCI Sea Level MSLAMPH data [#722](https://github.com/CCI-Tools/cate/issues/722)
+* Improve indexers to first do a validation with respect to the available dimensions and the selected remaining_dims [#730](https://github.com/CCI-Tools/cate/issues/730)
+* Improve plotting capabilities to allow multi-variable plotting and format specification [#704](https://github.com/CCI-Tools/cate/issues/704)
 * Fixed code signing issue during the installer build on MacOS and Windows [#726](https://github.com/CCI-Tools/cate/issues/726)
 * Fixed Cate Desktop failed to start (in Ubuntu 18) due to missing .so [#729](https://github.com/CCI-Tools/cate/issues/729)
 * Fixed Cate Desktop failed to start (in Windows) due to unable to find dll files [#725](https://github.com/CCI-Tools/cate/issues/725)
-* Cate Desktop: Added information about GeoDataFrames in the details section [#705](https://github.com/CCI-Tools/cate/issues/705)
-* Cate (Desktop): Removed option to load GML files 
+* User-defined Setup fails with existing Miniconda/Anaconda installation [#728](https://github.com/CCI-Tools/cate/issues/728)
 
 ## Version 2.0.0.dev16
 

@@ -31,7 +31,6 @@ Functions
 """
 
 import math
-from builtins import bytearray
 
 import geopandas as gpd
 import numpy as np
@@ -40,7 +39,7 @@ import shapely.geometry
 from shapely.geometry import MultiPolygon
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike
+from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
 from cate.util.monitor import Monitor
 
 _DEG2RAD = math.pi / 180.
@@ -152,6 +151,52 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
 
 
+REGION_MODES = [
+    'almost_equals',
+    'contains',
+    'crosses',
+    'disjoint',
+    'intersects',
+    'touches',
+    'within',
+]
+
+
+@op(tags=['filter'], version='1.0')
+@op_input('gdf', data_type=DataFrameLike)
+@op_input('var_names', data_type=VarNamesLike)
+@op_input('region', data_type=PolygonLike)
+@op_input('geom_op', data_type=str, value_set=REGION_MODES)
+def data_frame_subset(gdf: gpd.GeoDataFrame,
+                      var_names: VarNamesLike.TYPE = None,
+                      region: PolygonLike.TYPE = None,
+                      geom_op: bool = 'intersects') -> gpd.GeoDataFrame:
+    """
+    Create a GeoDataFrame subset from given variables (data frame columns) and/or region.
+
+    :param gdf: A GeoDataFrame.
+    :param var_names: The variables (columns) to select.
+    :param region: A region polygon used to filter rows.
+    :param geom_op: The geometric operation to be performed if *region* is given.
+    :return: A GeoDataFrame subset.
+    """
+    var_names = VarNamesLike.convert(var_names)
+    region = PolygonLike.convert(region)
+    if not var_names and not region:
+        return gdf
+
+    if var_names:
+        if 'geometry' not in var_names:
+            var_names = ['geometry'] + var_names
+        gdf = gdf[var_names]
+
+    if region and geom_op:
+        geom_str = PolygonLike.format(region)
+        gdf = data_frame_query(gdf, f'@{geom_op}("{geom_str}")')
+
+    return gdf
+
+
 @op(tags=['filter'], version='1.0')
 @op_input('gdf', data_type=DataFrameLike)
 @op_input('location', data_type=GeometryLike)
@@ -226,22 +271,31 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
 @op(tags=['arithmetic'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('var_names', data_type=VarNamesLike)
-@op_input('agg_geo', data_type=bool)
+@op_input('aggregate_geometry', data_type=bool)
 def data_frame_aggregate(df: DataFrameLike.TYPE,
                          var_names: VarNamesLike.TYPE = None,
-                         agg_geo: bool = False,
+                         aggregate_geometry: bool = False,
                          monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
-    Description
-    """
+    Aggregate columns into count, mean, median, sum, std, min, and max. Return a
+    new (Geo)DataFrame with a single row containing all aggregated values. Specify whether the geometries of
+    the GeoDataFrame are to be aggregated. All geometries are merged union-like.
 
+    The return data type will always be the same as the input data type.
+
+    :param df: The (Geo)DataFrame to be analysed
+    :param var_names: Variables to be aggregated ('None' uses all aggregatable columns)
+    :param aggregate_geometry: Aggregate (union like) the geometry and add it to the resulting GeoDataFrame
+    :param monitor: Monitor for progress bar
+    :return: returns either DataFrame or GeoDataFrame. Keeps input data type
+    """
     vns = VarNamesLike.convert(var_names)
 
     df_is_geo = isinstance(df, gpd.GeoDataFrame)
     aggregations = ["count", "mean", "median", "sum", "std", "min", "max"]
 
     # Check var names integrity (aggregatable, exists in data frame)
-    types_accepted_for_agg = ['float64', 'int64']
+    types_accepted_for_agg = ['float64', 'int64', 'bool']
     agg_columns = list(df.select_dtypes(include=types_accepted_for_agg).columns)
 
     if df_is_geo:
@@ -281,22 +335,26 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
     df_agg = pd.DataFrame(res)
 
     # Aggregate (union) geometry if GeoDataFrame
-    if df_is_geo:
+    if df_is_geo and aggregate_geometry:
         total_work = 100
         num_work_rows = 1 + len(df) // total_work
         with monitor.starting('Aggregating geometry: ', total_work):
-            polys = MultiPolygon()
+            multi_polygon = MultiPolygon()
             i = 0
             for rec in df.geometry:
                 if monitor.is_cancelled():
                     break
+                # noinspection PyBroadException
+                try:
+                    multi_polygon = multi_polygon.union(other=rec)
+                except Exception:
+                    pass
 
-                polys = polys.union(other=rec)
                 if i % num_work_rows == 0:
                     monitor.progress(work=1)
                 i += 1
 
-        df_agg = gpd.GeoDataFrame(df_agg, geometry=[polys])
+        df_agg = gpd.GeoDataFrame(df_agg, geometry=[multi_polygon])
         df_agg.crs = df.crs
 
     return df_agg

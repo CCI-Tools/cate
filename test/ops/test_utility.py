@@ -9,42 +9,67 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.utility import sel, from_dataframe, identity, literal, pandas_fillna
+from cate.core.types import ValidationError
+from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna
 from cate.util.misc import object_to_qualified_name
 
 
-def new_ds():
-    lon = [10.1, 10.2, 10.3, 10.4]
-    lat = [34.5, 34.6]
-    time = pd.date_range('2014-09-06', periods=10)
-    reference_time = pd.Timestamp('2014-09-05')
+class MergeTest(TestCase):
+    def test_nominal(self):
+        """
+        Test nominal execution
+        """
+        periods = 5
+        time = pd.date_range('2000-01-01', periods=periods)
 
-    time_res = len(time)
-    lon_res = len(lon)
-    lat_res = len(lat)
+        ds_1 = xr.Dataset({'A': (['time'], np.random.randn(periods)),
+                           'B': (['time'], np.random.randn(periods)),
+                           'time': time})
+        ds_2 = xr.Dataset({'C': (['time'], np.random.randn(periods)),
+                           'D': (['time'], np.random.randn(periods)),
+                           'time': time})
+        new_ds = merge(ds_1=ds_1, ds_2=ds_2, ds_3=None, ds_4=None)
+        self.assertTrue('A' in new_ds)
+        self.assertTrue('B' in new_ds)
+        self.assertTrue('C' in new_ds)
+        self.assertTrue('D' in new_ds)
 
-    temperature = (15 + 8 * np.random.randn(lon_res, lat_res, time_res)).round(decimals=1)
-    precipitation = (10 * np.random.rand(lon_res, lat_res, time_res)).round(decimals=1)
+        new_ds = merge(ds_1=ds_1, ds_2=ds_1, ds_3=ds_1, ds_4=ds_2)
+        self.assertTrue('A' in new_ds)
+        self.assertTrue('B' in new_ds)
+        self.assertTrue('C' in new_ds)
+        self.assertTrue('D' in new_ds)
 
-    ds = xr.Dataset({'temperature': (['lon', 'lat', 'time'], temperature),
-                     'precipitation': (['lon', 'lat', 'time'], precipitation)
-                     },
-                    coords={'lon': lon,
-                            'lat': lat,
-                            'time': time,
-                            'reference_time': reference_time
-                            })
-    return ds
+        new_ds = merge(ds_1=ds_1, ds_2=ds_1, ds_3=ds_1, ds_4=ds_1)
+        self.assertIs(new_ds, ds_1)
+
+        new_ds = merge(ds_1=ds_2, ds_2=ds_2, ds_3=ds_2, ds_4=ds_2)
+        self.assertIs(new_ds, ds_2)
+
+        ds_3 = xr.Dataset({'E': (['time'], np.random.randn(periods)),
+                           'time': time})
+        new_ds = merge(ds_1=ds_1, ds_2=ds_2, ds_3=ds_3, ds_4=None)
+        self.assertTrue('A' in new_ds)
+        self.assertTrue('B' in new_ds)
+        self.assertTrue('C' in new_ds)
+        self.assertTrue('D' in new_ds)
+        self.assertTrue('E' in new_ds)
+
+        ds_4 = xr.Dataset({'F': (['time'], np.random.randn(periods)),
+                           'time': time})
+        new_ds = merge(ds_1=ds_1, ds_2=ds_2, ds_3=ds_3, ds_4=ds_4)
+        self.assertTrue('A' in new_ds)
+        self.assertTrue('B' in new_ds)
+        self.assertTrue('C' in new_ds)
+        self.assertTrue('D' in new_ds)
+        self.assertTrue('E' in new_ds)
+
+    def test_failures(self):
+        with self.assertRaises(ValidationError):
+            merge(ds_1=None, ds_2=None, ds_3=None, ds_4=None)
 
 
-def assert_dataset_equal(expected, actual):
-    # this method is functionally equivalent to
-    # `assert expected == actual`, but it checks each aspect
-    # of equality separately for easier debugging
-    assert expected.equals(actual), (expected, actual)
-
-
-class TestSel(TestCase):
+class SelTest(TestCase):
     def test_nominal(self):
         ds = new_ds()
 
@@ -173,6 +198,7 @@ class TestFillna(TestCase):
     """
     Test fillna operation
     """
+
     def test_nominal(self):
         """
         Test nominal operation
@@ -214,3 +240,34 @@ class TestFillna(TestCase):
 
         actual = reg_op(df=df, method='ffill')
         self.assertTrue(actual.equals(expected))
+
+
+def new_ds():
+    lon = [10.1, 10.2, 10.3, 10.4]
+    lat = [34.5, 34.6]
+    time = pd.date_range('2014-09-06', periods=10)
+    reference_time = pd.Timestamp('2014-09-05')
+
+    time_res = len(time)
+    lon_res = len(lon)
+    lat_res = len(lat)
+
+    temperature = (15 + 8 * np.random.randn(lon_res, lat_res, time_res)).round(decimals=1)
+    precipitation = (10 * np.random.rand(lon_res, lat_res, time_res)).round(decimals=1)
+
+    ds = xr.Dataset({'temperature': (['lon', 'lat', 'time'], temperature),
+                     'precipitation': (['lon', 'lat', 'time'], precipitation)
+                     },
+                    coords={'lon': lon,
+                            'lat': lat,
+                            'time': time,
+                            'reference_time': reference_time
+                            })
+    return ds
+
+
+def assert_dataset_equal(expected, actual):
+    # this method is functionally equivalent to
+    # `assert expected == actual`, but it checks each aspect
+    # of equality separately for easier debugging
+    assert expected.equals(actual), (expected, actual)

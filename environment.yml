@@ -11,9 +11,7 @@ dependencies:
   - conda >=4.5.1,<5.0
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25,<1.0
-  # TODO: investigate test_anomaly.py line 235 that fails using dask 0.18
-  # dask 0.18 causes a unit test to fail
-  - dask >=0.15.4,<0.18
+  - dask >=0.19,<1.0
   - fiona >=1.7,<2.0
   - gdal >=2.2.3,<3.0
   - geopandas >=0.3,<1.0
@@ -29,7 +27,6 @@ dependencies:
   - munch ==2.3.1
   - netcdf4 >=1.2,<2.0
   - numba >=0.33,<1.0
-  # numpy 1.12 gave some trouble
   # Starting from numpy 1.13 xarray ufuncs are deprecated, as np ufuncs work across dask datasets
   - numpy >=1.13,<2.0
   - owslib >=0.14,<1.0
@@ -43,7 +40,6 @@ dependencies:
   - scipy >=0.19,<1.0
   - shapely >=1.6,<2.0
   - tornado >=5.0,<6.0
-  # Require >= 0.10.3 due to #579
   - xarray >=0.10.6
   #
   # for testing only
