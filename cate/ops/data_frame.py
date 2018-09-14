@@ -36,6 +36,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
+from shapely.geometry import MultiPolygon
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
@@ -265,6 +266,98 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
         new_gdf[dist_col_name] = np.array(distances)
 
     return new_gdf
+
+
+@op(tags=['arithmetic'], version='1.0')
+@op_input('df', data_type=DataFrameLike)
+@op_input('var_names', data_type=VarNamesLike)
+@op_input('aggregate_geometry', data_type=bool)
+def data_frame_aggregate(df: DataFrameLike.TYPE,
+                         var_names: VarNamesLike.TYPE = None,
+                         aggregate_geometry: bool = False,
+                         monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
+    """
+    Aggregate columns into count, mean, median, sum, std, min, and max. Return a
+    new (Geo)DataFrame with a single row containing all aggregated values. Specify whether the geometries of
+    the GeoDataFrame are to be aggregated. All geometries are merged union-like.
+
+    The return data type will always be the same as the input data type.
+
+    :param df: The (Geo)DataFrame to be analysed
+    :param var_names: Variables to be aggregated ('None' uses all aggregatable columns)
+    :param aggregate_geometry: Aggregate (union like) the geometry and add it to the resulting GeoDataFrame
+    :param monitor: Monitor for progress bar
+    :return: returns either DataFrame or GeoDataFrame. Keeps input data type
+    """
+    vns = VarNamesLike.convert(var_names)
+
+    df_is_geo = isinstance(df, gpd.GeoDataFrame)
+    aggregations = ["count", "mean", "median", "sum", "std", "min", "max"]
+
+    # Check var names integrity (aggregatable, exists in data frame)
+    types_accepted_for_agg = ['float64', 'int64', 'bool']
+    agg_columns = list(df.select_dtypes(include=types_accepted_for_agg).columns)
+
+    if df_is_geo:
+        agg_columns.append('geometry')
+
+    columns = list(df.columns)
+
+    if vns is None:
+        vns = agg_columns
+
+    diff = list(set(vns) - set(columns))
+    if len(diff) > 0:
+        raise ValidationError('Variable ' + ','.join(diff) + ' not in data frame!')
+
+    diff = list(set(vns) - set(agg_columns))
+    if len(diff) > 0:
+        raise ValidationError('Variable(s) ' + ','.join(diff) + ' not aggregatable!')
+
+    try:
+        df['geometry']
+    except KeyError as e:
+        raise ValidationError('Variable geometry not in GEO data frame!') from e
+
+    # Aggregate columns
+    if vns is None:
+        df_buff = df.select_dtypes(include=types_accepted_for_agg).agg(aggregations)
+    else:
+        df_buff = df[vns].select_dtypes(include=types_accepted_for_agg).agg(aggregations)
+
+    res = {}
+    for n in df_buff.columns:
+        for a in aggregations:
+            val = df_buff[n][a]
+            h = n + '_' + a
+            res[h] = [val]
+
+    df_agg = pd.DataFrame(res)
+
+    # Aggregate (union) geometry if GeoDataFrame
+    if df_is_geo and aggregate_geometry:
+        total_work = 100
+        num_work_rows = 1 + len(df) // total_work
+        with monitor.starting('Aggregating geometry: ', total_work):
+            multi_polygon = MultiPolygon()
+            i = 0
+            for rec in df.geometry:
+                if monitor.is_cancelled():
+                    break
+                # noinspection PyBroadException
+                try:
+                    multi_polygon = multi_polygon.union(other=rec)
+                except Exception:
+                    pass
+
+                if i % num_work_rows == 0:
+                    monitor.progress(work=1)
+                i += 1
+
+        df_agg = gpd.GeoDataFrame(df_agg, geometry=[multi_polygon])
+        df_agg.crs = df.crs
+
+    return df_agg
 
 
 def great_circle_distance(p1: shapely.geometry.Point, p2: shapely.geometry.Point) -> float:

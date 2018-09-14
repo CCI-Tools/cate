@@ -7,8 +7,9 @@ import shapely.geometry
 import shapely.wkt
 from shapely.geometry import Point
 
+from cate.core.types import ValidationError
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
-    great_circle_distance, data_frame_subset
+    great_circle_distance, data_frame_aggregate, data_frame_subset
 
 
 class TestDataFrameOps(TestCase):
@@ -198,6 +199,57 @@ class TestDataFrameOps(TestCase):
         np.testing.assert_approx_equal(8.0518568, df2['dist'].iloc[1])
         self.assertEqual(shapely.wkt.loads('POINT(20 30)'), df2['geometry'].iloc[0])
         self.assertEqual(shapely.wkt.loads('POINT(20 20)'), df2['geometry'].iloc[1])
+
+    def test_data_frame_aggregate(self):
+        # Generate mock data
+        data = {'name': ['A', 'B', 'C'],
+                'lat': [45, 46, 47.5],
+                'lon': [-120, -121.2, -122.9]}
+
+        df = pd.DataFrame(data)
+        # needs to be a copy
+        gdf_empty_geo = gpd.GeoDataFrame(df).copy()
+        gdf = gpd.GeoDataFrame(df, geometry=[Point(xy) for xy in zip(df['lon'], df['lat'])])
+
+        var_names_not_agg = 'name, lat, lon'
+        var_names_not_in = 'asdc, lat, lon'
+        var_names_valid = ['lat', 'lon']
+        aggregations = ["count", "mean", "median", "sum", "std", "min", "max"]
+
+        # Assert that a Validation exception is thrown if the df is None
+        with self.assertRaises(ValidationError):
+            data_frame_aggregate(df=None)
+
+        # Assert that a Validation exception is thrown if the var_names contain non-existing fields in the df
+        with self.assertRaises(ValidationError):
+            data_frame_aggregate(df=df, var_names=var_names_not_in)
+
+        # Assert that a Validation exception is thrown if the var_names contain non-aggregatable fields
+        with self.assertRaises(ValidationError):
+            data_frame_aggregate(df=df, var_names=var_names_not_agg)
+
+        # Assert that a Validation exception is thrown if the GeoDataFrame does not have a geometry
+        with self.assertRaises(ValidationError):
+            data_frame_aggregate(df=gdf_empty_geo, var_names=None)
+
+        with self.assertRaises(ValidationError):
+            data_frame_aggregate(df=gdf_empty_geo, var_names='lat')
+
+        # assert that a input and output types for df are the same
+        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid)
+        self.assertEqual(len(rdf), 1)
+
+        # assert that columns are return if var_names = None for a DataFrame
+        rdf = data_frame_aggregate(df=df, var_names=None)
+        self.assertEqual(len(rdf.columns), len(aggregations) * len(var_names_valid))
+
+        # assert that columns are return if var_names = None for a GeoDataFrame
+        rdf = data_frame_aggregate(df=gdf, var_names=None, aggregate_geometry=True)
+        self.assertEqual(len(rdf.columns), len(aggregations) * len(var_names_valid) + 1)
+
+        # assert that geometry union is created
+        rdf = data_frame_aggregate(df=gdf, var_names=var_names_valid, aggregate_geometry=True)
+        self.assertIsNotNone(rdf.geometry)
 
 
 class GreatCircleDistanceTest(TestCase):

@@ -368,21 +368,21 @@ class Workspace:
                     if scalar_value is not UNDEFINED:
                         variable_descriptors[0]['value'] = scalar_value
 
-        geometry = features.schema.get('geometry')
+        geometry_type = features.schema.get('geometry')
         crs = str(features.crs)
         crs_wkt = str(features.crs_wkt)
         driver = features.driver
 
         attributes = {
             'driver': driver,
-            'geometry': geometry,
+            'geometryType': geometry_type,
             'crs': crs,
             'crsWkt': crs_wkt,
             'numFeatures': num_features,
         }
 
         resource_json.update(variables=variable_descriptors,
-                             geometry=geometry,
+                             geometry=geometry_type,
                              numFeatures=num_features,
                              attributes=attributes)
 
