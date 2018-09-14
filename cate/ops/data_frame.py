@@ -31,6 +31,7 @@ Functions
 """
 
 import math
+from builtins import bytearray
 
 import geopandas as gpd
 import numpy as np
@@ -38,7 +39,7 @@ import pandas as pd
 import shapely.geometry
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError
+from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike
 from cate.util.monitor import Monitor
 
 _DEG2RAD = math.pi / 180.
@@ -219,6 +220,70 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
         new_gdf[dist_col_name] = np.array(distances)
 
     return new_gdf
+
+
+@op(tags=['arithmetic'], version='1.0')
+@op_input('df', data_type=DataFrameLike)
+@op_input('var_names', data_type=VarNamesLike)
+def data_frame_aggregate(df: DataFrameLike.TYPE,
+                         var_names: VarNamesLike.TYPE = None,
+                         monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
+    """
+    Description
+    """
+
+    vns = VarNamesLike.convert(var_names)
+
+    df_is_geo = isinstance(df, gpd.GeoDataFrame)
+    aggregations = ["count", "mean", "median", "sum", "std", "min", "max"]
+
+    # Check var names integrity (aggregatable, exists in data frame)
+    types_accepted_for_agg = ['float64', 'int64']
+    agg_columns = list(df.select_dtypes(include=types_accepted_for_agg).columns)
+
+    if df_is_geo:
+        agg_columns.append('geometry')
+
+    columns = list(df.columns)
+
+    if vns is None:
+        vns = agg_columns
+
+    diff = list(set(vns) - set(agg_columns))
+    if len(diff) > 0:
+        raise ValidationError('Variable(s) ' + ','.join(diff) + ' not aggregatable!')
+
+    diff = list(set(vns) - set(columns))
+    if len(diff) > 0:
+        raise ValidationError('Variable ' + ','.join(diff) + ' not in data frame!')
+
+    try:
+        df['geometry']
+    except KeyError as e:
+        raise ValidationError('Variable geometry not in GEO data frame!') from e
+
+    # Aggregate columns
+    if vns is None:
+        df_buff = df.select_dtypes(include=types_accepted_for_agg).agg(aggregations)
+    else:
+        df_buff = df[vns].select_dtypes(include=types_accepted_for_agg).agg(aggregations)
+
+    res = {}
+    for n in df_buff.columns:
+        for a in aggregations:
+            val = df_buff[n][a]
+            h = n + '_' + a
+            res[h] = [val]
+
+    # Aggregate (union) geometry if GeoDataFrame
+    if df_is_geo:
+        buffer = gpd.GeoDataFrame({'geometry': df.geometry, 'diss': 1}).dissolve(by='diss')
+        df_agg = gpd.GeoDataFrame(res)
+        df_agg.geometry = list(buffer.geometry)
+    else:
+        df_agg = pd.DataFrame(res)
+
+    return df_agg
 
 
 def great_circle_distance(p1: shapely.geometry.Point, p2: shapely.geometry.Point) -> float:
