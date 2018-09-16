@@ -1,4 +1,6 @@
-## Version 2.0.0.dev18 (in development)
+## Version 2.0.0.dev19 (in development)
+
+## Version 2.0.0.dev18
 
 * Added new operation `data_frame_aggregate()` [#707](https://github.com/CCI-Tools/cate/issues/707)
 * Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
@@ -8,7 +10,6 @@
 
 ## Version 2.0.0.dev17
 
-* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
 * Added information about resources of type `GeoDataFrame` (Shapefiles, GeoJSON) in the details section of the **WORSPACE** panel in Cate Desktop [#705](https://github.com/CCI-Tools/cate/issues/705)
 * Added new operation `merge()` [#740](https://github.com/CCI-Tools/cate/issues/740)
 * Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
