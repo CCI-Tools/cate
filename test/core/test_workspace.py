@@ -125,23 +125,23 @@ class WorkspaceTest(unittest.TestCase):
             data = {'A': [1, 2, 3, np.nan, 4, 9, np.nan, np.nan, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 9, 1, 2, 7, 6]}
             time = pd.date_range('2000-01-01', freq='MS', periods=12)
-            return pd.DataFrame(data=data, index=time, dtype=float)
+            return pd.DataFrame(data=data, index=time, dtype=float, columns=['A', 'B'])
 
         def scalar_data_frame_op() -> pd.DataFrame:
             data = {'A': [1.3],
                     'B': [5.9]}
-            return pd.DataFrame(data=data, dtype=float)
+            return pd.DataFrame(data=data, dtype=float, columns=['A', 'B'])
 
         def empty_data_frame_op() -> pd.DataFrame:
             data = {'A': [],
                     'B': []}
-            return pd.DataFrame(data=data, dtype=float)
+            return pd.DataFrame(data=data, dtype=float, columns=['A', 'B'])
 
         def geo_data_frame_op() -> gpd.GeoDataFrame:
             data = {'name': ['A', 'B', 'C'],
                     'lat': [45, 46, 47.5],
                     'lon': [-120, -121.2, -122.9]}
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(data, columns=['name', 'lat', 'lon'])
             geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
             return gpd.GeoDataFrame(df, geometry=geometry)
 
@@ -149,7 +149,7 @@ class WorkspaceTest(unittest.TestCase):
             data = {'name': [2000 * 'A'],
                     'lat': [45],
                     'lon': [-120]}
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(data, columns=['name', 'lat', 'lon'])
             geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
             return gpd.GeoDataFrame(df, geometry=geometry)
 
