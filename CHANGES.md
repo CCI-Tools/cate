@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev19 (in development)
 
+* Fix an issue where coregistration wouldn't perform subset [#747](https://github.com/CCI-Tools/cate/issues/747)
+
 ## Version 2.0.0.dev18
 
 * Added new operation `data_frame_aggregate()` [#707](https://github.com/CCI-Tools/cate/issues/707)
