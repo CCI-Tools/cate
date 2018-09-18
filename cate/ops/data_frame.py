@@ -100,7 +100,8 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     * ``@crosses(geom)`` - does a feature's geometry cross the given ``geom``;
     * ``@disjoint(geom)`` - does a feature's geometry not at all intersect the given ``geom``;
     * ``@intersects(geom)`` - does a feature's geometry intersect with given ``geom``;
-    * ``@touches(geom)`` - does a feature's geometry have a point in common with given ``geom`` but does not intersect it;
+    * ``@touches(geom)`` - does a feature's geometry have a point in common with given ``geom``
+        but does not intersect it;
     * ``@within(geom)`` - is a feature's geometry contained within given ``geom``.
 
     The *geom* argument may be a point ``"<lon>, <lat>"`` text string,
@@ -143,12 +144,13 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
         local_dict['touches'] = _touches
         local_dict['within'] = _within
 
-    data_frame_subset = data_frame.query(query_expr,
+    # noinspection PyTypeChecker
+    subset_data_frame = data_frame.query(query_expr,
                                          truediv=True,
                                          local_dict=local_dict,
                                          global_dict={})
 
-    return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
+    return _maybe_convert_to_geo_data_frame(data_frame, subset_data_frame)
 
 
 REGION_MODES = [
@@ -164,7 +166,7 @@ REGION_MODES = [
 
 @op(tags=['filter'], version='1.0')
 @op_input('gdf', data_type=DataFrameLike)
-@op_input('var_names', data_type=VarNamesLike)
+@op_input('var_names', value_set_source='gdf', data_type=VarNamesLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('geom_op', data_type=str, value_set=REGION_MODES)
 def data_frame_subset(gdf: gpd.GeoDataFrame,
@@ -270,7 +272,7 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
 
 @op(tags=['arithmetic'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
-@op_input('var_names', data_type=VarNamesLike)
+@op_input('var_names', value_set_source='df', data_type=VarNamesLike)
 @op_input('aggregate_geometry', data_type=bool)
 def data_frame_aggregate(df: DataFrameLike.TYPE,
                          var_names: VarNamesLike.TYPE = None,
