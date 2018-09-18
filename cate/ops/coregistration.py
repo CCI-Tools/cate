@@ -307,6 +307,7 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
 
     lon = ds_master['lon'].sel(lon=lon_slice)
     lat = ds_master['lat'].sel(lat=lat_slice)
+    ds_slave = ds_slave.sel(lon=lon_slice, lat=lat_slice)
 
     with monitor.starting("coregister dataset", len(ds_slave.data_vars)):
         kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'parent_monitor': monitor}
