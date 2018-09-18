@@ -443,8 +443,8 @@ def _validate_freq(in_res: str, out_res: str) -> None:
 
 @op(tags=['aggregate'], version='1.0')
 @op_input('ds', data_type=DatasetLike)
-@op_input('var', data_type=VarNamesLike, value_set_source='ds')
-@op_input('dim', data_type=DimNamesLike, value_set_source='ds')
+@op_input('var', value_set_source='ds', data_type=VarNamesLike)
+@op_input('dim', value_set_source='ds', data_type=DimNamesLike)
 @op_input('method', value_set=['mean', 'min', 'max', 'sum', 'median'])
 @op_return(add_history=True)
 def reduce(ds: DatasetLike.TYPE,
