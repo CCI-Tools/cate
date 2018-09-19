@@ -404,7 +404,7 @@ def plot_line(ds: DatasetLike.TYPE,
         else:
             title = ','.join(var_names)
     if indexers:
-        title = title + '\n' + ' at ' + json.dumps(indexers)
+        title = title + '\n' + ' at ' + json.dumps(indexers).strip('"')
     ax.set_title(title)
 
     indexers = DictLike.convert(indexers)
