@@ -97,12 +97,14 @@ def in_notebook():
 def get_var_data(var, indexers: dict, remaining_dims=None):
     """Select an arbitrary piece of an xarray dataset by using indexers."""
     if indexers:
-        for dim in remaining_dims:
-            if dim not in var.dims:
-                raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
-            if dim in indexers:
-                raise ValidationError(f'Dimension \'{dim}\' is also specified as indexers. Please ensure that a '
-                                      f'dimension is used exclusively either as indexers or as the selected dimension.')
+        if remaining_dims:
+            for dim in remaining_dims:
+                if dim not in var.dims:
+                    raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
+                if dim in indexers:
+                    raise ValidationError(f'Dimension \'{dim}\' is also specified as indexers. Please ensure that a '
+                                          f'dimension is used exclusively either as indexers or as the selected '
+                                          f'dimension.')
         for dim in indexers:
             if dim not in var.dims:
                 raise ValidationError(f'The specified dataset does not have a dimension called \'{dim}\'.')
