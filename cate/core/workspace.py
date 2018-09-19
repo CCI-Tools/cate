@@ -344,14 +344,35 @@ class Workspace:
             variable_descriptors.append(cls._get_pandas_variable_descriptor(variable))
         # noinspection PyArgumentList,PyTypeChecker
 
-        resource_json.update(variables=variable_descriptors)
+        if len(data_frame.shape) == 2:
+            num_rows, num_columns = data_frame.shape
+        else:
+            num_rows = len(data_frame)
+            num_columns = 0
+
+        attributes = {
+            'num_rows': num_rows,
+            'num_columns': num_columns,
+        }
+
+        if hasattr(data_frame, 'crs') and data_frame.crs is not None:
+            attributes['crs'] = str(data_frame.crs)
+
+        if hasattr(data_frame, 'geom_type'):
+            geom_type = data_frame.geom_type
+            if isinstance(geom_type, pd.Series) and len(geom_type) > 0:
+                attributes['geom_type'] = str(data_frame.geom_type[0])
+
+        resource_json.update(variables=variable_descriptors, attributes=attributes)
 
     @classmethod
     def _update_resource_json_from_feature_collection(cls, resource_json, features: fiona.Collection):
         variable_descriptors = []
         num_features = len(features)
+        num_properties = 0
         properties = features.schema.get('properties')
         if properties:
+            num_properties = len(properties)
             for var_name, var_type in properties.items():
                 variable_descriptors.append({
                     'name': var_name,
@@ -368,23 +389,19 @@ class Workspace:
                     if scalar_value is not UNDEFINED:
                         variable_descriptors[0]['value'] = scalar_value
 
-        geometry_type = features.schema.get('geometry')
-        crs = str(features.crs)
-        crs_wkt = str(features.crs_wkt)
-        driver = features.driver
-
-        attributes = {
-            'driver': driver,
-            'geometryType': geometry_type,
-            'crs': crs,
-            'crsWkt': crs_wkt,
-            'numFeatures': num_features,
-        }
+        geom_type = features.schema.get('geometry')
 
         resource_json.update(variables=variable_descriptors,
-                             geometry=geometry_type,
+                             geometry=geom_type,
                              numFeatures=num_features,
-                             attributes=attributes)
+                             attributes={
+                                 'num_rows': num_features,
+                                 'num_columns': num_properties,
+                                 'geom_type': str(geom_type or '?'),
+                                 'crs': str(features.crs),
+                                 'crs_wkt': str(features.crs_wkt),
+                                 'driver': str(features.driver),
+                             })
 
     @classmethod
     def _attrs_to_json_dict(cls, attrs: dict) -> Dict[str, Any]:
