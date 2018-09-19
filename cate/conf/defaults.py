@@ -148,6 +148,9 @@ VARIABLE_DISPLAY_SETTINGS = {
     'burned_area': dict(color_map="hot", display_min=0, display_max=300000000),
 
     # Sea Level
+    'ampl': dict(color_map="YlOrRd", display_min=0., display_max=0.12),
+    'phase': dict(color_map="hsv", display_min=0., display_max=360.),
+    'sla': dict(color_map="bwr", display_min=-0.2, display_max=0.2),
     'local_msl_trend': dict(color_map="coolwarm", display_min=-12., display_max=12.),
     'local_msl_trend_error': dict(color_map="afmhot", display_min=0., display_max=5.),
 }
