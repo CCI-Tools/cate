@@ -98,6 +98,8 @@ DEFAULT_VARIABLES = {
     'O3_du_tot',                # esacci.OZONE.*.L3.NP.*
     'atmosphere_mole_content_of_ozone',  # esacci.OZONE.*.L3S.TC.*
     'Rrs_490',                  # esacci.OC.*.L3S.RRS.*
+    'ampl',                     # esacci.SEALEVEL.*.IND.MSLAMPH.*
+    'sla',                      # esacci.SEALEVEL.*.IND.MSLA.*
     'local_msl_trend',          # esacci.SEALEVEL.*.IND.MSL.*
     'sm',                       # esacci.SOILMOISTURE.*.L3S.SSMS.*
     'sea_surface_temperature',  # esacci.SST.*.L3U.SSTskin.*
@@ -147,7 +149,7 @@ VARIABLE_DISPLAY_SETTINGS = {
     # Fire CCI
     'burned_area': dict(color_map="hot", display_min=0, display_max=300000000),
 
-    # Sea Level
+    # Sea Level CCI
     'ampl': dict(color_map="YlOrRd", display_min=0., display_max=0.12),
     'phase': dict(color_map="hsv", display_min=0., display_max=360.),
     'sla': dict(color_map="bwr", display_min=-0.2, display_max=0.2),
