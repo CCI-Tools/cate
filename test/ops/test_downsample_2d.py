@@ -6,6 +6,11 @@ import cate.ops.resampling as rs
 
 NAN = np.nan
 
+# Note: to run the tests in this file, you'll have to set an environment variable:
+#
+#   NUMBA_DISABLE_JIT=1
+#
+
 
 class Downsample2dTest(unittest.TestCase):
     def _test_downsample_2d(self, src, out_w, out_h, method, fill_value, desired, **kwargs):
