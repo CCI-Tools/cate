@@ -81,13 +81,20 @@ class TestGetVarData(TestCase):
         self.assertEqual(len(out.time.values), 2)
 
         # test when a dimension is neither in indexers nor remaining_dims specified,
-        # it will select the first element of that dimension
+        # it will select the first element of that dimension (if remaining_dims is specified)
         indexers = {'lat': 0, 'lon': -179.5}
         out = get_var_data(dataset2.second, indexers, remaining_dims=['time', ])
-        print(f'out {out}')
         self.assertEqual(out.lat, 0)
         self.assertEqual(out.lon, -179.5)
         self.assertEqual(out.layers, 1)
+        self.assertEqual(len(out.time.values), 2)
+
+        # when remaining_dims is not specified, it should only index based on the given indexers
+        indexers = {'lat': 0, 'lon': -179.5}
+        out = get_var_data(dataset2.second, indexers)
+        self.assertEqual(out.lat, 0)
+        self.assertEqual(out.lon, -179.5)
+        self.assertEqual(len(out.layers), 16)
         self.assertEqual(len(out.time.values), 2)
 
         # should raise a ValidationError when the specified dimension is not part of variable dimension names
