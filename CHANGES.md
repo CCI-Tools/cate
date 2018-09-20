@@ -3,7 +3,7 @@
 * Fixed error in `plot_xxx()` operations `"'NoneType' object is not iterable"` [#749](https://github.com/CCI-Tools/cate/issues/749)
 * Fixed problem with `coregister()` operation on data subsets [#747](https://github.com/CCI-Tools/cate/issues/747)
 * Fixed operations `data_frame_aggregate()` and  `data_frame_subset()` to let users select variables (columns) of selected data frame.
-* Added information about resources of type `DataFrame` (CSV, Excel) in the details section of the **WORSPACE** panel.
+* Added information about resources of type `DataFrame` and `GeoDataFrame` in the details section of the **WORSPACE** panel.
 * Updated default colour mappings and default variables for more **Sea Level CCI** products
 
 ## Version 2.0.0.dev18
