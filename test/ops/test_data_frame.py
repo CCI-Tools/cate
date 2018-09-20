@@ -8,6 +8,7 @@ import shapely.wkt
 from shapely.geometry import Point
 
 from cate.core.types import ValidationError
+from cate.core.types import GeoDataFrameProxy
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
     great_circle_distance, data_frame_aggregate, data_frame_subset
 
@@ -30,6 +31,8 @@ class TestDataFrameOps(TestCase):
                                 shapely.wkt.loads('POINT(20 20)'),
                                 shapely.wkt.loads('POINT(20 10)'),
                             ])})
+
+    gdfp = GeoDataFrameProxy.from_features(gdf.__geo_interface__['features'])
 
     def test_data_frame_min(self):
         df2 = data_frame_min(TestDataFrameOps.df, 'D')
@@ -66,31 +69,29 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[1, 3], 0.4)
 
     def test_data_frame_query_with_geom(self):
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @almost_equals('10,10')")
+        self._test_data_frame_query_with_geom(TestDataFrameOps.gdf)
+        self._test_data_frame_query_with_geom(TestDataFrameOps.gdfp)
+
+    def _test_data_frame_query_with_geom(self, gdf):
+        df2 = data_frame_query(gdf, "not C and @almost_equals('10,10')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 1)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @contains('10,10')")
+        df2 = data_frame_query(gdf, "not C and @contains('10,10')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 1)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @crosses('10,10')")
+        df2 = data_frame_query(gdf, "not C and @crosses('10,10')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 0)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @disjoint('10,10')")
+        df2 = data_frame_query(gdf, "not C and @disjoint('10,10')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 2)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @intersects('19, 9, 21, 31')")
+        df2 = data_frame_query(gdf, "not C and @intersects('19, 9, 21, 31')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 1)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @touches('10, 10, 20, 30')")
+        df2 = data_frame_query(gdf, "not C and @touches('10, 10, 20, 30')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 3)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "@within('19, 9, 21, 31')")
+        df2 = data_frame_query(gdf, "@within('19, 9, 21, 31')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 3)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D', 'geometry'])
@@ -106,8 +107,7 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[0, 3], 0.3)
         self.assertEqual(df2.iloc[1, 3], 0.1)
         self.assertEqual(df2.iloc[2, 3], 0.4)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and @within('19, 9, 21, 31')")
+        df2 = data_frame_query(gdf, "not C and @within('19, 9, 21, 31')")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D', 'geometry'])
@@ -115,8 +115,7 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[0, 1], 'x')
         self.assertEqual(df2.iloc[0, 2], False)
         self.assertEqual(df2.iloc[0, 3], 0.3)
-
-        df2 = data_frame_query(TestDataFrameOps.gdf, "not C and geometry.within(@from_wkt('19, 9, 21, 31'))")
+        df2 = data_frame_query(gdf, "not C and geometry.within(@from_wkt('19, 9, 21, 31'))")
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 1)
         self.assertEqual(list(df2.columns), ['A', 'B', 'C', 'D', 'geometry'])

@@ -760,6 +760,15 @@ class GeoDataFrame:
     """
     Proxy for a ``geopandas.GeoDataFrame`` that holds an iterable of features or a feature collection
     for fastest possible streaming of GeoJSON features to be consumed by Cate Desktop's 3D globes.
+
+    Important note: although GeoDataFrame is not inherited from geopandas.GeoDataFrame it is
+    an instance of that type meaning that::
+
+        isinstance(GeoDataFrame(...), geopandas.GeoDataFrame) == True
+
+    It also has all attributes of a geopandas.GeoDataFrame.
+    This allows us using the proxy for operation parameters
+    of type parameters pandas.DataFrame and geopandas.GeoDataFrame.
     """
 
     _OWN_PROPERTY_SET = {
@@ -794,7 +803,10 @@ class GeoDataFrame:
     def lazy_data_frame(self):
         features = self._features
         if features is not None and self._lazy_data_frame is None:
-            self._lazy_data_frame = geopandas.GeoDataFrame.from_features(features, crs=features.crs)
+            crs = features.crs if hasattr(features, 'crs') else None
+            # TODO: remove me!
+            print('Oooooooooooh: lazy_data_frame created with crs =', crs)
+            self._lazy_data_frame = geopandas.GeoDataFrame.from_features(features, crs=crs)
         return self._lazy_data_frame
 
     def close(self):
@@ -848,3 +860,6 @@ class GeoDataFrame:
         return len(self._features)
 
     # Add other __x__() methods here to make GeoDataFrame compatible with geopandas.GeoDataFrame
+
+
+GeoDataFrameProxy = GeoDataFrame
