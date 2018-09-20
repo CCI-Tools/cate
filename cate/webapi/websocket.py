@@ -32,6 +32,7 @@ from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util.monitor import Monitor
 from cate.util.misc import cwd, filter_fileset
+from cate.util.sround import sround_range
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -348,8 +349,9 @@ class WebSocketService:
 
         with monitor.starting('Computing min/max', total_work=100.):
             with monitor.child(work=50.).observing('Computing min'):
-                actual_min = variable.min(skipna=True)
+                actual_min = float(variable.min(skipna=True))
             with monitor.child(work=50.).observing('Computing max'):
-                actual_max = variable.max(skipna=True)
+                actual_max = float(variable.max(skipna=True))
 
-        return dict(min=float(actual_min), max=float(actual_max))
+        actual_min, actual_max = sround_range((actual_min, actual_max), ndigits=2)
+        return dict(min=actual_min, max=actual_max)

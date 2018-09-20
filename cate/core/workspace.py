@@ -42,7 +42,7 @@ from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
 from ..core.types import GeoDataFrame, ValidationError
 from ..util.im import get_chunk_size
-from ..util.misc import object_to_qualified_name, to_json, new_indexed_name
+from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, to_scalar
 from ..util.monitor import Monitor
 from ..util.namespace import Namespace
 from ..util.opmetainf import OpMetaInfo
@@ -385,7 +385,7 @@ class Workspace:
             feature = list(features)[0]
             if feature.properties:
                 for var_name, var_value in feature.properties.items():
-                    scalar_value = to_scalar(var_value)
+                    scalar_value = to_scalar(var_value, nchars=1000, ndigits=3)
                     if scalar_value is not UNDEFINED:
                         variable_descriptors[0]['value'] = scalar_value
 
@@ -419,7 +419,7 @@ class Workspace:
             'shape': variable.shape,
             'isFeatureAttribute': True,
         }
-        scalar_value = to_scalar(variable)
+        scalar_value = to_scalar(variable, nchars=1000, ndigits=3)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
         return variable_info
@@ -450,7 +450,7 @@ class Workspace:
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
-        scalar_value = to_scalar(variable)
+        scalar_value = to_scalar(variable, nchars=1000, ndigits=3)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
 
@@ -680,44 +680,3 @@ class Workspace:
                 "Resource name '%s' is not valid. "
                 "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
                 "except for the first character, the digits 0 through 9." % res_name)
-
-
-def to_scalar(value, max_text_len=1000) -> Any:
-    if isinstance(value, (int, float, str, bool)):
-        return value
-
-    if hasattr(value, 'shape') and hasattr(value, 'dtype'):
-        shape = value.shape
-        dtype = value.dtype
-        try:
-            ndim = len(shape)
-        except TypeError:
-            return UNDEFINED
-        for dim_size in shape:
-            if dim_size != 1:
-                return UNDEFINED
-        if ndim == 1:
-            index = 0
-        elif ndim > 1:
-            index = (0,) * ndim
-        else:
-            return UNDEFINED
-        try:
-            value = value.values
-        except AttributeError:
-            pass
-        try:
-            value = value[index]
-        except (IndexError, KeyError):
-            return UNDEFINED
-        if np.issubdtype(dtype, np.integer):
-            return int(value)
-        elif np.issubdtype(dtype, np.floating):
-            return float(value)
-        else:
-            value = str(value)
-            if len(value) > max_text_len:
-                value = value[0: max_text_len] + '...'
-            return value
-
-    return UNDEFINED

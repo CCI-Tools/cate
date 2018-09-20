@@ -29,8 +29,11 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple, Sequence, Optional, Iterable
+from typing import Union, Tuple, Sequence, Optional, Iterable, Any
 import numpy as np
+
+from cate.util.sround import sround
+from cate.util.undefined import UNDEFINED
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -423,3 +426,63 @@ def new_indexed_name(names: Iterable[str], pattern: str) -> str:
         if new_name not in names:
             return new_name
         new_index += 1
+
+
+def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
+    """
+    Convert the given *value* into a JSON-serializable, scalar value.
+    If the conversion fails, UNDEFINED is returned.
+
+    :param value: Any value.
+    :param nchars: If not None and greater zero, text values will be limited to *nchars* characters.
+    :param ndigits: If not None, floating point values will be rounded to *ndigits* significant digits.
+    :return: A JSON-serializable, scalar value or UNDEFINED, if the conversion fails.
+    """
+
+    if hasattr(value, 'shape') and hasattr(value, 'dtype'):
+        shape = value.shape
+        dtype = value.dtype
+        try:
+            ndim = len(shape)
+        except TypeError:
+            return UNDEFINED
+        if ndim > 0:
+            for dim_size in shape:
+                if dim_size != 1:
+                    return UNDEFINED
+            if ndim == 1:
+                index = 0
+            else:
+                index = (0,) * ndim
+            try:
+                value = value.values
+            except AttributeError:
+                pass
+            try:
+                value = value[index]
+            except (IndexError, KeyError):
+                pass
+        try:
+            if np.issubdtype(dtype, np.integer):
+                value = int(value)
+            elif np.issubdtype(dtype, np.floating):
+                value = float(value)
+            else:
+                value = str(value)
+        except (TypeError, ValueError):
+            return UNDEFINED
+
+    if isinstance(value, float):
+        if ndigits is not None:
+            return sround(value, ndigits=ndigits)
+        return value
+
+    if isinstance(value, str):
+        if nchars is not None and len(value) > nchars:
+            return value[0: nchars] + '...'
+        return value
+
+    if isinstance(value, (int, bool)):
+        return value
+
+    return UNDEFINED
