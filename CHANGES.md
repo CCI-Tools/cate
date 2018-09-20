@@ -3,7 +3,9 @@
 * Fix an issue where coregistration wouldn't perform subset [#747](https://github.com/CCI-Tools/cate/issues/747)
 
 * Fixed operations `data_frame_aggregate()` and  `data_frame_subset()` to let users select variables (columns) of selected data frame.
+* Fixed problem with coregistration on data subsets [#747](https://github.com/CCI-Tools/cate/issues/747)
 * Added information about resources of type `DataFrame` (CSV, Excel) in the details section of the **WORSPACE** panel.
+* Updated default colour mappings and default variables for more **Sea Level CCI** products
 * Updated default colour mappings and default variables for more Sea Level CCI products
 
 ## Version 2.0.0.dev18
