@@ -248,6 +248,10 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
                     geom_point = geometry.representative_point()
                 except AttributeError as e:
                     raise ValidationError('Invalid geometry column.') from e
+                # Features that span the poles will cause shapely.representative_point() to crash.
+                # The quick and dirty solution was to catch the exception and ignore it
+                except ValueError:
+                    pass
                 dist = great_circle_distance(location_point, geom_point)
                 if dist <= max_dist:
                     indexes.append((i, dist))
