@@ -4,12 +4,13 @@ import numpy as np
 
 import cate.ops.resampling as rs
 
-NAN = np.nan
-
 # Note: to run the tests in this file, you'll have to set an environment variable:
 #
 #   NUMBA_DISABLE_JIT=1
 #
+
+
+NAN = np.nan
 
 
 class Downsample2dTest(unittest.TestCase):
@@ -23,7 +24,7 @@ class Downsample2dTest(unittest.TestCase):
                                   method=method,
                                   fill_value=fill_value,
                                   mode_rank=kwargs.get('mode_rank', 1))
-        np.testing.assert_almost_equal(actual=desired, desired=actual)
+        np.testing.assert_almost_equal(actual=actual, desired=desired)
 
         if isinstance(src, np.ma.MaskedArray):
             self.assertEqual(type(desired), np.ma.MaskedArray)
