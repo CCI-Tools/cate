@@ -90,7 +90,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if ((len(array_x.dims) != len(array_y.dims)) and
+    if ((len(array_x.dims) != len(array_y.dims)) or
        (len(array_x.dims) != 1)):
         raise ValidationError('To calculate simple correlation, both provided'
                               ' datasets should be simple 1d timeseries. To'
