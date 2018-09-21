@@ -804,8 +804,6 @@ class GeoDataFrame:
         features = self._features
         if features is not None and self._lazy_data_frame is None:
             crs = features.crs if hasattr(features, 'crs') else None
-            # TODO: remove me!
-            print('Oooooooooooh: lazy_data_frame created with crs =', crs)
             self._lazy_data_frame = geopandas.GeoDataFrame.from_features(features, crs=crs)
         return self._lazy_data_frame
 
