@@ -1,5 +1,14 @@
-## Version 2.0.0.dev18 (in development)
+## Version 2.0.0.dev19 (in development)
 
+* Fixed error in `plot_xxx()` operations `"'NoneType' object is not iterable"` [#749](https://github.com/CCI-Tools/cate/issues/749)
+* Fixed problem with `coregister()` operation on data subsets [#747](https://github.com/CCI-Tools/cate/issues/747)
+* Fixed operations `data_frame_aggregate()` and  `data_frame_subset()` to let users select variables (columns) of selected data frame.
+* Added information about resources of type `DataFrame` and `GeoDataFrame` in the details section of the **WORSPACE** panel.
+* Updated default colour mappings and default variables for more **Sea Level CCI** products
+
+## Version 2.0.0.dev18
+
+* Added new operation `data_frame_aggregate()` [#707](https://github.com/CCI-Tools/cate/issues/707)
 * Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
   Unfortunately, this feature did not find its way into 2.0.0.dev17, instead only its related bug [#743](https://github.com/CCI-Tools/cate/issues/743).
 * Fixed "KeyError: 0" for one one-record data frames [#743](https://github.com/CCI-Tools/cate/issues/743)
@@ -7,7 +16,6 @@
 
 ## Version 2.0.0.dev17
 
-* Values of scalar variables are now always shown in **VARIABLES** panel in Cate Desktop [#702](https://github.com/CCI-Tools/cate/issues/702)
 * Added information about resources of type `GeoDataFrame` (Shapefiles, GeoJSON) in the details section of the **WORSPACE** panel in Cate Desktop [#705](https://github.com/CCI-Tools/cate/issues/705)
 * Added new operation `merge()` [#740](https://github.com/CCI-Tools/cate/issues/740)
 * Added new operation `data_frame_subset()` [#708](https://github.com/CCI-Tools/cate/issues/708)
