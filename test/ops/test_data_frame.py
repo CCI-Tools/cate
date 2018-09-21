@@ -15,8 +15,8 @@ from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query
 test_point = 'POINT (597842.4375881671 5519903.13366397)'
 
 test_poly_4326 = 'POLYGON ((-80 -40, -70 -40, ' \
-                                  '-70 -45, -80 -45, ' \
-                                  '-80 -40))'
+                 '-70 -45, -80 -45, ' \
+                 '-80 -40))'
 
 
 class TestDataFrameOps(TestCase):

@@ -27,7 +27,8 @@ class WorkspaceTest(unittest.TestCase):
         self.assertEquals(mk_op_arg('@b'), {'source': 'b'})
 
         self.assertEquals(mk_op_args(), [])
-        self.assertEquals(mk_op_args(1, '2', 'a', '@b'), [{'value': 1}, {'value': '2'}, {'value': 'a'}, {'source': 'b'}])
+        self.assertEquals(mk_op_args(1, '2', 'a', '@b'),
+                          [{'value': 1}, {'value': '2'}, {'value': 'a'}, {'source': 'b'}])
 
         self.assertEquals(mk_op_kwargs(a=1), OrderedDict([('a', {'value': 1})]))
         self.assertEquals(mk_op_kwargs(a=1, b='@c'), OrderedDict([('a', {'value': 1}), ('b', {'source': 'c'})]))
@@ -313,9 +314,9 @@ class WorkspaceTest(unittest.TestCase):
                              res_scalar_gdf_vars[2].get('name'): res_scalar_gdf_vars[2].get('value'),
                              res_scalar_gdf_vars[3].get('name'): res_scalar_gdf_vars[3].get('value')}
             self.assertEquals(scalar_values, {'name': (1000 * 'A') + '...',
-                                             'lat': 45,
-                                             'lon': -120,
-                                             'geometry': 'POINT (-120 45)'})
+                                              'lat': 45,
+                                              'lon': -120,
+                                              'geometry': 'POINT (-120 45)'})
 
             res_empty_ds = l_res[6]
             res_empty_ds_vars = res_empty_ds.get('variables')
@@ -576,9 +577,9 @@ class WorkspaceTest(unittest.TestCase):
                             mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
                             validate_args=True)
         self.assertEquals(str(e.exception),
-                         "Input 'point' for operation 'cate.ops.timeseries.tseries_point': "
-                         "Value cannot be converted into a 'PointLike': "
-                         "Invalid geometry WKT format.")
+                          "Input 'point' for operation 'cate.ops.timeseries.tseries_point': "
+                          "Value cannot be converted into a 'PointLike': "
+                          "Invalid geometry WKT format.")
 
         ws2 = Workspace.from_json_dict(ws.to_json_dict())
         self.assertEquals(ws2.base_dir, ws.base_dir)
