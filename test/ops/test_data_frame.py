@@ -12,6 +12,12 @@ from cate.core.types import GeoDataFrameProxy
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
     great_circle_distance, data_frame_aggregate, data_frame_subset
 
+test_point = 'POINT (597842.4375881671 5519903.13366397)'
+
+test_poly_4326 = 'POLYGON ((-80 -40, -70 -40, ' \
+                 '-70 -45, -80 -45, ' \
+                 '-80 -40))'
+
 
 class TestDataFrameOps(TestCase):
     df = pd.DataFrame({'A': [1, 2, 3, 4, 5, 6],
@@ -31,6 +37,12 @@ class TestDataFrameOps(TestCase):
                                 shapely.wkt.loads('POINT(20 20)'),
                                 shapely.wkt.loads('POINT(20 10)'),
                             ])})
+
+    gdf_32718 = gpd.GeoDataFrame({'A': [1]},
+                                 crs={'init': 'epsg:32718'},
+                                 geometry=[shapely.wkt.loads(test_point)])
+
+    test_region_4326 = shapely.wkt.loads(test_poly_4326)
 
     gdfp = GeoDataFrameProxy.from_features(gdf.__geo_interface__['features'])
 
@@ -124,6 +136,10 @@ class TestDataFrameOps(TestCase):
         self.assertEqual(df2.iloc[0, 2], False)
         self.assertEqual(df2.iloc[0, 3], 0.3)
 
+        df2 = data_frame_query(TestDataFrameOps.gdf_32718, "@within('" + test_poly_4326 + "')")
+        self.assertIsInstance(df2, gpd.GeoDataFrame)
+        self.assertEqual(len(df2), 1)
+
     def test_data_frame_subset(self):
         df2 = data_frame_subset(TestDataFrameOps.gdf,
                                 region='POLYGON((-10 0, 25 0, 25 30, -10 0))')
@@ -151,6 +167,11 @@ class TestDataFrameOps(TestCase):
                                 region='POLYGON((30 30, 40 30, 40 40, 30 30))')
         self.assertIsInstance(df2, gpd.GeoDataFrame)
         self.assertEqual(len(df2), 0)
+
+        df2 = data_frame_subset(TestDataFrameOps.gdf_32718,
+                                var_names='A',
+                                region=TestDataFrameOps.test_region_4326)
+        self.assertEqual(len(df2), 1)
 
     def test_data_frame_find_closest(self):
         df2 = data_frame_find_closest(TestDataFrameOps.gdf, 'POINT(20 30)',
