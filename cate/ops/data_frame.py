@@ -423,7 +423,7 @@ def _transform_coordinates(geom, crs: dict):
     if crs and 'init' not in crs:
         raise ValidationError('No crs in GeoDataFrame' + str(crs))
 
-    if crs and crs['init'] != 'epsg:4326':
+    if crs and 'init' in crs and str(crs['init']).lower() != 'epsg:4326':
         project = partial(
             pyproj.transform,
             pyproj.Proj(init='epsg:4326'),  # source coordinate system
