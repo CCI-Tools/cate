@@ -12,12 +12,11 @@ from cate.core.types import GeoDataFrameProxy
 from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query, data_frame_find_closest, \
     great_circle_distance, data_frame_aggregate, data_frame_subset
 
-
 test_point = 'POINT (597842.4375881671 5519903.13366397)'
 
-test_poly_4326 = 'POLYGON ((-73.84589555602851 -40.465788662570965, -70.18097099893589 -40.465788662570965, ' \
-                 '-70.18097099893589 -44.698134970484574, -73.84589555602851 -44.698134970484574, ' \
-                 '-73.84589555602851 -40.465788662570965))'
+test_poly_4326 = 'POLYGON ((-80 -40, -70 -40, ' \
+                                  '-70 -45, -80 -45, ' \
+                                  '-80 -40))'
 
 
 class TestDataFrameOps(TestCase):
