@@ -32,8 +32,8 @@ from io import StringIO
 from typing import Union, Tuple, Sequence, Optional, Iterable, Any
 import numpy as np
 
-from cate.util.sround import sround
-from cate.util.undefined import UNDEFINED
+from .sround import sround
+from .undefined import UNDEFINED
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -428,6 +428,9 @@ def new_indexed_name(names: Iterable[str], pattern: str) -> str:
         new_index += 1
 
 
+NoneType = type(None)
+
+
 def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
     """
     Convert the given *value* into a JSON-serializable, scalar value.
@@ -482,7 +485,7 @@ def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
             return value[0: nchars] + '...'
         return value
 
-    if isinstance(value, (int, bool)):
+    if isinstance(value, (int, bool, NoneType)):
         return value
 
     return UNDEFINED
