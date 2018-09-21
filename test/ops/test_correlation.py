@@ -68,6 +68,37 @@ class TestPearsonScalar(TestCase):
             pearson_correlation_scalar(ds1, ds2, 'first', 'first')
         self.assertIn('dimension should not be less', str(err.exception))
 
+    def test_3D(self):
+        """
+        Test nominal run
+        """
+        # Test general functionality 3D dataset variables
+        ds1 = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]),
+                                                        np.ones([4, 8]) * 2,
+                                                        np.ones([4, 8]) * 3])),
+            'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]) * 2,
+                                                         np.ones([4, 8]) * 3,
+                                                         np.ones([4, 8])])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        ds2 = xr.Dataset({
+            'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]),
+                                                         np.ones([4, 8]) * 2,
+                                                         np.ones([4, 8]) * 3])),
+            'first': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]) * 2,
+                                                        np.ones([4, 8]) * 3,
+                                                        np.ones([4, 8])])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_scalar(ds1, ds2, 'first', 'first')
+        self.assertIn('should be simple 1d', str(err.exception))
+
 
 class TestPearson(TestCase):
     def test_nominal(self):
