@@ -29,8 +29,11 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple, Sequence, Optional, Iterable
+from typing import Union, Tuple, Sequence, Optional, Iterable, Any
 import numpy as np
+
+from .sround import sround
+from .undefined import UNDEFINED
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
@@ -423,3 +426,75 @@ def new_indexed_name(names: Iterable[str], pattern: str) -> str:
         if new_name not in names:
             return new_name
         new_index += 1
+
+
+NoneType = type(None)
+
+
+# noinspection PyBroadException
+def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
+    """
+    Convert the given *value* into a JSON-serializable, scalar value.
+    If the conversion fails, UNDEFINED is returned.
+
+    :param value: Any value.
+    :param nchars: If not None and greater zero, text values will be limited to *nchars* characters.
+    :param ndigits: If not None, floating point values will be rounded to *ndigits* significant digits.
+    :param stringify: If True, non-primitive values will be converted to strings.
+    :return: A JSON-serializable, scalar value or UNDEFINED, if the conversion fails.
+    """
+    is_float = False
+    is_str = False
+    if isinstance(value, (int, bool, NoneType)):
+        return value
+    elif isinstance(value, float):
+        is_float = True
+    elif isinstance(value, str):
+        is_str = True
+    elif hasattr(value, 'shape') and hasattr(value, 'dtype'):
+        try:
+            shape = value.shape
+            dtype = value.dtype
+            ndim = len(shape)
+            size = 1
+            for dim in shape:
+                size *= dim
+            if size > 1:
+                return UNDEFINED
+            if ndim >= 1:
+                index = 0 if ndim == 1 else (0,) * ndim
+                try:
+                    value = value[index]
+                except BaseException:
+                    pass
+            if np.issubdtype(dtype, np.integer):
+                return int(value)
+            elif np.issubdtype(dtype, np.bool_):
+                return bool(value)
+            elif np.issubdtype(dtype, np.floating):
+                value = float(value)
+                is_float = True
+            elif np.issubdtype(dtype, np.str_) or stringify:
+                value = str(value)
+                is_str = True
+            else:
+                return UNDEFINED
+        except BaseException:
+            return UNDEFINED
+    elif stringify:
+        value = str(value)
+        is_str = True
+    else:
+        return UNDEFINED
+
+    if is_float:
+        if ndigits is not None:
+            return sround(value, ndigits=ndigits)
+        return value
+
+    if is_str:
+        if nchars is not None and len(value) > nchars:
+            return value[0: nchars] + '...'
+        return value
+
+    return UNDEFINED

@@ -33,10 +33,13 @@ from typing import Dict
 import xarray as xr
 
 from cate.core.op import op, op_input, op_return
-from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, _get_geo_spatial_cf_attrs_from_var
+from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, \
+    _get_geo_spatial_cf_attrs_from_var
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
+from cate.util.misc import to_scalar
 from cate.util.monitor import Monitor
+from cate.util.undefined import UNDEFINED
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -144,7 +147,9 @@ def extract_point(ds: DatasetLike.TYPE,
                 if not variable_values:
                     variable_values['lat'] = float(point_data.lat)
                     variable_values['lon'] = float(point_data.lon)
-                variable_values[var_name] = float(point_data.values)
+                value = to_scalar(point_data.values, ndigits=3)
+                if value is not UNDEFINED:
+                    variable_values[var_name] = value
     return variable_values
 
 

@@ -95,6 +95,7 @@ class ConfTest(unittest.TestCase):
 
     def test_read_config_files(self):
         test_dir = os.path.join(tempfile.gettempdir(), "cate_test_read_config_files")
+        shutil.rmtree(test_dir, ignore_errors=True)
         os.mkdir(test_dir)
 
         cate_dir = os.path.join(test_dir, ".cate")
