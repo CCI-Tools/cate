@@ -31,7 +31,6 @@ from threading import RLock
 from typing import List, Any, Dict, Optional
 
 import fiona
-import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -385,7 +384,7 @@ class Workspace:
             feature = list(features)[0]
             if feature.properties:
                 for var_name, var_value in feature.properties.items():
-                    scalar_value = to_scalar(var_value, nchars=1000, ndigits=3)
+                    scalar_value = _to_json_scalar_value(var_value)
                     if scalar_value is not UNDEFINED:
                         variable_descriptors[0]['value'] = scalar_value
 
@@ -419,7 +418,7 @@ class Workspace:
             'shape': variable.shape,
             'isFeatureAttribute': True,
         }
-        scalar_value = to_scalar(variable, nchars=1000, ndigits=3)
+        scalar_value = _to_json_scalar_value(variable)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
         return variable_info
@@ -450,7 +449,7 @@ class Workspace:
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
-        scalar_value = to_scalar(variable, nchars=1000, ndigits=3)
+        scalar_value = _to_json_scalar_value(variable)
         if scalar_value is not UNDEFINED:
             variable_info['value'] = scalar_value
 
@@ -680,3 +679,7 @@ class Workspace:
                 "Resource name '%s' is not valid. "
                 "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
                 "except for the first character, the digits 0 through 9." % res_name)
+
+
+def _to_json_scalar_value(value, nchars=1000):
+    return to_scalar(value, ndigits=3, nchars=nchars, stringify=True)

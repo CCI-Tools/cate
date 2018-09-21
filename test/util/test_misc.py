@@ -250,46 +250,78 @@ class ToScalarTest(TestCase):
 
     def test_list(self):
         self.assertIs(to_scalar([]), UNDEFINED)
-        self.assertEquals(to_scalar([1]), 1)
+        self.assertEquals(to_scalar([1]), UNDEFINED)
         self.assertIs(to_scalar([1, 2, 3]), UNDEFINED)
-        self.assertEquals(to_scalar([-1.2345], ndigits=2), -1.23)
-        self.assertEquals(to_scalar(["Oh!"]), "Oh!")
-        self.assertEquals(to_scalar(["Oh!Oh!"], nchars=2), "Oh...")
+        self.assertEquals(to_scalar(["Oh!"]), UNDEFINED)
+        self.assertEquals(to_scalar([1, 2, 3], stringify=True), '[1, 2, 3]')
 
     def test_dict(self):
         self.assertIs(to_scalar({}), UNDEFINED)
         self.assertIs(to_scalar({'a': 1}), UNDEFINED)
         self.assertIs(to_scalar({'a': 1, 'b': 2}), UNDEFINED)
+        self.assertEquals(to_scalar({'a': 1, 'b': 2}, stringify=True), "{'a': 1, 'b': 2}")
 
     def test_ndarrays(self):
         self.assertIs(to_scalar(np.array([])), UNDEFINED)
+        self.assertEquals(to_scalar(np.array(234)), 234)
         self.assertEquals(to_scalar(np.array([234])), 234)
         self.assertEquals(to_scalar(np.array([[234]])), 234)
         self.assertIs(to_scalar(np.array([234, 567])), UNDEFINED)
         self.assertIs(to_scalar(np.array([[234], [567]])), UNDEFINED)
         self.assertEquals(to_scalar(np.array([234.567])), 234.567)
+        self.assertEquals(to_scalar(np.array(234.567)), 234.567)
         self.assertEquals(to_scalar(np.array([[234.567]])), 234.567)
         self.assertEquals(to_scalar(np.array([234.567, 567.234])), UNDEFINED)
         self.assertEquals(to_scalar(np.array([234.567]), ndigits=2), 234.57)
-        self.assertEquals(to_scalar(np.array([None])), None)
+        self.assertEquals(to_scalar(np.array(True)), True)
         self.assertEquals(to_scalar(np.array([True])), True)
         self.assertIs(to_scalar(np.array([True, False])), UNDEFINED)
         self.assertIs(to_scalar(np.array([[True], [False]])), UNDEFINED)
+        self.assertIs(to_scalar(np.array([None])), UNDEFINED)
 
     def test_xarrays(self):
         try:
             import xarray as xr
             self.assertIs(to_scalar(xr.DataArray(np.array([]))), UNDEFINED)
+            self.assertEquals(to_scalar(xr.DataArray(np.array(234))), 234)
+            self.assertEquals(to_scalar(xr.DataArray(np.array(234))), 234)
             self.assertEquals(to_scalar(xr.DataArray(np.array([234]))), 234)
             self.assertEquals(to_scalar(xr.DataArray(np.array([[234]]))), 234)
             self.assertIs(to_scalar(xr.DataArray(np.array([234, 567]))), UNDEFINED)
             self.assertIs(to_scalar(xr.DataArray(np.array([[234], [567]]))), UNDEFINED)
+            self.assertEquals(to_scalar(xr.DataArray(np.array(234.567))), 234.567)
             self.assertEquals(to_scalar(xr.DataArray(np.array([234.567]))), 234.567)
             self.assertEquals(to_scalar(xr.DataArray(np.array([[234.567]]))), 234.567)
             self.assertEquals(to_scalar(xr.DataArray(np.array([234.567, 567.234]))), UNDEFINED)
             self.assertEquals(to_scalar(xr.DataArray(np.array([234.567])), ndigits=2), 234.57)
+            self.assertEquals(to_scalar(xr.DataArray(np.array(True))), True)
             self.assertEquals(to_scalar(xr.DataArray(np.array([True]))), True)
             self.assertIs(to_scalar(xr.DataArray(np.array([True, False]))), UNDEFINED)
             self.assertIs(to_scalar(xr.DataArray(np.array([[True], [False]]))), UNDEFINED)
+        except ImportError:
+            pass
+
+    def test_pandas(self):
+        try:
+            import pandas as pd
+            self.assertIs(to_scalar(pd.Series(np.array([]))), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series(np.array([234]))), 234)
+            self.assertIs(to_scalar(pd.Series(np.array([234, 567]))), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series(np.array([234.567]))), 234.567)
+            self.assertEquals(to_scalar(pd.Series(np.array([234.567, 567.234]))), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series(np.array([234.567])), ndigits=2), 234.57)
+            self.assertEquals(to_scalar(pd.Series(np.array([True]))), True)
+            self.assertIs(to_scalar(pd.Series(np.array([True, False]))), UNDEFINED)
+
+            self.assertIs(to_scalar(pd.Series([])), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series(234)), 234)
+            self.assertEquals(to_scalar(pd.Series([234])), 234)
+            self.assertIs(to_scalar(pd.Series([234, 567])), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series(234.567)), 234.567)
+            self.assertEquals(to_scalar(pd.Series([234.567])), 234.567)
+            self.assertEquals(to_scalar(pd.Series([234.567, 567.234])), UNDEFINED)
+            self.assertEquals(to_scalar(pd.Series([234.567]), ndigits=2), 234.57)
+            self.assertEquals(to_scalar(pd.Series([True])), True)
+            self.assertIs(to_scalar(pd.Series([True, False])), UNDEFINED)
         except ImportError:
             pass

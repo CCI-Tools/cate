@@ -431,7 +431,8 @@ def new_indexed_name(names: Iterable[str], pattern: str) -> str:
 NoneType = type(None)
 
 
-def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
+# noinspection PyBroadException
+def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
     """
     Convert the given *value* into a JSON-serializable, scalar value.
     If the conversion fails, UNDEFINED is returned.
@@ -439,54 +440,52 @@ def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
     :param value: Any value.
     :param nchars: If not None and greater zero, text values will be limited to *nchars* characters.
     :param ndigits: If not None, floating point values will be rounded to *ndigits* significant digits.
+    :param stringify: If True, non-primitive values will be converted to strings.
     :return: A JSON-serializable, scalar value or UNDEFINED, if the conversion fails.
     """
-
-    if isinstance(value, (int, bool, NoneType)):
-        return value
-
     is_float = False
     is_str = False
-
-    if isinstance(value, float):
+    if isinstance(value, (int, bool, NoneType)):
+        return value
+    elif isinstance(value, float):
         is_float = True
     elif isinstance(value, str):
         is_str = True
-    else:
-        # Try ndarray conversion to scalar.
-        # noinspection PyBroadException
+    elif hasattr(value, 'shape') and hasattr(value, 'dtype'):
         try:
-            # noinspection PyUnresolvedReferences
+            shape = value.shape
             dtype = value.dtype
+            ndim = len(shape)
+            size = 1
+            for dim in shape:
+                size *= dim
+            if size > 1:
+                return UNDEFINED
+            if ndim >= 1:
+                index = 0 if ndim == 1 else (0,) * ndim
+                try:
+                    value = value[index]
+                except BaseException:
+                    pass
             if np.issubdtype(dtype, np.integer):
                 return int(value)
-            if np.issubdtype(dtype, np.bool_):
+            elif np.issubdtype(dtype, np.bool_):
                 return bool(value)
-            if np.issubdtype(dtype, np.floating):
+            elif np.issubdtype(dtype, np.floating):
                 value = float(value)
                 is_float = True
-        except Exception:
-            pass
-
-        if not is_float:
-            # ndarray conversion not successful. Try first element of an indexed sequence.
-            # noinspection PyBroadException
-            try:
-                if len(value) == 1:
-                    value = value[0]
-            except Exception:
-                # Neither a scalar ndarray nor an indexed sequence scalar. Give up.
-                return UNDEFINED
-
-            # First element of an indexed sequence.
-            if isinstance(value, (int, bool, NoneType)):
-                return value
-            if isinstance(value, float):
-                is_float = True
-            elif isinstance(value, str):
+            elif np.issubdtype(dtype, np.str_) or stringify:
+                value = str(value)
                 is_str = True
             else:
                 return UNDEFINED
+        except BaseException:
+            return UNDEFINED
+    elif stringify:
+        value = str(value)
+        is_str = True
+    else:
+        return UNDEFINED
 
     if is_float:
         if ndigits is not None:
