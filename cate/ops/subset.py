@@ -133,7 +133,7 @@ def extract_point(ds: DatasetLike.TYPE,
                 if dim_name in variable.dims:
                     effective_indexers[dim_name] = dim_value
                     used_dims.add(dim_name)
-            if set(variable.dims) == set(used_dims):
+            if set(variable.dims) == used_dims:
                 try:
                     lon_lat_data = variable.sel(**effective_indexers)
                 except KeyError:
