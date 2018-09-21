@@ -87,7 +87,7 @@ def data_frame_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 @op(tags=['filter'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('query_expr')
-def data_frame_query(df: pd.DataFrame, query_expr: str) -> pd.DataFrame:
+def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     """
     Select records from the given data frame where the given conditional query expression evaluates to "True".
 
