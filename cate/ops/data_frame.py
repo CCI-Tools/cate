@@ -32,11 +32,14 @@ Functions
 
 import math
 
+import pyproj
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
 from shapely.geometry import MultiPolygon
+from shapely.ops import transform
+from functools import partial
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
@@ -84,7 +87,7 @@ def data_frame_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 @op(tags=['filter'], version='1.0')
 @op_input('df', data_type=DataFrameLike)
 @op_input('query_expr')
-def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
+def data_frame_query(df: pd.DataFrame, query_expr: str) -> pd.DataFrame:
     """
     Select records from the given data frame where the given conditional query expression evaluates to "True".
 
@@ -113,27 +116,32 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     data_frame = DataFrameLike.convert(df)
 
     local_dict = dict(from_wkt=GeometryLike.convert)
-    if hasattr(data_frame, 'geometry') and isinstance(data_frame.geometry, gpd.GeoSeries):
+    if hasattr(data_frame, 'geometry') \
+            and isinstance(data_frame.geometry, gpd.GeoSeries) \
+            and hasattr(data_frame, 'crs'):
+
+        crs = data_frame.crs
+
         def _almost_equals(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, crs)
 
         def _contains(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.contains, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.contains, geometry, crs)
 
         def _crosses(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry, crs)
 
         def _disjoint(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry, crs)
 
         def _intersects(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry, crs)
 
         def _touches(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.touches, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.touches, geometry, crs)
 
         def _within(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.within, geometry)
+            return _data_frame_geometry_op(data_frame.geometry.within, geometry, crs)
 
         local_dict['almost_equals'] = _almost_equals
         local_dict['contains'] = _contains
@@ -143,12 +151,12 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
         local_dict['touches'] = _touches
         local_dict['within'] = _within
 
-    data_frame_subset = data_frame.query(query_expr,
-                                         truediv=True,
-                                         local_dict=local_dict,
-                                         global_dict={})
+    data_frame_subs = data_frame.query(query_expr,
+                                       truediv=True,
+                                       local_dict=local_dict,
+                                       global_dict={})
 
-    return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subset)
+    return _maybe_convert_to_geo_data_frame(data_frame, data_frame_subs)
 
 
 REGION_MODES = [
@@ -180,8 +188,11 @@ def data_frame_subset(gdf: gpd.GeoDataFrame,
     :param geom_op: The geometric operation to be performed if *region* is given.
     :return: A GeoDataFrame subset.
     """
-    var_names = VarNamesLike.convert(var_names)
+
     region = PolygonLike.convert(region)
+
+    var_names = VarNamesLike.convert(var_names)
+
     if not var_names and not region:
         return gdf
 
@@ -227,6 +238,8 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     """
     location = GeometryLike.convert(location)
     location_point = location.representative_point()
+
+    location_point = _transform_coordinates(location_point, gdf.crs)
 
     try:
         geometries = gdf.geometry
@@ -402,8 +415,28 @@ def great_circle_distance(p1: shapely.geometry.Point, p2: shapely.geometry.Point
     return math.atan2(y, x) / _DEG2RAD
 
 
-def _data_frame_geometry_op(instance_method, geometry: GeometryLike):
+# Transforms a geometry that is used in an operator for e.g. feature selection purposes. It assures
+# that both use an identical 'crs' (projection)
+def _transform_coordinates(geom, crs: dict):
+    if crs and 'init' not in crs:
+        raise ValidationError('No crs in GeoDataFrame' + str(crs))
+
+    if crs and crs['init'] != 'epsg:4326':
+        project = partial(
+            pyproj.transform,
+            pyproj.Proj(init='epsg:4326'),  # source coordinate system
+            pyproj.Proj(init=crs['init'])  # destination coordinate system
+        )
+
+        return transform(project, geom)
+    else:
+        return geom
+
+
+def _data_frame_geometry_op(instance_method, geometry: GeometryLike, crs: dict):
     geometry = GeometryLike.convert(geometry)
+    geometry = _transform_coordinates(geometry, crs)
+
     return instance_method(geometry)
 
 
