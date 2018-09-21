@@ -442,50 +442,60 @@ def to_scalar(value: Any, nchars=None, ndigits=None) -> Any:
     :return: A JSON-serializable, scalar value or UNDEFINED, if the conversion fails.
     """
 
-    if hasattr(value, 'shape') and hasattr(value, 'dtype'):
-        shape = value.shape
-        dtype = value.dtype
-        try:
-            ndim = len(shape)
-        except TypeError:
-            return UNDEFINED
-        if ndim > 0:
-            for dim_size in shape:
-                if dim_size != 1:
-                    return UNDEFINED
-            if ndim == 1:
-                index = 0
-            else:
-                index = (0,) * ndim
-            try:
-                value = value.values
-            except AttributeError:
-                pass
-            try:
-                value = value[index]
-            except (IndexError, KeyError):
-                pass
-        try:
-            if np.issubdtype(dtype, np.integer):
-                value = int(value)
-            elif np.issubdtype(dtype, np.floating):
-                value = float(value)
-            else:
-                value = str(value)
-        except (TypeError, ValueError):
-            return UNDEFINED
+    if isinstance(value, (int, bool, NoneType)):
+        return value
+
+    is_float = False
+    is_str = False
 
     if isinstance(value, float):
+        is_float = True
+    elif isinstance(value, str):
+        is_str = True
+    else:
+        # Try ndarray conversion to scalar.
+        # noinspection PyBroadException
+        try:
+            # noinspection PyUnresolvedReferences
+            dtype = value.dtype
+            if np.issubdtype(dtype, np.integer):
+                return int(value)
+            if np.issubdtype(dtype, np.bool_):
+                return bool(value)
+            if np.issubdtype(dtype, np.floating):
+                value = float(value)
+                is_float = True
+        except Exception:
+            pass
+
+        if not is_float:
+            # ndarray conversion not successful. Try first element of an indexed sequence.
+            # noinspection PyBroadException
+            try:
+                if len(value) == 1:
+                    value = value[0]
+            except Exception:
+                # Neither a scalar ndarray nor an indexed sequence scalar. Give up.
+                return UNDEFINED
+
+            # First element of an indexed sequence.
+            if isinstance(value, (int, bool, NoneType)):
+                return value
+            if isinstance(value, float):
+                is_float = True
+            elif isinstance(value, str):
+                is_str = True
+            else:
+                return UNDEFINED
+
+    if is_float:
         if ndigits is not None:
             return sround(value, ndigits=ndigits)
         return value
 
-    if isinstance(value, str):
+    if is_str:
         if nchars is not None and len(value) > nchars:
             return value[0: nchars] + '...'
-        return value
-
-    if isinstance(value, (int, bool, NoneType)):
         return value
 
     return UNDEFINED
