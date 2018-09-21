@@ -161,7 +161,6 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     return _maybe_convert_to_geo_data_frame(data_frame, subset_data_frame)
 
 
-
 REGION_MODES = [
     'almost_equals',
     'contains',
