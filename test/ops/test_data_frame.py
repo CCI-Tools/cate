@@ -39,7 +39,7 @@ class TestDataFrameOps(TestCase):
                             ])})
 
     gdf_32718 = gpd.GeoDataFrame({'A': [1]},
-                                 crs={'init': 'EPSG:32718'},
+                                 crs={'init': 'epsg:32718'},
                                  geometry=[shapely.wkt.loads(test_point)])
 
     test_region_4326 = shapely.wkt.loads(test_poly_4326)

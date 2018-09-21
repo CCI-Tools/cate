@@ -121,7 +121,7 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
             and isinstance(data_frame.geometry, gpd.GeoSeries) \
             and hasattr(data_frame, 'crs'):
 
-        crs = data_frame.crs or "EPSG:4326"
+        crs = data_frame.crs or "epsg:4326"
 
         def _almost_equals(geometry: GeometryLike):
             return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, crs)
@@ -241,7 +241,7 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     location = GeometryLike.convert(location)
     location_point = location.representative_point()
 
-    location_point = _transform_coordinates(location_point, gdf.crs or 'EPSG:4326')
+    location_point = _transform_coordinates(location_point, gdf.crs or 'epsg:4326')
 
     try:
         geometries = gdf.geometry
@@ -423,10 +423,10 @@ def _transform_coordinates(geom, crs: dict):
     if crs and 'init' not in crs:
         raise ValidationError('No crs in GeoDataFrame' + str(crs))
 
-    if crs and crs['init'] != 'EPSG:4326':
+    if crs and crs['init'] != 'epsg:4326':
         project = partial(
             pyproj.transform,
-            pyproj.Proj(init='EPSG:4326'),  # source coordinate system
+            pyproj.Proj(init='epsg:4326'),  # source coordinate system
             pyproj.Proj(init=crs['init'])  # destination coordinate system
         )
 
