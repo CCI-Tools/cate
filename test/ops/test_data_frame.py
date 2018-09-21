@@ -13,9 +13,7 @@ from cate.ops.data_frame import data_frame_min, data_frame_max, data_frame_query
     great_circle_distance, data_frame_aggregate, data_frame_subset
 
 
-test_poly = 'POLYGON ((597842.4375881671 5519903.13366397, 908618.8370399978 5509376.063665077, ' \
-            '881807.260148264 5039274.915293195, 591437.5086890376 5049934.302614883, ' \
-            '597842.4375881671 5519903.13366397))'
+test_point = 'POINT (597842.4375881671 5519903.13366397)'
 
 test_poly_4326 = 'POLYGON ((-73.84589555602851 -40.465788662570965, -70.18097099893589 -40.465788662570965, ' \
                  '-70.18097099893589 -44.698134970484574, -73.84589555602851 -44.698134970484574, ' \
@@ -41,10 +39,9 @@ class TestDataFrameOps(TestCase):
                                 shapely.wkt.loads('POINT(20 10)'),
                             ])})
 
-
     gdf_32718 = gpd.GeoDataFrame({'A': [1]},
                                  crs={'init': 'epsg:32718'},
-                                 geometry=[shapely.wkt.loads(test_poly)])
+                                 geometry=[shapely.wkt.loads(test_point)])
 
     test_region_4326 = shapely.wkt.loads(test_poly_4326)
 
