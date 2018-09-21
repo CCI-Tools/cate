@@ -121,7 +121,7 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
             and isinstance(data_frame.geometry, gpd.GeoSeries) \
             and hasattr(data_frame, 'crs'):
 
-        crs = data_frame.crs or "epsg:4326"
+        crs = data_frame.crs or {'init': "epsg:4326"}
 
         def _almost_equals(geometry: GeometryLike):
             return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, crs)
@@ -241,7 +241,9 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     location = GeometryLike.convert(location)
     location_point = location.representative_point()
 
-    location_point = _transform_coordinates(location_point, gdf.crs or 'epsg:4326')
+    crs = gdf.crs or {'init': "epsg:4326"}
+
+    location_point = _transform_coordinates(location_point, crs)
 
     try:
         geometries = gdf.geometry
