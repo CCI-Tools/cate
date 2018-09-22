@@ -30,22 +30,25 @@ Functions
 =========
 """
 
+import functools
 import math
+import warnings
+from typing import Any, Dict, Callable, Optional, Tuple
 
 import pyproj
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import shapely.geometry
-from shapely.geometry import MultiPolygon
-from shapely.ops import transform
-from functools import partial
+import shapely.ops
 
 from cate.core.op import op, op_input
 from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
 from cate.util.monitor import Monitor
 
 _DEG2RAD = math.pi / 180.
+
+ReprojectionFunc = Callable[[float, float], Tuple[float, float]]
 
 
 @op(tags=['filter'], version='1.0')
@@ -117,32 +120,35 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     data_frame = DataFrameLike.convert(df)
 
     local_dict = dict(from_wkt=GeometryLike.convert)
-    if hasattr(data_frame, 'geometry') \
-            and isinstance(data_frame.geometry, gpd.GeoSeries) \
-            and hasattr(data_frame, 'crs'):
+    if hasattr(data_frame, 'geometry') and isinstance(data_frame.geometry, gpd.GeoSeries):
 
-        crs = data_frame.crs or {'init': "epsg:4326"}
+        source_crs = dict(init='epsg:4326')
+        try:
+            target_crs = data_frame.crs or source_crs
+        except AttributeError:
+            target_crs = source_crs
+        reprojection_func = _get_reprojection_func(source_crs, target_crs)
 
         def _almost_equals(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, reprojection_func)
 
         def _contains(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.contains, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.contains, geometry, reprojection_func)
 
         def _crosses(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry, reprojection_func)
 
         def _disjoint(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry, reprojection_func)
 
         def _intersects(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry, reprojection_func)
 
         def _touches(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.touches, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.touches, geometry, reprojection_func)
 
         def _within(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.within, geometry, crs)
+            return _data_frame_geometry_op(data_frame.geometry.within, geometry, reprojection_func)
 
         local_dict['almost_equals'] = _almost_equals
         local_dict['contains'] = _contains
@@ -234,21 +240,25 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     :param gdf: The GeoDataFrame.
     :param location: A location given as arbitrary geometry.
     :param max_results: Maximum number of results.
-    :param max_dist: Ignore records whose distance is greater than this value.
+    :param max_dist: Ignore records whose distance is greater than this value in degrees.
     :param dist_col_name: Optional name of a new column that will store the actual distances.
+    :param monitor: A progress monitor.
     :return: A new GeoDataFrame containing the closest records.
     """
     location = GeometryLike.convert(location)
     location_point = location.representative_point()
 
-    crs = gdf.crs or {'init': "epsg:4326"}
-
-    location_point = _transform_coordinates(location_point, crs)
+    target_crs = dict(init='epsg:4326')
+    try:
+        source_crs = gdf.crs or target_crs
+    except AttributeError:
+        source_crs = target_crs
+    reprojection_func = _get_reprojection_func(source_crs, target_crs)
 
     try:
         geometries = gdf.geometry
     except AttributeError as e:
-        raise ValidationError('Missing default geometry column.') from e
+        raise ValidationError('Missing default geometry column in data frame.') from e
 
     num_rows = len(geometries)
     indexes = list()
@@ -259,19 +269,23 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     num_work_rows = 1 + num_rows // total_work
     with monitor.starting('Finding closest records', total_work):
         for i in range(num_rows):
-            geometry = geometries[i]
+            geometry = geometries.iloc[i]
             if geometry is not None:
+                # noinspection PyBroadException
                 try:
-                    geom_point = geometry.representative_point()
-                except AttributeError as e:
-                    raise ValidationError('Invalid geometry column.') from e
-                # Features that span the poles will cause shapely.representative_point() to crash.
-                # The quick and dirty solution was to catch the exception and ignore it
-                except ValueError:
-                    pass
-                dist = great_circle_distance(location_point, geom_point)
-                if dist <= max_dist:
-                    indexes.append((i, dist))
+                    representative_point = geometry.representative_point()
+                except BaseException:
+                    # For some geometries shapely.representative_point() raises AttributeError or ValueError.
+                    # E.g. features that span the poles will raise ValueError.
+                    # The quick and dirty solution here is to catch such exceptions and ignore them.
+                    representative_point = None
+                if representative_point is not None:
+                    representative_point = _transform_coordinates(representative_point, reprojection_func)
+                    if representative_point is not None:
+                        # noinspection PyTypeChecker
+                        dist = great_circle_distance(location_point, representative_point)
+                        if dist <= max_dist:
+                            indexes.append((i, dist))
             if i % num_work_rows == 0:
                 monitor.progress(work=1)
 
@@ -281,7 +295,7 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
 
     new_gdf = gdf.iloc[list(indexes)]
     if not isinstance(new_gdf, gpd.GeoDataFrame):
-        new_gdf = gpd.GeoDataFrame(new_gdf)
+        new_gdf = gpd.GeoDataFrame(new_gdf, crs=source_crs)
 
     if dist_col_name:
         new_gdf[dist_col_name] = np.array(distances)
@@ -360,7 +374,7 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
         total_work = 100
         num_work_rows = 1 + len(df) // total_work
         with monitor.starting('Aggregating geometry: ', total_work):
-            multi_polygon = MultiPolygon()
+            multi_polygon = shapely.geometry.MultiPolygon()
             i = 0
             for rec in df.geometry:
                 if monitor.is_cancelled():
@@ -375,8 +389,7 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
                     monitor.progress(work=1)
                 i += 1
 
-        df_agg = gpd.GeoDataFrame(df_agg, geometry=[multi_polygon])
-        df_agg.crs = df.crs
+        df_agg = gpd.GeoDataFrame(df_agg, geometry=[multi_polygon], crs=df.crs)
 
     return df_agg
 
@@ -419,29 +432,45 @@ def great_circle_distance(p1: shapely.geometry.Point, p2: shapely.geometry.Point
     return math.atan2(y, x) / _DEG2RAD
 
 
+def _data_frame_geometry_op(instance_method,
+                            geometry: GeometryLike,
+                            reprojection_func: ReprojectionFunc) -> bool:
+    geometry = GeometryLike.convert(geometry)
+    if geometry is None:
+        return False
+    geometry = _transform_coordinates(geometry, reprojection_func)
+    if geometry is None:
+        return False
+    return instance_method(geometry)
+
+
 # Transforms a geometry that is used in an operator for e.g. feature selection purposes. It assures
 # that both use an identical 'crs' (projection)
-def _transform_coordinates(geom, crs: dict):
-    if crs and 'init' not in crs:
-        raise ValidationError('No crs in GeoDataFrame' + str(crs))
-
-    if crs and 'init' in crs and str(crs['init']).lower() != 'epsg:4326':
-        project = partial(
-            pyproj.transform,
-            pyproj.Proj(init='epsg:4326'),  # source coordinate system
-            pyproj.Proj(init=crs['init'])  # destination coordinate system
-        )
-
-        return transform(project, geom)
+def _transform_coordinates(geometry: shapely.geometry.base.BaseGeometry,
+                           reprojection_func: ReprojectionFunc):
+    if reprojection_func is not None:
+        # noinspection PyBroadException
+        try:
+            return shapely.ops.transform(reprojection_func, geometry)
+        except BaseException as e:
+            warnings.warn(f'coordinate transformation failed: {e}')
+            return None
     else:
-        return geom
+        return geometry
 
 
-def _data_frame_geometry_op(instance_method, geometry: GeometryLike, crs: dict):
-    geometry = GeometryLike.convert(geometry)
-    geometry = _transform_coordinates(geometry, crs)
-
-    return instance_method(geometry)
+# Transforms a geometry that is used in an operator for e.g. feature selection purposes. It assures
+# that both use an identical 'crs' (projection)
+def _get_reprojection_func(source_crs: Dict[str, Any], target_crs: Dict[str, Any]) -> Optional[ReprojectionFunc]:
+    if source_crs and target_crs and source_crs != target_crs:
+        # noinspection PyBroadException,PyTypeChecker
+        return functools.partial(
+            pyproj.transform,
+            pyproj.Proj(**source_crs),  # source coordinate system
+            pyproj.Proj(**target_crs)  # target coordinate system
+        )
+    else:
+        return None
 
 
 def _maybe_convert_to_geo_data_frame(data_frame: pd.DataFrame, data_frame_2: pd.DataFrame) -> pd.DataFrame:
