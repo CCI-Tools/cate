@@ -408,11 +408,14 @@ def write_csv(obj: DataFrameLike.TYPE,
         raise ValidationError('obj must be a pandas.DataFrame or a xarray.Dataset')
 
 
+# noinspection PyIncorrectDocstring,PyUnusedLocal
 @op(tags=['input'], res_pattern='gdf_{index}')
-@op_input('file', file_open_mode='r', file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
-                                                    dict(name='GeoJSON', extensions=['json', 'geojson']),
-                                                    _ALL_FILE_FILTER])
-@op_input('crs', nullable=True)
+@op_input('file',
+          file_open_mode='r',
+          file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
+                        dict(name='GeoJSON', extensions=['json', 'geojson']),
+                        _ALL_FILE_FILTER])
+@op_input('crs', nullable=True, deprecated="Not used at all.")
 @op_input('more_args', nullable=True, data_type=DictLike)
 def read_geo_data_frame(file: str, crs: str = None,
                         more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
@@ -420,14 +423,12 @@ def read_geo_data_frame(file: str, crs: str = None,
     Reads geo-data from files with formats such as ESRI Shapefile, GeoJSON, GML.
 
     :param file: Is either the absolute or relative path to the file to be opened.
-    :param crs: Optional coordinate reference system. Must be given as CRS-WKT or EPSG string such as "EPSG:4326".
-                The default value for GeoJSON standard is always "EPSG:4326".
     :param more_args: Other optional keyword arguments.
            Please refer to Python documentation of ``fiona.open()`` function.
     :return: A ``geopandas.GeoDataFrame`` object
     """
     kwargs = DictLike.convert(more_args) or {}
-    features = fiona.open(file, mode="r", crs=crs, **kwargs)
+    features = fiona.open(file, mode="r", **kwargs)
     return GeoDataFrame.from_features(features)
 
 
