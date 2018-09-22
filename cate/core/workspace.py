@@ -360,8 +360,11 @@ class Workspace:
         if hasattr(data_frame, 'geom_type'):
             geom_type = data_frame.geom_type
             if isinstance(geom_type, pd.Series) and len(geom_type) > 0:
-                attributes['geom_type'] = str(data_frame.geom_type[0])
-
+                try:
+                    geom_type = str(geom_type[0])
+                except KeyError:
+                    geom_type = str(geom_type)
+                attributes['geom_type'] = geom_type
         resource_json.update(variables=variable_descriptors, attributes=attributes)
 
     @classmethod
