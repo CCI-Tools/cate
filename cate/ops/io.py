@@ -408,19 +408,24 @@ def write_csv(obj: DataFrameLike.TYPE,
         raise ValidationError('obj must be a pandas.DataFrame or a xarray.Dataset')
 
 
+GEO_DATA_FRAME_FILE_FILTERS = [
+    dict(name='ESRI Shapefile', extensions=['shp']),
+    dict(name='GeoJSON', extensions=['json', 'geojson']),
+    dict(name='GPX', extensions=['gpx']),
+    dict(name='GPKG', extensions=['gpkg']),
+    _ALL_FILE_FILTER
+]
+
+
 # noinspection PyIncorrectDocstring,PyUnusedLocal
 @op(tags=['input'], res_pattern='gdf_{index}')
-@op_input('file',
-          file_open_mode='r',
-          file_filters=[dict(name='ESRI Shapefiles', extensions=['shp']),
-                        dict(name='GeoJSON', extensions=['json', 'geojson']),
-                        _ALL_FILE_FILTER])
+@op_input('file', file_open_mode='r', file_filters=GEO_DATA_FRAME_FILE_FILTERS)
 @op_input('crs', nullable=True, deprecated="Not used at all.")
 @op_input('more_args', nullable=True, data_type=DictLike)
 def read_geo_data_frame(file: str, crs: str = None,
                         more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
     """
-    Reads geo-data from files with formats such as ESRI Shapefile, GeoJSON, GML.
+    Read a geo data frame from a file with a format such as ESRI Shapefile or GeoJSON.
 
     :param file: Is either the absolute or relative path to the file to be opened.
     :param more_args: Other optional keyword arguments.
@@ -430,6 +435,44 @@ def read_geo_data_frame(file: str, crs: str = None,
     kwargs = DictLike.convert(more_args) or {}
     features = fiona.open(file, mode="r", **kwargs)
     return GeoDataFrame.from_features(features)
+
+
+# noinspection PyIncorrectDocstring,PyUnusedLocal
+@op(tags=['output'], no_cache=True)
+@op_input('gdf')
+@op_input('file', file_open_mode='w', file_filters=GEO_DATA_FRAME_FILE_FILTERS)
+@op_input('more_args', nullable=True, data_type=DictLike)
+def write_geo_data_frame(gdf: gpd.GeoDataFrame,
+                         file: str, crs: str = None,
+                         more_args: DictLike.TYPE = None):
+    """
+    Write a geo data frame to files with formats such as ESRI Shapefile or GeoJSON.
+
+    :param gdf: A geo data frame.
+    :param file: Is either the absolute or relative path to the file to be opened.
+    :param more_args: Other optional keyword arguments.
+           Please refer to Python documentation of ``fiona.open()`` function.
+    """
+    kwargs = DictLike.convert(more_args) or {}
+    if "driver" in kwargs:
+        driver = kwargs.pop("driver")
+    else:
+        root, ext = os.path.splitext(file)
+        ext_low = ext.lower()
+        if ext_low == "":
+            driver = "ESRI Shapefile"
+            file += ".shp"
+        elif ext_low == ".shp":
+            driver = "ESRI Shapefile"
+        elif ext_low == ".json" or ext_low == ".geojson":
+            driver = "GeoJSON"
+        elif ext_low == ".gpx":
+            driver = "GPX"
+        elif ext_low == ".gpkg":
+            driver = "GPKG"
+        else:
+            raise ValidationError(f'Cannot detect supported format from file extension "{ext}"')
+    gdf.to_file(file, driver=driver, **kwargs)
 
 
 @op(tags=['input'], res_pattern='ds_{index}')
