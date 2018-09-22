@@ -359,8 +359,8 @@ class Workspace:
 
         if hasattr(data_frame, 'geom_type'):
             geom_type = data_frame.geom_type
-            if isinstance(geom_type, pd.Series) and len(geom_type) > 0:
-                attributes['geom_type'] = str(data_frame.geom_type[0])
+            if isinstance(geom_type, pd.Series) and geom_type.size > 0:
+                attributes['geom_type'] = str(geom_type.iloc[0])
 
         resource_json.update(variables=variable_descriptors, attributes=attributes)
 
@@ -418,9 +418,10 @@ class Workspace:
             'shape': variable.shape,
             'isFeatureAttribute': True,
         }
-        scalar_value = _to_json_scalar_value(variable)
-        if scalar_value is not UNDEFINED:
-            variable_info['value'] = scalar_value
+        if variable.size == 1:
+            scalar_value = _to_json_scalar_value(variable.values)
+            if scalar_value is not UNDEFINED:
+                variable_info['value'] = scalar_value
         return variable_info
 
     @classmethod
@@ -449,9 +450,10 @@ class Workspace:
             # Note that the 'data' field is used to display coordinate labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
-        scalar_value = _to_json_scalar_value(variable)
-        if scalar_value is not UNDEFINED:
-            variable_info['value'] = scalar_value
+        if variable.size == 1:
+            scalar_value = _to_json_scalar_value(variable.values)
+            if scalar_value is not UNDEFINED:
+                variable_info['value'] = scalar_value
 
         display_settings = conf.get_variable_display_settings(variable.name)
         if display_settings:
