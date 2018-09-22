@@ -1,7 +1,6 @@
 """
 Test the IO operations
 """
-import fiona.errors
 import os
 import shutil
 
