@@ -1,8 +1,10 @@
 """
 Test the IO operations
 """
-
 import os
+import shutil
+
+import shapely.wkt
 import unittest
 from io import StringIO
 from unittest import TestCase
@@ -10,7 +12,7 @@ from unittest import TestCase
 import geopandas as gpd
 
 from cate.core.types import ValidationError
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv
+from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv, write_geo_data_frame
 
 
 class TestIO(TestCase):
@@ -45,6 +47,7 @@ class TestIO(TestCase):
         # Test behavior when passing unexpected type
         with self.assertRaises(NotImplementedError):
             dataset = ('a', 1, 3, 5)
+            # noinspection PyTypeChecker
             save_dataset(dataset, 'remove_me.nc')
 
         self.assertFalse(os.path.isfile('remove_me.nc'))
@@ -72,16 +75,68 @@ class TestIO(TestCase):
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
                             'countries.geojson')
 
-        data_frame = read_geo_data_frame(file)
+        data_frame = read_geo_data_frame(file=file)
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
         self.assertEqual(len(data_frame), 179)
         data_frame.close()
 
-        # Now with crs
-        data_frame = read_geo_data_frame(file, crs="EPSG:4326")
-        self.assertIsInstance(data_frame, gpd.GeoDataFrame)
-        self.assertEqual(len(data_frame), 179)
-        data_frame.close()
+    def test_write_geo_data_frame(self):
+        gdf = gpd.GeoDataFrame({'coli': [1, 2, 3, 4, 5, 6],
+                                'cols': ['a', 'b', 'c', 'x', 'y', 'z'],
+                                'colf': [0.4, 0.5, 0.3, 0.3, 0.1, 0.4],
+                                'geometry': gpd.GeoSeries([
+                                    shapely.wkt.loads('POINT(10 10)'),
+                                    shapely.wkt.loads('POINT(10 20)'),
+                                    shapely.wkt.loads('POINT(10 30)'),
+                                    shapely.wkt.loads('POINT(20 30)'),
+                                    shapely.wkt.loads('POINT(20 20)'),
+                                    shapely.wkt.loads('POINT(20 10)'),
+                                ])})
+
+        out_dir = os.path.join(os.path.dirname(__file__), '..', '..', "_test_outputs")
+        shutil.rmtree(out_dir, ignore_errors=True)
+        os.makedirs(out_dir, exist_ok=True)
+
+        file = os.path.join(out_dir, 'test1.geojson')
+        write_geo_data_frame(gdf=gdf, file=file)
+        self.assertTrue(os.path.isfile(file))
+
+        file = os.path.join(out_dir, 'test2.js')
+        write_geo_data_frame(gdf=gdf, file=file, more_args=dict(driver='GeoJSON'))
+        self.assertTrue(os.path.isfile(file))
+
+        file = os.path.join(out_dir, 'test3')
+        write_geo_data_frame(gdf=gdf, file=file)
+        self.assertTrue(os.path.isfile(file + ".shp"))
+
+        file = os.path.join(out_dir, 'test4.shp')
+        write_geo_data_frame(gdf=gdf, file=file)
+        self.assertTrue(os.path.isfile(file))
+
+        # noinspection PyBroadException
+        try:
+            file = os.path.join(out_dir, 'test5.gpkg')
+            write_geo_data_frame(gdf=gdf, file=file)
+            self.assertTrue(os.path.isfile(file))
+        except BaseException as e:
+            # Success of writing to GPKG is platform dependent, so we don't care here about errors
+            print(f'ignoring test failure: {e}')
+
+        # noinspection PyBroadException
+        try:
+            file = os.path.join(out_dir, 'test6.gpx')
+            write_geo_data_frame(gdf=gdf, file=file)
+            self.assertTrue(os.path.isfile(file))
+        except BaseException as e:
+            # Success of writing to GPX is platform dependent, so we don't care here about errors
+            print(f'ignoring test failure: {e}')
+
+        file = os.path.join(out_dir, 'test7.bibo')
+        with self.assertRaises(ValidationError) as cm:
+            write_geo_data_frame(gdf=gdf, file=file)
+        self.assertEquals(f'{cm.exception}', 'Cannot detect supported format from file extension ".bibo"')
+
+        shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_write_csv_with_dataset(self):
         import io

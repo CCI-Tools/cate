@@ -1,6 +1,6 @@
 ## Version 2.0.0.dev19 (in development)
 
-
+* Added operation `write_geo_data_frame()` [#758](https://github.com/CCI-Tools/cate/issues/758)
 * Numbers displayed with too many digits [#754](https://github.com/CCI-Tools/cate/issues/754)
 * Improved error handling in operation `pearson_correlation_scalar()``, addresses [#746](https://github.com/CCI-Tools/cate/issues/746)
 * Fixed error in `plot_xxx()` operations `"'NoneType' object is not iterable"` [#749](https://github.com/CCI-Tools/cate/issues/749)
