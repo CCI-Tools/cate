@@ -298,7 +298,7 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
         new_gdf = gpd.GeoDataFrame(new_gdf, crs=source_crs)
 
     if dist_col_name:
-        new_gdf[dist_col_name] = pd.Series(np.array(distances))
+        new_gdf[dist_col_name] = np.array(distances)
 
     return new_gdf
 
