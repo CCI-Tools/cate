@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev19 (in development)
 
+* Must click twice to expand point to polygon [#709](https://github.com/CCI-Tools/cate/issues/709)
 * Added operation `write_geo_data_frame()` [#758](https://github.com/CCI-Tools/cate/issues/758)
 * Numbers displayed with too many digits [#754](https://github.com/CCI-Tools/cate/issues/754)
 * Improved error handling in operation `pearson_correlation_scalar()``, addresses [#746](https://github.com/CCI-Tools/cate/issues/746)
