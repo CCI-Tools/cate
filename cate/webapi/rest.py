@@ -24,13 +24,14 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 import concurrent.futures
 import datetime
-import os.path
+import os
 import sys
 import time
 
 import fiona
 import geopandas as gpd
 import numpy as np
+import tornado.gen
 import tornado.web
 import xarray as xr
 
@@ -63,14 +64,13 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
 # Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
-TRACE_PERF = False
+TRACE_PERF = True
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
 _NUM_GEOM_SIMP_LEVELS = 8
 
 _MAX_CSV_ROW_COUNT = 10000
-
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -260,12 +260,18 @@ class GeoJSONHandler(WebAPIRequestHandler):
             level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
             collection = fiona.open(self._shapefile_path)
             self.set_header('Content-Type', 'application/json')
-            yield [THREAD_POOL.submit(write_feature_collection, collection, self,
-                                      num_features=len(collection),
-                                      conservation_ratio=_level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS))]
+
+            def job():
+                conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
+                write_feature_collection(collection, self,
+                                         num_features=len(collection),
+                                         conservation_ratio=conservation_ratio)
+                self.finish()
+
+            yield [THREAD_POOL.submit(job)]
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
-        self.finish()
+            self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
@@ -312,19 +318,24 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                     print('ResFeatureCollectionHandler: features CRS:', crs)
                     print('ResFeatureCollectionHandler: streaming started at ', datetime.datetime.now())
                 self.set_header('Content-Type', 'application/json')
-                yield [THREAD_POOL.submit(write_feature_collection, features, self,
-                                          crs=crs,
-                                          res_id=res_id,
-                                          num_features=num_features,
-                                          max_num_display_geometries=1000,
-                                          max_num_display_geometry_points=100,
-                                          conservation_ratio=_level_to_conservation_ratio(level,
-                                                                                          _NUM_GEOM_SIMP_LEVELS))]
-                if TRACE_PERF:
-                    print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
+
+                def job():
+                    conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
+                    write_feature_collection(features, self,
+                                             crs=crs,
+                                             res_id=res_id,
+                                             num_features=num_features,
+                                             max_num_display_geometries=1000,
+                                             max_num_display_geometry_points=100,
+                                             conservation_ratio=conservation_ratio)
+                    if TRACE_PERF:
+                        print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
+                    self.finish()
+
+                yield [THREAD_POOL.submit(job)]
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
-        self.finish()
+            self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
@@ -376,16 +387,22 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                     print('ResFeatureHandler: feature CRS:', crs)
                     print('ResFeatureHandler: streaming started at ', datetime.datetime.now())
                 self.set_header('Content-Type', 'application/json')
-                yield [THREAD_POOL.submit(write_feature, feature, self,
-                                          crs=crs,
-                                          res_id=res_id,
-                                          conservation_ratio=_level_to_conservation_ratio(level,
-                                                                                          _NUM_GEOM_SIMP_LEVELS))]
-                if TRACE_PERF:
-                    print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
+                conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
+
+                def job():
+                    write_feature(feature,
+                                  self,
+                                  crs=crs,
+                                  res_id=res_id,
+                                  conservation_ratio=conservation_ratio)
+                    if TRACE_PERF:
+                        print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
+                    self.finish()
+
+                yield [THREAD_POOL.submit(job)]
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
-        self.finish()
+            self.finish()
 
     def _check_feature_index(self, feature_index, num_features):
         ok = feature_index < num_features
