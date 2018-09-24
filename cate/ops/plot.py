@@ -55,6 +55,9 @@ svgz, tif, tiff
 """
 
 import matplotlib
+import matplotlib.colors
+
+matplotlib.rcParams.update({'figure.autolayout': True})
 
 has_qt5agg = False
 # noinspection PyBroadException
@@ -246,7 +249,6 @@ def plot_contour(ds: xr.Dataset,
 
     :param ds: the dataset containing the variable to plot
     :param var: the variable's name
-    :param time: time slice index to plot, can be a string "YYYY-MM-DD" or an integer number
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
@@ -474,6 +476,10 @@ def plot_line(ds: DatasetLike.TYPE,
     return figure if not in_notebook() else None
 
 
+SCATTER_PLOT_TYPES = ['Point', 'Hexbin', '2D Histogram']
+
+
+# noinspection PyShadowingBuiltins
 @op(tags=['plot'], res_pattern='plot_{index}')
 @op_input('ds1')
 @op_input('ds2')
@@ -481,6 +487,7 @@ def plot_line(ds: DatasetLike.TYPE,
 @op_input('var2', value_set_source='ds2', data_type=VarName)
 @op_input('indexers1', data_type=DictLike)
 @op_input('indexers2', data_type=DictLike)
+@op_input('type', value_set=SCATTER_PLOT_TYPES)
 @op_input('title')
 @op_input('properties', data_type=DictLike)
 @op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
@@ -490,6 +497,7 @@ def plot_scatter(ds1: xr.Dataset,
                  var2: VarName.TYPE,
                  indexers1: DictLike.TYPE = None,
                  indexers2: DictLike.TYPE = None,
+                 type: str = '2D Histogram',
                  title: str = None,
                  properties: DictLike.TYPE = None,
                  file: str = None) -> Figure:
@@ -505,6 +513,7 @@ def plot_scatter(ds1: xr.Dataset,
            or comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "lat=12.4, time='2012-05-02'".
     :param indexers2: Optional indexers into data array *var2*.
+    :param type: The plot type.
     :param title: optional plot title
     :param properties: optional plot properties for Python matplotlib,
            e.g. "bins=512, range=(-1.5, +1.5), label='Sea Surface Temperature'"
@@ -520,57 +529,112 @@ def plot_scatter(ds1: xr.Dataset,
         raise ValidationError("Missing name for 'var1'")
     if not var_name2:
         raise ValidationError("Missing name for 'var2'")
-    var1 = ds1[var_name1]
-    var2 = ds2[var_name2]
 
+    datasets = ds1, ds2
+    var_names = var_name1, var_name2
     indexers1 = DictLike.convert(indexers1) or {}
     indexers2 = DictLike.convert(indexers2) or {}
     properties = DictLike.convert(properties) or {}
 
-    try:
-        if indexers1:
-            var_data1 = var1.sel(method='nearest', **indexers1)
-            if not indexers2:
-                indexers2 = indexers1
+    vars = [None, None]
+    for i in (0, 1):
+        try:
+            vars[i] = datasets[i][var_names[i]]
+        except KeyError as e:
+            raise ValidationError(f'"{var_names[i]}" is not a variable in "ds{i+1}"') from e
 
-            var_data2 = var2.sel(method='nearest', **indexers2)
-            remaining_dims = list(set(var1.dims) ^ set(indexers1.keys()))
-            min_dim = max(var_data1[remaining_dims[0]].min(), var_data2[remaining_dims[0]].min())
-            max_dim = min(var_data1[remaining_dims[0]].max(), var_data2[remaining_dims[0]].max())
-            var_data1 = var_data1.where((var_data1[remaining_dims[0]] >= min_dim) &
-                                        (var_data1[remaining_dims[0]] <= max_dim),
-                                        drop=True)
-            var_data2 = var_data2.where(
-                (var_data2[remaining_dims[0]] >= min_dim) & (var_data2[remaining_dims[0]] <= max_dim),
-                drop=True)
-            if len(remaining_dims) is 1:
-                indexer3 = {remaining_dims[0]: var_data1[remaining_dims[0]].data}
-                var_data2.reindex(method='nearest', **indexer3)
-            else:
-                raise ValidationError('Please use indexers to reduce the dimensionality of each variable to one.')
-        else:
-            var_data1 = var1
-            var_data2 = var2
-    except ValueError:
-        var_data1 = var1
-        var_data2 = var2
+    if type not in SCATTER_PLOT_TYPES:
+        raise ValidationError(f'Value for "plot_type" must be one of {SCATTER_PLOT_TYPES}"')
 
-    figure = plt.figure(figsize=(12, 8))
+    var_dim_names = set(vars[0].dims), set(vars[1].dims)
+    indexer_dim_names = set(indexers1.keys()), set(indexers2.keys())
+
+    if set(var_dim_names[0]).isdisjoint(var_dim_names[1]):
+        raise ValidationError('"var1" and "var2" have no dimensions in common:'
+                              f'{var_dim_names[0]} and {var_dim_names[1]}.')
+
+    for i in (0, 1):
+        if indexer_dim_names[i] and not (indexer_dim_names[i] < var_dim_names[i]):
+            raise ValidationError(f'"indexers{i+1}" must be a subset of the dimensions of "var{i+1}",'
+                                  f' but {indexer_dim_names[i]} is not a subset of {var_dim_names[i]}.')
+
+    rem_dim_names1 = var_dim_names[0] - indexer_dim_names[0]
+    rem_dim_names2 = var_dim_names[1] - indexer_dim_names[1]
+    if rem_dim_names1 != rem_dim_names2:
+        raise ValidationError('Remaining dimensions of data from "var1" must be equal to'
+                              f' remaining dimensions of data from "var2",'
+                              f' but {rem_dim_names1} is not equal to {rem_dim_names2}.'
+                              ' You may need to use the indexers correctly.')
+
+    indexers = indexers1, indexers2
+    labels = [None, None]
+    for i in (0, 1):
+        # Note, long_name can be really long, too long.
+        # name = vars[i].attrs.get('long_name', var_names[i])
+        name = var_names[i]
+        units = vars[i].attrs.get('units', '-')
+        labels[i] = f'{name} ({units})'
+        if indexers[i]:
+            try:
+                vars[i] = vars[i].sel(method='nearest', **indexers[i])
+            except (KeyError, ValueError, TypeError) as e:
+                raise ValidationError(f'"indexers{i+1}" is not valid for "var{i+1}": {e}') from e
+            labels[i] += " at " + ",".join(f"{key} = {value}" for key, value in indexers[i].items())
+
+    shape1 = vars[0].shape
+    shape2 = vars[1].shape
+    if shape1 != shape2:
+        raise ValidationError('Remaining shape of data from "var1" must be equal to'
+                              ' remaining shape of data from "var2",'
+                              f' but {shape1} is not equal to {shape2}.'
+                              ' You may need to use the "coregister" operation first.')
+
+    figure = plt.figure(figsize=(8, 8))
     ax = figure.add_subplot(111)
 
-    # var_data1.plot(ax = ax, **properties)
-    ax.plot(var_data1.values, var_data2.values, '.', **properties)
-    # var_data1.plot(ax=ax, **properties)
-    xlabel_txt = "".join(", " + str(key) + " = " + str(value) for key, value in indexers1.items())
-    xlabel_txt = var_name1 + xlabel_txt
-    ylabel_txt = "".join(", " + str(key) + " = " + str(value) for key, value in indexers2.items())
-    ylabel_txt = var_name2 + ylabel_txt
-    ax.set_xlabel(xlabel_txt)
-    ax.set_ylabel(ylabel_txt)
-    figure.tight_layout()
+    try:
+        x = vars[0].values.flatten()
+        y = vars[1].values.flatten()
+    except MemoryError as e:
+        raise ValidationError('Out of memory. Try using a data subset'
+                              ' or specify indexers to reduce number of dimensions.') from e
+
+    default_cmap = 'Reds'
+
+    if type == 'Point':
+        ax.plot(x, y, '.', **properties)
+    elif type == '2D Histogram':
+        if 'cmap' not in properties:
+            properties['cmap'] = default_cmap
+        if 'bins' not in properties:
+            properties['bins'] = (256, 256)
+        if 'norm' not in properties:
+            properties['norm'] = matplotlib.colors.LogNorm()
+        if 'range' not in properties:
+            xrange = np.nanpercentile(x, [0, 100])
+            yrange = np.nanpercentile(y, [0, 100])
+            properties['range'] = [xrange, yrange]
+        h, xedges, yedges, pc = ax.hist2d(x, y, **properties)
+        figure.colorbar(pc, ax=ax, cmap=properties['cmap'])
+    elif type == 'Hexbin':
+        if 'cmap' not in properties:
+            properties['cmap'] = default_cmap
+        if 'gridsize' not in properties:
+            properties['gridsize'] = (64, 64)
+        if 'norm' not in properties:
+            properties['norm'] = matplotlib.colors.LogNorm()
+        x = np.ma.masked_invalid(x, copy=False)
+        y = np.ma.masked_invalid(y, copy=False)
+        collection = ax.hexbin(x, y, **properties)
+        figure.colorbar(collection, ax=ax, cmap=properties['cmap'])
+
+    ax.set_xlabel(labels[0])
+    ax.set_ylabel(labels[1])
 
     if title:
         ax.set_title(title)
+
+    figure.tight_layout()
 
     if file:
         figure.savefig(file)
