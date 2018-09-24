@@ -253,7 +253,7 @@ class FSWorkspaceManager(WorkspaceManager):
             # If it was a scratch workspace, delete the original
             if workspace.is_scratch:
                 try:
-                    shutil.rmtree(base_dir)
+                    shutil.rmtree(base_dir, ignore_errors=True)
                 except (PermissionError, OSError):
                     pass
             monitor.progress(work=5)
