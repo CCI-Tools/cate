@@ -57,6 +57,7 @@ svgz, tif, tiff
 import matplotlib
 import matplotlib.colors
 
+# see https://matplotlib.org/tutorials/intermediate/tight_layout_guide.html
 matplotlib.rcParams.update({'figure.autolayout': True})
 
 has_qt5agg = False
@@ -525,33 +526,25 @@ def plot_scatter(ds1: xr.Dataset,
     """
     var_name1 = VarName.convert(var1)
     var_name2 = VarName.convert(var2)
-    if not var_name1:
-        raise ValidationError("Missing name for 'var1'")
-    if not var_name2:
-        raise ValidationError("Missing name for 'var2'")
-
-    datasets = ds1, ds2
-    var_names = var_name1, var_name2
     indexers1 = DictLike.convert(indexers1) or {}
     indexers2 = DictLike.convert(indexers2) or {}
     properties = DictLike.convert(properties) or {}
 
+    datasets = ds1, ds2
+    var_names = var_name1, var_name2
     vars = [None, None]
     for i in (0, 1):
         try:
             vars[i] = datasets[i][var_names[i]]
         except KeyError as e:
-            raise ValidationError(f'"{var_names[i]}" is not a variable in "ds{i+1}"') from e
-
-    if type not in SCATTER_PLOT_TYPES:
-        raise ValidationError(f'Value for "plot_type" must be one of {SCATTER_PLOT_TYPES}"')
+            raise ValidationError(f'"{var_names[i]}" is not a variable in dataset given by "ds{i+1}"') from e
 
     var_dim_names = set(vars[0].dims), set(vars[1].dims)
     indexer_dim_names = set(indexers1.keys()), set(indexers2.keys())
 
     if set(var_dim_names[0]).isdisjoint(var_dim_names[1]):
         raise ValidationError('"var1" and "var2" have no dimensions in common:'
-                              f'{var_dim_names[0]} and {var_dim_names[1]}.')
+                              f' {var_dim_names[0]} and {var_dim_names[1]}.')
 
     for i in (0, 1):
         if indexer_dim_names[i] and not (indexer_dim_names[i] < var_dim_names[i]):
@@ -602,6 +595,15 @@ def plot_scatter(ds1: xr.Dataset,
     default_cmap = 'Reds'
 
     if type == 'Point':
+        ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
+        if 'alpha' not in properties:
+            properties['alpha'] = 0.25
+        if 'markerfacecolor' not in properties:
+            properties['markerfacecolor'] = '#880000'
+        if 'markeredgewidth' not in properties:
+            properties['markeredgewidth'] = 0.0
+        if 'markersize' not in properties:
+            properties['markersize'] = 5.0
         ax.plot(x, y, '.', **properties)
     elif type == '2D Histogram':
         if 'cmap' not in properties:
@@ -634,6 +636,7 @@ def plot_scatter(ds1: xr.Dataset,
     if title:
         ax.set_title(title)
 
+    # see https://matplotlib.org/tutorials/intermediate/tight_layout_guide.html
     figure.tight_layout()
 
     if file:
