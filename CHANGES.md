@@ -1,4 +1,7 @@
-## Version 2.0.0.dev19 (in development)
+## Version 2.0.0.dev20 (in development)
+
+
+## Version 2.0.0.dev19
 
 * Must click twice to expand point to polygon [#709](https://github.com/CCI-Tools/cate/issues/709)
 * Added operation `write_geo_data_frame()` [#758](https://github.com/CCI-Tools/cate/issues/758)
