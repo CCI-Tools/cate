@@ -252,7 +252,10 @@ class FSWorkspaceManager(WorkspaceManager):
             new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
             # If it was a scratch workspace, delete the original
             if workspace.is_scratch:
-                shutil.rmtree(base_dir)
+                try:
+                    shutil.rmtree(base_dir)
+                except (PermissionError, OSError):
+                    pass
             monitor.progress(work=5)
             return new_workspace
 

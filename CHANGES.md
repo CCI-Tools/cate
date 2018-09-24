@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev20 (in development)
 
+* Fixed problem where workspace save-as sometimes fails on Windows [#764](https://github.com/CCI-Tools/cate/issues/764)
+
 
 ## Version 2.0.0.dev19
 
