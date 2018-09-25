@@ -123,10 +123,10 @@ class WriteFeatureCollectionTest(TestCase):
                          '{"type": "FeatureCollection", "features": [\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, '
-                         '"properties": {"id": "1", "a": 3, "b": true}},\n'
+                         '"properties": {"id": "1", "a": 3, "b": true}, "_idx": 0, "id": 0},\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, '
-                         '"properties": {"id": "2", "a": 9, "b": false}}\n'
+                         '"properties": {"id": "2", "a": 9, "b": false}, "_idx": 1, "id": 1}\n'
                          ']}\n')
 
     def test_polygon_with_simp(self):
@@ -163,10 +163,10 @@ class WriteFeatureCollectionTest(TestCase):
                          '{"type": "FeatureCollection", "features": [\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 53.0], [13.0, 54.0], [13.0, 56.0], [12.0, 53.0]]]}, '
-                         '"properties": {"id": "1", "a": 3, "b": true}, "_simp": 1},\n'
+                         '"properties": {"id": "1", "a": 3, "b": true}, "_simp": 1, "_idx": 0, "id": 0},\n'
                          '{"type": "Feature", "geometry": {"type": "Polygon", '
                          '"coordinates": [[[12.0, 73.0], [13.0, 74.0], [13.0, 76.0], [12.0, 73.0]]]}, '
-                         '"properties": {"id": "2", "a": 9, "b": false}, "_simp": 1}\n'
+                         '"properties": {"id": "2", "a": 9, "b": false}, "_simp": 1, "_idx": 1, "id": 1}\n'
                          ']}\n')
 
     def test_countries_with_simp(self):

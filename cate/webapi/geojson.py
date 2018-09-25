@@ -266,6 +266,7 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
     io.flush()
 
     num_features_written = 0
+    feature_index = 0
     for feature in feature_collection:
         feature_ok = _transform_feature(feature,
                                         max_num_display_geometry_points,
@@ -277,9 +278,15 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
                 io.flush()
             if res_id is not None:
                 feature['_resId'] = res_id
+            feature['_idx'] = feature_index
+            if 'id' not in feature:
+                feature['id'] = feature_index
             # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
-            io.write(json.dumps(feature))
+            json_text = json.dumps(feature)
+            io.write(json_text)
             num_features_written += 1
+
+        feature_index += 1
 
     io.write('\n]}\n')
     io.flush()
@@ -291,9 +298,9 @@ def write_feature(feature: Feature,
                   io,
                   crs=None,
                   res_id: int = None,
+                  feature_index: int = -1,
                   max_num_display_geometry_points: int = 100,
                   conservation_ratio: float = 1.0):
-
     source_prj = target_prj = None
     if crs:
         source_prj = pyproj.Proj(crs)
@@ -306,9 +313,15 @@ def write_feature(feature: Feature,
     if feature_ok:
         if res_id is not None:
             feature['_resId'] = res_id
+        feature['_idx'] = feature_index
+        if 'id' not in feature:
+            feature['id'] = feature_index
         # Note: io.write(json.dumps(feature)) is 3x faster than json.dump(feature, fp=io)
-        io.write(json.dumps(feature))
+        json_text = json.dumps(feature, cls=SeriesJSONEncoder)
+        io.write(json_text)
         io.flush()
+
+
 
 
 def _transform_feature(feature: Feature,
@@ -517,3 +530,16 @@ class PointHeap:
             self._push(new_point)
             return new_point
         return point
+
+
+class SeriesJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'dtype'):
+            if np.issubdtype(obj.dtype, np.integer):
+                return int(obj)
+            elif np.issubdtype(obj.dtype, np.floating):
+                return float(obj)
+            else:
+                return str(obj)
+
+        return json.JSONEncoder.default(self, obj)

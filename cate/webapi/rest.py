@@ -369,16 +369,13 @@ class ResFeatureHandler(WorkspaceResourceHandler):
             elif isinstance(resource, gpd.GeoDataFrame):
                 if not self._check_feature_index(feature_index, len(resource)):
                     return
-                # TODO (nf,mz): review & test following code,
-                # it is inspired by geopandas.GeoDataFrame.iterfeatures() impl.
-                row = resource[feature_index]
+                row = resource.iloc[feature_index]
                 geometry = None
                 properties = row.to_dict()
                 if 'geometry' in properties:
                     geometry = row['geometry'].__geo_interface__
                     del properties['geometry']
                 feature = {
-                    'id': str(row.index),
                     'type': 'Feature',
                     'properties': properties,
                     'geometry': geometry
@@ -398,15 +395,18 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                 conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
 
                 def job():
-                    write_feature(feature,
-                                  self,
-                                  crs=crs,
-                                  res_id=res_id,
-                                  conservation_ratio=conservation_ratio)
+                    try:
+                        write_feature(feature,
+                                      self,
+                                      crs=crs,
+                                      res_id=res_id,
+                                      feature_index=feature_index,
+                                      conservation_ratio=conservation_ratio)
+                    except BaseException as e:
+                        self.write_status_error(exc_info=sys.exc_info())
                     self.finish()
                     if TRACE_PERF:
                         print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
-                    self.finish()
 
                 yield [THREAD_POOL.submit(job)]
         except Exception:
