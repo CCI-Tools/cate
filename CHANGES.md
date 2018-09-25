@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev20 (in development)
 
+* Changed order and names of new `data_frame_subset` operation inputs.
 * Improved scatter plot [#763](https://github.com/CCI-Tools/cate/issues/763).
   We can now plot N-D arrays. Plot types are "Point", "Hexbin", and "2D Histogram". 
 * Fixed problem where workspace save-as sometimes fails on Windows [#764](https://github.com/CCI-Tools/cate/issues/764)
