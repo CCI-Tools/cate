@@ -152,6 +152,7 @@ class MplDownloadHandler(WebAPIRequestHandler):
             figure_manager = _get_figure_manager(workspace, figure_id)
         except ValueError:
             self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
             return
 
         mime_types = {
