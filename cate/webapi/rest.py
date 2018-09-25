@@ -111,6 +111,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
             if not isinstance(dataset, xr.Dataset):
                 self.write_status_error(message='Resource "%s" must be a Dataset' % res_name)
+                self.finish()
                 return
 
             var_name = self.get_query_argument('var')
@@ -159,6 +160,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 else:
                     self.write_status_error(message='Variable must be an N-D Dataset with N >= 2, '
                                                     'but "%s" is only %d-D' % (var_name, variable.ndim))
+                    self.finish()
                     return
 
                 cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min
@@ -183,6 +185,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 if tiling_scheme is None:
                     self.write_status_error(
                         message='Internal error: failed to compute tiling scheme for array_id="%s"' % array_id)
+                    self.finish()
                     return
 
                 # print('tiling_scheme =', repr(tiling_scheme))
@@ -228,6 +231,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
@@ -242,8 +246,10 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
                                                           var_name=var_name,
                                                           file_path=file_path)
             self.write_status_ok()
+            self.finish()
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
@@ -283,6 +289,7 @@ class CountriesGeoJSONHandler(GeoJSONHandler):
             super().__init__(application, request, shapefile_path=shapefile_path, **kwargs)
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
@@ -328,9 +335,9 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                                              max_num_display_geometries=1000,
                                              max_num_display_geometry_points=100,
                                              conservation_ratio=conservation_ratio)
+                    self.finish()
                     if TRACE_PERF:
                         print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
-                    self.finish()
 
                 yield [THREAD_POOL.submit(job)]
         except Exception:
@@ -381,6 +388,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                 feature = None
                 crs = None
                 self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
+                self.finish()
 
             if feature is not None:
                 if TRACE_PERF:
@@ -395,6 +403,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                                   crs=crs,
                                   res_id=res_id,
                                   conservation_ratio=conservation_ratio)
+                    self.finish()
                     if TRACE_PERF:
                         print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
                     self.finish()
@@ -409,6 +418,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
         if not ok:
             self.write_status_error(message='feature_index {} out of bounds, num_features={}'
                                     .format(feature_index, num_features))
+            self.finish()
         return ok
 
 
@@ -425,6 +435,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
                     var_data = resource[var_name]
                 except Exception as e:
                     self.write_status_error(exc_info=sys.exc_info())
+                    self.finish()
                     return
 
             # noinspection PyBroadException
@@ -451,6 +462,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
             self.write(csv)
         except Exception as e:
             self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
 
         self.finish()
 
@@ -462,9 +474,10 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
             _, _, _, resource = self.get_workspace_resource(base_dir, res_id)
             self.set_header('Content-Type', 'text/html')
             self.write(resource)
+            self.finish()
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
-        self.finish()
+            self.finish()
 
 
 def _new_monitor() -> Monitor:
