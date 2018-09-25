@@ -651,6 +651,7 @@ class WebAPIExitHandler(WebAPIRequestHandler):
 
     def get(self):
         self.write_status_ok(content='Bye!')
+        self.finish()
         IOLoop.current().add_callback(self.webapi.shut_down)
 
 
