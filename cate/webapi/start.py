@@ -76,6 +76,7 @@ class WebAPIVersionHandler(WebAPIRequestHandler):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat()})
+        self.finish()
 
 
 def service_factory(application):
