@@ -16,7 +16,8 @@ import pandas as pd
 import xarray as xr
 
 from cate.core.op import OP_REGISTRY
-from cate.ops.plot import plot, plot_line, plot_map, plot_data_frame, plot_hovmoeller
+from cate.core.types import ValidationError
+from cate.ops.plot import plot, plot_line, plot_map, plot_data_frame, plot_hovmoeller, plot_scatter
 from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
@@ -366,3 +367,109 @@ class TestPlotHovmoeller(TestCase):
         # test illegal dimensions
         with self.assertRaises(ValueError):
             plot_hovmoeller(dataset, var='second', x_axis='foo', y_axis='bar')
+
+
+@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
+                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
+class TestPlotScatter(TestCase):
+    """
+    Test plot_scatter() function
+    """
+
+    width = 360 - 1
+    height = 180 - 1
+    num_time_steps = 1
+    # Sea Level MSL Dummy
+    ds1 = xr.Dataset({
+        'local_msl_trend': (
+            ['time', 'lat', 'lon'], np.random.rand(num_time_steps, height, width)
+        ),
+        'local_msl_trend_error': (
+            ['time', 'lat', 'lon'], np.random.rand(num_time_steps, height, width)
+        ),
+        'lon': np.linspace(-179.5, 179.5, width),
+        'lat': np.linspace(-89.5, 89.5, height),
+        'time': pd.date_range('2000-01-01', periods=num_time_steps, freq='D')
+    })
+
+    periods = [0.5, 10.0]
+    num_periods = len(periods)
+    # Sea Level MSLAMPH Dummy
+    ds2 = xr.Dataset({
+        'ampl': (
+            ['time', 'period', 'lat', 'lon'],
+            10 * np.random.rand(num_time_steps, num_periods, height, width)
+        ),
+        'phase': (
+            ['time', 'period', 'lat', 'lon'],
+            360 * np.random.rand(num_time_steps, num_periods, height, width)
+        ),
+        'lon': np.linspace(-179.5, 179.5, width),
+        'lat': np.linspace(-89.5, 89.5, height),
+        'period': np.array(periods),
+        'time': pd.date_range('2000-01-01', periods=num_time_steps, freq='D')
+    })
+
+    def test_all_types_work_fine(self):
+        for type in ('Point', 'Hexbin', '2D Histogram'):
+            with create_tmp_file('remove_me', 'png') as tmp_file:
+                plot_scatter(ds1=self.ds1,
+                             ds2=self.ds2,
+                             var1='local_msl_trend',
+                             var2='ampl',
+                             indexers1=None,
+                             indexers2=dict(period=0.5),
+                             type=type,
+                             title='Local MSL vs Amplitude',
+                             properties=None,
+                             file=tmp_file)
+                self.assertTrue(os.path.isfile(tmp_file))
+
+    def test_illegal_type(self):
+        with self.assertRaises(ValidationError) as cm:
+            plot_scatter(ds1=self.ds1,
+                         ds2=self.ds2,
+                         var1='local_msl_trend',
+                         var2='ampl',
+                         indexers1=None,
+                         indexers2=dict(period=0.5),
+                         type='2D Density')
+        self.assertEquals(f'{cm.exception}',
+                          "Input 'type' for operation 'cate.ops.plot.plot_scatter'"
+                          " must be one of ['Point', 'Hexbin', '2D Histogram'].")
+
+    def test_illegal_var(self):
+        with self.assertRaises(ValidationError) as cm:
+            plot_scatter(ds1=self.ds1,
+                         ds2=self.ds2,
+                         var1='global_msl_trend',
+                         var2='ampl',
+                         indexers1=None,
+                         indexers2=dict(period=0.5),
+                         type='Point')
+        self.assertEquals(f'{cm.exception}',
+                          '"global_msl_trend" is not a variable in dataset given by "ds1"')
+
+    def test_illegal_no_common_dim(self):
+        with self.assertRaises(ValidationError) as cm:
+            plot_scatter(ds1=self.ds1,
+                         ds2=self.ds2,
+                         var1='local_msl_trend',
+                         var2='period',
+                         indexers1=None,
+                         indexers2=dict(period=0.5),
+                         type='Point')
+        self.assertTrue(f'{cm.exception}'.startswith('"var1" and "var2" have no dimensions in common: '))
+
+    def test_illegal_no_common_dims(self):
+        with self.assertRaises(ValidationError) as cm:
+            plot_scatter(ds1=self.ds1,
+                         ds2=self.ds2,
+                         var1='local_msl_trend',
+                         var2='phase',
+                         indexers1=None,
+                         indexers2=None,
+                         type='Point')
+        self.assertTrue(f'{cm.exception}'.startswith('Remaining dimensions of data from "var1"'
+                                                     ' must be equal to remaining dimensions'
+                                                     ' of data from "var2", but '))
