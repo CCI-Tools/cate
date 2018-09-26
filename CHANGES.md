@@ -1,4 +1,6 @@
-## Version 2.0.0.dev20 (in development)
+## Version 2.0.0.dev21 (in development)
+
+## Version 2.0.0.dev20
 
 * Changed order and names of new `data_frame_subset` operation inputs.
 * Improved scatter plot [#763](https://github.com/CCI-Tools/cate/issues/763).
