@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev21 (in development)
 
+* Pearson correlation scalar operation now works on N-D data variables [#746](https://github.com/CCI-Tools/cate/issues/746)
+
 ## Version 2.0.0.dev20
 
 * Changed order and names of new `data_frame_subset` operation inputs.
