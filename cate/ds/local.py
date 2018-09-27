@@ -381,7 +381,10 @@ class LocalDataSource(DataSource):
         """
         if not time_range:
             return
-        if self._temporal_coverage:
+        
+        if self._temporal_coverage and \
+                not any(x is None for x in time_range) and \
+                not any(x is None for x in self.temporal_coverage):
             if time_range[0] >= self._temporal_coverage[1]:
                 self._temporal_coverage = tuple([self._temporal_coverage[0], time_range[1]])
             elif time_range[1] <= self._temporal_coverage[0]:
