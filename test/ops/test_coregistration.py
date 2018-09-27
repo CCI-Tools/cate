@@ -674,3 +674,71 @@ class TestCoregistration(TestCase):
         ds_coarse_resampled = coregister(ds_fine, ds_coarse)
 
         assert_almost_equal(ds_coarse_resampled['first'].values, slice_exp)
+
+    def test_int_array(self):
+        """
+        Test coregistration on integer arrays
+        """
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)], dtype='int32')),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8,)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        ds_coarse = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)], dtype='int32')),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 3, 'lon': 3})
+
+        # Test that the coarse dataset has been resampled onto the grid
+        # of the finer dataset.
+        ds_coarse_resampled = coregister(ds_fine, ds_coarse, method_us='nearest')
+
+        expected = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([[[1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0, 0, 0],
+                                                         [0, 0, 0, 1, 0, 0, 0, 0]],
+                                                        [[1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0, 0, 0],
+                                                         [0, 0, 0, 1, 0, 0, 0, 0]]])),
+            'second': (['time', 'lat', 'lon'], np.array([[[1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0, 0, 0],
+                                                         [0, 0, 0, 1, 0, 0, 0, 0]],
+                                                         [[1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [1, 1, 0, 0, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0, 0, 0],
+                                                         [0, 0, 0, 1, 0, 0, 0, 0]]])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])})
+        assert_almost_equal(ds_coarse_resampled['first'].values, expected['first'].values)
+
+        # Test that the fine dataset has been resampled (aggregated)
+        # onto the grid of the coarse dataset.
+        ds_fine_resampled = coregister(ds_coarse, ds_fine, method_ds='mode')
+        expected = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([[[1, 0, 0, 0, 0, 0],
+                                                         [0, 1, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0]],
+
+                                                        [[1, 0, 0, 0, 0, 0],
+                                                         [0, 1, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0]]])),
+            'second': (['time', 'lat', 'lon'], np.array([[[1, 0, 0, 0, 0, 0],
+                                                         [0, 1, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0]],
+
+                                                        [[1, 0, 0, 0, 0, 0],
+                                                         [0, 1, 0, 0, 0, 0],
+                                                         [0, 0, 1, 0, 0, 0]]])),
+            'lat': np.linspace(-60, 60, 3),
+            'lon': np.linspace(-150, 150, 6),
+            'time': np.array([1, 2])})
+
+        assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)

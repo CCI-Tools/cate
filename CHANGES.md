@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev21 (in development)
 
+* Make sure integer data variables can be coregistered [#770](https://github.com/CCI-Tools/cate/issues/770)
+
 ## Version 2.0.0.dev20
 
 * Changed order and names of new `data_frame_subset` operation inputs.
