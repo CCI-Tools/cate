@@ -379,12 +379,10 @@ class LocalDataSource(DataSource):
         :param time_range: Time range to be added to data source temporal coverage
         :return:
         """
-        if not time_range:
+        if not time_range or any(x is None for x in time_range):
             return
-        
-        if self._temporal_coverage and \
-                not any(x is None for x in time_range) and \
-                not any(x is None for x in self.temporal_coverage):
+
+        if self._temporal_coverage and not any(x is None for x in self.temporal_coverage):
             if time_range[0] >= self._temporal_coverage[1]:
                 self._temporal_coverage = tuple([self._temporal_coverage[0], time_range[1]])
             elif time_range[1] <= self._temporal_coverage[0]:

@@ -1,5 +1,8 @@
 ## Version 2.0.0.dev21 (in development)
 
+* Temporal coverage NoneType check [#664](https://github.com/CCI-Tools/cate/issues/664)
+
+
 ## Version 2.0.0.dev20
 
 * Changed order and names of new `data_frame_subset` operation inputs.
