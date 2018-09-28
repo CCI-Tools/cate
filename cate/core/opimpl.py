@@ -65,8 +65,24 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = _normalize_lat_lon_2d(ds)
     ds = _normalize_dim_order(ds)
     ds = _normalize_lon_360(ds)
+    ds = _normalize_inverted_lat(ds)
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
+    return ds
+
+
+def _normalize_inverted_lat(ds: xr.Dataset) -> xr.Dataset:
+    """
+    In case the latitude decreases, invert it
+    :param ds: some xarray dataset
+    :return: a normalized xarray dataset
+    """
+    try:
+        if _lat_inverted(ds.lat):
+            ds = ds.sel(lat=slice(None, None, -1))
+    except AttributeError:
+        # The dataset doesn't have 'lat', probably not geospatial
+        pass
     return ds
 
 

@@ -41,9 +41,9 @@ class TestNormalize(TestCase):
         a_data = np.random.random_sample((t_size, y_size, x_size))
         b_data = np.random.random_sample((t_size, y_size, x_size))
         time_data = [1, 2]
-        lat_data = [[30., 30., 30., 30.],
+        lat_data = [[10., 10., 10., 10.],
                     [20., 20., 20., 20.],
-                    [10., 10., 10., 10.]]
+                    [30., 30., 30., 30.]]
         lon_data = [[-10., 0., 10., 20.],
                     [-10., 0., 10., 20.],
                     [-10., 0., 10., 20.]]
@@ -65,7 +65,7 @@ class TestNormalize(TestCase):
         expected = xr.Dataset({'a': (new_dims, a_data, attribs),
                                'b': (new_dims, b_data, attribs)},
                               {'time': (('time',), time_data),
-                               'lat': (('lat',), [30., 20., 10.]),
+                               'lat': (('lat',), [10., 20., 30.]),
                                'lon': (('lon',), [-10., 0., 10., 20.]),
                                },
                               {'geospatial_lon_min': -15.,
@@ -109,6 +109,29 @@ class TestNormalize(TestCase):
                                                                 [2, 3, 4]])})
         actual = normalize(dataset)
         assertDatasetEqual(actual, expected)
+
+    def test_normalize_inverted_lat(self):
+        first = np.zeros([3, 45, 90])
+        first[0, :, :] = np.eye(45, 90)
+        ds = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], first),
+            'second': (['time', 'lat', 'lon'], np.zeros([3, 45, 90])),
+            'lat': np.linspace(88, -88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time':1})
+            
+        first = np.zeros([3, 45, 90])
+        first[0, :, :] = np.flip(np.eye(45, 90), axis=0)
+        expected = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], first),
+            'second': (['time', 'lat', 'lon'], np.zeros([3, 45, 90])),
+            'lat': np.linspace(-88, 88, 45),
+            'lon': np.linspace(-178, 178, 90),
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time':1})
+        
+        actual = normalize(ds)
+        xr.testing.assert_equal(actual, expected)
+
 
     def test_normalize_with_missing_time_dim(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
