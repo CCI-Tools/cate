@@ -45,9 +45,21 @@ Given here is an overview of the possible configuration settings:
     ``included_ds_ids`` then remove entries that match any result from applying ``excluded_data_sources``.
 
 :``default_variables``:
-     Configure names of variables that will be initially selected once a new
-     dataset resource is opened in the GUI. Its value must be a set
-     (``{...}``) of variable names.
+    Configure names of variables that will be initially selected once a new
+    dataset resource is opened in the GUI. Its value must be a set
+    (``{...}``) of variable names.
+
+:``http_proxy, https_proxy``:
+    When Cate run behind a proxy server, the access to remote data require to configure two variables:
+    * ``http_proxy`` to allow connection through http protocol and
+    * ``https_proxy`` to access secures services
+    The user can configure these two variables in the conf.py file, these configuration overwrite the values of those
+    variables eventually defined in the environment.
+    The accepted proxy values are the following:
+    * ``http://user:password@host:port``
+    * ``https://user:password@host:port``
+    * ``http://host:port``
+    * ``https://host:port``
 
 :``variable_display_settings``:
     Configure / overwrite default variable display settings as used in various plot_<type>() operations
