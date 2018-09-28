@@ -529,7 +529,7 @@ def _downsample_2d(src, mask, use_mask, method, fill_value, mode_rank, out):
                 else:
                     out[out_y, out_x] = (wvv_sum * w_sum - wv_sum * wv_sum) / w_sum / w_sum
         if method == DS_STD:
-            out = np.sqrt(out)
+            out = np.sqrt(out).astype(out.dtype)
     else:
         raise ValueError('invalid downsampling method')
 
