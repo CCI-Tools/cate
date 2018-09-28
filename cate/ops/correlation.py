@@ -65,7 +65,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     """
     Do product moment `Pearson's correlation <http://www.statsoft.com/Textbook/Statistics-Glossary/P/button/p#Pearson%20Correlation>`_ analysis.
 
-    Performs a simple correlation analysis on two timeseries and returns
+    Performs a simple correlation analysis on two data variables and returns
     a correlation coefficient and the corresponding p_value.
 
     Positive correlation implies that as x grows, so does y. Negative
@@ -80,7 +80,7 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     :param var_x: Dataset variable to use for correlation analysis in the 'variable' dataset
     :param var_y: Dataset variable to use for correlation analysis in the 'dependent' dataset
     :param monitor: a progress monitor.
-    :return: {'corr_coef': correlation coefficient, 'p_value': probability value}
+    :return: Data frame {'corr_coef': correlation coefficient, 'p_value': probability value}
     """
     ds_x = DatasetLike.convert(ds_x)
     ds_y = DatasetLike.convert(ds_y)
@@ -90,24 +90,30 @@ def pearson_correlation_scalar(ds_x: DatasetLike.TYPE,
     array_y = ds_y[var_y]
     array_x = ds_x[var_x]
 
-    if ((len(array_x.dims) != len(array_y.dims)) or
-       (len(array_x.dims) != 1)):
-        raise ValidationError('To calculate simple correlation, both provided'
-                              ' datasets should be simple 1d timeseries. To'
-                              ' create a map of correlation coefficients, use'
-                              ' pearson_correlation operation instead.')
+    if (array_x.dims != array_y.dims):
+        raise ValidationError('Both datasets should feature the same'
+                              ' dimensionality. Currently provided ds_x[var_x] '
+                              f'has {array_x.dims}, provided ds_y[var_y]'
+                              f' has {array_y.dims}')
 
-    if len(array_x['time']) != len(array_y['time']):
-        raise ValidationError('The length of the time dimension differs between'
-                              ' the given datasets. Can not perform the calculation'
-                              ', please review operation documentation.')
+    for dim in array_x.dims:
+        if len(array_x[dim]) != len(array_y[dim]):
+            raise ValidationError('All dimensions of both provided data variables'
+                                  f' must be the same length. Currently {dim} of ds_x[var_x]'
+                                  f' has {len(array_x[dim])} values, while'
+                                  f' {dim} of ds_y[var_y] has {len(array_y[dim])} values.'
+                                  ' You may want to try to coregister the datasets beforehand.')
 
-    if len(array_x['time']) < 3:
-        raise ValidationError('The length of the time dimension should not be less'
-                              ' than three to run the calculation.')
+    n_vals = 1
+    for dim in array_x.dims:
+        n_vals = n_vals * len(array_x[dim])
+
+    if n_vals < 3:
+        raise ValidationError('There should be no less than 3 values in both data variables'
+                              f' to perform the correlation. Currently there are {n_vals} values')
 
     with monitor.observing("Calculate Pearson correlation"):
-        cc, pv = pearsonr(array_x.values, array_y.values)
+        cc, pv = pearsonr(array_x.stack(z=array_x.dims), array_y.stack(z=array_y.dims))
 
     return pd.DataFrame({'corr_coef': [cc], 'p_value': [pv]})
 
@@ -173,10 +179,10 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
                                   ' is provided.')
 
         if array_x.values.shape != array_y.values.shape:
-            raise ValidationError('The provided variables {} and {} do not have the'
+            raise ValidationError(f'The provided variables {var_x} and {var_y} do not have the'
                                   ' same shape, Pearson correlation can not be'
                                   ' performed. Please review operation'
-                                  ' documentation'.format(var_x, var_y))
+                                  ' documentation')
 
         if (not ds_x['lat'].equals(ds_y['lat']) or
                 not ds_x['lon'].equals(ds_y['lon'])):
@@ -206,7 +212,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
 
     # Do pixel by pixel correlation
     retset = _pearsonr(array_x, array_y, monitor)
-    retset.attrs['Cate_Description'] = 'Correlation between {} {}'.format(var_y, var_x)
+    retset.attrs['Cate_Description'] = f'Correlation between {var_y} {var_x}'
 
     return adjust_spatial_attrs(retset)
 
