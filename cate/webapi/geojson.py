@@ -322,8 +322,6 @@ def write_feature(feature: Feature,
         io.flush()
 
 
-
-
 def _transform_feature(feature: Feature,
                        max_num_display_geometry_points: int,
                        conservation_ratio: float,
