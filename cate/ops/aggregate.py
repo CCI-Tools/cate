@@ -451,7 +451,7 @@ def reduce(ds: DatasetLike.TYPE,
            var: VarNamesLike.TYPE = None,
            dim: DimNamesLike.TYPE = None,
            method: str = 'mean',
-           monitor: Monitor = Monitor.NONE):
+           monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Reduce the given variables of the given dataset along the given dimensions.
     If no variables are given, all variables of the dataset will be reduced. If
@@ -467,6 +467,8 @@ def reduce(ds: DatasetLike.TYPE,
     """
     ufuncs = {'min': np.nanmin, 'max': np.nanmax, 'mean': np.nanmean,
               'median': np.nanmedian, 'sum': np.nansum}
+
+    ds = DatasetLike.convert(ds)
 
     if not var:
         var = list(ds.data_vars.keys())
