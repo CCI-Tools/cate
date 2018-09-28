@@ -393,7 +393,6 @@ class LocalDataSource(DataSource):
             self._temporal_coverage = time_range
         self.save()
 
-
     def update_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
         """
 
