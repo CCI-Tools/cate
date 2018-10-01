@@ -1,6 +1,6 @@
 ## Version 2.0.0.dev21 (in development)
 
-* Temporal coverage NoneType check [#664](https://github.com/CCI-Tools/cate/issues/664)
+* Fix for Aerosol data download error [#664](https://github.com/CCI-Tools/cate/issues/664)
 
 
 ## Version 2.0.0.dev20

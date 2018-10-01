@@ -50,16 +50,15 @@ Given here is an overview of the possible configuration settings:
     (``{...}``) of variable names.
 
 :``http_proxy, https_proxy``:
-    When Cate run behind a proxy server, the access to remote data require to configure two variables:
-    ``http_proxy`` to allow connection through http protocol and ``https_proxy`` to access secures services
-    The variables can be defined in conf.py file, the configuration will overwrite the values of those
-    variables eventually defined in the uesr environment.
+    When Cate run behind a proxy server, the access to remote data require to configure proxy variable:
+    ``http_proxy`` to allow connection through http protocol to access remote services
+    The variable can be defined in conf.py file, the configuration will overwrite the value of this
+    variable eventually defined in the user environment.
     The accepted proxy values are the following:::
 
         http://user:password@host:port
-        https://user:password@host:port
         http://host:port
-        https://host:port
+
 
 :``variable_display_settings``:
     Configure / overwrite default variable display settings as used in various plot_<type>() operations
