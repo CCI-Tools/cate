@@ -52,21 +52,40 @@ class TestPearsonScalar(TestCase):
         """
         Test error conditions
         """
-        # Test incompatible time dimension
+        # Test incompatible dimension length
         ds1 = xr.Dataset({'first': ('time', np.linspace(0, 5, 6))})
         ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
 
         with self.assertRaises(ValueError) as err:
             pearson_correlation_scalar(ds1, ds2, 'first', 'first')
-        self.assertIn('dimension differs', str(err.exception))
+        self.assertIn('All dimensions', str(err.exception))
 
-        # Test incompatible time dimension
+        # Test not enough values to correlate
         ds1 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
         ds2 = xr.Dataset({'first': ('time', np.linspace(0, 1, 2))})
 
         with self.assertRaises(ValueError) as err:
             pearson_correlation_scalar(ds1, ds2, 'first', 'first')
-        self.assertIn('dimension should not be less', str(err.exception))
+        self.assertIn('no less than 3 values', str(err.exception))
+
+        # Test incompatible dimensionality
+        ds1 = xr.Dataset({
+            'first': (['time', 'lon', 'lat'], np.array([np.ones([8, 4])])),
+            'second': (['time', 'lon', 'lat'], np.array([np.ones([8, 4])])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        ds2 = xr.Dataset({
+            'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8])])),
+            'first': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]) * 2])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        with self.assertRaises(ValueError) as err:
+            pearson_correlation_scalar(ds1, ds2, 'first', 'first')
+        self.assertIn('same dimensionality', str(err.exception))
 
     def test_3D(self):
         """
@@ -74,12 +93,12 @@ class TestPearsonScalar(TestCase):
         """
         # Test general functionality 3D dataset variables
         ds1 = xr.Dataset({
-            'first': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]),
-                                                        np.ones([4, 8]) * 2,
-                                                        np.ones([4, 8]) * 3])),
-            'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]) * 2,
+            'second': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]),
                                                          np.ones([4, 8]) * 3,
-                                                         np.ones([4, 8])])),
+                                                         np.ones([4, 8]) * 4])),
+            'first': (['time', 'lat', 'lon'], np.array([np.ones([4, 8]) * 2,
+                                                        np.ones([4, 8]) * 3,
+                                                        np.ones([4, 8])])),
             'lat': np.linspace(-67.5, 67.5, 4),
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
@@ -95,9 +114,9 @@ class TestPearsonScalar(TestCase):
             'lon': np.linspace(-157.5, 157.5, 8),
             'time': np.array([1, 2, 3])}).chunk(chunks={'lat': 2, 'lon': 4})
 
-        with self.assertRaises(ValueError) as err:
-            pearson_correlation_scalar(ds1, ds2, 'first', 'first')
-        self.assertIn('should be simple 1d', str(err.exception))
+        correlation = pearson_correlation_scalar(ds1, ds2, 'first', 'first')
+        self.assertTrue(correlation['corr_coef'][0] == 1.0)
+        self.assertTrue(correlation['p_value'][0] == 0.0)
 
 
 class TestPearson(TestCase):
