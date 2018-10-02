@@ -100,7 +100,7 @@ def write_object(obj, file, format_name=None, **kwargs):
     writer = find_writer(obj, file, format_name=format_name, **kwargs)
     if not writer:
         msg = f"no writer found for format {format_name}" if format_name else "no writer found"
-        raise ValueError()
+        raise ValueError(msg)
     writer.write(obj, file, **kwargs)
     return writer
 

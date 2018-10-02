@@ -118,8 +118,8 @@ class TestNormalize(TestCase):
             'second': (['time', 'lat', 'lon'], np.zeros([3, 45, 90])),
             'lat': np.linspace(88, -88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time':1})
-            
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time': 1})
+
         first = np.zeros([3, 45, 90])
         first[0, :, :] = np.flip(np.eye(45, 90), axis=0)
         expected = xr.Dataset({
@@ -127,11 +127,10 @@ class TestNormalize(TestCase):
             'second': (['time', 'lat', 'lon'], np.zeros([3, 45, 90])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time':1})
-        
+            'time': [datetime(2000, x, 1) for x in range(1, 4)]}).chunk(chunks={'time': 1})
+
         actual = normalize(ds)
         xr.testing.assert_equal(actual, expected)
-
 
     def test_normalize_with_missing_time_dim(self):
         ds = xr.Dataset({'first': (['lat', 'lon'], np.zeros([90, 180])),
