@@ -41,7 +41,6 @@ import scipy
 import scipy as sp
 import xarray
 import xarray as xr
-from xarray import ufuncs as xu
 
 from cate.core.op import op, op_input, op_return
 from cate.core.types import DatasetLike, ValidationError, DataFrameLike
@@ -94,15 +93,15 @@ def ds_arithmetics(ds: DatasetLike.TYPE,
                 elif item[0] == '/':
                     retset = retset / float(item[1:])
                 elif item[:] == 'log':
-                    retset = xu.log(retset)
+                    retset = np.log(retset)
                 elif item[:] == 'log10':
-                    retset = xu.log10(retset)
+                    retset = np.log10(retset)
                 elif item[:] == 'log2':
-                    retset = xu.log2(retset)
+                    retset = np.log2(retset)
                 elif item[:] == 'log1p':
-                    retset = xu.log1p(retset)
+                    retset = np.log1p(retset)
                 elif item[:] == 'exp':
-                    retset = xu.exp(retset)
+                    retset = np.exp(retset)
                 else:
                     raise ValidationError('Arithmetic operation {} not'
                                           ' implemented.'.format(item[0]))

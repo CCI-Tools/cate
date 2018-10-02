@@ -78,10 +78,11 @@ def read_object(file, format_name=None, **kwargs):
     :return: A tuple (*obj*, *reader*), where *obj* is the object read and *reader* is the reader used to read it.
     """
     if not os.path.exists(file):
-        raise FileNotFoundError('file not found: %s' % file)
+        raise FileNotFoundError(f'file not found: {file}')
     reader = find_reader(file, format_name=format_name, **kwargs)
     if not reader:
-        raise ValueError("no reader found for format '%s'" % format_name if format_name else "no reader found")
+        msg = f"no reader found for format {format_name}" if format_name else "no reader found"
+        raise ValueError(msg)
     obj = reader.read(file, **kwargs)
     return obj, reader
 
@@ -98,7 +99,8 @@ def write_object(obj, file, format_name=None, **kwargs):
     """
     writer = find_writer(obj, file, format_name=format_name, **kwargs)
     if not writer:
-        raise ValueError("no writer found for format '%s'" % format_name if format_name else "no writer found")
+        msg = f"no writer found for format {format_name}" if format_name else "no writer found"
+        raise ValueError(msg)
     writer.write(obj, file, **kwargs)
     return writer
 
