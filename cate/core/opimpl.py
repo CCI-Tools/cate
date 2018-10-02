@@ -83,6 +83,9 @@ def _normalize_inverted_lat(ds: xr.Dataset) -> xr.Dataset:
     except AttributeError:
         # The dataset doesn't have 'lat', probably not geospatial
         pass
+    except ValueError:
+        # The dataset still has an ND 'lat' array
+        pass
     return ds
 
 
