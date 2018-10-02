@@ -150,7 +150,6 @@ class LocalDataSource(DataSource):
                      protocol: str = None,
                      monitor: Monitor = Monitor.NONE) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
-        region = PolygonLike.convert(region) if region else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
 
         paths = []
