@@ -361,7 +361,7 @@ class LocalDataSource(DataSource):
         if update or self._files.keys().isdisjoint([file]):
             self._files[file] = time_coverage
             if time_coverage:
-                self._extend_temporal_coverage(time_coverage)
+                self._extend_temporal_coverage(TimeRangeLike.convert(time_coverage))
         self._files = OrderedDict(sorted(self._files.items(),
                                          key=lambda f: f[1] if isinstance(f, Tuple) and f[1] else datetime.max))
         if extract_meta_info:
@@ -372,15 +372,18 @@ class LocalDataSource(DataSource):
                 pass
         self.save()
 
-    def _extend_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
+    def _extend_temporal_coverage(self, time_interval: TimeRangeLike.TYPE):
         """
 
         :param time_range: Time range to be added to data source temporal coverage
         :return:
         """
-        if not time_range:
+
+        time_range = TimeRangeLike.convert(time_interval)
+        if not time_range or None in time_range:
             return
-        if self._temporal_coverage:
+
+        if self._temporal_coverage and not (None in self._temporal_coverage):
             if time_range[0] >= self._temporal_coverage[1]:
                 self._temporal_coverage = tuple([self._temporal_coverage[0], time_range[1]])
             elif time_range[1] <= self._temporal_coverage[0]:
@@ -395,14 +398,15 @@ class LocalDataSource(DataSource):
         :param time_range: Time range to be added to data source temporal coverage
         :return:
         """
-        self._extend_temporal_coverage(time_range)
+        self._extend_temporal_coverage(TimeRangeLike.convert(time_range))
 
-    def _reduce_temporal_coverage(self, time_range: TimeRangeLike.TYPE):
+    def _reduce_temporal_coverage(self, time_interval: TimeRangeLike.TYPE):
         """
 
         :param time_range:Time range to be removed from data source temporal coverage
         :return:
         """
+        time_range = TimeRangeLike.convert(time_interval)
         if not time_range or not self._temporal_coverage:
             return
         if time_range[0] > self._temporal_coverage[0] and time_range[1] == self._temporal_coverage[1]:

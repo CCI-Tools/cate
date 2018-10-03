@@ -777,7 +777,7 @@ class EsaCciOdpDataSource(DataSource):
             if time_range:
                 raise ValidationError("Cannot open remote dataset for time range {}:\n"
                                       "{}"
-                                      .format(TimeRangeLike.format(time_range), e), source=self) from e
+                                      .format(TimeRangeLike.format(time_range), e)) from e
             else:
                 raise DataAccessError("Cannot open remote dataset:\n"
                                       "{}"
@@ -847,6 +847,7 @@ class EsaCciOdpDataSource(DataSource):
 
                 files = self._get_urls_list(selected_file_list, protocol)
                 monitor.start('Sync ' + self.id, total_work=len(files))
+
                 for idx, dataset_uri in enumerate(files):
                     child_monitor = monitor.child(work=1)
 
@@ -942,7 +943,7 @@ class EsaCciOdpDataSource(DataSource):
         except OSError as e:
             raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
         except ValueError as e:
-            raise ValidationError("Copying remote data source failed: {}".format(e), source=self) from e
+            raise ValidationError("Copying remote data source failed: {}".format(e)) from e
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)

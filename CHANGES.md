@@ -1,9 +1,9 @@
 ## Version 2.0.0.dev21 (in development)
 
+* Fix for Aerosol data download error [#664](https://github.com/CCI-Tools/cate/issues/664)
 * Pearson correlation scalar operation now works on N-D data variables [#746](https://github.com/CCI-Tools/cate/issues/746)
 * Make sure integer data variables can be coregistered [#770](https://github.com/CCI-Tools/cate/issues/770)
 * Fix an issue with coregistering datasets with inverted latitudes [#733](https://github.com/CCI-Tools/cate/issues/733)
-
 
 ## Version 2.0.0.dev20
 
