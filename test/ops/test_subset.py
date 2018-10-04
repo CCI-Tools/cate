@@ -387,6 +387,32 @@ class TestSubsetSpatial(TestCase):
             subset.subset_spatial(dataset, region=poly, mask=False)
         self.assertIn('Can not select', str(err.exception))
 
+    def test_non_geospatial_variable(self):
+        """
+        Test that subsetting a dataset that contains a non-geospatial
+        dataset skips such a dataset
+        """
+        dataset = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([180, 360, 6])),
+            'third': (['time'], np.ones([6])),
+            'lat': np.linspace(-89.5, 89.5, 180),
+            'lon': np.linspace(-179.5, 179.5, 360),
+            'time': np.array([0, 1, 2, 3, 4, 5])})
+        actual = subset.subset_spatial(dataset, "-20, -10, 20, 10")
+        expected = xr.Dataset({
+            'first': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'second': (['lat', 'lon', 'time'], np.ones([22, 42, 6])),
+            'third': (['time'], np.ones([6])),
+            'lat': np.linspace(-10.5, 10.5, 22),
+            'lon': np.linspace(-20.5, 20.5, 42),
+            'time': np.array([0, 1, 2, 3, 4, 5])})
+        assert_dataset_equal(expected, actual)
+
+        poly = "POLYGON ((6.609745636041873 45.391851854914776, 19.720614826531428 45.391851854914776, 19.720614826531428 37.06301149556095, 6.609745636041874 37.06301149556095, 6.609745636041873 45.391851854914776))"
+        actual = subset.subset_spatial(dataset, poly, mask=True)
+        xr.testing.assert_equal(expected.third, actual.third)
+
 
 class TestSubsetTemporal(TestCase):
     def test_subset_temporal(self):

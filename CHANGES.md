@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev21 (in development)
 
+* Fix non-spatial data variables sometimes being altered when using subset_spatial [#786](https://github.com/CCI-Tools/cate/issues/786)
+* Fix subsetting datasets with lon>180 when using open_dataset [#787](https://github.com/CCI-Tools/cate/issues/787)
 * Fix for Aerosol data download error [#664](https://github.com/CCI-Tools/cate/issues/664)
 * Pearson correlation scalar operation now works on N-D data variables [#746](https://github.com/CCI-Tools/cate/issues/746)
 * Make sure integer data variables can be coregistered [#770](https://github.com/CCI-Tools/cate/issues/770)
