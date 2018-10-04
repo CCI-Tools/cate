@@ -770,6 +770,27 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     return lon_min, lat_min, lon_max, lat_max
 
 
+def reset_non_spatial(ds_source: xr.Dataset, ds_target: xr.Dataset):
+    """
+    Find non spatial data arrays in ds_source and set the corresponding
+    data variables in ds_target to original ones.
+
+    :param ds_source: Source dataset
+    :param ds_target: Target dataset
+    """
+    non_spatial = list()
+    for var_name in ds_source.var():
+        if 'lat' not in ds_source[var_name].dims and \
+           'lon' not in ds_source[var_name].dims:
+            non_spatial.append(var_name)
+
+    retset = ds_target
+    for var in non_spatial:
+        retset[var] = ds_source[var]
+
+    return retset
+
+
 def subset_spatial_impl(ds: xr.Dataset,
                         region: PolygonLike.TYPE,
                         mask: bool = True,
@@ -843,7 +864,7 @@ def subset_spatial_impl(ds: xr.Dataset,
         # Preserve the original longitude dimension, masking elements that
         # do not belong to the polygon with NaN.
         with monitor.observing('subset'):
-            return retset.reindex_like(ds.lon)
+            return reset_non_spatial(ds, retset.reindex_like(ds.lon))
 
     lon_slice = slice(lon_min, lon_max)
     indexers = {'lat': lat_index, 'lon': lon_slice}
@@ -856,7 +877,7 @@ def subset_spatial_impl(ds: xr.Dataset,
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
         with monitor.observing('subset'):
-            return retset
+            return reset_non_spatial(ds, retset)
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all pixels falling in the region or on its boundary are denoted with True
@@ -879,7 +900,8 @@ def subset_spatial_impl(ds: xr.Dataset,
         with monitor.observing('subset'):
             # Apply the mask to data
             retset = retset.where(mask_arr, drop=True)
-        return retset
+
+        return reset_non_spatial(ds, retset)
 
     # The normal case
     # Create a grid of pixel vertices
@@ -932,7 +954,7 @@ def subset_spatial_impl(ds: xr.Dataset,
         retset = retset.where(mask_arr, drop=False)
 
     monitor.done()
-    return retset
+    return reset_non_spatial(ds, retset)
 
 
 def _crosses_antimeridian(region: Polygon) -> bool:
