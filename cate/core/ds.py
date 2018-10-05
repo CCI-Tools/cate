@@ -95,7 +95,8 @@ from ..util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd)" \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 URL_REGEX = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://

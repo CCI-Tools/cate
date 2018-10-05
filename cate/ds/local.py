@@ -658,9 +658,9 @@ class LocalDataStore(DataStore):
                 meta_info = OrderedDict()
             meta_info['title'] = title
 
-        if not re.match(r'^[\w\-. ]+$', data_source_id):
+        if not re.match(r'^[a-zA-Z0-9_]*$', data_source_id):
             raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
-                                  hint='Do not use space, dot or dash symbol in the datasource name')
+                                  hint='Use only letters, numbers or underscore in the datasource name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
