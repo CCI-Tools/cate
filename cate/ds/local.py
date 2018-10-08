@@ -659,8 +659,8 @@ class LocalDataStore(DataStore):
             meta_info['title'] = title
 
         if not re.match(r'^[a-zA-Z0-9_.]*$', data_source_id):
-            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
-                                  hint='Use only letters, numbers, dots or underscore in the datasource name')
+            raise ValidationError('Unaccepted characters in data source name "{}"'.format(data_source_id),
+                                  hint='Use only letters, numbers, dots or underscore in the data source name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
