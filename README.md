@@ -36,6 +36,14 @@ The first step is to clone latest Cate code and step into the check out director
 [Conda](https://conda.io/docs/intro.html) is the package manager used by the Miniconda or 
 Anaconda Python distributions.
 
+__Note for Windows users__: When using ```conda env create``` on windows, please add teh folloing line 
+to environment.yml:
+
+```
+  - vs2015_runtime ==14.0.25420
+```
+
+
 Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
 GB on Windows. To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
 
