@@ -7,15 +7,16 @@ dependencies:
   #
   # dependencies (in alphabetical order)
   #
+  - attrs >=18.2.0,
   - boto3 >=1.9.2,<2.0
   - botocore >=1.12.3,<2.0
   - cartopy >=0.15,<1.0
   - conda >=4.5.1,<5.0
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25,<1.0
-  - dask >=0.19,<1.0
-  - fiona >=1.7,<1.7.14
-  - gdal >=2.2.2,<3.0
+  - dask >=0.19,<1.0.3
+  - fiona >=1.7,<2.0
+  - gdal >=2.2.3,<3.0
   - geopandas >=0.3,<1.0
   # require specific minor version to prevent downgrade
   - geos >=3.5.1,<4.0
