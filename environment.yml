@@ -14,8 +14,8 @@ dependencies:
   # Include Cython, otherwise pip will do so during "python setup.py install" (why???)
   - cython >=0.25,<1.0
   - dask >=0.19,<1.0
-  - fiona >=1.7,<2.0
-  - gdal >=2.2.3,<3.0
+  - fiona >=1.7,<1.7.14
+  - gdal >=2.2.2,<3.0
   - geopandas >=0.3,<1.0
   # require specific minor version to prevent downgrade
   - geos >=3.5.1,<4.0
@@ -43,6 +43,8 @@ dependencies:
   - shapely >=1.6,<2.0
   - tornado >=5.0,<6.0
   - xarray >=0.10.6
+  # fiona 1.7 requires vs2015_runtime 14
+  - vs2015_runtime ==14.0.25420  [win]
   #
   # for testing only
   #
