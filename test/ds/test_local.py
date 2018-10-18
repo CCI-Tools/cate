@@ -51,7 +51,7 @@ class LocalDataStoreTest(unittest.TestCase):
             self.data_store.create_data_source(new_ds_id)
         self.assertEqual('Unaccepted characters in data source name "{}"'.format(new_ds_id), str(cm.exception))
 
-        new_ds_id = 'test name'
+        new_ds_id = 'test name.2000'
         with self.assertRaises(ValidationError) as cm:
             self.data_store.create_data_source(new_ds_id)
         self.assertEqual('Unaccepted characters in data source name "{}"'.format(new_ds_id), str(cm.exception))
