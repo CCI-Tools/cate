@@ -327,6 +327,6 @@ def _is_scalar(value):
     """
     from collections import Iterable
 
-    return (getattr(value, 'ndim', None) == 0 or
-            isinstance(value, (str, bytes)) or not
-            isinstance(value, (Iterable,)))
+    return (getattr(value, 'ndim', None) == 0
+            or isinstance(value, (str, bytes))
+            or not isinstance(value, (Iterable,)))
