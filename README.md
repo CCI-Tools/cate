@@ -36,7 +36,7 @@ The first step is to clone latest Cate code and step into the check out director
 [Conda](https://conda.io/docs/intro.html) is the package manager used by the Miniconda or 
 Anaconda Python distributions.
 
-__Note for Windows users__: When using ```conda env create``` on windows, please add teh folloing line 
+__Note for Windows users__: When using ```conda env create``` on windows, please add the following line 
 to environment.yml:
 
 ```
