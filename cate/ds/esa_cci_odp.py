@@ -67,7 +67,8 @@ ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
 

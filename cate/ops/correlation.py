@@ -184,17 +184,16 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
                                   ' performed. Please review operation'
                                   ' documentation')
 
-        if (not ds_x['lat'].equals(ds_y['lat']) or
-                not ds_x['lon'].equals(ds_y['lon'])):
+        if (not ds_x['lat'].equals(ds_y['lat']) or not ds_x['lon'].equals(ds_y['lon'])):
             raise ValidationError('When performing a pixel by pixel correlation the'
                                   ' datasets have to have the same lat/lon'
                                   ' definition. Consider running coregistration'
                                   ' first')
 
-    elif (((len(array_x.dims) == 3) and (len(array_y.dims) != 1)) or
-          ((len(array_x.dims) == 1) and (len(array_y.dims) != 3)) or
-          ((len(array_x.dims) != 3) and (len(array_y.dims) == 1)) or
-          ((len(array_x.dims) != 1) and (len(array_y.dims) == 3))):
+    elif (((len(array_x.dims) == 3) and (len(array_y.dims) != 1))
+          or ((len(array_x.dims) == 1) and (len(array_y.dims) != 3))
+          or ((len(array_x.dims) != 3) and (len(array_y.dims) == 1))
+          or ((len(array_x.dims) != 1) and (len(array_y.dims) == 3))):
         raise ValidationError('A correlation coefficient map can only be produced'
                               ' if both provided datasets are 3D datasets with'
                               ' lon/lat/time dimensionality, or if a combination'
@@ -257,8 +256,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
         r_num = xm_ym.sum(dim='time')
         xm_squared = xr.ufuncs.square(xm)
         ym_squared = xr.ufuncs.square(ym)
-        r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') *
-                               ym_squared.sum(dim='time'))
+        r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') * ym_squared.sum(dim='time'))
         r_den = r_den.where(r_den != 0)
         r = r_num / r_den
 
@@ -282,8 +280,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
                    ' {} and {}.'.format(x.name, y.name)}
 
         df = n - 2
-        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) *
-                                                 (1.0 + r.where(r != -1))))
+        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) * (1.0 + r.where(r != -1))))
         prob = df / (df + t_squared)
         with monitor.child(1).observing("task 5"):
             prob_values_in = prob.values

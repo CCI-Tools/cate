@@ -65,7 +65,8 @@ from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
@@ -287,8 +288,8 @@ class LocalDataSource(DataSource):
                                 variables_info = local_ds.meta_info.get('variables', [])
                                 local_ds.meta_info['variables'] = [var_info for var_info in variables_info
                                                                    if var_info.get('name')
-                                                                   in remote_dataset.variables.keys() and
-                                                                   var_info.get('name')
+                                                                   in remote_dataset.variables.keys()
+                                                                   and var_info.get('name')
                                                                    not in remote_dataset.dims.keys()]
                                 do_update_of_variables_meta_info_once = False
 
@@ -658,9 +659,9 @@ class LocalDataStore(DataStore):
                 meta_info = OrderedDict()
             meta_info['title'] = title
 
-        if not re.match(r'^[\w\-. ]+$', data_source_id):
-            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
-                                  hint='Do not use space, dot or dash symbol in the datasource name')
+        if not re.match(r'^[a-zA-Z0-9_.]*$', data_source_id):
+            raise ValidationError('Unaccepted characters in data source name "{}"'.format(data_source_id),
+                                  hint='Use only letters, numbers, dots or underscore in the data source name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)
