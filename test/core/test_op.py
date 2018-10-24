@@ -218,7 +218,7 @@ class OpTest(TestCase):
         @op_input('y', registry=self.registry)
         @op_input('a', registry=self.registry, data_type=int, value_set=[1, 4, 5])
         @op_return(registry=self.registry, data_type=float)
-        def f(x, y: float, a=4):
+        def f(x, y: float or None, a=4):
             return a * x + y if a != 5 else 'foo'
 
         self.assertIs(f, self.registry.get_op(f))
@@ -390,12 +390,12 @@ class OpTest(TestCase):
         self.assertTrue('trilinear' in ret['name1'].attrs['history'])
         # Other datasets should have the old history, while 'name1' should be
         # updated
-        self.assertTrue(ret['name1'].attrs['history'] !=
-                        ret['name2'].attrs['history'])
-        self.assertTrue(ret['name1'].attrs['history'] !=
-                        ret['name3'].attrs['history'])
-        self.assertTrue(ret['name2'].attrs['history'] ==
-                        ret['name3'].attrs['history'])
+        self.assertTrue(ret['name1'].attrs['history']
+                        != ret['name2'].attrs['history'])
+        self.assertTrue(ret['name1'].attrs['history']
+                        != ret['name3'].attrs['history'])
+        self.assertTrue(ret['name2'].attrs['history']
+                        == ret['name3'].attrs['history'])
 
         # Test missing version
         @op(registry=self.registry)

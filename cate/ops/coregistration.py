@@ -176,9 +176,9 @@ def _is_valid_array(array: xr.DataArray) -> bool:
     :param array: Array to check for validity
     :return: True if the given array is valid
     """
-    return (len(array.dims) >= 2 and
-            'lat' in array.dims and
-            'lon' in array.dims)
+    return (len(array.dims) >= 2
+            and 'lat' in array.dims
+            and 'lon' in array.dims)
 
 
 def _within_bounds(array: np.ndarray, low_bound) -> bool:
@@ -193,7 +193,8 @@ def _within_bounds(array: np.ndarray, low_bound) -> bool:
     return (array[0] >= low_bound and array[-1] <= abs(low_bound))
 
 
-def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int, parent_monitor: Monitor) -> xr.DataArray:
+def _resample_slice(arr_slice: xr.DataArray, w: int, h: int, ds_method: int, us_method: int,
+                    parent_monitor: Monitor) -> xr.DataArray:
     """
     Resample a single time slice of a larger xr.DataArray
 
@@ -272,7 +273,8 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
                             attrs=array.attrs).chunk(chunks=chunks)
 
 
-def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int, monitor: Monitor) -> xr.Dataset:
+def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int,
+                      monitor: Monitor) -> xr.Dataset:
     """
     Resample slave onto the grid of the master.
     This does spatial resampling the whole dataset, e.g., all
@@ -349,8 +351,8 @@ def _find_intersection(first: np.ndarray,
     finer = min(first_px_size, second_px_size)
     safety = 100
     i = 0
-    while (not math.isclose(((minimum - global_bounds[0]) % first_px_size), 0, abs_tol=0.1) and
-           not math.isclose(((minimum - global_bounds[0]) % second_px_size), 0, abs_tol=0.1)):
+    while (not math.isclose(((minimum - global_bounds[0]) % first_px_size), 0, abs_tol=0.1)
+           and not math.isclose(((minimum - global_bounds[0]) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')
@@ -358,8 +360,8 @@ def _find_intersection(first: np.ndarray,
         i = i + 1
 
     i = 0
-    while (not math.isclose(((global_bounds[1] - maximum) % first_px_size), 0, abs_tol=0.1) and
-           not math.isclose(((global_bounds[1] - maximum) % second_px_size), 0, abs_tol=0.1)):
+    while (not math.isclose(((global_bounds[1] - maximum) % first_px_size), 0, abs_tol=0.1)
+           and not math.isclose(((global_bounds[1] - maximum) % second_px_size), 0, abs_tol=0.1)):
         if i == safety:
             raise ValidationError('Could not find a valid intersection to perform'
                                   ' coregistration on')

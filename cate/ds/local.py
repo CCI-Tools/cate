@@ -287,8 +287,8 @@ class LocalDataSource(DataSource):
                                 variables_info = local_ds.meta_info.get('variables', [])
                                 local_ds.meta_info['variables'] = [var_info for var_info in variables_info
                                                                    if var_info.get('name')
-                                                                   in remote_dataset.variables.keys() and
-                                                                   var_info.get('name')
+                                                                   in remote_dataset.variables.keys()
+                                                                   and var_info.get('name')
                                                                    not in remote_dataset.dims.keys()]
                                 do_update_of_variables_meta_info_once = False
 

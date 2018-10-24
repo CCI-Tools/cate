@@ -49,7 +49,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 def enso_nino34(ds: xr.Dataset,
                 var: VarName.TYPE,
                 file: str,
-                threshold: float=None,
+                threshold: float = None,
                 monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate nino34 index, which is defined as a five month running mean of
@@ -82,9 +82,9 @@ def enso_nino34(ds: xr.Dataset,
 def enso(ds: xr.Dataset,
          var: VarName.TYPE,
          file: str,
-         region: str='n34',
-         custom_region: PolygonLike.TYPE=None,
-         threshold: float=None,
+         region: str = 'n34',
+         custom_region: PolygonLike.TYPE = None,
+         threshold: float = None,
          monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate ENSO index, which is defined as a five month running mean of
@@ -127,7 +127,7 @@ def enso(ds: xr.Dataset,
 def oni(ds: xr.Dataset,
         var: VarName.TYPE,
         file: str,
-        threshold: float=None,
+        threshold: float = None,
         monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Calculate ONI index, which is defined as a three month running mean of
