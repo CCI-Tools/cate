@@ -65,7 +65,8 @@ from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+             "Chris Bernat (Telespazio VEGA UK Ltd), " \
+             "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _REFERENCE_DATA_SOURCE_TYPE = "FILE_PATTERN"
 
@@ -658,9 +659,9 @@ class LocalDataStore(DataStore):
                 meta_info = OrderedDict()
             meta_info['title'] = title
 
-        if not re.match(r'^[\w\-. ]+$', data_source_id):
-            raise ValidationError('Unaccepted characters in Data Source name "{}"'.format(data_source_id),
-                                  hint='Do not use space, dot or dash symbol in the datasource name')
+        if not re.match(r'^[a-zA-Z0-9_.]*$', data_source_id):
+            raise ValidationError('Unaccepted characters in data source name "{}"'.format(data_source_id),
+                                  hint='Use only letters, numbers, dots or underscore in the data source name')
 
         if not data_source_id.startswith('%s.' % self.id):
             data_source_id = '%s.%s' % (self.id, data_source_id)

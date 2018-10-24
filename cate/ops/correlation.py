@@ -184,8 +184,7 @@ def pearson_correlation(ds_x: DatasetLike.TYPE,
                                   ' performed. Please review operation'
                                   ' documentation')
 
-        if (not ds_x['lat'].equals(ds_y['lat'])
-                or not ds_x['lon'].equals(ds_y['lon'])):
+        if (not ds_x['lat'].equals(ds_y['lat']) or not ds_x['lon'].equals(ds_y['lon'])):
             raise ValidationError('When performing a pixel by pixel correlation the'
                                   ' datasets have to have the same lat/lon'
                                   ' definition. Consider running coregistration'
@@ -281,8 +280,8 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
                    ' {} and {}.'.format(x.name, y.name)}
 
         df = n - 2
-        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1))
-                                                 * (1.0 + r.where(r != -1))))
+        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) * (1.0 + r.where(r != -1))))
+
         prob = df / (df + t_squared)
         with monitor.child(1).observing("task 5"):
             prob_values_in = prob.values
