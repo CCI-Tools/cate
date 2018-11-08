@@ -33,6 +33,8 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 
+from xarray.core.resample import DatasetResample as resampler
+
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
@@ -390,8 +392,22 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
 
     _validate_freq(in_freq, freq)
 
+    aggregators = {
+        'mean': resampler.mean,
+        'max': resampler.max,
+        'median': resampler.median,
+        'prod': resampler.prod,
+        'sum': resampler.sum,
+        'std': resampler.std,
+        'var': resampler.var,
+        'argmax': resampler.argmax,
+        'argmin': resampler.argmin,
+        'first': resampler.first,
+        'last': resampler.last,
+    }
+
     with monitor.observing("resample dataset"):
-        retset = ds.resample(freq=freq, dim='time', keep_attrs=True, how=method)
+        retset = aggregators[method](ds.resample(time=freq, keep_attrs=True))
 
     for var in retset.data_vars:
         try:
