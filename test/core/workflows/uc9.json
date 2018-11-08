@@ -172,7 +172,7 @@
       "op": "cate.ops.coregistration.coregister",
       "inputs": {
         "master": "filter2",
-        "slave": "filter1",
+        "replica": "filter1",
         "method": "uc9.interpolation_type"
       }
     },

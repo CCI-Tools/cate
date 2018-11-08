@@ -12,7 +12,7 @@ Operation
 :Operation name: Co-Registration
 .. :Algorithm name: *XXX*
 :Algorithm reference: `Wikipedia entry on image registration <https://en.wikipedia.org/wiki/Image_registration>`
-:Description: This Operation interpolates spatial data of one dataset (slave) onto the coordinate system of another dataset (master).
+:Description: This Operation interpolates spatial data of one dataset (replica) onto the coordinate system of another dataset (master).
 :Utilised in: :doc:`../uc_workflows/uc09_workflow`
 
 --------------------------
@@ -24,8 +24,8 @@ Options
 
 --------------------------
 
-:name: master-slave setting
-:description: which dataset tu use as master, which as slave
+:name: master-replica setting
+:description: which dataset tu use as master, which as replica
 
 --------------------------
 
