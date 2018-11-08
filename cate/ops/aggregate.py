@@ -393,7 +393,10 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     _validate_freq(in_freq, freq)
 
     with monitor.observing("resample dataset"):
-        retset = getattr(resampler, method)(ds.resample(time=freq, keep_attrs=True))
+        try:
+            retset = getattr(resampler, method)(ds.resample(time=freq, keep_attrs=True))
+        except AttributeError:
+            raise ValidationError(f'Provided aggregation method {method} is not valid.')
 
     for var in retset.data_vars:
         try:
