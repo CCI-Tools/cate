@@ -133,6 +133,11 @@ def coregister(ds_master: xr.Dataset,
                                   ' pixel-registered, can not perform'
                                   ' coregistration'.format(array[0]))
 
+    # Don't do anything if datasets already have the same spatial definition
+    if np.array_equal(ds_master['lat'].values, ds_slave['lat'].values) and \
+       np.array_equal(ds_master['lon'].values, ds_slave['lon'].values):
+        return ds_slave
+
     # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
@@ -308,6 +313,11 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
     lon = ds_master['lon'].sel(lon=lon_slice)
     lat = ds_master['lat'].sel(lat=lat_slice)
     ds_slave = ds_slave.sel(lon=lon_slice, lat=lat_slice)
+
+    if np.array_equal(lon.values, ds_slave['lon'].values) and \
+       np.array_equal(lat.values, ds_slave['lat'].values):
+        # The original grids already have the same spatial definition
+        return ds_slave
 
     with monitor.starting("coregister dataset", len(ds_slave.data_vars)):
         kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'parent_monitor': monitor}
