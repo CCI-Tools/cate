@@ -742,3 +742,31 @@ class TestCoregistration(TestCase):
             'time': np.array([1, 2])})
 
         assert_almost_equal(ds_fine_resampled['first'].values, expected['first'].values)
+
+    def test_same_grid(self):
+        """
+        Test the case when both datasets already have the same geospatial definition
+        """
+        ds_fine = xr.Dataset({
+            'first': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'second': (['time', 'lat', 'lon'], np.array([np.eye(4, 8), np.eye(4, 8)])),
+            'lat': np.linspace(-67.5, 67.5, 4),
+            'lon': np.linspace(-157.5, 157.5, 8),
+            'time': np.array([1, 2])}).chunk(chunks={'lat': 2, 'lon': 4})
+
+        rm = RecordingMonitor()
+        ds_same = coregister(ds_fine, ds_fine, monitor=rm)
+        # Make sure it returned the input as opposed to going through with
+        # coregistration
+        self.assertEqual([], rm.records)
+
+        assert_almost_equal(ds_same['first'].values, ds_fine['first'].values)
+
+        # Test that a subset is performed, but no coregistration done
+        lat_slice = slice(-70, 70)
+        lon_slice = slice(-40, 40)
+        ds_subset = ds_fine.sel(lat=lat_slice, lon=lon_slice)
+
+        ds_coreg = coregister(ds_subset, ds_fine, monitor=rm)
+        self.assertEqual([], rm.records)
+        assert_almost_equal(ds_coreg['first'].values, ds_subset['first'].values)
