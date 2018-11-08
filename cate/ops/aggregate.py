@@ -392,22 +392,8 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
 
     _validate_freq(in_freq, freq)
 
-    aggregators = {
-        'mean': resampler.mean,
-        'max': resampler.max,
-        'median': resampler.median,
-        'prod': resampler.prod,
-        'sum': resampler.sum,
-        'std': resampler.std,
-        'var': resampler.var,
-        'argmax': resampler.argmax,
-        'argmin': resampler.argmin,
-        'first': resampler.first,
-        'last': resampler.last,
-    }
-
     with monitor.observing("resample dataset"):
-        retset = aggregators[method](ds.resample(time=freq, keep_attrs=True))
+        retset = getattr(resampler, method)(ds.resample(time=freq, keep_attrs=True))
 
     for var in retset.data_vars:
         try:
