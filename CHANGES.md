@@ -1,4 +1,7 @@
-## Version 2.0.0.dev21 (in development)
+## Version 2.0.0.dev22 (in development)
+
+
+## Version 2.0.0.dev21
 
 * Fix dataset name can contain only letters, numbers underscore and dot [#343](https://github.com/CCI-Tools/cate/issues/343)
 * Fix non-spatial data variables sometimes being altered when using subset_spatial [#786](https://github.com/CCI-Tools/cate/issues/786)
