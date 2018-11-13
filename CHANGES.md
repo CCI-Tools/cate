@@ -1,5 +1,5 @@
 ## Version 2.0.0.dev22 (in development)
-
+* Fix for SST data download error [#798](https://github.com/CCI-Tools/cate/issues/798)
 
 ## Version 2.0.0.dev21
 
