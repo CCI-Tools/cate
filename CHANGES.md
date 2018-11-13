@@ -1,5 +1,6 @@
 ## Version 2.0.0.dev22 (in development)
 
+* Fix dataset name can contain only letters, numbers underscore, dot and minus [#811](https://github.com/CCI-Tools/cate/issues/881)
 
 ## Version 2.0.0.dev21
 
