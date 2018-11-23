@@ -67,16 +67,16 @@ class TestExternal(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]
+                    + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]
+                    + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         with create_tmp_file() as tmp_file:
             ref.to_netcdf(tmp_file, 'w')
@@ -106,15 +106,15 @@ class TestExternal(TestCase):
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]
+                    + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)]
+                    + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         with create_tmp_file() as tmp_file:
             ref.to_netcdf(tmp_file, 'w')
@@ -127,8 +127,8 @@ class TestExternal(TestCase):
                 'first': (['lat', 'lon', 'time'], np.zeros([27, 26, 24])),
                 'lat': np.linspace(-52, 52, 27),
                 'lon': np.linspace(-50, 50, 26),
-                'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                        [datetime(2001, x, 1) for x in range(1, 13)]})
+                'time': [datetime(2000, x, 1) for x in range(1, 13)]
+                        + [datetime(2001, x, 1) for x in range(1, 13)]})
             actual = anomaly.anomaly_external(ds, tmp_file)
             assert_dataset_equal(actual, expected)
 
@@ -146,8 +146,7 @@ class TestExternal(TestCase):
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         with create_tmp_file() as tmp_file:
             ref.to_netcdf(tmp_file, 'w')
@@ -171,16 +170,14 @@ class TestExternal(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         ds = ds * 10
         expected = expected + 3
@@ -207,16 +204,14 @@ class TestExternal(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         # Test that ds is not a dask array
         self.assertTrue(not ds.chunks)
@@ -250,16 +245,15 @@ class TestExternal(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]})
 
         expected = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)] +
-                    [datetime(2001, x, 1) for x in range(1, 13)]})
+            'time': [datetime(2000, x, 1) for x in range(1, 13)] + [datetime(2001, x, 1) for x in range(1, 13)]
+        })
 
         with create_tmp_file() as tmp_file:
             ref.to_netcdf(tmp_file, 'w')

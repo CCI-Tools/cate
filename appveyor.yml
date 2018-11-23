@@ -12,6 +12,7 @@ install:
   - conda info -a
 
 build_script:
+  - echo   - vs2015_runtime ==14.0.25420 >> environment.yml
   - conda env create --file environment.yml
   - call %PYTHON_LOC%\Scripts\activate.bat cate-env
   - python setup.py install
