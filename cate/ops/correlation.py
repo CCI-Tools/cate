@@ -281,6 +281,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
 
         df = n - 2
         t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) * (1.0 + r.where(r != -1))))
+
         prob = df / (df + t_squared)
         with monitor.child(1).observing("task 5"):
             prob_values_in = prob.values

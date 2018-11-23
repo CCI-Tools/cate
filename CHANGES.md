@@ -1,4 +1,8 @@
-## Version 2.0.0.dev21 (in development)
+## Version 2.0.0.dev22 (in development)
+* Fix dataset name can contain only letters, numbers underscore, dot and minus [#811](https://github.com/CCI-Tools/cate/issues/881)
+* Fix for SST data download error [#798](https://github.com/CCI-Tools/cate/issues/798)
+
+## Version 2.0.0.dev21
 
 * Fix dataset name can contain only letters, numbers underscore and dot [#343](https://github.com/CCI-Tools/cate/issues/343)
 * Fix non-spatial data variables sometimes being altered when using subset_spatial [#786](https://github.com/CCI-Tools/cate/issues/786)
@@ -9,6 +13,7 @@
 * Fix an issue with coregistering datasets with inverted latitudes [#733](https://github.com/CCI-Tools/cate/issues/733)
 * Fix deprecated API use to be able to use newer xarray versions
 * Change `coregistration` interface from using `ds_slave` to `ds_replica`
+* Mentioned to add dependency vs2015_runtime ==14.0.25420 on windows systems to avoid DLL not loading issue
 
 ## Version 2.0.0.dev20
 
