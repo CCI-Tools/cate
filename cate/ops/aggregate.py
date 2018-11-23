@@ -33,6 +33,8 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 
+from xarray.core.resample import DatasetResample as resampler
+
 from cate.core.op import op, op_input, op_return
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
@@ -391,7 +393,10 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
     _validate_freq(in_freq, freq)
 
     with monitor.observing("resample dataset"):
-        retset = ds.resample(freq=freq, dim='time', keep_attrs=True, how=method)
+        try:
+            retset = getattr(resampler, method)(ds.resample(time=freq, keep_attrs=True))
+        except AttributeError:
+            raise ValidationError(f'Provided aggregation method {method} is not valid.')
 
     for var in retset.data_vars:
         try:

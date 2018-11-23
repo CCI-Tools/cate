@@ -182,13 +182,13 @@ To find out more about a particular operation, use ``cate op info``
     Operation cate.ops.coregistration.coregister
     ============================================
 
-    Perform coregistration of two datasets by resampling the slave dataset unto the
+    Perform coregistration of two datasets by resampling the replica dataset unto the
     grid of the master. If upsampling has to be performed, this is achieved using
-    interpolation, if downsampling has to be performed, the pixels of the slave dataset
+    interpolation, if downsampling has to be performed, the pixels of the replica dataset
     are aggregated to form a coarser grid.
 
     The returned dataset will contain the lat/lon intersection of provided
-    master and slave datasets, resampled unto the master grid frequency.
+    master and replica datasets, resampled unto the master grid frequency.
 
     This operation works on datasets whose spatial dimensions are defined on
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
@@ -209,7 +209,7 @@ To find out more about a particular operation, use ``cate op info``
     Inputs:
       ds_master (Dataset)
           The dataset whose grid is used for resampling
-      ds_slave (Dataset)
+      ds_replica (Dataset)
           The dataset that will be resampled
       method_us (str)
           Interpolation method to use for upsampling.
@@ -222,14 +222,14 @@ To find out more about a particular operation, use ``cate op info``
 
     Output:
       return (Dataset)
-          The slave dataset resampled on the grid of the master
+          The replica dataset resampled on the grid of the master
           add history: True
 
 To carry out coregistration, use ``cate res set`` again with appropriate operation parameters
 
 .. code-block:: console
 
-    $ cate res set cfc_res coregister ds_master=@oz_tot ds_slave=@cfc
+    $ cate res set cfc_res coregister ds_master=@oz_tot ds_replica=@cfc
     Executing 5 workflow step(s): done
     Resource "cfc_res" set.
 

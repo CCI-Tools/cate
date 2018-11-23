@@ -52,18 +52,18 @@ from cate.ops.normalize import adjust_spatial_attrs
 @op_input('method_ds', value_set=['first', 'last', 'mean', 'mode', 'var', 'std'])
 @op_return(add_history=True)
 def coregister(ds_master: xr.Dataset,
-               ds_slave: xr.Dataset,
+               ds_replica: xr.Dataset,
                method_us: str = 'linear',
                method_ds: str = 'mean',
                monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
-    Perform coregistration of two datasets by resampling the slave dataset unto the
+    Perform coregistration of two datasets by resampling the replica dataset unto the
     grid of the master. If upsampling has to be performed, this is achieved using
-    interpolation, if downsampling has to be performed, the pixels of the slave dataset
+    interpolation, if downsampling has to be performed, the pixels of the replica dataset
     are aggregated to form a coarser grid.
 
     The returned dataset will contain the lat/lon intersection of provided
-    master and slave datasets, resampled unto the master grid frequency.
+    master and replica datasets, resampled unto the master grid frequency.
 
     This operation works on datasets whose spatial dimensions are defined on
     pixel-registered and equidistant in lat/lon coordinates grids. E.g., data points
@@ -80,35 +80,35 @@ def coregister(ds_master: xr.Dataset,
     based on the relationship of the grids of the provided datasets.
 
     :param ds_master: The dataset whose grid is used for resampling
-    :param ds_slave: The dataset that will be resampled
+    :param ds_replica: The dataset that will be resampled
     :param method_us: Interpolation method to use for upsampling.
     :param method_ds: Interpolation method to use for downsampling.
     :param monitor: a progress monitor.
-    :return: The slave dataset resampled on the grid of the master
+    :return: The replica dataset resampled on the grid of the master
     """
     try:
-        grids = (('slave', ds_slave['lat'].values, -90),
-                 ('slave', ds_slave['lon'].values, -180),
+        grids = (('replica', ds_replica['lat'].values, -90),
+                 ('replica', ds_replica['lon'].values, -180),
                  ('master', ds_master['lat'].values, -90),
                  ('master', ds_master['lon'].values, -180))
     except KeyError:
         raise ValidationError('Coregistration requires that both datasets are'
                               ' spatial datasets with lon and lat dimensions. The'
                               ' dimensionality of the provided master dataset is: {},'
-                              ' the dimensionality of the provided slave dataset is:'
+                              ' the dimensionality of the provided replica dataset is:'
                               ' {}. Running the normalize operation might help in'
                               ' case spatial dimensions have different'
-                              ' names'.format(ds_master.dims, ds_slave.dims))
+                              ' names'.format(ds_master.dims, ds_replica.dims))
 
-    # Check if all arrays of the slave dataset have the required dimensionality
-    for key in ds_slave.data_vars:
-        if not _is_valid_array(ds_slave[key]):
-            raise ValidationError('{} data array of slave dataset is not valid for'
+    # Check if all arrays of the replica dataset have the required dimensionality
+    for key in ds_replica.data_vars:
+        if not _is_valid_array(ds_replica[key]):
+            raise ValidationError('{} data array of replica dataset is not valid for'
                                   ' coregistration. The data array is expected to'
                                   ' have lat and lon dimensions. The data array has'
                                   ' the following dimensions: {}. Consider running'
                                   ' select_var operation to exclude this'
-                                  ' data array'.format(key, ds_slave[key].dims))
+                                  ' data array'.format(key, ds_replica[key].dims))
 
     # Check if the grids of the provided datasets are equidistant and pixel
     # registered
@@ -137,7 +137,7 @@ def coregister(ds_master: xr.Dataset,
     methods_us = {'nearest': 10, 'linear': 11}
     methods_ds = {'first': 50, 'last': 51, 'mean': 54, 'mode': 56, 'var': 57, 'std': 58}
 
-    return _resample_dataset(ds_master, ds_slave, methods_us[method_us], methods_ds[method_ds], monitor)
+    return _resample_dataset(ds_master, ds_replica, methods_us[method_us], methods_ds[method_ds], monitor)
 
 
 def _is_equidistant(array: np.ndarray) -> bool:
@@ -273,34 +273,33 @@ def _resample_array(array: xr.DataArray, lon: xr.DataArray, lat: xr.DataArray, m
                             attrs=array.attrs).chunk(chunks=chunks)
 
 
-def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: int, method_ds: int,
-                      monitor: Monitor) -> xr.Dataset:
+def _resample_dataset(ds_master: xr.Dataset, ds_replica: xr.Dataset, method_us: int, method_ds: int, monitor: Monitor) -> xr.Dataset:
     """
-    Resample slave onto the grid of the master.
+    Resample replica onto the grid of the master.
     This does spatial resampling the whole dataset, e.g., all
-    variables in the slave dataset.
+    variables in the replica dataset.
     This method works only if both datasets have (time, lat, lon) dimensions.
 
     Note that dataset attributes are not propagated due to currently undecided CDM attributes' set.
 
     :param ds_master: xr.Dataset whose lat/lon coordinates are used as the resampling grid
-    :param ds_slave: xr.Dataset that will be resampled on the masters' grid
+    :param ds_replica: xr.Dataset that will be resampled on the masters' grid
     :param method_us: Interpolation method for upsampling, see resampling.py
     :param method_ds: Interpolation method for downsampling, see resampling.py
     :param monitor: a progress monitor.
-    :return: xr.Dataset The resampled slave dataset
+    :return: xr.Dataset The resampled replica dataset
     """
-    # Find lat/lon bounds of the intersection of master and slave grids. The
+    # Find lat/lon bounds of the intersection of master and replica grids. The
     # bounds should fall on pixel boundaries for both spatial dimensions for
     # both datasets
     lat_min, lat_max = _find_intersection(ds_master['lat'].values,
-                                          ds_slave['lat'].values,
+                                          ds_replica['lat'].values,
                                           global_bounds=(-90, 90))
     lon_min, lon_max = _find_intersection(ds_master['lon'].values,
-                                          ds_slave['lon'].values,
+                                          ds_replica['lon'].values,
                                           global_bounds=(-180, 180))
 
-    # Subset slave dataset and master grid. We're not using here the subset
+    # Subset replica dataset and master grid. We're not using here the subset
     # operation, because the subset operation may produce datasets that cross
     # the anti-meridian by design. However, such a disjoint dataset can not be
     # resampled using our current resampling methods.
@@ -309,11 +308,11 @@ def _resample_dataset(ds_master: xr.Dataset, ds_slave: xr.Dataset, method_us: in
 
     lon = ds_master['lon'].sel(lon=lon_slice)
     lat = ds_master['lat'].sel(lat=lat_slice)
-    ds_slave = ds_slave.sel(lon=lon_slice, lat=lat_slice)
+    ds_replica = ds_replica.sel(lon=lon_slice, lat=lat_slice)
 
-    with monitor.starting("coregister dataset", len(ds_slave.data_vars)):
+    with monitor.starting("coregister dataset", len(ds_replica.data_vars)):
         kwargs = {'lon': lon, 'lat': lat, 'method_us': method_us, 'method_ds': method_ds, 'parent_monitor': monitor}
-        retset = ds_slave.apply(_resample_array, keep_attrs=True, **kwargs)
+        retset = ds_replica.apply(_resample_array, keep_attrs=True, **kwargs)
 
     return adjust_spatial_attrs(retset)
 

@@ -12,6 +12,8 @@
 * Make sure integer data variables can be coregistered [#770](https://github.com/CCI-Tools/cate/issues/770)
 * Fix an issue with coregistering datasets with inverted latitudes [#733](https://github.com/CCI-Tools/cate/issues/733)
 * Mentioned to add dependency vs2015_runtime ==14.0.25420 on windows systems to avoid DLL not loading issue
+* Fix deprecated API use to be able to use newer xarray versions
+* Change `coregistration` interface from using `ds_slave` to `ds_replica`
 
 ## Version 2.0.0.dev20
 
