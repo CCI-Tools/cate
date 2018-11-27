@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 
 from cate.core.ds import DataStore, DataSource, Schema, DataAccessError, open_xarray_dataset, find_data_sources, \
-    open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes
+    open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes, NetworkError
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
 from test.util.test_monitor import RecordingMonitor
@@ -263,6 +263,29 @@ class IOTest(TestCase):
         self.assertEqual(ds_small.chunks, {'lon': (1440,), 'lat': (720,), 'time': (1,)})
         self.assertEqual(ds_large.chunks, {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)})
 
+    def test_empty_error(self):
+        data_source = SimpleDataSource("foo")
+        error = data_source._empty_error()
+        self.assertIsInstance(error, DataAccessError)
+        self.assertEqual('Data source "foo" does not seem to have any datasets', f"{error}")
+        error = data_source._empty_error(TimeRangeLike.convert("2010-01-01,2010-01-06"))
+        self.assertIsInstance(error, DataAccessError)
+        self.assertEqual('Data source "foo" does not seem to have any datasets'
+                         ' in given time range 2010-01-01, 2010-01-06T23:59:59', f"{error}")
+
+    def test_cannot_access_error(self):
+        data_source = SimpleDataSource("foo")
+        error = data_source._cannot_access_error()
+        self.assertIsInstance(error, DataAccessError)
+        self.assertEqual('Cannot open data source "foo"', f"{error}")
+        error = data_source._cannot_access_error("a", "")
+        self.assertIsInstance(error, DataAccessError)
+        self.assertEqual('Cannot open data source "foo" for given time range', f"{error}")
+        error = data_source._cannot_access_error("a", "b", "c", error_cls=NetworkError)
+        self.assertIsInstance(error, DataAccessError)
+        self.assertIsInstance(error, NetworkError)
+        self.assertEqual('Cannot open data source "foo" for given time range, region, variable names', f"{error}")
+
 
 class ChunkUtilsTest(unittest.TestCase):
     def test_get_spatial_ext_chunk_sizes(self):
@@ -353,31 +376,13 @@ class DataAccessErrorTest(unittest.TestCase):
             raise DataAccessError("haha")
         except DataAccessError as e:
             self.assertEqual(str(e), "haha")
-            self.assertEqual(e.source, None)
-            self.assertEqual(e.cause, None)
+            self.assertIsInstance(e, Exception)
 
-    def test_with_cause(self):
-        e1 = ValueError("a > 5")
-        try:
-            raise DataAccessError("hoho") from e1
-        except DataAccessError as e2:
-            self.assertEqual(str(e2), "hoho")
-            self.assertIs(e2.source, None)
-            self.assertIs(e2.cause, e1)
 
-    def test_with_source(self):
-        store = SimpleDataStore('hihi', [])
+class NetworkErrorTest(unittest.TestCase):
+    def test_plain(self):
         try:
-            raise DataAccessError("haha", source=store)
-        except DataAccessError as e:
-            self.assertEqual(str(e), 'Data store "hihi": haha')
-            self.assertIs(e.source, store)
-            self.assertIs(e.cause, None)
-
-        source = SimpleDataSource('hehe')
-        try:
-            raise DataAccessError("haha", source=source)
-        except DataAccessError as e:
-            self.assertEqual(str(e), 'Data source "hehe": haha')
-            self.assertIs(e.source, source)
-            self.assertIs(e.cause, None)
+            raise NetworkError("hoho")
+        except NetworkError as e:
+            self.assertEqual(str(e), "hoho")
+            self.assertIsInstance(e, ConnectionError)
