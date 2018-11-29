@@ -32,6 +32,7 @@ All operations in this module are tagged with the ``"utility"`` tag.
 import pandas as pd
 import xarray as xr
 
+from cate.core.ds import NetworkError, DataAccessError
 from cate.core.op import op, op_input, op_return
 from cate.core.types import DatasetLike, PointLike, TimeLike, DictLike, Arbitrary, Literal, ValidationError
 from cate.util.monitor import Monitor
@@ -235,12 +236,24 @@ def dummy_ds(lon_dim: int = 360,
                               'reference_time': pd.Timestamp('2014-09-05')})
 
 
+_ERROR_TYPES = {
+    'Value': ValueError,
+    'OS': OSError,
+    'Memory': MemoryError,
+    'Network': NetworkError,
+    'Data Access': DataAccessError,
+    'Validation': ValidationError,
+}
+
+
 @op(tags=['utility'])
 @op_input('step_duration', units='seconds')
+@op_input('error_type', value_set=['Value', 'OS', 'Memory', 'Network', 'Data Access', 'Validation'])
 def no_op(num_steps: int = 20,
           step_duration: float = 0.5,
           fail_before: bool = False,
           fail_after: bool = False,
+          error_type: str = 'Value',
           monitor: Monitor = Monitor.NONE) -> bool:
     """
     An operation that basically does nothing but spending configurable time.
@@ -250,19 +263,23 @@ def no_op(num_steps: int = 20,
     :param step_duration: How much time to spend in each step in seconds.
     :param fail_before: If the operation should fail before spending time doing nothing (raise a ValidationError).
     :param fail_after: If the operation should fail after spending time doing nothing (raise a ValueError).
+    :param error_type: The type of error to raise.
     :param monitor: A progress monitor.
     :return: Always True
     """
     import time
-    monitor.start('Computing nothing', num_steps)
-    if fail_before:
-        raise ValidationError('Intentionally failed before doing anything.')
-    for i in range(num_steps):
-        time.sleep(step_duration)
-        monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
-    if fail_after:
-        raise ValueError('Intentionally failed after doing nothing.')
-    monitor.done()
+    with monitor.starting('Computing nothing', num_steps):
+        if fail_before:
+            error_class = _ERROR_TYPES[error_type]
+            raise error_class(f'This is a test: intentionally failed with a {error_type} error'
+                              f' before {num_steps} times doing anything.')
+        for i in range(num_steps):
+            time.sleep(step_duration)
+            monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
+        if fail_after:
+            error_class = _ERROR_TYPES[error_type]
+            raise error_class(f'Intentionally failed failed with a {error_type} error'
+                              f' after {num_steps} times doing nothing.')
     return True
 
 

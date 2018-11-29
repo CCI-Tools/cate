@@ -8,9 +8,10 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from cate.core.ds import NetworkError
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna
+from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna, no_op
 from cate.util.misc import object_to_qualified_name
 
 
@@ -240,6 +241,19 @@ class TestFillna(TestCase):
 
         actual = reg_op(df=df, method='ffill')
         self.assertTrue(actual.equals(expected))
+
+
+class NoOpTest(TestCase):
+    def test_nominal(self):
+        self.assertTrue(no_op(step_duration=0.001))
+        with self.assertRaises(ValueError):
+            no_op(step_duration=0.001, fail_before=True)
+        with self.assertRaises(NetworkError):
+            no_op(step_duration=0.001, fail_before=True, error_type='Network')
+        with self.assertRaises(OSError):
+            no_op(step_duration=0.001, fail_after=True, error_type='OS')
+        with self.assertRaises(ValidationError):
+            no_op(step_duration=0.001, fail_after=True, error_type='????')
 
 
 def new_ds():
