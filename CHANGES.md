@@ -1,6 +1,11 @@
-## Version 2.0.0.dev23 (in development)
+## Version 2.0.0.dev24 (in development)
+
+## Version 2.0.0.dev23
+
+Skipped.
 
 ## Version 2.0.0.dev22
+
 * Fix dataset name can contain only letters, numbers underscore, dot and minus [#811](https://github.com/CCI-Tools/cate/issues/881)
 * Fix for SST data download error [#798](https://github.com/CCI-Tools/cate/issues/798)
 
