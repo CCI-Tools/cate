@@ -282,7 +282,7 @@ class IOTest(TestCase):
         self.assertIsInstance(error, DataAccessError)
         self.assertEqual('Cannot open data source "foo" for given time range', f"{error}")
         error = data_source._cannot_access_error("a", "b", "c", error_cls=NetworkError)
-        self.assertIsInstance(error, DataAccessError)
+        self.assertIsInstance(error, ConnectionError)
         self.assertIsInstance(error, NetworkError)
         self.assertEqual('Cannot open data source "foo" for given time range, region, variable names', f"{error}")
 
