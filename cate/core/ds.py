@@ -312,8 +312,8 @@ class DataSource(metaclass=ABCMeta):
         """Provide an HTML representation of this object for IPython."""
 
     def _cannot_access_error(self, time_range=None, region=None, var_names=None,
-                             verb="open", error_cls=DataAccessError):
-        error_message = f'Cannot {verb} data source "{self.id}"'
+                             verb="open", cause: BaseException = None, error_cls=DataAccessError):
+        error_message = f'Failed to {verb} data source "{self.id}"'
         contraints = []
         if time_range is not None and time_range != "":
             contraints.append("time range")
@@ -323,6 +323,8 @@ class DataSource(metaclass=ABCMeta):
             contraints.append("variable names")
         if contraints:
             error_message += " for given " + ", ".join(contraints)
+        if cause is not None:
+            error_message += f": {cause}"
         return error_cls(error_message)
 
     def _empty_error(self, time_range=None):

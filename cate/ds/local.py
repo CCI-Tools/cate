@@ -186,11 +186,14 @@ class LocalDataSource(DataSource):
                                        drop_variables=drop_variables,
                                        monitor=monitor)
         except HTTPError as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="open") from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e) from e
         except (URLError, socket.timeout) as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="open", error_cls=NetworkError) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e, error_cls=NetworkError) from e
         except OSError as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="open") from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e) from e
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):

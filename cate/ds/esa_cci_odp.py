@@ -72,8 +72,10 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
+# _ESGF_CEDA_URL = "https://cci-odp-index.ceda.ac.uk/esg-search/search/"
 
 _CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
+# _CSW_CEDA_URL = "https://csw-test.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -771,11 +773,14 @@ class EsaCciOdpDataSource(DataSource):
         try:
             return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
         except HTTPError as e:
-            raise self._cannot_access_error(time_range, region, var_names) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e) from e
         except (URLError, socket.timeout) as e:
-            raise self._cannot_access_error(time_range, region, var_names, error_cls=NetworkError) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e, error_cls=NetworkError) from e
         except OSError as e:
-            raise self._cannot_access_error(time_range, region, var_names) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e) from e
 
     @staticmethod
     def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
@@ -934,12 +939,15 @@ class EsaCciOdpDataSource(DataSource):
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
         except HTTPError as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="synchronize") from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e) from e
         except (URLError, socket.timeout) as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="synchronize",
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e,
                                             error_cls=NetworkError) from e
         except OSError as e:
-            raise self._cannot_access_error(time_range, region, var_names, verb="synchronize") from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e) from e
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)

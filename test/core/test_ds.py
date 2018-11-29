@@ -267,24 +267,32 @@ class IOTest(TestCase):
         data_source = SimpleDataSource("foo")
         error = data_source._empty_error()
         self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Data source "foo" does not seem to have any datasets', f"{error}")
+        self.assertEqual('Data source "foo" does not seem to have any datasets',
+                         f"{error}")
         error = data_source._empty_error(TimeRangeLike.convert("2010-01-01,2010-01-06"))
         self.assertIsInstance(error, DataAccessError)
         self.assertEqual('Data source "foo" does not seem to have any datasets'
-                         ' in given time range 2010-01-01, 2010-01-06T23:59:59', f"{error}")
+                         ' in given time range 2010-01-01, 2010-01-06T23:59:59',
+                         f"{error}")
 
     def test_cannot_access_error(self):
         data_source = SimpleDataSource("foo")
         error = data_source._cannot_access_error()
         self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Cannot open data source "foo"', f"{error}")
+        self.assertEqual('Failed to open data source "foo"',
+                         f"{error}")
         error = data_source._cannot_access_error("a", "")
         self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Cannot open data source "foo" for given time range', f"{error}")
+        self.assertEqual('Failed to open data source "foo" for given time range',
+                         f"{error}")
         error = data_source._cannot_access_error("a", "b", "c", error_cls=NetworkError)
-        self.assertIsInstance(error, ConnectionError)
         self.assertIsInstance(error, NetworkError)
-        self.assertEqual('Cannot open data source "foo" for given time range, region, variable names', f"{error}")
+        self.assertEqual('Failed to open data source "foo" for given time range, region, variable names',
+                         f"{error}")
+        error = data_source._cannot_access_error("a", "b", "c", cause=RuntimeError("timeout"), error_cls=NetworkError)
+        self.assertIsInstance(error, NetworkError)
+        self.assertEqual('Failed to open data source "foo" for given time range, region, variable names: timeout',
+                         f"{error}")
 
 
 class ChunkUtilsTest(unittest.TestCase):
