@@ -950,7 +950,6 @@ class EsaCciOdpDataSource(DataSource):
         except ValueError as e:
             raise ValidationError("Copying remote data source failed: {}".format(e)) from e
         finally:
-            print('Child ', child_monitor)
             child_monitor.done()
             monitor.done()
 
