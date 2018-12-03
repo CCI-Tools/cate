@@ -842,7 +842,7 @@ class EsaCciOdpDataSource(DataSource):
                 msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
             raise DataAccessError(msg)
 
-        child_monitor = None
+#        child_monitor = Monitor.NONE
         try:
             if protocol == _ODP_PROTOCOL_OPENDAP:
 
@@ -908,7 +908,6 @@ class EsaCciOdpDataSource(DataSource):
                         do_update_of_verified_time_coverage_start_once = False
                     verified_time_coverage_end = time_coverage_end
                     child_monitor.done()
-                    child_monitor = None
             else:
                 outdated_file_list = []
                 for file_rec in selected_file_list:
@@ -951,8 +950,8 @@ class EsaCciOdpDataSource(DataSource):
         except ValueError as e:
             raise ValidationError("Copying remote data source failed: {}".format(e)) from e
         finally:
-            if child_monitor:
-                child_monitor.done()
+            print('Child ', child_monitor)
+            child_monitor.done()
             monitor.done()
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
