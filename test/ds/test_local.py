@@ -41,6 +41,10 @@ class LocalDataStoreTest(unittest.TestCase):
         new_ds = self.data_store.create_data_source(new_ds_id)
         self.assertEqual("test.%s" % new_ds_id, new_ds.id)
 
+        new_ds_id = 'test_name.2008-10'
+        new_ds = self.data_store.create_data_source(new_ds_id)
+        self.assertEqual("test.%s" % new_ds_id, new_ds.id)
+
         new_ds_id = 'test_name.200*'
         with self.assertRaises(ValidationError) as cm:
             self.data_store.create_data_source(new_ds_id)

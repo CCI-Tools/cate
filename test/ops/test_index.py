@@ -57,8 +57,8 @@ class TestEnsoNino34(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -66,8 +66,8 @@ class TestEnsoNino34(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO N3.4 Index'],
                                 index=expected_time)
@@ -82,8 +82,8 @@ class TestEnsoNino34(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta1 = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 4])),
@@ -104,8 +104,8 @@ class TestEnsoNino34(TestCase):
             'time': [x for x in range(9, 13)]})
         lta = xr.concat([lta1, lta2, lta3], dim='time')
 
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         data = [-0.2, -0.4, -0.6, -0.8, -0.6, -0.2, 0.2, 0.6, 0.8, 0.6, 0.4,
                 0.2, -0.2, -0.4, -0.6, -0.8, -0.6, -0.2, 0.2, 0.6]
         expected = pd.DataFrame(data=data,
@@ -135,8 +135,8 @@ class TestEnsoNino34(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -144,8 +144,8 @@ class TestEnsoNino34(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO N3.4 Index'],
                                 index=expected_time)
@@ -166,8 +166,7 @@ class TestEnso(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)] + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -175,8 +174,8 @@ class TestEnso(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO N3 Index'],
                                 index=expected_time)
@@ -195,8 +194,8 @@ class TestEnso(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -204,8 +203,8 @@ class TestEnso(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO N4 Index'],
                                 index=expected_time)
@@ -224,8 +223,8 @@ class TestEnso(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -233,8 +232,8 @@ class TestEnso(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO Index over POLYGON '
                                          '((-141.15234375 3.513421045640057, -129.0234375 6.839169626342807,'
@@ -269,8 +268,8 @@ class TestEnso(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -278,8 +277,8 @@ class TestEnso(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 11)])
+        expected_time = ([datetime(2001, x, 1) for x in range(3, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 11)])
         expected = pd.DataFrame(data=(np.ones([20]) * -1),
                                 columns=['ENSO N3 Index'],
                                 index=expected_time)
@@ -300,8 +299,8 @@ class TestOni(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -309,8 +308,8 @@ class TestOni(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 12)])
+        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 12)])
         expected = pd.DataFrame(data=(np.ones([22]) * -1),
                                 columns=['ONI Index'],
                                 index=expected_time)
@@ -331,8 +330,8 @@ class TestOni(TestCase):
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 24])),
             'lat': np.linspace(-88, 88, 45),
             'lon': np.linspace(-178, 178, 90),
-            'time': ([datetime(2001, x, 1) for x in range(1, 13)] +
-                     [datetime(2002, x, 1) for x in range(1, 13)])})
+            'time': ([datetime(2001, x, 1) for x in range(1, 13)]
+                     + [datetime(2002, x, 1) for x in range(1, 13)])})
         lta = xr.Dataset({
             'first': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
             'second': (['lat', 'lon', 'time'], np.ones([45, 90, 12])),
@@ -340,8 +339,8 @@ class TestOni(TestCase):
             'lon': np.linspace(-178, 178, 90),
             'time': [x for x in range(1, 13)]})
         lta = 2 * lta
-        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)] +
-                         [datetime(2002, x, 1) for x in range(1, 12)])
+        expected_time = ([datetime(2001, x, 1) for x in range(2, 13)]
+                         + [datetime(2002, x, 1) for x in range(1, 12)])
         expected = pd.DataFrame(data=(np.ones([22]) * -1),
                                 columns=['ONI Index'],
                                 index=expected_time)

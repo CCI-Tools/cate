@@ -692,7 +692,7 @@ class TimeRangeLike(Like[TimeRange]):
         time_range = to_datetime_range(t1, t2)
 
         # Check if start date is before end date
-        if not time_range or time_range[0] < time_range[1]:
+        if not time_range or time_range[0] <= time_range[1]:
             return time_range
 
         cls.raise_validation_error(value)

@@ -96,7 +96,7 @@ This workflow reflects Use Case 9 and comprises 4 steps:
           "op": "cate.ops.coregistration.coregister",
           "inputs": {
             "ds_master": "ds_x_sub",
-            "ds_slave": "ds_y_sub"
+            "ds_replica": "ds_y_sub"
           }
         },
         {

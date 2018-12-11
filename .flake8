@@ -6,6 +6,8 @@ ignore =
     E402,
     # line too long
     E501,
+    # line break before binary operator
+    W503,
 
 #  __init__ contain a huge amount of unused imports
 exclude= __init__.py, build/

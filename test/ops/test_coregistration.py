@@ -148,7 +148,7 @@ class TestCoregistration(TestCase):
 
         # Test that the coarse dataset has been resampled onto the grid
         # of the finer dataset.
-        ds_coarse_resampled = reg_op(ds_master=ds_fine, ds_slave=ds_coarse)
+        ds_coarse_resampled = reg_op(ds_master=ds_fine, ds_replica=ds_coarse)
         expected = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([[[1., 0.28571429, 0., 0., 0., 0., 0., 0.],
                                                          [0.33333333, 0.57142857, 0.38095238, 0., 0., 0., 0., 0.],
@@ -177,7 +177,7 @@ class TestCoregistration(TestCase):
 
         # Test that the fine dataset has been resampled (aggregated)
         # onto the grid of the coarse dataset.
-        ds_fine_resampled = reg_op(ds_master=ds_coarse, ds_slave=ds_fine)
+        ds_fine_resampled = reg_op(ds_master=ds_coarse, ds_replica=ds_fine)
         expected = xr.Dataset({
             'first': (['time', 'lat', 'lon'], np.array([[[0.625, 0.125, 0., 0., 0., 0.],
                                                          [0.125, 0.5, 0.125, 0., 0., 0.],
@@ -663,7 +663,7 @@ class TestCoregistration(TestCase):
 
         assert_almost_equal(ds_coarse_resampled['first'].values, expected['first'].values)
 
-        # Slave dataset contains a 2D variable
+        # replica dataset contains a 2D variable
         ds_coarse = xr.Dataset({
             'first': (['lat', 'lon'], np.eye(3, 6)),
             'second': (['time', 'lat', 'lon'], np.array([np.eye(3, 6), np.eye(3, 6)])),
