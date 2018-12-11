@@ -134,9 +134,9 @@ def coregister(ds_master: xr.Dataset,
                                   ' coregistration'.format(array[0]))
 
     # Don't do anything if datasets already have the same spatial definition
-    if np.array_equal(ds_master['lat'].values, ds_slave['lat'].values) and \
-       np.array_equal(ds_master['lon'].values, ds_slave['lon'].values):
-        return ds_slave
+    if np.allclose(ds_master['lat'].values, ds_replica['lat'].values) and \
+       np.allclose(ds_master['lon'].values, ds_replica['lon'].values):
+        return ds_replica
 
     # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
