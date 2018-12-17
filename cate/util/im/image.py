@@ -235,24 +235,24 @@ class OpImage(AbstractTiledImage, metaclass=ABCMeta):
         if cache:
             tile_id = self.get_tile_id(tile_x, tile_y)
             if _DEBUG_OP_IMAGE:
-                t0 = time.clock()
+                t0 = time.perf_counter()
             tile = cache.get_value(tile_id)
             if tile is not None:
                 if _DEBUG_OP_IMAGE:
-                    print('tile "%s": restored from cache, took %.4f sec' % (tile_id, time.clock() - t0))
+                    print('tile "%s": restored from cache, took %.4f sec' % (tile_id, time.perf_counter() - t0))
                 return tile
         tw, th = self.tile_size
         if _DEBUG_OP_IMAGE:
-            t0 = time.clock()
+            t0 = time.perf_counter()
         tile = self.compute_tile(tile_x, tile_y, (tw * tile_x, th * tile_y, tw, th))
         if _DEBUG_OP_IMAGE:
-            print('tile "%s": computed, took %.4f sec' % (self.get_tile_id(tile_x, tile_y), time.clock() - t0))
+            print('tile "%s": computed, took %.4f sec' % (self.get_tile_id(tile_x, tile_y), time.perf_counter() - t0))
         if cache:
             if _DEBUG_OP_IMAGE:
-                t0 = time.clock()
+                t0 = time.perf_counter()
             cache.put_value(tile_id, tile)
             if _DEBUG_OP_IMAGE:
-                print('tile "%s": stored in cache, took %.4f sec' % (tile_id, time.clock() - t0))
+                print('tile "%s": stored in cache, took %.4f sec' % (tile_id, time.perf_counter() - t0))
         return tile
 
     @abstractmethod
