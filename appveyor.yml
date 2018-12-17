@@ -3,7 +3,7 @@ version: '{build}'
 
 environment:
   global:
-    PYTHON_LOC: "C:\\Miniconda36-x64"
+    PYTHON_LOC: "C:\\Miniconda37-x64"
 
 install:
   - call %PYTHON_LOC%\Scripts\activate.bat
@@ -12,8 +12,7 @@ install:
   - conda info -a
 
 build_script:
-  - echo   - vs2015_runtime ==14.0.25420 >> environment.yml
-  - conda env create --file environment.yml
+  - conda env create
   - call %PYTHON_LOC%\Scripts\activate.bat cate-env
   - python setup.py install
   - conda list

@@ -864,7 +864,6 @@ class EsaCciOdpDataSource(DataSource):
                     child_monitor.start(label=file_name, total_work=1)
 
                     remote_dataset = xr.open_dataset(dataset_uri,
-                                                     autoclose=True,
                                                      drop_variables=[variable.get('name') for variable in
                                                                      excluded_variables])
                     if var_names:

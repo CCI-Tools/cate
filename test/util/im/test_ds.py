@@ -56,10 +56,10 @@ class NaturalEarth2Test(TestCase):
 #
 #         level_image = pyramid.get_level_image(0)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         tile00 = level_image.get_tile(0, 0)
 #         tile10 = level_image.get_tile(1, 0)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("ndarray pyramid took: ", t2 - t1)
 #
 #     def test_h5py_raw_pyramid_fast(self):
@@ -70,10 +70,10 @@ class NaturalEarth2Test(TestCase):
 #
 #         level_image = pyramid.get_level_image(0)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         tile00 = level_image.get_tile(0, 0)
 #         tile10 = level_image.get_tile(1, 0)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("ndarray fast pyramid took: ", t2 - t1)
 #
 #     def test_h5py_rgba_image(self):
@@ -98,18 +98,18 @@ class NaturalEarth2Test(TestCase):
 #
 #         level_image = pyramid.get_level_image(0)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         tile00 = level_image.get_tile(0, 0)
 #         tile10 = level_image.get_tile(1, 0)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("RGBA pyramid took: ", t2 - t1)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         num_tiles_x, num_tiles_y = image.num_tiles
 #         for tile_y in range(num_tiles_y):
 #             for tile_x in range(num_tiles_x):
 #                 tile = image.get_tile(tile_x, tile_y)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("max level tiles took: ", t2 - t1)
 #
 #     def test_h5py_raw_to_rgba_pyramid(self):
@@ -124,16 +124,16 @@ class NaturalEarth2Test(TestCase):
 #
 #         level_image = pyramid.get_level_image(0)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         tile00 = level_image.get_tile(0, 0)
 #         tile10 = level_image.get_tile(1, 0)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("opt RGBA pyramid took: ", t2 - t1)
 #
-#         t1 = time.clock()
+#         t1 = time.perf_counter()
 #         num_tiles_x, num_tiles_y = image.num_tiles
 #         for tile_y in range(num_tiles_y):
 #             for tile_x in range(num_tiles_x):
 #                 tile = image.get_tile(tile_x, tile_y)
-#         t2 = time.clock()
+#         t2 = time.perf_counter()
 #         print("opt max level tiles took: ", t2 - t1)

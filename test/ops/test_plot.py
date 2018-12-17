@@ -434,9 +434,9 @@ class TestPlotScatter(TestCase):
                          indexers1=None,
                          indexers2=dict(period=0.5),
                          type='2D Density')
-        self.assertEquals(f'{cm.exception}',
-                          "Input 'type' for operation 'cate.ops.plot.plot_scatter'"
-                          " must be one of ['Point', 'Hexbin', '2D Histogram'].")
+        self.assertEqual("Input 'type' for operation 'cate.ops.plot.plot_scatter'"
+                         " must be one of ['Point', 'Hexbin', '2D Histogram'].",
+                         f'{cm.exception}')
 
     def test_illegal_var(self):
         with self.assertRaises(ValidationError) as cm:
@@ -447,8 +447,8 @@ class TestPlotScatter(TestCase):
                          indexers1=None,
                          indexers2=dict(period=0.5),
                          type='Point')
-        self.assertEquals(f'{cm.exception}',
-                          '"global_msl_trend" is not a variable in dataset given by "ds1"')
+        self.assertEqual('"global_msl_trend" is not a variable in dataset given by "ds1"',
+                         f'{cm.exception}')
 
     def test_illegal_no_common_dim(self):
         with self.assertRaises(ValidationError) as cm:
