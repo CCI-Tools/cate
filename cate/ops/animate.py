@@ -47,16 +47,12 @@ Supported formats: html
 import os
 import matplotlib
 
-has_qt5agg = False
 # noinspection PyBroadException
-try:
-    if not matplotlib.__version__.startswith('1.'):
-        matplotlib.use('Qt5Agg')
-        has_qt5agg = True
-except Exception:
-    pass
-if not has_qt5agg:
-    matplotlib.use('Qt4Agg')
+# try:
+#     matplotlib.use('Qt5Agg')
+#     has_qt5agg = True
+# except Exception:
+#     has_qt5agg = False
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
