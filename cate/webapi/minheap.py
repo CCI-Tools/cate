@@ -229,10 +229,10 @@ class MinHeap:
 
         if min_key is None:
             dtype = keys.dtype
-            min_key = np.iinfo(dtype).min if np.issubdtype(dtype, np.int) else np.finfo(dtype).min
+            min_key = np.iinfo(dtype).min if np.issubdtype(dtype, np.integer) else np.finfo(dtype).min
         if max_key is None:
             dtype = keys.dtype
-            max_key = np.iinfo(dtype).max if np.issubdtype(dtype, np.int) else np.finfo(dtype).max
+            max_key = np.iinfo(dtype).max if np.issubdtype(dtype, np.integer) else np.finfo(dtype).max
 
         build(keys, values, size)
 
