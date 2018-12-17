@@ -387,7 +387,7 @@ class TransformArrayImage(DecoratorImage):
                     tile = np.ma.masked_less(tile, valid_min)
                 if valid_max is not None:
                     tile = np.ma.masked_greater(tile, valid_max)
-            elif np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
+            elif np.issubdtype(tile.dtype, np.floating) or np.issubdtype(tile.dtype, np.complexfloating):
                 # and it is of float type, return a masked tile with a mask from invalids, i.e. NaN, -Inf, +Inf
                 tile = np.ma.masked_invalid(tile)
         return tile
