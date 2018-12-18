@@ -1,6 +1,8 @@
 ## Version 2.0.0.dev24 (in development)
 
-* Cate now uses **Python 3.7** as a consequence of resolving [#824](https://github.com/CCI-Tools/cate/issues/824).
+* Cate now uses new CCI ODP service endpoints. [#825](https://github.com/CCI-Tools/cate/issues/825)
+* Fixed potential runtime performance bottleneck when creating spatial subsets, especially when downloading data subsets.
+* Cate now uses **Python 3.7** as a consequence of resolving. [#824](https://github.com/CCI-Tools/cate/issues/824)
 * Fixed broken build on Windows that lets Cate raise `ImportError: DLL load failed: The specified module could not be found`
   when loading GDAL shared libraries.  
   [#824](https://github.com/CCI-Tools/cate/issues/824)
