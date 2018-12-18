@@ -42,24 +42,25 @@ import os
 import re
 import socket
 import ssl
-import urllib.error
 import urllib.parse
 import urllib.request
-import pandas as pd
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from math import ceil
 from typing import Sequence, Tuple, Optional, Any, Dict
+from urllib.error import URLError, HTTPError
 
+import pandas as pd
 import xarray as xr
 from owslib.csw import CatalogueServiceWeb
 from owslib.namespaces import Namespaces
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStore, DataSource, Schema, open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, NetworkError, DataStore, DataSource, Schema, \
+    open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
-from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
+from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
@@ -71,8 +72,10 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
+# _ESGF_CEDA_URL = "https://cci-odp-index.ceda.ac.uk/esg-search/search/"
 
 _CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
+# _CSW_CEDA_URL = "https://csw-test.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -146,12 +149,12 @@ def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
         # the 't0' variable in these SOILMOISTURE data sources
         # can not be decoded by xarray and lead to an unusable dataset
         # see: https://github.com/CCI-Tools/cate/issues/326
-        SOILMOISTURE_DS = [
+        soil_moisture_datasets = [
             'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
             'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
             'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
         ]
-        if ds_id in SOILMOISTURE_DS:
+        if ds_id in soil_moisture_datasets:
             return [{'name': 't0', 'comment': "can not be decoded by xarray and lead to an unusable dataset\n"
                                               "see: https://github.com/CCI-Tools/cate/issues/326"}]
         return []
@@ -163,7 +166,7 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
     """
     combined_json_dict = None
     num_found = -1
-    # we don't know ahead of time how much request are necessary
+    # we don't know ahead of time how many requests are necessary
     with monitor.starting("Loading", 10):
         while True:
             monitor.progress(work=1)
@@ -171,7 +174,9 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
             # noinspection PyArgumentList
             paging_query_args.update(offset=offset, limit=limit, format='application/solr+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
+            error_message = f"Failed accessing CCI ODP service {base_url}"
             try:
+                # noinspection PyProtectedMember
                 context = ssl._create_unverified_context()
                 with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
                     json_text = response.read()
@@ -187,12 +192,12 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
                         combined_json_dict.get('response', {}).get('docs', []).extend(docs)
                         if num_found < offset + limit:
                             break
-            except (urllib.error.HTTPError, urllib.error.URLError) as e:
-                raise DataAccessError("Downloading CCI Open Data Portal index failed: {}\n{}"
-                                      .format(e, base_url)) from e
-            except socket.timeout:
-                raise DataAccessError("Downloading CCI Open Data Portal index failed: connection timeout\n{}"
-                                      .format(base_url))
+            except urllib.error.HTTPError as e:
+                raise DataAccessError(f"{error_message}: {e}") from e
+            except (urllib.error.URLError, socket.timeout) as e:
+                raise NetworkError(f"{error_message}: {e}") from e
+            except OSError as e:
+                raise DataAccessError(f"{error_message}: {e}") from e
             offset += limit
     return combined_json_dict
 
@@ -257,10 +262,7 @@ def _load_or_fetch_json(fetch_json_function,
                     json_text = fp.read()
                     json_obj = json.loads(json_text)
             else:
-                if isinstance(e, DataAccessError):
-                    raise DataAccessError("Cannot fetch information from CCI Open Data Portal server.") from e
-                else:
-                    raise e
+                raise e
 
     return json_obj
 
@@ -316,6 +318,7 @@ def _fetch_file_list_json(dataset_id: str, dataset_query_id: str, monitor: Monit
 
 
 class EsaCciOdpDataStore(DataStore):
+    # noinspection PyShadowingBuiltins
     def __init__(self,
                  id: str = 'esa_cci_odp',
                  title: str = 'ESA CCI Open Data Portal',
@@ -344,7 +347,7 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return get_metadata_store_path()
 
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE)\
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
             -> Sequence['DataSource']:
         self._init_data_sources()
         if ds_id or query_expr:
@@ -510,30 +513,27 @@ class EsaCciOdpDataStore(DataStore):
                 json.dump(freezed_source, json_out)
 
     def _load_index(self):
-        try:
-            esgf_json_dict = _load_or_fetch_json(_fetch_solr_json,
-                                                 fetch_json_args=[
-                                                     _ESGF_CEDA_URL,
-                                                     dict(type='Dataset',
-                                                          replica='false',
-                                                          latest='true',
-                                                          project='esacci')],
-                                                 cache_used=self._index_cache_used,
-                                                 cache_dir=get_metadata_store_path(),
-                                                 cache_json_filename='dataset-list.json',
-                                                 cache_timestamp_filename='dataset-list-timestamp.json',
-                                                 cache_expiration_days=self._index_cache_expiration_days)
+        esgf_json_dict = _load_or_fetch_json(_fetch_solr_json,
+                                             fetch_json_args=[
+                                                 _ESGF_CEDA_URL,
+                                                 dict(type='Dataset',
+                                                      replica='false',
+                                                      latest='true',
+                                                      project='esacci')],
+                                             cache_used=self._index_cache_used,
+                                             cache_dir=get_metadata_store_path(),
+                                             cache_json_filename='dataset-list.json',
+                                             cache_timestamp_filename='dataset-list-timestamp.json',
+                                             cache_expiration_days=self._index_cache_expiration_days)
 
-            cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
-            csw_json_dict = _load_or_fetch_json(cci_catalogue_service.getrecords,
-                                                fetch_json_args=[],
-                                                cache_used=self._index_cache_used,
-                                                cache_dir=get_metadata_store_path(),
-                                                cache_json_filename='catalogue.json',
-                                                cache_timestamp_filename='catalogue-timestamp.json',
-                                                cache_expiration_days=self._index_cache_expiration_days)
-        except DataAccessError as e:
-            raise DataAccessError("Cannot download CCI Open Data Portal ECV index:\n{}".format(e), source=self) from e
+        cci_catalogue_service = EsaCciCatalogueService(_CSW_CEDA_URL)
+        csw_json_dict = _load_or_fetch_json(cci_catalogue_service.getrecords,
+                                            fetch_json_args=[],
+                                            cache_used=self._index_cache_used,
+                                            cache_dir=get_metadata_store_path(),
+                                            cache_json_filename='catalogue.json',
+                                            cache_timestamp_filename='catalogue-timestamp.json',
+                                            cache_expiration_days=self._index_cache_expiration_days)
 
         self._csw_data = csw_json_dict
         self._esgf_data = esgf_json_dict
@@ -767,23 +767,20 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets'.format(self.id)
-            if time_range is not None:
-                msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise ValidationError(msg)
+            raise self._empty_error(time_range)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
         try:
             return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
+        except HTTPError as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e) from e
+        except (URLError, socket.timeout) as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e, error_cls=NetworkError) from e
         except OSError as e:
-            if time_range:
-                raise ValidationError("Cannot open remote dataset for time range {}:\n"
-                                      "{}"
-                                      .format(TimeRangeLike.format(time_range), e)) from e
-            else:
-                raise DataAccessError("Cannot open remote dataset:\n"
-                                      "{}"
-                                      .format(TimeRangeLike.format(time_range), e), source=self) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            cause=e) from e
 
     @staticmethod
     def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
@@ -837,12 +834,8 @@ class EsaCciOdpDataSource(DataSource):
 
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
-            msg = 'CCI Open Data Portal data source "{}"\ndoes not seem to have any datasets'.format(self.id)
-            if time_range is not None:
-                msg += ' in given time range {}'.format(TimeRangeLike.format(time_range))
-            raise DataAccessError(msg)
+            raise self._empty_error(time_range)
 
-#        child_monitor = Monitor.NONE
         try:
             if protocol == _ODP_PROTOCOL_OPENDAP:
 
@@ -944,10 +937,16 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = coverage_from
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = coverage_to
+        except HTTPError as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e) from e
+        except (URLError, socket.timeout) as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e,
+                                            error_cls=NetworkError) from e
         except OSError as e:
-            raise DataAccessError("Copying remote data source failed: {}".format(e), source=self) from e
-        except ValueError as e:
-            raise ValidationError("Copying remote data source failed: {}".format(e)) from e
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="synchronize", cause=e) from e
         finally:
             child_monitor.done()
             monitor.done()
@@ -1112,13 +1111,19 @@ class EsaCciCatalogueService:
         self._catalogue_service = None
 
     def getrecords(self, monitor: Monitor = Monitor.NONE):
-        if not self._catalogue_service:
-            self._init_service()
-
-        if not self._catalogue:
-            self._build_catalogue(monitor.child(1))
-
-        return self._catalogue
+        error_message = f"Failed accessing CCI ODP service {self._catalogue_url}"
+        try:
+            if not self._catalogue_service:
+                self._init_service()
+            if not self._catalogue:
+                self._build_catalogue(monitor.child(1))
+            return self._catalogue
+        except urllib.error.HTTPError as e:
+            raise DataAccessError(f"{error_message}: {e}") from e
+        except (urllib.error.URLError, socket.timeout) as e:
+            raise NetworkError(f"{error_message}: {e}") from e
+        except OSError as e:
+            raise DataAccessError(f"{error_message}: {e}") from e
 
     def _build_catalogue(self, monitor: Monitor = Monitor.NONE):
 

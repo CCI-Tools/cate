@@ -75,7 +75,7 @@ class LocalDataStoreTest(unittest.TestCase):
 
         with self.assertRaises(DataAccessError) as cm:
             self.data_store.add_pattern("a_name", "a_pat2")
-        self.assertEqual('Data store "{}": Data source "{}.{}" already exists.'.format(
+        self.assertEqual('Data source "test.a_name" already exists.'.format(
             self.data_store.id, self.data_store.id, new_ds_name), str(cm.exception))
 
         data_sources = self.data_store.query()
@@ -365,7 +365,7 @@ class LocalDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 3)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(DataAccessError):
             ds.open_dataset(time_range=(datetime.datetime(1978, 11, 14),
                                         datetime.datetime(1978, 11, 15)))
 
@@ -380,7 +380,7 @@ class LocalDataSourceTest(unittest.TestCase):
         self.assertIsNotNone(xr)
         self.assertEqual(xr.coords.dims.get('time'), 1)
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(DataAccessError):
             ds.open_dataset(time_range=(datetime.datetime(1978, 11, 20),
                                         datetime.datetime(1978, 11, 21)))
 

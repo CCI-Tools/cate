@@ -78,10 +78,10 @@ Components
 ==========
 """
 
+import datetime
 import glob
 import itertools
 import re
-import datetime
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import Sequence, Optional, Union, Any, Dict, Set
@@ -104,6 +104,29 @@ URL_REGEX = re.compile(
     r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+
+class DataAccessWarning(UserWarning):
+    """
+    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    """
+    pass
+
+
+class DataAccessError(Exception):
+    """
+    Exceptions produced by Cate's data stores and data sources instances,
+    used to report any problems handling data.
+    """
+
+
+class NetworkError(ConnectionError):
+    """
+    Exceptions produced by Cate's data stores and data sources instances,
+    used to report any problems with the network or in case an endpoint
+    couldn't be found nor reached.
+    """
+    pass
 
 
 class DataSource(metaclass=ABCMeta):
@@ -288,6 +311,28 @@ class DataSource(metaclass=ABCMeta):
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
 
+    def _cannot_access_error(self, time_range=None, region=None, var_names=None,
+                             verb="open", cause: BaseException = None, error_cls=DataAccessError):
+        error_message = f'Failed to {verb} data source "{self.id}"'
+        contraints = []
+        if time_range is not None and time_range != "":
+            contraints.append("time range")
+        if region is not None and region != "":
+            contraints.append("region")
+        if var_names is not None and var_names != "":
+            contraints.append("variable names")
+        if contraints:
+            error_message += " for given " + ", ".join(contraints)
+        if cause is not None:
+            error_message += f": {cause}"
+        return error_cls(error_message)
+
+    def _empty_error(self, time_range=None):
+        error_message = f'Data source "{self.id}" does not seem to have any datasets'
+        if time_range is not None:
+            error_message += f' in given time range {TimeRangeLike.format(time_range)}'
+        return DataAccessError(error_message)
+
 
 class DataSourceStatus(Enum):
     """
@@ -443,36 +488,6 @@ class DataStoreRegistry:
 #: The data data store registry of type :py:class:`DataStoreRegistry`.
 #: Use it add new data stores to Cate.
 DATA_STORE_REGISTRY = DataStoreRegistry()
-
-
-class DataAccessError(Exception):
-    """
-    Exceptions produced by Cate's data stores and data sources instances,
-    used to report any problems handling data.
-    """
-
-    def __init__(self, message: str, source: Union[DataSource, DataStore, None] = None):
-        if isinstance(source, DataSource):
-            message = 'Data source "{}": {}'.format(source.id, message)
-        elif isinstance(source, DataStore):
-            message = 'Data store "{}": {}'.format(source.id, message)
-        super().__init__(message)
-        self._source = source
-
-    @property
-    def source(self) -> Union[DataSource, DataStore, None]:
-        return self._source
-
-    @property
-    def cause(self) -> Optional[BaseException]:
-        return self.__cause__
-
-
-class DataAccessWarning(UserWarning):
-    """
-    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
-    """
-    pass
 
 
 def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Dict:
