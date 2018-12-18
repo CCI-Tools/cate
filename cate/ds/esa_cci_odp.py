@@ -71,11 +71,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
-_ESGF_CEDA_URL = "https://esgf-index1.ceda.ac.uk/esg-search/search/"
-# _ESGF_CEDA_URL = "https://cci-odp-index.ceda.ac.uk/esg-search/search/"
-
-_CSW_CEDA_URL = "https://csw.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
-# _CSW_CEDA_URL = "https://csw-test.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
+_ESGF_CEDA_URL = "https://cci-odp-index.ceda.ac.uk/esg-search/search/"
+_CSW_CEDA_URL = "https://csw-cci.ceda.ac.uk/geonetwork/srv/eng/csw-CEDA-CCI"
 
 _TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -863,8 +860,8 @@ class EsaCciOdpDataSource(DataSource):
                                                                       if var_name not in var_names])
                             if region:
                                 remote_dataset = normalize_impl(remote_dataset)
-                                remote_dataset = adjust_spatial_attrs_impl(subset_spatial_impl(remote_dataset, region),
-                                                                           allow_point=False)
+                                remote_dataset = subset_spatial_impl(remote_dataset, region)
+                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
                                 if do_update_of_region_meta_info_once:
                                     local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
                                     local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
