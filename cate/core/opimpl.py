@@ -779,7 +779,7 @@ def reset_non_spatial(ds_source: xr.Dataset, ds_target: xr.Dataset):
     :param ds_target: Target dataset
     """
     non_spatial = list()
-    for var_name in ds_source.var():
+    for var_name in ds_source.data_vars:
         if 'lat' not in ds_source[var_name].dims and \
            'lon' not in ds_source[var_name].dims:
             non_spatial.append(var_name)
