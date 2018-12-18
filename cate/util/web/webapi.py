@@ -246,7 +246,7 @@ class WebAPI:
 
         application = application_factory()
         application.webapi = self
-        application.time_of_last_activity = time.clock()
+        application.time_of_last_activity = time.process_time()
         self.application = application
 
         print(f'{name}: started service, listening on {join_address_and_port(address, port)}')
@@ -389,7 +389,7 @@ class WebAPI:
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
         time_of_last_activity = self.application.time_of_last_activity
-        inactivity_time = time.clock() - time_of_last_activity
+        inactivity_time = time.process_time() - time_of_last_activity
         if inactivity_time > self.auto_stop_after:
             _LOG.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
             self.shut_down()
@@ -421,7 +421,7 @@ class WebAPI:
                                                auto_stop_after)
         webapi = subprocess.Popen(command, shell=True)
         webapi_url = f'http://{join_address_and_port(address, port)}/'
-        t0 = time.clock()
+        t0 = time.process_time()
         while True:
             exit_code = webapi.poll()
             if exit_code is not None:
@@ -435,7 +435,7 @@ class WebAPI:
             except Exception:
                 pass
             time.sleep(0.1)
-            t1 = time.clock()
+            t1 = time.process_time()
             if t1 - t0 > timeout:
                 raise TimeoutError('WebAPI service timeout, exceeded %d sec' % timeout)
 
@@ -592,7 +592,7 @@ class WebAPIRequestHandler(RequestHandler):
         """
         Store time of last activity so we can measure time of inactivity and then optionally auto-exit.
         """
-        self.application.time_of_last_activity = time.clock()
+        self.application.time_of_last_activity = time.process_time()
 
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))

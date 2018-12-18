@@ -857,7 +857,6 @@ class EsaCciOdpDataSource(DataSource):
                     child_monitor.start(label=file_name, total_work=1)
 
                     remote_dataset = xr.open_dataset(dataset_uri,
-                                                     autoclose=True,
                                                      drop_variables=[variable.get('name') for variable in
                                                                      excluded_variables])
                     if var_names:
@@ -921,15 +920,15 @@ class EsaCciOdpDataSource(DataSource):
 
                         for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
                             dataset_file = os.path.join(local_path, filename)
-                            sub_monitor = monitor.child(work=1.0)
+                            child_monitor = monitor.child(work=1.0)
 
                             # noinspection PyUnusedLocal
                             def reporthook(block_number, read_size, total_file_size):
                                 dl_stat.handle_chunk(read_size)
-                                sub_monitor.progress(work=read_size, msg=str(dl_stat))
+                                child_monitor.progress(work=read_size, msg=str(dl_stat))
 
                             sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                            with sub_monitor.starting(sub_monitor_msg, file_size):
+                            with child_monitor.starting(sub_monitor_msg, file_size):
                                 urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
                             file_number += 1
                             local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
@@ -948,6 +947,9 @@ class EsaCciOdpDataSource(DataSource):
         except OSError as e:
             raise self._cannot_access_error(time_range, region, var_names,
                                             verb="synchronize", cause=e) from e
+        finally:
+            child_monitor.done()
+            monitor.done()
 
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)

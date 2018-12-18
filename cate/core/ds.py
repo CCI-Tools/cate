@@ -675,7 +675,6 @@ def open_xarray_dataset(paths,
         # files that exceeds OS open file limit.
         ds = xr.open_mfdataset(files,
                                concat_dim=concat_dim,
-                               autoclose=True,
                                coords='minimal',
                                chunks=chunks,
                                preprocess=preprocess,

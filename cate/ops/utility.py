@@ -28,6 +28,7 @@ utility functions.
 All operations in this module are tagged with the ``"utility"`` tag.
 
 """
+from datetime import timezone
 
 import pandas as pd
 import xarray as xr
@@ -233,7 +234,7 @@ def dummy_ds(lon_dim: int = 360,
                       coords={'lon': lon,
                               'lat': lat,
                               'time': time,
-                              'reference_time': pd.Timestamp('2014-09-05')})
+                              'reference_time': pd.Timestamp('2014-09-05', tzinfo=timezone.utc)})
 
 
 _ERROR_TYPES = {
