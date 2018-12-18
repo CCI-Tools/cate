@@ -1,5 +1,9 @@
 ## Version 2.0.0.dev24 (in development)
 
+* Cate now uses **Python 3.7** as a consequence of resolving [#824](https://github.com/CCI-Tools/cate/issues/824).
+* Fixed broken build on Windows that lets Cate raise `ImportError: DLL load failed: The specified module could not be found`
+  when loading GDAL shared libraries.  
+  [#824](https://github.com/CCI-Tools/cate/issues/824)
 * Cate now distinguishes network connection problems from errors of other origin. Introduced new 
   error type `cate.core.ds.NetworkError` that is raised if a connection to e.g. 
   CCI ODP services can not be established. [#789](https://github.com/CCI-Tools/cate/issues/789)
