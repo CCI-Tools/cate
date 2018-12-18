@@ -100,6 +100,10 @@ def coregister(ds_master: xr.Dataset,
                               ' case spatial dimensions have different'
                               ' names'.format(ds_master.dims, ds_replica.dims))
 
+    # Don't do anything if datasets already have the same spatial definition
+    if _grids_equal(ds_master, ds_replica):
+        return ds_replica
+
     # Check if all arrays of the replica dataset have the required dimensionality
     for key in ds_replica.data_vars:
         if not _is_valid_array(ds_replica[key]):
@@ -132,11 +136,6 @@ def coregister(ds_master: xr.Dataset,
             raise ValidationError('The {} dataset grid is not'
                                   ' pixel-registered, can not perform'
                                   ' coregistration'.format(array[0]))
-
-    # Don't do anything if datasets already have the same spatial definition
-    if np.allclose(ds_master['lat'].values, ds_replica['lat'].values) and \
-       np.allclose(ds_master['lon'].values, ds_replica['lon'].values):
-        return ds_replica
 
     # Co-register
     methods_us = {'nearest': 10, 'linear': 11}
@@ -315,9 +314,8 @@ def _resample_dataset(ds_master: xr.Dataset, ds_replica: xr.Dataset, method_us: 
     lat = ds_master['lat'].sel(lat=lat_slice)
     ds_replica = ds_replica.sel(lon=lon_slice, lat=lat_slice)
 
-    if np.allclose(lon.values, ds_replica['lon'].values) and \
-       np.allclose(lat.values, ds_replica['lat'].values):
-        # The original grids already have the same spatial definition
+    # Don't do anything if datasets already have the same spatial definition
+    if _grids_equal(ds_master, ds_replica):
         return ds_replica
 
     with monitor.starting("coregister dataset", len(ds_replica.data_vars)):
@@ -325,6 +323,25 @@ def _resample_dataset(ds_master: xr.Dataset, ds_replica: xr.Dataset, method_us: 
         retset = ds_replica.apply(_resample_array, keep_attrs=True, **kwargs)
 
     return adjust_spatial_attrs(retset)
+
+
+def _grids_equal(master: xr.Dataset,
+                 replica: xr.Dataset) -> bool:
+    """
+    Check if the spatial grid of the given datasets is (almost) equal
+
+    :param master: Master dataset
+    :param replica: Replica dataset
+    """
+    if len(master.lon) != len(replica.lon) or \
+       len(master.lat) != len(replica.lat):
+        return False
+
+    if not np.allclose(master.lon.values, replica.lon.values) or \
+       not np.allclose(master.lat.values, replica.lat.values):
+        return False
+
+    return True
 
 
 def _find_intersection(first: np.ndarray,
