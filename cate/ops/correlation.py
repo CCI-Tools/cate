@@ -254,9 +254,9 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
         ym.time.values = [i for i in range(0, len(ym.time))]
         xm_ym = xm * ym
         r_num = xm_ym.sum(dim='time')
-        xm_squared = xr.ufuncs.square(xm)
-        ym_squared = xr.ufuncs.square(ym)
-        r_den = xr.ufuncs.sqrt(xm_squared.sum(dim='time') * ym_squared.sum(dim='time'))
+        xm_squared = np.square(xm)
+        ym_squared = np.square(ym)
+        r_den = np.sqrt(xm_squared.sum(dim='time') * ym_squared.sum(dim='time'))
         r_den = r_den.where(r_den != 0)
         r = r_num / r_den
 
@@ -280,7 +280,7 @@ def _pearsonr(x: xr.DataArray, y: xr.DataArray, monitor: Monitor) -> xr.Dataset:
                    ' {} and {}.'.format(x.name, y.name)}
 
         df = n - 2
-        t_squared = xr.ufuncs.square(r) * (df / ((1.0 - r.where(r != 1)) * (1.0 + r.where(r != -1))))
+        t_squared = np.square(r) * (df / ((1.0 - r.where(r != 1)) * (1.0 + r.where(r != -1))))
 
         prob = df / (df + t_squared)
         with monitor.child(1).observing("task 5"):

@@ -217,9 +217,9 @@ class ResVarTileHandler(WorkspaceResourceHandler):
             if TRACE_PERF:
                 print('PERF: >>> Tile:', image_id, z, y, x)
 
-            t1 = time.clock()
+            t1 = time.perf_counter()
             tile = pyramid.get_tile(int(x), int(y), int(z))
-            t2 = time.clock()
+            t2 = time.perf_counter()
 
             self.set_header('Content-Type', 'image/png')
             self.write(tile)

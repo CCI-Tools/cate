@@ -28,19 +28,18 @@ This module provides aggregation operations
 Components
 ==========
 """
+from datetime import timezone
 
-import xarray as xr
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+import xarray as xr
 from xarray.core.resample import DatasetResample as resampler
 
 from cate.core.op import op, op_input, op_return
+from cate.core.types import VarNamesLike, DatasetLike, ValidationError, DimNamesLike
+from cate.ops.normalize import adjust_temporal_attrs
 from cate.ops.select import select_var
 from cate.util.monitor import Monitor
-from cate.core.types import VarNamesLike, DatasetLike, ValidationError, DimNamesLike
-
-from cate.ops.normalize import adjust_temporal_attrs
 
 
 @op(tags=['aggregate', 'temporal'], version='1.5')
@@ -107,8 +106,8 @@ def _lta_monthly(ds: xr.Dataset, monitor: Monitor):
     :param monitor: Progress monitor
     :return: Aggregated dataset
     """
-    time_min = pd.Timestamp(ds.time.values[0])
-    time_max = pd.Timestamp(ds.time.values[-1])
+    time_min = pd.Timestamp(ds.time.values[0], tzinfo=timezone.utc)
+    time_max = pd.Timestamp(ds.time.values[-1], tzinfo=timezone.utc)
     total_work = 100
     retset = ds
 
@@ -162,8 +161,8 @@ def _lta_daily(ds: xr.Dataset, monitor: Monitor):
     :param monitor: Progress monitor
     :return: Aggregated dataset
     """
-    time_min = pd.Timestamp(ds.time.values[0])
-    time_max = pd.Timestamp(ds.time.values[-1])
+    time_min = pd.Timestamp(ds.time.values[0], tzinfo=timezone.utc)
+    time_max = pd.Timestamp(ds.time.values[-1], tzinfo=timezone.utc)
     total_work = 100
     retset = ds
 
@@ -218,8 +217,8 @@ def _lta_general(ds: xr.Dataset, monitor: Monitor):
     :param monitor: Progress monitor
     :return: Aggregated dataset
     """
-    time_min = pd.Timestamp(ds.time.values[0])
-    time_max = pd.Timestamp(ds.time.values[-1])
+    time_min = pd.Timestamp(ds.time.values[0], tzinfo=timezone.utc)
+    time_max = pd.Timestamp(ds.time.values[-1], tzinfo=timezone.utc)
     total_work = 100
     retset = ds
 

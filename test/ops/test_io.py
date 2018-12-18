@@ -134,7 +134,8 @@ class TestIO(TestCase):
         file = os.path.join(out_dir, 'test7.bibo')
         with self.assertRaises(ValidationError) as cm:
             write_geo_data_frame(gdf=gdf, file=file)
-        self.assertEquals(f'{cm.exception}', 'Cannot detect supported format from file extension ".bibo"')
+        self.assertEqual('Cannot detect supported format from file extension ".bibo"',
+                         f'{cm.exception}')
 
         shutil.rmtree(out_dir, ignore_errors=True)
 

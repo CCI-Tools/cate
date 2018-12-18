@@ -235,24 +235,24 @@ class OpImage(AbstractTiledImage, metaclass=ABCMeta):
         if cache:
             tile_id = self.get_tile_id(tile_x, tile_y)
             if _DEBUG_OP_IMAGE:
-                t0 = time.clock()
+                t0 = time.perf_counter()
             tile = cache.get_value(tile_id)
             if tile is not None:
                 if _DEBUG_OP_IMAGE:
-                    print('tile "%s": restored from cache, took %.4f sec' % (tile_id, time.clock() - t0))
+                    print('tile "%s": restored from cache, took %.4f sec' % (tile_id, time.perf_counter() - t0))
                 return tile
         tw, th = self.tile_size
         if _DEBUG_OP_IMAGE:
-            t0 = time.clock()
+            t0 = time.perf_counter()
         tile = self.compute_tile(tile_x, tile_y, (tw * tile_x, th * tile_y, tw, th))
         if _DEBUG_OP_IMAGE:
-            print('tile "%s": computed, took %.4f sec' % (self.get_tile_id(tile_x, tile_y), time.clock() - t0))
+            print('tile "%s": computed, took %.4f sec' % (self.get_tile_id(tile_x, tile_y), time.perf_counter() - t0))
         if cache:
             if _DEBUG_OP_IMAGE:
-                t0 = time.clock()
+                t0 = time.perf_counter()
             cache.put_value(tile_id, tile)
             if _DEBUG_OP_IMAGE:
-                print('tile "%s": stored in cache, took %.4f sec' % (tile_id, time.clock() - t0))
+                print('tile "%s": stored in cache, took %.4f sec' % (tile_id, time.perf_counter() - t0))
         return tile
 
     @abstractmethod
@@ -387,7 +387,7 @@ class TransformArrayImage(DecoratorImage):
                     tile = np.ma.masked_less(tile, valid_min)
                 if valid_max is not None:
                     tile = np.ma.masked_greater(tile, valid_max)
-            elif np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
+            elif np.issubdtype(tile.dtype, np.floating) or np.issubdtype(tile.dtype, np.complexfloating):
                 # and it is of float type, return a masked tile with a mask from invalids, i.e. NaN, -Inf, +Inf
                 tile = np.ma.masked_invalid(tile)
         return tile

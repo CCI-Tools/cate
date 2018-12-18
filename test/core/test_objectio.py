@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import itertools
 import sys
+from datetime import timezone
 
 from unittest import TestCase
 
@@ -157,6 +158,6 @@ class WriteObjectTest(TestCase):
                         coords={'lon': (['x', 'y'], lon),
                                 'lat': (['x', 'y'], lat),
                                 'time': pd.date_range('2014-09-06', periods=periods),
-                                'reference_time': pd.Timestamp('2014-09-05')
+                                'reference_time': pd.Timestamp('2014-09-05', tzinfo=timezone.utc)
                                 })
         return ds

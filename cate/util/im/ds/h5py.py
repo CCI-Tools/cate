@@ -68,7 +68,7 @@ class H5PyDatasetImage(OpImage):
             if fill_value is not None:
                 background_value = fill_value
             else:
-                if np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
+                if np.issubdtype(tile.dtype, np.floating) or np.issubdtype(tile.dtype, np.complexfloating):
                     background_value = np.nan
                 else:
                     background_value = 0
@@ -81,7 +81,7 @@ class H5PyDatasetImage(OpImage):
             if fill_value is not None:
                 # and we have a fill value, return a masked tile
                 tile = np.ma.masked_equal(tile, fill_value)
-            elif np.issubdtype(tile.dtype, float) or np.issubdtype(tile.dtype, complex):
+            elif np.issubdtype(tile.dtype, np.floating) or np.issubdtype(tile.dtype, np.complexfloating):
                 # and it is of float type, return a masked tile with a mask from invalids, i.e. NaN, -Inf, +Inf
                 tile = np.ma.masked_invalid(tile)
 

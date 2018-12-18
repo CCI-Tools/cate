@@ -564,7 +564,9 @@ class LiteralTest(TestCase):
         self.assertEqual(Literal.convert('3.4'), 3.4)
         self.assertEqual(Literal.convert('True'), True)
         self.assertEqual(Literal.convert('"abc"'), 'abc')
-        self.assertEqual(Literal.convert('2 + 6'), 8)
+        # Does not work anymore in Python 3.7
+        # self.assertEqual(Literal.convert('2 + 6'), 8)
+        self.assertEqual(Literal.convert('[3, 5, 7]'), [3, 5, 7])
         self.assertEqual(Literal.convert('(3, 5, 7)'), (3, 5, 7))
 
         with self.assertRaises(ValidationError):

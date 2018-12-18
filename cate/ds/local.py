@@ -41,12 +41,14 @@ import json
 import os
 import re
 import shutil
+import socket
 import uuid
 import warnings
 from collections import OrderedDict
 from datetime import datetime
 from glob import glob
 from typing import Optional, Sequence, Union, Any, Tuple
+from urllib.error import URLError, HTTPError
 
 import psutil
 import shapely.geometry
@@ -55,12 +57,10 @@ from dateutil import parser
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataAccessWarning, DataSourceStatus, DataStore, \
-    DataSource, \
-    open_xarray_dataset
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, NetworkError, DataAccessWarning, DataSourceStatus, \
+    DataStore, DataSource, open_xarray_dataset
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
-from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError, \
-    GeometryLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError
 from cate.util.monitor import Monitor
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -168,40 +168,32 @@ class LocalDataSource(DataSource):
         else:
             for file in self._files.items():
                 paths.extend(self._resolve_file_path(file[0]))
-        if paths:
-            paths = sorted(set(paths))
-            try:
-                excluded_variables = self._meta_info.get('exclude_variables')
-                if excluded_variables:
-                    drop_variables = [variable.get('name') for variable in excluded_variables]
-                else:
-                    drop_variables = None
-                # TODO: combine var_names and drop_variables
-                return open_xarray_dataset(paths,
-                                           region=region, var_names=var_names,
-                                           drop_variables=drop_variables,
-                                           monitor=monitor)
-            except OSError as e:
-                raise DataAccessError("Cannot open local dataset:\n"
-                                      "{}"
-                                      .format(e), source=self) from e
-            except ValueError as e:
-                msg = "Cannot open local dataset"
-                if time_range:
-                    msg += " for time range {}".format(TimeRangeLike.format(time_range))
-                if region:
-                    msg += " for region {}".format(GeometryLike.format(region))
-                if var_names:
-                    msg += " for variables {}".format(VarNamesLike.format(var_names))
-                msg += ":\n{}".format(e)
-                raise ValidationError(msg) from e
-        else:
-            if time_range:
-                time = TimeRangeLike.format(time_range)
-                msg = "No local datasets available for\nspecified time range"
-                raise ValidationError(msg, "{}".format(time))
+
+        if not paths:
+            raise self._empty_error(time_range)
+
+        paths = sorted(set(paths))
+        try:
+            excluded_variables = self._meta_info.get('exclude_variables')
+            if excluded_variables:
+                drop_variables = [variable.get('name') for variable in excluded_variables]
             else:
-                raise DataAccessError("No local datasets available", source=self)
+                drop_variables = None
+            # TODO: combine var_names and drop_variables
+            return open_xarray_dataset(paths,
+                                       region=region,
+                                       var_names=var_names,
+                                       drop_variables=drop_variables,
+                                       monitor=monitor)
+        except HTTPError as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e) from e
+        except (URLError, socket.timeout) as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e, error_cls=NetworkError) from e
+        except OSError as e:
+            raise self._cannot_access_error(time_range, region, var_names,
+                                            verb="open", cause=e) from e
 
     @staticmethod
     def _get_harmonized_coordinate_value(attrs: dict, attr_name: str):
@@ -255,6 +247,7 @@ class LocalDataSource(DataSource):
                         do_update_of_variables_meta_info_once = True
                         do_update_of_region_meta_info_once = True
 
+                        remote_dataset = None
                         try:
                             remote_dataset = xr.open_dataset(remote_absolute_filepath)
 
@@ -284,13 +277,14 @@ class LocalDataSource(DataSource):
 
                             child_monitor.progress(work=1, msg=str(time_coverage_start))
                         finally:
-                            if do_update_of_variables_meta_info_once:
+                            if do_update_of_variables_meta_info_once and remote_dataset is not None:
                                 variables_info = local_ds.meta_info.get('variables', [])
                                 local_ds.meta_info['variables'] = [var_info for var_info in variables_info
                                                                    if var_info.get('name')
                                                                    in remote_dataset.variables.keys()
                                                                    and var_info.get('name')
                                                                    not in remote_dataset.dims.keys()]
+                                # noinspection PyUnusedLocal
                                 do_update_of_variables_meta_info_once = False
 
                             local_ds.add_dataset(os.path.join(local_id, file_name),
@@ -376,7 +370,7 @@ class LocalDataSource(DataSource):
     def _extend_temporal_coverage(self, time_interval: TimeRangeLike.TYPE):
         """
 
-        :param time_range: Time range to be added to data source temporal coverage
+        :param time_interval: Time range to be added to data source temporal coverage
         :return:
         """
 
@@ -404,7 +398,7 @@ class LocalDataSource(DataSource):
     def _reduce_temporal_coverage(self, time_interval: TimeRangeLike.TYPE):
         """
 
-        :param time_range:Time range to be removed from data source temporal coverage
+        :param time_interval: Time range to be removed from data source temporal coverage
         :return:
         """
         time_range = TimeRangeLike.convert(time_interval)
@@ -685,15 +679,16 @@ class LocalDataStore(DataStore):
                                 if writer_timestamp > writer_create_time:
                                     writer_create_time = int(psutil.Process(writer_pid).create_time() * 1000000)
                                 if writer_create_time == writer_timestamp:
-                                    raise DataAccessError('Data source "{}" is currently being created by another '
-                                                          'process (pid:{})'.format(ds.id, writer_pid), source=self)
+                                    raise DataAccessError(f'Data source "{data_source_id}" is'
+                                                          f' currently being created by another'
+                                                          f' process (PID {writer_pid})')
                             # ds.temporal_coverage() == time_range and
                             if ds.spatial_coverage() == region \
                                     and ds.variables_info == var_names:
                                 data_source = ds
                                 data_source.set_completed(False)
                                 break
-                raise DataAccessError('Data source "{}" already exists.'.format(data_source_id), source=self)
+                raise DataAccessError(f'Data source "{data_source_id}" already exists.')
         if not data_source:
             data_source = LocalDataSource(data_source_id, files=[], data_store=self, spatial_coverage=region,
                                           variables=var_names, temporal_coverage=time_range, meta_info=meta_info,
@@ -752,7 +747,7 @@ class LocalDataStore(DataStore):
                 data_source = self._load_data_source(os.path.join(self._store_dir, json_file))
                 if data_source:
                     self._data_sources.append(data_source)
-            except (DataAccessError, ValidationError) as e:
+            except DataAccessError as e:
                 if skip_broken:
                     warnings.warn(str(e), DataAccessWarning, stacklevel=0)
                 else:
@@ -773,8 +768,7 @@ class LocalDataStore(DataStore):
             with open(file_name, 'w') as fp:
                 json.dump(json_dict, fp, **dump_kwargs)
         except EnvironmentError as e:
-            raise DataAccessError("Couldn't save data source config file {}\n"
-                                  "{}".format(file_name, e), source=self) from e
+            raise DataAccessError(f"Couldn't save data source configuration file {file_name}") from e
 
     def _load_data_source(self, json_path):
         json_dict = self._load_json_file(json_path)
@@ -792,14 +786,14 @@ class LocalDataStore(DataStore):
                 with open(json_path) as fp:
                     return json.load(fp=fp) or {}
             except json.decoder.JSONDecodeError as e:
-                raise DataAccessError("Cannot load data source config from {}".format(json_path)) from e
+                raise DataAccessError(f"Cannot load data source configuration from {json_path}") from e
         else:
-            raise DataAccessError("Data source config does not exists: {}".format(json_path))
+            raise DataAccessError(f"Data source configuration does not exists: {json_path}")
 
     @staticmethod
     def _json_default_serializer(obj):
         if isinstance(obj, datetime):
             return obj.replace(microsecond=0).isoformat()
         else:
-            warnings.warn('Not sure how to serialize %s %s' % (obj, type(obj)))
+            warnings.warn(f'Not sure how to serialize {obj} of {type(obj)}')
             return str(obj)

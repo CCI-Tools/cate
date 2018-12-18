@@ -1,16 +1,17 @@
 """
 Test the IO operations
 """
-
+from datetime import timezone
 from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
+from cate.core.ds import NetworkError
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna
+from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna, no_op
 from cate.util.misc import object_to_qualified_name
 
 
@@ -20,7 +21,7 @@ class MergeTest(TestCase):
         Test nominal execution
         """
         periods = 5
-        time = pd.date_range('2000-01-01', periods=periods)
+        time = pd.date_range('2000-01-01', periods=periods, tz=timezone.utc)
 
         ds_1 = xr.Dataset({'A': (['time'], np.random.randn(periods)),
                            'B': (['time'], np.random.randn(periods)),
@@ -111,7 +112,7 @@ class TestFromDataframe(TestCase):
         """
         Test nominal execution
         """
-        time = pd.date_range('2000-01-01', periods=10)
+        time = pd.date_range('2000-01-01', periods=10, tz=timezone.utc)
         data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'time': time}
@@ -132,7 +133,7 @@ class TestFromDataframe(TestCase):
         """
         reg_op = OP_REGISTRY.get_op(object_to_qualified_name(from_dataframe))
 
-        time = pd.date_range('2000-01-01', periods=10)
+        time = pd.date_range('2000-01-01', periods=10, tz=timezone.utc)
         data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 'time': time}
@@ -208,7 +209,7 @@ class TestFillna(TestCase):
                 'B': [5, 6, 8, 7, 5, np.nan, np.nan, np.nan, 1, 2, 7, 6]}
         expected = {'A': [1, 2, 3, 3, 4, 9, 9, 9, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 5, 1, 2, 7, 6]}
-        time = pd.date_range('2000-01-01', freq='MS', periods=12)
+        time = pd.date_range('2000-01-01', freq='MS', periods=12, tz=timezone.utc)
 
         expected = pd.DataFrame(data=expected, index=time, dtype=float)
         df = pd.DataFrame(data=data, index=time, dtype=float)
@@ -233,7 +234,7 @@ class TestFillna(TestCase):
                 'B': [5, 6, 8, 7, 5, np.nan, np.nan, np.nan, 1, 2, 7, 6]}
         expected = {'A': [1, 2, 3, 3, 4, 9, 9, 9, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 5, 1, 2, 7, 6]}
-        time = pd.date_range('2000-01-01', freq='MS', periods=12)
+        time = pd.date_range('2000-01-01', freq='MS', periods=12, tz=timezone.utc)
 
         expected = pd.DataFrame(data=expected, index=time, dtype=float)
         df = pd.DataFrame(data=data, index=time, dtype=float)
@@ -242,11 +243,24 @@ class TestFillna(TestCase):
         self.assertTrue(actual.equals(expected))
 
 
+class NoOpTest(TestCase):
+    def test_nominal(self):
+        self.assertTrue(no_op(step_duration=0.001))
+        with self.assertRaises(ValueError):
+            no_op(step_duration=0.001, fail_before=True)
+        with self.assertRaises(NetworkError):
+            no_op(step_duration=0.001, fail_before=True, error_type='Network')
+        with self.assertRaises(OSError):
+            no_op(step_duration=0.001, fail_after=True, error_type='OS')
+        with self.assertRaises(ValidationError):
+            no_op(step_duration=0.001, fail_after=True, error_type='????')
+
+
 def new_ds():
     lon = [10.1, 10.2, 10.3, 10.4]
     lat = [34.5, 34.6]
     time = pd.date_range('2014-09-06', periods=10)
-    reference_time = pd.Timestamp('2014-09-05')
+    reference_time = pd.Timestamp('2014-09-05', tzinfo=timezone.utc)
 
     time_res = len(time)
     lon_res = len(lon)
