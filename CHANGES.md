@@ -9,6 +9,8 @@
 * Cate now distinguishes network connection problems from errors of other origin. Introduced new 
   error type `cate.core.ds.NetworkError` that is raised if a connection to e.g. 
   CCI ODP services can not be established. [#789](https://github.com/CCI-Tools/cate/issues/789)
+* In coregistration make sure the replica dataset is simply returned if it is
+  already on master grid. [#805](https://github.com/CCI-Tools/cate/issues/805)
 
 ## Version 2.0.0.dev23
 
