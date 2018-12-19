@@ -853,7 +853,8 @@ class EsaCciOdpDataSource(DataSource):
                             remote_dataset = xr.open_dataset(dataset_uri,
                                                              drop_variables=[variable.get('name') for variable in
                                                                              excluded_variables])
-                            child_monitor.progress(work=20, msg=f"Opened {dataset_uri}")
+                            remote_dataset_root = remote_dataset
+                            child_monitor.progress(work=20)
 
                             if var_names:
                                 remote_dataset = remote_dataset.drop([var_name for var_name in remote_dataset.data_vars.keys()
@@ -871,8 +872,14 @@ class EsaCciOdpDataSource(DataSource):
                             if compression_enabled:
                                 for sel_var_name in remote_dataset.variables.keys():
                                     remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                            remote_dataset.to_netcdf(local_filepath)
-                            child_monitor.progress(work=75, msg=f"Written {local_filepath}")
+                            # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                            # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                            # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                            # second time in this loop.
+                            # Probably related to https://github.com/pydata/xarray/issues/2560.
+                            # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                            remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
+                            child_monitor.progress(work=75)
 
                             if do_update_of_variables_meta_info_once:
                                 variables_info = local_ds.meta_info.get('variables', [])
@@ -888,7 +895,9 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = time_coverage_start
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = time_coverage_end
-                            child_monitor.progress(work=5, msg=f"Added {local_filepath}")
+                            child_monitor.progress(work=5)
+
+                            remote_dataset_root.close()
             else:
                 outdated_file_list = []
                 for file_rec in selected_file_list:
