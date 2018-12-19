@@ -1,5 +1,12 @@
 ## Version 2.0.0.dev24 (in development)
 
+* A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
+  has hopefully been addressed in one go. Issues include:
+  - Cannot download SST dataset - I/O error. [#823](https://github.com/CCI-Tools/cate/issues/823) 
+  - Unable to open soil moisture dataset, key error in lru_cache.py [#822](https://github.com/CCI-Tools/cate/issues/822) 
+  - Failure downloading data with region constraint. [#818](https://github.com/CCI-Tools/cate/issues/818)
+  - Fire: Copying remote data failed. [#816](https://github.com/CCI-Tools/cate/issues/816)
+  - Landcover: NetCDF access failure. [#783](https://github.com/CCI-Tools/cate/issues/783)
 * Cate now uses new CCI ODP service endpoints. [#825](https://github.com/CCI-Tools/cate/issues/825)
 * Fixed potential runtime performance bottleneck when creating spatial subsets, especially when downloading data subsets.
 * Cate now uses **Python 3.7** as a consequence of resolving. [#824](https://github.com/CCI-Tools/cate/issues/824)
