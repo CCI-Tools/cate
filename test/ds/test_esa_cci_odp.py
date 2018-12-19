@@ -357,3 +357,17 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '48 of 64 MB @ 0.000 MB/s, 75.0% complete')
         download_stats.handle_chunk(16000000)
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
+
+
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+class SpatialSubsetTest(unittest.TestCase):
+
+    def test_make_local_spatial(self):
+        data_store = EsaCciOdpDataStore()
+        data_source = data_store.query(ds_id='esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1')[0]
+        # The following always worked fine:
+        ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
+        self.assertIsNotNone(ds)
+        # The following reproduced Cate issues #823, #822, #818, #816, #783:
+        ds = data_source.make_local('SST_DAY_L4', time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
+        self.assertIsNotNone(ds)
