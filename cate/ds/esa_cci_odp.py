@@ -854,7 +854,7 @@ class EsaCciOdpDataSource(DataSource):
                                                              drop_variables=[variable.get('name') for variable in
                                                                              excluded_variables])
                             remote_dataset_root = remote_dataset
-                            child_monitor.progress(work=20, msg=f"Opened {dataset_uri}")
+                            child_monitor.progress(work=20)
 
                             if var_names:
                                 remote_dataset = remote_dataset.drop([var_name for var_name in remote_dataset.data_vars.keys()
@@ -879,7 +879,7 @@ class EsaCciOdpDataSource(DataSource):
                             # Probably related to https://github.com/pydata/xarray/issues/2560.
                             # And probably fixes Cate issues #823, #822, #818, #816, #783.
                             remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
-                            child_monitor.progress(work=75, msg=f"Written {local_filepath}")
+                            child_monitor.progress(work=75)
 
                             if do_update_of_variables_meta_info_once:
                                 variables_info = local_ds.meta_info.get('variables', [])
@@ -895,7 +895,7 @@ class EsaCciOdpDataSource(DataSource):
                                 verified_time_coverage_start = time_coverage_start
                                 do_update_of_verified_time_coverage_start_once = False
                             verified_time_coverage_end = time_coverage_end
-                            child_monitor.progress(work=5, msg=f"Added {local_filepath}")
+                            child_monitor.progress(work=5)
 
                             remote_dataset_root.close()
             else:
