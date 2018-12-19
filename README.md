@@ -10,19 +10,26 @@
 
 ESA CCI Toolbox (Cate) Python package, API and CLI.
 
-## Contents
+## Installation
 
-* `setup.py` - main build script to be run with Python 3.5
+Cate can be installed into a new or existing Python 3.7 [Miniconda](http://conda.pydata.org/miniconda.html) 
+or [Anaconda](https://www.continuum.io/downloads) environment as follows:
+
+    $ conda install -c ccitools cate-cli
+
+## Installation from Sources
+
+Cate's sources (this repository) are organised as follows:
+
+* `setup.py` - main build script to be run with Python 3.6+
 * `cate/` - main package and production code
 * `test/` - test package and test code
 * `doc/` - documentation in Sphinx/RST format
 
-## Installation from Sources
-
 We recommend installing Cate into an isolated Python 3 environment, because this
 approach avoids clashes with existing versions of Cate's 3rd-party Python package requirements. 
-For example, using ([Miniconda](http://conda.pydata.org/miniconda.html) 
-or [Anaconda](https://www.continuum.io/downloads)) which will usually also avoid platform-specific 
+Using [Miniconda](http://conda.pydata.org/miniconda.html) 
+or [Anaconda](https://www.continuum.io/downloads) will usually avoid platform-specific 
 issues caused by module native binaries.
 
 The first step is to clone latest Cate code and step into the check out directory: 
@@ -35,14 +42,6 @@ The first step is to clone latest Cate code and step into the check out director
 
 [Conda](https://conda.io/docs/intro.html) is the package manager used by the Miniconda or 
 Anaconda Python distributions.
-
-__Note for Windows users__: When using ```conda env create``` on windows, please add the following line 
-to environment.yml:
-
-```
-  - vs2015_runtime ==14.0.25420
-```
-
 
 Creating a new Python environment for Cate will require around 2.2 GB disk space on Linux/Darwin and and 1.2 
 GB on Windows. To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
@@ -64,18 +63,20 @@ Windows users can omit the `source` command and just type
 
 You can now safely install Cate sources into the new `cate-env` environment.
     
-    (cate) $ python setup.py install
+    (cate-env) $ python setup.py install
     
 ### Using Standard Python 
 
 If you run it with the [standard CPython](https://www.python.org/downloads/) installation,
 make sure you use a 64-bit version. Cate relies on new Python language features and therefore 
-requires Python 3.5+.
+requires Python 3.6+.
 
 Cate can be run from sources directly, once the following module requirements are resolved:
 
 * `cartopy`
 * `dask`
+* `fiona`
+* `geopandas`
 * `jdcal`
 * `matplotlib`
 * `netcdf4`
@@ -89,24 +90,13 @@ Cate can be run from sources directly, once the following module requirements ar
 
 The most up-to-date list of module requirements is found in the project's `environment.yml` file.
 
-To install Cate into an existing Python 3.5+ environment just for the current user, use
+To install Cate into an existing Python 3.6+ environment just for the current user, use
 
     $ python3 setup.py install --user
     
 To install Cate for development and for the current user, use
 
     $ python3 setup.py develop --user
-
-There is a **known issue on Windows** when installing into an existing Python environment. Installation may
-fail due to an unresolved dependency to the `h5py` package, which expects pre-installed 
-HDF-5 C-libraries to be present on your computer. You may get around this by pre-installing the Cate dependencies (which you'll find in `setup.py`) 
-on your own, for example by using Christoph Gohlke's 
-[Unofficial Windows Binaries for Python Extension Packages](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
-
-For **Linux and MacOS** environment, there may be an issue when starting a webapi due to unavailable json-c shared
-object file. When this happens, please downgrade the **json-c** library by running the following command inside cate-env:
-
-    $ conda install -c conda-forge json-c=0.12.1
 
 ## Getting started
 
