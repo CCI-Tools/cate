@@ -30,8 +30,8 @@ from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.util.monitor import Monitor
 from cate.util.misc import cwd, filter_fileset
+from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
@@ -104,7 +104,7 @@ class WebSocketService:
         with open(GLOBAL_CONF_FILE, 'w') as fp:
             fp.write(conf_text)
 
-    def get_data_stores(self) -> list:
+    def get_data_stores(self) -> List[Dict[str, Any]]:
         """
         Get registered data stores.
 
@@ -113,9 +113,11 @@ class WebSocketService:
         data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
         return [dict(id=data_store.id,
                      title=data_store.title,
-                     isLocal=data_store.is_local) for data_store in data_stores]
+                     isLocal=data_store.is_local,
+                     description=data_store.description,
+                     usageNotes=data_store.usage_notes) for data_store in data_stores]
 
-    def get_data_sources(self, data_store_id: str, monitor: Monitor) -> list:
+    def get_data_sources(self, data_store_id: str, monitor: Monitor) -> List[Dict[str, Any]]:
         """
         Get data sources for a given data store.
 
@@ -143,7 +145,8 @@ class WebSocketService:
                      title=data_source.title,
                      meta_info=data_source.meta_info) for data_source in data_sources]
 
-    def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) -> dict:
+    def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
+            -> Dict[str, Any]:
         """
         Get the temporal coverage of the data source.
 

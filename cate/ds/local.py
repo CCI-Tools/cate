@@ -572,6 +572,18 @@ class LocalDataStore(DataStore):
         self._store_dir = store_dir
         self._data_sources = None
 
+    @property
+    def description(self) -> Optional[str]:
+        """
+        Return a human-readable description for this data store as plain text.
+
+        The text may use Markdown formatting.
+        """
+        return ("The local data store represents "
+                "all the data sources you configured in your local file system. "
+                "It contains any downloaded remote data sources or data sources "
+                "you have added manually.")
+
     def add_pattern(self, data_source_id: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
         data_source = self.create_data_source(data_source_id)
         if isinstance(files, str) and len(files) > 0:

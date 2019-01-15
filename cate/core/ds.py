@@ -84,7 +84,7 @@ import itertools
 import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from typing import Sequence, Optional, Union, Any, Dict, Set
+from typing import Sequence, Optional, Union, Any, Dict, Set, List
 
 import xarray as xr
 
@@ -374,6 +374,26 @@ class DataStore(metaclass=ABCMeta):
         Return a human-readable tile for this data store.
         """
         return self._title
+
+    @property
+    def description(self) -> Optional[str]:
+        """
+        Return a human-readable description for this data store as plain text.
+
+        The text may use Markdown formatting.
+        """
+        return None
+
+    @property
+    def usage_notes(self) -> List[str]:
+        """
+        Return human-readable list of usage notes as plain text.
+        A UI might display these notes to new users to
+        inform them about the conventions, standards, and data extent used in this data store.
+
+        The text may use Markdown formatting.
+        """
+        return list()
 
     @property
     def is_local(self) -> bool:

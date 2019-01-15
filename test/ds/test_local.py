@@ -36,6 +36,12 @@ class LocalDataStoreTest(unittest.TestCase):
         self.assertEqual(self.data_store.title, 'Local Data Sources')
         self.assertEqual(self.data_store.is_local, True)
 
+    def test_description_and_usage_notes(self):
+        self.assertIsNotNone(self.data_store.description)
+        self.assertTrue(len(self.data_store.description) > 40)
+        self.assertIsNotNone(self.data_store.usage_notes)
+        self.assertEqual(0, len(self.data_store.usage_notes))
+
     def test_create_data_source(self):
         new_ds_id = 'test_name.2008'
         new_ds = self.data_store.create_data_source(new_ds_id)

@@ -50,6 +50,14 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal')
         self.assertEqual(self.data_store.is_local, False)
 
+    def test_description_and_usage_notes(self):
+        self.assertIsNotNone(self.data_store.description)
+        self.assertTrue(len(self.data_store.description) > 40)
+        self.assertIsNotNone(self.data_store.usage_notes)
+        self.assertEqual(2, len(self.data_store.usage_notes))
+        self.assertTrue(len(self.data_store.usage_notes[0]) > 20)
+        self.assertTrue(len(self.data_store.usage_notes[1]) > 20)
+
     def test_query(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
