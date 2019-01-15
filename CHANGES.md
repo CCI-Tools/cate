@@ -1,5 +1,8 @@
 ## Version 2.0.0.dev25 (in development)
 
+* Fixed installation problem with latest Miniconda 4.5.12
+  [#831](https://github.com/CCI-Tools/cate/issues/831)
+
 ## Version 2.0.0.dev24
 
 * A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
