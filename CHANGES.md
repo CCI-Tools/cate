@@ -1,4 +1,6 @@
-## Version 2.0.0.dev24 (in development)
+## Version 2.0.0.dev25 (in development)
+
+## Version 2.0.0.dev24
 
 * A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
   has hopefully been addressed in one go. Issues include:
