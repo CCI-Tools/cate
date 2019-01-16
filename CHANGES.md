@@ -1,5 +1,7 @@
 ## Version 2.0.0.dev24 (in development)
 
+* Loading SeaIce data throws a ValueError: The truth value of an array with more than one element is ambiguous.
+  [#832](https://github.com/CCI-Tools/cate/issues/832)
 * A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
   has hopefully been addressed in one go. Issues include:
   - Cannot download SST dataset - I/O error. [#823](https://github.com/CCI-Tools/cate/issues/823) 
@@ -251,8 +253,6 @@ Skipped.
 
 ### Fixes
 
-* Loading SeaIce data throws a ValueError: The truth value of an array with more than one element is ambiguous.
-  [#832](https://github.com/CCI-Tools/cate/issues/832)
 * Be tolerant of "invalid" geometries passed to operations expecting
   polygon WKT values
   [#506](https://github.com/CCI-Tools/cate/issues/506)
