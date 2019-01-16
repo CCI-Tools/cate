@@ -251,6 +251,8 @@ Skipped.
 
 ### Fixes
 
+* Loading SeaIce data throws a ValueError: The truth value of an array with more than one element is ambiguous.
+  [#832](https://github.com/CCI-Tools/cate/issues/832)
 * Be tolerant of "invalid" geometries passed to operations expecting
   polygon WKT values
   [#506](https://github.com/CCI-Tools/cate/issues/506)
