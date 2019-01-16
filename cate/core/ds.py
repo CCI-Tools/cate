@@ -348,6 +348,56 @@ class DataSourceStatus(Enum):
     CANCELLED = "CANCELLED"
 
 
+class DataStoreNotice:
+    """
+    A short notice that can be exposed to users by data stores.
+    """
+
+    def __init__(self, id: str, title: str, content: str, intent: str = None, icon: str = None):
+        """
+        A short notice that can be exposed to users by data stores.
+
+        :param id: Notice ID.
+        :param title: A human-readable, plain text title.
+        :param content: A human-readable, plain text title that may be formatted using Markdown.
+        :param intent: Notice intent, may be one of "default", "primary", "success", "warning", "danger"
+        :param icon: An option icon name. See https://blueprintjs.com/docs/versions/1/#core/icons
+        """
+        if id is None or id == "":
+            raise ValueError("invalid id")
+        if title is None or title == "":
+            raise ValueError("invalid title")
+        if content is None or content == "":
+            raise ValueError("invalid content")
+        if intent not in {None, "default", "primary", "success", "warning", "danger"}:
+            raise ValueError("invalid intent")
+
+        self._dict = dict(id=id, title=title, content=content, icon=icon, intent=intent)
+
+    @property
+    def id(self):
+        return self._dict["id"]
+
+    @property
+    def title(self):
+        return self._dict["title"]
+
+    @property
+    def content(self):
+        return self._dict["content"]
+
+    @property
+    def intent(self):
+        return self._dict["intent"]
+
+    @property
+    def icon(self):
+        return self._dict["icon"]
+
+    def to_dict(self):
+        return dict(self._dict)
+
+
 class DataStore(metaclass=ABCMeta):
     """
     Represents a data store of data sources.
@@ -378,22 +428,19 @@ class DataStore(metaclass=ABCMeta):
     @property
     def description(self) -> Optional[str]:
         """
-        Return a human-readable description for this data store as plain text.
+        Return an optional, human-readable description for this data store as plain text.
 
         The text may use Markdown formatting.
         """
         return None
 
     @property
-    def usage_notes(self) -> List[str]:
+    def notices(self) -> List[DataStoreNotice]:
         """
-        Return human-readable list of usage notes as plain text.
-        A UI might display these notes to new users to
-        inform them about the conventions, standards, and data extent used in this data store.
-
-        The text may use Markdown formatting.
+        Return an optional list of notices for this data store that can be used to inform users about the
+        conventions, standards, and data extent used in this data store or upcoming service outages.
         """
-        return list()
+        return []
 
     @property
     def is_local(self) -> bool:

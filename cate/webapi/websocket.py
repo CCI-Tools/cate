@@ -115,7 +115,7 @@ class WebSocketService:
                      title=data_store.title,
                      isLocal=data_store.is_local,
                      description=data_store.description,
-                     usageNotes=data_store.usage_notes) for data_store in data_stores]
+                     notices=[notice.to_dict() for notice in data_store.notices]) for data_store in data_stores]
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> List[Dict[str, Any]]:
         """
