@@ -145,10 +145,14 @@ def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
 
     equal_lat = np.allclose(lat_data_1, lat_data_2, equal_nan=True)
     equal_lon = np.allclose(lon_data_1, lon_data_2, equal_nan=True)
-    if not (equal_lat and equal_lon):
-        return ds
+
+    # Drop lat lon in any case. If note qual_lat and equal_lon subset_spatial_impl will subsequently
+    # fail with a ValidationError
 
     ds = ds.drop(['lon', 'lat'])
+
+    if not (equal_lat and equal_lon):
+        return ds
 
     ds = ds.rename({
         x_dim_name: 'lon',
@@ -805,6 +809,16 @@ def subset_spatial_impl(ds: xr.Dataset,
     :param monitor: optional progress monitor
     :return: Subset dataset
     """
+
+    # Validate whether lat and lon exists.
+
+    if not hasattr(ds, 'lon') or not hasattr(ds, 'lat'):
+        raise ValidationError('Cannot apply regional subset. No (valid) geocoding found.')
+
+    if hasattr(ds, 'lon') and len(ds.lon.shape) != 1 \
+            or hasattr(ds, 'lat') and len(ds.lat.shape) != 1:
+        raise ValidationError('Geocoding not recognised. Lat and/or lon variables have more than one dimension.')
+
     monitor.start('Subset', 10)
     # Validate input
     try:
