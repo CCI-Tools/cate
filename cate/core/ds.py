@@ -81,6 +81,7 @@ Components
 import datetime
 import glob
 import itertools
+import logging
 import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
@@ -104,6 +105,8 @@ URL_REGEX = re.compile(
     r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+_LOG = logging.getLogger('cate')
 
 
 class DataAccessWarning(UserWarning):
@@ -314,23 +317,25 @@ class DataSource(metaclass=ABCMeta):
     def _cannot_access_error(self, time_range=None, region=None, var_names=None,
                              verb="open", cause: BaseException = None, error_cls=DataAccessError):
         error_message = f'Failed to {verb} data source "{self.id}"'
-        contraints = []
+        constraints = []
         if time_range is not None and time_range != "":
-            contraints.append("time range")
+            constraints.append("time range")
         if region is not None and region != "":
-            contraints.append("region")
+            constraints.append("region")
         if var_names is not None and var_names != "":
-            contraints.append("variable names")
-        if contraints:
-            error_message += " for given " + ", ".join(contraints)
+            constraints.append("variable names")
+        if constraints:
+            error_message += " for given " + ", ".join(constraints)
         if cause is not None:
             error_message += f": {cause}"
+        _LOG.info(error_message)
         return error_cls(error_message)
 
     def _empty_error(self, time_range=None):
         error_message = f'Data source "{self.id}" does not seem to have any datasets'
         if time_range is not None:
             error_message += f' in given time range {TimeRangeLike.format(time_range)}'
+        _LOG.info(error_message)
         return DataAccessError(error_message)
 
 
