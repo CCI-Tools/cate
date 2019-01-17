@@ -8,7 +8,7 @@ import unittest
 import unittest.mock
 import urllib.request
 
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, format_variables_info_string, DataStoreNotice
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore, find_datetime_format, _DownloadStatistics
 from cate.ds.local import LocalDataStore
@@ -49,6 +49,30 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual(self.data_store.id, 'test-odp')
         self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal')
         self.assertEqual(self.data_store.is_local, False)
+
+    def test_description(self):
+        self.assertIsNotNone(self.data_store.description)
+        self.assertTrue(len(self.data_store.description) > 40)
+
+    def test_notices(self):
+        self.assertIsInstance(self.data_store.notices, list)
+        self.assertEqual(2, len(self.data_store.notices))
+
+        notice0 = self.data_store.notices[0]
+        self.assertIsInstance(notice0, DataStoreNotice)
+        self.assertEqual(notice0.id, "terminologyClarification")
+        self.assertEqual(notice0.title, "Terminology Clarification")
+        self.assertEqual(notice0.icon, "info-sign")
+        self.assertEqual(notice0.intent, "primary")
+        self.assertTrue(len(notice0.content) > 20)
+
+        notice1 = self.data_store.notices[1]
+        self.assertIsInstance(notice0, DataStoreNotice)
+        self.assertEqual(notice1.id, "dataCompleteness")
+        self.assertEqual(notice1.title, "Data Completeness")
+        self.assertEqual(notice1.icon, "warning-sign")
+        self.assertEqual(notice1.intent, "warning")
+        self.assertTrue(len(notice1.content) > 20)
 
     def test_query(self):
         data_sources = self.data_store.query()
