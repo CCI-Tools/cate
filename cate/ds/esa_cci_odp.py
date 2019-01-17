@@ -38,6 +38,7 @@ Components
 ==========
 """
 import json
+import logging
 import os
 import re
 import socket
@@ -105,8 +106,10 @@ _CSW_MAX_RESULTS = 1000
 _CSW_METADATA_CACHE_FILE = 'catalogue_metadata.xml'
 _CSW_CACHE_FILE = 'catalogue.xml'
 
+_LOG = logging.getLogger('cate')
+
 # by default there is no timeout
-socket.setdefaulttimeout(10)
+socket.setdefaulttimeout(90)
 
 
 def get_data_store_path():
@@ -915,7 +918,8 @@ class EsaCciOdpDataSource(DataSource):
                             if var_names:
                                 remote_dataset = remote_dataset.drop(
                                     [var_name for var_name in remote_dataset.data_vars.keys()
-                                     if var_name not in var_names])
+                                     if var_name not in var_names]
+                                )
                             if region:
                                 remote_dataset = normalize_impl(remote_dataset)
                                 remote_dataset = subset_spatial_impl(remote_dataset, region)
@@ -984,7 +988,9 @@ class EsaCciOdpDataSource(DataSource):
 
                             sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                             with child_monitor.starting(sub_monitor_msg, file_size):
-                                urllib.request.urlretrieve(url[protocol], filename=dataset_file, reporthook=reporthook)
+                                actual_url = url[protocol]
+                                _LOG.info(f"Downloading {actual_url} to {dataset_file}")
+                                urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
                             file_number += 1
                             local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
 
