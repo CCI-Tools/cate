@@ -33,7 +33,7 @@ class RoundTest(TestCase):
         for i in range(len(test_data)):
             value, ndigits, int_part, expected_result = test_data[i]
             self.assertEqual(sround(value, ndigits=ndigits, int_part=int_part),
-                              expected_result, f"at index #{i}")
+                             expected_result, f"at index #{i}")
 
     def test_sround_has_limits(self):
         self.assertEqual(sround(1.4825723452345623455e-324, ndigits=10), 0.0)
@@ -43,32 +43,32 @@ class RoundTest(TestCase):
 
     def test_sround_range(self):
         self.assertEqual(sround_range((-0.000067128731732, 6.362984893743),
-                                       ndigits=1),
-                          (0.0, 6.4))
+                                      ndigits=1),
+                         (0.0, 6.4))
 
         self.assertEqual(sround_range((-0.000067128731732, 6362.984893743),
-                                       ndigits=3),
-                          (0.0, 6362.985))
+                                      ndigits=3),
+                         (0.0, 6362.985))
 
         self.assertEqual(sround_range((6361.239852345, 6362.68923),
-                                       ndigits=0),
-                          (6361.0, 6363.0))
+                                      ndigits=0),
+                         (6361.0, 6363.0))
         self.assertEqual(sround_range((6361.239852345, 6362.68923),
-                                       ndigits=2),
-                          (6361.24, 6362.69))
+                                      ndigits=2),
+                         (6361.24, 6362.69))
         self.assertEqual(sround_range((-6362.68923, +6361.239852345),
-                                       ndigits=2),
-                          (-6362.69, 6361.24))
+                                      ndigits=2),
+                         (-6362.69, 6361.24))
 
         self.assertEqual(sround_range((-0.000067128731732, +0.0027635092345),
-                                       ndigits=2),
-                          (-0.00007,
-                           +0.00276))
+                                      ndigits=2),
+                         (-0.00007,
+                          +0.00276))
         self.assertEqual(sround_range((-0.000067128731732, +0.0027635092345),
-                                       ndigits=1),
-                          (-0.0001,
-                           +0.0028))
+                                      ndigits=1),
+                         (-0.0001,
+                          +0.0028))
         self.assertEqual(sround_range((-0.000067128731732, +0.0027635092345),
-                                       ndigits=0),
-                          (0.0,
-                           +0.003))
+                                      ndigits=0),
+                         (0.0,
+                          +0.003))
