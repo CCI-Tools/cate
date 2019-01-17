@@ -699,7 +699,7 @@ def url_pattern(pattern: str):
     :return: equivalent regex pattern
     :raise ValueError: if *pattern* is invalid
     """
-    name_pattern = '(?P<%s>[^\;\/\?\:\@\&\=\+\$\,]+)'
+    name_pattern = '(?P<%s>[^\\;\\/\\?\\:\\@\\&\\=\\+\\$\\,]+)'
     reg_expr = ''
     pos = 0
     while True:
