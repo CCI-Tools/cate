@@ -684,7 +684,7 @@ def open_xarray_dataset(paths,
                         var_names: VarNamesLike.TYPE = None,
                         monitor: Monitor = Monitor.NONE,
                         **kwargs) -> xr.Dataset:
-    """
+    r"""
     Open multiple files as a single dataset. This uses dask. If each individual file
     of the dataset is small, one Dask chunk will coincide with one temporal slice,
     e.g. the whole array in the file. Otherwise smaller dask chunks will be used

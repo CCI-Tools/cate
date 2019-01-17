@@ -90,8 +90,8 @@ class ProcessTest(TestCase):
 
     def test_execute_with_monitor(self):
         handler = ProcessOutputMonitor(self.monitor,
-                                       started='mkentropy: Running (?P<total_work>\d+)',
-                                       progress='mkentropy: Did (?P<work>\d+)',
+                                       started=r'mkentropy: Running (?P<total_work>\d+)',
+                                       progress=r'mkentropy: Did (?P<work>\d+)',
                                        done=lambda line: 'Done' in line)
         exit_code = run_subprocess([sys.executable, MAKE_ENTROPY, '5', '0.1'], stdout_handler=handler)
         self.assertEqual(exit_code, 0)
