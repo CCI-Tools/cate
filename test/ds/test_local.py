@@ -6,7 +6,7 @@ import unittest.mock
 import datetime
 import shutil
 import json
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStoreNotice
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore, LocalDataSource
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
@@ -35,6 +35,22 @@ class LocalDataStoreTest(unittest.TestCase):
         self.assertEqual(self.data_store.id, 'test')
         self.assertEqual(self.data_store.title, 'Local Data Sources')
         self.assertEqual(self.data_store.is_local, True)
+
+    def test_description(self):
+        self.assertIsNotNone(self.data_store.description)
+        self.assertTrue(len(self.data_store.description) > 40)
+
+    def test_notices(self):
+        self.assertIsInstance(self.data_store.notices, list)
+        self.assertEqual(1, len(self.data_store.notices))
+
+        notice0 = self.data_store.notices[0]
+        self.assertIsInstance(notice0, DataStoreNotice)
+        self.assertEqual(notice0.id, "localDataStorage")
+        self.assertEqual(notice0.title, "Local Data Storage")
+        self.assertEqual(notice0.icon, "info-sign")
+        self.assertEqual(notice0.intent, "primary")
+        self.assertTrue(len(notice0.content) > 20)
 
     def test_create_data_source(self):
         new_ds_id = 'test_name.2008'

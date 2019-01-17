@@ -24,6 +24,14 @@ class WebSocketServiceTest(unittest.TestCase):
         data_stores = self.service.get_data_stores()
         self.assertIsInstance(data_stores, list)
         self.assertGreater(len(data_stores), 1)
+        for ds in data_stores:
+            self.assertIn('id', ds)
+            self.assertIsInstance(ds['id'], str)
+            self.assertIn('isLocal', ds)
+            self.assertIsInstance(ds['isLocal'], bool)
+            self.assertIn('description', ds)
+            self.assertIn('notices', ds)
+            self.assertIsInstance(ds['notices'], list)
         self.assertIn('local', [ds['id'] for ds in data_stores])
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
