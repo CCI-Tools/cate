@@ -24,14 +24,15 @@ class UrlPatternTest(unittest.TestCase):
         self.assertEqual(matcher.groupdict(), {'base_dir': x, 'res_name': 'SST'})
 
     def test_url_pattern_ok(self):
+        name_chars_pattern = "[^\\;\\/\\?\\:\\@\\&\\=\\+\\$\\,]+"
         self.assertEqual(webapi.url_pattern('/version'),
                          '/version')
         self.assertEqual(webapi.url_pattern('{{num}}/get'),
-                         '(?P<num>[^\;\/\?\:\@\&\=\+\$\,]+)/get')
+                         f'(?P<num>{name_chars_pattern})/get')
         self.assertEqual(webapi.url_pattern('/open/{{ws_name}}'),
-                         '/open/(?P<ws_name>[^\;\/\?\:\@\&\=\+\$\,]+)')
+                         f'/open/(?P<ws_name>{name_chars_pattern})')
         self.assertEqual(webapi.url_pattern('/open/ws{{id1}}/wf{{id2}}'),
-                         '/open/ws(?P<id1>[^\;\/\?\:\@\&\=\+\$\,]+)/wf(?P<id2>[^\;\/\?\:\@\&\=\+\$\,]+)')
+                         f'/open/ws(?P<id1>{name_chars_pattern})/wf(?P<id2>{name_chars_pattern})')
 
     def test_url_pattern_fail(self):
         with self.assertRaises(ValueError) as cm:
