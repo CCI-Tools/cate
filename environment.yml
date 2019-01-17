@@ -15,14 +15,13 @@ dependencies:
   - fiona=1.8.4
   - gdal=2.3.2
   - geopandas=0.4.0
-  - geos=3.6.2
+  - geos=3.7.0
   - geotiff=1.4.2
   - h5netcdf=0.6.2
   - h5py=2.8.0
   - hdf4=4.2.13
-  - hdf5=1.10.3
+  - hdf5=1.10.4
   - jdcal=1.4
-  - kealib=1.4.10
   - matplotlib=3.0.2
   - numba=0.41.0
   - numpy=1.15.4
