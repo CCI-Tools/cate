@@ -6,8 +6,11 @@ from unittest import TestCase
 
 import numpy as np
 import xarray as xr
+import pandas as pd
 
 from cate.core.op import OP_REGISTRY
+from cate.core.opimpl import subset_spatial_impl
+from cate.core.types import ValidationError
 from cate.ops import subset
 from cate.util.misc import object_to_qualified_name
 
@@ -19,7 +22,44 @@ def assert_dataset_equal(expected, actual):
     assert expected.equals(actual), (expected, actual)
 
 
+def get_test_subset_non_valid_lat_lon_dataset():
+    temp = np.random.randn(2, 2, 3)
+    precip = np.random.rand(2, 2, 3)
+    lon = [[-40, 40], [-40, 40]]
+    lat = [[-50, 50], [-50, 50]]
+    return xr.Dataset({'temp': (['x', 'y', 'time'], temp),
+                       'precip': (['x', 'y', 'time'], precip)},
+                      coords={'lon': (['x', 'y'], lon),
+                              'lat': (['x', 'y'], lat),
+                              'time': pd.date_range('2014-09-06', periods=3)})
+
+
 class TestSubsetSpatial(TestCase):
+    def test_subset_non_valid_lat_lon(self):
+        """
+        Test whether lat and/or lon exist and if they exist whether they have dimension = 1
+        :return: void
+        """
+
+        # Test whether lat lon exist
+        dataset = xr.Dataset({
+            'first': (['xc', 'yc', 'time'], np.ones([180, 360, 6])),
+            'second': (['xc', 'yc', 'time'], np.ones([180, 360, 6])),
+            'xc': np.linspace(-89.5, 89.5, 180),
+            'yc': np.linspace(-179.5, 179.5, 360),
+        })
+
+        with self.assertRaises(ValidationError) as error:
+            subset_spatial_impl(dataset, (-40, 40, -50, 50))
+        self.assertIn('No (valid) geocoding found', str(error.exception))
+
+        # test whether lat lon has the wrong dimension (!=1)
+        dataset = get_test_subset_non_valid_lat_lon_dataset()
+
+        with self.assertRaises(ValidationError) as error:
+            subset_spatial_impl(dataset, (-40, 40, -50, 50))
+        self.assertIn('Geocoding not recognised', str(error.exception))
+
     def test_nominal(self):
         """
         Test general 'most expected' use case functionality.
