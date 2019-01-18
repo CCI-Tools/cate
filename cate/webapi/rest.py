@@ -402,7 +402,7 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                                       res_id=res_id,
                                       feature_index=feature_index,
                                       conservation_ratio=conservation_ratio)
-                    except BaseException as e:
+                    except BaseException:
                         self.write_status_error(exc_info=sys.exc_info())
                     self.finish()
                     if TRACE_PERF:
@@ -433,7 +433,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
             if var_name:
                 try:
                     var_data = resource[var_name]
-                except Exception as e:
+                except Exception:
                     self.write_status_error(exc_info=sys.exc_info())
                     self.finish()
                     return
@@ -460,7 +460,7 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
 
             self.set_header('Content-Type', 'text/csv')
             self.write(csv)
-        except Exception as e:
+        except Exception:
             self.write_status_error(exc_info=sys.exc_info())
             self.finish()
 

@@ -356,7 +356,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
         import xarray as xr
         import numpy as np
-        import matplotlib
+        # import matplotlib
         # matplotlib.use('Qt5Agg')
         import matplotlib.pyplot as plt
 

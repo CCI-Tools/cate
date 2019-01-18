@@ -124,7 +124,7 @@ class MemoryCacheStore(CacheStore):
         return False
 
     def load_from_key(self, key):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def store_value(self, key, value):
         """

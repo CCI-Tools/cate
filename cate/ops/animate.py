@@ -45,8 +45,8 @@ Supported formats: html
 
 """
 import os
-import matplotlib
 
+# import matplotlib
 # noinspection PyBroadException
 # try:
 #     matplotlib.use('Qt5Agg')
