@@ -28,10 +28,10 @@ def get_test_subset_non_valid_lat_lon_dataset():
     lon = [[-40, 40], [-40, 40]]
     lat = [[-50, 50], [-50, 50]]
     return xr.Dataset({'temp': (['x', 'y', 'time'], temp),
-                          'precip': (['x', 'y', 'time'], precip)},
-                         coords={'lon': (['x', 'y'], lon),
-                                 'lat': (['x', 'y'], lat),
-                                 'time': pd.date_range('2014-09-06', periods=3)})
+                       'precip': (['x', 'y', 'time'], precip)},
+                      coords={'lon': (['x', 'y'], lon),
+                              'lat': (['x', 'y'], lat),
+                              'time': pd.date_range('2014-09-06', periods=3)})
 
 
 class TestSubsetSpatial(TestCase):
@@ -51,7 +51,7 @@ class TestSubsetSpatial(TestCase):
 
         with self.assertRaises(ValidationError) as error:
             subset_spatial_impl(dataset, (-40, 40, -50, 50))
-        self.assertIn('No geocoding found', str(error.exception))
+        self.assertIn('No (valid) geocoding found', str(error.exception))
 
         # test whether lat lon has the wrong dimension (!=1)
         dataset = get_test_subset_non_valid_lat_lon_dataset()
@@ -453,6 +453,7 @@ class TestSubsetSpatial(TestCase):
         actual = subset.subset_spatial(dataset, poly, mask=True)
         xr.testing.assert_equal(expected.third, actual.third)
 
+
 class TestSubsetTemporal(TestCase):
     def test_subset_temporal(self):
         # Test general functionality
@@ -508,6 +509,7 @@ class TestSubsetTemporal(TestCase):
             'time': [datetime(2000, x, 1) for x in range(2, 5)]})
         assert_dataset_equal(expected, actual)
 
+
 class TestSubsetTemporalIndex(TestCase):
     def test_subset_temporal_index(self):
         # Test general functionality
@@ -555,6 +557,7 @@ class TestSubsetTemporalIndex(TestCase):
             'lon': np.linspace(-179.5, 179.5, 360),
             'time': ['2000-03-01', '2000-04-01', '2000-05-01']})
         assert_dataset_equal(expected, actual)
+
 
 class TestExtractPoint(TestCase):
     @classmethod
