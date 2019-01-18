@@ -817,7 +817,7 @@ def subset_spatial_impl(ds: xr.Dataset,
 
     if hasattr(ds, 'lon') and len(ds.lon.shape) != 1 \
             or hasattr(ds, 'lat') and len(ds.lat.shape) != 1:
-        raise ValidationError('Geocoding not recognised. Lat and/or lon variables have more than one dimension.')
+        raise ValidationError('Geocoding not recognised. Variables "lat" and/or "lon" have more than one dimension.')
 
     monitor.start('Subset', 10)
     # Validate input
