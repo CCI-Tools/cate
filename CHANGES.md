@@ -7,7 +7,7 @@
 
 ## Version 2.0.0.dev24
 
-* Loading SeaIce data throws a ValueError: The truth value of an array with more than one element is ambiguous.
+* Fixed failing download of Sea-Ice CCI data  (ValueError: The truth value of an array with more than one element is ambiguous)
   [#832](https://github.com/CCI-Tools/cate/issues/832)
 * A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
   has hopefully been addressed in one go. Issues include:
