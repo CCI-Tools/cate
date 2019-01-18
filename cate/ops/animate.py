@@ -47,7 +47,6 @@ Supported formats: html
 
 import os
 
-# import matplotlib
 # noinspection PyBroadException
 # try:
 #     import matplotlib
