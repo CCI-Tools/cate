@@ -2,13 +2,14 @@
 
 * Increased default time-out for data downloads from 10 to 90 seconds. Addresses (but not fixes)
   [#835](https://github.com/CCI-Tools/cate/issues/835)
+* Fixed failing download of Sea-Ice CCI data (ValueError: The truth value 
+  of an array with more than one element is ambiguous). Addresses (but not fixes)
+  [#832](https://github.com/CCI-Tools/cate/issues/832) - we now display better error message
 * Fixed installation problem with latest Miniconda 4.5.12
   [#831](https://github.com/CCI-Tools/cate/issues/831)
 
 ## Version 2.0.0.dev24
 
-* Fixed failing download of Sea-Ice CCI data  (ValueError: The truth value of an array with more than one element is ambiguous)
-  [#832](https://github.com/CCI-Tools/cate/issues/832)
 * A set of related data access issues that all occurred if data was downloaded from ODP using a spatial subset
   has hopefully been addressed in one go. Issues include:
   - Cannot download SST dataset - I/O error. [#823](https://github.com/CCI-Tools/cate/issues/823) 
