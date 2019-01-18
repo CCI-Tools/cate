@@ -47,7 +47,7 @@ import warnings
 from collections import OrderedDict
 from datetime import datetime
 from glob import glob
-from typing import Optional, Sequence, Union, Any, Tuple
+from typing import Optional, Sequence, Union, Any, Tuple, List
 from urllib.error import URLError, HTTPError
 
 import psutil
@@ -55,10 +55,10 @@ import shapely.geometry
 import xarray as xr
 from dateutil import parser
 
-from cate.conf import get_config_value, get_data_stores_path
+from cate.conf import get_config_value, get_data_stores_path, GLOBAL_CONF_FILE
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, NetworkError, DataAccessWarning, DataSourceStatus, \
-    DataStore, DataSource, open_xarray_dataset
+    DataStore, DataSource, open_xarray_dataset, DataStoreNotice
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
 from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNames, VarNamesLike, ValidationError
 from cate.util.monitor import Monitor
@@ -571,6 +571,38 @@ class LocalDataStore(DataStore):
         super().__init__(ds_id, title='Local Data Sources', is_local=True)
         self._store_dir = store_dir
         self._data_sources = None
+
+    @property
+    def description(self) -> Optional[str]:
+        """
+        Return a human-readable description for this data store as plain text.
+
+        The text may use Markdown formatting.
+        """
+        return ("The local data store represents "
+                "all the data sources in your local file system known by Cate. "
+                "It contains any downloaded remote data sources or files in your file system "
+                "manually added.")
+
+    @property
+    def notices(self) -> Optional[List[DataStoreNotice]]:
+        """
+        Return an optional list of notices for this data store that can be used to inform users about the
+        conventions, standards, and data extent used in this data store or upcoming service outages.
+        """
+        return [
+            DataStoreNotice("localDataStorage",
+                            "Local Data Storage",
+                            "The local data store is currently configured to synchronize remote data in the "
+                            f"`{get_data_stores_path()}`.\n"
+                            "You can change this location either "
+                            f"in Cate's configuration file `{GLOBAL_CONF_FILE}` "
+                            "or in the user preference settings of Cate Desktop.\n"
+                            "In order to keep your data, move your old directory to the new location, before "
+                            "changing the location.",
+                            intent="primary",
+                            icon="info-sign"),
+        ]
 
     def add_pattern(self, data_source_id: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
         data_source = self.create_data_source(data_source_id)

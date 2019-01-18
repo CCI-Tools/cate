@@ -1,4 +1,11 @@
-## Version 2.0.0.dev24 (in development)
+## Version 2.0.0.dev25 (in development)
+
+* Increased default time-out for data downloads from 10 to 90 seconds. Addresses (but not fixes)
+  [#835](https://github.com/CCI-Tools/cate/issues/835)
+* Fixed installation problem with latest Miniconda 4.5.12
+  [#831](https://github.com/CCI-Tools/cate/issues/831)
+
+## Version 2.0.0.dev24
 
 * Loading SeaIce data throws a ValueError: The truth value of an array with more than one element is ambiguous.
   [#832](https://github.com/CCI-Tools/cate/issues/832)

@@ -1092,7 +1092,7 @@ class ExpressionStep(OpStepBase):
 
 
 class SubProcessStep(OpStepBase):
-    """
+    r"""
     A ``SubProcessStep`` is a step node that computes its output by a sub-process created from the
     given *program*.
 

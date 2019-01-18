@@ -44,11 +44,13 @@ If a file path is given, the plot is saved.
 Supported formats: html
 
 """
+
 import os
 
 # import matplotlib
 # noinspection PyBroadException
 # try:
+#     import matplotlib
 #     matplotlib.use('Qt5Agg')
 #     has_qt5agg = True
 # except Exception:

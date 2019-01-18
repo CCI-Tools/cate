@@ -138,7 +138,7 @@ def _cancel(process: subprocess.Popen, kill_on_cancel: bool):
 
 
 class ProcessOutputMonitor:
-    """
+    r"""
     A stdout handler for :py:func:`execute` the delegates extracted progress information to a monitor.
     Information is extracted using regular expressions or a callable that extracts the information.
 

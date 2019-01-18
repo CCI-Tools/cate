@@ -681,7 +681,7 @@ def new_subprocess_op(op_meta_info: OpMetaInfo,
                       started: Union[str, Callable] = None,
                       progress: Union[str, Callable] = None,
                       done: Union[str, Callable] = None) -> Operation:
-    """
+    r"""
     Create an operation for a child program run in a new process.
 
     :param op_meta_info: Meta-information about the resulting operation and the operation's inputs and outputs.
