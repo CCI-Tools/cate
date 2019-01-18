@@ -698,12 +698,12 @@ def new_subprocess_op(op_meta_info: OpMetaInfo,
            and returns a tuple (label, total_work) or a regex that must match
            in order to signal the start of progress monitoring.
            The regex must provide the group names "label" or "total_work" or both,
-           e.g. "(?P<label>\\w+)" or "(?P<total_work>\\d+)"
+           e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
     :param progress: Either a callable that receives a text line from the executable's stdout
            and returns a tuple (work, msg) or a regex that must match
            in order to signal process.
            The regex must provide group names "work" or "msg" or both,
-           e.g. "(?P<msg>\\w+)" or "(?P<work>\\d+)"
+           e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
     :param done: Either a callable that receives a text line a text line from the executable's stdout
            and returns True or False or a regex that must match
            in order to signal the end of progress monitoring.

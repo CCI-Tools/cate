@@ -1109,11 +1109,11 @@ class SubProcessStep(OpStepBase):
     :param started_re: A regex that must match a text line from the process' stdout
            in order to signal the start of progress monitoring.
            The regex must provide the group names "label" or "total_work" or both,
-           e.g. "(?P<label>\\w+)" or "(?P<total_work>\\d+)"
+           e.g. "(?P<label>\w+)" or "(?P<total_work>\d+)"
     :param progress_re: A regex that must match a text line from the process' stdout
            in order to signal process.
            The regex must provide group names "work" or "msg" or both,
-           e.g. "(?P<msg>\\w+)" or "(?P<work>\\d+)"
+           e.g. "(?P<msg>\w+)" or "(?P<work>\d+)"
     :param done_re: A regex that must match a text line from the process' stdout
            in order to signal the end of progress monitoring.
     :param inputs: input name to input properties mapping.

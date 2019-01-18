@@ -690,7 +690,7 @@ def open_xarray_dataset(paths,
     e.g. the whole array in the file. Otherwise smaller dask chunks will be used
     to split the dataset.
 
-    :param paths: Either a string glob in the form "path/to/my/files/\\*.nc" or an explicit
+    :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
         list of files to open.
     :param region: Optional region constraint.
     :param var_names: Optional variable names constraint.
