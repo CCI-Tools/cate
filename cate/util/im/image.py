@@ -625,9 +625,10 @@ class FastNdarrayDownsamplingImage(OpImage):
                  tile_cache: Cache = None):
         step_size = 1 << step_exp
         source_width, source_height = array.shape[-1], array.shape[-2]
-        size = source_width // step_size, source_height // step_size
-        num_tiles = size[0] // tile_size[0], size[1] // tile_size[1]
-        super().__init__(size,
+        width, height = source_width // step_size, source_height // step_size
+        tile_width, tile_height = tile_size
+        num_tiles = (width + tile_width - 1) // tile_width, (height + tile_height - 1) // tile_height
+        super().__init__((width, height),
                          tile_size=tile_size,
                          num_tiles=num_tiles,
                          mode=str(array.dtype),

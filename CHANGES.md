@@ -1,4 +1,9 @@
-## Version 2.0.0.dev25 (in development)
+## Version 2.0.0.dev26 (in development)
+
+* Fixed a display problem where spatial subsets of datasets appeared shifted on the 3D globe view
+  [#817](https://github.com/CCI-Tools/cate/issues/817)
+
+## Version 2.0.0.dev25
 
 * Increased default time-out for data downloads from 10 to 90 seconds. Addresses (but not fixes)
   [#835](https://github.com/CCI-Tools/cate/issues/835)
