@@ -1,7 +1,11 @@
-## Version 2.0.0.dev26 (in development)
+## Version 2.0.0.dev26
 
 * Fixed a display problem where spatial subsets of datasets appeared shifted on the 3D globe view
   [#817](https://github.com/CCI-Tools/cate/issues/817)
+* Cate now depends on gdal 2.3.3 and geos 3.7.1 to solve failed installation issue 
+  [#843](https://github.com/CCI-Tools/cate/issues/843) and possibly [#842](https://github.com/CCI-Tools/cate/issues/842)
+* Fixed a dependency issue caused by fiona by removing defaults channel (and consequently using only conda-forge channel)
+  [#839](https://github.com/CCI-Tools/cate/issues/839)
 
 ## Version 2.0.0.dev25
 

@@ -1,10 +1,9 @@
 name: cate-env
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3.7
-  - conda=4.5
+  - conda=4.6
   # Runtime libs
   - bokeh=1.0.2
   - boto3=1.9.65
@@ -13,9 +12,9 @@ dependencies:
   - cython=0.29.2
   - dask=1.0.0
   - fiona=1.8.4
-  - gdal=2.3.2
+  - gdal=2.3.3
   - geopandas=0.4.0
-  - geos=3.7.0
+  - geos=3.7.1
   - geotiff=1.4.2
   - h5netcdf=0.6.2
   - h5py=2.8.0
