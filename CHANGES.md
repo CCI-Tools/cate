@@ -1,3 +1,7 @@
+## Version 2.0.0
+
+No changes. 
+
 ## Version 2.0.0.dev26
 
 * Fixed a display problem where spatial subsets of datasets appeared shifted on the 3D globe view
