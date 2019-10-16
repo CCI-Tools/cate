@@ -454,7 +454,7 @@ def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
     elif hasattr(value, 'shape') and hasattr(value, 'dtype'):
         try:
             shape = value.shape
-            dtype = value.dtype
+            dtype = 'object' if str(value.dtype) == 'geometry' else value.dtype
             ndim = len(shape)
             size = 1
             for dim in shape:
@@ -479,7 +479,8 @@ def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
                 is_str = True
             else:
                 return UNDEFINED
-        except BaseException:
+        except BaseException as e:
+            print("Error in to_scalar: " + e)
             return UNDEFINED
     elif stringify:
         value = str(value)

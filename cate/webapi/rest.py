@@ -259,7 +259,6 @@ class GeoJSONHandler(WebAPIRequestHandler):
         self._shapefile_path = shapefile_path
 
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
         try:
@@ -295,7 +294,6 @@ class CountriesGeoJSONHandler(GeoJSONHandler):
 # noinspection PyAbstractClass,PyBroadException
 class ResFeatureCollectionHandler(WorkspaceResourceHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self, base_dir, res_id):
         try:
@@ -348,7 +346,6 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
 # noinspection PyAbstractClass,PyBroadException
 class ResFeatureHandler(WorkspaceResourceHandler):
     # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self, base_dir, res_id, feature_index):
         try:

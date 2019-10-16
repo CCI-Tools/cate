@@ -282,7 +282,7 @@ class WorkspaceTest(unittest.TestCase):
             self.assertIsNone(res_gdf_var_3.get('attributes'))
             res_gdf_var_4 = res_gdf_vars[3]
             self.assertEqual(res_gdf_var_4.get('name'), 'geometry')
-            self.assertEqual(res_gdf_var_4.get('dataType'), 'object')
+            self.assertEqual(res_gdf_var_4.get('dataType'), 'geometry')
             self.assertEqual(res_gdf_var_4.get('numDims'), 1)
             self.assertEqual(res_gdf_var_4.get('shape'), (3,))
             self.assertEqual(res_gdf_var_4.get('isYFlipped'), None)

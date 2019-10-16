@@ -8,8 +8,8 @@ import pyproj
 
 from cate.webapi.geojson import get_geometry_transform, write_feature_collection, simplify_geometry
 
-source_prj = pyproj.Proj(init='EPSG:4326')
-target_prj = pyproj.Proj(init='EPSG:3395')
+source_prj = pyproj.Proj({'init': 'EPSG:4326'})
+target_prj = pyproj.Proj({'init': 'EPSG:3395'})
 
 
 class GeometryTransformTest(TestCase):

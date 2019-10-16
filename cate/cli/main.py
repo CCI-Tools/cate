@@ -1350,7 +1350,7 @@ class UpdateCommand(Command):
 
         from cate.util.process import run_subprocess
         if sys.platform == 'win32':
-            conda_path = os.path.join(sys.prefix, 'Scripts', 'conda.bat')
+            conda_path = os.path.join(sys.prefix, 'Scripts', 'conda.exe')
         else:
             conda_path = os.path.join(sys.prefix, 'bin', 'conda')
 

@@ -667,14 +667,16 @@ class TestGeoDataFrame(TestCase):
         df_min = data_frame_min(gdf, 'C')
         self.assertIsInstance(df_min, gpd.GeoDataFrame)
         self.assertEqual(len(df_min), 1)
-        self.assertEqual(list(df_min.columns), ['A', 'B', 'C', 'geometry'])
+        # assertCountEqual ignores the order of the list
+        self.assertCountEqual(list(df_min.columns), ['A', 'B', 'C', 'geometry'])
         self.assertIsInstance(df_min.geometry, gpd.GeoSeries)
         self.assertIsNotNone(df_min.crs)
 
         df_max = data_frame_max(gdf, 'C')
         self.assertIsInstance(df_max, gpd.GeoDataFrame)
         self.assertEqual(len(df_max), 1)
-        self.assertEqual(list(df_max.columns), ['A', 'B', 'C', 'geometry'])
+        # assertCountEqual ignores the order of the list
+        self.assertCountEqual(list(df_max.columns), ['A', 'B', 'C', 'geometry'])
         self.assertIsInstance(df_max.geometry, gpd.GeoSeries)
         self.assertIsNotNone(df_max.crs)
 
