@@ -106,7 +106,7 @@ def get_http_proxy() -> Optional[str]:
         return None
 
     if isinstance(http_proxy, str):
-        if http_proxy is '':
+        if http_proxy == '':
             return None
         if http_proxy.startswith('https:') or http_proxy.startswith('http:'):
             return http_proxy

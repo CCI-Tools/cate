@@ -201,7 +201,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 new_ds_w_region = soilmoisture_data_source.make_local(
                     new_ds_w_region_title,
                     time_range=new_ds_w_region_time_range,
-                    region=new_ds_w_region_spatial_coverage)  # type: LocalDataSource
+                    region=new_ds_w_region_spatial_coverage)
 
                 self.assertIsNotNone(new_ds_w_region)
 
@@ -219,7 +219,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     new_ds_w_region_title,
                     time_range=new_ds_w_region_time_range,
                     var_names=new_ds_w_region_var_names,
-                    region=new_ds_w_region_spatial_coverage)  # type: LocalDataSource
+                    region=new_ds_w_region_spatial_coverage)
 
                 self.assertIsNotNone(new_ds_w_region)
 
@@ -241,7 +241,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                     new_ds_w_region_title,
                     time_range=new_ds_w_region_time_range,
                     var_names=new_ds_w_region_var_names,
-                    region=new_ds_w_region_spatial_coverage)  # type: LocalDataSource
+                    region=new_ds_w_region_spatial_coverage)
 
                 self.assertIsNotNone(new_ds_w_region)
 

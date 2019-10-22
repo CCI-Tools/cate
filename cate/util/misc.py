@@ -411,7 +411,7 @@ def new_indexed_name(names: Iterable[str], pattern: str) -> str:
     """
     if "{index}" not in pattern:
         raise ValueError('pattern must contain "{index}"')
-    re_pattern = re.compile(pattern.replace("{index}", "(\d+)"))
+    re_pattern = re.compile(pattern.replace("{index}", r"(\d+)"))
     max_index = 0
     for name in names:
         match_result = re_pattern.match(name)

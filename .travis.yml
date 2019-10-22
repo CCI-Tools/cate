@@ -3,7 +3,7 @@
 # See http://conda.pydata.org/docs/travis.html for more info.
 #
 
-language: generic
+language: shell
 
 env:
   global:
