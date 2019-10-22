@@ -480,7 +480,7 @@ def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
             else:
                 return UNDEFINED
         except BaseException as e:
-            print("Error in to_scalar: " + e)
+            print("Error in to_scalar: " + str(e))
             return UNDEFINED
     elif stringify:
         value = str(value)

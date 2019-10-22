@@ -83,13 +83,13 @@ def anomaly_external(ds: xr.Dataset,
     try:
         if ds.attrs['time_coverage_resolution'] != 'P1M':
             raise ValidationError('anomaly_external expects a monthly dataset'
-                                  ' got: {} instead.'.format(ds.attrs['time_coverate_resolution']))
+                                  ' got: {} instead.'.format(ds.attrs['time_coverage_resolution']))
     except KeyError:
         try:
             ds = adjust_temporal_attrs(ds)
             if ds.attrs['time_coverage_resolution'] != 'P1M':
                 raise ValidationError('anomaly_external expects a monthly dataset'
-                                      ' got: {} instead.'.format(ds.attrs['time_coverate_resolution']))
+                                      ' got: {} instead.'.format(ds.attrs['time_coverage_resolution']))
         except KeyError:
             raise ValidationError('Could not determine temporal resolution of'
                                   ' of the given input dataset.')

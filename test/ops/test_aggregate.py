@@ -1,7 +1,6 @@
 """
 Tests for aggregation operations
 """
-
 from unittest import TestCase
 
 import xarray as xr
@@ -53,6 +52,7 @@ class TestLTA(TestCase):
         with self.assertRaises(KeyError):
             actual['second']
 
+    # @unittest.skip("Daily aggregation does do weird things. Skipping for the moment")
     def test_daily(self):
         """
         Test creating a daily LTA dataset
@@ -69,12 +69,12 @@ class TestLTA(TestCase):
         # Test CF attributes
         self.assertEqual(actual['first'].attrs['cell_methods'],
                          'time: mean over years')
-        self.assertEqual(actual.dims, {'time': 365,
-                                       'nv': 2,
+        self.assertEqual(actual.dims, {'dayofyear': 365,
                                        'lat': 45,
                                        'lon': 90})
-        self.assertEqual(actual.time.attrs['climatology'],
-                         'climatology_bounds')
+        # removed from resulting dataset
+        # self.assertEqual(actual.time.attrs['climatology'],
+        #                 'climatology_bounds')
 
     def test_general(self):
         """

@@ -804,7 +804,16 @@ class GeoDataFrame:
         features = self._features
         if features is not None and self._lazy_data_frame is None:
             crs = features.crs if hasattr(features, 'crs') else None
-            self._lazy_data_frame = geopandas.GeoDataFrame.from_features(features, crs=crs)
+            df = geopandas.GeoDataFrame.from_features(features, crs=crs)
+            cols = df.columns.tolist()
+            if 'geometry' in cols and cols.index('geometry') != (len(cols) - 1):
+                cols = set(cols) - {'geometry', }
+                cols = list(cols) + ['geometry', ]
+
+                self._lazy_data_frame = df[cols]
+            else:
+                self._lazy_data_frame = df
+
         return self._lazy_data_frame
 
     def close(self):

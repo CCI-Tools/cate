@@ -1,6 +1,5 @@
 import os.path
 import sys
-import unittest
 from unittest import TestCase
 
 from cate.util.process import run_subprocess, ProcessOutputMonitor
@@ -10,7 +9,6 @@ DIR = os.path.dirname(__file__)
 MAKE_ENTROPY = os.path.join(DIR, '..', 'core', 'executables', 'mkentropy.py')
 
 
-@unittest.skip("Subprocess has difficulties on Windows due to unclosed files.")
 class ProcessTest(TestCase):
     def setUp(self):
         self.monitor = RecordingMonitor()

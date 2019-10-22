@@ -182,7 +182,7 @@ def _generic_index_calculation(ds: xr.Dataset,
         anom = anomaly_external(ds_subset, file, monitor=monitor.child(1))
         with monitor.child(1).observing("Calculate mean"):
             ts = anom.mean(dim=['lat', 'lon'])
-        df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time)
+        df = pd.DataFrame(data=ts[var].values, columns=[name], index=ts.time.values)
         retval = df.rolling(window=window, center=True).mean().dropna()
 
     if threshold is None:

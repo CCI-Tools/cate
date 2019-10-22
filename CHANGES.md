@@ -1,3 +1,9 @@
+## Version 2.0.1.dev1
+
+* Updated environment and fixed failing tests ([#817](https://github.com/CCI-Tools/cate/issues/817)
+* The aggregate function _lta now returns a xr.dataset produced by xr.mean()
+* Added a Dockerfile
+
 ## Version 2.0.0
 
 No changes. 

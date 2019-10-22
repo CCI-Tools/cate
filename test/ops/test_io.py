@@ -58,7 +58,8 @@ class TestIO(TestCase):
         file_in = StringIO()
 
         df = read_csv(file_out, index_col='id')
-        df.to_csv(file_in)
+        # line_terminator is windows hack
+        df.to_csv(file_in, line_terminator="\n")
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
@@ -67,7 +68,8 @@ class TestIO(TestCase):
         file_in = StringIO()
 
         df = read_csv(file_out, index_col='time')
-        df.to_csv(file_in)
+        # line_terminator is windows hack
+        df.to_csv(file_in, line_terminator="\n")
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
@@ -212,6 +214,7 @@ class TestIO(TestCase):
                                           '1;2;1.5\n'
                                           '2;3;2.0\n')
 
+    # @unittest.skip("Does not run on windows due to CRLF issues")
     def test_write_csv_with_data_frame(self):
         import io
         import pandas as pd
@@ -226,7 +229,9 @@ class TestIO(TestCase):
 
         file = io.StringIO()
         write_csv(df, file=file)
-        self.assertEqual(file.getvalue(), 'index,time,lat,lon,delta,mean\n'
-                                          '0,1,51.0,10.2,-1,0.8\n'
-                                          '1,2,51.1,11.4,0,0.5\n'
-                                          '2,3,51.2,11.8,-1,0.3\n')
+        # Windows hack
+        buffer = file.getvalue().replace('\r', '')
+        self.assertEqual(buffer, 'index,time,lat,lon,delta,mean\n'
+                                 '0,1,51.0,10.2,-1,0.8\n'
+                                 '1,2,51.1,11.4,0,0.5\n'
+                                 '2,3,51.2,11.8,-1,0.3\n')
