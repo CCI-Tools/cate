@@ -70,13 +70,13 @@ class ExampleTypeTest(TestCase):
         with self.assertRaises(ValidationError) as cm:
             scale_point("A, 4.8", 0.5)
         self.assertEqual(str(cm.exception),
-                         "Input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "Input 'point_like' for operation 'tests.core.test_types.scale_point': "
                          "Cannot convert value <'A, 4.8'> to ExampleType.")
 
         with self.assertRaises(ValidationError) as cm:
             scale_point(25.1, 0.5)
         self.assertEqual(str(cm.exception),
-                         "Input 'point_like' for operation 'test.core.test_types.scale_point': "
+                         "Input 'point_like' for operation 'tests.core.test_types.scale_point': "
                          "Cannot convert value <25.1> to ExampleType.")
 
     def test_registered_op(self):

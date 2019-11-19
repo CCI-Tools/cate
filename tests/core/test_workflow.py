@@ -223,14 +223,14 @@ class WorkflowTest(TestCase):
             "steps": [
                 {
                     "id": "op1",
-                    "op": "test.core.test_workflow.op1",
+                    "op": "tests.core.test_workflow.op1",
                     "inputs": {
                         "x": { "source": ".p" }
                     }
                 },
                 {
                     "id": "op2",
-                    "op": "test.core.test_workflow.op2",
+                    "op": "tests.core.test_workflow.op2",
                     "inputs": {
                         "a": {"source": "op1"}
                     }
@@ -238,7 +238,7 @@ class WorkflowTest(TestCase):
                 {
                     "id": "op3",
                     "persistent": true,
-                    "op": "test.core.test_workflow.op3",
+                    "op": "tests.core.test_workflow.op3",
                     "inputs": {
                         "u": {"source": "op1.y"},
                         "v": {"source": "op2.b"}
@@ -328,7 +328,7 @@ class WorkflowTest(TestCase):
             "steps": [
                 {
                     "id": "op1",
-                    "op": "test.core.test_workflow.op1",
+                    "op": "tests.core.test_workflow.op1",
                     "inputs": {
                         "x": "my_workflow.p"
                     }
@@ -336,14 +336,14 @@ class WorkflowTest(TestCase):
                 {
                     "id": "op2",
                     "persistent": true,
-                    "op": "test.core.test_workflow.op2",
+                    "op": "tests.core.test_workflow.op2",
                     "inputs": {
                         "a": "op1.y"
                     }
                 },
                 {
                     "id": "op3",
-                    "op": "test.core.test_workflow.op3",
+                    "op": "tests.core.test_workflow.op3",
                     "inputs": {
                         "v": "op2.b",
                         "u": "op1.y"
@@ -595,8 +595,8 @@ class OpStepTest(TestCase):
         self.assertIs(step.outputs.w.node, step)
         self.assertEqual(step.outputs.w.name, 'w')
 
-        self.assertEqual(str(step), step.id + ' = test.core.test_workflow.op3(u=None, v=None, c=0) -> (w) [OpStep]')
-        self.assertEqual(repr(step), "OpStep('test.core.test_workflow.op3', node_id='%s')" % step.id)
+        self.assertEqual(str(step), step.id + ' = tests.core.test_workflow.op3(u=None, v=None, c=0) -> (w) [OpStep]')
+        self.assertEqual(repr(step), "OpStep('tests.core.test_workflow.op3', node_id='%s')" % step.id)
 
     def test_init_operation_and_name_are_equivalent(self):
         step3 = OpStep(op3)
@@ -701,7 +701,7 @@ class OpStepTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.op3",
+            "op": "tests.core.test_workflow.op3",
             "inputs": {
                 "u": {"value": 647},
                 "v": {"value": 2.9}
@@ -727,7 +727,7 @@ class OpStepTest(TestCase):
         json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.op3",
+            "op": "tests.core.test_workflow.op3",
             "inputs": {
                 "u": {"source": "stat_op.stats"},
                 "v": {"source": ".latitude"}
@@ -760,7 +760,7 @@ class OpStepTest(TestCase):
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.op3",
+            "op": "tests.core.test_workflow.op3",
             "inputs": {
                 "u": {"value": 2.8},
                 "c": {"value": 1}
@@ -787,7 +787,7 @@ class OpStepTest(TestCase):
         expected_json_text = """
         {
             "id": "op3",
-            "op": "test.core.test_workflow.op3",
+            "op": "tests.core.test_workflow.op3",
             "inputs": {
                 "v": {"value": 1.2},
                 "u": {"value": 2.8},

@@ -241,43 +241,43 @@ class OpTest(TestCase):
         with self.assertRaises(ValueError) as cm:
             f(y=1, x=8)
         self.assertEqual(str(cm.exception),
-                         "Input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9].")
+                         "Input 'x' for operation 'tests.core.test_op.f' must be in range [0.1, 0.9].")
 
         with self.assertRaises(ValueError) as cm:
             f(y=None, x=0.2)
         self.assertEqual(str(cm.exception),
-                         "Input 'y' for operation 'test.core.test_op.f' must be given.")
+                         "Input 'y' for operation 'tests.core.test_op.f' must be given.")
 
         with self.assertRaises(ValueError) as cm:
             f(y=0.5, x=0.2, a=2)
         self.assertEqual(str(cm.exception),
-                         "Input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5].")
+                         "Input 'a' for operation 'tests.core.test_op.f' must be one of [1, 4, 5].")
 
         with self.assertRaises(ValueError) as cm:
             f(x=0, y=3.)
         self.assertEqual(str(cm.exception),
-                         "Input 'x' for operation 'test.core.test_op.f' must be in range [0.1, 0.9].")
+                         "Input 'x' for operation 'tests.core.test_op.f' must be in range [0.1, 0.9].")
 
         with self.assertRaises(ValueError) as cm:
             f(x='A', y=3.)
         self.assertEqual(str(cm.exception),
-                         "Input 'x' for operation 'test.core.test_op.f' must be of type 'float', "
+                         "Input 'x' for operation 'tests.core.test_op.f' must be of type 'float', "
                          "but got type 'str'.")
 
         with self.assertRaises(ValueError) as cm:
             f(x=0.4)
         self.assertEqual(str(cm.exception),
-                         "Input 'y' for operation 'test.core.test_op.f' must be given.")
+                         "Input 'y' for operation 'tests.core.test_op.f' must be given.")
 
         with self.assertRaises(ValueError) as cm:
             f(x=0.6, y=0.1, a=2)
         self.assertEqual(str(cm.exception),
-                         "Input 'a' for operation 'test.core.test_op.f' must be one of [1, 4, 5].")
+                         "Input 'a' for operation 'tests.core.test_op.f' must be one of [1, 4, 5].")
 
         with self.assertRaises(ValueError) as cm:
             f(y=3, a=5)
         self.assertEqual(str(cm.exception),
-                         "Output 'return' for operation 'test.core.test_op.f' must be of type 'float', "
+                         "Output 'return' for operation 'tests.core.test_op.f' must be of type 'float', "
                          "but got type 'str'.")
 
     def test_function_invocation(self):

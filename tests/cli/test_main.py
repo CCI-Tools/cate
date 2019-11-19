@@ -28,8 +28,7 @@ def _create_test_data_store():
     json_dict = json.loads(json_text)
 
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    DS = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
-    return DS
+    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
 
 
 class CliTestCase(unittest.TestCase):

@@ -10,7 +10,7 @@ from cate.core.ds import DataStore, DataSource, Schema, DataAccessError, open_xa
     open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes, NetworkError
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.util.monitor import Monitor
-from test.util.test_monitor import RecordingMonitor
+from tests.util.test_monitor import RecordingMonitor
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 

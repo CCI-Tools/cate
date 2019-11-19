@@ -5,7 +5,7 @@ import unittest
 from cate.util.web.serviceinfo import read_service_info
 from cate.util.web.webapi import find_free_port, WebAPI
 from cate.webapi.wsmanag import WebAPIWorkspaceManager
-from test.core.test_wsmanag import WorkspaceManagerTestMixin
+from tests.core.test_wsmanag import WorkspaceManagerTestMixin
 
 _SERVICE_INFO_FILE = 'pytest-service-info.json'
 

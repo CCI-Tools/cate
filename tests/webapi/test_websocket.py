@@ -67,6 +67,7 @@ class WebSocketServiceTest(unittest.TestCase):
         def my_deprecated_op():
             pass
 
+        # noinspection PyUnusedLocal
         @op_input('a', registry=registry)
         @op_input('b', registry=registry, deprecated=True)
         @op_output('u', registry=registry, deprecated=True)
@@ -79,10 +80,10 @@ class WebSocketServiceTest(unittest.TestCase):
 
         ops = self.service.get_operations(registry=registry)
         op_names = {op['name'] for op in ops}
-        self.assertIn('test.webapi.test_websocket.my_op_with_deprecated_io', op_names)
-        self.assertNotIn('test.webapi.test_websocket.my_deprecated_op', op_names)
+        self.assertIn('tests.webapi.test_websocket.my_op_with_deprecated_io', op_names)
+        self.assertNotIn('tests.webapi.test_websocket.my_deprecated_op', op_names)
 
-        op = [op for op in ops if op['name'] == 'test.webapi.test_websocket.my_op_with_deprecated_io'][0]
+        op = [op for op in ops if op['name'] == 'tests.webapi.test_websocket.my_op_with_deprecated_io'][0]
         self.assertEqual(len(op['inputs']), 1)
         self.assertEqual(op['inputs'][0]['name'], 'a')
         self.assertEqual(len(op['outputs']), 1)
