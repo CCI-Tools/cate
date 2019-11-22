@@ -149,7 +149,7 @@ def _normalize_lat_lon_2d(ds: xr.Dataset) -> xr.Dataset:
     # Drop lat lon in any case. If note qual_lat and equal_lon subset_spatial_impl will subsequently
     # fail with a ValidationError
 
-    ds = ds.drop(['lon', 'lat'])
+    ds = ds.drop_vars(['lon', 'lat'])
 
     if not (equal_lat and equal_lon):
         return ds
@@ -258,7 +258,7 @@ def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
     # noinspection PyTypeChecker
     tuples = [jd2gcal(x, 0) for x in ds.time.values]
     # Replace JD time with datetime
-    ds.time.values = [datetime(x[0], x[1], x[2]) for x in tuples]
+    ds['time'] = [datetime(x[0], x[1], x[2]) for x in tuples]
     # Adjust attributes
     ds.time.attrs['long_name'] = 'time'
     ds.time.attrs['calendar'] = 'standard'
@@ -294,7 +294,7 @@ def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
         return ds
 
     old_ds = ds
-    ds = old_ds.drop(coord_var_names)
+    ds = old_ds.drop_vars(coord_var_names)
     ds = ds.assign_coords(**{bounds_var_name: old_ds[bounds_var_name] for bounds_var_name in coord_var_names})
 
     return ds
@@ -336,7 +336,7 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if 'time' in ds:
         time = ds.time
         if not time.dims:
-            ds = ds.drop('time')
+            ds = ds.drop_vars('time')
         elif len(time.dims) == 1:
             time_dim_name = time.dims[0]
             is_time_used_as_dim = any([(time_dim_name in ds[var_name].dims) for var_name in ds.data_vars])
@@ -345,9 +345,9 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
                 return ds
             time_bnds_var_name = time.attrs.get('bounds')
             if time_bnds_var_name in ds:
-                ds = ds.drop(time_bnds_var_name)
-            ds = ds.drop('time')
-            ds = ds.drop([var_name for var_name in ds.coords if time_dim_name in ds.coords[var_name].dims])
+                ds = ds.drop_vars(time_bnds_var_name)
+            ds = ds.drop_vars('time')
+            ds = ds.drop_vars([var_name for var_name in ds.coords if time_dim_name in ds.coords[var_name].dims])
 
     if time_coverage_start or time_coverage_end:
         # noinspection PyBroadException
@@ -548,7 +548,7 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
     else:
         duration = None
 
-    if dim_min < dim_max and len(var.values) >= 2:
+    if dim_min < dim_max and len(var) >= 2:
         resolution = _get_temporal_res(var.values)
     else:
         resolution = None
