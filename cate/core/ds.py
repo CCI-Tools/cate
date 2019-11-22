@@ -750,6 +750,8 @@ def open_xarray_dataset(paths,
                                coords='minimal',
                                chunks=chunks,
                                preprocess=preprocess,
+                               # Future behaviour will be
+                               combine='nested',
                                **kwargs)
 
     if var_names:

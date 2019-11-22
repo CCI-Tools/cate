@@ -1,0 +1,43 @@
+{
+  "qualified_name": "cool_workflow",
+  "header": {
+    "description": "This is a test workflow composed of 3 steps."
+  },
+  "inputs": {
+    "p": {
+      "data_type": "float",
+      "description": "Parameter 'p'"
+    }
+  },
+  "outputs": {
+    "q": {
+      "source": "op3.w",
+      "data_type": "float",
+      "description": "Output 'q'"
+    }
+  },
+  "steps": [
+    {
+      "id": "op1",
+      "op": "tests.core.test_workflow.op1",
+      "inputs": {
+        "x": ".p"
+      }
+    },
+    {
+      "id": "op2",
+      "op": "tests.core.test_workflow.op2",
+      "inputs": {
+        "a": "op1.y"
+      }
+    },
+    {
+      "id": "op3",
+      "op": "tests.core.test_workflow.op3",
+      "inputs": {
+        "v": "op2.b",
+        "u": "op1.y"
+      }
+    }
+  ]
+}

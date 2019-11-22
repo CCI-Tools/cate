@@ -68,7 +68,7 @@ def select_var(ds: DatasetLike.TYPE, var: VarNamesLike.TYPE = None) -> xr.Datase
         for name in keep:
             dropped_var_names.remove(name)
 
-    return ds.drop(dropped_var_names)
+    return ds.drop_vars(dropped_var_names)
 
 
 @op(tags=['filter'])

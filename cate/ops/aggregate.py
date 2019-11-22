@@ -86,16 +86,16 @@ def long_term_average(ds: DatasetLike.TYPE,
 
     var = VarNamesLike.convert(var)
     # Shallow
-    retset = ds.copy()
+
     if var:
-        retset = select_var(retset, var)
+        ds = select_var(ds, var)
 
     if t_resolution == 'P1D':
-        return _lta_daily(retset, monitor)
+        return _lta_daily(ds)
     elif t_resolution == 'P1M':
-        return _lta_monthly(retset, monitor)
+        return _lta_monthly(ds, monitor)
     else:
-        return _lta_general(retset, monitor)
+        return _lta_general(ds, monitor)
 
 
 def _lta_monthly(ds: xr.Dataset, monitor: Monitor):
@@ -153,50 +153,15 @@ def _groupby_day(ds: xr.Dataset, monitor: Monitor, step: float):
     return ds.groupby('time.day', squeeze=False).apply(_mean, **kwargs)
 
 
-def _lta_daily(ds: xr.Dataset, monitor: Monitor):
+def _lta_daily(ds: xr.Dataset):
     """
     Carry out a long term average of a daily dataset
 
     :param ds: Dataset to aggregate
-    :param monitor: Progress monitor
     :return: Aggregated dataset
     """
-    time_min = pd.Timestamp(ds.time.values[0], tzinfo=timezone.utc)
-    time_max = pd.Timestamp(ds.time.values[-1], tzinfo=timezone.utc)
-    total_work = 100
-    retset = ds
 
-    with monitor.starting('LTA', total_work=total_work):
-        monitor.progress(work=0)
-        step = total_work / 366
-        kwargs = {'monitor': monitor, 'step': step}
-        retset = retset.groupby('time.month', squeeze=False).apply(_groupby_day, **kwargs)
-
-    # Make the return dataset CF compliant
-    retset = retset.stack(time=('month', 'day'))
-
-    # Get rid of redundant dates
-    drop = [(2, 29), (2, 30), (2, 31), (4, 31), (6, 31),
-            (9, 31), (11, 31)]
-    retset = retset.drop(drop, dim='time')
-
-    # Turn month, day coordinates to time
-    retset = retset.reset_index('time')
-    retset = retset.drop(['month', 'day'])
-    time_coord = pd.date_range(start='{}-01-01'.format(time_min.year),
-                               end='{}-12-31'.format(time_min.year),
-                               freq='D')
-    if len(time_coord) == 366:
-        time_coord = time_coord.drop(np.datetime64('{}-02-29'.format(time_min.year)))
-    retset['time'] = time_coord
-
-    climatology_bounds = xr.DataArray(data=np.tile([time_min, time_max],
-                                                   (365, 1)),
-                                      dims=['time', 'nv'],
-                                      name='climatology_bounds')
-    retset['climatology_bounds'] = climatology_bounds
-    retset.time.attrs = ds.time.attrs
-    retset.time.attrs['climatology'] = 'climatology_bounds'
+    retset = ds.groupby('time.dayofyear', squeeze=False).mean('time')
 
     for var in retset.data_vars:
         try:

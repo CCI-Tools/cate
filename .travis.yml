@@ -3,16 +3,12 @@
 # See http://conda.pydata.org/docs/travis.html for more info.
 #
 
-language: generic
-
-env:
-  global:
-    # GITHUB_TOKEN
-    - secure: "M2DcERJD62BHx/rjlQXClgEmZA0aRKyz89BlaPwiirxBjzJcF6ywkDiW5AOguqwc7Cxj9Hp4cv+5iItUw+hA61l51HaH+94Llf5h8oZgMfSC3WCA2Ppfhdb6i7yDvFfp/jIeCofTq6S3wVQzVRitidhBeTH/E0ui7lm3K8l3AAWGJvJ4lEGVr/MrCvfg/RKK8WnXo6kGu1evfy4j6g2RQwN/s/nY/z22a+lRy7QL/5o15GzP3hVw1SWyd6LVsYHEl+Zvd5QF+7Co6KThzpU/jKIlQ4Xf11k/pPd67bxTh8YLdWT1X5v8lL4hF14wbp5VvbiRj4hI3xKwyNvuStTjsZG/4CzShRa1ZxE/n5t0abRD5H6aTxiK/0Lhs2mH6p6631KsYWpGbEZUbKP8rOC+4AdvoE10eR9M011N0hnfDbHlyCmsEjsYOl/OyR0Jkd7/+hRdTv+RFsmLTel71W8l7RJG7i1YGKkOxpjPfp20Z7Fzoumg5sTJIpdgBaZh1o5VJvKwvmPYX8odHvQjAdaskQTGbRYHvQWS5Az2YFH/8+uHeIjC+BSBWIe910bueLtwEyeSTs0qSljQqHWfh5YgGHN9zHpocdu6Uw4Dud7Ff69J5zgkMlnhdaZUHH5SeRZIqX3p1nUq43J7rGR7JCRr5ZthGqcjKj9gGbybRNpISNI="
+language: bash
 
 os:
   - linux
   - osx
+  - windows
 
 before_install:
   - source ./ci/amend_github_commit.sh "pending" "flake8 check in progress"
@@ -20,17 +16,24 @@ before_install:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+      bash miniconda.sh -b -p $HOME/miniconda;
+      export PATH="$HOME/miniconda/bin:$PATH";
+    elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      choco install -y openssl;
+      choco install -y miniconda3;
+      export PATH="/c/tools/miniconda3/Scripts:$PATH";
+      source activate base;
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      bash miniconda.sh -b -p $HOME/miniconda;
+      export PATH="$HOME/miniconda/bin:$PATH";
     fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
-  - conda config --set always_yes yes --set changeps1 no
+  - conda config --set always_yes yes --set changeps1 no --set channel_priority true
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-
+  # - sed -i -E 's/(python=)(.*)/\1'$TRAVIS_PYTHON_VERSION'/' ./environment.yml
   - conda env create --file environment.yml
   - source activate cate-env
   - conda list
@@ -43,7 +46,7 @@ script:
   - export CATE_DISABLE_WEB_TESTS=1
   - export CATE_DISABLE_PLOT_TESTS=1
   - export CATE_DISABLE_CLI_UPDATE_TESTS=1
-  - py.test -v --cov=cate test
+  - py.test -v --cov=cate tests
 
 after_success:
   - pip install codecov
