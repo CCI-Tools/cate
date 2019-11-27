@@ -40,7 +40,7 @@ for extra code coverage information.
 Components
 ==========
 """
-
+import os
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
@@ -51,6 +51,7 @@ from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
+from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
@@ -115,7 +116,13 @@ def create_application():
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
         (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
     ])
-    application.workspace_manager = FSWorkspaceManager()
+
+    root_path = os.environ.get('CATE_WORKSPACE_ROOT')
+    if root_path is None:
+        root_path = os.curdir
+
+    application.workspace_manager = FSWorkspaceManager(PathManager(root_path))
+
     return application
 
 
