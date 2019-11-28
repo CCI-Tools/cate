@@ -18,6 +18,7 @@ from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
+from cate.core.pathmanag import PathManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
@@ -152,7 +153,7 @@ class WorkspaceCommandTest(CliTestCase):
 
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager()
+        self.workspace_manager = FSWorkspaceManager(PathManager(os.curdir))
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
@@ -200,7 +201,7 @@ class ResourceCommandTest(CliTestCase):
     def setUp(self):
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager()
+        self.workspace_manager = FSWorkspaceManager(PathManager(os.curdir))
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):

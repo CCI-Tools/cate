@@ -4,6 +4,7 @@ import unittest
 
 from cate.core.workspace import mk_op_kwargs
 from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
+from cate.core.pathmanag import PathManager
 from ..util.test_monitor import RecordingMonitor
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
@@ -240,4 +241,4 @@ class WorkspaceManagerTestMixin:
 
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
     def new_workspace_manager(self):
-        return FSWorkspaceManager()
+        return FSWorkspaceManager(PathManager(os.curdir))
