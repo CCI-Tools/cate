@@ -38,7 +38,7 @@ dependencies:
   - setuptools>=41
   - shapely>=1.6
   - tornado>=5.1
-  - xarray>=0.11
+  - xarray>=0.14.1
   - yaml>=0.1.7
   # Test lib
   - flake8
