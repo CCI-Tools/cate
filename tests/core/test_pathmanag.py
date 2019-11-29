@@ -10,7 +10,7 @@ class PathManagerTest(TestCase):
     def test_construct_with_root_path(self):
         path_manag = PathManager('/home/tom/somewhere')
 
-        self.assertEqual('/home/tom/somewhere', path_manag.get_root_path())
+        self.assertEqual(os.path.abspath('/home/tom/somewhere'), path_manag.get_root_path())
 
     def test_construct_with_relative_path(self):
         path_manag = PathManager(os.curdir)

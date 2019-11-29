@@ -149,7 +149,6 @@ class FSWorkspaceManager(WorkspaceManager):
     def __init__(self, path_manager: PathManager):
         self._open_workspaces = OrderedDict()
         self._path_manager = path_manager
-        self._resolve_dir = os.path.abspath(path_manager.get_root_path())
 
     def num_open_workspaces(self) -> int:
         return len(self._open_workspaces)
