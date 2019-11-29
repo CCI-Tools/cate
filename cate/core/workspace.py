@@ -39,6 +39,7 @@ from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
+from ..core.pathmanag import PathManager
 from ..core.types import GeoDataFrame, ValidationError
 from ..util.im import get_chunk_size
 from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, to_scalar
@@ -170,8 +171,9 @@ class Workspace:
         return Workspace(base_dir, Workspace.new_workflow(dict(description=description or '')))
 
     @classmethod
-    def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
-        if not os.path.isdir(cls.get_workspace_dir(base_dir)):
+    def open(cls, base_dir: str, path_manager: PathManager, monitor: Monitor = Monitor.NONE) -> 'Workspace':
+        base_dir = path_manager.resolve(cls.get_workspace_dir(base_dir))
+        if not os.path.isdir(base_dir):
             raise ValidationError('Not a valid workspace: %s' % base_dir)
         workflow_file = cls.get_workflow_file(base_dir)
         workflow = Workflow.load(workflow_file)
@@ -205,10 +207,10 @@ class Workspace:
                             except OSError:
                                 _LOG.exception('closing workspace failed')
 
-    def save(self, monitor: Monitor = Monitor.NONE):
+    def save(self, path_manager: PathManager, monitor: Monitor = Monitor.NONE):
         self._assert_open()
         with self._lock:
-            base_dir = self.base_dir
+            base_dir = path_manager.resolve(self.base_dir)
             if not os.path.isdir(base_dir):
                 os.mkdir(base_dir)
             workspace_dir = self.workspace_dir

@@ -158,7 +158,8 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def get_workspace(self, base_dir: str) -> Workspace:
         base_dir = self._path_manager.resolve(base_dir)
-        workspace = self._open_workspaces.get(base_dir, None)
+        relative_ws_dir = self._path_manager.get_relative_path(base_dir)
+        workspace = self._open_workspaces.get(relative_ws_dir, None)
         if workspace is None:
             raise ValidationError('Workspace does not exist: %s' % base_dir)
         assert not workspace.is_closed
@@ -168,24 +169,28 @@ class FSWorkspaceManager(WorkspaceManager):
     def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         if base_dir is None:
             scratch_dir_name = str(uuid.uuid4())
-            scratch_dir_path = os.path.join(SCRATCH_WORKSPACES_PATH, scratch_dir_name)
+            scratch_dir_path = os.path.join(self._path_manager.get_scratch_dir_root(), scratch_dir_name)
             os.makedirs(scratch_dir_path, exist_ok=True)
             base_dir = scratch_dir_path
 
         base_dir = self._path_manager.resolve(base_dir)
-        if base_dir in self._open_workspaces:
+        relative_ws_dir = self._path_manager.get_relative_path(base_dir)
+        if relative_ws_dir in self._open_workspaces:
             raise ValidationError('Workspace already opened: %s' % base_dir)
+
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if os.path.isdir(workspace_dir):
             raise ValidationError('Workspace exists, consider opening it: %s' % base_dir)
-        workspace = Workspace.create(base_dir, description=description)
-        assert base_dir not in self._open_workspaces
-        self._open_workspaces[base_dir] = workspace
+
+        workspace = Workspace.create(relative_ws_dir, description=description)
+        assert relative_ws_dir not in self._open_workspaces
+        self._open_workspaces[relative_ws_dir] = workspace
         return workspace
 
     def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self._path_manager.resolve(base_dir)
-        workspace = self._open_workspaces.get(base_dir, None)
+        relative_ws_dir = self._path_manager.get_relative_path(base_dir)
+        workspace = self._open_workspaces.get(relative_ws_dir, None)
         if workspace is not None:
             assert not workspace.is_closed
             # noinspection PyTypeChecker
@@ -199,7 +204,8 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def close_workspace(self, base_dir: str) -> None:
         base_dir = self._path_manager.resolve(base_dir)
-        workspace = self._open_workspaces.pop(base_dir, None)
+        relative_ws_dir = self._path_manager.get_relative_path(base_dir)
+        workspace = self._open_workspaces.pop(relative_ws_dir, None)
         if workspace is not None:
             workspace.close()
 
@@ -212,16 +218,18 @@ class FSWorkspaceManager(WorkspaceManager):
     def save_workspace_as(self, base_dir: str, to_dir: str,
                           monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self._path_manager.resolve(base_dir)
-        workspace = self.get_workspace(base_dir)
+        relative_ws_dir = self._path_manager.get_relative_path(base_dir)
+        workspace = self.get_workspace(relative_ws_dir)
 
+        target_dir = self._path_manager.resolve(to_dir)
         empty_dir_exists = False
-        if os.path.realpath(base_dir) == os.path.realpath(to_dir):
+        if os.path.realpath(base_dir) == os.path.realpath(target_dir):
             return workspace
 
         with monitor.starting('opening "%s"' % to_dir, 100):
-            if os.path.exists(to_dir):
-                if os.path.isdir(to_dir):
-                    entries = list(os.listdir(to_dir))
+            if os.path.exists(target_dir):
+                if os.path.isdir(target_dir):
+                    entries = list(os.listdir(target_dir))
                     monitor.progress(work=5)
                     if len(entries) == 0:
                         empty_dir_exists = True
@@ -239,10 +247,10 @@ class FSWorkspaceManager(WorkspaceManager):
             # if the given directory exists and is empty, we must delete it because
             # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
             if empty_dir_exists:
-                os.rmdir(to_dir)
+                os.rmdir(target_dir)
             monitor.progress(work=5)
             # Copy all files to new location to_dir
-            shutil.copytree(base_dir, to_dir)
+            shutil.copytree(base_dir, target_dir)
             monitor.progress(work=10)
             # Reopen from new location
             new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))

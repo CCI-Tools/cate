@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
+from cate.conf.defaults import SCRATCH_WORKSPACES_DIR_NAME
 
 
 class PathManagerTest(TestCase):
@@ -16,6 +17,15 @@ class PathManagerTest(TestCase):
         path_manag = PathManager(os.curdir)
 
         self.assertEqual(os.path.abspath(os.curdir), path_manag.get_root_path())
+
+    def test_get_scratch_dir_root(self):
+        path_manag = PathManager(os.curdir)
+
+        scratch_dir_root = path_manag.get_scratch_dir_root()
+
+        expected = os.path.abspath(os.curdir)
+        expected = os.path.join(expected, SCRATCH_WORKSPACES_DIR_NAME)
+        self.assertEqual(expected, scratch_dir_root)
 
     def test_resolve(self):
         root_dir = os.path.abspath(os.curdir)
@@ -65,3 +75,22 @@ class PathManagerTest(TestCase):
             self.fail('ValidationError expected')
         except ValidationError:
             pass
+
+    def test_get_relative_path(self):
+        path_manag = PathManager('/home/tom/somewhere')
+
+        # @todo 1 tb/tb adapt to also run in windows 2019-11-29
+        rel_path = path_manag.get_relative_path('/home/tom/somewhere/in/the/home.file')
+        self.assertEqual('in/the/home.file', rel_path)
+
+    def test_get_relative_path_not_in_root(self):
+        path_manag = PathManager('/home/tom/somewhere')
+
+        try:
+            # @todo 1 tb/tb adapt to also run in windows 2019-11-29
+            path_manag.get_relative_path('/local/var/bin/the.file')
+            self.fail('ValidationError expected')
+        except ValidationError:
+            pass
+
+
