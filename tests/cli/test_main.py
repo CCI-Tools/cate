@@ -206,7 +206,7 @@ class ResourceCommandTest(CliTestCase):
     def setUp(self):
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager(PathManager(os.curdir))
+        self.workspace_manager = FSWorkspaceManager()
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):

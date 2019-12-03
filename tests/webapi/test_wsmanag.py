@@ -12,6 +12,12 @@ _SERVICE_INFO_FILE = 'pytest-service-info.json'
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self._is_relative = False
+        self._path_manager = None
+
     def setUp(self):
         self.port = find_free_port()
         WebAPI.start_subprocess('cate.webapi.start',

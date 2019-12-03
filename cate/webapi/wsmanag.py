@@ -231,6 +231,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                             timeout=WEBAPI_RESOURCE_TIMEOUT,
                             monitor=monitor)
 
+    def _create_scratch_dir(self, scratch_dir_name: str) -> str:
+        return ''
+
+    def _resolve_target_path(self, target_dir: str) -> str:
+        return ''
+
 
 class WebSocketClient(object):
     def __init__(self, url):
