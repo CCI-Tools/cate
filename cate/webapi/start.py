@@ -53,7 +53,7 @@ from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
-from cate.core.wsmanag import FSWorkspaceManager
+from cate.core.wsmanag import FSWorkspaceManager, RelativeFSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
@@ -119,9 +119,11 @@ def create_application():
 
     root_path = os.environ.get('CATE_WORKSPACE_ROOT')
     if root_path is None:
-        root_path = os.curdir
+        application.workspace_manager = FSWorkspaceManager()
+    else:
+        application.workspace_manager = RelativeFSWorkspaceManager(PathManager(root_path))
 
-    application.workspace_manager = FSWorkspaceManager(PathManager(root_path))
+
 
     return application
 

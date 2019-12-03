@@ -3,7 +3,7 @@ import shutil
 import unittest
 
 from cate.core.workspace import mk_op_kwargs
-from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
+from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager, RelativeFSWorkspaceManager
 from cate.core.pathmanag import PathManager
 from ..util.test_monitor import RecordingMonitor
 
@@ -12,13 +12,21 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip
 
 # noinspection PyUnresolvedReferences
 class WorkspaceManagerTestMixin:
+
     def new_workspace_manager(self) -> WorkspaceManager:
         raise NotImplementedError
 
     def new_base_dir(self, base_dir):
-        base_dir = os.path.abspath(base_dir)
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
+        if self._is_relative:
+            abs_dir = self._path_manager.resolve(base_dir)
+            if os.path.exists(abs_dir):
+                shutil.rmtree(abs_dir)
+            base_dir = abs_dir
+        else:
+            base_dir = os.path.abspath(base_dir)
+            if os.path.exists(base_dir):
+                shutil.rmtree(base_dir)
+
         return base_dir
 
     def del_base_dir(self, base_dir):
@@ -150,7 +158,8 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
     def test_session(self):
-        base_dir = self.new_base_dir('TESTOMAT')
+        rel_path = 'TESTOMAT'
+        base_dir = self.new_base_dir(rel_path)
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.new_workspace(base_dir, description='session workspace')
@@ -193,7 +202,8 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
     def test_persistence(self):
-        base_dir = self.new_base_dir('TESTOMAT')
+        rel_path = 'TESTOMAT'
+        base_dir = self.new_base_dir(rel_path)
 
         workspace_manager = self.new_workspace_manager()
         workspace_manager.new_workspace(base_dir)
@@ -240,5 +250,22 @@ class WorkspaceManagerTestMixin:
 
 
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self._is_relative = False
+        self._path_manager = None
+
     def new_workspace_manager(self):
-        return FSWorkspaceManager(PathManager(os.curdir))
+        return FSWorkspaceManager()
+
+
+class RelativeFSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self._is_relative = True
+        self._path_manager = PathManager(os.curdir)
+
+    def new_workspace_manager(self):
+        return RelativeFSWorkspaceManager(self._path_manager)
