@@ -1,9 +1,9 @@
 import os
 from unittest import TestCase
 
+from cate.conf.defaults import SCRATCH_WORKSPACES_DIR_NAME
 from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
-from cate.conf.defaults import SCRATCH_WORKSPACES_DIR_NAME
 
 
 class PathManagerTest(TestCase):
@@ -79,18 +79,14 @@ class PathManagerTest(TestCase):
     def test_get_relative_path(self):
         path_manag = PathManager('/home/tom/somewhere')
 
-        # @todo 1 tb/tb adapt to also run in windows 2019-11-29
         rel_path = path_manag.get_relative_path('/home/tom/somewhere/in/the/home.file')
-        self.assertEqual('in/the/home.file', rel_path)
+        self.assertEqual(os.path.normpath('in/the/home.file'), os.path.normpath(rel_path))
 
     def test_get_relative_path_not_in_root(self):
         path_manag = PathManager('/home/tom/somewhere')
 
         try:
-            # @todo 1 tb/tb adapt to also run in windows 2019-11-29
             path_manag.get_relative_path('/local/var/bin/the.file')
             self.fail('ValidationError expected')
         except ValidationError:
             pass
-
-
