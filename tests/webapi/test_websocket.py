@@ -1,6 +1,7 @@
+import unittest
+
 import os
 import shutil
-import unittest
 
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
