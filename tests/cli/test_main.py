@@ -154,7 +154,7 @@ class WorkspaceCommandTest(CliTestCase):
 
         # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
-        self.workspace_manager = FSWorkspaceManager(PathManager(os.curdir))
+        self.workspace_manager = FSWorkspaceManager()
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
 
     def tearDown(self):
@@ -166,7 +166,6 @@ class WorkspaceCommandTest(CliTestCase):
         self.assertTrue(os.path.isdir(os.path.join(base_dir, '.cate-workspace')))
         self.assertTrue(os.path.isfile(os.path.join(base_dir, '.cate-workspace', 'workflow.json')))
 
-    @unittest.skip(reason="Tom need to reactivate this 2019-11-29")
     def test_ws_init_arg(self):
         base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
@@ -177,7 +176,6 @@ class WorkspaceCommandTest(CliTestCase):
         self.assert_main(['ws', 'del', '-y', '-d', base_dir], expected_stdout=['Workspace deleted'])
         self.remove_tree('my_workspace')
 
-    @unittest.skip(reason="Tom need to reactivate this 2019-11-29")
     def test_ws_init(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir('.')
@@ -185,7 +183,6 @@ class WorkspaceCommandTest(CliTestCase):
                          expected_stderr=['Workspace already opened: '],
                          expected_status=1)
 
-    @unittest.skip(reason="Tom need to reactivate this 2019-11-29")
     def test_ws_del(self):
         base_dir = 'my_workspace'
         self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
@@ -195,7 +192,6 @@ class WorkspaceCommandTest(CliTestCase):
                          expected_status=1)
         self.remove_tree('my_workspace')
 
-    @unittest.skip(reason="Tom need to reactivate this 2019-11-29")
     def test_ws_clean(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
         self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE], expected_stdout=['Resource "ds" set.'])
