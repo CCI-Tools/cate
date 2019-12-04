@@ -31,7 +31,7 @@ from typing import List, Union, Optional, Tuple, Any
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
-from ..conf.defaults import SCRATCH_WORKSPACES_PATH
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME
 from ..core.pathmanag import PathManager
 from ..core.types import ValidationError
 from ..util.monitor import Monitor
@@ -54,6 +54,10 @@ class WorkspaceManager(metaclass=ABCMeta):
 
     @abstractmethod
     def get_workspace(self, base_dir: str) -> Workspace:
+        pass
+
+    @abstractmethod
+    def list_workspace_names(self) -> List[str]:
         pass
 
     @abstractmethod
@@ -157,13 +161,13 @@ class FSWorkspaceManager(WorkspaceManager):
         self._open_workspaces = OrderedDict()
         self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
-    def num_open_workspaces(self) -> int:
-        return len(self._open_workspaces)
-
     def resolve_path(self, dir_path):
         if dir_path and os.path.isabs(dir_path):
             return os.path.normpath(dir_path)
         return os.path.abspath(os.path.join(self._resolve_dir, dir_path or ''))
+
+    def num_open_workspaces(self) -> int:
+        return len(self._open_workspaces)
 
     def get_open_workspaces(self) -> List[Workspace]:
         return list(self._open_workspaces.values())
@@ -176,6 +180,19 @@ class FSWorkspaceManager(WorkspaceManager):
         assert not workspace.is_closed
         # noinspection PyTypeChecker
         return workspace
+
+    def list_workspace_names(self) -> List[str]:
+        dir_list = []
+        source_dir = self.resolve_path(self._resolve_dir)
+        if not os.path.isdir(source_dir):
+            return dir_list
+
+        scan_list = os.scandir(source_dir)
+        for entry in scan_list:
+            if entry.is_dir():
+                dir_list.append(entry.name)
+
+        return dir_list
 
     def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
         if base_dir is None:
@@ -421,7 +438,7 @@ class RelativeFSWorkspaceManager(FSWorkspaceManager):
     # TODO (forman, 20160908): implement file lock for opened workspaces (issue #26)
 
     def __init__(self, path_manager: PathManager):
-        super().__init__(None)
+        super().__init__(path_manager.get_root_path())
         self._path_manager = path_manager
 
     def resolve_path(self, dir_path):
