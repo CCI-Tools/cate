@@ -1,6 +1,9 @@
-import os
-import signal
 import unittest
+
+import os
+import shutil
+import signal
+import tempfile
 
 from cate.util.web.serviceinfo import read_service_info
 from cate.util.web.webapi import find_free_port, WebAPI
@@ -19,6 +22,8 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         self._path_manager = None
 
     def setUp(self):
+        self._root_dir = tempfile.mkdtemp()
+        os.environ['CATE_WORKSPACE_ROOT'] = self._root_dir
         self.port = find_free_port()
         WebAPI.start_subprocess('cate.webapi.start',
                                 port=self.port,
@@ -26,6 +31,8 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
                                 service_info_file=_SERVICE_INFO_FILE)
 
     def tearDown(self):
+        del os.environ['CATE_WORKSPACE_ROOT']
+        shutil.rmtree(self._root_dir)
         service_info = read_service_info(_SERVICE_INFO_FILE)
         if service_info:
             os.kill(service_info['pid'], signal.SIGTERM)

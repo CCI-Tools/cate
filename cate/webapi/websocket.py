@@ -234,6 +234,10 @@ class WebSocketService:
         workspace = self.workspace_manager.get_workspace(base_dir)
         return workspace.to_json_dict()
 
+    def list_workspace_names(self) -> Sequence[str]:
+        workspace_names = self.workspace_manager.list_workspace_names()
+        return workspace_names
+
     # see cate-desktop: src/renderer.states.WorkspaceState
     def new_workspace(self, base_dir: str, description: str = None) -> dict:
         workspace = self.workspace_manager.new_workspace(base_dir, description)

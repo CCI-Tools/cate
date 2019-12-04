@@ -21,9 +21,7 @@
 # SOFTWARE.
 
 # Cate version string (PEP440-compatible), e.g. "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-# @todo 1 tb/** this is a hack - the resolve version at desktop does not work correctly tb 2019-11-29
-__version__ = '2.0.0'
-##__version__ = '2.1.0.dev0'
+__version__ = '2.1.0.dev0'
 
 # Other package metainfo
 __title__ = 'cate'
