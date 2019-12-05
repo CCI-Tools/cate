@@ -31,7 +31,8 @@ from typing import List, Union, Optional, Tuple, Any
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
-from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME, \
+    SCRATCH_WORKSPACES_DIR_NAME
 from ..core.pathmanag import PathManager
 from ..core.types import ValidationError
 from ..util.monitor import Monitor
@@ -183,14 +184,18 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def list_workspace_names(self) -> List[str]:
         dir_list = []
-        source_dir = self.resolve_path(self._resolve_dir)
-        if not os.path.isdir(source_dir):
+        workspaces_dir = os.path.join(self._resolve_dir, WORKSPACES_DIR_NAME)
+        search_dir = self.resolve_path(workspaces_dir)
+        if not os.path.isdir(search_dir):
             return dir_list
 
-        scan_list = os.scandir(source_dir)
+        scan_list = os.scandir(search_dir)
         for entry in scan_list:
             if entry.is_dir():
-                dir_list.append(entry.name)
+                content_list = os.scandir(entry)
+                for cont in content_list:
+                    if cont.name == WORKSPACE_DATA_DIR_NAME:
+                        dir_list.append(entry.name)
 
         return dir_list
 
@@ -200,6 +205,9 @@ class FSWorkspaceManager(WorkspaceManager):
             scratch_dir_name = str(uuid.uuid4())
             base_dir = self._create_scratch_dir(scratch_dir_name)
             is_scratch = True
+        else:
+            if not os.path.isabs(base_dir):
+                base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
 
         base_dir = self.resolve_path(base_dir)
         if base_dir in self._open_workspaces:
@@ -450,7 +458,8 @@ class RelativeFSWorkspaceManager(FSWorkspaceManager):
         return self._path_manager.resolve(dir_path)
 
     def _create_scratch_dir(self, scratch_dir_name: str) -> str:
-        scratch_dir_path = os.path.join(self._path_manager.get_scratch_dir_root(), scratch_dir_name)
+        scratch_ws_dir = os.path.join(self._path_manager.get_scratch_dir_root(), SCRATCH_WORKSPACES_DIR_NAME)
+        scratch_dir_path = os.path.join(scratch_ws_dir, scratch_dir_name)
         os.makedirs(scratch_dir_path, exist_ok=True)
         return scratch_dir_path
 
