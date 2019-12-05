@@ -40,7 +40,7 @@ for extra code coverage information.
 Components
 ==========
 """
-
+import os
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
@@ -51,8 +51,9 @@ from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
+from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
-from cate.core.wsmanag import FSWorkspaceManager
+from cate.core.wsmanag import FSWorkspaceManager, RelativeFSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
@@ -75,7 +76,8 @@ class WebAPIVersionHandler(WebAPIRequestHandler):
     def get(self):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
-                                      'timestamp': date.today().isoformat()})
+                                      'timestamp': date.today().isoformat(),
+                                      'local': os.environ.get('CATE_USER_ROOT') is None})
         self.finish()
 
 
@@ -115,7 +117,13 @@ def create_application():
         (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
         (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
     ])
-    application.workspace_manager = FSWorkspaceManager()
+
+    root_path = os.environ.get('CATE_USER_ROOT')
+    if root_path is None:
+        application.workspace_manager = FSWorkspaceManager()
+    else:
+        application.workspace_manager = RelativeFSWorkspaceManager(PathManager(root_path))
+
     return application
 
 

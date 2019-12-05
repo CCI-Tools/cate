@@ -124,6 +124,10 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         json_list = self._invoke_method("get_open_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return [Workspace.from_json_dict(ws_json_dict) for ws_json_dict in json_list]
 
+    def list_workspace_names(self) -> List[str]:
+        json_list = self._invoke_method("list_workspace_names", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT)
+        return json_list
+
     def get_workspace(self, base_dir: str) -> Workspace:
         json_dict = self._invoke_method("get_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return Workspace.from_json_dict(json_dict)
@@ -230,6 +234,12 @@ class WebAPIWorkspaceManager(WorkspaceManager):
                             dict(base_dir=base_dir, res_name_or_expr=res_name_or_expr),
                             timeout=WEBAPI_RESOURCE_TIMEOUT,
                             monitor=monitor)
+
+    def _create_scratch_dir(self, scratch_dir_name: str) -> str:
+        return ''
+
+    def _resolve_target_path(self, target_dir: str) -> str:
+        return ''
 
 
 class WebSocketClient(object):

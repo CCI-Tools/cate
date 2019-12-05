@@ -1,9 +1,12 @@
-import os
-import shutil
 import unittest
 
+import os
+import shutil
+import tempfile
+
+from cate.core.pathmanag import PathManager
 from cate.core.workspace import mk_op_kwargs
-from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
+from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager, RelativeFSWorkspaceManager
 from ..util.test_monitor import RecordingMonitor
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
@@ -11,13 +14,21 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip
 
 # noinspection PyUnresolvedReferences
 class WorkspaceManagerTestMixin:
+
     def new_workspace_manager(self) -> WorkspaceManager:
         raise NotImplementedError
 
     def new_base_dir(self, base_dir):
-        base_dir = os.path.abspath(base_dir)
-        if os.path.exists(base_dir):
-            shutil.rmtree(base_dir)
+        if self._is_relative:
+            abs_dir = self._path_manager.resolve(base_dir)
+            if os.path.exists(abs_dir):
+                shutil.rmtree(abs_dir)
+            base_dir = abs_dir
+        else:
+            base_dir = os.path.join(self._root_dir, base_dir)
+            if os.path.exists(base_dir):
+                shutil.rmtree(base_dir)
+
         return base_dir
 
     def del_base_dir(self, base_dir):
@@ -32,6 +43,23 @@ class WorkspaceManagerTestMixin:
 
         self.assertEqual(workspace1.base_dir, workspace2.base_dir)
         self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
+
+    def test_list_workspace_names_dir_not_existing(self):
+        workspace_manager = self.new_workspace_manager()
+
+        ws_names_list = workspace_manager.list_workspace_names()
+        self.assertEqual(0, len(ws_names_list))
+
+    def test_list_workspace_names(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
+
+        ws_names_list = workspace_manager.list_workspace_names()
+        self.assertEqual(1, len(ws_names_list))
+        self.assertEqual("TESTOMAT", ws_names_list[0])
 
     def test_new_save_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
@@ -149,7 +177,8 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
     def test_session(self):
-        base_dir = self.new_base_dir('TESTOMAT')
+        rel_path = 'TESTOMAT'
+        base_dir = self.new_base_dir(rel_path)
 
         workspace_manager = self.new_workspace_manager()
         workspace1 = workspace_manager.new_workspace(base_dir, description='session workspace')
@@ -173,11 +202,11 @@ class WorkspaceManagerTestMixin:
         sst_step = workspace2.workflow.find_node(res_name)
         self.assertIsNotNone(sst_step)
 
-        file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_copy.nc'))
+        file_path = os.path.abspath(os.path.join(self._root_dir, 'TESTOMAT', 'precip_and_temp_copy.nc'))
         workspace_manager.write_workspace_resource(base_dir, res_name, file_path=file_path)
         self.assertTrue(os.path.isfile(file_path))
 
-        run_file_path = os.path.abspath(os.path.join('TESTOMAT', 'precip_and_temp_runcopy.nc'))
+        run_file_path = os.path.abspath(os.path.join(self._root_dir, 'TESTOMAT', 'precip_and_temp_runcopy.nc'))
         workspace_manager.run_op_in_workspace(base_dir, 'write_netcdf4', mk_op_kwargs(obj='@ds', file=run_file_path))
         self.assertTrue(os.path.isfile(run_file_path))
 
@@ -192,7 +221,8 @@ class WorkspaceManagerTestMixin:
         self.del_base_dir(base_dir)
 
     def test_persistence(self):
-        base_dir = self.new_base_dir('TESTOMAT')
+        rel_path = 'TESTOMAT'
+        base_dir = self.new_base_dir(rel_path)
 
         workspace_manager = self.new_workspace_manager()
         workspace_manager.new_workspace(base_dir)
@@ -211,7 +241,7 @@ class WorkspaceManagerTestMixin:
         self.assertEqual(len(workspace1.workflow.steps), 2)
         self.assertFalse(workspace1.workflow.find_node('ds').persistent)
         self.assertFalse(workspace1.workflow.find_node('ts').persistent)
-        ts_file_path = os.path.abspath(os.path.join('TESTOMAT', '.cate-workspace', 'ts.nc'))
+        ts_file_path = os.path.abspath(os.path.join(self._root_dir, 'TESTOMAT', '.cate-workspace', 'ts.nc'))
         self.assertFalse(os.path.isfile(ts_file_path))
 
         workspace3 = workspace_manager.set_workspace_resource_persistence(base_dir, 'ts', True)
@@ -239,5 +269,30 @@ class WorkspaceManagerTestMixin:
 
 
 class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self._is_relative = False
+        self._path_manager = None
+        self._root_dir = tempfile.mkdtemp()
+
+    def __del__(self):
+        shutil.rmtree(self._root_dir)
+
     def new_workspace_manager(self):
-        return FSWorkspaceManager()
+        return FSWorkspaceManager(self._root_dir)
+
+
+class RelativeFSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
+
+    def __init__(self, methodName: str = ...) -> None:
+        super().__init__(methodName)
+        self._is_relative = True
+        self._root_dir = tempfile.mkdtemp()
+        self._path_manager = PathManager(self._root_dir)
+
+    def __del__(self):
+        shutil.rmtree(self._root_dir)
+
+    def new_workspace_manager(self):
+        return RelativeFSWorkspaceManager(self._path_manager)
