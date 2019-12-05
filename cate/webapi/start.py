@@ -76,7 +76,8 @@ class WebAPIVersionHandler(WebAPIRequestHandler):
     def get(self):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
-                                      'timestamp': date.today().isoformat()})
+                                      'timestamp': date.today().isoformat(),
+                                      'user_root': os.environ.get('CATE_WORKSPACE_ROOT')})
         self.finish()
 
 
@@ -122,8 +123,6 @@ def create_application():
         application.workspace_manager = FSWorkspaceManager()
     else:
         application.workspace_manager = RelativeFSWorkspaceManager(PathManager(root_path))
-
-
 
     return application
 
