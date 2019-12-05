@@ -23,7 +23,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def setUp(self):
         self._root_dir = tempfile.mkdtemp()
-        os.environ['CATE_WORKSPACE_ROOT'] = self._root_dir
+        os.environ['CATE_USER_ROOT'] = self._root_dir
         self.port = find_free_port()
         WebAPI.start_subprocess('cate.webapi.start',
                                 port=self.port,
@@ -31,7 +31,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
                                 service_info_file=_SERVICE_INFO_FILE)
 
     def tearDown(self):
-        del os.environ['CATE_WORKSPACE_ROOT']
+        del os.environ['CATE_USER_ROOT']
         shutil.rmtree(self._root_dir)
         service_info = read_service_info(_SERVICE_INFO_FILE)
         if service_info:

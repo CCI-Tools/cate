@@ -77,7 +77,7 @@ class WebAPIVersionHandler(WebAPIRequestHandler):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'user_root': os.environ.get('CATE_WORKSPACE_ROOT')})
+                                      'local': os.environ.get('CATE_USER_ROOT') is None})
         self.finish()
 
 
@@ -118,7 +118,7 @@ def create_application():
         (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
     ])
 
-    root_path = os.environ.get('CATE_WORKSPACE_ROOT')
+    root_path = os.environ.get('CATE_USER_ROOT')
     if root_path is None:
         application.workspace_manager = FSWorkspaceManager()
     else:

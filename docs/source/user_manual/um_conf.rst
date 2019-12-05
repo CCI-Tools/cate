@@ -92,8 +92,8 @@ Environment variables
     Overrides the location of the local data store directory whose parent directory would otherwise be given
     by the ``data_stores_path`` configuration setting.
 
-:``CATE_WORKSPACE_ROOT``:
-    Restricts cate to operate only in subdirectories of the ``CATE_WORKSPACE_ROOT``. Only use in server-environments
+:``CATE_USER_ROOT``:
+    Restricts cate to operate only in subdirectories of the ``CATE_USER_ROOT``. Only use in server-environments
     when running CATE as SaaS.
 
 
