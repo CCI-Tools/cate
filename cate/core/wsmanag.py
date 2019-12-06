@@ -253,6 +253,9 @@ class FSWorkspaceManager(WorkspaceManager):
                           monitor: Monitor = Monitor.NONE) -> Workspace:
         base_dir = self.resolve_path(base_dir)
         workspace = self.get_workspace(base_dir)
+        if not os.path.isabs(to_dir):
+            to_dir = os.path.join(WORKSPACES_DIR_NAME, to_dir)
+
         to_dir = self._resolve_target_path(to_dir)
 
         empty_dir_exists = False
@@ -458,8 +461,7 @@ class RelativeFSWorkspaceManager(FSWorkspaceManager):
         return self._path_manager.resolve(dir_path)
 
     def _create_scratch_dir(self, scratch_dir_name: str) -> str:
-        scratch_ws_dir = os.path.join(self._path_manager.get_scratch_dir_root(), SCRATCH_WORKSPACES_DIR_NAME)
-        scratch_dir_path = os.path.join(scratch_ws_dir, scratch_dir_name)
+        scratch_dir_path = os.path.join(self._path_manager.get_scratch_dir_root(), scratch_dir_name)
         os.makedirs(scratch_dir_path, exist_ok=True)
         return scratch_dir_path
 
