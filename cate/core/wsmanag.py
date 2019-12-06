@@ -224,6 +224,9 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+        if not os.path.isabs(base_dir):
+            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
+
         base_dir = self.resolve_path(base_dir)
         workspace = self._open_workspaces.get(base_dir, None)
         if workspace is not None:
