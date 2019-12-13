@@ -339,7 +339,11 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def delete_workspace(self, base_dir: str) -> None:
         self.close_workspace(base_dir)
+        if not os.path.isabs(base_dir):
+            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
+
         base_dir = self.resolve_path(base_dir)
+
         workspace_dir = Workspace.get_workspace_dir(base_dir)
         if not os.path.isdir(workspace_dir):
             raise ValidationError('Not a workspace: %s' % base_dir)
