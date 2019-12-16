@@ -240,7 +240,10 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def close_workspace(self, base_dir: str) -> None:
+        if not os.path.isabs(base_dir):
+            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
         base_dir = self.resolve_path(base_dir)
+
         workspace = self._open_workspaces.pop(base_dir, None)
         if workspace is not None:
             workspace.close()
