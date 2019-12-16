@@ -31,8 +31,7 @@ from typing import List, Union, Optional, Tuple, Any
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
-from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME, \
-    SCRATCH_WORKSPACES_DIR_NAME
+from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME
 from ..core.pathmanag import PathManager
 from ..core.types import ValidationError
 from ..util.monitor import Monitor
@@ -94,7 +93,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def delete_workspace(self, base_dir: str) -> None:
+    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
         pass
 
     @abstractmethod
@@ -337,17 +336,20 @@ class FSWorkspaceManager(WorkspaceManager):
         workspace.save()
         return workspace
 
-    def delete_workspace(self, base_dir: str) -> None:
+    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
         self.close_workspace(base_dir)
         if not os.path.isabs(base_dir):
             base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
 
         base_dir = self.resolve_path(base_dir)
 
-        workspace_dir = Workspace.get_workspace_dir(base_dir)
-        if not os.path.isdir(workspace_dir):
-            raise ValidationError('Not a workspace: %s' % base_dir)
-        shutil.rmtree(workspace_dir)
+        if remove_completely:
+            shutil.rmtree(base_dir)
+        else:
+            workspace_dir = Workspace.get_workspace_dir(base_dir)
+            if not os.path.isdir(workspace_dir):
+                raise ValidationError('Not a workspace: %s' % base_dir)
+            shutil.rmtree(workspace_dir)
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
@@ -474,5 +476,3 @@ class RelativeFSWorkspaceManager(FSWorkspaceManager):
 
     def _resolve_target_path(self, target_dir: str) -> str:
         return self._path_manager.resolve(target_dir)
-
-

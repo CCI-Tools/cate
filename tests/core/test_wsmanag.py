@@ -31,13 +31,31 @@ class WorkspaceManagerTestMixin:
 
         return base_dir
 
-    def del_base_dir(self, base_dir):
-        shutil.rmtree(base_dir)
+    @staticmethod
+    def del_base_dir(base_dir):
+        if os.path.isdir(base_dir):
+            shutil.rmtree(base_dir)
 
     def test_new_workspace(self):
         base_dir = self.new_base_dir('TESTOMAT')
 
         workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace2 = workspace_manager.get_workspace(base_dir)
+
+        self.assertEqual(workspace1.base_dir, workspace2.base_dir)
+        self.assertEqual(workspace1.workflow.id, workspace2.workflow.id)
+
+    def test_new_workspace_in_existing_dir(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+        workspace1 = workspace_manager.new_workspace(base_dir)
+        workspace2 = workspace_manager.get_workspace(base_dir)
+        workspace_manager.save_workspace(base_dir)
+
+        workspace_manager.delete_workspace(base_dir)
+
         workspace1 = workspace_manager.new_workspace(base_dir)
         workspace2 = workspace_manager.get_workspace(base_dir)
 
@@ -118,6 +136,22 @@ class WorkspaceManagerTestMixin:
         self.assertTrue(os.path.exists(base_dir))
         self.assertFalse(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
         self.assertIsNotNone(workspace)
+
+        self.del_base_dir(base_dir)
+
+    def test_delete_workspace_completely(self):
+        base_dir = self.new_base_dir('TESTOMAT')
+
+        workspace_manager = self.new_workspace_manager()
+
+        workspace = workspace_manager.new_workspace(base_dir)
+        workspace.save()
+        self.assertTrue(os.path.exists(base_dir))
+        self.assertTrue(os.path.exists(os.path.join(base_dir, '.cate-workspace')))
+        self.assertIsNotNone(workspace)
+
+        workspace_manager.delete_workspace(base_dir, True)
+        self.assertFalse(os.path.exists(base_dir))
 
         self.del_base_dir(base_dir)
 
