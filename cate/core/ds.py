@@ -752,10 +752,11 @@ def open_xarray_dataset(paths,
                                preprocess=preprocess,
                                # Future behaviour will be
                                combine='nested',
+                               compat='override',
                                **kwargs)
 
     if var_names:
-        ds = ds.drop([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
+        ds = ds.drop_vars([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
 
     ds = normalize_impl(ds)
 
