@@ -121,14 +121,14 @@ def get_metadata_store_path():
                           os.path.join(get_data_stores_path(), ESA_CCI_ODP_DATA_STORE_ID))
 
 
-def set_default_data_store():
+def add_data_store():
     """
     Defines the ESA CCI ODP data store and makes it the default data store.
 
     All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json`` contained in this package.
     This JSON file has been generated from a scan of the entire FTP tree.
     """
-    DATA_STORE_REGISTRY.add_data_store(EsaCciOdpDataStore())
+    DATA_STORE_REGISTRY.add_data_store(EsaCciOdpOsDataStore())
 
 
 def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
@@ -499,11 +499,11 @@ def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> S
     return sorted(file_list, key=pick_start_time)
 
 
-class EsaCciOdpDataStore(DataStore):
+class EsaCciOdpOsDataStore(DataStore):
     # noinspection PyShadowingBuiltins
     def __init__(self,
-                 id: str = 'esa_cci_odp',
-                 title: str = 'ESA CCI Open Data Portal',
+                 id: str = 'esa_cci_odp_os',
+                 title: str = 'ESA CCI Open Data Portal OpenSearch',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None,
@@ -527,9 +527,7 @@ class EsaCciOdpDataStore(DataStore):
         """
         return ("This data store represents the [ESA CCI Open Data Portal](http://cci.esa.int/data)"
                 " in the CCI Toolbox.\n"
-                "It currently provides all CCI data that are published through the "
-                "[ESGF-CEDA services](https://esgf-index1.ceda.ac.uk/search/esacci-ceda/) "
-                "(gridded data stored as NetCDF files). "
+                "It currently provides all CCI data that are published through an Opensearch Interface. "
                 "The store will be extended shortly to also provide TIFF and Shapefile Data, see usage "
                 "notes.\n"
                 "Remote data downloaded to your computer is made available through the *Local Data Store*.")
@@ -659,7 +657,7 @@ class EsaCciOdpDataStore(DataStore):
         data_sources = []
         if self._catalogue:
             for catalogue_item in self._catalogue:
-                data_sources.append(EsaCciOdpDataSource(self, self._catalogue[catalogue_item], catalogue_item))
+                data_sources.append(EsaCciOdpOsDataSource(self, self._catalogue[catalogue_item], catalogue_item))
         self._data_sources = data_sources
         self._check_source_diff()
         self._freeze_source()
@@ -789,13 +787,13 @@ INFO_FIELD_NAMES = sorted(["title",
                            ])
 
 
-class EsaCciOdpDataSource(DataSource):
+class EsaCciOdpOsDataSource(DataSource):
     def __init__(self,
-                 data_store: EsaCciOdpDataStore,
+                 data_store: EsaCciOdpOsDataStore,
                  json_dict: dict,
                  datasource_id: str,
                  schema: Schema = None):
-        super(EsaCciOdpDataSource, self).__init__()
+        super(EsaCciOdpOsDataSource, self).__init__()
         self._datasource_id = datasource_id
         self._data_store = data_store
         self._json_dict = json_dict
@@ -809,7 +807,7 @@ class EsaCciOdpDataSource(DataSource):
         return self._datasource_id
 
     @property
-    def data_store(self) -> EsaCciOdpDataStore:
+    def data_store(self) -> EsaCciOdpOsDataStore:
         return self._data_store
 
     @property
@@ -1077,8 +1075,9 @@ class EsaCciOdpDataSource(DataSource):
 
                 if outdated_file_list:
                     with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
-                        bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                        dl_stat = _DownloadStatistics(bytes_to_download)
+                        #todo enable downloads statistics
+                        # bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                        # dl_stat = _DownloadStatistics(bytes_to_download)
 
                         file_number = 1
 
@@ -1088,8 +1087,10 @@ class EsaCciOdpDataSource(DataSource):
 
                             # noinspection PyUnusedLocal
                             def reporthook(block_number, read_size, total_file_size):
-                                dl_stat.handle_chunk(read_size)
-                                child_monitor.progress(work=read_size, msg=str(dl_stat))
+                                pass
+                                # todo enable downloads statistics
+                                # dl_stat.handle_chunk(read_size)
+                                # child_monitor.progress(work=read_size, msg=str(dl_stat))
 
                             sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                             with child_monitor.starting(sub_monitor_msg, file_size):

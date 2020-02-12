@@ -10,7 +10,7 @@ import urllib.request
 from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStoreNotice, format_variables_info_string
 from cate.ds.esa_cci_odp_os import _fetch_file_list_json, _extract_metadata_from_odd, _extract_metadata_from_odd_url, \
     _extract_metadata_from_descxml, _extract_metadata_from_descxml_url, _harmonize_info_field_names, \
-    _DownloadStatistics, EsaCciOdpDataStore, find_datetime_format
+    _DownloadStatistics, EsaCciOdpOsDataStore, find_datetime_format
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore
 
@@ -187,7 +187,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
 # @unittest.skipUnless(condition=os.environ.get('CATE_ODP_TEST', None), reason="skipped unless CATE_ODP_TEST=1")
 class EsaCciOdpDataStoreIndexCacheTest(unittest.TestCase):
     def test_index_cache(self):
-        self.data_store = EsaCciOdpDataStore(index_cache_used=True, index_cache_expiration_days=1.0e-6)
+        self.data_store = EsaCciOdpOsDataStore(index_cache_used=True, index_cache_expiration_days=1.0e-6)
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
         for data_source in data_sources:
@@ -201,7 +201,7 @@ def _create_test_data_store():
     for d in DATA_STORE_REGISTRY.get_data_stores():
         d.get_updates(reset=True)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1')
+    data_store = EsaCciOdpOsDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1')
     DATA_STORE_REGISTRY.add_data_store(data_store)
     return data_store
 
@@ -328,7 +328,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
             return reference_files_list
 
         with unittest.mock.patch('cate.ds.esa_cci_odp.EsaCciOdpDataSource._find_files', find_files_mock):
-            with unittest.mock.patch.object(EsaCciOdpDataStore, 'query', return_value=[]):
+            with unittest.mock.patch.object(EsaCciOdpOsDataStore, 'query', return_value=[]):
 
                 new_ds_title = 'local_ds_test'
                 new_ds_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
@@ -548,7 +548,7 @@ class SpatialSubsetTest(unittest.TestCase):
 
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
-        data_store = EsaCciOdpDataStore()
+        data_store = EsaCciOdpOsDataStore()
         data_source = data_store.query(ds_id='916986a220e6bad55411d9407ade347c')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
