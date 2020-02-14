@@ -486,7 +486,7 @@ def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> S
                 # Convert back to text, so we can JSON-encode it
                 start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
                 end_time = start_time
-        file_size = None
+        file_size = feature_props.get("filesize", 0)
         related_links = feature_props.get("links", {}).get("related", [])
         urls = {}
         for related_link in related_links:
@@ -1075,9 +1075,8 @@ class EsaCciOdpOsDataSource(DataSource):
 
                 if outdated_file_list:
                     with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
-                        #todo enable downloads statistics
-                        # bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                        # dl_stat = _DownloadStatistics(bytes_to_download)
+                        bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                        dl_stat = _DownloadStatistics(bytes_to_download)
 
                         file_number = 1
 
@@ -1087,10 +1086,8 @@ class EsaCciOdpOsDataSource(DataSource):
 
                             # noinspection PyUnusedLocal
                             def reporthook(block_number, read_size, total_file_size):
-                                pass
-                                # todo enable downloads statistics
-                                # dl_stat.handle_chunk(read_size)
-                                # child_monitor.progress(work=read_size, msg=str(dl_stat))
+                                dl_stat.handle_chunk(read_size)
+                                child_monitor.progress(work=read_size, msg=str(dl_stat))
 
                             sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                             with child_monitor.starting(sub_monitor_msg, file_size):
