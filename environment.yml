@@ -40,6 +40,7 @@ dependencies:
   - tornado>=5.1
   - xarray>=0.14.1
   - yaml>=0.1.7
+  - zarr>=2.3.2
   # Test lib
   - flake8
   - pytest
