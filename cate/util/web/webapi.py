@@ -31,7 +31,7 @@ import time
 import traceback
 import urllib.request
 from datetime import datetime
-from typing import List, Callable, Optional, Tuple
+from typing import List, Callable, Optional, Tuple, Union
 
 # from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 import tornado.options
@@ -48,7 +48,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 _LOG = logging.getLogger('cate')
 
-ApplicationFactory = Callable[[], Application]
+ApplicationFactory = Callable[[Union[str, None]], Application]
 
 
 def _get_common_cli_parser(name: str,
@@ -62,6 +62,8 @@ def _get_common_cli_parser(name: str,
                         help='start/stop WebAPI service using address ADDRESS', default='localhost')
     parser.add_argument('--caller', '-c', dest='caller', default=name,
                         help='name of the calling application')
+    parser.add_argument('--root', '-r', dest='user_root_path', default=None, metavar='ROOT',
+                        help='path to user root directory')
     parser.add_argument('--file', '-f', dest='file', metavar='FILE',
                         help="if given, service information will be written to (start) or read from (stop) FILE")
     return parser
@@ -105,6 +107,7 @@ def run_start(name: str,
                       port=args_obj.port,
                       address=args_obj.address,
                       caller=args_obj.caller,
+                      user_root_path=args_obj.user_root_path,
                       service_info_file=args_obj.file,
                       auto_stop_after=args_obj.auto_stop_after)
 
@@ -187,6 +190,7 @@ class WebAPI:
               port: int = None,
               address: str = None,
               caller: str = None,
+              user_root_path: str = None,
               service_info_file: str = None) -> dict:
 
         """
@@ -244,7 +248,8 @@ class WebAPI:
                                  started=datetime.now().isoformat(sep=' '),
                                  pid=os.getpid())
 
-        application = application_factory()
+        # noinspection PyArgumentList
+        application = application_factory(user_root_path=user_root_path)
         application.webapi = self
         application.time_of_last_activity = time.process_time()
         self.application = application
