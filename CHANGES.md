@@ -1,5 +1,9 @@
 ## Version 2.0.1.dev1
 
+* Updated Workspacemanager to be able to run on a remote engine
+    - added support for relative paths
+    - added pathmanager to ensure user cannot escape the remoe file system
+    - implemented WS handling: create/save/save_as/delete 
 * Updated environment and fixed failing tests ([#817](https://github.com/CCI-Tools/cate/issues/817)
 * The aggregate function _lta now returns a xr.dataset produced by xr.mean()
 * Made cate running with xarray version 0.14.1
