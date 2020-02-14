@@ -272,8 +272,8 @@ class WebSocketService:
         workspace = self.workspace_manager.clean_workspace(base_dir)
         return workspace.to_json_dict()
 
-    def delete_workspace(self, base_dir: str) -> None:
-        self.workspace_manager.delete_workspace(base_dir)
+    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
+        self.workspace_manager.delete_workspace(base_dir, remove_completely)
 
     def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
