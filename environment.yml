@@ -2,13 +2,12 @@ name: cate-env
 channels:
   - conda-forge
 dependencies:
-  - python>=3.6
-  - conda>=4.6
   # Runtime libs
   - bokeh>=1.3
   - boto3>=1.9.65
   - botocore>=1.12.66
   - cartopy>=0.17.0
+  - conda>=4.6
   - cython>=0.29.2
   - dask>=2.6
   - fiona>=1.8.11
@@ -32,6 +31,8 @@ dependencies:
   - pyepsg>=0.4.0
   - pyproj>=1.9.5
   - pyshp>=2.0
+  # We require eed Python 3.7 as tornado 6.x doesn't work with Python 3.8
+  - python=3.7
   - python-dateutil>=2.8
   - s3transfer>=0.1.13
   - scipy>=1.1.0
