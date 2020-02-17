@@ -64,8 +64,8 @@ def _get_common_cli_parser(name: str,
                         help='name of the calling application')
     parser.add_argument('--root', '-r', dest='user_root_path', default=None, metavar='ROOT',
                         help='path to user root directory')
-    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
-                        help="if given, service information will be written to (start) or read from (stop) FILE")
+    parser.add_argument('--traceback', '-b', dest='print_traceback', action='store_true',
+                        help="dump stack traceback information on errors")
     return parser
 
 
@@ -73,7 +73,7 @@ def run_start(name: str,
               description: str,
               version: str,
               application_factory: ApplicationFactory,
-              log_file_prefix=None,
+              log_file_prefix: str = None,
               args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
@@ -90,13 +90,16 @@ def run_start(name: str,
         args = sys.argv[1:]
 
     parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="write service information to FILE")
     parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
-                        help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
+                        help="stop service after AUTO_STOP_AFTER seconds of inactivity")
     parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
-                        help="if given, logging will be delegated to the console (stderr)")
-    try:
-        args_obj = parser.parse_args(args)
+                        help="delegate log output to the console (stderr)")
 
+    args_obj = parser.parse_args(args)
+
+    try:
         if not os.path.isdir(os.path.dirname(log_file_prefix)):
             os.makedirs(os.path.dirname(log_file_prefix), exist_ok=True)
 
@@ -113,6 +116,9 @@ def run_start(name: str,
 
         return 0
     except Exception as e:
+        if args_obj.print_traceback:
+            import traceback
+            traceback.print_exc()
         print('error: %s' % e)
         return 1
 
@@ -134,14 +140,16 @@ def run_stop(name: str,
         args = sys.argv[1:]
 
     parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="read service information from FILE")
     parser.add_argument('--kill-after', '-k', dest='kill_after', metavar='KILL_AFTER', type=float, default=5.,
-                        help="Service will be killed (SIGTERM) after KILL_AFTER seconds of inactivity")
+                        help="kill service (SIGTERM) after KILL_AFTER seconds of inactivity")
     parser.add_argument('--timeout', '-t', dest='timeout', metavar='TIMEOUT', type=float, default=5.,
-                        help="Service will stop after TIME seconds of inactivity")
+                        help="stop service after TIMEOUT seconds of inactivity")
+
+    args_obj = parser.parse_args(args)
 
     try:
-        args_obj = parser.parse_args(args)
-
         WebAPI.stop(name,
                     port=args_obj.port,
                     address=args_obj.address,
@@ -152,6 +160,9 @@ def run_stop(name: str,
 
         return 0
     except Exception as e:
+        if args_obj.print_traceback:
+            import traceback
+            traceback.print_exc()
         print('error: %s' % e)
         return 1
 
