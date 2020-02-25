@@ -397,7 +397,10 @@ def _validate_freq(in_res: str, out_res: str) -> None:
         raise ValidationError('Input dataset is already at the requested output resolution.'
                               ' Execution stopped.')
 
-    in_delta = pd.Timedelta(count, unit=in_res[-1])
+    try:
+        in_delta = pd.Timedelta(count, unit=in_res[-1])
+    except ValueError as e:
+        raise ValidationError(str(e)) from e
     out_delta = dates[1] - dates[0]
 
     if out_delta < in_delta:

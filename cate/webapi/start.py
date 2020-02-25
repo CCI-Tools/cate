@@ -93,7 +93,7 @@ def service_factory(application):
 #    "content": optional content, if status "ok"
 # }
 
-def create_application():
+def create_application(user_root_path: str = None):
     application = Application([
         ('/user/\w*/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         ('/user/\w*/mpl.js', MplJavaScriptHandler),
@@ -118,11 +118,16 @@ def create_application():
         (url_pattern('/user/\w*/ws/countries'), CountriesGeoJSONHandler),
     ])
 
-    root_path = os.environ.get('CATE_USER_ROOT')
-    if root_path is None:
+    default_user_root_path = os.environ.get('CATE_USER_ROOT')
+    if user_root_path is None:
+        user_root_path = default_user_root_path
+    elif default_user_root_path:
+        print(f"warning: user root path given by environment variable CATE_USER_ROOT superseded by {user_root_path}")
+
+    if user_root_path is None:
         application.workspace_manager = FSWorkspaceManager()
     else:
-        application.workspace_manager = RelativeFSWorkspaceManager(PathManager(root_path))
+        application.workspace_manager = RelativeFSWorkspaceManager(PathManager(user_root_path))
 
     return application
 

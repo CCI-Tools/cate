@@ -274,7 +274,6 @@ class TestTemporalAggregation(TestCase):
         ex.first.attrs['cell_methods'] = 'time: mean within years'
         ex.second.attrs['cell_methods'] = 'time: mean within years'
         actual = temporal_aggregation(ds, custom_resolution='4M', monitor=m)
-        print(actual)
         self.assertTrue(actual.broadcast_equals(ex))
 
     def test_8days(self):

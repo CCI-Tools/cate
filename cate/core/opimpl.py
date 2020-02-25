@@ -211,10 +211,9 @@ def _normalize_lon_360(ds: xr.Dataset) -> xr.Dataset:
             temp = np.copy(values[..., : lon_size_05])
             values[..., : lon_size_05] = values[..., lon_size_05:]
             values[..., lon_size_05:] = temp
-            # import matplotlib.pyplot as plt
-            # im = values[(len(values.shape) - 2) * [0] + [slice(None), slice(None)]]
-            # plt.imshow(im)
-            new_vars[var_name] = xr.DataArray(values, dims=var.dims, attrs=var.attrs, encoding=var.encoding)
+            new_var = xr.DataArray(values, dims=var.dims, attrs=var.attrs)
+            new_var.encoding.update(var.encoding)
+            new_vars[var_name] = new_var
 
     return ds.assign(**new_vars)
 
