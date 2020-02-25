@@ -28,6 +28,7 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 import xarray as xr
+
 from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
@@ -517,6 +518,21 @@ def read_zarr(path: str,
 
     if normalize:
         return adjust_temporal_attrs(normalize_op(ds))
+    return ds
+
+
+@op(tags=['output'], no_cache=True)
+@op_input('path', file_open_mode='w', file_filters=[dict(name='Zarr', extensions=['zarr'])])
+def write_zarr(ds: xr.Dataset, path: str) -> xr.Dataset:
+    """
+    Write dataset to a Zarr directory.
+
+    For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
+
+    :param ds: An xarray dataset.
+    :param path: Zarr directory path.
+    """
+    ds.to_zarr(path)
     return ds
 
 

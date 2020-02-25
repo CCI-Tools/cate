@@ -132,7 +132,8 @@ class Workspace:
     def is_scratch(self) -> bool:
         return self._is_scratch
 
-    def set_scratch(self, value: bool):
+    @is_scratch.setter
+    def is_scratch(self, value: bool):
         self._is_scratch = value
 
     @property

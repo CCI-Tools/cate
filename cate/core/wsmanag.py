@@ -204,9 +204,8 @@ class FSWorkspaceManager(WorkspaceManager):
             scratch_dir_name = str(uuid.uuid4())
             base_dir = self._create_scratch_dir(scratch_dir_name)
             is_scratch = True
-        else:
-            if not os.path.isabs(base_dir):
-                base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
+        elif not os.path.isabs(base_dir):
+            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
 
         base_dir = self.resolve_path(base_dir)
         if base_dir in self._open_workspaces:
@@ -216,7 +215,7 @@ class FSWorkspaceManager(WorkspaceManager):
             raise ValidationError('Workspace exists, consider opening it: %s' % base_dir)
         workspace = Workspace.create(base_dir, description=description)
         if is_scratch:
-            workspace.set_scratch(True)
+            workspace.is_scratch = True
 
         assert base_dir not in self._open_workspaces
         self._open_workspaces[base_dir] = workspace

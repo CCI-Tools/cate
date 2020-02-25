@@ -165,8 +165,10 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
         self._invoke_method("save_all_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT, monitor=monitor)
 
-    def delete_workspace(self, base_dir: str, remove_completely: bool=False) -> None:
-        self._invoke_method("delete_workspace", dict(base_dir=base_dir,remove_completely=remove_completely), timeout=WEBAPI_WORKSPACE_TIMEOUT)
+    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
+        self._invoke_method("delete_workspace",
+                            dict(base_dir=base_dir, remove_completely=remove_completely),
+                            timeout=WEBAPI_WORKSPACE_TIMEOUT)
 
     def clean_workspace(self, base_dir: str) -> Workspace:
         json_dict = self._invoke_method("clean_workspace", dict(base_dir=base_dir), timeout=WEBAPI_WORKSPACE_TIMEOUT)

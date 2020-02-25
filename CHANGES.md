@@ -1,16 +1,18 @@
-## Version 2.0.1.dev1
+## Version 2.1.0 (in development)
 
-* Updated Workspacemanager to be able to run on a remote engine
-    - added support for relative paths
-    - added pathmanager to ensure user cannot escape the remoe file system
-    - implemented WS handling: create/save/save_as/delete 
-* Updated environment and fixed failing tests ([#817](https://github.com/CCI-Tools/cate/issues/817)
-* The aggregate function _lta now returns a xr.dataset produced by xr.mean()
-* Made cate running with xarray version 0.14.1
-    - Changed minimum version requirement for xarray to 0.14.1 in environment.yml 
-    - Changed all xarray.Dataset.drop to xarray.Dataset.drop_vars
-    - Changed Dataset.time.values = [array] to Dataset['time'] = [array] in Pearson's
-      computation
+* Added option `--traceback` to `cate-webapi-start` and `cate-webapi-stop` CLI tools.
+* Added operation `write_zarr()` to write gridded datasets using the Zarr format.
+* Updated `cate.core.wsmanag.WorkspaceManager` to work only with workspace paths relative to a given
+  user root directory.
+    - added `cate.core.pathmanag.PathManager` to ensure users cannot escape root directory
+    - updated workspace handling: create/save/save_as/delete 
+* Updated Python environment and fixed failing tests ([#817](https://github.com/CCI-Tools/cate/issues/817)
+* Updated Cate code base with respect to `xarray` version 0.15
+    - Changed minimum version requirement for xarray to 0.15 in environment.yml 
+    - Changed `xarray.Dataset.drop` to `xarray.Dataset.drop_vars`
+    - Removed `encoding` keyword argument from `xarray.DataArray` constructor calls.
+    - No longer writing to `xarray.DataArray.values` property (e.g. Pearson's
+      computation)
 
 ## Version 2.0.0
 

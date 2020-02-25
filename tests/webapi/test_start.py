@@ -13,7 +13,7 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPITest(AsyncHTTPTestCase):
     def get_app(self):
-        return create_application()
+        return create_application(user_root_path=None)
 
     def test_base_url(self):
         response = self.fetch('/')
