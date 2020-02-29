@@ -42,6 +42,7 @@ from tornado.web import RequestHandler, Application
 from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
     find_free_port, is_service_compatible, is_service_running, join_address_and_port
+from ...version import __version__
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -632,6 +633,12 @@ class WebAPIRequestHandler(RequestHandler):
             else:
                 return dict(status='error', error=dict(message=message))
         return dict(status='error')
+
+    def set_default_headers(self) -> None:
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.set_header('User-Agent', f'Cate WebAPI/{__version__}')
 
 
 class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):

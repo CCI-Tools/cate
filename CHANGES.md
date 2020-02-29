@@ -1,5 +1,7 @@
 ## Version 2.1.0 (in development)
 
+* Cate Web API allows for Cross-Origin Resource Sharing (CORS), which is required
+  to run Cate UI in a browser.
 * Added option `--traceback` to `cate-webapi-start` and `cate-webapi-stop` CLI tools.
 * Added operation `write_zarr()` to write gridded datasets using the Zarr format.
 * Updated `cate.core.wsmanag.WorkspaceManager` to work only with workspace paths relative to a given
