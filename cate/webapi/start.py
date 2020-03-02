@@ -95,27 +95,27 @@ def service_factory(application):
 
 def create_application(user_root_path: str = None):
     application = Application([
-        ('/user/\w*/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
-        ('/user/\w*/mpl.js', MplJavaScriptHandler),
+        ('r/user/\w*/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
+        ('r/user/\w*/mpl.js', MplJavaScriptHandler),
 
-        (url_pattern('/user/\w*/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
-        (url_pattern('/user/\w*/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+        (url_pattern(r'/user/\w*/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
+        (url_pattern(r'/user/\w*/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
 
-        (url_pattern('/user/\w*/'), WebAPIVersionHandler),
-        (url_pattern('/user/\w*/exit'), WebAPIExitHandler),
-        (url_pattern('/user/\w*/api'), JsonRpcWebSocketHandler, dict(
+        (url_pattern(r'/user/\w*/'), WebAPIVersionHandler),
+        (url_pattern(r'/user/\w*/exit'), WebAPIExitHandler),
+        (url_pattern(r'/user/\w*/api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,
             validation_exception_class=ValidationError,
             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)
          ),
-        (url_pattern('/user/\w*/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
-        (url_pattern('/user/\w*/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
-        (url_pattern('/user/\w*/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
-        (url_pattern('/user/\w*/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
-        (url_pattern('/user/\w*/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
-        (url_pattern('/user/\w*/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        (url_pattern('/user/\w*/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
-        (url_pattern('/user/\w*/ws/countries'), CountriesGeoJSONHandler),
+        (url_pattern(r'/user/\w*/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern(r'/user/\w*/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
+        (url_pattern(r'/user/\w*/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
+        (url_pattern(r'/user/\w*/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
+        (url_pattern(r'/user/\w*/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
+        (url_pattern(r'/user/\w*/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        (url_pattern(r'/user/\w*/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+        (url_pattern(r'/user/\w*/ws/countries'), CountriesGeoJSONHandler),
     ])
 
     default_user_root_path = os.environ.get('CATE_USER_ROOT')
