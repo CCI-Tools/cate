@@ -72,12 +72,14 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 
 # noinspection PyAbstractClass
-class WebAPIVersionHandler(WebAPIRequestHandler):
+class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
+        app = self.application
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'local': os.environ.get('CATE_USER_ROOT') is None})
+                                      'workspace_manager': app.workspace_manager.__class__.__name__})
+
         self.finish()
 
 
@@ -101,7 +103,7 @@ def create_application(user_root_path: str = None):
         (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
         (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
 
-        (url_pattern('/'), WebAPIVersionHandler),
+        (url_pattern('/'), WebAPIInfoHandler),
         (url_pattern('/exit'), WebAPIExitHandler),
         (url_pattern('/api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,
