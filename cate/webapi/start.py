@@ -74,11 +74,13 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 # noinspection PyAbstractClass
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
-        app = self.application
+        workspace_manager = self.application.workspace_manager or None
+        workspace_manager_name = workspace_manager.__class__.__name__ if workspace_manager else None
+
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'workspace_manager': app.workspace_manager.__class__.__name__})
+                                      'workspace_manager': workspace_manager_name})
 
         self.finish()
 

@@ -23,3 +23,30 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertIn('content', json_dict)
         self.assertIn('name', json_dict['content'])
         self.assertIn('version', json_dict['content'])
+        self.assertIn('workspace_manager', json_dict['content'])
+
+
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+class WebAPIRelativeFSTest(AsyncHTTPTestCase):
+    def get_app(self):
+        return create_application(user_root_path='/home/test')
+
+    def test_base_url(self):
+        response = self.fetch('/')
+        self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertIn('workspace_manager', json_dict['content'])
+        self.assertEqual(json_dict['content']['workspace_manager'], 'RelativeFSWorkspaceManager')
+
+
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+class WebAPIFSTest(AsyncHTTPTestCase):
+    def get_app(self):
+        return create_application(user_root_path=None)
+
+    def test_base_url(self):
+        response = self.fetch('/')
+        self.assertEqual(response.code, 200)
+        json_dict = json.loads(response.body.decode('utf-8'))
+        self.assertIn('workspace_manager', json_dict['content'])
+        self.assertEqual(json_dict['content']['workspace_manager'], 'FSWorkspaceManager')
