@@ -1,5 +1,6 @@
 ## Version 2.1.0 (in development)
 
+* Reports now workspace manager mode
 * Cate Web API allows for Cross-Origin Resource Sharing (CORS), which is required
   to run Cate UI in a browser.
 * Added option `--traceback` to `cate-webapi-start` and `cate-webapi-stop` CLI tools.
