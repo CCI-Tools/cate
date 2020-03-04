@@ -19,7 +19,7 @@ dependencies:
   - hdf4>=4.2.13
   - hdf5>=1.10.5
   - jdcal>=1.4.1
-  - matplotlib-base>=0.3.1
+  - matplotlib-base>=3.1.3
   - numba>=0.48.0
   - numpy>=1.18.1
   - netcdf4>=1.5.1.2
