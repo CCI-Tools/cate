@@ -10,7 +10,7 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip
 
 # For usage of the tornado.testing.AsyncHTTPTestCase see http://www.tornadoweb.org/en/stable/testing.html
 
-@unittest.skipIf(os.getenv('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPITest(AsyncHTTPTestCase):
     def get_app(self):
         return create_application(user_root_path=None)
@@ -26,7 +26,7 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertIn('workspace_manager_mode', json_dict['content'])
 
 
-@unittest.skipIf(os.getenv('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIRelativeFSTest(AsyncHTTPTestCase):
     def get_app(self):
         return create_application(user_root_path='/home/test')
@@ -39,7 +39,7 @@ class WebAPIRelativeFSTest(AsyncHTTPTestCase):
         self.assertEqual(json_dict['content']['workspace_manager_mode'], 'relative_fs')
 
 
-@unittest.skipIf(os.getenv('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIFSTest(AsyncHTTPTestCase):
     def get_app(self):
         return create_application(user_root_path=None)
