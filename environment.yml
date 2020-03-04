@@ -24,7 +24,7 @@ dependencies:
   - numpy>=1.18
   - netcdf4>=1.5
   - owslib>=0.18
-  - pandas>=1.0.1
+  - pandas<0.25
   - pillow>=7.0
   - pip
   - psutil>=5.4.8
@@ -32,14 +32,14 @@ dependencies:
   - pyproj>=1.9.5
   - pyshp>=2.0
   # We require eed Python 3.7 as tornado 6.0.3 doesn't work with Python 3.8
-  - python=3.7
+  - python>=3.7
   - python-dateutil>=2.8
   - s3transfer>=0.3
   - scipy>=1.1.0
   - setuptools>=41
   - shapely>=1.7
   - tornado>=6.0
-  - xarray>=0.15
+  - xarray>=0.14
   - yaml>=0.1.7
   - zarr>=2.4
   # Test lib
