@@ -42,6 +42,7 @@ Components
 """
 import os
 import warnings
+import re
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
 import sys
@@ -74,13 +75,18 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 # noinspection PyAbstractClass
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
-        workspace_manager = self.application.workspace_manager or None
-        workspace_manager_name = workspace_manager.__class__.__name__ if workspace_manager else None
+        workspace_manager_mode = "unknown"
+        if self.application.workspace_manager:
+            def camelcase_to_underscore(inp: str):
+                return re.sub(r'(?<=[a-z])[A-Z]|[A-Z](?=[^A-Z])', r'_\g<0>', inp).lower().strip('_')
+
+            name = self.application.workspace_manager.__class__.__name__
+            workspace_manager_mode = camelcase_to_underscore(name.replace("WorkspaceManager", ""))
 
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'workspace_manager': workspace_manager_name})
+                                      'workspace_manager_mode': workspace_manager_mode})
 
         self.finish()
 
