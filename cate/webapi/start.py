@@ -86,7 +86,7 @@ class WebAPIInfoHandler(WebAPIRequestHandler):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'workspace_manager_mode': workspace_manager_mode})
+                                      'user_root_mode': user_root_mode})
 
         self.finish()
 
