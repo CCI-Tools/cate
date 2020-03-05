@@ -35,7 +35,7 @@ class WebAPIRelativeFSTest(AsyncHTTPTestCase):
         response = self.fetch('/')
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
-        self.assertIn('workspace_manager_mode', json_dict['content'])
+        self.assertIn('user_root_mode', json_dict['content'])
         self.assertEqual(json_dict['content']['user_root_mode'], 'relative_fs')
 
 
