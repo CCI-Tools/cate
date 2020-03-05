@@ -10,9 +10,6 @@ os:
   - osx
   - windows
 
-before_install:
-  - source ./ci/amend_github_commit.sh "pending" "flake8 check in progress"
-
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
@@ -51,10 +48,3 @@ script:
 after_success:
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
-  - flake8 --exit-zero|tee flake8_report.txt
-  - FLAKE8_COUNT=$(cat flake8_report.txt | wc -l)
-  - if [ ${FLAKE8_COUNT} -eq 0 ]; then
-      source ./ci/amend_github_commit.sh "success" "flake8 test succeeded";
-    else
-      source ./ci/amend_github_commit.sh "failure" "flake8 test found ${FLAKE8_COUNT} problems";
-    fi

@@ -42,6 +42,7 @@ Components
 """
 import os
 import warnings
+import re
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
 import sys
@@ -72,12 +73,15 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 
 # noinspection PyAbstractClass
-class WebAPIVersionHandler(WebAPIRequestHandler):
+class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
+        user_root_mode = self.application.root_dir is not None
+
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'local': os.environ.get('CATE_USER_ROOT') is None})
+                                      'user_root_mode': user_root_mode})
+
         self.finish()
 
 
@@ -104,10 +108,8 @@ def create_application(user_root_path: str = None):
     application = Application([
         (url_root + '_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         (url_root + 'mpl.js', MplJavaScriptHandler),
-
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
         (url_pattern(url_root + 'mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
-
         (url_pattern(url_root), WebAPIVersionHandler),
         (url_pattern(url_root + 'exit'), WebAPIExitHandler),
         (url_pattern(url_root + 'api'), JsonRpcWebSocketHandler, dict(
