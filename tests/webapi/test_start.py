@@ -49,4 +49,4 @@ class WebAPIFSTest(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('user_root_mode', json_dict['content'])
-        self.assertEqual(json_dict['content']['workspace_manager_mode'], 'fs')
+        self.assertEqual(json_dict['content']['user_root_mode'], 'fs')
