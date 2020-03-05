@@ -214,6 +214,7 @@ class WebAPI:
         If the service file exist and its information is compatible with the requested *port*, *address*, *caller*, then
         this function simply returns without taking any other actions.
 
+        :param user_root_path: Root path for the user
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
