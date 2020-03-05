@@ -1,5 +1,6 @@
 ## Version 2.1.0 (in development)
 
+* Cate Web API at `${endpoint}/` now reports whether it is running with a "user root directory". In this case, the Web API uses relative workspace path only and users connot escape the given user root directory.
 * Cate Web API allows for Cross-Origin Resource Sharing (CORS), which is required
   to run Cate UI in a browser.
 * Added option `--traceback` to `cate-webapi-start` and `cate-webapi-stop` CLI tools.
