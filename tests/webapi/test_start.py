@@ -23,7 +23,7 @@ class WebAPITest(AsyncHTTPTestCase):
         self.assertIn('content', json_dict)
         self.assertIn('name', json_dict['content'])
         self.assertIn('version', json_dict['content'])
-        self.assertIn('workspace_manager_mode', json_dict['content'])
+        self.assertIn('user_root_mode', json_dict['content'])
 
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
