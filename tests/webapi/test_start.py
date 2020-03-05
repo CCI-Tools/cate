@@ -29,14 +29,12 @@ class WebAPITest(AsyncHTTPTestCase):
 
 
 # Tests if root of url can be changed, mostly relevant for CateHub context.
-
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIHubContextTest(WebAPITest):
     @patch.dict(os.environ, {'JUPYTERHUB_SERVICE_PREFIX': '/user/test/'})
     def get_app(self):
         self.url = os.environ.get('JUPYTERHUB_SERVICE_PREFIX')
         return create_application(user_root_path=None)
-
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIRelativeFSTest(AsyncHTTPTestCase):
