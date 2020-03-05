@@ -75,13 +75,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 # noinspection PyAbstractClass
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
-        workspace_manager_mode = "unknown"
-        if self.application.workspace_manager:
-            def camelcase_to_underscore(inp: str):
-                return re.sub(r'(?<=[a-z])[A-Z]|[A-Z](?=[^A-Z])', r'_\g<0>', inp).lower().strip('_')
-
-            name = self.application.workspace_manager.__class__.__name__
-            user_root_mode = self.application.root_dir is not None
+        user_root_mode = self.application.root_dir is not None
 
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
