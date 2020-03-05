@@ -215,7 +215,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
 
     def test_id_title_and_is_local(self):
         self.assertEqual(self.data_store.id, 'test-odp')
-        self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal')
+        self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal OpenSearch')
         self.assertEqual(self.data_store.is_local, False)
 
     def test_description(self):
@@ -543,16 +543,16 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+# @unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
 class SpatialSubsetTest(unittest.TestCase):
 
-    @unittest.skip(reason='Requires variable access which is not integrated yet.')
+    # @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpOsDataStore()
-        data_source = data_store.query(ds_id='916986a220e6bad55411d9407ade347c')[0]
+        data_source = data_store.query(ds_id='76ad6afa787d4c469122f0b472a988c0')[0]
         # The following always worked fine:
-        ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
+        ds = data_source.open_dataset(time_range=['2003-01-01', '2008-01-04'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
         # The following reproduced Cate issues #823, #822, #818, #816, #783:
-        ds = data_source.make_local('SST_DAY_L4', time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
+        ds = data_source.make_local('local_name', time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
