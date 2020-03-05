@@ -75,7 +75,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 # noinspection PyAbstractClass
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
-        user_root_mode = self.application.root_dir is not None
+        user_root_mode = isinstance(self.application.workspace_manager, RelativeFSWorkspaceManager)
 
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
