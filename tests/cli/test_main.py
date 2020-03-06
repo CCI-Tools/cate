@@ -7,7 +7,7 @@ import unittest
 import datetime
 from collections import OrderedDict
 from time import sleep
-from typing import Union, List
+from typing import Union, List, Optional
 from unittest import TestCase
 
 from cate.cli import main
@@ -52,10 +52,10 @@ class CliTestCase(unittest.TestCase):
             DATA_STORE_REGISTRY.add_data_store(data_store)
 
     def assert_main(self,
-                    args: Union[None, List[str]],
+                    args: Optional[Union[str, List[str]]],
                     expected_status: int = 0,
-                    expected_stdout: Union[None, str, List[str]] = None,
-                    expected_stderr: Union[None, str, List[str]] = '') -> None:
+                    expected_stdout: Optional[Union[str, List[str]]] = None,
+                    expected_stderr: Optional[Union[str, List[str]]] = '') -> None:
         with fetch_std_streams() as (stdout, stderr):
             actual_status = main.main(args=args)
             self.assertEqual(actual_status, expected_status,
@@ -314,7 +314,7 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
         self.assert_main(['op', 'list', '--internal'], expected_stdout=['One operation found'])
         self.assert_main(['op', 'list', '--tag', 'input'], expected_stdout=['9 operations found'])
-        self.assert_main(['op', 'list', '--tag', 'output'], expected_stdout=['7 operations found'])
+        self.assert_main(['op', 'list', '--tag', 'output'], expected_stdout=['8 operations found'])
         self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['2 operations found'])
 
 

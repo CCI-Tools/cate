@@ -31,7 +31,7 @@ import time
 import traceback
 import urllib.request
 from datetime import datetime
-from typing import List, Callable, Optional, Tuple
+from typing import List, Callable, Optional, Tuple, Union
 
 # from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 import tornado.options
@@ -42,13 +42,14 @@ from tornado.web import RequestHandler, Application
 from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
     find_free_port, is_service_compatible, is_service_running, join_address_and_port
+from ...version import __version__
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
 
-ApplicationFactory = Callable[[], Application]
+ApplicationFactory = Callable[[Union[str, None]], Application]
 
 
 def _get_common_cli_parser(name: str,
@@ -62,8 +63,10 @@ def _get_common_cli_parser(name: str,
                         help='start/stop WebAPI service using address ADDRESS', default='localhost')
     parser.add_argument('--caller', '-c', dest='caller', default=name,
                         help='name of the calling application')
-    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
-                        help="if given, service information will be written to (start) or read from (stop) FILE")
+    parser.add_argument('--root', '-r', dest='user_root_path', default=None, metavar='ROOT',
+                        help='path to user root directory')
+    parser.add_argument('--traceback', '-b', dest='print_traceback', action='store_true',
+                        help="dump stack traceback information on errors")
     return parser
 
 
@@ -71,7 +74,7 @@ def run_start(name: str,
               description: str,
               version: str,
               application_factory: ApplicationFactory,
-              log_file_prefix=None,
+              log_file_prefix: str = None,
               args: List[str] = None) -> int:
     """
     Run the WebAPI command-line interface.
@@ -88,13 +91,16 @@ def run_start(name: str,
         args = sys.argv[1:]
 
     parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="write service information to FILE")
     parser.add_argument('--auto-stop-after', '-s', dest='auto_stop_after', metavar='AUTO_STOP_AFTER', type=float,
-                        help="if given, service will stop after AUTO_STOP_AFTER seconds of inactivity")
+                        help="stop service after AUTO_STOP_AFTER seconds of inactivity")
     parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
-                        help="if given, logging will be delegated to the console (stderr)")
-    try:
-        args_obj = parser.parse_args(args)
+                        help="delegate log output to the console (stderr)")
 
+    args_obj = parser.parse_args(args)
+
+    try:
         if not os.path.isdir(os.path.dirname(log_file_prefix)):
             os.makedirs(os.path.dirname(log_file_prefix), exist_ok=True)
 
@@ -105,11 +111,15 @@ def run_start(name: str,
                       port=args_obj.port,
                       address=args_obj.address,
                       caller=args_obj.caller,
+                      user_root_path=args_obj.user_root_path,
                       service_info_file=args_obj.file,
                       auto_stop_after=args_obj.auto_stop_after)
 
         return 0
     except Exception as e:
+        if args_obj.print_traceback:
+            import traceback
+            traceback.print_exc()
         print('error: %s' % e)
         return 1
 
@@ -131,14 +141,16 @@ def run_stop(name: str,
         args = sys.argv[1:]
 
     parser = _get_common_cli_parser(name, description, version)
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE',
+                        help="read service information from FILE")
     parser.add_argument('--kill-after', '-k', dest='kill_after', metavar='KILL_AFTER', type=float, default=5.,
-                        help="Service will be killed (SIGTERM) after KILL_AFTER seconds of inactivity")
+                        help="kill service (SIGTERM) after KILL_AFTER seconds of inactivity")
     parser.add_argument('--timeout', '-t', dest='timeout', metavar='TIMEOUT', type=float, default=5.,
-                        help="Service will stop after TIME seconds of inactivity")
+                        help="stop service after TIMEOUT seconds of inactivity")
+
+    args_obj = parser.parse_args(args)
 
     try:
-        args_obj = parser.parse_args(args)
-
         WebAPI.stop(name,
                     port=args_obj.port,
                     address=args_obj.address,
@@ -149,6 +161,9 @@ def run_stop(name: str,
 
         return 0
     except Exception as e:
+        if args_obj.print_traceback:
+            import traceback
+            traceback.print_exc()
         print('error: %s' % e)
         return 1
 
@@ -187,6 +202,7 @@ class WebAPI:
               port: int = None,
               address: str = None,
               caller: str = None,
+              user_root_path: str = None,
               service_info_file: str = None) -> dict:
 
         """
@@ -198,6 +214,7 @@ class WebAPI:
         If the service file exist and its information is compatible with the requested *port*, *address*, *caller*, then
         this function simply returns without taking any other actions.
 
+        :param user_root_path: Root path for the user
         :param name: The (CLI) name of this service.
         :param application_factory: no-arg function which is used to create
         :param log_file_prefix: Log file prefix, default is "webapi.log"
@@ -244,7 +261,8 @@ class WebAPI:
                                  started=datetime.now().isoformat(sep=' '),
                                  pid=os.getpid())
 
-        application = application_factory()
+        # noinspection PyArgumentList
+        application = application_factory(user_root_path=user_root_path)
         application.webapi = self
         application.time_of_last_activity = time.process_time()
         self.application = application
@@ -616,6 +634,12 @@ class WebAPIRequestHandler(RequestHandler):
             else:
                 return dict(status='error', error=dict(message=message))
         return dict(status='error')
+
+    def set_default_headers(self) -> None:
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.set_header('User-Agent', f'Cate WebAPI/{__version__}')
 
 
 class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
