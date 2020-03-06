@@ -23,7 +23,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertEqual("ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc", file_list[0][0])
         self.assertEqual("1997-09-04T00:00:00", file_list[0][1])
         self.assertEqual("1997-09-04T00:00:00", file_list[0][2])
-        self.assertIsNone(file_list[0][3])
+        self.assertEqual(5924361, file_list[0][3])
         self.assertEqual(2, len(file_list[0][4]))
         self.assertTrue("Download" in file_list[0][4])
         self.assertEqual("http://dap.ceda.ac.uk/thredds/fileServer/neodc/esacci/ocean_colour/data/v2-release/"
