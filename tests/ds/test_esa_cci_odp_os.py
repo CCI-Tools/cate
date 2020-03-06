@@ -543,10 +543,10 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-# @unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
 class SpatialSubsetTest(unittest.TestCase):
 
-    # @unittest.skip(reason='Requires variable access which is not integrated yet.')
+    @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpOsDataStore()
         data_source = data_store.query(ds_id='76ad6afa787d4c469122f0b472a988c0')[0]
