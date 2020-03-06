@@ -305,6 +305,28 @@ def _get_linked_content_from_descxml_elem(descxml: etree.XML, paths: List[str]) 
             return _get_element_content(descxml_elem, paths[2])
 
 
+def _fetch_first_feature(base_url, query_args, timeout=10) -> dict:
+    paging_query_args = dict(query_args or {})
+    paging_query_args.update(startPage=1, maximumRecords=1, httpAccept='application/geo+json')
+    url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
+    error_message = f"Failed accessing CCI OpenSearch service {base_url}"
+    try:
+        context = ssl._create_unverified_context()
+        with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
+            json_text = response.read()
+            json_dict = json.loads(json_text.decode('utf-8'))
+            feature_list = json_dict.get("features", [])
+            if len(feature_list) > 0:
+                return feature_list[0]
+            return {}
+    except urllib.error.HTTPError as e:
+        raise DataAccessError(f"{error_message}: {e}") from e
+    except (urllib.error.URLError, socket.timeout) as e:
+        raise NetworkError(f"{error_message}: {e}") from e
+    except OSError as e:
+        raise DataAccessError(f"{error_message}: {e}") from e
+
+
 def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000, timeout=10,
                                    monitor: Monitor = Monitor.NONE) -> List:
     """
@@ -454,6 +476,9 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
                             catalogue[fc_id][item] = list(dict.fromkeys(catalogue[fc_id][item]))
                         else:
                             catalogue[fc_id][item] = desc_metadata[item]
+            first_feature = _fetch_first_feature(base_url, dict(parentIdentifier=fc_id))
+            catalogue[fc_id]['variables'] = _get_variables_from_feature(first_feature)
+            # _get_dimensions_from_feature(first_feature)
             _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
             _harmonize_info_field_names(catalogue[fc_id], 'platform_id', 'platform_ids', 'multi-platform')
             _harmonize_info_field_names(catalogue[fc_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
@@ -463,40 +488,69 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
     return catalogue
 
 
+def _get_variables_from_feature(feature: dict) ->  List:
+    feature_props = feature.get("properties", {})
+    variables = feature_props.get("variables", [])
+    variable_dicts = []
+    for variable in variables:
+        variable_dict = {}
+        variable_dict['name'] = variable.get("var_id", None)
+        variable_dict['units'] = variable.get("units", "")
+        variable_dict['long_name'] = variable.get("long_name", None)
+        variable_dicts.append(variable_dict)
+    return variable_dicts
+
+
+# def _get_dimensions_from_feature(feature: dict) -> dict:
+#     feature_info = _extract_feature_info(feature)
+#     opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
+#     with urllib.request.urlopen(opendap_dds_url) as response:
+#         pass
+#     return {}
+
+
+# def _retrieve_dimensions_from_dds():
+
+
+
 def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
     feature_list = _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
                                                   dict(parentIdentifier=dataset_id),
                                                   monitor=monitor)
     file_list = []
     for feature in feature_list:
-        feature_props = feature.get("properties", {})
-        filename = feature_props.get("title", "")
-        if filename in file_list:
-            raise ValueError('filename {} already seen in dataset {}'
-                             .format(filename, dataset_id))
-        date = feature_props.get("date", None)
-        start_time = ""
-        end_time = ""
-        if date and "/" in date:
-            start_time, end_time = date.split("/")
-        elif filename:
-            time_format, p1, p2 = find_datetime_format(filename)
-            if time_format:
-                start_time = datetime.strptime(filename[p1:p2], time_format)
-                # Convert back to text, so we can JSON-encode it
-                start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
-                end_time = start_time
-        file_size = feature_props.get("filesize", 0)
-        related_links = feature_props.get("links", {}).get("related", [])
-        urls = {}
-        for related_link in related_links:
-            urls[related_link.get("title")] = related_link.get("href")
-        file_list.append([filename, start_time, end_time, file_size, urls])
+        feature_info = _extract_feature_info(feature)
+        if feature_info[0] in file_list:
+            raise ValueError('filename {} already seen in dataset {}'.format(feature_info[0], dataset_id))
+        file_list.append(feature_info)
 
     def pick_start_time(file_info_rec):
         return file_info_rec[1] if file_info_rec[1] else datetime.max
 
     return sorted(file_list, key=pick_start_time)
+
+
+def _extract_feature_info(feature: dict) -> List:
+    feature_props = feature.get("properties", {})
+    filename = feature_props.get("title", "")
+    date = feature_props.get("date", None)
+    start_time = ""
+    end_time = ""
+    if date and "/" in date:
+        start_time, end_time = date.split("/")
+    elif filename:
+        time_format, p1, p2 = find_datetime_format(filename)
+        if time_format:
+            start_time = datetime.strptime(filename[p1:p2], time_format)
+            # Convert back to text, so we can JSON-encode it
+            start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
+            end_time = start_time
+    file_size = feature_props.get("filesize", 0)
+    related_links = feature_props.get("links", {}).get("related", [])
+    urls = {}
+    for related_link in related_links:
+        urls[related_link.get("title")] = related_link.get("href")
+    return [filename, start_time, end_time, file_size, urls]
 
 
 class EsaCciOdpOsDataStore(DataStore):
@@ -837,7 +891,7 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def variables_info(self):
-        return self._variables_list()
+        return self._json_dict['variables']
 
     @property
     def schema(self) -> Schema:
@@ -854,7 +908,7 @@ class EsaCciOdpOsDataSource(DataSource):
                 if isinstance(value, list) and len(value) == 1:
                     value = value[0]
                 self._meta_info[name] = value
-            self._meta_info['variables'] = self._variables_list()
+            self._meta_info['variables'] = self._json_dict['variables']
         return self._meta_info
 
     @property
@@ -877,19 +931,6 @@ class EsaCciOdpOsDataSource(DataSource):
                     else:
                         coverage[date_from] = date_to
         return coverage
-
-    def _variables_list(self):
-        variable_names = self._json_dict.get('variable', [])
-        default_list = len(variable_names) * [None]
-        units = self._json_dict.get('variable_units', default_list)
-        long_names = self._json_dict.get('variable_long_name', default_list)
-        standard_names = self._json_dict.get('cf_standard_name', default_list)
-
-        variables_list = []
-        for name, unit, long_name, standard_name in zip(variable_names, units, long_names, standard_names):
-            variables_list.append(dict(name=name, units=unit, long_name=long_name, standard_name=standard_name))
-
-        return variables_list
 
     def update_file_list(self, monitor: Monitor = Monitor.NONE) -> None:
         self._file_list = None
