@@ -46,7 +46,7 @@ class WebAPIRelativeFSTest(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('user_root_mode', json_dict['content'])
-        self.assertEqual(json_dict['content']['user_root_mode'], 'relative_fs')
+        self.assertTrue(json_dict['content']['user_root_mode'])
 
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
@@ -59,4 +59,4 @@ class WebAPIFSTest(AsyncHTTPTestCase):
         self.assertEqual(response.code, 200)
         json_dict = json.loads(response.body.decode('utf-8'))
         self.assertIn('user_root_mode', json_dict['content'])
-        self.assertEqual(json_dict['content']['user_root_mode'], 'fs')
+        self.assertFalse(json_dict['content']['user_root_mode'])
