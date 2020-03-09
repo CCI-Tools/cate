@@ -20,7 +20,7 @@ python:
     install:
         - requirements: docs/source/requirements.txt
         - method: setuptools
-          path: cate
+          path: .
 # Optionally build your docs in additional formats such as PDF and ePub
 formats: all
 
