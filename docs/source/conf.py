@@ -30,8 +30,8 @@ MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas
                 'matplotlib', 'matplotlib.animation', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
                 'matplotlib.backends.backend_webagg_core',
                 'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
-                'shapely', 'shapely.errors', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base',
-                'xarray', 'xarray.backends',
+                'shapely', 'shapely.errors', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'shapely.ops'
+                'xarray', 'xarray.backends', 'xarray.core.resample',
                 'dask', 'dask.callbacks',
                 'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
 for mod_name in MOCK_MODULES:
