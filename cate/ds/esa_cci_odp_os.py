@@ -83,6 +83,7 @@ DESC_NS = {'gmd': 'http://www.isotc211.org/2005/gmd',
            }
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
+_TIMESTAMP_FORMAT_2 = "%Y-%m-%dT%H:%M:%S.%f"
 
 _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(12 * '\\d'), '%Y%m%d%H%M'),
@@ -212,7 +213,7 @@ def _extract_metadata_from_descxml(descxml: etree.XML) -> dict:
         'abstract': 'gmd:identificationInfo/gmd:MD_DataIdentification/gmd:abstract/gco:CharacterString',
         'title': 'gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:title/'
                  'gco:CharacterString',
-        'licenses': 'gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints/gmd:MD_Constraints/'
+        'licences': 'gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints/gmd:MD_Constraints/'
                     'gmd:useLimitation/gco:CharacterString',
         'bbox_minx': 'gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/'
                      'gmd:geographicElement/gmd:EX_GeographicBoundingBox/gmd:westBoundLongitude/gco:Decimal',
@@ -305,9 +306,9 @@ def _get_linked_content_from_descxml_elem(descxml: etree.XML, paths: List[str]) 
             return _get_element_content(descxml_elem, paths[2])
 
 
-def _fetch_first_feature(base_url, query_args, timeout=10) -> dict:
+def _fetch_feature_at(base_url, query_args, index, timeout=10) -> Optional[Dict]:
     paging_query_args = dict(query_args or {})
-    paging_query_args.update(startPage=1, maximumRecords=1, httpAccept='application/geo+json')
+    paging_query_args.update(startPage=index, maximumRecords=1, httpAccept='application/geo+json')
     url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
     error_message = f"Failed accessing CCI OpenSearch service {base_url}"
     try:
@@ -318,13 +319,13 @@ def _fetch_first_feature(base_url, query_args, timeout=10) -> dict:
             feature_list = json_dict.get("features", [])
             if len(feature_list) > 0:
                 return feature_list[0]
-            return {}
     except urllib.error.HTTPError as e:
-        raise DataAccessError(f"{error_message}: {e}") from e
+        _LOG.warning(f"{error_message}: {e}")
     except (urllib.error.URLError, socket.timeout) as e:
-        raise NetworkError(f"{error_message}: {e}") from e
+        _LOG.warning(f"{error_message}: {e}")
     except OSError as e:
-        raise DataAccessError(f"{error_message}: {e}") from e
+        _LOG.warning(f"{error_message}: {e}")
+    return None
 
 
 def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000, timeout=10,
@@ -354,11 +355,11 @@ def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_r
                         break
                     start_page += 1
             except urllib.error.HTTPError as e:
-                raise DataAccessError(f"{error_message}: {e}") from e
+                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
             except (urllib.error.URLError, socket.timeout) as e:
-                raise NetworkError(f"{error_message}: {e}") from e
+                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
             except OSError as e:
-                raise DataAccessError(f"{error_message}: {e}") from e
+                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
     return full_feature_list
 
 
@@ -378,6 +379,18 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
                     and (multiple_items_name is None or catalogue[single_field_name] != multiple_items_name):
                 catalogue[multiple_fields_name].append(catalogue[single_field_name])
             catalogue.pop(single_field_name)
+
+
+def _extract_time(time_stamp_text: str) -> Optional[datetime]:
+    formats = [_TIMESTAMP_FORMAT, _TIMESTAMP_FORMAT_2]
+    for format in formats:
+        try:
+            return datetime.strptime(time_stamp_text, format)
+        except ValueError:
+            pass
+    _LOG.warning('Invalid date/time value: "%s"' % time_stamp_text)
+    return None
+
 
 
 def _load_or_fetch_json(fetch_json_function,
@@ -411,7 +424,7 @@ def _load_or_fetch_json(fetch_json_function,
         if os.path.exists(cache_timestamp_file):
             with open(cache_timestamp_file) as fp:
                 timestamp_text = fp.read()
-                timestamp = datetime.strptime(timestamp_text, _TIMESTAMP_FORMAT)
+                timestamp = _extract_time(timestamp_text)
 
         time_diff = datetime.now() - timestamp
         time_diff_days = time_diff.days + time_diff.seconds / 3600. / 24.
@@ -476,9 +489,18 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
                             catalogue[fc_id][item] = list(dict.fromkeys(catalogue[fc_id][item]))
                         else:
                             catalogue[fc_id][item] = desc_metadata[item]
-            first_feature = _fetch_first_feature(base_url, dict(parentIdentifier=fc_id))
-            catalogue[fc_id]['variables'] = _get_variables_from_feature(first_feature)
-            # _get_dimensions_from_feature(first_feature)
+            index = 1
+            while not 'variables' in catalogue[fc_id]:
+                feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
+                if feature is None:
+                    break
+                index += 1
+                feature_variables = _get_variables_from_feature(feature)
+                if len(feature_variables) > 0:
+                    catalogue[fc_id]['variables'] = feature_variables
+                # _get_dimensions_from_feature(feature)
+            if 'variables' not in catalogue[fc_id]:
+                catalogue[fc_id]['variables'] = []
             _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
             _harmonize_info_field_names(catalogue[fc_id], 'platform_id', 'platform_ids', 'multi-platform')
             _harmonize_info_field_names(catalogue[fc_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
@@ -488,15 +510,15 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
     return catalogue
 
 
-def _get_variables_from_feature(feature: dict) ->  List:
+def _get_variables_from_feature(feature: dict) -> List:
     feature_props = feature.get("properties", {})
     variables = feature_props.get("variables", [])
     variable_dicts = []
     for variable in variables:
-        variable_dict = {}
-        variable_dict['name'] = variable.get("var_id", None)
-        variable_dict['units'] = variable.get("units", "")
-        variable_dict['long_name'] = variable.get("long_name", None)
+        variable_dict = {
+            'name': variable.get("var_id", None),
+            'units': variable.get("units", ""),
+            'long_name': variable.get("long_name", None)}
         variable_dicts.append(variable_dict)
     return variable_dicts
 
@@ -541,7 +563,7 @@ def _extract_feature_info(feature: dict) -> List:
     elif filename:
         time_format, p1, p2 = find_datetime_format(filename)
         if time_format:
-            start_time = datetime.strptime(filename[p1:p2], time_format)
+            start_time = _extract_time(filename[p1:p2])
             # Convert back to text, so we can JSON-encode it
             start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
             end_time = start_time
@@ -810,7 +832,7 @@ class EsaCciOdpOsDataStore(DataStore):
 
 INFO_FIELD_NAMES = sorted(["title",
                            "abstract",
-                           "licenses",
+                           "licences",
                            "bbox_minx",
                            "bbox_miny",
                            "bbox_maxx",
@@ -907,7 +929,8 @@ class EsaCciOdpOsDataSource(DataSource):
                 # Many values in the index JSON are one-element lists: turn them into scalars
                 if isinstance(value, list) and len(value) == 1:
                     value = value[0]
-                self._meta_info[name] = value
+                if value is not None:
+                    self._meta_info[name] = value
             self._meta_info['variables'] = self._json_dict['variables']
         return self._meta_info
 
@@ -1249,7 +1272,7 @@ class EsaCciOdpOsDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+                file_start_date = _extract_time(file_rec[1])
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)

@@ -35,7 +35,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
                          "ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc",
                          file_list[0][4].get("Opendap"))
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skip(reason='Requires web access. Also, we are getting an error 500 currently')
     def test_fetch_opensearch_json_2(self):
         file_list = _fetch_file_list_json('b382ebe6679d44b8b0e68ea4ef4b701c')
         self.assertEqual(16, len(file_list))
@@ -102,7 +102,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('file_format' in json_obj)
         self.assertEquals('.nc', json_obj['file_format'])
 
-    @unittest.skip(reason='Requires web access')
+    # @unittest.skip(reason='Requires web access')
     def test_extract_metadata_from_descxml_url(self):
         desc_url = 'https://catalogue.ceda.ac.uk/export/xml/49bcb6f29c824ae49e41d2d3656f11be.xml'
         json_obj = _extract_metadata_from_descxml_url(desc_url)
@@ -118,7 +118,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('abstract' in json_obj)
         self.maxDiff = None
         self.assertTrue('title' in json_obj)
-        self.assertTrue('licenses' in json_obj)
+        self.assertTrue('licences' in json_obj)
         self.assertTrue('bbox_minx' in json_obj)
         self.assertEquals('-180.0', json_obj['bbox_minx'])
         self.assertTrue('bbox_miny' in json_obj)
@@ -551,7 +551,7 @@ class SpatialSubsetTest(unittest.TestCase):
         data_store = EsaCciOdpOsDataStore()
         data_source = data_store.query(ds_id='76ad6afa787d4c469122f0b472a988c0')[0]
         # The following always worked fine:
-        ds = data_source.open_dataset(time_range=['2003-01-01', '2008-01-04'], region='-10,40,20,70')
+        ds = data_source.open_dataset(time_range=['2004-01-01', '2004-12-31'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
         # The following reproduced Cate issues #823, #822, #818, #816, #783:
         ds = data_source.make_local('local_name', time_range=['2010-01-01', '2010-01-04'], region='-10,40,20,70')
