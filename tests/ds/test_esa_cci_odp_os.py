@@ -7,10 +7,10 @@ import tempfile
 import unittest
 import unittest.mock
 import urllib.request
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStoreNotice, format_variables_info_string
+from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, DataStoreNotice
 from cate.ds.esa_cci_odp_os import _fetch_file_list_json, _extract_metadata_from_odd, _extract_metadata_from_odd_url, \
     _extract_metadata_from_descxml, _extract_metadata_from_descxml_url, _harmonize_info_field_names, \
-    _DownloadStatistics, EsaCciOdpOsDataStore, find_datetime_format
+    _DownloadStatistics, EsaCciOdpOsDataStore, find_datetime_format, _retrieve_infos_from_dds
 from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
 from cate.ds.local import LocalDataStore
 
@@ -102,7 +102,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('file_format' in json_obj)
         self.assertEquals('.nc', json_obj['file_format'])
 
-    # @unittest.skip(reason='Requires web access')
+    @unittest.skip(reason='Requires web access')
     def test_extract_metadata_from_descxml_url(self):
         desc_url = 'https://catalogue.ceda.ac.uk/export/xml/49bcb6f29c824ae49e41d2d3656f11be.xml'
         json_obj = _extract_metadata_from_descxml_url(desc_url)
@@ -113,6 +113,46 @@ class EsaCciOdpOsTest(unittest.TestCase):
         with open(desc_file) as desc:
             json_obj = _extract_metadata_from_descxml(XML(desc.read()))
             self.assert_json_obj_from_desc_xml(json_obj)
+
+    @unittest.skip(reason='Requires web access')
+    def test_retrieve_dimensions_from_dds_url(self):
+        dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
+                  "COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
+        response = urllib.request.urlopen(dds_url)
+        dimensions, variable_infos = _retrieve_infos_from_dds(response.readlines())
+        self.assertEquals(3, len(dimensions))
+        self.assertTrue('lat' in dimensions)
+        self.assertEquals(720, dimensions['lat'])
+        self.assertTrue('lon' in dimensions)
+        self.assertEquals(1440, dimensions['lon'])
+        self.assertTrue('time' in dimensions)
+        self.assertEquals(1, dimensions['time'])
+        self.assertEquals(11, len(variable_infos))
+        self.assertTrue('freqbandID' in variable_infos)
+        self.assertEquals('Int16', variable_infos['freqbandID']['data_type'])
+        self.assertEquals(3, len(variable_infos['freqbandID']['dimensions']))
+        self.assertTrue('time' in variable_infos['freqbandID']['dimensions'])
+        self.assertTrue('lat' in variable_infos['freqbandID']['dimensions'])
+        self.assertTrue('lon' in variable_infos['freqbandID']['dimensions'])
+
+    def test_retrieve_dimensions_from_dds(self):
+        dds_file = "resources/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
+        dds = open(dds_file)
+        dimensions, variable_infos = _retrieve_infos_from_dds(dds.readlines())
+        self.assertEquals(3, len(dimensions))
+        self.assertTrue('lat' in dimensions)
+        self.assertEquals(720, dimensions['lat'])
+        self.assertTrue('lon' in dimensions)
+        self.assertEquals(1440, dimensions['lon'])
+        self.assertTrue('time' in dimensions)
+        self.assertEquals(1, dimensions['time'])
+        self.assertEquals(11, len(variable_infos))
+        self.assertTrue('freqbandID' in variable_infos)
+        self.assertEquals('Int16', variable_infos['freqbandID']['data_type'])
+        self.assertEquals(3, len(variable_infos['freqbandID']['dimensions']))
+        self.assertTrue('time' in variable_infos['freqbandID']['dimensions'])
+        self.assertTrue('lat' in variable_infos['freqbandID']['dimensions'])
+        self.assertTrue('lon' in variable_infos['freqbandID']['dimensions'])
 
     def assert_json_obj_from_desc_xml(self, json_obj: dict):
         self.assertTrue('abstract' in json_obj)
@@ -449,15 +489,12 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.first_oc_data_source.id,
-                         '70be18893edb498785e22bed288cfd54')
-                         # 'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2')
+        self.assertEqual(self.first_oc_data_source.id, '70be18893edb498785e22bed288cfd54')
 
     def test_schema(self):
         self.assertEqual(self.first_oc_data_source.schema,
                          None)
 
-    # @unittest.skip(reason='ssl error on windows')
     def test_temporal_coverage(self):
         self.assertEqual(self.first_oc_data_source.temporal_coverage(),
                          (datetime(1997, 9, 3, 23, 0), datetime(2012, 7, 31, 22, 59, 59)))
@@ -549,7 +586,7 @@ class SpatialSubsetTest(unittest.TestCase):
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpOsDataStore()
-        data_source = data_store.query(ds_id='76ad6afa787d4c469122f0b472a988c0')[0]
+        data_source = data_store.query(ds_id='a341b3dcb0d8416498acc70dd14faa6e')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-12-31'], region='-10,40,20,70')
         self.assertIsNotNone(ds)

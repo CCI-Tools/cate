@@ -1,0 +1,69 @@
+Dataset {
+    Float32 lat[lat = 720];
+    Float32 lon[lon = 1440];
+    Float64 time[time = 1];
+    Grid {
+     ARRAY:
+        Float64 t0[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } t0;
+    Grid {
+     ARRAY:
+        Float32 sm[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } sm;
+    Grid {
+     ARRAY:
+        Float32 sm_uncertainty[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } sm_uncertainty;
+    Grid {
+     ARRAY:
+        Byte dnflag[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } dnflag;
+    Grid {
+     ARRAY:
+        Byte flag[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } flag;
+    Grid {
+     ARRAY:
+        Int16 freqbandID[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } freqbandID;
+    Grid {
+     ARRAY:
+        Byte mode[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } mode;
+    Grid {
+     ARRAY:
+        Int16 sensor[time = 1][lat = 720][lon = 1440];
+     MAPS:
+        Float64 time[time = 1];
+        Float32 lat[lat = 720];
+        Float32 lon[lon = 1440];
+    } sensor;
+} dap/neodc/esacci/soil_moisture/data/daily_files/COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc;

@@ -342,7 +342,6 @@ def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_r
             paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
                                      httpAccept='application/geo+json')
             url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-            error_message = f"Failed accessing CCI OpenSearch service {base_url}"
             try:
                 # noinspection PyProtectedMember
                 context = ssl._create_unverified_context()
@@ -490,17 +489,23 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
                         else:
                             catalogue[fc_id][item] = desc_metadata[item]
             index = 1
-            while not 'variables' in catalogue[fc_id]:
+            catalogue[fc_id]['variables'] = []
+            catalogue[fc_id]['dimensions'] = {}
+            catalogue[fc_id]['variable_infos'] = {}
+            while len(catalogue[fc_id]['variables']) == 0:
                 feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
                 if feature is None:
                     break
                 index += 1
                 feature_variables = _get_variables_from_feature(feature)
+                #todo include when we get less access errors
+                # feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
+                # if len(feature_variables) > 0 and len(feature_dimensions) > 0:
                 if len(feature_variables) > 0:
                     catalogue[fc_id]['variables'] = feature_variables
-                # _get_dimensions_from_feature(feature)
-            if 'variables' not in catalogue[fc_id]:
-                catalogue[fc_id]['variables'] = []
+                    # todo include when we get less access errors
+                    # catalogue[fc_id]['dimensions'] = feature_dimensions
+                    # catalogue[fc_id]['variable_infos'] = feature_variable_infos
             _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
             _harmonize_info_field_names(catalogue[fc_id], 'platform_id', 'platform_ids', 'multi-platform')
             _harmonize_info_field_names(catalogue[fc_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
@@ -523,15 +528,45 @@ def _get_variables_from_feature(feature: dict) -> List:
     return variable_dicts
 
 
-# def _get_dimensions_from_feature(feature: dict) -> dict:
-#     feature_info = _extract_feature_info(feature)
-#     opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
-#     with urllib.request.urlopen(opendap_dds_url) as response:
-#         pass
-#     return {}
+def _get_infos_from_feature(feature: dict) -> tuple:
+    feature_info = _extract_feature_info(feature)
+    opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
+    try:
+        with urllib.request.urlopen(opendap_dds_url) as response:
+            return _retrieve_infos_from_dds(response.readlines())
+    except urllib.error.HTTPError as e:
+        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
+    except (urllib.error.URLError, socket.timeout) as e:
+        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
+    except OSError as e:
+        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
+    return {}, {}
 
 
-# def _retrieve_dimensions_from_dds():
+def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
+    dimensions = {}
+    variable_infos = {}
+    dim_info_pattern = '[a-zA-Z0-9_]* [a-zA-Z0-9_]*\[\w* = \d{1,5}\]'
+    dimension_pattern = '\[[a-zA-Z]* = \d{1,4}\]'
+    for dds_line in dds_lines:
+        if type(dds_line) is bytes:
+            dds_line = str(dds_line, 'utf-8')
+        dim_info_search_res = re.search(dim_info_pattern, dds_line)
+        if dim_info_search_res is None:
+            continue
+        dim_info = dim_info_search_res.string.strip()
+        variable_name = dim_info[dim_info.index(' ') + 1:dim_info.index('[')]
+        if variable_name not in variable_infos:
+            data_type = dim_info.split(' ')[0]
+            dimension_names = []
+            variable_dimensions = re.findall(dimension_pattern, dim_info)
+            for variable_dimension in variable_dimensions:
+                dimension_name, dimension_size = variable_dimension[1:-1].split(' = ')
+                dimension_names.append(dimension_name)
+                if dimension_name not in dimensions:
+                    dimensions[dimension_name] = int(dimension_size)
+            variable_infos[variable_name] = {'data_type': data_type, 'dimensions': dimension_names}
+    return dimensions, variable_infos
 
 
 
