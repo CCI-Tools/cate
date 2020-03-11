@@ -18,6 +18,7 @@ Cate - The ESA CCI Toolbox
    about
    quick_start
    user_manual
+   catehub
    use_cases
    op_specs
    architecture
