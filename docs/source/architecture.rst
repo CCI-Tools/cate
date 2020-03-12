@@ -15,7 +15,10 @@
 .. _numpy: http://www.numpy.org/
 .. _numpy ndarrays: http://docs.scipy.org/doc/numpy/reference/arrays.ndarray.html
 .. _pandas: http://pandas.pydata.org/
-
+.. _JASMIN: http://www.jasmin.ac.uk/
+.. _JupyterHub: https://jupyter.org/hub
+.. _JASMIN CaaS: https://help.jasmin.ac.uk/article/4735-cluster-as-a-service
+.. _JASMIN Kubernetes CaaS: https://help.jasmin.ac.uk/article/4781-cluster-as-a-service-kubernetes
 
 ============
 Architecture
@@ -524,3 +527,72 @@ with the same entry point::
        ...
    )
 
+CateHub
+=======
+CateHub brings Cate to a group of users, typically on cloud environments. It spawns a isolated Cate (docker)
+container containing cate core to each user, allocates computational resources and attaches their persistant storage to
+the container. CateHub exposes the WebAPI of user's container thereby providing external access to computational
+resources and storage. Cate's frontend, the web GUI (cate-webui) or the desktop GUI (cate-desktop) interact with this
+remote cate core through the WebAPI. CateHub is responsible for reverse proxying individual user's requests to their
+containers and facilitates authentication and authorization of these requests from these GUIs.
+
+
+CateHub is currently intended to be installed on cloud environments providing Kubernetes Cluster-as-a-Service (CaaS).
+This makes Cate SaaS deployment easily scalable among other benefits Kubernetes offers. The section `Cate SaaS`_
+describes a live deployment at JASMIN_ cloud.
+
+Deployment of CateHub is similar to that of JupyterHub_, which provides access to Jupyter Notebooks for multiple users,
+hence its deployment on Kubernetes Cluster is heavily derived from it. Adapting this strategy has an advantage
+of a reliable well-tested framework and a REST API and furthermore, its deployment documentation also serves as reference
+for CateHub deployment on multiple cloud providers.
+
+Deployment of JupyterHub is simplified using helm charts. In its simplest use case, deployment of CateHub amounts to
+following JupyterHub_ deployment on kubernetes using helm charts at: https://zero-to-jupyterhub.readthedocs.io/en/latest/
+and overiding its default container image in `config.yaml` like:
+
+
+.. code-block:: yaml
+
+     name: catehub
+     image:
+        name: quay.io/bcdev/cate-webapi-k8s
+        tag: 2.1.0.dev0.build15
+     extraEnv:
+        CATE_USER_ROOT: "/home/cate"
+     kubespawner_override:
+        cmd: ["/bin/bash", "-c", "source activate cate-env && cate-webapi-start -v -p 8888 -a 0.0.0.0"]
+
+The source for building Cate container is hosted at https://github.com/CCI-Tools/cate-docker. In future, the  container
+image may support a way to launch both cate and jupyter notebook under single environment. This can provide users access
+to their persistant storage and remote cate workspace in jupyter notebooks for any further analysis or to develop
+cate operators.
+
+Cate SaaS
+=========
+A live deployment of Cate SaaS deployed on JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
+This section describes this deployment and might serve as reference for such cloud deployments.
+
+JASMIN_ is a infrastructure facility funded by the Natural Environment Research Council and the UK Space Agency
+and delivered by the Science and Technology Facilities Council. Among its services, it provides cloud computing service
+for its users. It's co-location with CCI data store allows a beneficial, higher network bandwidth for large datasets,
+making it ideal for hosting Cate SaaS.
+
+`JASMIN Kubernetes CaaS`_ along with its identity management server, KeyCloak, is used to deploy cate SaaS. KeyCloak
+facilitates access to the cluster for administration and optionally can be used to authenticate the users via its
+interface to various identity providers. The schematic illustrates interaction of various components of
+Cate SaaS deployment.
+
+
+.. figure:: _static/figures/catehub_components.png
+
+
+Cate WebUI is the web entry point to Cate SaaS, requests to this resource from multiple users is load balanced by
+Ingress component (default is NGINX web server) of Kubernetes. When a user submits username and password, Keycloak
+authenticates the credentials and permits access to CateHub. CateHub through its REST API spawns a Cate container for
+the user, attaches persistant storage and authorizes the access to the resources. This process is similar for users using
+Cate Desktop, except that requests are made from the desktop application. The current configuration for 10G, 1 cpu,
+are easily configurable in CateHub_ deployment. Currently a user is allocated 10GB of storage space and 1 CPU.
+
+
+In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
+resources to cate operations.
