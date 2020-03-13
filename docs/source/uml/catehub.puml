@@ -1,7 +1,5 @@
 @startuml
 
-title CateHub dynamics
-
 actor User
 
 User -> "Cate GUI": start

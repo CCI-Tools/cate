@@ -644,4 +644,26 @@ its interface to various identity providers.
 Cate SaaS Component Interactions
 --------------------------------
 
-TODO Helge
+This chapter describes and illustrates the interactions between components of the Cate SaaS.
+
+
+.. figure:: _static/uml/catehub.png
+   :scale: 55%
+   :align: left
+
+   Cate SaaS Component Interactions.
+
+The Cate SaaS comprises of four components: The Cate GUI, an authorisation layer, the CateHub, and the Cate Web API.
+The Cate GUI is the most visible component from the user's perspective. The Cate GUI is started by the user either by using
+a web representation of the Cate GUI or as an electron desktop application. The Cate GUI enables the user to spawn a Cate
+Web API "owned" by the user. Hence, authentication and authorisation is needed prior to the Web API's launch in order
+to ensure that teh user gets his or her own instance of the Cate Web API service. The CateHub component handles
+user authentication and authorization as well as spawning of the Cate Web API. However, once the Cate Web API has been
+spawned, the Cate GUI will directly communicate with its respective Cate Web API instance.
+
+It is finally the responsibility of the Cate Web API to handle requests regarding queries to the CCI Open Data Portal
+(ODP). In addition, the web API executes computational processes as defined by the user. Once queries and computations have
+been finished, the Cate Web API returns the results to the Cate GUI which consecutively visualises the results.
+
+
+
