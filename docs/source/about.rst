@@ -20,11 +20,14 @@ Interfaces
 
 Cate comprises four major software interfaces:
 
-1. **Cate SaaS** provides Cate as Software-as-a-Service (SaaS). It is the recommended way to use Cate for the most
-   users. It gives users access to Cate and computational resources without a burden of installation and configuration.
-   Its current deployment at JASMINE_ cloud has additional data-local performance benefits to the users of data sources
-   at `CCI Open Data Portal`_. The preferred interface to Cate SaaS is via a web interface, currently hosted at:
-   https://cate-webui.192.171.139.57.xip.io/.
+1. **Cate Software-as-a-Service**  provides Cate as Software-as-a-Service (SaaS). It is the recommended way to use Cate
+   for the most users. It gives users access to Cate and computational resources without a burden of installation and
+   configuration.
+
+.. warning::
+   Cate SaaS is still an experimental feature. A demo can be accesed at: https://cate-webui.192.171.139.57.xip.io/.
+   Interested user needs to register to gain access.
+
 
 2. **Cate Desktop** is a cross-platform desktop application for users who wish to use Cate predominantly with their
    local data sources. The application can also connect to the remote Cate services of Cate SaaS.
@@ -34,7 +37,7 @@ Cate comprises four major software interfaces:
    :width: 1024px
    :align: center
 
-   The GUI of the CCI Toolbox
+   The GUI ( desktop or web browser) of the CCI Toolbox
 
 
 3. The Cate **Command-Line Interface** (CLI) from a local Cate installation can be used to access and process data
@@ -182,7 +185,7 @@ associated in-memory resource objects.
 .. _about_workspace_fig:
 
 .. figure:: _static/figures/about-workspace.png
-   :width: : 1024px
+   :width:  1024px
    :align: center
 
    Cate's workspace/workflow concept
