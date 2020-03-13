@@ -83,7 +83,6 @@ DESC_NS = {'gmd': 'http://www.isotc211.org/2005/gmd',
            }
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
-_TIMESTAMP_FORMAT_2 = "%Y-%m-%dT%H:%M:%S.%f"
 
 _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(12 * '\\d'), '%Y%m%d%H%M'),
@@ -380,17 +379,6 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
             catalogue.pop(single_field_name)
 
 
-def _extract_time(time_stamp_text: str) -> Optional[datetime]:
-    formats = [_TIMESTAMP_FORMAT, _TIMESTAMP_FORMAT_2]
-    for format in formats:
-        try:
-            return datetime.strptime(time_stamp_text, format)
-        except ValueError:
-            pass
-    _LOG.warning('Invalid date/time value: "%s"' % time_stamp_text)
-    return None
-
-
 def _load_or_fetch_json(fetch_json_function,
                         fetch_json_args: list = None,
                         fetch_json_kwargs: dict = None,
@@ -422,7 +410,7 @@ def _load_or_fetch_json(fetch_json_function,
         if os.path.exists(cache_timestamp_file):
             with open(cache_timestamp_file) as fp:
                 timestamp_text = fp.read()
-                timestamp = _extract_time(timestamp_text)
+                timestamp = datetime.strptime(timestamp_text, _TIMESTAMP_FORMAT)
 
         time_diff = datetime.now() - timestamp
         time_diff_days = time_diff.days + time_diff.seconds / 3600. / 24.
@@ -491,20 +479,16 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
             catalogue[fc_id]['variables'] = []
             catalogue[fc_id]['dimensions'] = {}
             catalogue[fc_id]['variable_infos'] = {}
-            # feature = None
-            while len(catalogue[fc_id]['variables']) == 0:
-            # while feature is None:
+            feature = None
+            while len(catalogue[fc_id]['variables']) == 0 and feature is None:
                 feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
                 if feature is None:
                     break
                 index += 1
                 feature_variables = _get_variables_from_feature(feature)
-                # todo include when we get less access errors
                 feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
                 if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
-                # if len(feature_variables) > 0:
                     catalogue[fc_id]['variables'] = feature_variables
-                    # todo include when we get less access errors
                     catalogue[fc_id]['dimensions'] = feature_dimensions
                     catalogue[fc_id]['variable_infos'] = feature_variable_infos
             _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
@@ -547,17 +531,14 @@ def _get_infos_from_feature(feature: dict) -> tuple:
 def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
     dimensions = {}
     variable_infos = {}
-    array_pattern = 'ARRAY:'
-    dim_info_pattern = '[a-zA-Z0-9_]+ [a-zA-Z0-9_]+[\[\w* = \d{1,5}\]]*;'
+    dim_info_pattern = '[a-zA-Z0-9_]+ [a-zA-Z0-9_]+[\[\w* = \d{1,7}\]]*;'
     type_and_name_pattern = '[a-zA-Z0-9_]+'
-    dimension_pattern = '\[[a-zA-Z]* = \d{1,4}\]'
-    coordinate_variable = False
+    dimension_pattern = '\[[a-zA-Z]* = \d{1,7}\]'
     for dds_line in dds_lines:
         if type(dds_line) is bytes:
             dds_line = str(dds_line, 'utf-8')
         dim_info_search_res = re.search(dim_info_pattern, dds_line)
         if dim_info_search_res is None:
-            coordinate_variable = re.search(array_pattern, dds_line) is not None
             continue
         type_and_name = re.findall(type_and_name_pattern, dim_info_search_res.string)
         if type_and_name[1] not in variable_infos:
@@ -568,8 +549,7 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
                 dimension_names.append(dimension_name)
                 if dimension_name not in dimensions:
                     dimensions[dimension_name] = int(dimension_size)
-            variable_infos[type_and_name[1]] = {'data_type': type_and_name[0], 'dimensions': dimension_names,
-                                                'coordinate_variable': not coordinate_variable}
+            variable_infos[type_and_name[1]] = {'data_type': type_and_name[0], 'dimensions': dimension_names}
     return dimensions, variable_infos
 
 
@@ -601,7 +581,7 @@ def _extract_feature_info(feature: dict) -> List:
     elif filename:
         time_format, p1, p2 = find_datetime_format(filename)
         if time_format:
-            start_time = _extract_time(filename[p1:p2])
+            start_time = datetime.strptime(filename[p1:p2], time_format)
             # Convert back to text, so we can JSON-encode it
             start_time = datetime.strftime(start_time, _TIMESTAMP_FORMAT)
             end_time = start_time
@@ -951,7 +931,12 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def variables_info(self):
-        return self._json_dict['variables']
+        variables = []
+        coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
+        for variable in self._json_dict['variables']:
+            if variable['name'] not in coordinate_variable_names:
+                variables.append(variable)
+        return variables
 
     @property
     def schema(self) -> Schema:
@@ -969,7 +954,7 @@ class EsaCciOdpOsDataSource(DataSource):
                     value = value[0]
                 if value is not None:
                     self._meta_info[name] = value
-            self._meta_info['variables'] = self._json_dict['variables']
+            self._meta_info['variables'] = self.variables_info
         return self._meta_info
 
     @property
@@ -1310,12 +1295,14 @@ class EsaCciOdpOsDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                file_start_date = _extract_time(file_rec[1])
-                file_end_date = file_start_date + time_delta
-                data_source_start_date = min(data_source_start_date, file_start_date)
-                data_source_end_date = max(data_source_end_date, file_end_date)
-                file_rec[1] = file_start_date
-                file_rec[2] = file_end_date
+                time_format, p1, p2 = find_datetime_format(file_rec[1])
+                if time_format:
+                    file_start_date = datetime.strptime(file_rec[1][p1:p2], format)
+                    file_end_date = file_start_date + time_delta
+                    data_source_start_date = min(data_source_start_date, file_start_date)
+                    data_source_end_date = max(data_source_end_date, file_end_date)
+                    file_rec[1] = file_start_date
+                    file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
 
