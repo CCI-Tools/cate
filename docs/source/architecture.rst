@@ -532,44 +532,54 @@ with the same entry point::
 
 Software-as-a-Service (SaaS)
 ============================
-This section describes components and architecture of Cate SaaS. This might serve as reference for Cate SaaS deployments
-on various cloud providers.
 
+Cate Software-as-a-Service (SaaS) has been designed to deliver Cate software instances
+to users, so they do not need to install and configure the software on their own.
 
-The following schematic illustrates interaction of various SaaS components.
+Cate SaaS does this by providing individual Cate service instances to logged-in users.
+These instances serve as backends for the Cate GUI (access via the Cate CLI
+will follow soon). The Cate GUI can now be accessed via a dedicated URL in an
+internet browser (*Cate WebUI*) or traditionally installed as a desktop
+application (*Cate Desktop*).
+
+The design of the Cate SaaS and the utilized software components makes it independent
+of the cloud providers. Cate SaaS tenants may be deployed on AWS, GCP, OTC,
+or any ESA DIAS.
+
 
 .. figure:: _static/figures/catehub_components.png
    :align: center
 
-   Architecture of Cate SaaS.
+   High-level architecture of Cate SaaS.
 
+The figure above illustrates the major components of the Cate SaaS and their relationships.
+In the following these components and their interactions are described in more detail.
 
 Cate Docker
 -----------
-Cate Docker is containerized Cate core image that provides an isolated, frozen environment for Cate core.
-This image forms lowest layer of cate service in Cate SaaS through its WebAPI. Users may also use the image for their
-local Cate installation.
+Cate Docker is the containerised Cate software. It is a Docker image that provides an isolated, frozen Python
+environment comprising a Python 3.8 interpreter, the Cate Python Core, and all of its dependencies.
+This image forms lowest layer of cate service in Cate SaaS through its WebAPI. Users may also use
+the image for running Cate locally, on their own machines.
 
 The source for building Cate containers is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
 hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. The repository will soon be made public.
-In the future, cate container images may support a way to launch both the cate webapi as well as jupyter notebooks under
-a single environment. This can provide users access to their persistant storage and remote cate workspace in jupyter
-notebooks for any further analysis or to develop cate operators.
-
+In the future, Cate container images may support a way to launch both the Cate WebAPI as well as Jupyter Notebooks
+under a single environment. This provides users access to persistent storage for their Cate workspaces.
 
 Kubernetes Cluster
 ------------------
-Kubernetes automates container orchestration and management on cloud environment. Using Kubernetes provides load
+Kubernetes automates container orchestration and management in cloud environments. Using Kubernetes provides load
 balancing, scalability and portablity of Cate SaaS to multiple cloud providers among other benefits.
-
 
 CateHub
 -------
 CateHub exploits cloud environments to spawn Cate Docker to multiple users with attached computational resources and
-persistant storage. Such a design pattern is very similar to JupyterHub_. Hence, CateHub's architecture is derived from it.
-At its core is a so-called hub server that facilitates interaction with its sub-components that handle its house keeping tasks.
-The hub can be managed over its REST API. This REST API is used in Cate's GUI (web or desktop) to start cate WebAPI
-services for each user. The relevant sub-components of CateHub are described here for illustrating their roles in Cate SaaS.
+persistant storage. Such a design pattern is very similar to JupyterHub_. Hence, CateHub's architecture is derived
+from it. At its core is a so-called hub server that facilitates interaction with its sub-components that handle
+its house keeping tasks. The hub can be managed over its REST API. This REST API is used in Cate's GUI (web or desktop)
+to start Cate WebAPI services for each user. The relevant sub-components of CateHub are described here for
+illustrating their roles in Cate SaaS.
 
 - The spawner component of the hub, communicates with the Kubernetes Cluster via its Kubernetes API to spawn pods
   containing Cate docker containers. A customisable configuration requests computational resources and persistant storage
@@ -644,7 +654,7 @@ its interface to various identity providers.
 Cate SaaS Component Interactions
 --------------------------------
 
-This chapter describes and illustrates the interactions between components of the Cate SaaS.
+This chapter describes and illustrates the interactions between different Cate SaaS components.
 
 
 .. figure:: _static/uml/catehub.png
@@ -653,17 +663,19 @@ This chapter describes and illustrates the interactions between components of th
 
    Cate SaaS Component Interactions.
 
-The Cate SaaS comprises of four components: The Cate GUI, an authorisation layer, the CateHub, and the Cate Web API.
-The Cate GUI is the most visible component from the user's perspective. The Cate GUI is started by the user either by using
-a web representation of the Cate GUI or as an electron desktop application. The Cate GUI enables the user to spawn a Cate
-Web API "owned" by the user. Hence, authentication and authorisation is needed prior to the Web API's launch in order
-to ensure that teh user gets his or her own instance of the Cate Web API service. The CateHub component handles
-user authentication and authorization as well as spawning of the Cate Web API. However, once the Cate Web API has been
-spawned, the Cate GUI will directly communicate with its respective Cate Web API instance.
+The Cate GUI is started by the user either by using the Cate Web UI from an internet browser or Cate Desktop.
+By logging into the CateHub server from the Cate GUI, a new Cate Web API service will be spawned and "owned"
+by the user for the duration of the session.
 
-It is finally the responsibility of the Cate Web API to handle requests regarding queries to the CCI Open Data Portal
-(ODP). In addition, the web API executes computational processes as defined by the user. Once queries and computations have
-been finished, the Cate Web API returns the results to the Cate GUI which consecutively visualises the results.
+Once the Cate Web API service is up and running,
+the Cate GUI directly communicates with it. User interactions, such as operation invocations are translated
+into Cate Web API requests which will then be executed remotely in the cloud environment.
+Data access operations are further delegated to the ESA Open Data Portal (ODP) service.
+Once data access and computations have been completed, the Cate Web API returns the results to the Cate GUI
+which consecutively visualises the results.
+
+If the users logs out, or after a configurable time of idleness, the Cate Web API instances are shut down
+to free allocated cloud resources.
 
 
 
