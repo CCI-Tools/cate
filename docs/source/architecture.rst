@@ -631,7 +631,7 @@ and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication co
 credentials and returns an access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
 CateHub to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
-reverse proxy all the requests on `</user/username>` to the pod.
+reverse proxy all the requests on ``/user/${username}`` to the pod.
 
 
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
