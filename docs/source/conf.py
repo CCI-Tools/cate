@@ -26,21 +26,24 @@ from cate.version import __version__ as cate_version
 # http://blog.rtwilson.com/how-to-make-your-sphinx-documentation-compile-with-readthedocs-when-youre-using-numpy-and-scipy/
 import mock
 
-MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
-                'matplotlib', 'matplotlib.animation', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
-                'matplotlib.backends.backend_webagg_core',
-                'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
-                'shapely', 'shapely.errors', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'shapely.ops'
-                'xarray', 'xarray.backends', 'xarray.core.resample',
-                'dask', 'dask.callbacks',
-                'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+#MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
+#                'matplotlib', 'matplotlib.animation', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
+#                'matplotlib.backends.backend_webagg_core',
+#                'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
+#                'shapely', 'shapely.errors', 'shapely.wkt', 'shapely.geometry', 'shapely.geometry.base', 'shapely.ops'
+#                'xarray', 'xarray.backends', 'xarray.core.resample', 'xarray.version'
+#                'dask', 'dask.callbacks',
+#                'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
+
+#for mod_name in MOCK_MODULES:
+#    sys.modules[mod_name] = mock.Mock()
+
+autodoc_mock_imports = ["xarray", "pandas", "geopandas", "cartopy", "fiona", "numba", "shapely", "shapely.ops"]
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.3'
+needs_sphinx = '1.7'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -53,7 +56,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-
     'sphinx.ext.autodoc',
     'sphinx_autodoc_annotation',
 
