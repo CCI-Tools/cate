@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 # Cate version string (PEP440-compatible), e.g. "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-__version__ = '2.1.0.dev1'
+__version__ = '2.1.0.dev2'
 
 # Other package metainfo
 __title__ = 'cate'

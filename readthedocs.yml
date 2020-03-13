@@ -10,16 +10,17 @@ sphinx:
     configuration: docs/source/conf.py
 
 # The path to the Conda environment file, relative to the root of the project.
-conda:
-    environment: environment.yml
+# conda installation currently creates insufficient memory issue on RTD.
+#conda:
+#    environment: environment.yml
 
 # The path to the pip requirements file.
 # Optionally set the version of Python and requirements required to build your docs
 python:
-    setup_py_install: true
     install:
         - requirements: docs/source/requirements.txt
-
+        - method: setuptools
+          path: .
 # Optionally build your docs in additional formats such as PDF and ePub
 formats: all
 
