@@ -529,8 +529,8 @@ with the same entry point::
 
 
 
-Cate SaaS
-=========
+SaaS
+====
 A live demo deployment of Cate SaaS on the JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
 This section describes this deployment and might serve as reference for other cloud deployments.
 
@@ -619,6 +619,9 @@ Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy co
 reverse proxy all the requests on `</user/username>` to the pod.
 
 The schematic illustrates interaction of various components of Cate SaaS deployment.
+
+.. figure:: catehub_components.png
+
 
 
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
