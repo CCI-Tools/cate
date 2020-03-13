@@ -641,3 +641,7 @@ facilitates access to the kubernetes cluster for administration and optionally c
 its interface to various identity providers.
 
 
+Cate SaaS Component Interactions
+--------------------------------
+
+TODO Helge

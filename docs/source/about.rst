@@ -20,12 +20,14 @@ Interfaces
 
 Cate comprises four major software interfaces:
 
-1. **Cate Software-as-a-Service** (SaaS) It gives users access to Cate and computational resources without a burden of
-   installation and configuration. In future, it is the recommended way to use Cate for most users.
+1. **Cate Software-as-a-Service** (SaaS) provides to users access to the Cate software without any
+   installation and configuration. Cate SaaS also provides some computational resources free of charge,
+   however service capacities might be throttled depending on the number of concurrent users logged
+   into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   Cate SaaS is still experimental. A demo can be accessed at: https://cate-webui.192.171.139.57.xip.io/.
-   Currently, users need to apply for an access.
+   The Cate SaaS is still in development. A demo can be accessed at: https://cate-webui.192.171.139.57.xip.io/.
+   Currently, users will need to apply for access.
 
 
 2. **Cate Desktop** is a cross-platform desktop application for users who wish to use Cate predominantly with their
