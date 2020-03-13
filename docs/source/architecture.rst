@@ -528,11 +528,21 @@ with the same entry point::
    )
 
 
+.. _saas:
 
-SaaS
-====
+Software-as-a-Service (SaaS)
+============================
 This section describes components and architecture of Cate SaaS. This might serve as reference for Cate SaaS deployments
 on various cloud providers.
+
+
+The following schematic illustrates interaction of various SaaS components.
+
+.. figure:: _static/figures/catehub_components.png
+   :align: center
+
+   Architecture of Cate SaaS.
+
 
 Cate Docker
 -----------
@@ -613,6 +623,7 @@ CateHub to spawn a WebAPI service with resources. The spawner component of CateH
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on `</user/username>` to the pod.
 
+
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
 resources to cate operations.
 
@@ -629,8 +640,4 @@ datasets, making it ideal for hosting Cate SaaS.
 facilitates access to the kubernetes cluster for administration and optionally can be used to authenticate cate users via
 its interface to various identity providers.
 
-
-The following schematic illustrates interaction of various SaaS components in JASMIN_ cloud.
-
-.. figure:: _static/figures/catehub_components.png
 
