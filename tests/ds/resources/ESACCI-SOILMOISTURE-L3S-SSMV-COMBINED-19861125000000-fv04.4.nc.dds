@@ -1,69 +1,69 @@
 Dataset {
-    Float32 lat[lat = 720];
-    Float32 lon[lon = 1440];
+    Int32 Lambert_Azimuthal_Grid;
     Float64 time[time = 1];
+    Float64 time_bnds[time = 1][nv = 2];
+    Float64 xc[xc = 216];
+    Float64 yc[yc = 216];
     Grid {
      ARRAY:
-        Float64 t0[time = 1][lat = 720][lon = 1440];
+        Float32 lat[yc = 216][xc = 216];
      MAPS:
-        Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } t0;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } lat;
     Grid {
      ARRAY:
-        Float32 sm[time = 1][lat = 720][lon = 1440];
+        Float32 lon[yc = 216][xc = 216];
      MAPS:
-        Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } sm;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } lon;
     Grid {
      ARRAY:
-        Float32 sm_uncertainty[time = 1][lat = 720][lon = 1440];
+        Int32 ice_conc[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } sm_uncertainty;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } ice_conc;
     Grid {
      ARRAY:
-        Byte dnflag[time = 1][lat = 720][lon = 1440];
+        Int32 raw_ice_conc_values[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } dnflag;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } raw_ice_conc_values;
     Grid {
      ARRAY:
-        Byte flag[time = 1][lat = 720][lon = 1440];
+        Int32 total_standard_error[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } flag;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } total_standard_error;
     Grid {
      ARRAY:
-        Int16 freqbandID[time = 1][lat = 720][lon = 1440];
+        Int32 smearing_standard_error[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } freqbandID;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } smearing_standard_error;
     Grid {
      ARRAY:
-        Byte mode[time = 1][lat = 720][lon = 1440];
+        Int32 algorithm_standard_error[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } mode;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } algorithm_standard_error;
     Grid {
      ARRAY:
-        Int16 sensor[time = 1][lat = 720][lon = 1440];
+        Int16 status_flag[time = 1][yc = 216][xc = 216];
      MAPS:
         Float64 time[time = 1];
-        Float32 lat[lat = 720];
-        Float32 lon[lon = 1440];
-    } sensor;
-} dap/neodc/esacci/soil_moisture/data/daily_files/COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc;
+        Float64 yc[yc = 216];
+        Float64 xc[xc = 216];
+    } status_flag;
+} dap/neodc/esacci/sea_ice/data/sea_ice_concentration/L4/amsr/50km/v2.1/SH/2005/01/ESACCI-SEAICE-L4-SICONC-AMSR_50.0kmEASE2-SH-20050111-fv2.1.nc;

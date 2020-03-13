@@ -391,7 +391,6 @@ def _extract_time(time_stamp_text: str) -> Optional[datetime]:
     return None
 
 
-
 def _load_or_fetch_json(fetch_json_function,
                         fetch_json_args: list = None,
                         fetch_json_kwargs: dict = None,
@@ -492,20 +491,22 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
             catalogue[fc_id]['variables'] = []
             catalogue[fc_id]['dimensions'] = {}
             catalogue[fc_id]['variable_infos'] = {}
+            # feature = None
             while len(catalogue[fc_id]['variables']) == 0:
+            # while feature is None:
                 feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
                 if feature is None:
                     break
                 index += 1
                 feature_variables = _get_variables_from_feature(feature)
-                #todo include when we get less access errors
-                # feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
-                # if len(feature_variables) > 0 and len(feature_dimensions) > 0:
-                if len(feature_variables) > 0:
+                # todo include when we get less access errors
+                feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
+                if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
+                # if len(feature_variables) > 0:
                     catalogue[fc_id]['variables'] = feature_variables
                     # todo include when we get less access errors
-                    # catalogue[fc_id]['dimensions'] = feature_dimensions
-                    # catalogue[fc_id]['variable_infos'] = feature_variable_infos
+                    catalogue[fc_id]['dimensions'] = feature_dimensions
+                    catalogue[fc_id]['variable_infos'] = feature_variable_infos
             _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
             _harmonize_info_field_names(catalogue[fc_id], 'platform_id', 'platform_ids', 'multi-platform')
             _harmonize_info_field_names(catalogue[fc_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
@@ -546,28 +547,30 @@ def _get_infos_from_feature(feature: dict) -> tuple:
 def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
     dimensions = {}
     variable_infos = {}
-    dim_info_pattern = '[a-zA-Z0-9_]* [a-zA-Z0-9_]*\[\w* = \d{1,5}\]'
+    array_pattern = 'ARRAY:'
+    dim_info_pattern = '[a-zA-Z0-9_]+ [a-zA-Z0-9_]+[\[\w* = \d{1,5}\]]*;'
+    type_and_name_pattern = '[a-zA-Z0-9_]+'
     dimension_pattern = '\[[a-zA-Z]* = \d{1,4}\]'
+    coordinate_variable = False
     for dds_line in dds_lines:
         if type(dds_line) is bytes:
             dds_line = str(dds_line, 'utf-8')
         dim_info_search_res = re.search(dim_info_pattern, dds_line)
         if dim_info_search_res is None:
+            coordinate_variable = re.search(array_pattern, dds_line) is not None
             continue
-        dim_info = dim_info_search_res.string.strip()
-        variable_name = dim_info[dim_info.index(' ') + 1:dim_info.index('[')]
-        if variable_name not in variable_infos:
-            data_type = dim_info.split(' ')[0]
+        type_and_name = re.findall(type_and_name_pattern, dim_info_search_res.string)
+        if type_and_name[1] not in variable_infos:
             dimension_names = []
-            variable_dimensions = re.findall(dimension_pattern, dim_info)
+            variable_dimensions = re.findall(dimension_pattern, dim_info_search_res.string)
             for variable_dimension in variable_dimensions:
                 dimension_name, dimension_size = variable_dimension[1:-1].split(' = ')
                 dimension_names.append(dimension_name)
                 if dimension_name not in dimensions:
                     dimensions[dimension_name] = int(dimension_size)
-            variable_infos[variable_name] = {'data_type': data_type, 'dimensions': dimension_names}
+            variable_infos[type_and_name[1]] = {'data_type': type_and_name[0], 'dimensions': dimension_names,
+                                                'coordinate_variable': not coordinate_variable}
     return dimensions, variable_infos
-
 
 
 def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
