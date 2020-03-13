@@ -613,7 +613,7 @@ render elements of Cate Desktop.
 This paragraph summarizes the flow of requests from perspective of Cate WebUI. When a user submits a username
 and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
 credentials and returns an access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
-CateHUB to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
+CateHub to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on `</user/username>` to the pod.
 
