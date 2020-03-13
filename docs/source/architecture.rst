@@ -553,17 +553,18 @@ can use the image for their local Cate installation. This image forms lowest lay
 its WebAPI.
 
 The source for building Cate containers is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
-hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. In the future, cate container images may support a way to
-launch both the cate webapi as well as jupyter notebooks under a single environment. This can provide users access to
-their persistant storage and remote cate workspace in jupyter notebooks for any further analysis or to develop cate operators.
+hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. The repository will soon be made public.
+In the future, cate container images may support a way to launch both the cate webapi as well as jupyter notebooks under
+a single environment. This can provide users access to their persistant storage and remote cate workspace in jupyter
+notebooks for any further analysis or to develop cate operators.
 
 CateHub
 -------
 CateHub exploits cloud environments to spawn Cate Docker to multiple users with attached computational resources and
 persistant storage. Such a design pattern is very similar to JupyterHub_. Hence, CateHub's architecture is derived from it.
-At its core is a so-called hub server that facilitates interaction with its sub-components that handle its house keeping tasks. The hub can
-be managed over its REST API. This REST API is used in Cate's GUI (web or desktop) to start cate WebAPI services for each
-user. The relevant sub-components of CateHub are described here for illustrating their roles in Cate SaaS.
+At its core is a so-called hub server that facilitates interaction with its sub-components that handle its house keeping tasks.
+The hub can be managed over its REST API. This REST API is used in Cate's GUI (web or desktop) to start cate WebAPI
+services for each user. The relevant sub-components of CateHub are described here for illustrating their roles in Cate SaaS.
 
 - The spawner component of the hub, communicates with the Kubernetes Cluster via its Kubernetes API to spawn pods
   containing Cate docker containers. A customisable configuration requests computational resources and persistant storage
@@ -617,8 +618,7 @@ CateHub to spawn a WebAPI service with resources. The spawner component of CateH
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on `</user/username>` to the pod.
 
-The schematic illustrates interaction of various components of
-Cate SaaS deployment.
+The schematic illustrates interaction of various components of Cate SaaS deployment.
 
 
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
