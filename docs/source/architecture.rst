@@ -531,54 +531,54 @@ with the same entry point::
 
 Cate SaaS
 =========
-A live demo deployment of Cate SaaS deployed on JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
+A live demo deployment of Cate SaaS on the JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
 This section describes this deployment and might serve as reference for other cloud deployments.
 
 JASMIN CaaS
 ------------
-JASMIN_ is a infrastructure facility funded by the Natural Environment Research Council and the UK Space Agency
-and delivered by the Science and Technology Facilities Council. Among its services, it provides cloud computing service
-for its users, specifically Kubernetes Cluster-as-a-Service (CaaS). It's co-location with CCI data store allows a
-beneficial, higher network bandwidth for large datasets, making it ideal for hosting Cate SaaS.
+JASMIN_ is an infrastructure facility funded by the Natural Environment Research Council and the UK Space Agency
+and delivered by the Science and Technology Facilities Council. Among its services, it provides a Cluster-as-a-Service
+(CaaS) for its users, comprising Kubernetes clusters and identitiy management clusters. It's co-location with
+CCI data store allows high network bandwidth for large datasets, making it ideal for hosting Cate SaaS.
 
 `JASMIN Kubernetes CaaS`_ along with its identity management server, KeyCloak, is used to deploy Cate SaaS. KeyCloak
-facilitates access to the kubernetes cluster for administration and optionally can be used to authenticate the users via
+facilitates access to the kubernetes cluster for administration and optionally can be used to authenticate cate users via
 its interface to various identity providers. Using Kubernetes provides load balancing, scalability and portablity of
 Cate SaaS to other cloud providers among other benefits.
 
 Cate Docker
 -----------
-Cate Docker is containerized (docker) Cate core image that provides isolated, frozen environmet for Cate core. Users
+Cate Docker is containerized Cate core image that provides an isolated, frozen environment for Cate core. Users
 can use the image for their local Cate installation. This image forms lowest layer of cate service in Cate SaaS through
 its WebAPI.
 
-The source for building Cate container is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
-hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. In future, the  container image may support a way to
-launch both cate and jupyter notebook under single environment. This can provide users access to their persistant storage
-and remote cate workspace in jupyter notebooks for any further analysis or to develop cate operators.
+The source for building Cate containers is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
+hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. In the future, cate container images may support a way to
+launch both the cate webapi as well as jupyter notebooks under a single environment. This can provide users access to
+their persistant storage and remote cate workspace in jupyter notebooks for any further analysis or to develop cate operators.
 
 CateHub
 -------
-CateHub explots cloud environments to spawn Cate Docker to multiple users with attached computational resources and
-persistant storage. It's role is very similar to JupyterHub_, hence its architecture is heavily derived from it. At it's
-core is a Hub server, that facilitates interaction with its sub-components that handle its house keeping tasks. Hub can
-be managed with its REST API. This REST API is used in Cate's GUI (web or desktop) to start cate WebAPI service for a
-user. The relevant sub components of CateHub are described here for illustrating their roles in Cate SaaS.
+CateHub exploits cloud environments to spawn Cate Docker to multiple users with attached computational resources and
+persistant storage. Such a design pattern is very similar to JupyterHub_. Hence, CateHub's architecture is derived from it.
+At its core is a so-called hub server that facilitates interaction with its sub-components that handle its house keeping tasks. The hub can
+be managed over its REST API. This REST API is used in Cate's GUI (web or desktop) to start cate WebAPI services for each
+user. The relevant sub-components of CateHub are described here for illustrating their roles in Cate SaaS.
 
-- Spawner component of Hub, communicates with Kubernetes Cluster via Kubernetes API to spawn pods containing Cate docker
-  images. A customizable configuration requests computational resources and persistant storage for a user.
-  The pod, once ready, exposes Cate WebAPI to the internal cluster network.
+- The spawner component of the hub, communicates with the Kubernetes Cluster via its Kubernetes API to spawn pods
+  containing Cate docker containers. A customisable configuration requests computational resources and persistant storage
+  for each user. Each pod, once ready, exposes Cate WebAPI to the internal cluster network.
 
-- Proxy component, configurable-http-proxy, a nodejs application acts as front end to CateHub for all external requests
-  from users. By default it forwards all the requests to the Hub component. Proxy is mainly responsible for
-  reverse proxying individual user's requests to their cate pod's WebAPI service. Being the front end to user's requests,
-  proxy also logs usage activity of a user to help Hub to shutdown a pod upon inactivity to save resources. Currently
-  this is configured to be one hour.
+- The proxy component, configurable-http-proxy, a nodejs application acts as front-end gateway to a CateHub instance
+  for all external requests from users. By default, it forwards all requests to the hub component. The proxy is
+  mainly responsible for reverse proxying individual user's requests to their cate pod's WebAPI service. Being the front
+  end to user's requests, the proxy also logs usage activities of each user to help the hub shutting down pods upon
+  inactivity to save resources. Currently, this is configured to be one hour of idleness.
 
-- Authentication component of Hub may also be used for authenticating user access instead of KeyCloak Service used in
+- The authentication component of a hub may also be used for authenticating user access instead of KeyCloak Service used in
   JASMIN_ cloud like in the demo deployment.
 
-Basing CateHub on JupyterHub has an advantage of a reliable well-tested framework and furthermore, JupyterHub_'s
+Basing CateHub on JupyterHub has the advantage of a reliable, well-tested framework and, furthermore, JupyterHub_'s
 deployment documentation also serves as reference for CateHub deployment on multiple cloud providers.
 
 In its simplest use case, deployment of CateHub amounts to following JupyterHub_ deployment on kubernetes using
@@ -601,19 +601,18 @@ helm charts at: https://zero-to-jupyterhub.readthedocs.io/en/latest/ and overidi
 Cate WebUI
 ----------
 
-Cate WebUI is the Single Page Application (SPA) that acts as a user's web frontend to Cate SaaS. This is also deployed on
-the Kubernetes cluster, thereby is load balanced by Ingress component (default is a NGINX server) of Kubernetes. In fact,
-all the reqeusts to CaaS are load balanced by Ingress. Upon authentication, WebUI makes request to CateHub to start
-Cate WebAPI service and from there on communicates to the pod containing Cate WebAPI using WebSockets.
+The Cate WebUI is the Single Page Application (SPA) that acts as a user's web frontend to the Cate SaaS.
+This is also deployed on the Kubernetes cluster and is, thereby, load balanced by a so-called Ingress component
+(default is a NGINX server) of Kubernetes. In fact, all the requests to CaaS are load balanced by Ingress.
+Upon authentication, WebUI makes request to CateHub to start Cate WebAPI service and from there on communicates to the
+pod containing Cate WebAPI using WebSockets.
 
 The source for Cate WebUI is hosted at: https://github.com/CCI-Tools/cate-webui. This will in future be used to replace
 render elements of Cate Desktop.
 
-
-
-This paragraph summarizes the flow of requests from perspective of Cate WebUI. When a user submits username
+This paragraph summarizes the flow of requests from perspective of Cate WebUI. When a user submits a username
 and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
-credentials and returns access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
+credentials and returns an access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
 CateHUB to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on `</user/username>` to the pod.
