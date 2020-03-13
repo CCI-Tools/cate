@@ -534,6 +534,7 @@ Cate SaaS
 A live demo deployment of Cate SaaS deployed on JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
 This section describes this deployment and might serve as reference for other cloud deployments.
 
+
 JASMIN CaaS
 ------------
 JASMIN_ is a infrastructure facility funded by the Natural Environment Research Council and the UK Space Agency
@@ -548,14 +549,16 @@ Cate SaaS to other cloud providers among other benefits.
 
 Cate Docker
 -----------
-Cate Docker is containerized (docker) Cate core image that provides isolated, frozen environmet for Cate core. Users
-can use the image for their local Cate installation. This image forms lowest layer of cate service in Cate SaaS through
-its WebAPI.
+Cate Docker is containerized (Docker) Cate core image that provides isolated, frozen environmet for Cate core. This
+image forms lowest layer of cate service in Cate SaaS through its WebAPI. Users may also the image as their
+local Cate installation to be used with Cate Desktop or Cate CLI.
 
 The source for building Cate container is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
-hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. In future, the  container image may support a way to
-launch both cate and jupyter notebook under single environment. This can provide users access to their persistant storage
-and remote cate workspace in jupyter notebooks for any further analysis or to develop cate operators.
+hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. The pre built images are not yet public.
+In future, the  container image may support a way to launch both cate and jupyter notebook under single environment.
+This can provide users access to their persistant storage and remote cate workspace in jupyter notebooks for any further
+analysis or to develop cate operators.
+
 
 CateHub
 -------
@@ -600,7 +603,6 @@ helm charts at: https://zero-to-jupyterhub.readthedocs.io/en/latest/ and overidi
 
 Cate WebUI
 ----------
-
 Cate WebUI is the Single Page Application (SPA) that acts as a user's web frontend to Cate SaaS. This is also deployed on
 the Kubernetes cluster, thereby is load balanced by Ingress component (default is a NGINX server) of Kubernetes. In fact,
 all the reqeusts to CaaS are load balanced by Ingress. Upon authentication, WebUI makes request to CateHub to start
@@ -611,15 +613,13 @@ render elements of Cate Desktop.
 
 
 
-This paragraph summarizes the flow of requests from perspective of Cate WebUI. When a user submits username
-and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
-credentials and returns access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
-CateHUB to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
-Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
-reverse proxy all the requests on `</user/username>` to the pod.
-
-The schematic illustrates interaction of various components of
-Cate SaaS deployment.
+This paragraph summarizes the flow of requests through above components from a perspective of Cate WebUI.
+When a user submits username and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication component of
+CateHub authenticates the credentials and returns access token that permits further requests to CateHub. Cate WebUI
+makes request to REST API of CateHUB to spawn a WebAPI service with resources. The spawner component of CateHub
+facilitates this request to Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
+reverse proxy all the requests on `</user/username>` to the pod. The schematic illustrates the simplified interaction of
+various components of Cate SaaS deployment.
 
 
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
