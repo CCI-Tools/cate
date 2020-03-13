@@ -531,32 +531,27 @@ with the same entry point::
 
 SaaS
 ====
-A live demo deployment of Cate SaaS on the JASMIN_ cloud can be navigated at: https://cate-webui.192.171.139.57.xip.io/.
-This section describes this deployment and might serve as reference for other cloud deployments.
-
-JASMIN CaaS
-------------
-JASMIN_ is an infrastructure facility funded by the Natural Environment Research Council and the UK Space Agency
-and delivered by the Science and Technology Facilities Council. Among its services, it provides a Cluster-as-a-Service
-(CaaS) for its users, comprising Kubernetes clusters and identitiy management clusters. It's co-location with
-CCI data store allows high network bandwidth for large datasets, making it ideal for hosting Cate SaaS.
-
-`JASMIN Kubernetes CaaS`_ along with its identity management server, KeyCloak, is used to deploy Cate SaaS. KeyCloak
-facilitates access to the kubernetes cluster for administration and optionally can be used to authenticate cate users via
-its interface to various identity providers. Using Kubernetes provides load balancing, scalability and portablity of
-Cate SaaS to other cloud providers among other benefits.
+This section describes components and architecture of Cate SaaS. This might serve as reference for Cate SaaS deployments
+on various cloud providers.
 
 Cate Docker
 -----------
-Cate Docker is containerized Cate core image that provides an isolated, frozen environment for Cate core. Users
-can use the image for their local Cate installation. This image forms lowest layer of cate service in Cate SaaS through
-its WebAPI.
+Cate Docker is containerized Cate core image that provides an isolated, frozen environment for Cate core.
+This image forms lowest layer of cate service in Cate SaaS through its WebAPI. Users may also use the image for their
+local Cate installation.
 
 The source for building Cate containers is hosted at https://github.com/CCI-Tools/cate-docker and pre-build images are
 hosted at `https://quay.io <https://quay.io/bcdev/cate-webapi/>`_. The repository will soon be made public.
 In the future, cate container images may support a way to launch both the cate webapi as well as jupyter notebooks under
 a single environment. This can provide users access to their persistant storage and remote cate workspace in jupyter
 notebooks for any further analysis or to develop cate operators.
+
+
+Kubernetes Cluster
+------------------
+Kubernetes automates container orchestration and management on cloud environment. Using Kubernetes provides load
+balancing, scalability and portablity of Cate SaaS to multiple cloud providers among other benefits.
+
 
 CateHub
 -------
@@ -576,8 +571,8 @@ services for each user. The relevant sub-components of CateHub are described her
   end to user's requests, the proxy also logs usage activities of each user to help the hub shutting down pods upon
   inactivity to save resources. Currently, this is configured to be one hour of idleness.
 
-- The authentication component of a hub may also be used for authenticating user access instead of KeyCloak Service used in
-  JASMIN_ cloud like in the demo deployment.
+- The authentication component is used for authenticating user access, this may also be bypassed by external
+  authentication providers such as KeyCloak.
 
 Basing CateHub on JupyterHub has the advantage of a reliable, well-tested framework and, furthermore, JupyterHub_'s
 deployment documentation also serves as reference for CateHub deployment on multiple cloud providers.
@@ -618,11 +613,24 @@ CateHub to spawn a WebAPI service with resources. The spawner component of CateH
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on `</user/username>` to the pod.
 
-The schematic illustrates interaction of various components of Cate SaaS deployment.
-
-.. figure:: catehub_components.png
-
-
-
 In future this deployment may be extended with a additional component, Dask Cluster, to provide additional computational
 resources to cate operations.
+
+
+JASMIN Cloud
+------------
+This section describes an example deployment of Cate SaaS on JASMIN_. JASMIN_ is an infrastructure facility funded by
+the Natural Environment Research Council and the UK Space Agency and delivered by the Science and Technology Facilities
+Council. Among its services, it provides a Cluster-as-a-Service (CaaS) for its users, comprising Kubernetes clusters
+and identitiy management clusters. It's co-location with CCI data store allows high network bandwidth for large
+datasets, making it ideal for hosting Cate SaaS.
+
+`JASMIN Kubernetes CaaS`_ along with its identity management server, KeyCloak, is used to deploy Cate SaaS. KeyCloak
+facilitates access to the kubernetes cluster for administration and optionally can be used to authenticate cate users via
+its interface to various identity providers.
+
+
+The following schematic illustrates interaction of various SaaS components in JASMIN_ cloud.
+
+.. figure:: _static/figures/catehub_components.png
+
