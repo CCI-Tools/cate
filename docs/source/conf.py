@@ -39,7 +39,7 @@ import mock
 #    sys.modules[mod_name] = mock.Mock()
 
 autodoc_mock_imports = ["xarray", "pandas", "geopandas", "cartopy", "fiona", "numba", "shapely", "jdcal",
-                        "matplotlib", "tornado", "dateutil", "scipy", "owslib", "dask", "psutil",  ]
+                        "matplotlib", "tornado", "dateutil", "scipy", "owslib", "dask", "psutil" , "pyproj" ]
 
 # -- General configuration ------------------------------------------------
 

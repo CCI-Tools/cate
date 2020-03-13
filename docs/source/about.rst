@@ -26,7 +26,7 @@ Cate comprises four major software interfaces:
 
 .. warning::
    Cate SaaS is still an experimental feature. A demo can be accesed at: https://cate-webui.192.171.139.57.xip.io/.
-   Interested user needs to register to gain access.
+   An interested user needs to register to gain access.
 
 
 2. **Cate Desktop** is a cross-platform desktop application for users who wish to use Cate predominantly with their
