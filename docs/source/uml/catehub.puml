@@ -1,0 +1,68 @@
+@startuml
+
+actor User
+
+User -> "Cate GUI": start
+activate "Cate GUI" #DarkSalmon
+
+"Cate GUI" -> auth: login
+deactivate "Cate GUI"
+activate auth #DarkSalmon
+
+auth --> "Cate GUI": authentication status
+deactivate auth
+activate "Cate GUI" #DarkSalmon
+
+"Cate GUI" -> CateHub: request spawn
+deactivate "Cate GUI"
+activate CateHub #DarkSalmon
+
+CateHub -> CateHub: authorizes
+
+CateHub -> "Cate Web Api": spawns
+activate "Cate Web Api" #DarkSalmon
+
+"Cate Web Api" --> CateHub: status
+deactivate "Cate Web Api"
+CateHub --> "Cate GUI": webapi status
+deactivate CateHub
+
+activate "Cate GUI" #DarkSalmon
+
+"Cate GUI" -> "Cate Web Api": request data/process
+activate "Cate Web Api" #DarkSalmon
+"Cate Web Api" -> ODP: queries
+activate ODP #DarkSalmon
+
+ODP --> "Cate Web Api": data
+deactivate ODP
+
+"Cate Web Api" -> "Cate Web Api": process
+"Cate Web Api" --> "Cate GUI": data
+deactivate "Cate Web Api"
+"Cate GUI" --> User: visualisation
+deactivate "Cate GUI"
+
+"Cate GUI" -> auth: logout
+activate "Cate GUI" #DarkSalmon
+activate auth #DarkSalmon
+auth --> "Cate GUI": logout status
+deactivate auth
+
+"Cate GUI" -> CateHub: requests shutdown
+activate CateHub #DarkSalmon
+CateHub -> "Cate Web Api": shutdown
+activate "Cate Web Api" #DarkSalmon
+"Cate Web Api" --> CateHub: status
+deactivate "Cate Web Api"
+
+CateHub --> "Cate GUI": shutdown status
+deactivate CateHub
+
+"Cate GUI" -> "Cate GUI": wait for user input
+
+User -> "Cate GUI": shutdown
+deactivate "Cate GUI"
+
+@enduml
+

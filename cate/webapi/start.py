@@ -98,28 +98,33 @@ def service_factory(application):
 # }
 
 def create_application(user_root_path: str = None):
+    default_url_root = "/"
+    # replace default url_root with /user/username/ if running in Cate Hub context.
+    url_root = os.environ.get("JUPYTERHUB_SERVICE_PREFIX", default_url_root)
+    if url_root is not default_url_root:
+        print(f"warning: detected jupyterhub environment variable JUPYTERHUB_SERVICE_PREFIX "
+              f"using {url_root} as default root url for the api.")
+
     application = Application([
-        ('/_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
-        ('/mpl.js', MplJavaScriptHandler),
-
-        (url_pattern('/mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
-        (url_pattern('/mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
-
-        (url_pattern('/'), WebAPIInfoHandler),
-        (url_pattern('/exit'), WebAPIExitHandler),
-        (url_pattern('/api'), JsonRpcWebSocketHandler, dict(
+        (url_root + '_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
+        (url_root + 'mpl.js', MplJavaScriptHandler),
+        (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
+        (url_pattern(url_root + 'mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+        (url_pattern(url_root), WebAPIInfoHandler),
+        (url_pattern(url_root + 'exit'), WebAPIExitHandler),
+        (url_pattern(url_root + 'api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,
             validation_exception_class=ValidationError,
             report_defer_period=WEBAPI_PROGRESS_DEFER_PERIOD)
          ),
-        (url_pattern('/ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
-        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
-        (url_pattern('/ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
-        (url_pattern('/ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
-        (url_pattern('/ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
-        (url_pattern('/ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
-        (url_pattern('/ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
-        (url_pattern('/ws/countries'), CountriesGeoJSONHandler),
+        (url_pattern(url_root + 'ws/res/plot/{{base_dir}}/{{res_name}}'), ResourcePlotHandler),
+        (url_pattern(url_root + 'ws/res/geojson/{{base_dir}}/{{res_id}}'), ResFeatureCollectionHandler),
+        (url_pattern(url_root + 'ws/res/geojson/{{base_dir}}/{{res_id}}/{{feature_index}}'), ResFeatureHandler),
+        (url_pattern(url_root + 'ws/res/csv/{{base_dir}}/{{res_id}}'), ResVarCsvHandler),
+        (url_pattern(url_root + 'ws/res/html/{{base_dir}}/{{res_id}}'), ResVarHtmlHandler),
+        (url_pattern(url_root + 'ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
+        (url_pattern(url_root + 'ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
+        (url_pattern(url_root + 'ws/countries'), CountriesGeoJSONHandler),
     ])
 
     default_user_root_path = os.environ.get('CATE_USER_ROOT')
