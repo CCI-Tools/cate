@@ -152,20 +152,17 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('Lambert_Azimuthal_Grid' in variable_infos)
         self.assertEquals('Int32', variable_infos['Lambert_Azimuthal_Grid']['data_type'])
         self.assertEquals(0, len(variable_infos['Lambert_Azimuthal_Grid']['dimensions']))
-        self.assertTrue(variable_infos['Lambert_Azimuthal_Grid']['coordinate_variable'])
         self.assertTrue('time_bnds' in variable_infos)
         self.assertEquals('Float64', variable_infos['time_bnds']['data_type'])
         self.assertEquals(2, len(variable_infos['time_bnds']['dimensions']))
         self.assertTrue('time' in variable_infos['time_bnds']['dimensions'])
         self.assertTrue('nv' in variable_infos['time_bnds']['dimensions'])
-        self.assertTrue(variable_infos['time_bnds']['coordinate_variable'])
         self.assertTrue('ice_conc' in variable_infos)
         self.assertEquals('Int32', variable_infos['ice_conc']['data_type'])
         self.assertEquals(3, len(variable_infos['ice_conc']['dimensions']))
         self.assertTrue('time' in variable_infos['ice_conc']['dimensions'])
         self.assertTrue('yc' in variable_infos['ice_conc']['dimensions'])
         self.assertTrue('xc' in variable_infos['ice_conc']['dimensions'])
-        self.assertFalse(variable_infos['ice_conc']['coordinate_variable'])
 
     def assert_json_obj_from_desc_xml(self, json_obj: dict):
         self.assertTrue('abstract' in json_obj)
@@ -502,7 +499,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.first_oc_data_source.id, '70be18893edb498785e22bed288cfd54')
+        self.assertEqual(self.first_oc_data_source.id, 'esacci.70be18893edb498785e22bed288cfd54')
 
     def test_schema(self):
         self.assertEqual(self.first_oc_data_source.schema,
@@ -599,7 +596,7 @@ class SpatialSubsetTest(unittest.TestCase):
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpOsDataStore()
-        data_source = data_store.query(ds_id='5db2099606b94e63879d841c87e654ae')[0]
+        data_source = data_store.query(ds_id='esacci.5db2099606b94e63879d841c87e654ae')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)

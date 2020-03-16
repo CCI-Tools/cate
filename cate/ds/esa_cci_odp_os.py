@@ -449,7 +449,7 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
     catalogue = {}
     for fc in feature_collection_list:
         fc_props = fc.get("properties", {})
-        fc_id = fc_props.get("identifier", None)
+        fc_id = f'esacci.{fc_props.get("identifier", None)}'
         if not fc_id:
             continue
         catalogue[fc_id] = {}
@@ -889,6 +889,7 @@ class EsaCciOdpOsDataSource(DataSource):
                  schema: Schema = None):
         super(EsaCciOdpOsDataSource, self).__init__()
         self._datasource_id = datasource_id
+        self._raw_id = datasource_id.split('.')[-1]
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
@@ -1272,7 +1273,7 @@ class EsaCciOdpOsDataSource(DataSource):
         if self._file_list:
             return
         file_list = _load_or_fetch_json(_fetch_file_list_json,
-                                        fetch_json_args=[self._datasource_id],
+                                        fetch_json_args=[self._raw_id],
                                         fetch_json_kwargs=dict(monitor=monitor),
                                         cache_used=self._data_store.index_cache_used,
                                         cache_dir=self.local_metadata_dataset_dir(),
@@ -1295,14 +1296,12 @@ class EsaCciOdpOsDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                time_format, p1, p2 = find_datetime_format(file_rec[1])
-                if time_format:
-                    file_start_date = datetime.strptime(file_rec[1][p1:p2], format)
-                    file_end_date = file_start_date + time_delta
-                    data_source_start_date = min(data_source_start_date, file_start_date)
-                    data_source_end_date = max(data_source_end_date, file_end_date)
-                    file_rec[1] = file_start_date
-                    file_rec[2] = file_end_date
+                file_start_date = datetime.strptime(file_rec[1], _TIMESTAMP_FORMAT)
+                file_end_date = file_start_date + time_delta
+                data_source_start_date = min(data_source_start_date, file_start_date)
+                data_source_end_date = max(data_source_end_date, file_end_date)
+                file_rec[1] = file_start_date
+                file_rec[2] = file_end_date
         self._temporal_coverage = data_source_start_date, data_source_end_date
         self._file_list = file_list
 
