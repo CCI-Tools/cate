@@ -462,41 +462,11 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
                 odd_url = search[0].get('href', None)
                 if odd_url:
                     catalogue[data_source_id]['odd_url'] = odd_url
-                    odd_metadata = _extract_metadata_from_odd_url(odd_url)
-                    catalogue[data_source_id].update(odd_metadata)
             described_by = fc_props_links.get("describedby", None)
             if described_by:
                 metadata_url = described_by[0].get("href", None)
                 if metadata_url:
                     catalogue[data_source_id]['metadata_url'] = metadata_url
-                    desc_metadata = _extract_metadata_from_descxml_url(metadata_url)
-                    for item in desc_metadata:
-                        if item in catalogue[data_source_id] and type(catalogue[data_source_id]) == list:
-                            catalogue[data_source_id][item].extend(desc_metadata[item])
-                            catalogue[data_source_id][item] = list(dict.fromkeys(catalogue[data_source_id][item]))
-                        else:
-                            catalogue[data_source_id][item] = desc_metadata[item]
-            index = 1
-            catalogue[data_source_id]['variables'] = []
-            catalogue[data_source_id]['dimensions'] = {}
-            catalogue[data_source_id]['variable_infos'] = {}
-            feature = None
-            while len(catalogue[data_source_id]['variables']) == 0 and feature is None:
-                feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
-                if feature is None:
-                    break
-                index += 1
-                feature_variables = _get_variables_from_feature(feature)
-                feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
-                if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
-                    catalogue[data_source_id]['variables'] = feature_variables
-                    catalogue[data_source_id]['dimensions'] = feature_dimensions
-                    catalogue[data_source_id]['variable_infos'] = feature_variable_infos
-            _harmonize_info_field_names(catalogue[data_source_id], 'file_format', 'file_formats')
-            _harmonize_info_field_names(catalogue[data_source_id], 'platform_id', 'platform_ids', 'multi-platform')
-            _harmonize_info_field_names(catalogue[data_source_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
-            _harmonize_info_field_names(catalogue[data_source_id], 'processing_level', 'processing_levels')
-            _harmonize_info_field_names(catalogue[data_source_id], 'time_frequency', 'time_frequencies')
         _LOG.info(f'Added data source {data_source_id}')
     return catalogue
 
@@ -552,6 +522,39 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
                     dimensions[dimension_name] = int(dimension_size)
             variable_infos[type_and_name[1]] = {'data_type': type_and_name[0], 'dimensions': dimension_names}
     return dimensions, variable_infos
+
+
+def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str) -> Dict:
+    meta_info_dict = _extract_metadata_from_odd_url(odd_url)
+    desc_metadata = _extract_metadata_from_descxml_url(metadata_url)
+    for item in desc_metadata:
+        if item in meta_info_dict and type(meta_info_dict[item]) == list:
+            meta_info_dict[item].extend(desc_metadata[item])
+            meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
+        else:
+            meta_info_dict[item] = desc_metadata[item]
+    index = 1
+    meta_info_dict['variables'] = []
+    meta_info_dict['dimensions'] = {}
+    meta_info_dict['variable_infos'] = {}
+    feature = None
+    while len(meta_info_dict['variables']) == 0 and feature is None:
+        feature = _fetch_feature_at(_OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), index)
+        if feature is None:
+            break
+        index += 1
+        feature_variables = _get_variables_from_feature(feature)
+        feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
+        if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
+            meta_info_dict['variables'] = feature_variables
+            meta_info_dict['dimensions'] = feature_dimensions
+            meta_info_dict['variable_infos'] = feature_variable_infos
+    _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
+    _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids', 'multi-platform')
+    _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids', 'multi-sensor')
+    _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
+    _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
+    return meta_info_dict
 
 
 def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
@@ -893,6 +896,7 @@ class EsaCciOdpOsDataSource(DataSource):
         self._raw_id = datasource_id.split('.')[-1]
         self._data_store = data_store
         self._json_dict = json_dict
+        self._meta_info_dict = None
         self._schema = schema
         self._file_list = None
         self._meta_info = None
@@ -908,21 +912,23 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def spatial_coverage(self) -> Optional[PolygonLike]:
-        if self._json_dict \
-                and self._json_dict.get('bbox_minx', None) and self._json_dict.get('bbox_miny', None) \
-                and self._json_dict.get('bbox_maxx', None) and self._json_dict.get('bbox_maxy', None):
+        self._ensure_meta_info_set()
+        if self._meta_info_dict \
+                and self._meta_info_dict.get('bbox_minx', None) and self._meta_info_dict.get('bbox_miny', None) \
+                and self._meta_info_dict.get('bbox_maxx', None) and self._meta_info_dict.get('bbox_maxy', None):
             return PolygonLike.convert([
-                self._json_dict.get('bbox_minx'),
-                self._json_dict.get('bbox_miny'),
-                self._json_dict.get('bbox_maxx'),
-                self._json_dict.get('bbox_maxy')
+                self._meta_info_dict.get('bbox_minx'),
+                self._meta_info_dict.get('bbox_miny'),
+                self._meta_info_dict.get('bbox_maxx'),
+                self._meta_info_dict.get('bbox_maxy')
             ])
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
+        self._ensure_meta_info_set()
         if not self._temporal_coverage:
-            temp_coverage_start = self._json_dict.get('temporal_coverage_start', None)
-            temp_coverage_end = self._json_dict.get('temporal_coverage_end', None)
+            temp_coverage_start = self._meta_info_dict.get('temporal_coverage_start', None)
+            temp_coverage_end = self._meta_info_dict.get('temporal_coverage_end', None)
             if temp_coverage_start and temp_coverage_end:
                 self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
             else:
@@ -933,9 +939,10 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def variables_info(self):
+        self._ensure_meta_info_set()
         variables = []
         coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
-        for variable in self._json_dict['variables']:
+        for variable in self._meta_info_dict['variables']:
             if variable['name'] not in coordinate_variable_names:
                 variables.append(variable)
         return variables
@@ -945,12 +952,17 @@ class EsaCciOdpOsDataSource(DataSource):
         return self._schema
 
     @property
+    def title(self) -> Optional[str]:
+        return self._json_dict['title']
+
+    @property
     def meta_info(self) -> OrderedDict:
+        self._ensure_meta_info_set()
         # noinspection PyBroadException
         if not self._meta_info:
             self._meta_info = OrderedDict()
             for name in INFO_FIELD_NAMES:
-                value = self._json_dict.get(name, None)
+                value = self._meta_info_dict.get(name, None)
                 # Many values in the index JSON are one-element lists: turn them into scalars
                 if isinstance(value, list) and len(value) == 1:
                     value = value[0]
@@ -1270,7 +1282,22 @@ class EsaCciOdpOsDataSource(DataSource):
         else:
             return None
 
+    def _ensure_meta_info_set(self):
+        if self._meta_info_dict:
+            return
+        self._meta_info_dict = _load_or_fetch_json(_fetch_meta_info,
+                                                   fetch_json_args=[self._raw_id,
+                                                                    self._json_dict['odd_url'],
+                                                                    self._json_dict['metadata_url']],
+                                                   fetch_json_kwargs=dict(),
+                                                   cache_used=self._data_store.index_cache_used,
+                                                   cache_dir=self.local_metadata_dataset_dir(),
+                                                   cache_json_filename='meta-info.json',
+                                                   cache_timestamp_filename='meta-info-timestamp.txt',
+                                                   cache_expiration_days=self._data_store.index_cache_expiration_days)
+
     def _init_file_list(self, monitor: Monitor = Monitor.NONE):
+        self._ensure_meta_info_set()
         if self._file_list:
             return
         file_list = _load_or_fetch_json(_fetch_file_list_json,
@@ -1282,9 +1309,9 @@ class EsaCciOdpOsDataSource(DataSource):
                                         cache_timestamp_filename='file-list-timestamp.txt',
                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
 
-        time_frequency = self._json_dict.get('time_frequency', None)
-        if time_frequency is None and 'time_frequencies' in self._json_dict:
-            time_frequency = self._json_dict.get('time_frequencies')[0]
+        time_frequency = self._meta_info_dict.get('time_frequency', None)
+        if time_frequency is None and 'time_frequencies' in self._meta_info_dict:
+            time_frequency = self._meta_info_dict.get('time_frequencies')[0]
         if time_frequency:
             time_delta = _TIME_FREQUENCY_TO_TIME_DELTA.get(time_frequency, timedelta(days=0))
         else:
