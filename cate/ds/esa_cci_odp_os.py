@@ -449,38 +449,39 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
     catalogue = {}
     for fc in feature_collection_list:
         fc_props = fc.get("properties", {})
-        fc_id = f'esacci.{fc_props.get("identifier", None)}'
+        fc_id = fc_props.get("identifier", None)
         if not fc_id:
             continue
-        catalogue[fc_id] = {}
-        catalogue[fc_id]['title'] = fc_props.get("title", "")
+        data_source_id = f'esacci.{fc_id}'
+        catalogue[data_source_id] = {}
+        catalogue[data_source_id]['title'] = fc_props.get("title", "")
         fc_props_links = fc_props.get("links", None)
         if fc_props_links:
             search = fc_props_links.get("search", None)
             if search:
                 odd_url = search[0].get('href', None)
                 if odd_url:
-                    catalogue[fc_id]['odd_url'] = odd_url
+                    catalogue[data_source_id]['odd_url'] = odd_url
                     odd_metadata = _extract_metadata_from_odd_url(odd_url)
-                    catalogue[fc_id].update(odd_metadata)
+                    catalogue[data_source_id].update(odd_metadata)
             described_by = fc_props_links.get("describedby", None)
             if described_by:
                 metadata_url = described_by[0].get("href", None)
                 if metadata_url:
-                    catalogue[fc_id]['metadata_url'] = metadata_url
+                    catalogue[data_source_id]['metadata_url'] = metadata_url
                     desc_metadata = _extract_metadata_from_descxml_url(metadata_url)
                     for item in desc_metadata:
-                        if item in catalogue[fc_id] and type(catalogue[fc_id]) == list:
-                            catalogue[fc_id][item].extend(desc_metadata[item])
-                            catalogue[fc_id][item] = list(dict.fromkeys(catalogue[fc_id][item]))
+                        if item in catalogue[data_source_id] and type(catalogue[data_source_id]) == list:
+                            catalogue[data_source_id][item].extend(desc_metadata[item])
+                            catalogue[data_source_id][item] = list(dict.fromkeys(catalogue[data_source_id][item]))
                         else:
-                            catalogue[fc_id][item] = desc_metadata[item]
+                            catalogue[data_source_id][item] = desc_metadata[item]
             index = 1
-            catalogue[fc_id]['variables'] = []
-            catalogue[fc_id]['dimensions'] = {}
-            catalogue[fc_id]['variable_infos'] = {}
+            catalogue[data_source_id]['variables'] = []
+            catalogue[data_source_id]['dimensions'] = {}
+            catalogue[data_source_id]['variable_infos'] = {}
             feature = None
-            while len(catalogue[fc_id]['variables']) == 0 and feature is None:
+            while len(catalogue[data_source_id]['variables']) == 0 and feature is None:
                 feature = _fetch_feature_at(base_url, dict(parentIdentifier=fc_id), index)
                 if feature is None:
                     break
@@ -488,15 +489,15 @@ def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monito
                 feature_variables = _get_variables_from_feature(feature)
                 feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
                 if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
-                    catalogue[fc_id]['variables'] = feature_variables
-                    catalogue[fc_id]['dimensions'] = feature_dimensions
-                    catalogue[fc_id]['variable_infos'] = feature_variable_infos
-            _harmonize_info_field_names(catalogue[fc_id], 'file_format', 'file_formats')
-            _harmonize_info_field_names(catalogue[fc_id], 'platform_id', 'platform_ids', 'multi-platform')
-            _harmonize_info_field_names(catalogue[fc_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
-            _harmonize_info_field_names(catalogue[fc_id], 'processing_level', 'processing_levels')
-            _harmonize_info_field_names(catalogue[fc_id], 'time_frequency', 'time_frequencies')
-        _LOG.info(f'Added data source {fc_id}')
+                    catalogue[data_source_id]['variables'] = feature_variables
+                    catalogue[data_source_id]['dimensions'] = feature_dimensions
+                    catalogue[data_source_id]['variable_infos'] = feature_variable_infos
+            _harmonize_info_field_names(catalogue[data_source_id], 'file_format', 'file_formats')
+            _harmonize_info_field_names(catalogue[data_source_id], 'platform_id', 'platform_ids', 'multi-platform')
+            _harmonize_info_field_names(catalogue[data_source_id], 'sensor_id', 'sensor_ids', 'multi-sensor')
+            _harmonize_info_field_names(catalogue[data_source_id], 'processing_level', 'processing_levels')
+            _harmonize_info_field_names(catalogue[data_source_id], 'time_frequency', 'time_frequencies')
+        _LOG.info(f'Added data source {data_source_id}')
     return catalogue
 
 
