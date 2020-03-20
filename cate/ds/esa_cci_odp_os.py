@@ -37,12 +37,14 @@ and may be executed using
 Components
 ==========
 """
+import aiofiles
+import aiohttp
+import asyncio
 import json
 import logging
 import os
 import re
 import socket
-import ssl
 import urllib.parse
 import urllib.request
 from collections import OrderedDict
@@ -159,11 +161,13 @@ def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
         return []
 
 
-def _extract_metadata_from_odd_url(odd_url: str = None) -> dict:
+async def _extract_metadata_from_odd_url(session, odd_url: str = None) -> dict:
     if not odd_url:
         return {}
-    with urllib.request.urlopen(odd_url) as response:
-        return _extract_metadata_from_odd(etree.XML(response.read()))
+    resp = await session.request(method='GET', url=odd_url)
+    resp.raise_for_status()
+    xml_text = await resp.read()
+    return _extract_metadata_from_odd(etree.XML(xml_text))
 
 
 def _extract_metadata_from_odd(odd_xml: etree.XML) -> dict:
@@ -195,15 +199,17 @@ def _get_from_param_elem(param_elem: etree.Element) -> Optional[Union[str, List[
     return [option.get('value') for option in options]
 
 
-def _extract_metadata_from_descxml_url(descxml_url: str = None) -> dict:
+async def _extract_metadata_from_descxml_url(session, descxml_url: str = None) -> dict:
     if not descxml_url:
         return {}
-    with urllib.request.urlopen(descxml_url) as response:
-        try:
-            return _extract_metadata_from_descxml(etree.XML(response.read()))
-        except etree.ParseError:
-            _LOG.info(f'Cannot read metadata from {descxml_url} due to parsing error.')
-            return {}
+    resp = await session.request(method = 'GET', url = descxml_url)
+    resp.raise_for_status()
+    descxml = etree.XML(await resp.read())
+    try:
+        return _extract_metadata_from_descxml(descxml)
+    except etree.ParseError:
+        _LOG.info(f'Cannot read metadata from {descxml_url} due to parsing error.')
+        return {}
 
 
 def _extract_metadata_from_descxml(descxml: etree.XML) -> dict:
@@ -305,29 +311,23 @@ def _get_linked_content_from_descxml_elem(descxml: etree.XML, paths: List[str]) 
             return _get_element_content(descxml_elem, paths[2])
 
 
-def _fetch_feature_at(base_url, query_args, index, timeout=10) -> Optional[Dict]:
+async def _fetch_feature_at(session, base_url, query_args, index, timeout=10) -> Optional[Dict]:
     paging_query_args = dict(query_args or {})
-    paging_query_args.update(startPage=index, maximumRecords=1, httpAccept='application/geo+json')
+    maximum_records = 1
+    paging_query_args.update(startPage=index, maximumRecords=maximum_records, httpAccept='application/geo+json',
+                            fileFormat='.nc')
     url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-    error_message = f"Failed accessing CCI OpenSearch service {base_url}"
-    try:
-        context = ssl._create_unverified_context()
-        with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
-            json_text = response.read()
-            json_dict = json.loads(json_text.decode('utf-8'))
-            feature_list = json_dict.get("features", [])
-            if len(feature_list) > 0:
-                return feature_list[0]
-    except urllib.error.HTTPError as e:
-        _LOG.warning(f"{error_message}: {e}")
-    except (urllib.error.URLError, socket.timeout) as e:
-        _LOG.warning(f"{error_message}: {e}")
-    except OSError as e:
-        _LOG.warning(f"{error_message}: {e}")
+    resp = await session.request(method='GET', url=url)
+    resp.raise_for_status()
+    json_text = await resp.read()
+    json_dict = json.loads(json_text.decode('utf-8'))
+    feature_list = json_dict.get("features", [])
+    if len(feature_list) > 0:
+        return feature_list[0]
     return None
 
 
-def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000, timeout=10,
+async def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000, timeout=10,
                                    monitor: Monitor = Monitor.NONE) -> List:
     """
     Return JSON value read from Opensearch web service.
@@ -335,29 +335,22 @@ def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_r
     """
     full_feature_list = []
     with monitor.starting("Loading", 10):
-        while True:
-            monitor.progress(work=1)
-            paging_query_args = dict(query_args or {})
-            paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
-                                     httpAccept='application/geo+json')
-            url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-            try:
-                # noinspection PyProtectedMember
-                context = ssl._create_unverified_context()
-                with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
-                    json_text = response.read()
-                    json_dict = json.loads(json_text.decode('utf-8'))
-                    feature_list = json_dict.get("features", [])
-                    full_feature_list.extend(feature_list)
-                    if len(feature_list) < maximum_records:
-                        break
-                    start_page += 1
-            except urllib.error.HTTPError as e:
-                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
-            except (urllib.error.URLError, socket.timeout) as e:
-                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
-            except OSError as e:
-                _LOG.warning(f'Could not extract features from page {start_page} of {query_args["parentIdentifier"]}')
+        async with aiohttp.ClientSession() as session:
+            while True:
+                monitor.progress(work=1)
+                paging_query_args = dict(query_args or {})
+                paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
+                                         httpAccept='application/geo+json')
+                url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
+                resp = await session.request(method='GET', url=url)
+                resp.raise_for_status()
+                json_text = await resp.read()
+                json_dict = json.loads(json_text.decode('utf-8'))
+                feature_list = json_dict.get("features", [])
+                full_feature_list.extend(feature_list)
+                if len(feature_list) < maximum_records:
+                    break
+                start_page += 1
     return full_feature_list
 
 
@@ -379,7 +372,7 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
             catalogue.pop(single_field_name)
 
 
-def _load_or_fetch_json(fetch_json_function,
+async def _load_or_fetch_json(fetch_json_function,
                         fetch_json_args: list = None,
                         fetch_json_kwargs: dict = None,
                         cache_used: bool = False,
@@ -424,15 +417,15 @@ def _load_or_fetch_json(fetch_json_function,
         # noinspection PyArgumentList
         try:
             # noinspection PyArgumentList
-            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+            json_obj = await fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
             if cache_used:
                 os.makedirs(cache_dir, exist_ok=True)
                 # noinspection PyUnboundLocalVariable
-                with open(cache_json_file, 'w') as fp:
-                    fp.write(json.dumps(json_obj, indent='  '))
+                async with aiofiles.open(cache_json_file, "w") as fp:
+                    await fp.write(json.dumps(json_obj, indent='  '))
                 # noinspection PyUnboundLocalVariable
-                with open(cache_timestamp_file, 'w') as fp:
-                    fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+                async with aiofiles.open(cache_timestamp_file, "w") as fp:
+                    await fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
         except Exception as e:
             if cache_json_file and os.path.exists(cache_json_file):
                 with open(cache_json_file) as fp:
@@ -444,8 +437,8 @@ def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monitor.NONE) -> Sequence:
-    feature_collection_list = _fetch_opensearch_feature_list(base_url, query_args, monitor=monitor)
+async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monitor.NONE) -> Sequence:
+    feature_collection_list = await _fetch_opensearch_feature_list(base_url, query_args, monitor=monitor)
     catalogue = {}
     for fc in feature_collection_list:
         fc_props = fc.get("properties", {})
@@ -484,19 +477,13 @@ def _get_variables_from_feature(feature: dict) -> List:
     return variable_dicts
 
 
-def _get_infos_from_feature(feature: dict) -> tuple:
+async def _get_infos_from_feature(session, feature: dict) -> tuple:
     feature_info = _extract_feature_info(feature)
     opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
-    try:
-        with urllib.request.urlopen(opendap_dds_url) as response:
-            return _retrieve_infos_from_dds(response.readlines())
-    except urllib.error.HTTPError as e:
-        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
-    except (urllib.error.URLError, socket.timeout) as e:
-        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
-    except OSError as e:
-        _LOG.warning(f'Could not access {opendap_dds_url}: {e}.')
-    return {}, {}
+    resp = await session.request(method='GET', url=opendap_dds_url)
+    resp.raise_for_status()
+    content = await resp.read()
+    return _retrieve_infos_from_dds(str(content, 'utf-8').split('\n'))
 
 
 def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
@@ -524,41 +511,43 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
     return dimensions, variable_infos
 
 
-def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str) -> Dict:
-    meta_info_dict = _extract_metadata_from_odd_url(odd_url)
-    desc_metadata = _extract_metadata_from_descxml_url(metadata_url)
-    for item in desc_metadata:
-        if item in meta_info_dict and type(meta_info_dict[item]) == list:
-            meta_info_dict[item].extend(desc_metadata[item])
-            meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
-        else:
-            meta_info_dict[item] = desc_metadata[item]
-    index = 1
-    meta_info_dict['variables'] = []
-    meta_info_dict['dimensions'] = {}
-    meta_info_dict['variable_infos'] = {}
-    feature = None
-    while len(meta_info_dict['variables']) == 0 and feature is None:
-        feature = _fetch_feature_at(_OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), index)
-        if feature is None:
-            break
-        index += 1
-        feature_variables = _get_variables_from_feature(feature)
-        feature_dimensions, feature_variable_infos = _get_infos_from_feature(feature)
-        if len(feature_variables) > 0 and len(feature_variable_infos) > 0:
-            meta_info_dict['variables'] = feature_variables
-            meta_info_dict['dimensions'] = feature_dimensions
-            meta_info_dict['variable_infos'] = feature_variable_infos
-    _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
-    _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids', 'multi-platform')
-    _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids', 'multi-sensor')
-    _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
-    _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
-    return meta_info_dict
+async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str) -> Dict:
+    async with aiohttp.ClientSession() as session:
+        meta_info_dict = await _extract_metadata_from_odd_url(session, odd_url)
+        desc_metadata = await _extract_metadata_from_descxml_url(session, metadata_url)
+        for item in desc_metadata:
+            if item in meta_info_dict and type(meta_info_dict[item]) == list:
+                meta_info_dict[item].extend(desc_metadata[item])
+                meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
+            else:
+                meta_info_dict[item] = desc_metadata[item]
+        index = 1
+        meta_info_dict['variables'] = []
+        meta_info_dict['dimensions'] = {}
+        meta_info_dict['variable_infos'] = {}
+        feature = None
+        while len(meta_info_dict['variable_infos']) == 0 and feature is None:
+            feature = await _fetch_feature_at(session, _OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), index)
+            if feature is None:
+                break
+            index += 1
+            feature_variables = _get_variables_from_feature(feature)
+            if len(feature_variables) > 0:
+                feature_dimensions, feature_variable_infos = await _get_infos_from_feature(session, feature)
+                meta_info_dict['variables'] = feature_variables
+                if len(feature_variable_infos) > 0:
+                    meta_info_dict['dimensions'] = feature_dimensions
+                    meta_info_dict['variable_infos'] = feature_variable_infos
+        _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
+        _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids', 'multi-platform')
+        _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids', 'multi-sensor')
+        _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
+        _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
+        return meta_info_dict
 
 
-def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
-    feature_list = _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
+async def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
+    feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
                                                   dict(parentIdentifier=dataset_id),
                                                   monitor=monitor)
     file_list = []
@@ -690,7 +679,7 @@ class EsaCciOdpOsDataStore(DataStore):
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
             -> Sequence['DataSource']:
-        self._init_data_sources()
+        asyncio.run(self._init_data_sources())
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
@@ -746,19 +735,25 @@ class EsaCciOdpOsDataStore(DataStore):
     def __repr__(self) -> str:
         return "EsaCciOdpDataStore (%s)" % self.id
 
-    def _init_data_sources(self):
+    async def _init_data_sources(self):
         os.makedirs(get_metadata_store_path(), exist_ok=True)
         if self._data_sources:
             return
         if self._catalogue is None:
-            self._load_index()
-        data_sources = []
+            await self._load_index()
         if self._catalogue:
+            self._data_sources = []
+            tasks = []
             for catalogue_item in self._catalogue:
-                data_sources.append(EsaCciOdpOsDataSource(self, self._catalogue[catalogue_item], catalogue_item))
-        self._data_sources = data_sources
+                tasks.append(self._create_data_source(self._catalogue[catalogue_item], catalogue_item))
+            await asyncio.gather(*tasks)
         self._check_source_diff()
         self._freeze_source()
+
+    async def _create_data_source(self, json_dict: dict, datasource_id: str):
+        data_source = EsaCciOdpOsDataSource(self, json_dict, datasource_id)
+        await data_source.ensure_meta_info_set()
+        self._data_sources.append(data_source)
 
     def _get_update_tag(self):
         """
@@ -838,8 +833,8 @@ class EsaCciOdpOsDataStore(DataStore):
             with open(frozen_file, 'w+') as json_out:
                 json.dump(freezed_source, json_out)
 
-    def _load_index(self):
-        self._catalogue = _load_or_fetch_json(_fetch_data_source_list_json,
+    async def _load_index(self):
+        self._catalogue = await _load_or_fetch_json(_fetch_data_source_list_json,
                                               fetch_json_args=[
                                                   _OPENSEARCH_CEDA_URL,
                                                   dict(parentIdentifier='cci')
@@ -912,7 +907,6 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def spatial_coverage(self) -> Optional[PolygonLike]:
-        self._ensure_meta_info_set()
         if self._meta_info_dict \
                 and self._meta_info_dict.get('bbox_minx', None) and self._meta_info_dict.get('bbox_miny', None) \
                 and self._meta_info_dict.get('bbox_maxx', None) and self._meta_info_dict.get('bbox_maxy', None):
@@ -925,7 +919,6 @@ class EsaCciOdpOsDataSource(DataSource):
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-        self._ensure_meta_info_set()
         if not self._temporal_coverage:
             temp_coverage_start = self._meta_info_dict.get('temporal_coverage_start', None)
             temp_coverage_end = self._meta_info_dict.get('temporal_coverage_end', None)
@@ -939,7 +932,6 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def variables_info(self):
-        self._ensure_meta_info_set()
         variables = []
         coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
         for variable in self._meta_info_dict['variables']:
@@ -957,7 +949,6 @@ class EsaCciOdpOsDataSource(DataSource):
 
     @property
     def meta_info(self) -> OrderedDict:
-        self._ensure_meta_info_set()
         # noinspection PyBroadException
         if not self._meta_info:
             self._meta_info = OrderedDict()
@@ -1282,10 +1273,10 @@ class EsaCciOdpOsDataSource(DataSource):
         else:
             return None
 
-    def _ensure_meta_info_set(self):
+    async def ensure_meta_info_set(self):
         if self._meta_info_dict:
             return
-        self._meta_info_dict = _load_or_fetch_json(_fetch_meta_info,
+        self._meta_info_dict = await _load_or_fetch_json(_fetch_meta_info,
                                                    fetch_json_args=[self._raw_id,
                                                                     self._json_dict['odd_url'],
                                                                     self._json_dict['metadata_url']],
@@ -1296,11 +1287,11 @@ class EsaCciOdpOsDataSource(DataSource):
                                                    cache_timestamp_filename='meta-info-timestamp.txt',
                                                    cache_expiration_days=self._data_store.index_cache_expiration_days)
 
-    def _init_file_list(self, monitor: Monitor = Monitor.NONE):
-        self._ensure_meta_info_set()
+    async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
+        self.ensure_meta_info_set()
         if self._file_list:
             return
-        file_list = _load_or_fetch_json(_fetch_file_list_json,
+        file_list = await _load_or_fetch_json(_fetch_file_list_json,
                                         fetch_json_args=[self._raw_id],
                                         fetch_json_kwargs=dict(monitor=monitor),
                                         cache_used=self._data_store.index_cache_used,
