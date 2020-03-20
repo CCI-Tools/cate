@@ -295,12 +295,12 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
     def test_query(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 318)
+        self.assertEqual(len(data_sources), 160)
 
     def test_query_with_string(self):
         data_sources = self.data_store.query(query_expr='OC')
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 131)
+        self.assertEqual(len(data_sources), 65)
 
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
@@ -499,7 +499,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.first_oc_data_source.id, 'esacci.70be18893edb498785e22bed288cfd54')
+        self.assertEqual(self.first_oc_data_source.id, 'esacci.915d2340b178494f987a6942e263a2eb')
 
     def test_schema(self):
         self.assertEqual(self.first_oc_data_source.schema,
@@ -507,7 +507,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_temporal_coverage(self):
         self.assertEqual(self.first_oc_data_source.temporal_coverage(),
-                         (datetime(1997, 9, 3, 23, 0), datetime(2012, 7, 31, 22, 59, 59)))
+                         (datetime(1997, 9, 3, 23, 0), datetime(2016, 12, 31, 23, 59, 59)))
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)
