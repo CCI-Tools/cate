@@ -265,7 +265,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
 
     def test_id_title_and_is_local(self):
         self.assertEqual(self.data_store.id, 'test-odp')
-        self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal OpenSearch')
+        self.assertEqual(self.data_store.title, 'ESA CCI Open Data Portal')
         self.assertEqual(self.data_store.is_local, False)
 
     def test_description(self):

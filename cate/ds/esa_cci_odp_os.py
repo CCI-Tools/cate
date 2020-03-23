@@ -593,7 +593,7 @@ class EsaCciOdpOsDataStore(DataStore):
     # noinspection PyShadowingBuiltins
     def __init__(self,
                  id: str = 'esa_cci_odp_os',
-                 title: str = 'ESA CCI Open Data Portal OpenSearch',
+                 title: str = 'ESA CCI Open Data Portal',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None,
