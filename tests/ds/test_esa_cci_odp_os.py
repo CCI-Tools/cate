@@ -1,5 +1,6 @@
 from datetime import datetime
 from lxml.etree import XML
+import asyncio
 import json
 import os
 import shutil
@@ -19,7 +20,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
 
     @unittest.skip(reason='Requires web access')
     def test_fetch_opensearch_json_1(self):
-        file_list = _fetch_file_list_json('49bcb6f29c824ae49e41d2d3656f11be')
+        file_list = asyncio.run(_fetch_file_list_json('49bcb6f29c824ae49e41d2d3656f11be'))
         self.assertEqual("ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc", file_list[0][0])
         self.assertEqual("1997-09-04T00:00:00", file_list[0][1])
         self.assertEqual("1997-09-04T00:00:00", file_list[0][2])
@@ -37,20 +38,20 @@ class EsaCciOdpOsTest(unittest.TestCase):
 
     @unittest.skip(reason='Requires web access. Also, we are getting an error 500 currently')
     def test_fetch_opensearch_json_2(self):
-        file_list = _fetch_file_list_json('b382ebe6679d44b8b0e68ea4ef4b701c')
-        self.assertEqual(16, len(file_list))
-        self.assertEqual("ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc", file_list[0][0])
-        self.assertEqual("1992-01-01T00:00:00", file_list[0][1])
-        self.assertEqual("1992-01-01T00:00:00", file_list[0][2])
-        self.assertIsNone(file_list[0][3])
-        self.assertEqual(2, len(file_list[0][4]))
-        self.assertTrue("Download" in file_list[0][4])
-        self.assertEqual("http://dap.ceda.ac.uk/thredds/fileServer/neodc/esacci/land_cover/data/land_cover_maps/"
+        file_list = asyncio.run(_fetch_file_list_json('b382ebe6679d44b8b0e68ea4ef4b701c'))
+        self.assertEqual(54, len(file_list))
+        self.assertEqual("ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc", file_list[1][0])
+        self.assertEqual("1992-01-01T00:00:00", file_list[1][1])
+        self.assertEqual("1992-01-01T00:00:00", file_list[1][2])
+        self.assertEqual(2543742078, file_list[1][3])
+        self.assertEqual(2, len(file_list[1][4]))
+        self.assertTrue("Download" in file_list[1][4])
+        self.assertEqual("http://cci-odp-data2.ceda.ac.uk/thredds/fileServer/esacci/land_cover/data/land_cover_maps/"
                          "v2.0.7/ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc",
-                         file_list[0][4].get("Download"))
-        self.assertEqual('http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/land_cover/data/land_cover_maps/'
+                         file_list[1][4].get("Download"))
+        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/land_cover/data/land_cover_maps/'
                          'v2.0.7/ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc',
-                         file_list[0][4].get("Opendap"))
+                         file_list[1][4].get("Opendap"))
 
     def test_extract_metadata_from_odd_file(self):
         odd_file = 'resources/odd.xml'
@@ -105,7 +106,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
     @unittest.skip(reason='Requires web access')
     def test_extract_metadata_from_descxml_url(self):
         desc_url = 'https://catalogue.ceda.ac.uk/export/xml/49bcb6f29c824ae49e41d2d3656f11be.xml'
-        json_obj = _extract_metadata_from_descxml_url(desc_url)
+        json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
         self.assert_json_obj_from_desc_xml(json_obj)
 
     def test_extract_metadata_from_descxml(self):
@@ -325,7 +326,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
             # query_expr='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.02-1.r1')
-            query_expr='2cc1cbc906444322845e6a51916a1f03')
+            query_expr='esacci.8d4360b5c6cd48eb967286da31b33567')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
@@ -381,8 +382,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
             with unittest.mock.patch.object(EsaCciOdpOsDataStore, 'query', return_value=[]):
 
                 new_ds_title = 'local_ds_test'
-                new_ds_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                           datetime(1978, 11, 16, 23, 59)))
+                new_ds_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                           datetime(1995, 11, 16, 23, 59)))
                 # new_ds_time_range = TimeRangeLike.convert((datetime(1997, 5, 10, 0, 0),
                 #                                            datetime(1997, 5, 12, 23, 59)))
                 try:
@@ -395,8 +396,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertEqual(new_ds.temporal_coverage(), new_ds_time_range)
 
                 new_ds_w_one_variable_title = 'local_ds_test_var'
-                new_ds_w_one_variable_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                                          datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_one_variable_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                                          datetime(1995, 11, 16, 23, 59)))
                 new_ds_w_one_variable_var_names = VarNamesLike.convert(['sm'])
 
                 new_ds_w_one_variable = soilmoisture_data_source.make_local(
@@ -415,8 +416,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                     set(new_ds_w_one_variable_var_names))
 
                 new_ds_w_region_title = 'from_local_to_local_region'
-                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                                    datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                                    datetime(1995, 11, 16, 23, 59)))
                 new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
 
                 new_ds_w_region = soilmoisture_data_source.make_local(
@@ -431,8 +432,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertEqual(new_ds_w_region.spatial_coverage(), new_ds_w_region_spatial_coverage)
 
                 new_ds_w_region_title = 'from_local_to_local_region_one_var'
-                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                                    datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                                    datetime(1995, 11, 16, 23, 59)))
                 new_ds_w_region_var_names = VarNamesLike.convert(['sm'])
                 new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
 
@@ -453,8 +454,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
 
                 new_ds_w_region_title = 'from_local_to_local_region_two_var_sm_uncertainty'
-                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                                    datetime(1978, 11, 16, 23, 59)))
+                new_ds_w_region_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                                    datetime(1995, 11, 16, 23, 59)))
                 new_ds_w_region_var_names = VarNamesLike.convert(['sm', 'sm_uncertainty'])
                 new_ds_w_region_spatial_coverage = PolygonLike.convert("10,20,30,40")
 
@@ -474,7 +475,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
                 self.assertSetEqual(set(data_set.variables), set(new_ds_w_region_var_names))
 
-                empty_ds_timerange = (datetime(2017, 12, 1, 0, 0), datetime(2017, 12, 31, 23, 59))
+                empty_ds_timerange = (datetime(1917, 12, 1, 0, 0), datetime(1917, 12, 31, 23, 59))
                 with self.assertRaises(DataAccessError) as cm:
                     soilmoisture_data_source.make_local('empty_ds', time_range=empty_ds_timerange)
                 self.assertEqual(f'Data source "{soilmoisture_data_source.id}" does not'
@@ -482,8 +483,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                                  f' time range {TimeRangeLike.format(empty_ds_timerange)}',
                                  str(cm.exception))
 
-                new_ds_time_range = TimeRangeLike.convert((datetime(1978, 11, 14, 0, 0),
-                                                           datetime(1978, 11, 14, 23, 59)))
+                new_ds_time_range = TimeRangeLike.convert((datetime(1995, 11, 14, 0, 0),
+                                                           datetime(1995, 11, 14, 23, 59)))
 
                 new_ds = soilmoisture_data_source.make_local("title_test_copy", time_range=new_ds_time_range)
                 self.assertIsNotNone(new_ds)

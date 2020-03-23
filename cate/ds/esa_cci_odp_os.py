@@ -161,7 +161,9 @@ def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
         return []
 
 
-async def _extract_metadata_from_odd_url(session, odd_url: str = None) -> dict:
+async def _extract_metadata_from_odd_url(session = None, odd_url: str = None) -> dict:
+    if session is None:
+        session = aiohttp.ClientSession()
     if not odd_url:
         return {}
     resp = await session.request(method='GET', url=odd_url)
@@ -199,7 +201,9 @@ def _get_from_param_elem(param_elem: etree.Element) -> Optional[Union[str, List[
     return [option.get('value') for option in options]
 
 
-async def _extract_metadata_from_descxml_url(session, descxml_url: str = None) -> dict:
+async def _extract_metadata_from_descxml_url(session = None, descxml_url: str = None) -> dict:
+    if session is None:
+        session = aiohttp.ClientSession()
     if not descxml_url:
         return {}
     resp = await session.request(method = 'GET', url = descxml_url)
@@ -551,17 +555,17 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
 
 async def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
     feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
-                                                  dict(parentIdentifier=dataset_id),
-                                                  monitor=monitor)
+                                                        dict(parentIdentifier=dataset_id),
+                                                        monitor=monitor)
     file_list = []
     for feature in feature_list:
         feature_info = _extract_feature_info(feature)
         if feature_info[0] in file_list:
             raise ValueError('filename {} already seen in dataset {}'.format(feature_info[0], dataset_id))
         file_list.append(feature_info)
-
+    max_time = datetime.strftime(datetime.max, _TIMESTAMP_FORMAT)
     def pick_start_time(file_info_rec):
-        return file_info_rec[1] if file_info_rec[1] else datetime.max
+        return file_info_rec[1] if file_info_rec[1] else max_time
 
     return sorted(file_list, key=pick_start_time)
 
@@ -939,9 +943,11 @@ class EsaCciOdpOsDataSource(DataSource):
     def variables_info(self):
         variables = []
         coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
-        variable_infos = self._meta_info['variable_infos']
         for variable in self._json_dict['variables']:
-            if variable['name'] in variable_infos and len(variable_infos[variable['name']]['dimensions']) == 0:
+            if 'variable_infos' in self._meta_info and variable['name'] in self._meta_info['variable_infos'] and \
+                    len(self._meta_info['variable_infos'][variable['name']]['dimensions']) == 0:
+                continue
+            if 'dimensions' in self._meta_info and variable['name'] in self._meta_info['dimensions']:
                 continue
             if variable['name'] not in coordinate_variable_names:
                 variables.append(variable)
@@ -993,7 +999,7 @@ class EsaCciOdpOsDataSource(DataSource):
 
     def update_file_list(self, monitor: Monitor = Monitor.NONE) -> None:
         self._file_list = None
-        self._init_file_list(monitor)
+        asyncio.run(self._init_file_list(monitor))
 
     def local_dataset_dir(self):
         return os.path.join(get_data_store_path(), self._datasource_id)
@@ -1003,7 +1009,7 @@ class EsaCciOdpOsDataSource(DataSource):
 
     def _find_files(self, time_range):
         requested_start_date, requested_end_date = time_range if time_range else (None, None)
-        self._init_file_list()
+        asyncio.run(self._init_file_list())
         if requested_start_date or requested_end_date:
             selected_file_list = []
             for file_rec in self._file_list:
