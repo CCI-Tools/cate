@@ -939,7 +939,10 @@ class EsaCciOdpOsDataSource(DataSource):
     def variables_info(self):
         variables = []
         coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
+        variable_infos = self._meta_info['variable_infos']
         for variable in self._json_dict['variables']:
+            if variable['name'] in variable_infos and len(variable_infos[variable['name']]['dimensions']) == 0:
+                continue
             if variable['name'] not in coordinate_variable_names:
                 variables.append(variable)
         return variables
