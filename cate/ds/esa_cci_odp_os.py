@@ -58,8 +58,8 @@ import xarray as xr
 
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, DataAccessError, NetworkError, DataStore, DataSource, Schema, \
-    open_xarray_dataset, DataStoreNotice
+from cate.core.ds import DATA_STORE_REGISTRY, NetworkError, DataStore, DataSource, Schema, open_xarray_dataset, \
+    DataStoreNotice
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
@@ -311,7 +311,7 @@ def _get_linked_content_from_descxml_elem(descxml: etree.XML, paths: List[str]) 
             return _get_element_content(descxml_elem, paths[2])
 
 
-async def _fetch_feature_at(session, base_url, query_args, index, timeout=10) -> Optional[Dict]:
+async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Dict]:
     paging_query_args = dict(query_args or {})
     maximum_records = 1
     paging_query_args.update(startPage=index, maximumRecords=maximum_records, httpAccept='application/geo+json',
@@ -327,8 +327,8 @@ async def _fetch_feature_at(session, base_url, query_args, index, timeout=10) ->
     return None
 
 
-async def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000, timeout=10,
-                                   monitor: Monitor = Monitor.NONE) -> List:
+async def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000,
+                                         monitor: Monitor = Monitor.NONE) -> List:
     """
     Return JSON value read from Opensearch web service.
     :return:
@@ -448,6 +448,8 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
         data_source_id = f'esacci.{fc_id}'
         catalogue[data_source_id] = {}
         catalogue[data_source_id]['title'] = fc_props.get("title", "")
+        variables = _get_variables_from_feature(fc)
+        catalogue[data_source_id]['variables'] = variables
         fc_props_links = fc_props.get("links", None)
         if fc_props_links:
             search = fc_props_links.get("search", None)
@@ -460,6 +462,9 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
                 metadata_url = described_by[0].get("href", None)
                 if metadata_url:
                     catalogue[data_source_id]['metadata_url'] = metadata_url
+            # todo consider including this at time of data store reading
+            # catalogue[data_source_id]['metadata'] = await _fetch_meta_info(fc_id, odd_url, metadata_url, variables,
+            # False)
         _LOG.info(f'Added data source {data_source_id}')
     return catalogue
 
@@ -481,7 +486,10 @@ async def _get_infos_from_feature(session, feature: dict) -> tuple:
     feature_info = _extract_feature_info(feature)
     opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
     resp = await session.request(method='GET', url=opendap_dds_url)
-    resp.raise_for_status()
+    if resp.status >= 400:
+        resp.release()
+        _LOG.warning(f"Could not open {opendap_dds_url}: {resp.status}")
+        return {}, {}
     content = await resp.read()
     return _retrieve_infos_from_dds(str(content, 'utf-8').split('\n'))
 
@@ -511,33 +519,28 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
     return dimensions, variable_infos
 
 
-async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str) -> Dict:
+async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, variables: List, read_dimensions: bool) \
+        -> Dict:
     async with aiohttp.ClientSession() as session:
-        meta_info_dict = await _extract_metadata_from_odd_url(session, odd_url)
-        desc_metadata = await _extract_metadata_from_descxml_url(session, metadata_url)
-        for item in desc_metadata:
-            if item in meta_info_dict and type(meta_info_dict[item]) == list:
-                meta_info_dict[item].extend(desc_metadata[item])
-                meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
-            else:
-                meta_info_dict[item] = desc_metadata[item]
-        index = 1
-        meta_info_dict['variables'] = []
+        meta_info_dict = {}
+        if odd_url:
+            meta_info_dict = await _extract_metadata_from_odd_url(session, odd_url)
+        if metadata_url:
+            desc_metadata = await _extract_metadata_from_descxml_url(session, metadata_url)
+            for item in desc_metadata:
+                if item in meta_info_dict and type(meta_info_dict[item]) == list:
+                    meta_info_dict[item].extend(desc_metadata[item])
+                    meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
+                else:
+                    meta_info_dict[item] = desc_metadata[item]
         meta_info_dict['dimensions'] = {}
         meta_info_dict['variable_infos'] = {}
-        feature = None
-        while len(meta_info_dict['variable_infos']) == 0 and feature is None:
-            feature = await _fetch_feature_at(session, _OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), index)
-            if feature is None:
-                break
-            index += 1
-            feature_variables = _get_variables_from_feature(feature)
-            if len(feature_variables) > 0:
+        if read_dimensions and len(variables) > 0:
+            feature = await _fetch_feature_at(session, _OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), 1)
+            if feature is not None:
                 feature_dimensions, feature_variable_infos = await _get_infos_from_feature(session, feature)
-                meta_info_dict['variables'] = feature_variables
-                if len(feature_variable_infos) > 0:
-                    meta_info_dict['dimensions'] = feature_dimensions
-                    meta_info_dict['variable_infos'] = feature_variable_infos
+                meta_info_dict['dimensions'] = feature_dimensions
+                meta_info_dict['variable_infos'] = feature_variable_infos
         _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
         _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids', 'multi-platform')
         _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids', 'multi-sensor')
@@ -892,6 +895,8 @@ class EsaCciOdpOsDataSource(DataSource):
         self._data_store = data_store
         self._json_dict = json_dict
         self._meta_info_dict = None
+        if 'metadata' in self._json_dict:
+            self._meta_info_dict = self._json_dict['metadata']
         self._schema = schema
         self._file_list = None
         self._meta_info = None
@@ -934,7 +939,7 @@ class EsaCciOdpOsDataSource(DataSource):
     def variables_info(self):
         variables = []
         coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
-        for variable in self._meta_info_dict['variables']:
+        for variable in self._json_dict['variables']:
             if variable['name'] not in coordinate_variable_names:
                 variables.append(variable)
         return variables
@@ -1276,10 +1281,14 @@ class EsaCciOdpOsDataSource(DataSource):
     async def ensure_meta_info_set(self):
         if self._meta_info_dict:
             return
+        # todo set True when dimensions shall be read during meta data fetching
         self._meta_info_dict = await _load_or_fetch_json(_fetch_meta_info,
                                                    fetch_json_args=[self._raw_id,
                                                                     self._json_dict['odd_url'],
-                                                                    self._json_dict['metadata_url']],
+                                                                    self._json_dict['metadata_url'],
+                                                                    self._json_dict['variables'],
+                                                                    # True],
+                                                                    False],
                                                    fetch_json_kwargs=dict(),
                                                    cache_used=self._data_store.index_cache_used,
                                                    cache_dir=self.local_metadata_dataset_dir(),
