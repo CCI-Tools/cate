@@ -331,16 +331,18 @@ async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Di
     return None
 
 
-async def _fetch_opensearch_feature_list(base_url, query_args, start_page=1, maximum_records=1000,
-                                         monitor: Monitor = Monitor.NONE) -> List:
+async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor = Monitor.NONE) -> List:
     """
     Return JSON value read from Opensearch web service.
     :return:
     """
+    start_page = 1
+    maximum_records = 1000
     full_feature_list = []
     with monitor.starting("Loading", 10):
         async with aiohttp.ClientSession() as session:
-            while True:
+            #todo remove this when the opensearch server provides results of more than 10,000 features
+            while start_page < 11:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
                 paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
@@ -555,7 +557,8 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
 
 async def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
     feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
-                                                        dict(parentIdentifier=dataset_id),
+                                                        dict(parentIdentifier=dataset_id,
+                                                             fileFormat='.nc'),
                                                         monitor=monitor)
     file_list = []
     for feature in feature_list:
