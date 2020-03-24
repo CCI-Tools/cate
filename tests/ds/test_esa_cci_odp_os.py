@@ -327,7 +327,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
             # query_expr='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.02-1.r1')
-            query_expr='esacci.8d4360b5c6cd48eb967286da31b33567')
+            query_expr='esacci.3ef6a5a66e9947d39b356251909dc12b')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
