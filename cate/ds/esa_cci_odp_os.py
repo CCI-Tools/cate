@@ -608,12 +608,9 @@ class EsaCciOdpOsDataStore(DataStore):
         super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
-        self._esgf_data = index_cache_json_dict
+        self._catalogue = index_cache_json_dict
         self._index_cache_update_tag = index_cache_update_tag
         self._data_sources = []
-        self._catalogue = None
-
-        self._csw_data = None
 
     @property
     def description(self) -> Optional[str]:

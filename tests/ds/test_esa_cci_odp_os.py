@@ -54,7 +54,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
                          file_list[1][4].get("Opendap"))
 
     def test_extract_metadata_from_odd_file(self):
-        odd_file = 'resources/odd.xml'
+        odd_file = os.path.join(os.path.dirname(__file__), 'resources/odd.xml')
         with open(odd_file) as odd:
             json_obj = _extract_metadata_from_odd(XML(odd.read()))
             self.assertFalse('query' in json_obj)
@@ -110,7 +110,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assert_json_obj_from_desc_xml(json_obj)
 
     def test_extract_metadata_from_descxml(self):
-        desc_file = 'resources/49bcb6f29c824ae49e41d2d3656f11be.xml'
+        desc_file = os.path.join(os.path.dirname(__file__), 'resources/49bcb6f29c824ae49e41d2d3656f11be.xml')
         with open(desc_file) as desc:
             json_obj = _extract_metadata_from_descxml(XML(desc.read()))
             self.assert_json_obj_from_desc_xml(json_obj)
@@ -137,7 +137,8 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('lon' in variable_infos['freqbandID']['dimensions'])
 
     def test_retrieve_dimensions_from_dds(self):
-        dds_file = "resources/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
+        dds_file = os.path.join(os.path.dirname(__file__),
+                                "resources/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds")
         dds = open(dds_file)
         dimensions, variable_infos = _retrieve_infos_from_dds(dds.readlines())
         self.assertEquals(4, len(dimensions))
@@ -246,7 +247,7 @@ class EsaCciOdpDataStoreIndexCacheTest(unittest.TestCase):
 
 
 def _create_test_data_store():
-    with open(os.path.join(os.path.dirname(__file__), 'esgf-index-cache.json')) as fp:
+    with open(os.path.join(os.path.dirname(__file__), 'resources/os-data-list.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
     for d in DATA_STORE_REGISTRY.get_data_stores():
@@ -296,12 +297,12 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
     def test_query(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 160)
+        self.assertEqual(len(data_sources), 5)
 
     def test_query_with_string(self):
         data_sources = self.data_store.query(query_expr='OC')
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 65)
+        self.assertEqual(len(data_sources), 1)
 
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
@@ -499,7 +500,6 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertIs(self.first_oc_data_source.data_store,
                       self.data_store)
 
-    @unittest.skip("First data source keeps changing")
     def test_id(self):
         self.assertEqual(self.first_oc_data_source.id, 'esacci.915d2340b178494f987a6942e263a2eb')
 
@@ -507,10 +507,9 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertEqual(self.first_oc_data_source.schema,
                          None)
 
-    @unittest.skip("First data source keeps changing")
     def test_temporal_coverage(self):
         self.assertEqual(self.first_oc_data_source.temporal_coverage(),
-                         (datetime(1997, 9, 3, 23, 0), datetime(2016, 12, 31, 23, 59, 59)))
+                         (datetime(1997, 9, 3, 23, 0, 0), datetime(2016, 12, 31, 23, 59, 59)))
 
     def assert_tf(self, filename: str, expected_time_format: str):
         time_format, p1, p2 = find_datetime_format(filename)
