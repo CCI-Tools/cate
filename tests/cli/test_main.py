@@ -18,13 +18,12 @@ from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
-from cate.core.pathmanag import PathManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
 
 def _create_test_data_store():
-    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
+    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'os-data-list.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
 
