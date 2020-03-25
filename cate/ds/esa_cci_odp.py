@@ -141,26 +141,6 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
             return time_format, p1, p2
     return None, -1, -1
 
-
-def get_exclude_variables_fix_known_issues(ds_id: str) -> [str]:
-    """
-    This method applies fixes to the parameters of a 'make_local' invocation.
-    """
-    if ds_id:
-        # the 't0' variable in these SOILMOISTURE data sources
-        # can not be decoded by xarray and lead to an unusable dataset
-        # see: https://github.com/CCI-Tools/cate/issues/326
-        soil_moisture_datasets = [
-            'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.03-2.r1',
-            'esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.03-2.r1'
-        ]
-        if ds_id in soil_moisture_datasets:
-            return [{'name': 't0', 'comment': "can not be decoded by xarray and lead to an unusable dataset\n"
-                                              "see: https://github.com/CCI-Tools/cate/issues/326"}]
-        return []
-
-
 async def _extract_metadata_from_odd_url(session = None, odd_url: str = None) -> dict:
     if session is None:
         session = aiohttp.ClientSession()
@@ -1064,164 +1044,154 @@ class EsaCciOdpDataSource(DataSource):
         """
         return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
 
-    def _make_local(self,
-                    local_ds: LocalDataSource,
-                    time_range: TimeRangeLike.TYPE = None,
-                    region: PolygonLike.TYPE = None,
-                    var_names: VarNamesLike.TYPE = None,
-                    monitor: Monitor = Monitor.NONE):
-
-        local_id = local_ds.id
+    def _update_local_ds(self, local_ds: LocalDataSource, time_range: TimeRangeLike.TYPE = None,
+                         region: PolygonLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
+                         monitor: Monitor = Monitor.NONE):
         time_range = TimeRangeLike.convert(time_range)
         var_names = VarNamesLike.convert(var_names)
-
-        excluded_variables = get_exclude_variables_fix_known_issues(self.id)
-
-        compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
-        compression_enabled = True if compression_level > 0 else False
-
-        do_update_of_verified_time_coverage_start_once = True
-        verified_time_coverage_start = None
-        verified_time_coverage_end = None
-
-        encoding_update = dict()
-        if compression_enabled:
-            encoding_update.update({'zlib': True, 'complevel': compression_level})
-
-        if region or var_names:
-            protocol = _ODP_PROTOCOL_OPENDAP
-        else:
-            protocol = _ODP_PROTOCOL_HTTP
-
-        local_path = os.path.join(local_ds.data_store.data_store_path, local_id)
+        local_path = os.path.join(local_ds.data_store.data_store_path, local_ds.id)
         if not os.path.exists(local_path):
             os.makedirs(local_path)
-
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             raise self._empty_error(time_range)
+        if region or var_names:
+            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region, monitor)
+        else:
+            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range, region, var_names, monitor)
+        local_ds.save(True)
 
-        try:
-            if protocol == _ODP_PROTOCOL_OPENDAP:
-                do_update_of_variables_meta_info_once = True
-                do_update_of_region_meta_info_once = True
+    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region, monitor):
+        do_update_of_verified_time_coverage_start_once = True
+        do_update_of_variables_meta_info_once = True
+        do_update_of_region_meta_info_once = True
+        verified_time_coverage_start = None
+        verified_time_coverage_end = None
+        compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
+        compression_enabled = True if compression_level > 0 else False
+        encoding_update = dict()
+        if compression_enabled:
+            encoding_update.update({'zlib': True, 'complevel': compression_level})
+        files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
+        with monitor.starting('Sync ' + self.id, total_work=len(files)):
+            for idx, dataset_uri in enumerate(files):
+                child_monitor = monitor.child(work=1)
+                file_name = os.path.basename(dataset_uri)
+                local_filepath = os.path.join(local_path, file_name)
+                time_coverage_start = selected_file_list[idx][1]
+                time_coverage_end = selected_file_list[idx][2]
+                with child_monitor.starting(label=file_name, total_work=100):
+                    try:
+                        remote_dataset = xr.open_dataset(dataset_uri)
+                        remote_dataset_root = remote_dataset
+                        child_monitor.progress(work=20)
+                        if var_names:
+                            remote_dataset = remote_dataset.drop_vars(
+                                [var_name for var_name in remote_dataset.data_vars.keys()
+                                 if var_name not in var_names]
+                            )
+                        if region:
+                            remote_dataset = normalize_impl(remote_dataset)
+                            remote_dataset = subset_spatial_impl(remote_dataset, region)
+                            remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
+                            if do_update_of_region_meta_info_once:
+                                local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                                local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                                local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                                local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+                                do_update_of_region_meta_info_once = False
+                        if compression_enabled:
+                            for sel_var_name in remote_dataset.variables.keys():
+                                remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                        # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                        # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                        # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                        # second time in this loop.
+                        # Probably related to https://github.com/pydata/xarray/issues/2560.
+                        # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                        remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
+                        child_monitor.progress(work=75)
 
-                files = self._get_urls_list(selected_file_list, protocol)
-                with monitor.starting('Sync ' + self.id, total_work=len(files)):
-                    for idx, dataset_uri in enumerate(files):
-                        child_monitor = monitor.child(work=1)
-
-                        file_name = os.path.basename(dataset_uri)
-                        local_filepath = os.path.join(local_path, file_name)
-
-                        time_coverage_start = selected_file_list[idx][1]
-                        time_coverage_end = selected_file_list[idx][2]
-
-                        with child_monitor.starting(label=file_name, total_work=100):
-                            remote_dataset = xr.open_dataset(dataset_uri,
-                                                             drop_variables=[variable.get('name') for variable in
-                                                                             excluded_variables])
-                            remote_dataset_root = remote_dataset
-                            child_monitor.progress(work=20)
-
-                            if var_names:
-                                remote_dataset = remote_dataset.drop_vars(
-                                    [var_name for var_name in remote_dataset.data_vars.keys()
-                                     if var_name not in var_names]
-                                )
-                            if region:
-                                remote_dataset = normalize_impl(remote_dataset)
-                                remote_dataset = subset_spatial_impl(remote_dataset, region)
-                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
-                                if do_update_of_region_meta_info_once:
-                                    local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
-                                    local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
-                                    local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
-                                    local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
-                                    do_update_of_region_meta_info_once = False
-                            if compression_enabled:
-                                for sel_var_name in remote_dataset.variables.keys():
-                                    remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                            # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
-                            # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
-                            # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
-                            # second time in this loop.
-                            # Probably related to https://github.com/pydata/xarray/issues/2560.
-                            # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                            remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
-                            child_monitor.progress(work=75)
-
-                            if do_update_of_variables_meta_info_once:
-                                variables_info = local_ds.meta_info.get('variables', [])
-                                local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                                   if var_info.get('name')
-                                                                   in remote_dataset.variables.keys()
-                                                                   and var_info.get('name')
-                                                                   not in remote_dataset.dims.keys()]
-                                do_update_of_variables_meta_info_once = False
-                            local_ds.add_dataset(os.path.join(local_id, file_name),
-                                                 (time_coverage_start, time_coverage_end))
-                            if do_update_of_verified_time_coverage_start_once:
-                                verified_time_coverage_start = time_coverage_start
-                                do_update_of_verified_time_coverage_start_once = False
-                            verified_time_coverage_end = time_coverage_end
-                            child_monitor.progress(work=5)
-
-                            remote_dataset_root.close()
-            else:
-                outdated_file_list = []
-                for file_rec in selected_file_list:
-                    filename, _, _, file_size, url = file_rec
-                    dataset_file = os.path.join(local_path, filename)
-                    # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-                    # ... outdated or incomplete or corrupted.
-                    # JSON also includes "checksum" and "checksum_type" fields.
-                    if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                        outdated_file_list.append(file_rec)
-
-                if outdated_file_list:
-                    with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
-                        bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                        dl_stat = _DownloadStatistics(bytes_to_download)
-
-                        file_number = 1
-
-                        for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
-                            dataset_file = os.path.join(local_path, filename)
-                            child_monitor = monitor.child(work=1.0)
-
-                            # noinspection PyUnusedLocal
-                            def reporthook(block_number, read_size, total_file_size):
-                                dl_stat.handle_chunk(read_size)
-                                child_monitor.progress(work=read_size, msg=str(dl_stat))
-
-                            sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                            with child_monitor.starting(sub_monitor_msg, file_size):
-                                actual_url = url[protocol]
-                                _LOG.info(f"Downloading {actual_url} to {dataset_file}")
-                                urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
-                            file_number += 1
-                            local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
-
-                            if do_update_of_verified_time_coverage_start_once:
-                                verified_time_coverage_start = coverage_from
-                                do_update_of_verified_time_coverage_start_once = False
-                            verified_time_coverage_end = coverage_to
-        except HTTPError as e:
-            raise self._cannot_access_error(time_range, region, var_names,
+                        if do_update_of_variables_meta_info_once:
+                            variables_info = local_ds.meta_info.get('variables', [])
+                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                               if var_info.get('name')
+                                                               in remote_dataset.variables.keys()
+                                                               and var_info.get('name')
+                                                               not in remote_dataset.dims.keys()]
+                            do_update_of_variables_meta_info_once = False
+                        local_ds.add_dataset(os.path.join(local_ds.id, file_name),
+                                             (time_coverage_start, time_coverage_end))
+                        if do_update_of_verified_time_coverage_start_once:
+                            verified_time_coverage_start = time_coverage_start
+                            do_update_of_verified_time_coverage_start_once = False
+                        verified_time_coverage_end = time_coverage_end
+                        child_monitor.progress(work=5)
+                        remote_dataset_root.close()
+                    except HTTPError as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                    verb="synchronize", cause=e) from e
+                    except (URLError, socket.timeout) as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                verb="synchronize", cause=e,
+                                                error_cls=NetworkError) from e
+                    except OSError as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
                                             verb="synchronize", cause=e) from e
-        except (URLError, socket.timeout) as e:
-            raise self._cannot_access_error(time_range, region, var_names,
-                                            verb="synchronize", cause=e,
-                                            error_cls=NetworkError) from e
-        except OSError as e:
-            raise self._cannot_access_error(time_range, region, var_names,
-                                            verb="synchronize", cause=e) from e
-
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
-        local_ds.meta_info['exclude_variables'] = excluded_variables
-        local_ds.save(True)
+
+    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region, var_names, monitor):
+        do_update_of_verified_time_coverage_start_once = True
+        verified_time_coverage_start = None
+        verified_time_coverage_end = None
+        outdated_file_list = []
+        for file_rec in selected_file_list:
+            filename, _, _, file_size, url = file_rec
+            dataset_file = os.path.join(local_path, filename)
+            # todo (forman, 20160915): must perform better checks on dataset_file if it is...
+            # ... outdated or incomplete or corrupted.
+            # JSON also includes "checksum" and "checksum_type" fields.
+            if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
+                outdated_file_list.append(file_rec)
+        if outdated_file_list:
+            with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
+                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
+                dl_stat = _DownloadStatistics(bytes_to_download)
+                file_number = 1
+                for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
+                    dataset_file = os.path.join(local_path, filename)
+                    child_monitor = monitor.child(work=1.0)
+
+                    # noinspection PyUnusedLocal
+                    def reporthook(block_number, read_size, total_file_size):
+                        dl_stat.handle_chunk(read_size)
+                        child_monitor.progress(work=read_size, msg=str(dl_stat))
+
+                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
+                    with child_monitor.starting(sub_monitor_msg, file_size):
+                        actual_url = url[_ODP_PROTOCOL_HTTP]
+                        _LOG.info(f"Downloading {actual_url} to {dataset_file}")
+                        try:
+                            urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
+                        except HTTPError as e:
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e) from e
+                        except (URLError, socket.timeout) as e:
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e,
+                                                            error_cls=NetworkError) from e
+                        except OSError as e:
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e) from e
+                    file_number += 1
+                    local_ds.add_dataset(os.path.join(local_ds.id, filename), (coverage_from, coverage_to))
+                    if do_update_of_verified_time_coverage_start_once:
+                        verified_time_coverage_start = coverage_from
+                        do_update_of_verified_time_coverage_start_once = False
+                    verified_time_coverage_end = coverage_to
+        local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
+        local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
 
     def make_local(self,
                    local_name: str,
@@ -1269,7 +1239,7 @@ class EsaCciOdpDataSource(DataSource):
         if local_ds:
             if not local_ds.is_complete:
                 try:
-                    self._make_local(local_ds, time_range, region, var_names, monitor=monitor)
+                    self._update_local_ds(local_ds, time_range, region, var_names, monitor=monitor)
                 except Cancellation as c:
                     local_store.remove_data_source(local_ds)
                     raise c
