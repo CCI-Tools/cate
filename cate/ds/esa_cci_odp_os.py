@@ -1306,7 +1306,7 @@ class EsaCciOdpOsDataSource(DataSource):
                                                    cache_expiration_days=self._data_store.index_cache_expiration_days)
 
     async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
-        self.ensure_meta_info_set()
+        await self.ensure_meta_info_set()
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
