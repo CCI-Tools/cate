@@ -1,0 +1,58 @@
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:ceda="http://localhost/ceda/opensearch" xmlns:eo="http://a9.com/-/opensearch/extensions/eo/1.0/" xmlns:geo="http://a9.com/-/opensearch/extensions/geo/1.0/" xmlns:safe="http://www.esa.int/safe/sentinel/1.1" xmlns:time="http://a9.com/-/opensearch/extensions/time/1.0/" xmlns:param="http://a9.com/-/spec/opensearch/extensions/parameters/1.0/" xmlns:sru="http://a9.com/-/opensearch/extensions/sru/2.0/">
+	<ShortName>CEDA Opensearch</ShortName>
+	<Description>Opensearch interface to the CEDA archive</Description>
+	<Tags>CEDA NERC</Tags>
+	<LongName>CEDA Opensearch</LongName>
+	<Developer>CEDA</Developer>
+	<Attribution>NERC</Attribution>
+	<SyndicationRight>open</SyndicationRight>
+	<AdultContent>false</AdultContent>
+	<Language>en-uk</Language>
+	<InputEncoding>UTF-8</InputEncoding>
+	<OutputEncoding>UTF-8</OutputEncoding>
+	<Url rel="self" template="http://opensearch-test.ceda.ac.uk/opensearch/description.xml" type="application/opensearchdescription+xml"/>
+	<Url rel="results" template="http://opensearch-test.ceda.ac.uk/opensearch/request?httpAccept=application/geo+json&amp;amp;query={searchTerms?}&amp;maximumRecords={count?}&amp;startPage={startPage?}&amp;startRecord={startRecord?}&amp;startDate={time:start?}&amp;endDate={time:end?}&amp;parentIdentifier={parentIdentifier?}&amp;ecv={ecv?}&amp;frequency={frequency?}&amp;institute={institute?}&amp;processingLevel={processingLevel?}&amp;productString={productString?}&amp;productVersion={productVersion?}&amp;dataType={dataType?}&amp;sensor={sensor?}&amp;platform={platform?}&amp;fileFormat={fileFormat?}" type="application/geo+json">
+		<param:Parameter name="query" value="{searchTerms}"/>
+		<param:Parameter name="maximumRecords" value="{count}"/>
+		<param:Parameter name="startPage" value="{startPage}"/>
+		<param:Parameter name="startRecord" value="{startRecord}"/>
+		<param:Parameter name="startDate" value="{time:start}"/>
+		<param:Parameter name="endDate" value="{time:end}"/>
+		<param:Parameter name="parentIdentifier" value="{parentIdentifier}"/>
+		<param:Parameter name="ecv" value="{ecv}">
+			<param:Option label="LC (16)" value="LC"/>
+		</param:Parameter>
+		<param:Parameter name="frequency" value="{frequency}">
+			<param:Option label="day (8)" value="day"/>
+			<param:Option label="year (8)" value="year"/>
+		</param:Parameter>
+		<param:Parameter name="institute" value="{institute}">
+			<param:Option label="Universite Catholique de Louvain (16)" value="Universite Catholique de Louvain"/>
+		</param:Parameter>
+		<param:Parameter name="processingLevel" value="{processingLevel}">
+			<param:Option label="L4 (16)" value="L4"/>
+		</param:Parameter>
+		<param:Parameter name="productString" value="{productString}">
+			<param:Option label="Map (16)" value="Map"/>
+		</param:Parameter>
+		<param:Parameter name="productVersion" value="{productVersion}">
+			<param:Option label="2.0.7 (16)" value="2.0.7"/>
+		</param:Parameter>
+		<param:Parameter name="dataType" value="{dataType}">
+			<param:Option label="LCCS (16)" value="LCCS"/>
+		</param:Parameter>
+		<param:Parameter name="sensor" value="{sensor}"/>
+		<param:Parameter name="platform" value="{platform}"/>
+		<param:Parameter name="fileFormat" value="{fileFormat}">
+			<param:Option label=".nc (16)" value=".nc"/>
+		</param:Parameter>
+	</Url>
+	<Query ecv="LC" role="example"/>
+	<Query frequency="year" role="example"/>
+	<Query institute="Universite Catholique de Louvain" role="example"/>
+	<Query processingLevel="L4" role="example"/>
+	<Query productString="Map" role="example"/>
+	<Query productVersion="2.0.7" role="example"/>
+	<Query dataType="LCCS" role="example"/>
+	<Query fileFormat=".nc" role="example"/>
+</OpenSearchDescription>

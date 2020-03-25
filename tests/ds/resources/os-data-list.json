@@ -1,0 +1,654 @@
+{
+  "esacci.4eb4e801424a47f7b77434291921f889": {
+    "title": "ESA Ozone Climate Change Initiative (Ozone CCI): Level 3 Nadir Ozone Profile Merged Data Product, version 2",
+    "variables": [
+      {
+        "name": "surface_pressure",
+        "units": "hPa",
+        "long_name": "Pressure at the bottom of the atmosphere."
+      },
+      {
+        "name": "air_pressure",
+        "units": "hPa",
+        "long_name": "air pressure at layer boundaries"
+      },
+      {
+        "name": "O3e_ndens",
+        "units": "6.02214E-17 mol m-3",
+        "long_name": "error in the weighted average of the number density (#molecules/cm3)"
+      },
+      {
+        "name": "O3e_du",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "error in the weighted average of the partial ozone columns (DU/layer)"
+      },
+      {
+        "name": "O3e_vmr",
+        "units": "1e-6",
+        "long_name": "error in the weighted average of the volume mixing ratio (ppmv)"
+      },
+      {
+        "name": "lat",
+        "units": "degree_north",
+        "long_name": "latitude, from -90 (south) to +90 (north) given at gridcell centers"
+      },
+      {
+        "name": "lon",
+        "units": "degree_east",
+        "long_name": "longitude, from -180 (west) to +180 (east) given at gridcell centers"
+      },
+      {
+        "name": "layers",
+        "units": "1",
+        "long_name": "model_level_number == layer number, starting at 1"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "time"
+      },
+      {
+        "name": "O3e_du_tot",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "total column error: quadratically added o3e_du (DU)"
+      },
+      {
+        "name": "O3_du_tot",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "total column: vertically integrated O3_du dataset (DU)"
+      },
+      {
+        "name": "O3_ndens",
+        "units": "6.02214E-17 mol m-3",
+        "long_name": "weighted average of the number density (#molecules/cm3)"
+      },
+      {
+        "name": "O3_du",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "weighted average of the partial ozone columns (DU/layer)"
+      },
+      {
+        "name": "O3_vmr",
+        "units": "1e-6",
+        "long_name": "weighted average of the volume mixing ratio (ppmv)"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=4eb4e801424a47f7b77434291921f889",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/4eb4e801424a47f7b77434291921f889.xml",
+    "metadata": {
+      "ecv": "OZONE",
+      "time_frequency": "month",
+      "institute": "Royal Netherlands Meteorological Institute",
+      "processing_level": "Level 3",
+      "product_string": "MERGED",
+      "product_version": "fv0002",
+      "data_type": "NP",
+      "file_formats": [
+        ".nc",
+        ".txt"
+      ],
+      "abstract": "This dataset contains Level 3 nadir profile ozone data  from the ESA Ozone Climate Change Initiative (CCI) project.   The Level 3 data are monthly averages on a regular 3D grid derived from level 2 ozone profiles.  In this version 2 of the dataset, data are available for 1997 and 2007 and 2008 only, and use data from the GOME instrument on ERS (1997) and the GOME-2 instrument on METOP-A (2007, 2008).",
+      "title": "ESA Ozone Climate Change Initiative (Ozone CCI): Level 3 Nadir Ozone Profile Merged Data Product, version 2",
+      "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_ozone_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-90.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "90.0",
+      "temporal_coverage_start": "1997-01-01T00:00:00",
+      "temporal_coverage_end": "2008-12-31T00:00:00",
+      "publication_date": "2016-03-08T16:54:39",
+      "creation_date": "2016-03-08T16:54:39",
+      "platform_ids": [
+        "ERS-2",
+        "Metop-A",
+        "Envisat",
+        "Aura"
+      ],
+      "sensor_ids": [
+        "GOME-2",
+        "SCIAMACHY",
+        "OMI",
+        "GOME"
+      ],
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  },
+  "esacci.915d2340b178494f987a6942e263a2eb": {
+    "title": "ESA Ocean Colour Climate Change Initiative (Ocean_Colour_cci): Global chlorophyll-a data products gridded on a sinusoidal projection, Version 3.1",
+    "variables": [
+      {
+        "name": "chlor_a_log10_bias",
+        "units": "",
+        "long_name": "Bias of log10-transformed chlorophyll-a concentration in seawater."
+      },
+      {
+        "name": "chlor_a",
+        "units": "milligram m-3",
+        "long_name": "Chlorophyll-a concentration in seawater (not log-transformed), generated by SeaDAS using a blended combination of OCI (OC4v6 + Hu's CI), OC3 and OC5, depending on water class memberships"
+      },
+      {
+        "name": "MERIS_nobs",
+        "units": "",
+        "long_name": "Count of the number of observations from the MERIS sensor contributing to this bin cell"
+      },
+      {
+        "name": "MODISA_nobs",
+        "units": "",
+        "long_name": "Count of the number of observations from the MODIS (Aqua) sensor contributing to this bin cell"
+      },
+      {
+        "name": "SeaWiFS_nobs",
+        "units": "",
+        "long_name": "Count of the number of observations from the SeaWiFS (GAC and LAC) sensor contributing to this bin cell"
+      },
+      {
+        "name": "VIIRS_nobs",
+        "units": "",
+        "long_name": "Count of the number of observations from the VIIRS sensor contributing to this bin cell"
+      },
+      {
+        "name": "total_nobs",
+        "units": "",
+        "long_name": "Count of the total number of observations contributing to this bin cell"
+      },
+      {
+        "name": "chlor_a_log10_rmsd",
+        "units": "",
+        "long_name": "Root-mean-square-difference of log10-transformed chlorophyll-a concentration in seawater."
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": null
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": null
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": null
+      },
+      {
+        "name": "crs",
+        "units": "",
+        "long_name": null
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=915d2340b178494f987a6942e263a2eb",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/915d2340b178494f987a6942e263a2eb.xml",
+    "metadata": {
+      "ecv": "OC",
+      "time_frequency": "day",
+      "institute": "Plymouth Marine Laboratory",
+      "processing_level": "L3S",
+      "product_string": "MERGED",
+      "product_version": "3.1",
+      "data_type": "CHLOR_A",
+      "sensor_id": "multi-sensor",
+      "platform_id": "multi-platform",
+      "abstract": "The ESA Ocean Colour CCI project has produced global level 3 binned multi-sensor time-series of satellite ocean-colour data with a particular focus for use in climate studies.\n\nThis dataset contains their Version 3.1 chlorophyll-a product (in mg/m3) on a sinusoidal projection at 4 km spatial resolution and at a number of time resolutions (daily, 5-day, 8-day and monthly composites).   Note, the chlorophyll-a data are also included in the 'All Products' dataset. \n\nThis data product is on a sinusoidal equal-area grid projection, matching the NASA standard level 3 binned projection. The default number of latitude rows is 4320, which results in a vertical bin cell size of approximately 4 km. The number of longitude columns varies according to the latitude, which permits the equal area property. Unlike the NASA format, where the bin cells that do not contain any data are omitted, the CCI format retains all cells and simply marks empty cells with a NetCDF fill value. (A separate dataset is also available for data on a geographic projection.)",
+      "title": "ESA Ocean Colour Climate Change Initiative (Ocean_Colour_cci): Global chlorophyll-a data products gridded on a sinusoidal projection, Version 3.1",
+      "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_oc_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-90.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "90.0",
+      "temporal_coverage_start": "1997-09-03T23:00:00",
+      "temporal_coverage_end": "2016-12-31T23:59:59",
+      "file_formats": ".nc",
+      "publication_date": "2018-06-25T17:13:53",
+      "creation_date": "2018-06-25T17:13:53",
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  },
+  "esacci.3ef6a5a66e9947d39b356251909dc12b": {
+    "title": "ESA Sea State Climate Change Initiative (Sea_State_cci) : Global remote sensing daily merged multi-mission along-track significant wave height, L3 product, version 1.1",
+    "variables": [
+      {
+        "name": "sigma0_adjusted",
+        "units": "dB",
+        "long_name": "Ku band adjusted backscatter coefficient"
+      },
+      {
+        "name": "swh_adjusted",
+        "units": "m",
+        "long_name": "Ku band adjusted significant wave height"
+      },
+      {
+        "name": "sigma0",
+        "units": "dB",
+        "long_name": "Ku band backscatter coefficient"
+      },
+      {
+        "name": "swh_denoised",
+        "units": "m",
+        "long_name": "Ku band denoised significant wave height"
+      },
+      {
+        "name": "swh",
+        "units": "m",
+        "long_name": "Ku band significant wave height"
+      },
+      {
+        "name": "swh_uncertainty",
+        "units": "m",
+        "long_name": "best estimate of significant wave height standard error"
+      },
+      {
+        "name": "distance_to_coast",
+        "units": "m",
+        "long_name": "distance to nearest coast"
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": "latitude"
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": "longitude"
+      },
+      {
+        "name": "bathymetry",
+        "units": "m",
+        "long_name": "ocean depth"
+      },
+      {
+        "name": "relative_pass_number",
+        "units": "",
+        "long_name": "relative pass number of satellite associated with measurement"
+      },
+      {
+        "name": "satellite",
+        "units": "",
+        "long_name": "satellite associated with measurement"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "time of measurement"
+      },
+      {
+        "name": "cycle_number",
+        "units": "",
+        "long_name": "relative pass number of satellite associated with measurement"
+      },
+      {
+        "name": "cycle",
+        "units": "",
+        "long_name": "relative pass number of satellite associated with measurement"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=3ef6a5a66e9947d39b356251909dc12b",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/3ef6a5a66e9947d39b356251909dc12b.xml",
+    "metadata": {
+      "ecv": "SEASTATE",
+      "time_frequency": "satellite orbit frequency",
+      "institute": "multi-institution",
+      "processing_level": "L3",
+      "product_version": "1.1",
+      "data_type": "SWH",
+      "sensor_id": "multi-sensor",
+      "platform_id": "multi-platform",
+      "abstract": "The ESA Sea State Climate Change Initiative (CCI) project has produced global daily merged multi-sensor time-series of along-track satellite altimeter significant wave height data (referred to as Level 3 (L3) data) with a particular focus for use in climate studies.\n\nThis dataset contains the Version 1.1 edited Remote Sensing Significant Wave Height product, along-track at approximately 6 km spatial resolution, which have been generated from upstream Sea State CCI L2P products, edited and merged into daily products, retaining only valid and good quality measurements from all altimeters over one day, with simplified content (only a few key parameters). This is close to what is delivered in Near-Real Time by the CMEMS (Copernicus - Marine Environment Monitoring Service) project. \n\nThis first version of Sea State CCI products is inherited from the GlobWave project building on experience and existing outputs. It extends and improves the GlobWave products which were a post-processing over existing L2 altimeter agency products with additional filtering, corrections and variables. A major improvement consists in a new denoised sea surface height variable using Empirical Mode Decomposition.\n\nThe altimeter data used in the Sea State CCI dataset v1.1 come from multiple satellite missions spanning from 1991 to 2018 (ERS-1, ERS-2, Topex, Envisat, GFO, CryoSat-2, Jason-1, Jason-2, Jason-3, SARAL). Many altimeters are bi-frequency (Ku-C or Ku-S) and only measurements in Ku band were used, for consistency reasons, being available on each altimeter but SARAL (Ka band).",
+      "title": "ESA Sea State Climate Change Initiative (Sea_State_cci) : Global remote sensing daily merged multi-mission along-track significant wave height, L3 product, version 1.1",
+      "licences": "Use of these data is covered by the following licence: https://artefacts.ceda.ac.uk/licences/specific_licences/esacci_sea_state_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-80.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "80.0",
+      "temporal_coverage_start": "1991-07-31T23:00:00",
+      "temporal_coverage_end": "2018-12-31T23:59:59",
+      "file_formats": ".nc",
+      "publication_date": "2020-01-30T16:51:32",
+      "creation_date": "2020-01-30T16:51:32",
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  },
+  "esacci.83e51cf29821434ea14db56c564946d5": {
+    "title": "ESA Sea Surface Temperature Climate Change Initiative (SST_cci): Climatology Climate Data Record, version 2.1",
+    "variables": [
+      {
+        "name": "lat_bnds",
+        "units": "degrees_north",
+        "long_name": "Latitude cell boundaries"
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": "Latitude"
+      },
+      {
+        "name": "lon_bnds",
+        "units": "degrees_east",
+        "long_name": "Longitude cell boundaries"
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": "Longitude"
+      },
+      {
+        "name": "time_bnds",
+        "units": "",
+        "long_name": "Time cell boundaries"
+      },
+      {
+        "name": "analysed_sst",
+        "units": "kelvin",
+        "long_name": "analysed sea surface temperature"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "reference time of sst field"
+      },
+      {
+        "name": "sea_ice_fraction",
+        "units": "1",
+        "long_name": "sea ice area fraction"
+      },
+      {
+        "name": "mask",
+        "units": "",
+        "long_name": "sea/land/lake/ice field composite mask"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=83e51cf29821434ea14db56c564946d5",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/83e51cf29821434ea14db56c564946d5.xml",
+    "metadata": {
+      "ecv": "SST",
+      "time_frequency": "climatology",
+      "processing_level": "L4",
+      "product_string": "OSTIA",
+      "product_version": "2.1",
+      "data_type": "SSTdepth",
+      "sensor_id": "multi-sensor",
+      "platform_id": "multi-platform",
+      "file_formats": [
+        ".nc",
+        ".txt",
+        ".",
+        "n",
+        "c"
+      ],
+      "abstract": "This v2.1 SST_cci Climatology Data Record (CDR) consists of Level 4 daily climatology files gridded on a 0.05 degree grid.  \n\nThe dataset has been produced as part of the European Space Agency (ESA) Climate Change Initiative Sea Surface Temperature project(ESA SST_cci). The data products from SST_cci accurately map the surface temperature of the global oceans over the period 1981 to 2016 using observations from many satellites. The data provide independently quantified SSTs to a quality suitable for climate research.\n\nData are made freely and openly available under a Creative Commons License by Attribution (CC By 4.0) https://creativecommons.org/licenses/by/4.0/ . \n\nWhen citing this dataset please also cite the associated data paper:  Merchant, C.J., Embury, O., Bulgin, C.E., Block T., Corlett, G.K., Fiedler, E., Good, S.A., Mittaz, J., Rayner, N.A., Berry, D., Eastwood, S., Taylor, M., Tsushima, Y., Waterfall, A., Wilson, R., Donlon, C. Satellite-based time-series of sea-surface temperature since 1981 for climate applications, Scientific Data 6:223 (2019). http://doi.org/10.1038/s41597-019-0236-x",
+      "title": "ESA Sea Surface Temperature Climate Change Initiative (SST_cci): Climatology Climate Data Record, version 2.1",
+      "licences": "Use of these data is covered by the following licence: https://artefacts.ceda.ac.uk/licences/specific_licences/esacci_sst_terms_and_conditions_v2.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-90.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "90.0",
+      "temporal_coverage_start": "1982-01-01T00:00:00",
+      "temporal_coverage_end": "2010-12-31T23:59:59",
+      "publication_date": "2019-08-02T17:23:58",
+      "creation_date": "2019-08-02T17:23:58",
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  },
+  "esacci.a6efcb0868664248b9cb212aba44313d": {
+    "title": "ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 2 aerosol products from MERIS (ALAMO algorithm), Version 2.2",
+    "variables": [
+      {
+        "name": "icolumn",
+        "units": "1",
+        "long_name": "Column number of the pixel in the original grid"
+      },
+      {
+        "name": "pixel_number",
+        "units": "1",
+        "long_name": "Indice of the pixel in the vector of observations"
+      },
+      {
+        "name": "latitude",
+        "units": "degree_north",
+        "long_name": "Latitude"
+      },
+      {
+        "name": "iline",
+        "units": "1",
+        "long_name": "Line number of the pixel in the original grid"
+      },
+      {
+        "name": "longitude",
+        "units": "degree_east",
+        "long_name": "Longitude"
+      },
+      {
+        "name": "Aerosol_Altitude",
+        "units": "m",
+        "long_name": "Mean Aerosol Altitude"
+      },
+      {
+        "name": "AOD550",
+        "units": "1",
+        "long_name": "Mean Effective Aerosol Optical Thickness at 550nm over ocean - Best solution"
+      },
+      {
+        "name": "AOD865",
+        "units": "1",
+        "long_name": "Mean Effective Aerosol Optical Thickness at 865nm over ocean - Best solution"
+      },
+      {
+        "name": "R_eff",
+        "units": "m",
+        "long_name": "Mean Effective Radius over ocean - Best solution"
+      },
+      {
+        "name": "fAOD550",
+        "units": "1",
+        "long_name": "Mean Fine Mode Aerosol Optical Thickness at 550nm over ocean - Best solution"
+      },
+      {
+        "name": "fAOD865",
+        "units": "1",
+        "long_name": "Mean Fine Mode Aerosol Optical Thickness at 865nm over ocean - Best solution"
+      },
+      {
+        "name": "pixel_corner_latitude2",
+        "units": "degree_north",
+        "long_name": "North-East pixel corner latitude"
+      },
+      {
+        "name": "pixel_corner_longitude2",
+        "units": "degree_east",
+        "long_name": "North-East pixel corner longitude"
+      },
+      {
+        "name": "pixel_corner_latitude1",
+        "units": "degree_north",
+        "long_name": "North-West pixel corner latitude"
+      },
+      {
+        "name": "pixel_corner_longitude1",
+        "units": "degree_east",
+        "long_name": "North-West pixel corner longitude"
+      },
+      {
+        "name": "pixel_corner_latitude3",
+        "units": "degree_north",
+        "long_name": "South-East pixel corner latitude"
+      },
+      {
+        "name": "pixel_corner_longitude3",
+        "units": "degree_east",
+        "long_name": "South-East pixel corner longitude"
+      },
+      {
+        "name": "pixel_corner_latitude4",
+        "units": "degree_north",
+        "long_name": "South-West pixel corner latitude"
+      },
+      {
+        "name": "pixel_corner_longitude4",
+        "units": "degree_east",
+        "long_name": "South-West pixel corner longitude"
+      },
+      {
+        "name": "Aerosol_Altitude_std",
+        "units": "m",
+        "long_name": "Standard Deviation of Aerosol Altitude"
+      },
+      {
+        "name": "AOD550_std",
+        "units": "1",
+        "long_name": "Standard Deviation of Effective Aerosol Optical Thickness at 550nm over ocean - Best solution"
+      },
+      {
+        "name": "AOD865_std",
+        "units": "1",
+        "long_name": "Standard Deviation of Effective Aerosol Optical Thickness at 865nm over ocean - Best solution"
+      },
+      {
+        "name": "R_eff_std",
+        "units": "m",
+        "long_name": "Standard Deviation of Effective Radius over ocean - Best solution"
+      },
+      {
+        "name": "fAOD550_std",
+        "units": "1",
+        "long_name": "Standard Deviation of Fine Mode Aerosol Optical Thickness at 550nm over ocean - Best solution"
+      },
+      {
+        "name": "fAOD865_std",
+        "units": "1",
+        "long_name": "Standard Deviation of Fine Mode Aerosol Optical Thickness at 865nm over ocean - Best solution"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=a6efcb0868664248b9cb212aba44313d",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/a6efcb0868664248b9cb212aba44313d.xml",
+    "metadata": {
+      "ecv": "AEROSOL",
+      "time_frequency": "satellite orbit frequency",
+      "institute": "multi-institution",
+      "product_string": "MERIS_ENVISAT",
+      "product_version": "2.2",
+      "data_type": "AOD",
+      "sensor_id": "MERIS",
+      "platform_id": "Envisat",
+      "file_formats": [
+        ".nc",
+        ".txt",
+        ".",
+        "n",
+        "c"
+      ],
+      "abstract": "The ESA Climate Change Initiative Aerosol project has produced a number of global aerosol Essential Climate Variable (ECV) products from a set of European satellite instruments with different characteristics. \n\nThis dataset comprises the Level 2 aerosol products from MERIS for 2008, using the ALAMO algorithm, version 2.2.   The data have been provided by Hygeos.\n\nFor further details about these data products please see the linked documentation.",
+      "title": "ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 2 aerosol products from MERIS (ALAMO algorithm), Version 2.2",
+      "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_aerosol_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-90.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "90.0",
+      "temporal_coverage_start": "2008-01-01T00:00:00",
+      "temporal_coverage_end": "2008-12-31T23:59:59",
+      "publication_date": "2016-07-28T14:39:08",
+      "creation_date": "2016-07-28T14:39:08",
+      "processing_levels": [
+        "Level 2 Pre-processing",
+        "Level 2",
+        "L2P"
+      ],
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  },
+  "esacci.20babc8f4dc449eaac11f47708e9f721": {
+    "title": "ESA Soil Moisture Climate Change Initiative (Soil_Moisture_cci): ACTIVE Product, Version 04.5",
+    "variables": [
+      {
+        "name": "dnflag",
+        "units": "",
+        "long_name": "Day / Night Flag"
+      },
+      {
+        "name": "flag",
+        "units": "",
+        "long_name": "Flag"
+      },
+      {
+        "name": "freqbandID",
+        "units": "",
+        "long_name": "Frequency Band Identification"
+      },
+      {
+        "name": "t0",
+        "units": "",
+        "long_name": "Observation Timestamp"
+      },
+      {
+        "name": "sm_uncertainty",
+        "units": "percent",
+        "long_name": "Percent of Saturation Soil Moisture Uncertainty"
+      },
+      {
+        "name": "sm",
+        "units": "percent",
+        "long_name": "Percent of Saturation Soil Moisture"
+      },
+      {
+        "name": "mode",
+        "units": "",
+        "long_name": "Satellite Mode"
+      },
+      {
+        "name": "sensor",
+        "units": "",
+        "long_name": "Sensor"
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": null
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": null
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": null
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=20babc8f4dc449eaac11f47708e9f721",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/20babc8f4dc449eaac11f47708e9f721.xml",
+    "metadata": {
+      "ecv": "SOILMOISTURE",
+      "time_frequency": "day",
+      "institute": "Vienna University of Technology",
+      "processing_level": "L3S",
+      "product_string": "ACTIVE",
+      "product_version": "04.5",
+      "data_type": "SSMS",
+      "sensor_id": "multi-sensor",
+      "platform_id": "multi-platform",
+      "file_formats": [
+        ".nc",
+        ".txt"
+      ],
+      "abstract": "The Soil Moisture CCI ACTIVE dataset is one of the three datasets created as part of the European Space Agency's (ESA) Soil Moisture Essential Climate Variable (ECV) Climate Change Initiative (CCI) project. The product has been created by fusing scatterometer soil moisture products, derived from the instruments AMI-WS and ASCAT.  PASSIVE and COMBINED products have also been created. \n\nThe v04.5 ACTIVE product, provided as global daily images in NetCDF-4 classic file format, presents a global coverage of surface soil moisture at a spatial resolution of 0.25 degrees. It covers the period 1991-08-05 to 2018-12-31 and is expressed in percent of saturation [%]. For information regarding the theoretical and algorithmic base of the product, please see the Algorithm Theoretical Baseline Document. Other additional reference documents and information relating to the dataset can also be found on the CCI Soil Moisture project web site or within the Product Specification Document.\n\nThe data set should be cited using all three of the following references:\n\n1. Gruber, A., Scanlon, T., van der Schalie, R., Wagner, W., and Dorigo, W. (2019). Evolution of the ESA CCI Soil Moisture climate data records and their underlying merging methodology, Earth Syst. Sci. Data, 11, 717\u2013739, https://doi.org/10.5194/essd-11-717-2019\n\n2. Dorigo, W.A., Wagner, W., Albergel, C., Albrecht, F., Balsamo, G., Brocca, L., Chung, D., Ertl, M., Forkel, M., Gruber, A., Haas, E., Hamer, D. P. Hirschi, M., Ikonen, J., De Jeu, R. Kidd, R. Lahoz, W., Liu, Y.Y., Miralles, D., Lecomte, P. (2017). ESA CCI Soil Moisture for improved Earth system understanding: State-of-the art and future directions. In Remote Sensing of Environment, 2017, ISSN 0034-4257, https://doi.org/10.1016/j.rse.2017.07.001\n\n3. Gruber, A., Dorigo, W. A., Crow, W., Wagner W. (2017). Triple Collocation-Based Merging of Satellite Soil Moisture Retrievals. IEEE Transactions on Geoscience and Remote Sensing. PP. 1-13. 10.1109/TGRS.2017.2734070",
+      "title": "ESA Soil Moisture Climate Change Initiative (Soil_Moisture_cci): ACTIVE Product, Version 04.5",
+      "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_soilmoisture_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+      "bbox_minx": "-180.0",
+      "bbox_miny": "-90.0",
+      "bbox_maxx": "180.0",
+      "bbox_maxy": "90.0",
+      "temporal_coverage_start": "1991-08-04T23:00:00",
+      "temporal_coverage_end": "2018-12-31T23:59:59",
+      "publication_date": "2019-12-19T18:06:17",
+      "creation_date": "2019-12-19T18:06:17",
+      "dimensions": {},
+      "variable_infos": {}
+    }
+  }
+}
