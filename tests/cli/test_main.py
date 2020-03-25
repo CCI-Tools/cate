@@ -146,7 +146,6 @@ class CliTest(CliTestCase):
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
 
-
 class WorkspaceCommandTest(CliTestCase):
     def setUp(self):
         self.remove_tree('.cate-workspace', ignore_errors=False)

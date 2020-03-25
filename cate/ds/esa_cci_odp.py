@@ -141,7 +141,8 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
             return time_format, p1, p2
     return None, -1, -1
 
-async def _extract_metadata_from_odd_url(session = None, odd_url: str = None) -> dict:
+
+async def _extract_metadata_from_odd_url(session=None, odd_url: str = None) -> dict:
     if session is None:
         session = aiohttp.ClientSession()
     if not odd_url:
@@ -181,12 +182,12 @@ def _get_from_param_elem(param_elem: etree.Element) -> Optional[Union[str, List[
     return [option.get('value') for option in options]
 
 
-async def _extract_metadata_from_descxml_url(session = None, descxml_url: str = None) -> dict:
+async def _extract_metadata_from_descxml_url(session=None, descxml_url: str = None) -> dict:
     if session is None:
         session = aiohttp.ClientSession()
     if not descxml_url:
         return {}
-    resp = await session.request(method = 'GET', url = descxml_url)
+    resp = await session.request(method='GET', url=descxml_url)
     resp.raise_for_status()
     descxml = etree.XML(await resp.read())
     try:
@@ -299,7 +300,7 @@ async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Di
     paging_query_args = dict(query_args or {})
     maximum_records = 1
     paging_query_args.update(startPage=index, maximumRecords=maximum_records, httpAccept='application/geo+json',
-                            fileFormat='.nc')
+                             fileFormat='.nc')
     url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
     resp = await session.request(method='GET', url=url)
     resp.raise_for_status()
@@ -321,7 +322,7 @@ async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor 
     full_feature_list = []
     with monitor.starting("Loading", 10):
         async with aiohttp.ClientSession() as session:
-            #todo remove this when the opensearch server provides results of more than 10,000 features
+            # todo remove this when the opensearch server provides results of more than 10,000 features
             while start_page < 11:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
@@ -359,13 +360,13 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
 
 
 async def _load_or_fetch_json(fetch_json_function,
-                        fetch_json_args: list = None,
-                        fetch_json_kwargs: dict = None,
-                        cache_used: bool = False,
-                        cache_dir: str = None,
-                        cache_json_filename: str = None,
-                        cache_timestamp_filename: str = None,
-                        cache_expiration_days: float = 1.0) -> Sequence:
+                              fetch_json_args: list = None,
+                              fetch_json_kwargs: dict = None,
+                              cache_used: bool = False,
+                              cache_dir: str = None,
+                              cache_json_filename: str = None,
+                              cache_timestamp_filename: str = None,
+                              cache_expiration_days: float = 1.0) -> Sequence:
     """
     Return (JSON) value of fetch_json_function or return value of a cached JSON file.
     """
@@ -547,6 +548,7 @@ async def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE
             raise ValueError('filename {} already seen in dataset {}'.format(feature_info[0], dataset_id))
         file_list.append(feature_info)
     max_time = datetime.strftime(datetime.max, _TIMESTAMP_FORMAT)
+
     def pick_start_time(file_info_rec):
         return file_info_rec[1] if file_info_rec[1] else max_time
 
@@ -822,16 +824,16 @@ class EsaCciOdpDataStore(DataStore):
 
     async def _load_index(self):
         self._catalogue = await _load_or_fetch_json(_fetch_data_source_list_json,
-                                              fetch_json_args=[
-                                                  _OPENSEARCH_CEDA_URL,
-                                                  dict(parentIdentifier='cci')
-                                              ],
-                                              cache_used=self._index_cache_used,
-                                              cache_dir=get_metadata_store_path(),
-                                              cache_json_filename='dataset-list.json',
-                                              cache_timestamp_filename='dataset-list-timestamp.json',
-                                              cache_expiration_days=self._index_cache_expiration_days
-                                              )
+                                                    fetch_json_args=[
+                                                        _OPENSEARCH_CEDA_URL,
+                                                        dict(parentIdentifier='cci')
+                                                    ],
+                                                    cache_used=self._index_cache_used,
+                                                    cache_dir=get_metadata_store_path(),
+                                                    cache_json_filename='dataset-list.json',
+                                                    cache_timestamp_filename='dataset-list-timestamp.json',
+                                                    cache_expiration_days=self._index_cache_expiration_days
+                                                    )
 
 
 INFO_FIELD_NAMES = sorted(["title",
@@ -1056,12 +1058,14 @@ class EsaCciOdpDataSource(DataSource):
         if not selected_file_list:
             raise self._empty_error(time_range)
         if region or var_names:
-            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region, monitor)
+            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region,
+                                          monitor)
         else:
             self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range, region, var_names, monitor)
         local_ds.save(True)
 
-    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region, monitor):
+    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region,
+                                 monitor):
         do_update_of_verified_time_coverage_start_once = True
         do_update_of_variables_meta_info_once = True
         do_update_of_region_meta_info_once = True
@@ -1130,14 +1134,14 @@ class EsaCciOdpDataSource(DataSource):
                         remote_dataset_root.close()
                     except HTTPError as e:
                         raise self._cannot_access_error(time_range, region, var_names,
-                                                    verb="synchronize", cause=e) from e
+                                                        verb="synchronize", cause=e) from e
                     except (URLError, socket.timeout) as e:
                         raise self._cannot_access_error(time_range, region, var_names,
-                                                verb="synchronize", cause=e,
-                                                error_cls=NetworkError) from e
+                                                        verb="synchronize", cause=e,
+                                                        error_cls=NetworkError) from e
                     except OSError as e:
                         raise self._cannot_access_error(time_range, region, var_names,
-                                            verb="synchronize", cause=e) from e
+                                                        verb="synchronize", cause=e) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
 
@@ -1262,31 +1266,31 @@ class EsaCciOdpDataSource(DataSource):
             return
         # todo set True when dimensions shall be read during meta data fetching
         self._meta_info_dict = await _load_or_fetch_json(_fetch_meta_info,
-                                                   fetch_json_args=[self._raw_id,
-                                                                    self._json_dict['odd_url'],
-                                                                    self._json_dict['metadata_url'],
-                                                                    self._json_dict['variables'],
-                                                                    # True],
-                                                                    False],
-                                                   fetch_json_kwargs=dict(),
-                                                   cache_used=self._data_store.index_cache_used,
-                                                   cache_dir=self.local_metadata_dataset_dir(),
-                                                   cache_json_filename='meta-info.json',
-                                                   cache_timestamp_filename='meta-info-timestamp.txt',
-                                                   cache_expiration_days=self._data_store.index_cache_expiration_days)
+                                                         fetch_json_args=[self._raw_id,
+                                                                          self._json_dict['odd_url'],
+                                                                          self._json_dict['metadata_url'],
+                                                                          self._json_dict['variables'],
+                                                                          # True],
+                                                                          False],
+                                                         fetch_json_kwargs=dict(),
+                                                         cache_used=self._data_store.index_cache_used,
+                                                         cache_dir=self.local_metadata_dataset_dir(),
+                                                         cache_json_filename='meta-info.json',
+                                                         cache_timestamp_filename='meta-info-timestamp.txt',
+                                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
 
     async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
         await self.ensure_meta_info_set()
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
-                                        fetch_json_args=[self._raw_id],
-                                        fetch_json_kwargs=dict(monitor=monitor),
-                                        cache_used=self._data_store.index_cache_used,
-                                        cache_dir=self.local_metadata_dataset_dir(),
-                                        cache_json_filename='file-list.json',
-                                        cache_timestamp_filename='file-list-timestamp.txt',
-                                        cache_expiration_days=self._data_store.index_cache_expiration_days)
+                                              fetch_json_args=[self._raw_id],
+                                              fetch_json_kwargs=dict(monitor=monitor),
+                                              cache_used=self._data_store.index_cache_used,
+                                              cache_dir=self.local_metadata_dataset_dir(),
+                                              cache_json_filename='file-list.json',
+                                              cache_timestamp_filename='file-list-timestamp.txt',
+                                              cache_expiration_days=self._data_store.index_cache_expiration_days)
 
         time_frequency = self._meta_info_dict.get('time_frequency', None)
         if time_frequency is None and 'time_frequencies' in self._meta_info_dict:
