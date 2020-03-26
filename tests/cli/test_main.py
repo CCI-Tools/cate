@@ -18,13 +18,12 @@ from cate.core.wsmanag import FSWorkspaceManager
 from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
-from cate.core.pathmanag import PathManager
 
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
 
 def _create_test_data_store():
-    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'esgf-index-cache.json')) as fp:
+    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'os-data-list.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
 
@@ -145,7 +144,6 @@ class CliTest(CliTestCase):
         self.assertEqual(main._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
         self.assertEqual(main._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
-
 
 
 class WorkspaceCommandTest(CliTestCase):
@@ -325,24 +323,22 @@ class OperationCommandTest(CliTestCase):
 
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
-        self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'],
+        self.assert_main(['ds', 'info', 'esacci.20babc8f4dc449eaac11f47708e9f721'],
                          expected_status=0,
-                         expected_stdout=['Data source esacci.OZONE.mon.L3.',
-                                          'project:                  esacci'])
-        self.assert_main(['ds', 'info', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', '--var'],
+                         expected_stdout=['Data source esacci.20babc8f4dc449eaac11f47708e9f721'])
+        self.assert_main(['ds', 'info', 'esacci.20babc8f4dc449eaac11f47708e9f721', '--var'],
                          expected_status=0,
-                         expected_stdout=['Data source esacci.OZONE.mon.L3.',
-                                          'project:                  esacci',
-                                          'air_pressure (hPa):'])
+                         expected_stdout=['Data source esacci.20babc8f4dc449eaac11f47708e9f721',
+                                          'dnflag ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
                          expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
 
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['61 data sources found'])
-        self.assert_main(['ds', 'list', '--name', 'CLOUD'],
-                         expected_stdout=['14 data sources found'])
+                         expected_stdout=['6 data sources found'])
+        self.assert_main(['ds', 'list', '--name', 'ef'],
+                         expected_stdout=['2 data sources found'])
 
     def test_ds_update(self):
         self.assert_main(['ds', 'list', '-u'],
